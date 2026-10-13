@@ -1,7 +1,11 @@
 <div class="login-container">
     <div class="glass-card login-card" style="position: relative;">
-        <!-- Language Selector Bar on Login Page -->
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+        <!-- Language & Theme Selector Bar on Login Page -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <button type="button" class="theme-btn" onclick="toggleTheme()" id="login-theme-btn" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-main); padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
+                <i data-lucide="moon" id="login-theme-icon" style="width:14px; height:14px;"></i>
+                <span id="login-theme-label">تم</span>
+            </button>
             <div class="lang-selector-wrapper" style="margin: 0;">
                 <select id="login-lang-select" class="lang-select" onchange="changeLanguage(this.value)" aria-label="Select Language" style="padding: 4px 10px; font-size: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer;">
                     <option value="fa">🇮🇷 فارسی</option>
@@ -36,6 +40,20 @@
                     <input class="form-input" type="password" id="password-input" placeholder="••••••••" required>
                 </div>
             </div>
+
+            <!-- Two-Factor Authentication (2FA TOTP) Input Field -->
+            <div class="form-group" id="login-2fa-group" style="display:none; margin-bottom:20px;">
+                <label class="form-label" for="totp-input" style="color:var(--color-primary); font-weight:700;">
+                    <i data-lucide="key" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
+                    <span data-i18n="login_2fa_label">کد احراز هویت دو مرحله‌ای (2FA)</span>
+                </label>
+                <div class="input-wrapper">
+                    <i data-lucide="shield-check" class="input-icon"></i>
+                    <input class="form-input" type="text" id="totp-input" placeholder="123456" maxlength="6" inputmode="numeric" autocomplete="one-time-code" style="font-family:'JetBrains Mono', monospace; font-size:18px; letter-spacing:4px; text-align:center;">
+                </div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:5px;" data-i18n="login_2fa_help">کد ۶ رقمی نرم‌افزار Authenticator خود را وارد کنید.</div>
+            </div>
+
             <button type="submit" class="btn" id="login-btn">
                 <i data-lucide="log-in" class="btn-icon"></i> <span data-i18n="login_signin">ورود به پنل</span>
             </button>

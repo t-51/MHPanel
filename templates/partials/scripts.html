@@ -14,6 +14,44 @@
         lucide.createIcons();
     }
 
+    // --- Dark / Light Theme Engine ---
+    function initTheme() {
+        const savedTheme = localStorage.getItem("panel_theme") || "dark";
+        applyTheme(savedTheme);
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        if (theme === "dark") {
+            document.documentElement.classList.add("dark-mode");
+            if (document.body) document.body.classList.add("dark-mode");
+        } else {
+            document.documentElement.classList.remove("dark-mode");
+            if (document.body) document.body.classList.remove("dark-mode");
+        }
+        localStorage.setItem("panel_theme", theme);
+
+        const headerIcon = document.getElementById("header-theme-icon");
+        if (headerIcon) {
+            headerIcon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+        }
+        const loginIcon = document.getElementById("login-theme-icon");
+        if (loginIcon) {
+            loginIcon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
+        }
+        if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+        }
+    }
+
+    function toggleTheme() {
+        const cur = document.documentElement.getAttribute("data-theme") || (document.documentElement.classList.contains("dark-mode") ? "dark" : "light");
+        const next = cur === "dark" ? "light" : "dark";
+        applyTheme(next);
+    }
+
+    initTheme();
+
     // Global variables
     let usageChart = null;
     let bandwidthChart = null;
@@ -88,6 +126,15 @@
             login_password: "رمز عبور",
             login_signin: "ورود به پنل",
             login_error: "نام کاربری یا رمز عبور اشتباه است.",
+            login_2fa_label: "کد احراز هویت دو مرحله‌ای (2FA)",
+            login_2fa_help: "کد ۶ رقمی نرم‌افزار Authenticator خود را وارد کنید.",
+            about_title: "درباره سامانه MH Panel",
+            about_version: "نسخه سامانه:",
+            about_desc: "سامانه جامع و یکپارچه مدیریت سرورهای فیلترشکن، پروتکل‌های نوین VPN و هسته ردیوس",
+            rad_sub_settings: "تنظیمات ساب",
+            rad_user_sub: "لینک و بارکد ساب",
+            theme_toggle: "تغییر تم",
+            check_update: "بررسی بروزرسانی",
 
             panel_access_title: "تنظیمات آدرس ورود و پورت پنل",
             panel_access_desc: "برای مخفی‌سازی پنل از دید اسکنرهای اینترنت، می‌توانید یک مسیر اختصاصی (Secret Path) و پورت دلخواه تنظیم کنید.",
@@ -196,6 +243,15 @@
             login_password: "Password",
             login_signin: "Sign In",
             login_error: "Incorrect Username or Password.",
+            login_2fa_label: "Two-Factor Auth Code (2FA)",
+            login_2fa_help: "Enter the 6-digit code from your Authenticator app.",
+            about_title: "About MH Panel",
+            about_version: "System Version:",
+            about_desc: "Unified Management Suite for Anti-Censorship VPNs, Tunnels, and FreeRADIUS Core",
+            rad_sub_settings: "Sub Settings",
+            rad_user_sub: "Sub Link & QR",
+            theme_toggle: "Toggle Theme",
+            check_update: "Check Updates",
 
             panel_access_title: "Panel Access URL & Port Settings",
             panel_access_desc: "Hide the panel from automated scanners by setting a secret login path and custom port.",
@@ -304,6 +360,15 @@
             login_password: "Пароль",
             login_signin: "Войти",
             login_error: "Неверное имя пользователя или пароль.",
+            login_2fa_label: "Код двухфакторной аутентификации (2FA)",
+            login_2fa_help: "Введите 6-значный код из приложения Authenticator.",
+            about_title: "О панели MH Panel",
+            about_version: "Версия системы:",
+            about_desc: "Комплексная панель управления VPN-протоколами, туннелями и ядром FreeRADIUS",
+            rad_sub_settings: "Настройки подписки",
+            rad_user_sub: "Ссылка подписки",
+            theme_toggle: "Сменить тему",
+            check_update: "Проверить обновления",
 
             panel_access_title: "Настройки адреса входа и порта панели",
             panel_access_desc: "Скройте панель от сетевых сканеров с помощью секретного пути и настраиваемого порта.",
@@ -468,13 +533,41 @@
                 if (typeof lucide !== 'undefined') lucide.createIcons();
             }
             
+            const totpInput = document.getElementById("totp-input");
+            const totpCode = (totpInput?.value || "").trim();
+
+            const payload = { username, password };
+            if (totpCode) {
+                payload.totp_code = totpCode;
+            }
+            
             try {
                 const res = await fetch("/api/login", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify(payload)
                 });
                 const data = await res.json().catch(() => ({}));
+
+                if (res.ok && data.require_2fa) {
+                    const twofaGroup = document.getElementById("login-2fa-group");
+                    if (twofaGroup) twofaGroup.style.display = "block";
+                    if (totpInput) {
+                        totpInput.focus();
+                    }
+                    if (errDiv) {
+                        errDiv.innerText = "کد ۶ رقمی نرم‌افزار Authenticator را وارد نمایید.";
+                        errDiv.style.color = "var(--color-primary)";
+                        errDiv.style.display = "block";
+                    }
+                    if (loginBtn) {
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = '<i data-lucide="shield-check" class="btn-icon" style="width:16px; height:16px;"></i> <span>تایید کد و ورود</span>';
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                    return;
+                }
+
                 if (res.ok && data.success) {
                     if (loginBtn) {
                         loginBtn.innerHTML = '<i data-lucide="check" class="btn-icon" style="width:16px; height:16px;"></i> <span>ورود موفق!</span>';
@@ -486,6 +579,7 @@
                 } else {
                     if (errDiv) {
                         errDiv.innerText = data.error || "نام کاربری یا رمز عبور اشتباه است.";
+                        errDiv.style.color = "var(--color-rose)";
                         errDiv.style.display = "block";
                     }
                     if (loginBtn) {
@@ -2524,6 +2618,9 @@
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="editSingleRadiusUser('${uname}')" style="padding: 5px 8px; width:auto;" title="ویرایش کاربر">
                                 <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="showRadiusUserSubModal('${uname}')" style="padding: 5px 8px; width:auto; color: #6366f1;" title="لینک ساب و QR Code کاربر">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
                             </button>
                             <button type="button" class="btn-proto-delete" onclick="deleteSingleRadiusUser('${uname}')" style="padding: 5px 8px; font-size:11px;" title="حذف کاربر">
                                 <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
@@ -5149,7 +5246,7 @@
                     id: "ssh",
                     name: "تونل امن SSH بر بستر TLS (Stunnel)",
                     enabled: document.getElementById("mpx-proto-ssh-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-ssh-sni")?.value.trim() || "shahan.kigaping.com",
+                    sni: document.getElementById("mpx-proto-ssh-sni")?.value.trim() || "ssh.kigaping.com",
                     backend_ip: sshTarget.host,
                     backend_port: sshTarget.port,
                     is_default: false,
@@ -11706,4 +11803,422 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             showToast("خطای ارتباط با سرور: " + err.message, "error");
         }
     }
+
+    // ==========================================
+    // ABOUT & UPDATE MODAL HANDLERS
+    // ==========================================
+    function openAboutModal() {
+        const m = document.getElementById("aboutModal");
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
+    }
+
+    function closeAboutModal() {
+        const m = document.getElementById("aboutModal");
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
+    }
+
+    function openUpdateModal() {
+        const m = document.getElementById("checkUpdateModal");
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
+        checkPanelUpdate(false);
+    }
+
+    function closeUpdateModal() {
+        const m = document.getElementById("checkUpdateModal");
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
+    }
+
+    async function checkPanelUpdate(silent = false) {
+        const statusEl = document.getElementById("update-modal-status-text");
+        const latVerEl = document.getElementById("update-modal-latver");
+        const curVerEl = document.getElementById("update-modal-curver");
+        const applyBtn = document.getElementById("update-modal-apply-btn");
+        const badge = document.getElementById("header-update-badge");
+
+        if (!silent && statusEl) {
+            statusEl.innerText = "در حال ارتباط با گیت‌هاب و بررسی نسخه‌ها...";
+            statusEl.style.color = "var(--text-main)";
+        }
+
+        try {
+            const res = await fetch("/api/system/check_update");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.0.0");
+                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.0.0");
+
+                if (data.has_update) {
+                    if (badge) badge.style.display = "inline-flex";
+                    if (applyBtn) applyBtn.style.display = "inline-flex";
+                    if (statusEl) {
+                        statusEl.innerText = `نسخه جدید (${data.latest_version}) در گیت‌هاب منتشر شده است! برای نصب و بروزرسانی خودکار روی دکمه زیر بزنید.`;
+                        statusEl.style.color = "#059669";
+                    }
+                    if (silent) {
+                        showToast("نسخه جدیدی از پنل در گیت‌هاب موجود است! (v" + data.latest_version + ")", "info");
+                    }
+                } else {
+                    if (badge) badge.style.display = "none";
+                    if (applyBtn) applyBtn.style.display = "none";
+                    if (statusEl) {
+                        statusEl.innerText = "شما در حال حاضر از جدیدترین نسخه پایدار MH Panel استفاده می‌فرمایید.";
+                        statusEl.style.color = "var(--text-muted)";
+                    }
+                }
+            } else {
+                if (!silent && statusEl) {
+                    statusEl.innerText = "خطا در بررسی بروزرسانی: " + (data.error || "عدم ارتباط");
+                    statusEl.style.color = "var(--color-rose)";
+                }
+            }
+        } catch (err) {
+            if (!silent && statusEl) {
+                statusEl.innerText = "خطا در ارتباط با سرور یا گیت‌هاب: " + err.message;
+                statusEl.style.color = "var(--color-rose)";
+            }
+        }
+    }
+
+    async function applySystemUpdateNow() {
+        const applyBtn = document.getElementById("update-modal-apply-btn");
+        const statusEl = document.getElementById("update-modal-status-text");
+
+        if (!confirm("آیا از انجام بروزرسانی خودکار پنل اطمینان دارید؟ سیستم فایل‌ها را با مخزن GitHub همگام کرده و پنل مجدداً اجرا خواهد شد.")) {
+            return;
+        }
+
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<i data-lucide="loader-2" class="btn-icon spin"></i> در حال بروزرسانی...';
+            if (window.lucide) lucide.createIcons();
+        }
+        if (statusEl) {
+            statusEl.innerText = "در حال دریافت آخرین نسخه و بروزرسانی فایل‌های پنل... لطفاً چند ثانیه شکیبا باشید.";
+            statusEl.style.color = "var(--color-primary)";
+        }
+
+        try {
+            const res = await fetch("/api/system/update_panel", { method: "POST" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("پنل با موفقیت به آخرین نسخه ارتقا یافت! در حال بارگذاری مجدد...", "success");
+                if (statusEl) {
+                    statusEl.innerText = "بروزرسانی با موفقیت کامل شد. در حال بارگذاری مجدد...";
+                    statusEl.style.color = "#059669";
+                }
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2500);
+            } else {
+                showToast("خطا در بروزرسانی: " + (data.error || "ناموفق"), "error");
+                if (applyBtn) {
+                    applyBtn.disabled = false;
+                    applyBtn.innerHTML = '<i data-lucide="download-cloud"></i> تلاش مجدد بروزرسانی';
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        } catch (err) {
+            showToast("خطا در ارتباط با سرور: " + err.message, "error");
+            if (applyBtn) applyBtn.disabled = false;
+        }
+    }
+
+    // ==========================================
+    // TWO-FACTOR AUTHENTICATION (2FA) HANDLERS
+    // ==========================================
+    let isTwoFactorActive = false;
+    async function openTwoFactorModal() {
+        const m = document.getElementById("twoFactorModal");
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
+        await refreshTwoFactorStatus();
+    }
+
+    function closeTwoFactorModal() {
+        const m = document.getElementById("twoFactorModal");
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
+    }
+
+    async function refreshTwoFactorStatus() {
+        const statusEl = document.getElementById("twofa-current-status");
+        const setupBox = document.getElementById("twofa-setup-box");
+        const disableBox = document.getElementById("twofa-disable-box");
+        const toggleBtn = document.getElementById("twofa-toggle-btn");
+
+        try {
+            const res = await fetch("/api/2fa/status");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                isTwoFactorActive = !!data.twofa_enabled;
+                if (statusEl) {
+                    statusEl.innerText = isTwoFactorActive ? "فعال و محافظت‌شده ✅" : "غیرفعال ❌";
+                    statusEl.style.color = isTwoFactorActive ? "#059669" : "#dc2626";
+                }
+                if (isTwoFactorActive) {
+                    if (setupBox) setupBox.style.display = "none";
+                    if (disableBox) disableBox.style.display = "none";
+                    if (toggleBtn) toggleBtn.innerText = "غیرفعال‌سازی ورود ۲ مرحله‌ای";
+                } else {
+                    if (disableBox) disableBox.style.display = "none";
+                    if (toggleBtn) toggleBtn.innerText = "راه‌اندازی و فعال‌سازی";
+                    await startTwoFactorSetup();
+                }
+            }
+        } catch (err) {
+            console.error("2FA status error:", err);
+        }
+    }
+
+    async function startTwoFactorSetup() {
+        const setupBox = document.getElementById("twofa-setup-box");
+        const disableBox = document.getElementById("twofa-disable-box");
+        const qrContainer = document.getElementById("twofa-qr-container");
+        const secretDisplay = document.getElementById("twofa-secret-display");
+
+        try {
+            const res = await fetch("/api/2fa/setup");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                if (secretDisplay) secretDisplay.value = data.secret || "";
+                if (qrContainer) {
+                    qrContainer.innerHTML = "";
+                    const otpUrl = data.otpauth_url || "";
+                    if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                        QRCode.toCanvas(otpUrl, { width: 170, margin: 1 }, (err, canvas) => {
+                            if (err) {
+                                qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(otpUrl)}" style="width:170px;height:170px;display:block;">`;
+                            } else {
+                                qrContainer.appendChild(canvas);
+                            }
+                        });
+                    } else {
+                        qrContainer.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(otpUrl)}" style="width:170px;height:170px;display:block;">`;
+                    }
+                }
+                if (setupBox) setupBox.style.display = "flex";
+                if (disableBox) disableBox.style.display = "none";
+                if (window.lucide) lucide.createIcons();
+            }
+        } catch (err) {
+            showToast("خطا در دریافت اطلاعات 2FA: " + err.message, "error");
+        }
+    }
+
+    function toggleTwoFactorFlow() {
+        const setupBox = document.getElementById("twofa-setup-box");
+        const disableBox = document.getElementById("twofa-disable-box");
+
+        if (isTwoFactorActive) {
+            if (disableBox) {
+                disableBox.style.display = disableBox.style.display === "none" ? "flex" : "none";
+            }
+        } else {
+            if (setupBox) {
+                setupBox.style.display = setupBox.style.display === "none" ? "flex" : "none";
+            }
+        }
+    }
+
+    async function confirmEnableTwoFactor() {
+        const codeInput = document.getElementById("twofa-verify-code");
+        const secretDisplay = document.getElementById("twofa-secret-display");
+        const code = (codeInput?.value || "").trim();
+        const secret = (secretDisplay?.value || "").trim();
+
+        if (!code || code.length !== 6) {
+            showToast("لطفاً کد ۶ رقمی تولیدشده در اپلیکیشن را وارد نمایید.", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/2fa/enable", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code, secret })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("ورود دو مرحله‌ای با موفقیت فعال شد! از این پس ورود نیازمند کد تایید است.", "success");
+                closeTwoFactorModal();
+            } else {
+                showToast(`خطا: ${data.error || 'کد احراز هویت نادرست است'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    async function confirmDisableTwoFactor() {
+        const pwInput = document.getElementById("twofa-disable-pw");
+        const password = (pwInput?.value || "").trim();
+
+        if (!password) {
+            showToast("لطفاً رمز عبور پنل یا کد تایید را وارد کنید.", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/2fa/disable", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ password })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("ورود دو مرحله‌ای با موفقیت غیرفعال شد.", "info");
+                closeTwoFactorModal();
+            } else {
+                showToast(`خطا: ${data.error || 'رمز عبور نامعتبر است'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    // ==========================================
+    // RADIUS SUBSCRIPTION MODAL & SETTINGS
+    // ==========================================
+    function showRadiusUserSubModal(uname) {
+        const u = (typeof currentRadiusUsers !== 'undefined' && currentRadiusUsers) ? currentRadiusUsers[uname] : null;
+        const subToken = (u && u.sub_token) ? u.sub_token : uname;
+        const origin = window.location.origin;
+        const subUrl = (u && u.sub_url) ? (u.sub_url.startsWith("http") ? u.sub_url : `${origin}${u.sub_url}`) : `${origin}/sub/${subToken}`;
+
+        const nameEl = document.getElementById("sub-modal-username");
+        if (nameEl) nameEl.innerText = `کاربر: ${uname}`;
+
+        const inputEl = document.getElementById("sub-modal-url-input");
+        if (inputEl) inputEl.value = subUrl;
+
+        const openLink = document.getElementById("sub-modal-open-link");
+        if (openLink) openLink.href = subUrl;
+
+        const container = document.getElementById("sub-qrcode-container");
+        if (container) {
+            container.innerHTML = "";
+            if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+                QRCode.toCanvas(subUrl, { width: 180, margin: 1 }, (err, canvas) => {
+                    if (err) {
+                        container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(subUrl)}" style="width:180px;height:180px;display:block;">`;
+                    } else {
+                        container.appendChild(canvas);
+                    }
+                });
+            } else {
+                container.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(subUrl)}" style="width:180px;height:180px;display:block;">`;
+            }
+        }
+
+        const modal = document.getElementById("subQrModal");
+        if (modal) {
+            modal.classList.add("active");
+            modal.style.display = "flex";
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSubQrModal() {
+        const modal = document.getElementById("subQrModal");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function openSubSettingsModal() {
+        const modal = document.getElementById("subSettingsModal");
+        if (modal) {
+            modal.classList.add("active");
+            modal.style.display = "flex";
+        }
+
+        try {
+            const res = await fetch("/api/sub/settings");
+            const data = await res.json();
+            if (res.ok && data.success && data.settings) {
+                const s = data.settings;
+                const titleEl = document.getElementById("subset-title");
+                if (titleEl) titleEl.value = s.title || "";
+
+                const annEl = document.getElementById("subset-announcement");
+                if (annEl) annEl.value = s.announcement || "";
+
+                const supEl = document.getElementById("subset-support");
+                if (supEl) supEl.value = s.support_telegram || "";
+
+                const protos = s.enabled_protocols || {};
+                ["ocserv", "openvpn", "wireguard", "sstp", "ikev2", "l2tp", "ssh", "tuic"].forEach(p => {
+                    const cb = document.getElementById(`subset-proto-${p}`);
+                    if (cb) cb.checked = protos[p] !== false;
+                });
+            }
+        } catch (err) {
+            console.error("Fetch sub settings error:", err);
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSubSettingsModal() {
+        const modal = document.getElementById("subSettingsModal");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function saveSubSettingsForm(e) {
+        if (e) e.preventDefault();
+
+        const protos = {};
+        ["ocserv", "openvpn", "wireguard", "sstp", "ikev2", "l2tp", "ssh", "tuic"].forEach(p => {
+            const cb = document.getElementById(`subset-proto-${p}`);
+            protos[p] = cb ? cb.checked : true;
+        });
+
+        const payload = {
+            title: (document.getElementById("subset-title")?.value || "").trim(),
+            announcement: (document.getElementById("subset-announcement")?.value || "").trim(),
+            support_telegram: (document.getElementById("subset-support")?.value || "").trim(),
+            enabled_protocols: protos
+        };
+
+        try {
+            const res = await fetch("/api/sub/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("تنظیمات صفحه سابسکرایب با موفقیت ذخیره گردید.", "success");
+                closeSubSettingsModal();
+            } else {
+                showToast(`خطا: ${data.error || 'عدم موفقیت'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    // Check updates quietly in background on page load
+    setTimeout(() => {
+        checkPanelUpdate(true);
+    }, 4000);
 </script>

@@ -6,10 +6,30 @@
         <div class="header-logo">
             <i data-lucide="shield" style="width: 20px; height: 20px;"></i>
         </div>
-        <h1 class="header-title">MH Panel</h1>
+        <h1 class="header-title" style="display:flex; align-items:center; gap:8px;">
+            <span>MH Panel</span>
+            <span class="badge-pill" onclick="openAboutModal()" style="font-size:11px; padding:2px 8px; cursor:pointer; background:rgba(99,102,241,0.2); color:#818cf8; font-weight:700;" title="مشاهده مشخصات و درباره پنل">v1.0.0</span>
+        </h1>
+        <!-- Update Available Notification Pill -->
+        <div id="header-update-badge" style="display:none; margin-right:8px;">
+            <button type="button" onclick="openUpdateModal()" class="badge-pill" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-size:11px; padding:3px 9px; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                <span class="pulse-dot" style="width:6px; height:6px; background:#ef4444; border-radius:50%;"></span>
+                <span data-i18n="update_available">آپدیت جدید موجود است!</span>
+            </button>
+        </div>
     </div>
     <div class="header-actions">
-        <!-- Quick Language Switcher Shortcut Pills -->
+        <!-- Quick Dark/Light Theme Toggle -->
+        <button type="button" class="header-btn theme-toggle-btn" id="header-theme-toggle" onclick="toggleTheme()" title="تغییر تم (دارک / لایت)">
+            <i data-lucide="moon" id="header-theme-icon" style="width: 15px; height: 15px;"></i>
+        </button>
+
+        <!-- About Modal Trigger -->
+        <button type="button" class="header-btn" onclick="openAboutModal()" title="درباره پنل (About)">
+            <i data-lucide="info" style="width: 15px; height: 15px;"></i>
+        </button>
+
+        <!-- Quick Language Switcher Shortcut Pills with Flags -->
         <div class="header-lang-pills" id="header-lang-pills">
             <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی">🇮🇷 FA</button>
             <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">🇬🇧 EN</button>

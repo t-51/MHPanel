@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="/static/lucide.min.js"></script>
+    <script src="/static/qrcode.js"></script>
+    <style>
+        :root {
+            --bg-base: #0b0f19;
+            --bg-card: #111827;
+            --bg-card-hover: #1e293b;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --color-primary: #6366f1;
+            --color-primary-hover: #4f46e5;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-danger: #ef4444;
+            --color-info: #0ea5e9;
+        }
+
+        [data-theme="light"] {
+            --bg-base: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('/static/fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('/static/fonts/Vazirmatn-SemiBold.woff2') format('woff2');
+            font-weight: 600;
+        }
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('/static/fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 700;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px;
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(14, 165, 233, 0.08) 0%, transparent 40%);
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 820px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 6px 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        .actions-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .theme-btn, .lang-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .theme-btn:hover, .lang-btn:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            transition: all 0.2s;
+        }
+
+        .banner-notice {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(14, 165, 233, 0.12) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+            padding: 14px 18px;
+            font-size: 13.5px;
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .user-status-card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="light"] .user-status-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .user-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-expired {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px 14px;
+        }
+
+        [data-theme="light"] .stat-box {
+            background: #f8fafc;
+        }
+
+        .stat-label {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .stat-val {
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-main);
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #6366f1 0%, #0ea5e9 100%);
+            transition: width 0.3s;
+        }
+
+        .section-heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            color: var(--text-main);
+        }
+
+        .protocols-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .proto-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: all 0.2s;
+        }
+
+        .proto-card:hover {
+            border-color: rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .proto-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .proto-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .proto-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary);
+        }
+
+        .proto-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="light"] .proto-fields {
+            background: #f8fafc;
+        }
+
+        .field-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .field-title {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .field-value {
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-all;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: var(--color-primary);
+            color: #ffffff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: 12.5px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: var(--color-primary-hover);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        [data-theme="light"] .btn-secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .all-in-one-card {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(16, 185, 129, 0.15) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 14px;
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #10b981;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 400px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 16px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Top Navigation -->
+        <div class="top-bar">
+            <div class="brand">
+                <i data-lucide="shield-check" style="width:24px; height:24px;"></i>
+                <span>{{ settings.title or 'MH Panel Subscription' }}</span>
+            </div>
+            <div class="actions-bar">
+                <button type="button" class="theme-btn" onclick="toggleTheme()" id="theme-btn">
+                    <i data-lucide="sun" id="theme-icon" style="width:14px; height:14px;"></i>
+                    <span id="theme-label">روشن</span>
+                </button>
+                {% if settings.support_contact %}
+                <a href="https://t.me/{{ settings.support_contact.lstrip('@') }}" target="_blank" class="btn btn-secondary" style="padding:5px 12px; font-size:12px;">
+                    <i data-lucide="send" style="width:14px; height:14px;"></i> پشتیبانی
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Announcement Banner -->
+        {% if settings.announcement %}
+        <div class="banner-notice">
+            <i data-lucide="bell" style="color:var(--color-primary); width:20px; height:20px; flex-shrink:0;"></i>
+            <div>{{ settings.announcement }}</div>
+        </div>
+        {% endif %}
+
+        <!-- User Status Card -->
+        <div class="card user-status-card">
+            <div class="user-header">
+                <div class="user-title">
+                    <div class="user-avatar">
+                        <i data-lucide="user" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:18px; font-weight:700;">{{ username }}</div>
+                        <div style="font-size:12px; color:var(--text-muted);">شناسه کاربری در شبکه ردیوس</div>
+                    </div>
+                </div>
+                <div>
+                    {% if user.active %}
+                    <span class="status-badge status-active">
+                        <i data-lucide="check-circle" style="width:14px; height:14px;"></i> فعال و مجاز
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-expired">
+                        <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> منقضی / مسدود
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">تاریخ انقضا</div>
+                    <div class="stat-val">{{ user.expire_date or 'نامحدود' }}</div>
+                    {% if days_left is not none %}
+                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
+                    {% endif %}
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">حجم مصرفی / سقف مجاز</div>
+                    <div class="stat-val">{{ used_gb }} GB / {{ limit_gb_label }}</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: {{ traffic_pct }}%;"></div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">تعداد اتصال همزمان</div>
+                    <div class="stat-val">{{ user.simultaneous_use or 2 }} کاربر</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All-In-One Universal Subscription Box -->
+        <div class="all-in-one-card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="zap" style="color:#6366f1; width:20px; height:20px;"></i>
+                    <strong style="font-size:14px;">لینک سابسکرایب جامع (All-In-One Import)</strong>
+                </div>
+                <span style="font-size:11px; color:var(--text-muted);">سازگار با تمامی کلاینت‌های مدرن و نرم‌افزار اختصاصی</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn" onclick="copyText('{{ sub_url }}', 'لینک اشتراک کپی شد!')">
+                    <i data-lucide="copy" style="width:14px; height:14px;"></i> کپی لینک ساب
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="showQrModal('{{ sub_url }}', 'اسکن لینک اشتراک')">
+                    <i data-lucide="qr-code" style="width:14px; height:14px;"></i> بارکد QR
+                </button>
+                <a href="{{ sub_url }}?format=json" target="_blank" class="btn btn-secondary">
+                    <i data-lucide="code" style="width:14px; height:14px;"></i> خروجی JSON (نرم‌افزار اختصاصی)
+                </a>
+            </div>
+        </div>
+
+        <!-- Protocol Configurations List -->
+        <div class="section-heading">
+            <i data-lucide="layers" style="width:20px; height:20px; color:var(--color-primary);"></i>
+            <span>پروتکل‌های فعال و مشخصات اتصال</span>
+        </div>
+
+        <div class="protocols-list">
+            <!-- 1. Cisco AnyConnect / OpenConnect -->
+            {% if settings.protocols.ocserv %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="radio" style="color:#0284c7; width:20px; height:20px;"></i>
+                        <span>Cisco AnyConnect / OpenConnect</span>
+                        <span class="proto-tag">سیسکو سازمانی</span>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ server_host }}:{{ ports.ocserv }}', 'آدرس سرور سیسکو کپی شد')">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سرور
+                        </button>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور (Server)</span>
+                        <span class="field-value">{{ server_host }}:{{ ports.ocserv }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری (Username)</span>
+                        <span class="field-value">{{ username }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">رمز عبور (Password)</span>
+                        <span class="field-value">{{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 2. OpenVPN -->
+            {% if settings.protocols.openvpn %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="lock" style="color:#f59e0b; width:20px; height:20px;"></i>
+                        <span>OpenVPN (TCP / UDP)</span>
+                        <span class="proto-tag">اوپن‌وی‌پی‌ان</span>
+                    </div>
+                    <div class="btn-group">
+                        <a href="/sub/{{ sub_token }}/openvpn.ovpn" class="btn">
+                            <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل .ovpn
+                        </a>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور و پورت</span>
+                        <span class="field-value">{{ server_host }}:{{ ports.openvpn }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری</span>
+                        <span class="field-value">{{ username }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">رمز عبور</span>
+                        <span class="field-value">{{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 3. Windows SSTP -->
+            {% if settings.protocols.sstp %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="shuffle" style="color:#06b6d4; width:20px; height:20px;"></i>
+                        <span>Windows SSTP (SSL VPN)</span>
+                        <span class="proto-tag">ویندوز نیتیو</span>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ sstp_host }}', 'آدرس سرور SSTP کپی شد')">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی آدرس
+                        </button>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور (Host)</span>
+                        <span class="field-value">{{ sstp_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری</span>
+                        <span class="field-value">{{ username }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">رمز عبور</span>
+                        <span class="field-value">{{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 4. IKEv2 StrongSwan -->
+            {% if settings.protocols.ikev2 %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="smartphone" style="color:#ec4899; width:20px; height:20px;"></i>
+                        <span>IKEv2 / IPsec</span>
+                        <span class="proto-tag">iOS / Android نیتیو</span>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ server_host }}', 'آدرس IKEv2 کپی شد')">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سرور
+                        </button>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور (Server)</span>
+                        <span class="field-value">{{ server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">Remote ID</span>
+                        <span class="field-value">{{ server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری و پسورد</span>
+                        <span class="field-value">{{ username }} / {{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 5. L2TP / IPsec -->
+            {% if settings.protocols.l2tp %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="layers" style="color:#6366f1; width:20px; height:20px;"></i>
+                        <span>L2TP / IPsec Pre-Shared Key</span>
+                        <span class="proto-tag">روتر و میکروتیک</span>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور (Server)</span>
+                        <span class="field-value">{{ server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">کلید امنیتی (IPsec PSK)</span>
+                        <span class="field-value">{{ l2tp_psk or 'vpn' }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری و پسورد</span>
+                        <span class="field-value">{{ username }} / {{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 6. SSH Tunnel & WebSocket -->
+            {% if settings.protocols.ssh %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="terminal" style="color:#10b981; width:20px; height:20px;"></i>
+                        <span>SSH Tunnel (Direct & WS) + BadVPN</span>
+                        <span class="proto-tag">تونل لینوکس</span>
+                    </div>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" onclick="copyText('ssh -N -D 1080 {{ username }}@{{ server_host }} -p {{ ports.ssh }}', 'دستور ترمینال SSH کپی شد')">
+                            <i data-lucide="terminal" style="width:13px; height:13px;"></i> کپی دستور SSH
+                        </button>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور</span>
+                        <span class="field-value">{{ server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">پورت مستقیم / پورت TLS</span>
+                        <span class="field-value">{{ ports.ssh }} / 443</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">پورت BadVPN UDP (گیمینگ)</span>
+                        <span class="field-value">7300</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">نام کاربری و پسورد</span>
+                        <span class="field-value">{{ username }} / {{ user.password }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 7. TUIC & Shadowsocks -->
+            {% if settings.protocols.tuic or settings.protocols.shadowsocks %}
+            <div class="proto-card">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="zap" style="color:#8b5cf6; width:20px; height:20px;"></i>
+                        <span>پروکسی‌های مدرن (TUIC v5 / Shadowsocks 2022)</span>
+                        <span class="proto-tag">ضد DPI</span>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    {% if settings.protocols.tuic %}
+                    <div class="field-item">
+                        <span class="field-title">پروتکل TUIC v5 (QUIC)</span>
+                        <span class="field-value">{{ server_host }}:{{ ports.tuic }}</span>
+                    </div>
+                    {% endif %}
+                    {% if settings.protocols.shadowsocks %}
+                    <div class="field-item">
+                        <span class="field-title">پروتکل Shadowsocks</span>
+                        <span class="field-value">{{ server_host }}:{{ ports.shadowsocks }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <div>طراحی و مدیریت شده با <strong>MH Panel v1.0.0</strong></div>
+            <div style="margin-top:4px; opacity:0.7;">تمامی حقوق برای کاربر و سرور محفوظ است.</div>
+        </div>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div class="modal-backdrop" id="qr-modal" onclick="closeQrModal(event)">
+        <div class="modal-box" onclick="event.stopPropagation()">
+            <h3 id="qr-modal-title" style="font-size:16px;">اسکن بارکد QR</h3>
+            <div id="qrcode-box" style="background:#fff; padding:12px; border-radius:12px;"></div>
+            <button type="button" class="btn btn-secondary" onclick="closeQrModal()" style="width:100%;">بستن</button>
+        </div>
+    </div>
+
+    <div class="toast" id="toast-msg">پیام کپی شد</div>
+
+    <script>
+        lucide.createIcons();
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme') || 'dark';
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('sub_theme', next);
+            document.getElementById('theme-icon').setAttribute('data-lucide', next === 'dark' ? 'sun' : 'moon');
+            document.getElementById('theme-label').textContent = next === 'dark' ? 'روشن' : 'تاریک';
+            lucide.createIcons();
+        }
+
+        // Restore saved theme
+        (function() {
+            const t = localStorage.getItem('sub_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', t);
+            if (t === 'light') {
+                const el = document.getElementById('theme-label');
+                if (el) el.textContent = 'تاریک';
+            }
+        })();
+
+        function showToast(msg) {
+            const t = document.getElementById('toast-msg');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        function copyText(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => showToast(successMsg || 'کپی شد!'));
+            } else {
+                const input = document.createElement('textarea');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast(successMsg || 'کپی شد!');
+            }
+        }
+
+        function showQrModal(text, title) {
+            document.getElementById('qr-modal-title').textContent = title || 'اسکن بارکد';
+            const box = document.getElementById('qrcode-box');
+            box.innerHTML = '';
+            new QRCode(box, {
+                text: text,
+                width: 220,
+                height: 220,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            document.getElementById('qr-modal').style.display = 'flex';
+        }
+
+        function closeQrModal(e) {
+            document.getElementById('qr-modal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

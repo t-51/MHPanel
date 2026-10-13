@@ -31,7 +31,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="3.2.0-Pro"
+VERSION="1.0.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then

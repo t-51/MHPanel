@@ -28,6 +28,17 @@ sudo bash install.sh
 
 ---
 
+## 🌟 What's New in Version 1.0.0
+
+- 🔐 **Two-Factor Authentication (2FA / TOTP):** Native RFC 6238 TOTP engine compatible with Google Authenticator and Microsoft Authenticator.
+- 🌓 **Dark Theme & Modern Glassmorphism:** Sleek dark mode switch with automatic preference persistence.
+- 🔗 **Client Subscription Portal (`/sub/<token>`):** Personalized subscription pages with QR codes, direct configs, `.ovpn` download, and JSON payload export for proprietary client apps.
+- 🌐 **DNS Tunnels (SlowDNS / DNSTT):** Full SlowDNS integration for severe censorship and international outages.
+- 🔄 **GitHub Update Checker:** In-panel update notifications and one-click self-updating directly from GitHub.
+- 🌍 **Trilingual Localization:** Complete native translations for Persian (🇮🇷), English (🇬🇧), and Russian (🇷🇺).
+
+---
+
 ## 🧭 Master CLI Management Hub (`mhpanel`)
 
 Once installed, simply type **`mhpanel`** (or `hmpanel`) anywhere in your server's terminal to access the full-featured interactive management hub:

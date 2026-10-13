@@ -147,6 +147,11 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
+PANEL_VERSION = "1.0.0"
+GITHUB_REPO = "t-51/MHPanel"
+TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
+SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
+
 VPN_CA_CERT = os.path.join(VPN_CERT_DIR, "ca.crt")
 VPN_CA_KEY = os.path.join(VPN_CERT_DIR, "ca.key")
 VPN_SERVER_CERT = os.path.join(VPN_CERT_DIR, "vpn-server.crt")
@@ -838,7 +843,8 @@ def render_dashboard_response(logged_in):
         saved_username=user,
         api_key=get_api_key(),
         panel_path=custom_path,
-        panel_port=get_panel_port()
+        panel_port=get_panel_port(),
+        panel_version=PANEL_VERSION
     ))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
@@ -854,7 +860,7 @@ def index():
 
 @app.route("/<path:secret_path>")
 def custom_login_route(secret_path):
-    if secret_path.startswith("static/") or secret_path.startswith("api/"):
+    if secret_path.startswith("static/") or secret_path.startswith("api/") or secret_path.startswith("sub/"):
         return "Not Found", 404
     custom_path = get_panel_path()
     req_path = "/" + secret_path.strip("/")
@@ -872,11 +878,20 @@ def serve_static(filename):
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
-    username = request.json.get("username", "")
-    password = request.json.get("password", "")
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    totp_code = data.get("totp_code", "").strip()
     saved_user, saved_pw = get_credentials()
     
     if username == saved_user and password == saved_pw:
+        totp_cfg = get_totp_config()
+        if totp_cfg.get("enabled", False):
+            if not totp_code:
+                return jsonify({"success": False, "require_2fa": True}), 200
+            if not verify_totp(totp_cfg.get("secret", ""), totp_code):
+                return jsonify({"success": False, "error": "Invalid 2FA verification code"}), 401
+        
         session["logged_in"] = True
         return jsonify({"success": True})
     return jsonify({"success": False, "error": "Incorrect Username or Password"}), 401
@@ -885,6 +900,409 @@ def api_login():
 def api_logout():
     session.pop("logged_in", None)
     return jsonify({"success": True})
+
+# --- Two-Factor Authentication (2FA TOTP) ---
+def get_totp_config():
+    if os.path.exists(TOTP_CONFIG_FILE):
+        try:
+            with open(TOTP_CONFIG_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"enabled": False, "secret": ""}
+
+def save_totp_config(cfg):
+    try:
+        with open(TOTP_CONFIG_FILE, "w") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception as e:
+        print(f"Error saving TOTP config: {e}")
+
+def generate_totp_secret():
+    return base64.b32encode(secrets.token_bytes(20)).decode('utf-8').replace('=', '')
+
+def verify_totp(secret, code):
+    if not secret or not code:
+        return False
+    code = str(code).strip().replace(" ", "")
+    import hmac, hashlib, struct, time, base64
+    try:
+        padding = len(secret) % 8
+        if padding != 0:
+            secret += '=' * (8 - padding)
+        key = base64.b32decode(secret.upper())
+        current_time = int(time.time() // 30)
+        for offset in [-1, 0, 1]:
+            msg = struct.pack(">Q", current_time + offset)
+            h = hmac.new(key, msg, hashlib.sha1).digest()
+            o = h[19] & 15
+            token = str((struct.unpack(">I", h[o:o+4])[0] & 0x7fffffff) % 1000000).zfill(6)
+            if token == code:
+                return True
+    except Exception:
+        pass
+    return False
+
+@app.route("/api/2fa/status", methods=["GET"])
+def api_2fa_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_totp_config()
+    is_enabled = bool(cfg.get("enabled", False))
+    return jsonify({"success": True, "enabled": is_enabled, "twofa_enabled": is_enabled})
+
+@app.route("/api/2fa/setup", methods=["GET", "POST"])
+def api_2fa_setup():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    secret = generate_totp_secret()
+    user, _ = get_credentials()
+    uri = f"otpauth://totp/MHPanel:{user}?secret={secret}&issuer=MHPanel"
+    return jsonify({"success": True, "secret": secret, "uri": uri, "otpauth_url": uri})
+
+@app.route("/api/2fa/enable", methods=["POST"])
+def api_2fa_enable():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    secret = data.get("secret", "").strip()
+    code = data.get("code", "").strip()
+    if not secret or not code:
+        return jsonify({"success": False, "error": "Secret and verification code are required"}), 400
+    if not verify_totp(secret, code):
+        return jsonify({"success": False, "error": "Invalid verification code. Please check your Authenticator app."}), 400
+    save_totp_config({"enabled": True, "secret": secret})
+    return jsonify({"success": True, "message": "Two-factor authentication successfully enabled!"})
+
+@app.route("/api/2fa/disable", methods=["POST"])
+def api_2fa_disable():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    password = data.get("password", "")
+    code = data.get("code", "")
+    _, saved_pw = get_credentials()
+    cfg = get_totp_config()
+    if password == saved_pw or (code and verify_totp(cfg.get("secret", ""), code)):
+        save_totp_config({"enabled": False, "secret": ""})
+        return jsonify({"success": True, "message": "Two-factor authentication disabled."})
+    return jsonify({"success": False, "error": "Incorrect admin password or 2FA code"}), 400
+
+# --- User Subscription System ---
+def get_sub_settings():
+    default_settings = {
+        "title": "MH Panel - VIP Client Subscription",
+        "announcement": "به سرویس اختصاصی اشتراک خوش آمدید. کانفیگ‌ها و مشخصات اتصال شما در زیر آماده شده است.",
+        "support_contact": "@MHPanel_Support",
+        "protocols": {
+            "ocserv": True,
+            "wireguard": True,
+            "openvpn": True,
+            "sstp": True,
+            "ikev2": True,
+            "l2tp": True,
+            "ssh": True,
+            "tuic": True,
+            "shadowsocks": True
+        }
+    }
+    if os.path.exists(SUB_SETTINGS_FILE):
+        try:
+            with open(SUB_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                if isinstance(d, dict):
+                    default_settings.update(d)
+        except Exception:
+            pass
+    return default_settings
+
+def save_sub_settings(s):
+    try:
+        cur = get_sub_settings()
+        if "title" in s: cur["title"] = s["title"]
+        if "announcement" in s: cur["announcement"] = s["announcement"]
+        if "support_telegram" in s: cur["support_contact"] = s["support_telegram"]
+        elif "support_contact" in s: cur["support_contact"] = s["support_contact"]
+        protos = s.get("enabled_protocols") or s.get("protocols")
+        if protos and isinstance(protos, dict):
+            cur["protocols"].update(protos)
+        with open(SUB_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(cur, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error saving sub settings: {e}")
+
+def ensure_all_users_sub_tokens():
+    r_file = "/www/wwwroot/mhpanel/radius_users.json"
+    if not os.path.exists(r_file): return
+    try:
+        with open(r_file, "r") as f:
+            users = json.load(f)
+        changed = False
+        for uname, udata in users.items():
+            if not udata.get("sub_token"):
+                udata["sub_token"] = secrets.token_urlsafe(12)
+                changed = True
+        if changed:
+            with open(r_file, "w") as f:
+                json.dump(users, f, indent=2)
+    except Exception:
+        pass
+
+def find_user_by_sub_token(token):
+    if not token:
+        return None, None
+    token = str(token).strip()
+    r_file = "/www/wwwroot/mhpanel/radius_users.json"
+    if os.path.exists(r_file):
+        try:
+            with open(r_file, "r") as f:
+                users = json.load(f)
+            for uname, udata in users.items():
+                if udata.get("sub_token") == token:
+                    return uname, udata
+        except Exception:
+            pass
+    return None, None
+
+def get_proto_active_port(proto, default_port):
+    if os.path.exists("/etc/vpnpanel/protocol_settings.json"):
+        try:
+            with open("/etc/vpnpanel/protocol_settings.json", "r") as f:
+                d = json.load(f)
+                if proto in d: return d[proto]
+        except Exception:
+            pass
+    return PROTOCOL_DEFAULT_PORTS.get(proto, default_port)
+
+@app.route("/sub/<sub_token>")
+def client_subscription_view(sub_token):
+    ensure_all_users_sub_tokens()
+    uname, udata = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Subscription Not Found", 404
+    
+    settings = get_sub_settings()
+    server_ip = get_server_public_ip()
+    domain = get_server_domain() or server_ip
+    
+    traffic = get_ovpn_traffic().get(uname, {})
+    rx = traffic.get("rx", 0) + udata.get("rx", 0)
+    tx = traffic.get("tx", 0) + udata.get("tx", 0)
+    used_gb = round((rx + tx) / (1024**3), 2)
+    limit_gb = udata.get("limit_gb")
+    limit_gb_label = f"{limit_gb} GB" if limit_gb else "نامحدود"
+    traffic_pct = 0
+    if limit_gb and limit_gb > 0:
+        traffic_pct = min(100, round((used_gb / limit_gb) * 100, 1))
+    
+    days_left = None
+    if udata.get("expire_date"):
+        try:
+            exp = datetime.strptime(udata["expire_date"], "%Y-%m-%d")
+            diff = (exp - datetime.now()).days
+            days_left = max(0, diff)
+        except Exception:
+            pass
+            
+    sub_url = request.url
+    ports = {
+        "ocserv": get_proto_active_port("ocserv", 443),
+        "openvpn": get_proto_active_port("openvpn", 1194),
+        "sstp": get_proto_active_port("sstp", 4443),
+        "ikev2": 500,
+        "l2tp": 1701,
+        "ssh": get_proto_active_port("ssh", 22),
+        "tuic": get_proto_active_port("tuic", 7443),
+        "shadowsocks": get_proto_active_port("shadowsocks", 8388),
+    }
+    
+    l2tp_psk = "vpn"
+    if os.path.exists("/etc/ipsec.secrets"):
+        try:
+            with open("/etc/ipsec.secrets", "r") as f:
+                for line in f:
+                    if "PSK" in line:
+                        m = re.search(r'PSK\s+["\']([^"\']+)["\']', line)
+                        if m: l2tp_psk = m.group(1)
+        except Exception:
+            pass
+            
+    if request.args.get("format") == "json":
+        return jsonify({
+            "status": "success",
+            "panel_version": PANEL_VERSION,
+            "user": {
+                "username": uname,
+                "password": udata.get("password", ""),
+                "active": udata.get("active", True),
+                "expire_date": udata.get("expire_date"),
+                "days_left": days_left,
+                "used_gb": used_gb,
+                "limit_gb": limit_gb
+            },
+            "server": {"ip": server_ip, "domain": domain},
+            "ports": ports,
+            "protocols": settings.get("protocols", {})
+        })
+        
+    return render_template(
+        "subscription.html",
+        username=uname,
+        user=udata,
+        settings=settings,
+        server_host=domain,
+        sstp_host=domain,
+        sub_token=sub_token,
+        sub_url=sub_url,
+        used_gb=used_gb,
+        limit_gb_label=limit_gb_label,
+        traffic_pct=traffic_pct,
+        days_left=days_left,
+        ports=ports,
+        l2tp_psk=l2tp_psk
+    )
+
+@app.route("/sub/<sub_token>/json")
+def client_subscription_json(sub_token):
+    uname, udata = find_user_by_sub_token(sub_token)
+    if not uname:
+        return jsonify({"error": "Subscription Not Found"}), 404
+    settings = get_sub_settings()
+    server_ip = get_server_public_ip()
+    domain = get_server_domain() or server_ip
+    ports = {
+        "ocserv": get_proto_active_port("ocserv", 443),
+        "openvpn": get_proto_active_port("openvpn", 1194),
+        "sstp": get_proto_active_port("sstp", 4443),
+        "ikev2": 500,
+        "l2tp": 1701,
+        "ssh": get_proto_active_port("ssh", 22),
+        "tuic": get_proto_active_port("tuic", 7443),
+        "shadowsocks": get_proto_active_port("shadowsocks", 8388),
+    }
+    return jsonify({
+        "status": "success",
+        "panel_version": PANEL_VERSION,
+        "user": {
+            "username": uname,
+            "password": udata.get("password", ""),
+            "active": udata.get("active", True),
+            "expire_date": udata.get("expire_date"),
+            "limit_gb": udata.get("limit_gb")
+        },
+        "server": {"ip": server_ip, "domain": domain},
+        "ports": ports,
+        "protocols": settings.get("protocols", {})
+    })
+
+@app.route("/sub/<sub_token>/openvpn.ovpn")
+def client_subscription_ovpn(sub_token):
+    uname, udata = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    server_host = get_server_domain() or get_server_public_ip()
+    port = get_proto_active_port("openvpn", 1194)
+    ca_content = ""
+    for ca_path in ["/etc/openvpn/server/ca.crt", "/etc/vpn-ca/ca.crt", "/etc/openvpn/ca.crt"]:
+        if os.path.exists(ca_path):
+            try:
+                with open(ca_path, "r") as f:
+                    ca_content = f.read().strip()
+                    break
+            except Exception:
+                pass
+    ovpn_text = f"""client
+dev tun
+proto udp
+remote {server_host} {port}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+cipher AES-256-GCM
+auth SHA256
+auth-user-pass
+<ca>
+{ca_content}
+</ca>
+"""
+    return Response(
+        ovpn_text,
+        mimetype="application/x-openvpn-profile",
+        headers={"Content-Disposition": f"attachment; filename=mhpanel-{uname}.ovpn"}
+    )
+
+@app.route("/api/sub/settings", methods=["GET", "POST"])
+def api_sub_settings():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if request.method == "POST":
+        data = request.json or {}
+        save_sub_settings(data)
+        return jsonify({"success": True})
+    s = get_sub_settings()
+    return jsonify({
+        "success": True,
+        "settings": s,
+        "title": s.get("title", ""),
+        "announcement": s.get("announcement", ""),
+        "support_telegram": s.get("support_contact", ""),
+        "enabled_protocols": s.get("protocols", {})
+    })
+
+# --- GitHub Update Checker & Manager ---
+@app.route("/api/system/check_update", methods=["GET"])
+def api_system_check_update():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    current_ver = PANEL_VERSION
+    repo = GITHUB_REPO
+    latest_ver = current_ver
+    update_available = False
+    commit_msg = ""
+    commit_date = ""
+    
+    try:
+        import requests
+        headers = {"User-Agent": "MHPanel-UpdateChecker"}
+        req = requests.get(f"https://api.github.com/repos/{repo}/commits/main", headers=headers, timeout=5)
+        if req.status_code == 200:
+            c_data = req.json()
+            commit_msg = c_data.get("commit", {}).get("message", "")[:80]
+            commit_date = c_data.get("commit", {}).get("author", {}).get("date", "")
+            
+        rel_req = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers, timeout=4)
+        if rel_req.status_code == 200:
+            r_data = rel_req.json()
+            latest_ver = r_data.get("tag_name", "").lstrip("v") or current_ver
+            if latest_ver != current_ver:
+                update_available = True
+    except Exception as e:
+        pass
+        
+    return jsonify({
+        "success": True,
+        "current_version": current_ver,
+        "latest_version": latest_ver,
+        "update_available": update_available,
+        "has_update": update_available,
+        "commit_message": commit_msg,
+        "commit_date": commit_date,
+        "repo_url": f"https://github.com/{repo}"
+    })
+
+@app.route("/api/system/update_panel", methods=["POST"])
+def api_system_update_panel():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        cmd = "cd /www/wwwroot/mhpanel && git pull origin main && ./venv/bin/pip install -r requirements.txt --quiet && systemctl restart mhpanel"
+        threading.Thread(target=lambda: subprocess.run(cmd, shell=True)).start()
+        return jsonify({"success": True, "message": "Update initiated. Panel will restart in a few moments."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # --- Credentials Update Endpoint ---
 @app.route("/api/credentials/update", methods=["POST"])
@@ -2347,8 +2765,9 @@ def api_radius_get_users():
     groups = get_radius_groups_data()
     counts, sessions = get_user_active_connection_counts()
 
-    # Enrich users with group and live connection data
+    # Enrich users with group, live connection data and sub_token
     enriched_users = {}
+    users_updated = False
     for uname, udata in users.items():
         user_info = dict(udata)
         grp_id = user_info.get("group", "default")
@@ -2358,7 +2777,19 @@ def api_radius_get_users():
         user_info["online_count"] = counts.get(uname, 0)
         if "simultaneous_use" not in user_info or not user_info["simultaneous_use"]:
             user_info["simultaneous_use"] = grp.get("simultaneous_use", 2)
+        if not user_info.get("sub_token"):
+            user_info["sub_token"] = secrets.token_urlsafe(12)
+            users[uname]["sub_token"] = user_info["sub_token"]
+            users_updated = True
+        user_info["sub_url"] = f"https://{request.host}/sub/{user_info['sub_token']}"
         enriched_users[uname] = user_info
+
+    if users_updated:
+        try:
+            with open(RADIUS_USERS_FILE, "w") as f:
+                json.dump(users, f, indent=2)
+        except Exception:
+            pass
 
     return jsonify({
         "users": enriched_users,
@@ -2432,6 +2863,7 @@ def api_radius_add_user():
     users[username] = {
         "password": password,
         "active": True,
+        "sub_token": secrets.token_urlsafe(12),
         "group": group_id,
         "simultaneous_use": simultaneous_use,
         "allowed_days": allowed_days,
@@ -2534,9 +2966,11 @@ def api_radius_batch_create():
         except Exception:
             pass
 
+        user_sub_tok = secrets.token_urlsafe(12)
         user_record = {
             "password": upass,
             "active": True,
+            "sub_token": user_sub_tok,
             "group": group_id,
             "simultaneous_use": sim_use,
             "expire_date": expire_date,
@@ -2552,6 +2986,7 @@ def api_radius_batch_create():
         created_list.append({
             "username": uname,
             "password": upass,
+            "sub_token": user_sub_tok,
             "expire_date": expire_date or "بدون انقضا",
             "simultaneous_use": sim_use,
             "limit_gb": limit_gb or "نامحدود"
@@ -7894,7 +8329,7 @@ def api_get_ssh_config():
 
     config_data = {
         "server_ip": "212.227.143.16",
-        "hostnames": ["vpn.kigaping.com", "shahan.kigaping.com"],
+        "hostnames": ["vpn.kigaping.com", "ssh.kigaping.com"],
         "direct_ports": [22, 2053, 443],
         "stunnel_ports": [9443, 2087, 443],
         "ws_ports": [80, 8088, 443, 8444, 2083],
@@ -11150,7 +11585,7 @@ def get_default_multiplexer_config():
                 "id": "ssh",
                 "name": "تونل SSH (مستقیم و TLS)",
                 "enabled": True,
-                "sni": "shahan.kigaping.com",
+                "sni": "ssh.kigaping.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 22,
                 "is_default": False,

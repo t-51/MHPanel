@@ -8,6 +8,9 @@
             var l = localStorage.getItem("panel_language") || "fa";
             document.documentElement.dir = (l === "fa" ? "rtl" : "ltr");
             document.documentElement.lang = l;
+            var t = localStorage.getItem("panel_theme") || "dark";
+            document.documentElement.setAttribute("data-theme", t);
+            if (t === "dark") document.documentElement.classList.add("dark-mode");
         })();
     </script>
 </head>

@@ -1152,4 +1152,241 @@
     </div>
 </div>
 
+<!-- ========================================== -->
+<!-- MODAL: ABOUT MH PANEL (درباره پنل) -->
+<!-- ========================================== -->
+<div class="modal" id="aboutModal" style="display: none;">
+    <div class="modal-content glass-card" style="max-width: 580px; width: 100%;">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: #6366f1; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 800;">درباره سامانه MH Panel</h3>
+                    <span style="font-size: 11.5px; color: var(--text-muted);">مرکز جامع مدیریت پروتکل‌های VPN، تانل‌های شبکه و میکروتیک</span>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeAboutModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);">نسخه فعلی پنل (Version)</div>
+                    <div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace;">v1.0.0</div>
+                    <div style="font-size: 11.5px; color: #059669; margin-top: 2px;">پایدار (Stable Release)</div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="checkPanelUpdate(true)">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> بررسی آخرین نسخه
+                </button>
+            </div>
+
+            <div style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
+                <strong>MH Panel</strong> یک پروژه متن‌باز سازمانی است که برای راه‌اندازی، مدیریت و بهینه‌سازی انواع پروتکل‌های مدرن وی‌پی‌ان، تانل‌های ضد فیلترینگ دوطرفه لینوکس، مالتی‌پلکسر پورت ۴۴۳، سیستم احراز هویت FreeRADIUS و ایجاد خودکار کدهای کانفیگ روتربورد میکروتیک (v6 و v7) توسعه داده شده است.
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
+                    <span style="color: var(--text-muted);">توسعه‌دهنده:</span>
+                    <strong style="margin-right: 6px;">t-51 & جامعه کاربری</strong>
+                </div>
+                <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
+                    <span style="color: var(--text-muted);">مجوز انتشار:</span>
+                    <strong style="margin-right: 6px;">MIT Open Source</strong>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
+                <a href="https://github.com/t-51/MHPanel" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="github" style="width: 14px; height: 14px;"></i> مشاهده مخزن در GitHub
+                </a>
+                <button type="button" class="btn btn-primary btn-sm" onclick="closeAboutModal()">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: CLIENT SUBSCRIPTION QR & LINK -->
+<!-- ========================================== -->
+<div class="modal" id="subQrModal" style="display: none;">
+    <div class="modal-content glass-card" style="max-width: 440px; width: 100%;">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="qr-code" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">لینک سابسکرایب کاربر</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeSubQrModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <div style="font-size: 14px; font-weight: 700;" id="sub-modal-username">کاربر: -</div>
+            <div id="sub-qrcode-container" style="background: #ffffff; padding: 14px; border-radius: 14px; border: 1px solid #e2e8f0;"></div>
+            
+            <div style="width: 100%;">
+                <label class="form-label" style="font-size: 11.5px;">لینک مستقیم صفحه اشتراک کاربر:</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="sub-modal-url-input" class="form-input" readonly style="font-family:'JetBrains Mono'; font-size:11.5px; direction:ltr;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="copyText(document.getElementById('sub-modal-url-input').value, 'لینک ساب کپی شد!')">
+                        <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <a id="sub-modal-open-link" href="#" target="_blank" class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 12px;">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> باز کردن صفحه
+                </a>
+                <button type="button" class="btn btn-secondary" onclick="closeSubQrModal()" style="font-size: 12px;">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: SUBSCRIPTION SETTINGS CUSTOMIZER -->
+<!-- ========================================== -->
+<div class="modal" id="subSettingsModal" style="display: none;">
+    <div class="modal-content glass-card" style="max-width: 540px; width: 100%;">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="sliders" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">شخصی‌سازی صفحه اشتراک کاربران</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeSubSettingsModal()"><i data-lucide="x"></i></button>
+        </header>
+        <form id="sub-settings-form" onsubmit="saveSubSettingsForm(event)" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px;">عنوان برند در بالای صفحه (Title):</label>
+                <input type="text" class="form-input" id="subset-title" placeholder="مثلاً: MH Panel VIP Service">
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px;">پیام اطلاعیه و راهنمای عمومی (Announcement):</label>
+                <textarea class="form-input" id="subset-announcement" rows="3" placeholder="متن پیام اطلاعیه یا هشدار برای کاربران..."></textarea>
+            </div>
+
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-size: 12px;">آیدی پشتیبانی تلگرام (Support Telegram):</label>
+                <input type="text" class="form-input" id="subset-support" placeholder="@YourSupportBot" style="direction: ltr;">
+            </div>
+
+            <div>
+                <label class="form-label" style="font-size: 12px; margin-bottom: 8px; display: block;">پروتکل‌های نمایش داده شده در صفحه کاربر:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-ocserv" checked> Cisco AnyConnect</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-openvpn" checked> OpenVPN</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-wireguard" checked> WireGuard</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-sstp" checked> Windows SSTP</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-ikev2" checked> IKEv2 / IPsec</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-l2tp" checked> L2TP / IPsec</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-ssh" checked> SSH & WebSocket</label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-tuic" checked> TUIC v5 / QUIC</label>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeSubSettingsModal()">انصراف</button>
+                <button type="submit" class="btn btn-primary"><i data-lucide="check" style="width:14px; height:14px;"></i> ذخیره تغییرات</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: TWO-FACTOR AUTHENTICATION (2FA) -->
+<!-- ========================================== -->
+<div class="modal" id="twoFactorModal" style="display: none;">
+    <div class="modal-content glass-card" style="max-width: 480px; width: 100%;">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="shield-check" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">ورود دو مرحله‌ای (Google Authenticator)</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeTwoFactorModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div id="twofa-status-banner" style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: center;">
+                <span>وضعیت فعلی: <strong id="twofa-current-status">در حال بررسی...</strong></span>
+                <button type="button" class="btn btn-sm btn-secondary" id="twofa-toggle-btn" onclick="toggleTwoFactorFlow()">تغییر وضعیت</button>
+            </div>
+
+            <!-- Setup Container (Visible when enabling) -->
+            <div id="twofa-setup-box" style="display: none; flex-direction: column; align-items: center; gap: 14px;">
+                <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin: 0;">
+                    بارکد زیر را با نرم‌افزار <strong>Google Authenticator</strong> یا <strong>Microsoft Authenticator</strong> اسکن نمایید:
+                </p>
+                <div id="twofa-qr-container" style="background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
+                
+                <div style="width: 100%;">
+                    <label class="form-label" style="font-size: 11px;">کلید مخفی پشتیبان (Secret Key):</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" id="twofa-secret-display" class="form-input" readonly style="font-family:'JetBrains Mono'; font-size:12px; text-align:center; direction:ltr;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('twofa-secret-display').value, 'کلید کپی شد!')">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="width: 100%;">
+                    <label class="form-label" style="font-size: 12px; font-weight:700;">کد ۶ رقمی جهت تایید و فعال‌سازی:</label>
+                    <input type="text" id="twofa-verify-code" class="form-input" placeholder="123456" maxlength="6" style="font-family:'JetBrains Mono'; font-size:18px; letter-spacing:4px; text-align:center;">
+                </div>
+
+                <button type="button" class="btn btn-primary" onclick="confirmEnableTwoFactor()" style="width: 100%;">
+                    <i data-lucide="check" style="width:14px; height:14px;"></i> تایید و فعال‌سازی قطعی 2FA
+                </button>
+            </div>
+
+            <!-- Disable Container (Visible when disabling) -->
+            <div id="twofa-disable-box" style="display: none; flex-direction: column; gap: 12px;">
+                <p style="font-size: 12.5px; color: var(--color-danger); margin: 0;">
+                    برای غیرفعال‌سازی ورود دو مرحله‌ای، رمز عبور ادمین یا کد ۶ رقمی را وارد کنید:
+                </p>
+                <input type="password" id="twofa-disable-pw" class="form-input" placeholder="رمز عبور ادمین...">
+                <button type="button" class="btn btn-primary" onclick="confirmDisableTwoFactor()" style="background:#dc2626;">
+                    غیرفعال‌سازی ورود ۲ مرحله‌ای
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL: GITHUB UPDATE CHECKER -->
+<!-- ========================================== -->
+<div class="modal" id="checkUpdateModal" style="display: none;">
+    <div class="modal-content glass-card" style="max-width: 480px; width: 100%;">
+        <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="refresh-cw" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">بروزرسانی سامانه MH Panel</h3>
+            </div>
+            <button type="button" class="modal-close" onclick="closeUpdateModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
+                    <div style="font-size: 11px; color: var(--text-muted);">نسخه نصب شده:</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono';" id="update-modal-curver">v1.0.0</div>
+                </div>
+                <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
+                    <div style="font-size: 11px; color: var(--text-muted);">آخرین نسخه در گیت‌هاب:</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #059669; font-family: 'JetBrains Mono';" id="update-modal-latver">در حال بررسی...</div>
+                </div>
+            </div>
+
+            <div id="update-modal-status-text" style="font-size: 13px; line-height: 1.6; padding: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.06);">
+                در حال برقراری ارتباط با مخزن GitHub...
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">بستن</button>
+                <button type="button" class="btn btn-primary" id="update-modal-apply-btn" onclick="applySystemUpdateNow()" style="display: none;">
+                    <i data-lucide="download-cloud" style="width:14px; height:14px;"></i> بروزرسانی خودکار آنی
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 

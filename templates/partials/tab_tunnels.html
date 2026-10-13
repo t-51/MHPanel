@@ -30,6 +30,11 @@
                     رله و فوروارد پورت‌ها
                     <span class="badge-pill" id="pill-relays-count" style="background:rgba(217,119,6,0.15); color:#b45309;">0</span>
                 </button>
+                <button type="button" class="rad-tab-btn" onclick="switchTunnelSubTab('dns')" id="tun-subtab-btn-dns">
+                    <i data-lucide="globe" style="width: 16px; height: 16px; color:#14b8a6;"></i>
+                    تونل‌های DNS (SlowDNS)
+                    <span class="badge-pill" id="pill-dns-tunnels-count" style="background:rgba(20,184,166,0.15); color:#0d9488;">DNSTT</span>
+                </button>
             </div>
         </div>
 
@@ -273,6 +278,50 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SUB-PANE 4: DNS Tunnels (SlowDNS & Anti-Filter) -->
+        <div id="tun-pane-dns" class="tun-subpane" style="display:none; flex-direction:column; gap:20px;">
+            <div class="glass-card" style="padding: 22px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                    <div>
+                        <h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="globe" style="color:#14b8a6; width:20px; height:20px;"></i>
+                            <span>تونل‌های اختصاصی DNS و عبور از فیلترینگ شدید (DNS Tunnels)</span>
+                        </h3>
+                        <p style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">
+                            تونل‌سازی ترافیک سرور در بستر پروتکل DNS (SlowDNS / DNSTT). این پروتکل حتی در زمان قطعی کامل اینترنت بین‌الملل نیز پکت‌ها را از مسیر پورت 53 UDP عبور می‌دهد.
+                        </p>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('dns-tunnels')">
+                            <i data-lucide="external-link" style="width:14px; height:14px;"></i> صفحه جامع مدیریت کامل DNS
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
+                    <div style="background:rgba(20,184,166,0.06); padding:14px; border-radius:10px; border:1px solid rgba(20,184,166,0.2);">
+                        <div style="font-size:11px; color:#0d9488; font-weight:700;">پروتکل DNSTT (SlowDNS)</div>
+                        <div style="font-size:13px; font-weight:700; margin-top:4px;">رمزنگاری Noise Protocol</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">پورت پیش‌فرض: 5300 UDP</div>
+                    </div>
+                    <div style="background:rgba(99,102,241,0.06); padding:14px; border-radius:10px; border:1px solid rgba(99,102,241,0.2);">
+                        <div style="font-size:11px; color:#4f46e5; font-weight:700;">پروتکل VayDNS</div>
+                        <div style="font-size:13px; font-weight:700; margin-top:4px;">انتقال بر بستر KCP</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">مناسب شبکه‌های پر اختلال</div>
+                    </div>
+                    <div style="background:rgba(14,165,233,0.06); padding:14px; border-radius:10px; border:1px solid rgba(14,165,233,0.2);">
+                        <div style="font-size:11px; color:#0284c7; font-weight:700;">پروتکل Slipstream</div>
+                        <div style="font-size:13px; font-weight:700; margin-top:4px;">کپسوله‌سازی در کوئری QUIC</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">سرعت و انعطاف بالا</div>
+                    </div>
+                </div>
+
+                <div style="background:rgba(255,255,255,0.02); padding:14px 16px; border-radius:10px; border:1px solid var(--border-color); font-size:12px; line-height:1.7;">
+                    <strong>نحوه کارکرد تونل DNS:</strong> یک رکورد NS اختصاصی (مثلاً <code>t.example.com</code>) به آی‌پی این سرور اشاره می‌کند. کلاینت داده‌های خود را داخل ساب‌دامین‌های تصادفی کوئری‌های DNS استاندارد به سرور می‌فرستد و پاسخ‌ها در قالب TXT Record دریافت می‌شوند؛ در نتیجه فایروال هیچ اثری از ارتباط VPN یا پروکسی مشاهده نمی‌کند.
                 </div>
             </div>
         </div>
