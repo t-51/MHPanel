@@ -178,6 +178,46 @@
                 <i data-lucide="sliders" style="color: #64748b;"></i>
                 <span data-i18n="nav_system">ابزارهای سیستم و لاگ‌ها</span>
             </button>
+            <button class="sidebar-nav-item" onclick="openTwoFactorModal()" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="shield-check" style="color: #6366f1;"></i>
+                    <span data-i18n="nav_twofa">احراز هویت دو مرحله‌ای (2FA)</span>
+                </div>
+                <span id="sidebar-twofa-badge" class="sidebar-badge sidebar-badge-blue">2FA</span>
+            </button>
         </div>
     </nav>
+
+    <!-- Sidebar Footer Quick Language Switcher with SVG Flags -->
+    <div class="sidebar-footer" style="padding: 12px 6px 4px 6px; border-top: 1px solid rgba(226, 232, 240, 0.15); margin-top: auto;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی" style="flex: 1; justify-content: center; padding: 5px 6px;">
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+                    <rect width="18" height="4.33" fill="#239F40"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
+                    <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
+                </svg>
+                <span style="font-size: 11px;">فارسی</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English" style="flex: 1; justify-content: center; padding: 5px 6px;">
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+                    <rect width="18" height="13" fill="#012169"/>
+                    <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
+                    <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
+                    <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
+                    <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
+                </svg>
+                <span style="font-size: 11px;">EN</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский" style="flex: 1; justify-content: center; padding: 5px 6px;">
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+                    <rect width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
+                </svg>
+                <span style="font-size: 11px;">RU</span>
+            </button>
+        </div>
+    </div>
 </aside>

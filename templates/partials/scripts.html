@@ -189,7 +189,97 @@
             ss_links_title: "لینک‌های اتصال شادوساکس و کدهای QR",
             ss_link_domain: "لینک اتصال مستقیم شادوساکس با دامنه:",
             ss_link_ip: "لینک اتصال مستقیم با آی‌پی سرور (بدون وابستگی به DNS):",
-            ss_clients_title: "نرم‌افزارهای کلاینت سازگار"
+            ss_clients_title: "نرم‌افزارهای کلاینت سازگار",
+
+            // Overview & Hardware
+            stat_cpu: "مصرف پردازنده (CPU)",
+            stat_ram: "حافظه رم (RAM)",
+            stat_disk: "فضای دیسک (Disk)",
+            stat_net: "کل ترافیک شبکه",
+            stat_multicore: "چند هسته‌ای فعال",
+            spec_server_title: "معماری سخت‌افزاری و اطلاعات سرور",
+            spec_uptime: "آپ‌تایم و پایداری سرور",
+            spec_os_title: "سیستم‌عامل و توزیع",
+            spec_cpu_title: "مدل و مشخصات پردازنده",
+            spec_power_title: "معماری و تعداد هسته",
+            spec_ram_title: "مشخصات و حافظه رم",
+            spec_bus_title: "باس و اسلات رم",
+            spec_cores_workload: "وضعیت بار پردازشی تک تک هسته‌ها",
+            live_realtime: "زنده و لحظه‌ای",
+            overview_cpu_ram_chart: "روند مصرف منابع سخت‌افزاری سرور (CPU & RAM)",
+            overview_bandwidth_chart: "نرخ مصرف پهنای باند شبکه سرور (Bandwidth Rate)",
+            overview_proto_traffic: "سهم ترافیک و پهنای باند پروتکل‌ها",
+            overview_proto_traffic_desc: "تفکیک زنده میزان ارسال و دریافت داده‌ها بر پایه پروتکل",
+            total_proto_traffic: "کل ترافیک پروتکل‌ها",
+            overview_sec_radar: "رادار و مانیتورینگ امنیتی سرور",
+            overview_sec_radar_desc: "تحلیل زنده تلاش‌های نفوذ، آی‌پی‌های مشکوک و گزارش‌های فایروال سرور",
+            refresh_logs: "بروزرسانی لاگ‌ها",
+
+            // Security Radar Stats & Console
+            sec_total_banned: "کل حملات مسدود شده",
+            sec_current_banned: "آی‌پی‌های مسدود جاری",
+            sec_failed_attempts: "تلاش‌های نفوذ رصد شده",
+            sec_shield_status: "وضعیت سپر دفاعی",
+            sec_shield_active: "فعال و هوشیار",
+            sec_console_title: "ترمینال زنده رصد رویدادهای امنیتی و حملات",
+            sec_filter_all: "همه رویدادها",
+            sec_filter_ban: "حملات مسدودشده",
+            sec_filter_threat: "تلاش‌های نفوذ",
+
+            // Protocols Tab
+            proto_page_title: "مدیریت پروتکل‌های ارتباطی و VPN",
+            proto_page_subtitle: "پایش لحظه‌ای، تغییر پورت، مدیریت سرویس‌ها و تنظیمات اختصاصی هر پروتکل",
+            proto_batch_install: "نصب گروهی پروتکل‌ها",
+            proto_refresh_status: "بروزرسانی وضعیت",
+            proto_modular_note: "نصب ماژولار و مستقل: هر پروتکل به همراه پکیج‌ها و تنظیماتش به صورت مجزا با ۱ کلیک قابل نصب است.",
+            proto_ssl_btn: "تنظیمات SSL دامنه / IP",
+            proto_radius_banner_title: "یکپارچه‌سازی کامل احراز هویت با FreeRADIUS سراسری",
+            proto_radius_banner_desc: "تمامی پروتکل‌های اصلی سرور (IKEv2، Cisco AnyConnect، OpenVPN، SSH Tunnel و L2TP) به ردیوس متصل هستند.",
+            proto_radius_btn: "مدیریت کاربران ردیوس",
+            proto_filter_all: "همه پروتکل‌ها",
+            proto_filter_native: "تانل‌های نیتیو (IKEv2, Cisco, L2TP, SSTP)",
+            proto_filter_crypto: "تانل‌های مدرن (OpenVPN, WireGuard, SSH)",
+            proto_filter_proxy: "پروکسی‌ها (MTProto, Shadowsocks, HTTP/SOCKS)",
+
+            // System Tab & Ports & Terminal & 2FA
+            sys_ports_title: "پورت‌ها و سرویس‌های فعال در حال شنود (Listening Ports)",
+            col_proto: "پروتکل",
+            col_port: "پورت شنود",
+            col_address: "آدرس و رابط شبکه",
+            col_process: "نام پروسه / سرویس",
+            sys_terminal_title: "ترمینال و خط فرمان تحت وب سرور (Web Terminal)",
+            sys_terminal_clear: "پاکسازی صفحه",
+            sys_admin_creds: "تغییر مشخصات و رمز عبور مدیر پنل",
+            sys_new_pass: "رمز عبور جدید مدیر",
+            sys_save_creds: "ذخیره مشخصات ورود",
+            twofa_title: "احراز هویت دو مرحله‌ای (2FA)",
+            twofa_settings_desc: "افزایش امنیت ورود به پنل با تولید کدهای ۶ رقمی یکبار مصرف در نرم‌افزارهای Google Authenticator و Microsoft Authenticator.",
+            twofa_status_label: "وضعیت احراز هویت:",
+            twofa_manage_btn: "تنظیم و راه‌اندازی 2FA",
+            nav_twofa: "احراز هویت دو مرحله‌ای (2FA)",
+            sys_api_title: "رابط برنامه‌نویسی وضعیت (Developer API)",
+            sys_api_desc: "دریافت وضعیت زنده CPU، RAM، پهنای باند و اتصالات فعال از طریق درخواست‌های HTTP:",
+            sys_api_url: "اندپوینت عمومی وضعیت سرور:",
+            update_available: "آپدیت جدید موجود است!",
+            panel_lang_hint: "زبان انتخابی به صورت دائمی در مرورگر ذخیره شده و هم در صفحه ورود و هم داخل داشبورد بلافاصله اعمال می‌شود.",
+            nav_radar: "رادار فیلترینگ و اتصال",
+            ss_clients_mgmt: "کلاینت‌های سازگار شادوساکس",
+            wg_cf_title: "تونل وایرگارد بر بستر کلودفلر وب‌سوکت",
+            wg_cf_subtitle: "انتقال ترافیک وایرگارد بر بستر وب‌سوکت کلودفلر (Cloudflare CDN / WSS)",
+
+            // Remote Servers Tab
+            servers_title: "مدیریت سرورهای ریموت (Remote Servers)",
+            servers_desc: "مدیریت سرورهای ریموت لینوکس جهت توزیع بار، انتقال ترافیک و استقرار اسکریپت‌های VPN.",
+            servers_ip_label: "آدرس سرور (IP یا Domain)",
+            servers_port_label: "پورت SSH سرور",
+            servers_user_label: "نام کاربری (Username)",
+            servers_pass_label: "رمز عبور (Password)",
+            servers_add_btn: "افزودن سرور",
+            servers_saved_title: "سرورهای ثبت‌شده",
+            servers_col_addr: "آدرس سرور",
+            servers_col_port: "پورت SSH",
+            servers_col_user: "نام کاربری",
+            servers_col_actions: "عملیات"
         },
         en: {
             nav_sec_dashboard: "Dashboard & Status",
@@ -306,7 +396,97 @@
             ss_links_title: "Shadowsocks Share Links & QR Code",
             ss_link_domain: "Direct Connection Link (Domain):",
             ss_link_ip: "Direct Connection Link (Server IP):",
-            ss_clients_title: "Compatible Client Applications"
+            ss_clients_title: "Compatible Client Applications",
+
+            // Overview & Hardware
+            stat_cpu: "CPU Usage",
+            stat_ram: "RAM Memory",
+            stat_disk: "Disk Storage",
+            stat_net: "Total Network Traffic",
+            stat_multicore: "Multi-Core Active",
+            spec_server_title: "Hardware Architecture & Server Specs",
+            spec_uptime: "Server Uptime",
+            spec_os_title: "Operating System & Distro",
+            spec_cpu_title: "CPU Model & Frequency",
+            spec_power_title: "Architecture & Cores",
+            spec_ram_title: "RAM Specifications",
+            spec_bus_title: "RAM Bus & Slots",
+            spec_cores_workload: "Individual Core Workload Distribution",
+            live_realtime: "Real-time",
+            overview_cpu_ram_chart: "Hardware Resource Consumption (CPU & RAM)",
+            overview_bandwidth_chart: "Live Network Bandwidth Rate",
+            overview_proto_traffic: "Protocol Traffic Distribution",
+            overview_proto_traffic_desc: "Real-time breakdown of transmitted and received data by protocol",
+            total_proto_traffic: "Total Protocol Traffic",
+            overview_sec_radar: "Server Security Radar & IDS",
+            overview_sec_radar_desc: "Live detection of unauthorized intrusion attempts, suspicious IPs, and firewall events",
+            refresh_logs: "Refresh Logs",
+
+            // Security Radar Stats & Console
+            sec_total_banned: "Total Banned Attacks",
+            sec_current_banned: "Currently Banned IPs",
+            sec_failed_attempts: "Intrusion Attempts",
+            sec_shield_status: "Defense Shield Status",
+            sec_shield_active: "Active & Alert",
+            sec_console_title: "Live Security & Attack Event Stream",
+            sec_filter_all: "All Events",
+            sec_filter_ban: "Banned Attacks",
+            sec_filter_threat: "Intrusion Attempts",
+
+            // Protocols Tab
+            proto_page_title: "VPN & Tunnel Protocols Manager",
+            proto_page_subtitle: "Real-time monitoring, port configuration, and service controls",
+            proto_batch_install: "Batch Install Protocols",
+            proto_refresh_status: "Refresh Status",
+            proto_modular_note: "Modular Architecture: Each protocol installs independently with dedicated packages and configs.",
+            proto_ssl_btn: "Domain / IP SSL Settings",
+            proto_radius_banner_title: "Unified FreeRADIUS Authentication Core",
+            proto_radius_banner_desc: "All major VPN protocols (IKEv2, Cisco AnyConnect, OpenVPN, SSH, L2TP) authenticate against FreeRADIUS.",
+            proto_radius_btn: "Manage RADIUS Users",
+            proto_filter_all: "All Protocols",
+            proto_filter_native: "Native Tunnels (IKEv2, Cisco, L2TP, SSTP)",
+            proto_filter_crypto: "Modern Tunnels (OpenVPN, WireGuard, SSH)",
+            proto_filter_proxy: "Proxies (MTProto, Shadowsocks, HTTP/SOCKS)",
+
+            // System Tab & Ports & Terminal & 2FA
+            sys_ports_title: "Active Listening Ports & Bound Services",
+            col_proto: "Protocol",
+            col_port: "Port",
+            col_address: "Listening Address",
+            col_process: "Process / Daemon",
+            sys_terminal_title: "Web Terminal & Shell Console",
+            sys_terminal_clear: "Clear Screen",
+            sys_admin_creds: "Change Admin Credentials",
+            sys_new_pass: "New Admin Password",
+            sys_save_creds: "Save Credentials",
+            twofa_title: "Two-Factor Authentication (2FA)",
+            twofa_settings_desc: "Protect admin access with time-based 6-digit OTP codes via Google Authenticator or Microsoft Authenticator.",
+            twofa_status_label: "2FA Status:",
+            twofa_manage_btn: "Configure 2FA",
+            nav_twofa: "Two-Factor Auth (2FA)",
+            sys_api_title: "Developer Monitoring API",
+            sys_api_desc: "Real-time hardware, bandwidth, and connection metrics via HTTP GET endpoints:",
+            sys_api_url: "Public Server Status Endpoint:",
+            update_available: "Update Available!",
+            panel_lang_hint: "Selected language is persisted in the browser and applied immediately to both login and dashboard.",
+            nav_radar: "Censorship & Link Radar",
+            ss_clients_mgmt: "Compatible Shadowsocks Clients",
+            wg_cf_title: "WireGuard over Cloudflare WebSocket",
+            wg_cf_subtitle: "Tunnel WireGuard traffic through Cloudflare CDN via WebSocket (WSS)",
+
+            // Remote Servers Tab
+            servers_title: "Remote Servers Manager",
+            servers_desc: "Manage remote Linux nodes for load distribution, traffic relay, and VPN script deployment.",
+            servers_ip_label: "Server IP / Domain",
+            servers_port_label: "SSH Port",
+            servers_user_label: "Username",
+            servers_pass_label: "Password",
+            servers_add_btn: "Add Server",
+            servers_saved_title: "Saved Servers",
+            servers_col_addr: "Server Address",
+            servers_col_port: "SSH Port",
+            servers_col_user: "Username",
+            servers_col_actions: "Actions"
         },
         ru: {
             nav_sec_dashboard: "Панель и статус",
@@ -423,7 +603,97 @@
             ss_links_title: "Ссылки подключения Shadowsocks и QR-код",
             ss_link_domain: "Прямая ссылка (по домену):",
             ss_link_ip: "Прямая ссылка (по IP сервера):",
-            ss_clients_title: "Совместимые клиентские приложения"
+            ss_clients_title: "Совместимые клиентские приложения",
+
+            // Overview & Hardware
+            stat_cpu: "Загрузка процессора (CPU)",
+            stat_ram: "Оперативная память (RAM)",
+            stat_disk: "Дисковое пространство (Disk)",
+            stat_net: "Общий сетевой трафик",
+            stat_multicore: "Многоядерный режим",
+            spec_server_title: "Аппаратная архитектура и сервер",
+            spec_uptime: "Время работы сервера (Uptime)",
+            spec_os_title: "Операционная система",
+            spec_cpu_title: "Модель процессора",
+            spec_power_title: "Архитектура и ядра",
+            spec_ram_title: "Характеристики RAM",
+            spec_bus_title: "Шина и слоты памяти",
+            spec_cores_workload: "Нагрузка по процессорным ядрам",
+            live_realtime: "В реальном времени",
+            overview_cpu_ram_chart: "Потребление ресурсов (CPU и RAM)",
+            overview_bandwidth_chart: "Скорость сетевого трафика",
+            overview_proto_traffic: "Распределение трафика по протоколам",
+            overview_proto_traffic_desc: "Трафик приёма и передачи данных по каждому протоколу",
+            total_proto_traffic: "Общий трафик протоколов",
+            overview_sec_radar: "Радар безопасности сервера и фаервол",
+            overview_sec_radar_desc: "Мониторинг подозрительных IP-адресов и попыток несанкционированного доступа",
+            refresh_logs: "Обновить логи",
+
+            // Security Radar Stats & Console
+            sec_total_banned: "Все заблокированные атаки",
+            sec_current_banned: "Текущие заблокированные IP",
+            sec_failed_attempts: "Попытки взлома",
+            sec_shield_status: "Статус системы защиты",
+            sec_shield_active: "Активен",
+            sec_console_title: "Журнал событий безопасности в реальном времени",
+            sec_filter_all: "Все события",
+            sec_filter_ban: "Заблокированные атаки",
+            sec_filter_threat: "Попытки взлома",
+
+            // Protocols Tab
+            proto_page_title: "Управление VPN-протоколами",
+            proto_page_subtitle: "Мониторинг, порты и управление сервисами",
+            proto_batch_install: "Пакетная установка",
+            proto_refresh_status: "Обновить статус",
+            proto_modular_note: "Модульная архитектура: каждый протокол устанавливается независимо в 1 клик.",
+            proto_ssl_btn: "Настройки SSL",
+            proto_radius_banner_title: "Единая аутентификация через FreeRADIUS",
+            proto_radius_banner_desc: "Все основные VPN-протоколы (IKEv2, Cisco, OpenVPN, SSH, L2TP) подключены к FreeRADIUS.",
+            proto_radius_btn: "Пользователи RADIUS",
+            proto_filter_all: "Все протоколы",
+            proto_filter_native: "Нативные туннели (IKEv2, Cisco, L2TP, SSTP)",
+            proto_filter_crypto: "Современные туннели (OpenVPN, WireGuard, SSH)",
+            proto_filter_proxy: "Прокси (MTProto, Shadowsocks, HTTP/SOCKS)",
+
+            // System Tab & Ports & Terminal & 2FA
+            sys_ports_title: "Активные порты и сетевые службы (Listening)",
+            col_proto: "Протокол",
+            col_port: "Порт",
+            col_address: "Адрес прослушивания",
+            col_process: "Процесс / Служба",
+            sys_terminal_title: "Веб-терминал и консоль сервера",
+            sys_terminal_clear: "Очистить экран",
+            sys_admin_creds: "Учётные данные администратора",
+            sys_new_pass: "Новый пароль администратора",
+            sys_save_creds: "Сохранить учётные данные",
+            twofa_title: "Двухфакторная аутентификация (2FA)",
+            twofa_settings_desc: "Защита учётной записи администратора с помощью одноразовых кодов Google Authenticator или Microsoft Authenticator.",
+            twofa_status_label: "Статус 2FA:",
+            twofa_manage_btn: "Настроить 2FA",
+            nav_twofa: "Двухфакторная аутентификация (2FA)",
+            sys_api_title: "API для разработчиков и мониторинга",
+            sys_api_desc: "Получение показателей CPU, RAM, трафика и подключений через HTTP запросы:",
+            sys_api_url: "Публичный адрес API:",
+            update_available: "Доступно обновление!",
+            panel_lang_hint: "Выбранный язык сохраняется в браузере и применяется сразу на странице входа и в панели.",
+            nav_radar: "Радар блокировок и связи",
+            ss_clients_mgmt: "Клиенты Shadowsocks",
+            wg_cf_title: "WireGuard через Cloudflare WebSocket",
+            wg_cf_subtitle: "Туннелирование трафика WireGuard через Cloudflare CDN и WebSocket",
+
+            // Remote Servers Tab
+            servers_title: "Удалённые серверы",
+            servers_desc: "Управление удалёнными узлами Linux для распределения трафика и установки скриптов VPN.",
+            servers_ip_label: "IP / Домен сервера",
+            servers_port_label: "Порт SSH",
+            servers_user_label: "Имя пользователя",
+            servers_pass_label: "Пароль",
+            servers_add_btn: "Добавить сервер",
+            servers_saved_title: "Сохранённые серверы",
+            servers_col_addr: "Адрес сервера",
+            servers_col_port: "Порт SSH",
+            servers_col_user: "Имя пользователя",
+            servers_col_actions: "Действия"
         }
     };
 
@@ -450,6 +720,15 @@
                 pill.classList.add("active");
             } else {
                 pill.classList.remove("active");
+            }
+        });
+
+        // Sync visual settings language choice buttons
+        document.querySelectorAll(".lang-choice-btn").forEach(btn => {
+            if (btn.getAttribute("data-lang") === lang) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
             }
         });
 
@@ -6268,6 +6547,8 @@
         const savedLang = localStorage.getItem("panel_language") || "fa";
         applyLanguage(savedLang);
         fetchSystemDomain();
+        refreshTwoFactorStatus();
+        checkPanelUpdate(true);
 
         // Load active tab
         const activeTab = localStorage.getItem("active_tab") || "overview";
@@ -11971,6 +12252,22 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     statusEl.innerText = isTwoFactorActive ? "فعال و محافظت‌شده ✅" : "غیرفعال ❌";
                     statusEl.style.color = isTwoFactorActive ? "#059669" : "#dc2626";
                 }
+                const tabSysText = document.getElementById("tab-sys-twofa-status-text");
+                const tabSysBadge = document.getElementById("tab-sys-twofa-badge");
+                const sideTwofaBadge = document.getElementById("sidebar-twofa-badge");
+                if (tabSysText) {
+                    tabSysText.innerText = isTwoFactorActive ? "فعال و محافظت‌شده ✅" : "غیرفعال ❌";
+                    tabSysText.style.color = isTwoFactorActive ? "#059669" : "#dc2626";
+                }
+                if (tabSysBadge) {
+                    tabSysBadge.className = isTwoFactorActive ? "sidebar-badge sidebar-badge-green" : "sidebar-badge sidebar-badge-blue";
+                    tabSysBadge.innerText = isTwoFactorActive ? "فعال" : "غیرفعال";
+                }
+                if (sideTwofaBadge) {
+                    sideTwofaBadge.className = isTwoFactorActive ? "sidebar-badge sidebar-badge-green" : "sidebar-badge sidebar-badge-blue";
+                    sideTwofaBadge.innerText = isTwoFactorActive ? "فعال" : "2FA";
+                }
+
                 if (isTwoFactorActive) {
                     if (setupBox) setupBox.style.display = "none";
                     if (disableBox) disableBox.style.display = "none";
@@ -12057,6 +12354,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (res.ok && data.success) {
                 showToast("ورود دو مرحله‌ای با موفقیت فعال شد! از این پس ورود نیازمند کد تایید است.", "success");
                 closeTwoFactorModal();
+                await refreshTwoFactorStatus();
             } else {
                 showToast(`خطا: ${data.error || 'کد احراز هویت نادرست است'}`, "error");
             }
@@ -12084,6 +12382,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (res.ok && data.success) {
                 showToast("ورود دو مرحله‌ای با موفقیت غیرفعال شد.", "info");
                 closeTwoFactorModal();
+                await refreshTwoFactorStatus();
             } else {
                 showToast(`خطا: ${data.error || 'رمز عبور نامعتبر است'}`, "error");
             }

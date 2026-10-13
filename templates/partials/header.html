@@ -29,11 +29,41 @@
             <i data-lucide="info" style="width: 15px; height: 15px;"></i>
         </button>
 
-        <!-- Quick Language Switcher Shortcut Pills with Flags -->
+        <!-- Two-Factor Authentication (2FA) Shortcut -->
+        <button type="button" class="header-btn" id="header-2fa-btn" onclick="openTwoFactorModal()" title="تنظیم ورود دو مرحله‌ای (2FA)">
+            <i data-lucide="shield-check" style="width: 15px; height: 15px; color: #6366f1;"></i>
+            <span style="font-size: 11px; font-weight: 700; margin-inline-start: 4px;">2FA</span>
+        </button>
+
+        <!-- Quick Language Switcher Shortcut Pills with SVG Flags -->
         <div class="header-lang-pills" id="header-lang-pills">
-            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی">🇮🇷 FA</button>
-            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">🇬🇧 EN</button>
-            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский">🇷🇺 RU</button>
+            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی">
+                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                    <rect width="18" height="4.33" fill="#239F40"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
+                    <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
+                </svg>
+                <span>FA</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">
+                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                    <rect width="18" height="13" fill="#012169"/>
+                    <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
+                    <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
+                    <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
+                    <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
+                </svg>
+                <span>EN</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский">
+                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                    <rect width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
+                </svg>
+                <span>RU</span>
+            </button>
         </div>
         <!-- Hidden/Fallback Select to keep sync with legacy scripts -->
         <select id="lang-select" style="display:none;" onchange="changeLanguage(this.value)">

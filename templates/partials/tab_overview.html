@@ -3,9 +3,9 @@
     <section class="system-stats-grid">
         <div class="glass-card stat-card">
             <div class="stat-info">
-                <span class="stat-label">CPU Usage</span>
+                <span class="stat-label" data-i18n="stat_cpu">مصرف پردازنده</span>
                 <span class="stat-value" id="cpu-val">- %</span>
-                <span class="stat-meta" id="cpu-meta">Multicore status</span>
+                <span class="stat-meta" id="cpu-meta" data-i18n="stat_multicore">وضعیت چند هسته‌ای</span>
             </div>
             <div class="stat-icon-box stat-icon-cpu">
                 <i data-lucide="cpu" style="width: 24px; height: 24px;"></i>
@@ -13,7 +13,7 @@
         </div>
         <div class="glass-card stat-card">
             <div class="stat-info">
-                <span class="stat-label">RAM Usage</span>
+                <span class="stat-label" data-i18n="stat_ram">مصرف رم</span>
                 <span class="stat-value" id="ram-val">- %</span>
                 <span class="stat-meta" id="ram-meta">- GB / - GB</span>
             </div>
@@ -23,7 +23,7 @@
         </div>
         <div class="glass-card stat-card">
             <div class="stat-info">
-                <span class="stat-label">Disk Storage</span>
+                <span class="stat-label" data-i18n="stat_disk">فضای دیسک</span>
                 <span class="stat-value" id="disk-val">- %</span>
                 <span class="stat-meta" id="disk-meta">- GB / - GB</span>
             </div>
@@ -33,7 +33,7 @@
         </div>
         <div class="glass-card stat-card">
             <div class="stat-info">
-                <span class="stat-label">Network Traffic</span>
+                <span class="stat-label" data-i18n="stat_net">ترافیک شبکه</span>
                 <span class="stat-value" id="net-speed-val">0 KB/s</span>
                 <span class="stat-meta" id="net-total-val">Rx: 0 GB | Tx: 0 GB</span>
             </div>
@@ -51,10 +51,10 @@
                 <div class="spec-card-header">
                     <h3 class="spec-card-title">
                         <i data-lucide="server" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                        مشخصات فنی و سخت‌افزاری سرور
+                        <span data-i18n="spec_server_title">مشخصات فنی و سخت‌افزاری سرور</span>
                     </h3>
                     <span id="spec-uptime-badge" style="font-size: 11px; padding: 4px 10px; background: rgba(99, 102, 241, 0.1); color: var(--color-primary); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 999px; font-weight: 700;">
-                        روشن: <span id="spec-uptime-val">-</span>
+                        <span data-i18n="spec_uptime">روشن:</span> <span id="spec-uptime-val">-</span>
                     </span>
                 </div>
 
@@ -63,7 +63,7 @@
                     <div class="spec-item-box">
                         <div class="spec-item-head">
                             <i data-lucide="terminal" style="color: #6366f1; width: 15px; height: 15px;"></i>
-                            نوع سیستم‌عامل و توزیع
+                            <span data-i18n="spec_os_title">نوع سیستم‌عامل و توزیع</span>
                         </div>
                         <div class="spec-item-value" id="spec-os-val">Ubuntu 24.04 LTS</div>
                         <div class="spec-item-sub" id="spec-kernel-val">Kernel: - | Arch: x86_64</div>
@@ -73,7 +73,7 @@
                     <div class="spec-item-box">
                         <div class="spec-item-head">
                             <i data-lucide="cpu" style="color: #0ea5e9; width: 15px; height: 15px;"></i>
-                            تعداد هسته‌ها و پردازنده
+                            <span data-i18n="spec_cpu_title">تعداد هسته‌ها و پردازنده</span>
                         </div>
                         <div class="spec-item-value" id="spec-cores-val">- هسته پردازشی</div>
                         <div class="spec-item-sub" id="spec-model-val">CPU Model: -</div>
@@ -83,7 +83,7 @@
                     <div class="spec-item-box">
                         <div class="spec-item-head">
                             <i data-lucide="zap" style="color: #f59e0b; width: 15px; height: 15px;"></i>
-                            قدرت و فرکانس هسته‌ها
+                            <span data-i18n="spec_power_title">قدرت و فرکانس هسته‌ها</span>
                         </div>
                         <div class="spec-item-value" id="spec-freq-val">- GHz</div>
                         <div class="spec-item-sub" id="spec-bogo-val">BogoMIPS: -</div>
@@ -93,7 +93,7 @@
                     <div class="spec-item-box">
                         <div class="spec-item-head">
                             <i data-lucide="hard-drive" style="color: #10b981; width: 15px; height: 15px;"></i>
-                            میزان و ظرفیت کل رم
+                            <span data-i18n="spec_ram_title">میزان و ظرفیت کل رم</span>
                         </div>
                         <div class="spec-item-value" id="spec-ram-total-val">- GB</div>
                         <div class="spec-item-sub" id="spec-ram-status-val">در دسترس: - | مصرف: -</div>
@@ -103,7 +103,7 @@
                     <div class="spec-item-box" style="grid-column: 1 / -1;">
                         <div class="spec-item-head">
                             <i data-lucide="layers" style="color: #8b5cf6; width: 15px; height: 15px;"></i>
-                            قدرت باس و استاندارد رم
+                            <span data-i18n="spec_bus_title">قدرت باس و استاندارد رم</span>
                         </div>
                         <div class="spec-item-value" id="spec-bus-val">باس پرسرعت مجازی (QEMU/KVM Host Bus)</div>
                         <div class="spec-item-sub" id="spec-ram-type-val">استاندارد حافظه: DDR4 High-Speed DIMM</div>
@@ -118,9 +118,9 @@
                 <div class="spec-card-header">
                     <h3 class="spec-card-title">
                         <i data-lucide="activity" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
-                        ظرفیت کاری هر هسته پردازنده
+                        <span data-i18n="spec_cores_workload">ظرفیت کاری هر هسته پردازنده</span>
                     </h3>
-                    <span style="font-size: 11px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 999px; font-weight: 700;">
+                    <span style="font-size: 11px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 999px; font-weight: 700;" data-i18n="live_realtime">
                         زنده و بلادرنگ
                     </span>
                 </div>
@@ -139,7 +139,7 @@
             <div class="chart-header">
                 <h3 class="chart-title" style="color: var(--text-main); font-weight: 700; font-size: 16px;">
                     <i data-lucide="trending-up" style="color: #7c3aed; width: 20px; height: 20px;"></i>
-                    نمودار زنده مصرف پردازنده و رم (Real-Time CPU & RAM Usage)
+                    <span data-i18n="overview_cpu_ram_chart">نمودار زنده مصرف پردازنده و رم</span>
                 </h3>
             </div>
             <div style="flex:1; min-height:220px; position:relative;">
@@ -152,7 +152,7 @@
             <div class="chart-header">
                 <h3 class="chart-title" style="color: var(--text-main); font-weight: 700; font-size: 16px;">
                     <i data-lucide="arrow-down-up" style="color: #059669; width: 20px; height: 20px;"></i>
-                    نمودار زنده پهنای باند شبکه (Bandwidth Usage)
+                    <span data-i18n="overview_bandwidth_chart">نمودار زنده پهنای باند شبکه</span>
                 </h3>
             </div>
             <div style="flex:1; min-height:220px; position:relative;">
@@ -168,15 +168,15 @@
                 <div>
                     <h3 class="spec-card-title">
                         <i data-lucide="network" style="color: var(--color-secondary); width: 22px; height: 22px;"></i>
-                        مصرف پهنای باند و ترافیک به تفکیک پروتکل‌ها
+                        <span data-i18n="overview_proto_traffic">مصرف پهنای باند و ترافیک به تفکیک پروتکل‌ها</span>
                     </h3>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="overview_proto_traffic_desc">
                         رصد میزان ترافیک رد و بدل شده و پهنای باند مصرفی لحظه‌ای واحدهای شبکه (WireGuard, OpenVPN, Cisco AnyConnect و ...)
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); color: var(--color-primary); padding: 6px 12px; border-radius: 999px; font-weight: 700;">
-                        مجموع ترافیک پروتکل‌ها: <strong id="proto-total-all-val">0 GB</strong>
+                        <span data-i18n="total_proto_traffic">مجموع ترافیک پروتکل‌ها:</span> <strong id="proto-total-all-val">0 GB</strong>
                     </span>
                 </div>
             </div>
@@ -196,16 +196,16 @@
                 <div>
                     <h3 class="spec-card-title" style="color: #ef4444;">
                         <i data-lucide="shield-alert" style="color: #ef4444; width: 22px; height: 22px;"></i>
-                        مرکز پایش لاگ‌های سیستم و اخطار حملات تخریبی
+                        <span data-i18n="overview_sec_radar">مرکز پایش لاگ‌های سیستم و اخطار حملات</span>
                     </h3>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="overview_sec_radar_desc">
                         هشدارهای بلادرنگ، رصد حملات بروت‌فورس، دفع تهدیدات توسط سپر امنیتی Fail2ban و مسدودسازی آی‌پی‌های مهاجم
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <button class="btn btn-secondary" id="sec-refresh-btn" onclick="refreshSecurityLogs()" style="font-size: 12px; padding: 6px 14px; min-height: unset; display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="refresh-cw" id="sec-refresh-icon" style="width: 14px; height: 14px;"></i>
-                        تازه‌سازی لاگ‌ها
+                        <span data-i18n="refresh_logs">تازه‌سازی لاگ‌ها</span>
                     </button>
                 </div>
             </div>
@@ -217,7 +217,7 @@
                         <i data-lucide="shield-ban" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div class="sec-pill-info">
-                        <span class="sec-pill-label">کل حملات مسدود شده</span>
+                        <span class="sec-pill-label" data-i18n="sec_total_banned">کل حملات مسدود شده</span>
                         <span class="sec-pill-val" id="sec-total-banned-val" style="color: #ef4444;">-</span>
                     </div>
                 </div>
@@ -227,7 +227,7 @@
                         <i data-lucide="user-x" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div class="sec-pill-info">
-                        <span class="sec-pill-label">آی‌پی‌های مسدود جاری</span>
+                        <span class="sec-pill-label" data-i18n="sec_current_banned">آی‌پی‌های مسدود جاری</span>
                         <span class="sec-pill-val" id="sec-current-banned-val" style="color: #f59e0b;">-</span>
                     </div>
                 </div>
@@ -237,7 +237,7 @@
                         <i data-lucide="eye" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div class="sec-pill-info">
-                        <span class="sec-pill-label">تلاش‌های نفوذ رصد شده</span>
+                        <span class="sec-pill-label" data-i18n="sec_failed_attempts">تلاش‌های نفوذ رصد شده</span>
                         <span class="sec-pill-val" id="sec-failed-attempts-val" style="color: #3b82f6;">-</span>
                     </div>
                 </div>
@@ -247,8 +247,8 @@
                         <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div class="sec-pill-info">
-                        <span class="sec-pill-label">وضعیت سپر دفاعی</span>
-                        <span class="sec-pill-val" style="color: #10b981; font-size: 15px;">فعال و هوشیار</span>
+                        <span class="sec-pill-label" data-i18n="sec_shield_status">وضعیت سپر دفاعی</span>
+                        <span class="sec-pill-val" style="color: #10b981; font-size: 15px;" data-i18n="sec_shield_active">فعال و هوشیار</span>
                     </div>
                 </div>
             </div>
@@ -258,12 +258,12 @@
                 <div class="sec-console-top">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block; box-shadow: 0 0 8px #10b981;"></span>
-                        <strong>ترمینال زنده رصد رویدادهای امنیتی و حملات</strong>
+                        <strong data-i18n="sec_console_title">ترمینال زنده رصد رویدادهای امنیتی و حملات</strong>
                     </div>
                     <div class="sec-console-filters">
-                        <button class="sec-filter-btn active" onclick="filterSecLogs('all', this)">همه رویدادها</button>
-                        <button class="sec-filter-btn" onclick="filterSecLogs('ban', this)">حملات مسدودشده</button>
-                        <button class="sec-filter-btn" onclick="filterSecLogs('threat', this)">تلاش‌های نفوذ</button>
+                        <button class="sec-filter-btn active" onclick="filterSecLogs('all', this)" data-i18n="sec_filter_all">همه رویدادها</button>
+                        <button class="sec-filter-btn" onclick="filterSecLogs('ban', this)" data-i18n="sec_filter_ban">حملات مسدودشده</button>
+                        <button class="sec-filter-btn" onclick="filterSecLogs('threat', this)" data-i18n="sec_filter_threat">تلاش‌های نفوذ</button>
                     </div>
                 </div>
 

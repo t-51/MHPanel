@@ -3,46 +3,46 @@
         <div class="config-header">
             <h3 class="config-title">
                 <i data-lucide="server"></i>
-                Remote Servers Manager
+                <span data-i18n="servers_title">مدیریت سرورهای ریموت (Remote Servers)</span>
             </h3>
         </div>
-        <p class="text-sm" style="color: var(--text-muted); margin-bottom: 20px;">
-            Manage remote servers to quickly deploy VPN scripts with one click.
+        <p class="text-sm" style="color: var(--text-muted); margin-bottom: 20px;" data-i18n="servers_desc">
+            مدیریت سرورهای ریموت لینوکس جهت توزیع بار، انتقال ترافیک و استقرار اسکریپت‌های VPN.
         </p>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
             <div class="form-group">
-                <label class="form-label">Server IP / Domain</label>
+                <label class="form-label" data-i18n="servers_ip_label">آدرس سرور (IP یا Domain)</label>
                 <input type="text" class="form-input" id="server-ip" placeholder="e.g. 192.168.1.100">
             </div>
             <div class="form-group">
-                <label class="form-label">SSH Port</label>
+                <label class="form-label" data-i18n="servers_port_label">پورت SSH سرور</label>
                 <input type="number" class="form-input" id="server-port" value="22">
             </div>
             <div class="form-group">
-                <label class="form-label">Username</label>
+                <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
                 <input type="text" class="form-input" id="server-user" value="root">
             </div>
             <div class="form-group">
-                <label class="form-label">Password</label>
+                <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
                 <input type="password" class="form-input" id="server-pass" placeholder="Password">
             </div>
         </div>
 
         <button class="btn btn-primary" onclick="addServer()">
-            <i data-lucide="plus"></i> Add Server
+            <i data-lucide="plus"></i> <span data-i18n="servers_add_btn">افزودن سرور</span>
         </button>
 
         <div style="margin-top: 30px;">
-            <h4 style="margin-bottom: 15px; font-weight: 500;">Saved Servers</h4>
+            <h4 style="margin-bottom: 15px; font-weight: 500;" data-i18n="servers_saved_title">سرورهای ثبت‌شده</h4>
             <div style="border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                     <thead style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
                         <tr>
-                            <th style="padding: 12px 16px; font-weight: 600;">Address</th>
-                            <th style="padding: 12px 16px; font-weight: 600;">Port</th>
-                            <th style="padding: 12px 16px; font-weight: 600;">Username</th>
-                            <th style="padding: 12px 16px; font-weight: 600; text-align: right;">Actions</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_addr">آدرس سرور</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_port">پورت SSH</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_user">نام کاربری</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_actions">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="servers-table-body">

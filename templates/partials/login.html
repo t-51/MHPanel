@@ -1,18 +1,45 @@
 <div class="login-container">
     <div class="glass-card login-card" style="position: relative;">
         <!-- Language & Theme Selector Bar on Login Page -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-            <button type="button" class="theme-btn" onclick="toggleTheme()" id="login-theme-btn" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-main); padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+            <button type="button" class="theme-btn" onclick="toggleTheme()" id="login-theme-btn" style="background:rgba(255,255,255,0.06); border:1px solid var(--border-color); color:var(--text-main); padding:4px 10px; border-radius:14px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:5px;">
                 <i data-lucide="moon" id="login-theme-icon" style="width:14px; height:14px;"></i>
                 <span id="login-theme-label">تم</span>
             </button>
-            <div class="lang-selector-wrapper" style="margin: 0;">
-                <select id="login-lang-select" class="lang-select" onchange="changeLanguage(this.value)" aria-label="Select Language" style="padding: 4px 10px; font-size: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer;">
-                    <option value="fa">🇮🇷 فارسی</option>
-                    <option value="en">🇬🇧 English</option>
-                    <option value="ru">🇷🇺 Русский</option>
-                </select>
+            <div class="header-lang-pills" style="margin: 0;">
+                <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی">
+                    <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#239F40"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
+                        <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
+                    </svg>
+                    <span>FA</span>
+                </button>
+                <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">
+                    <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                        <rect width="18" height="13" fill="#012169"/>
+                        <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
+                        <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
+                        <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
+                        <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
+                    </svg>
+                    <span>EN</span>
+                </button>
+                <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский">
+                    <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
+                    </svg>
+                    <span>RU</span>
+                </button>
             </div>
+            <select id="login-lang-select" style="display:none;" onchange="changeLanguage(this.value)">
+                <option value="fa">فارسی</option>
+                <option value="en">English</option>
+                <option value="ru">Русский</option>
+            </select>
         </div>
 
         <div class="brand-logo">
