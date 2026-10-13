@@ -1,0 +1,757 @@
+<div class="tab-pane" id="tab-l2tp">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- L2TP Core Status & Service Control Header -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="layers" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;">
+                            مرکز مدیریت پروتکل L2TP (L2TPv2 / L2TPv3)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            پشتیبانی کامل از L2TPv2 بر بستر IPsec با احراز هویت متمرکز ردیوس داخلی (FreeRADIUS) + تونل‌سازی پیشرفته لایه ۲ اترنت L2TPv3 (Pseudowire) برای میکروتیک و روترها
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="l2tp-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">پورت‌های پروتکل</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">UDP 1701 / 500 / 4500</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">آدرس عمومی سرور</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="l2tp-top-server-ip">-</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">وضعیت ردیوس داخلی</div>
+                    <div style="font-weight: 700; color: #4f46e5; font-size: 12px; margin-top: 3px;" id="l2tp-top-radius-status">
+                        <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; margin-left:3px;"></i> متصل (FreeRADIUS)
+                    </div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">ماژول کرنل L2TPv3</div>
+                    <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="l2tp-top-v3-status">
+                        بارگذاری شده (Active)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Actions -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="restartL2tpService()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="reloadL2tpConfig()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بازخوانی کانفیگ (ipsec update)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('xl2tpd')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> لاگ زنده xl2tpd
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('ikev2')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="shield" style="width:14px; height:14px; margin-right:6px;"></i> لاگ زنده IPsec
+                </button>
+            </div>
+        </div>
+
+        <!-- Sub-Tabs Navigation for L2TP -->
+        <div style="display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto;">
+            <button type="button" class="l2tp-subtab-btn active" id="btn-subtab-l2tpv2" onclick="switchL2tpSubTab('l2tpv2')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: #4f46e5; color: #fff; transition: all 0.2s;">
+                <i data-lucide="shield-check" style="width:16px; height:16px;"></i>
+                تنظیمات L2TPv2 (IPsec & RADIUS)
+            </button>
+            <button type="button" class="l2tp-subtab-btn" id="btn-subtab-l2tpv3" onclick="switchL2tpSubTab('l2tpv3')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+                <i data-lucide="network" style="width:16px; height:16px;"></i>
+                تونل‌های L2TPv3 (Pseudowire)
+            </button>
+            <button type="button" class="l2tp-subtab-btn" id="btn-subtab-guides" onclick="switchL2tpSubTab('guides')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+                <i data-lucide="terminal" style="width:16px; height:16px;"></i>
+                راهنمای اتصال سریع دستگاه‌ها
+            </button>
+            <button type="button" class="l2tp-subtab-btn" id="btn-subtab-sessions" onclick="switchL2tpSubTab('sessions')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
+                <i data-lucide="users" style="width:16px; height:16px;"></i>
+                سشن‌های آنلاین و کاربران
+            </button>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUBTAB 1: L2TPv2 (L2TP / IPsec) Settings   -->
+        <!-- ========================================== -->
+        <div id="subtab-content-l2tpv2" class="l2tp-subtab-content" style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <form id="l2tp-policy-form" onsubmit="saveL2tpConfig(event)">
+                <!-- Card 1: PSK & FreeRADIUS Integration -->
+                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                    <div class="config-header" style="margin-bottom: 18px;">
+                        <div>
+                            <h3 class="config-title">
+                                <i data-lucide="key" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                                کلید اشتراکی IPsec (Pre-Shared Key - PSK) و احراز هویت متمرکز
+                            </h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                                کلید PSK توسط تمامی کلاینت‌ها (ویندوز، مک، آیفون، اندروید، میکروتیک) برای رمزنگاری تونل فاز ۱ IPsec الزامی است.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
+                        <!-- PSK Input & Generator -->
+                        <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 16px;">
+                            <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+                                کلید امنیتی پیش‌فرض (IPsec Pre-Shared Key):
+                            </label>
+                            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                                <div style="position: relative; flex: 1; min-width: 250px;">
+                                    <input type="password" id="l2tp-psk-input" class="form-input" style="padding-right: 40px; font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;" value="VpnSecret123" required>
+                                    <button type="button" onclick="toggleL2tpPskVisibility()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                                        <i data-lucide="eye" id="l2tp-psk-eye" style="width: 18px; height: 18px;"></i>
+                                    </button>
+                                </div>
+                                <button type="button" class="btn btn-secondary" onclick="generateL2tpPsk()" style="width: auto; padding: 10px 16px;">
+                                    <i data-lucide="shuffle" style="width: 15px; height: 15px; margin-left: 6px;"></i> تولید کلید تصادفی
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="copyL2tpPsk()" style="width: auto; padding: 10px 16px;">
+                                    <i data-lucide="copy" style="width: 15px; height: 15px; margin-left: 6px;"></i> کپی کلید
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- FreeRADIUS Integration Banner & Toggle -->
+                        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 12px; align-items: flex-start;">
+                                    <div style="width: 38px; height: 38px; border-radius: 10px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                        <i data-lucide="radio" style="width: 20px; height: 20px;"></i>
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; color: #1e40af; font-size: 14px;">احراز هویت یکپارچه با FreeRADIUS داخلی سرور</div>
+                                        <p style="font-size: 12px; color: #3b82f6; margin: 4px 0 0 0; line-height: 1.6;">
+                                            با فعال بودن این قابلیت، تمامی کاربرانی که در تب <strong>FreeRADIUS داخلی</strong> پنل ساخته‌اید، می‌توانند بدون نیاز به ساخت یوزر جدید یا تنظیمات مضاعف به پروتکل L2TP متصل شوند.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label class="switch" style="margin: 0;">
+                                        <input type="checkbox" id="l2tp-toggle-radius" checked>
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span style="font-size: 13px; font-weight: 700; color: #1e3a8a;">فعال‌سازی RADIUS</span>
+                                </div>
+                            </div>
+
+                            <!-- Quick RADIUS User Tester -->
+                            <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="font-size: 12px; font-weight: 600; color: #1e40af;">تست احراز هویت با ردیوس:</span>
+                                <input type="text" id="l2tp-radtest-user" placeholder="نام کاربری" class="form-input" style="width: 140px; padding: 6px 10px; font-size: 12px;">
+                                <input type="password" id="l2tp-radtest-pass" placeholder="رمز عبور" class="form-input" style="width: 140px; padding: 6px 10px; font-size: 12px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="testL2tpRadius()" style="padding: 6px 14px;">
+                                    <i data-lucide="play" style="width: 12px; height: 12px; margin-left: 4px;"></i> تست لاگین
+                                </button>
+                                <span id="l2tp-radtest-result" style="font-size: 12px; font-weight: 700;"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: Network, IP Pool, DNS & Auth Modes -->
+                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                    <div class="config-header" style="margin-bottom: 18px;">
+                        <div>
+                            <h3 class="config-title">
+                                <i data-lucide="network" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                                شبکه، رنج آی‌پی کلاینت‌ها و تنظیمات PPP (xl2tpd & pppd)
+                            </h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                                تعیین Gateway سرور، رنج آی‌پی‌های اختصاصی به کاربران و متدهای احراز هویت مجاز PPP
+                            </p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">آی‌پی درگاه سرور (Local Gateway IP):</label>
+                            <input type="text" id="l2tp-local-ip-input" class="form-input" style="font-family: monospace;" value="192.168.42.1" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">بازه اختصاص آی‌پی کلاینت‌ها (IP Range Pool):</label>
+                            <input type="text" id="l2tp-pool-input" class="form-input" style="font-family: monospace;" value="192.168.42.10-192.168.42.250" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">ساب‌نت شبکه (Subnet CIDR):</label>
+                            <input type="text" id="l2tp-subnet-input" class="form-input" style="font-family: monospace;" value="192.168.42.0/24" required>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">دی‌ان‌اس اصلی (Primary DNS):</label>
+                            <input type="text" id="l2tp-dns1-input" class="form-input" style="font-family: monospace;" value="8.8.8.8" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">دی‌ان‌اس دوم (Secondary DNS):</label>
+                            <input type="text" id="l2tp-dns2-input" class="form-input" style="font-family: monospace;" value="1.1.1.1" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight: 600;">اندازه MTU / MRU:</label>
+                            <input type="number" id="l2tp-mtu-input" class="form-input" value="1280" min="1000" max="1500" required>
+                        </div>
+                    </div>
+
+                    <!-- PPP Authentication Protocol Select -->
+                    <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 14px;">
+                        <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
+                            روش‌های احراز هویت پروتکل PPP (PPP Authentication Mode):
+                        </label>
+                        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                            <label class="algo-pill">
+                                <input type="radio" name="l2tp_auth_mode_radio" value="mschapv2" checked onchange="syncL2tpAuthMode()">
+                                <span>MS-CHAPv2 (استاندارد ویندوز، iOS، اندروید و مک - پیشنهادی)</span>
+                            </label>
+                            <label class="algo-pill">
+                                <input type="radio" name="l2tp_auth_mode_radio" value="all" onchange="syncL2tpAuthMode()">
+                                <span>سازگاری جهانی (MS-CHAPv2 + CHAP + PAP - بالاترین سازگاری با میکروتیک)</span>
+                            </label>
+                            <label class="algo-pill">
+                                <input type="radio" name="l2tp_auth_mode_radio" value="pap" onchange="syncL2tpAuthMode()">
+                                <span>فقط PAP (Plaintext)</span>
+                            </label>
+                            <label class="algo-pill">
+                                <input type="radio" name="l2tp_auth_mode_radio" value="chap" onchange="syncL2tpAuthMode()">
+                                <span>فقط CHAP</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: Advanced IPsec Proposals Matrix (Phase 1 & Phase 2 Checkboxes) -->
+                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                    <div class="config-header" style="margin-bottom: 20px;">
+                        <div>
+                            <h3 class="config-title">
+                                <i data-lucide="sliders" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                                الگوریتم‌ها و پروپزال‌های رمزنگاری IPsec (IKE Phase 1 & ESP Phase 2 Matrix)
+                            </h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                                انتخاب دقیق الگوریتم‌های رمزنگاری و گروه‌های دیفی-هلمن (DH Groups) برای برقراری تونل امن IPsec Transport Mode با قابلیت تیک زدن گزینه‌ها
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Preset Buttons -->
+                    <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                        <label class="form-label" style="font-weight:700; color:#4f46e5; margin-bottom:8px;">
+                            <i data-lucide="wand-2" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
+                            پروفایل‌های آماده و سازگار با سیستم‌عامل‌ها (Quick Proposal Presets):
+                        </label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                            <button type="button" class="preset-btn" onclick="applyL2tpPreset('universal')">
+                                <span class="preset-title">⚡ سازگاری جهانی (Universal)</span>
+                                <span class="preset-desc">ویندوز، اندروید، iOS، میکروتیک (پیشنهادی)</span>
+                            </button>
+                            <button type="button" class="preset-btn" onclick="applyL2tpPreset('windows')">
+                                <span class="preset-title">🪟 بهینه برای ویندوز 10/11</span>
+                                <span class="preset-desc">MODP-2048 & MODP-1024 + 3DES/AES</span>
+                            </button>
+                            <button type="button" class="preset-btn" onclick="applyL2tpPreset('mikrotik')">
+                                <span class="preset-title">📡 بهینه برای میکروتیک (MikroTik)</span>
+                                <span class="preset-desc">AES-256 + SHA256/SHA1 + Group 14/2</span>
+                            </button>
+                            <button type="button" class="preset-btn" onclick="applyL2tpPreset('highsec')">
+                                <span class="preset-title">🔒 امنیت فوق‌العاده بالا</span>
+                                <span class="preset-desc">AES-256 + SHA256 + MODP-2048</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Phase 1 (IKE) Checkbox Matrix -->
+                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                            <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
+                                <i data-lucide="key" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
+                                پروپزال فاز ۱ (IKE Phase 1 - مبادله کلید و احراز هویت تونل)
+                            </h4>
+                            <span style="font-size:11px; color:var(--text-muted);">روی گزینه‌ها تیک بزنید تا به پروپزال اضافه شوند</span>
+                        </div>
+
+                        <!-- Ciphers -->
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های رمزنگاری فاز ۱ (Encryption Ciphers):</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-cipher-cb" value="aes256" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>AES-256 (CBC)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-cipher-cb" value="aes128" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>AES-128 (CBC)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-cipher-cb" value="3des" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>3DES (ضروری برای کلاینت‌های قدیمی ویندوز)</span></label>
+                            </div>
+                        </div>
+
+                        <!-- Hashes -->
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های هش و یکپارچگی (Integrity Hashes):</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-hash-cb" value="sha256" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>SHA2-256 (استاندارد جهانی)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-hash-cb" value="sha1" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>SHA-1 (سازگاری بالا با ویندوز و میکروتیک)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-hash-cb" value="md5" onchange="syncL2tpProposalsFromCheckboxes()"> <span>MD5 (میراثی)</span></label>
+                            </div>
+                        </div>
+
+                        <!-- DH Groups -->
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">گروه‌های دیفی-هلمن (Diffie-Hellman Key Exchange Groups):</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-dh-cb" value="modp2048" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>MODP-2048 (Group 14 - امن و استاندارد)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-dh-cb" value="modp1024" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>MODP-1024 (Group 2 - پیش‌فرض ویندوز و میکروتیک)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-dh-cb" value="modp1536" onchange="syncL2tpProposalsFromCheckboxes()"> <span>MODP-1536 (Group 5)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-ike-dh-cb" value="ecp256" onchange="syncL2tpProposalsFromCheckboxes()"> <span>ECP-256 (Group 19)</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Phase 2 (ESP) Checkbox Matrix -->
+                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                            <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
+                                <i data-lucide="lock" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
+                                پروپزال فاز ۲ (ESP Phase 2 - رمزنگاری تونل داده L2TP Transport Mode)
+                            </h4>
+                            <span style="font-size:11px; color:var(--text-muted);">روی گزینه‌ها تیک بزنید تا به پروپزال اضافه شوند</span>
+                        </div>
+
+                        <!-- ESP Ciphers -->
+                        <div style="margin-bottom:14px;">
+                            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های رمزنگاری داده فاز ۲ (ESP Ciphers):</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-cipher-cb" value="aes256" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>AES-256 (CBC)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-cipher-cb" value="aes128" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>AES-128 (CBC)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-cipher-cb" value="3des" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>3DES</span></label>
+                            </div>
+                        </div>
+
+                        <!-- ESP Hashes -->
+                        <div>
+                            <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های هش و یکپارچگی فاز ۲ (ESP Hashes):</label>
+                            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-hash-cb" value="sha256" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>SHA2-256 (استاندارد)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-hash-cb" value="sha1" checked onchange="syncL2tpProposalsFromCheckboxes()"> <span>SHA-1 (سازگاری بالا با ویندوز و میکروتیک)</span></label>
+                                <label class="algo-pill"><input type="checkbox" class="l2tp-esp-hash-cb" value="md5" onchange="syncL2tpProposalsFromCheckboxes()"> <span>MD5</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden/Advanced inputs synced from checkboxes -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+                        <div>
+                            <label class="form-label" style="font-size:11px; color:var(--text-muted);">رشته نهایی پروپزال فاز ۱ (ike string در ipsec.conf):</label>
+                            <input type="text" id="l2tp-ike-proposal-input" class="form-input" style="font-family: monospace; font-size: 11px; background: #f1f5f9;" readonly>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11px; color:var(--text-muted);">رشته نهایی پروپزال فاز ۲ (esp string در ipsec.conf):</label>
+                            <input type="text" id="l2tp-esp-proposal-input" class="form-input" style="font-family: monospace; font-size: 11px; background: #f1f5f9;" readonly>
+                        </div>
+                    </div>
+
+                    <!-- DPD Settings -->
+                    <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 14px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 180px;">
+                            <label class="form-label" style="font-weight: 600;">اقدام هنگام قطع اتصال (DPD Action):</label>
+                            <select id="l2tp-dpd-action-select" class="form-input">
+                                <option value="clear" selected>clear (بستن سریع اتصال کلاینت)</option>
+                                <option value="hold">hold (نگهداری سشن)</option>
+                                <option value="restart">restart (راه‌اندازی مجدد تونل)</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 180px;">
+                            <label class="form-label" style="font-weight: 600;">فاصله بررسی سلامت اتصال (DPD Delay):</label>
+                            <input type="text" id="l2tp-dpd-delay-input" class="form-input" value="30s">
+                        </div>
+                    </div>
+
+                    <!-- Save Button -->
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button type="submit" class="btn btn-primary" style="padding: 12px 28px; font-size: 14px; font-weight: 700;">
+                            <i data-lucide="check-circle" style="width: 18px; height: 18px; margin-left: 8px;"></i>
+                            ذخیره و اعمال تنظیمات L2TP & IPsec
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUBTAB 2: L2TPv3 (Pseudowire / Ethernet)   -->
+        <!-- ========================================== -->
+        <div id="subtab-content-l2tpv3" class="l2tp-subtab-content" style="display: none; flex-direction: column; gap: 24px;">
+            
+            <!-- L2TPv3 Info Banner -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 18px; display:flex; align-items:flex-start; gap:14px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:#dcfce7; color:#16a34a; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i data-lucide="network" style="width:20px; height:20px;"></i>
+                </div>
+                <div style="font-size: 13px; line-height: 1.6; color: #166534;">
+                    <strong style="font-size: 14px; color: #14532d;">تونل‌سازی مدرن لایه ۲ اترنت (L2TPv3 Ethernet Pseudowire - RFC 3931):</strong>
+                    <p style="margin: 4px 0 0 0;">
+                        پروتکل L2TPv3 بر خلاف L2TPv2 هیچ سربار PPP ندارد و بسته‌های اترنت را مستقیماً داخل کرنل لینوکس کپسوله می‌کند. این قابلیت برای اتصال شبکه دو دیتاسنتر، اتصال میکروتیک (EOIP over L2TP / Bridging) و انتقال ترافیک لایه ۲ بین دو روتر با بالاترین پهنای باند و کمترین تاخیر طراحی شده است.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Kernel Modules Status -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <h3 class="config-title">
+                        <i data-lucide="cpu" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                        وضعیت درایورها و ماژول‌های کرنل لینوکس (Kernel Modules)
+                    </h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_core</span>
+                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
+                    </div>
+                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_netlink</span>
+                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
+                    </div>
+                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_eth</span>
+                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
+                    </div>
+                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_ip</span>
+                        <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configured Tunnels List -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 class="config-title">
+                            <i data-lucide="layers" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                            تونل‌های ثبت شده L2TPv3 (Pseudowire Interfaces)
+                        </h3>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="showCreateL2tpV3Modal()" style="width: auto; padding: 8px 16px;">
+                        <i data-lucide="plus" style="width: 14px; height: 14px; margin-left: 6px;"></i> ایجاد تونل جدید L2TPv3
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>شناسه تونل (TID)</th>
+                                <th>اینترفیس</th>
+                                <th>نوع کپسوله‌سازی</th>
+                                <th>آدرس محلی</th>
+                                <th>آدرس مقصد (Remote)</th>
+                                <th>آی‌پی اینترفیس</th>
+                                <th>وضعیت</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="l2tp-v3-tunnels-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                    در حال بارگذاری تونل‌های L2TPv3...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Create L2TPv3 Tunnel Form Card -->
+            <div class="glass-card config-card" id="l2tp-v3-create-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 16px;">
+                    <h3 class="config-title">
+                        <i data-lucide="plus-circle" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
+                        راه‌اندازی تونل جدید L2TPv3 (New Pseudowire Tunnel)
+                    </h3>
+                </div>
+
+                <form id="l2tp-v3-form" onsubmit="createL2tpV3Tunnel(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">شناسه تونل محلی (Tunnel ID):</label>
+                            <input type="number" id="v3-tunnel-id" class="form-input" value="100" min="1" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">شناسه تونل سرور مقابل (Peer Tunnel ID):</label>
+                            <input type="number" id="v3-peer-tunnel-id" class="form-input" value="100" min="1" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">شناسه سشن (Session ID):</label>
+                            <input type="number" id="v3-session-id" class="form-input" value="1" min="1" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">شناسه سشن مقابل (Peer Session ID):</label>
+                            <input type="number" id="v3-peer-session-id" class="form-input" value="1" min="1" required>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">آدرس IP محلی سرور (Local IP):</label>
+                            <input type="text" id="v3-local-ip" class="form-input" style="font-family:monospace;" placeholder="آدرس سرور شما" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">آدرس IP سرور یا میکروتیک مقصد (Remote Peer IP):</label>
+                            <input type="text" id="v3-remote-ip" class="form-input" style="font-family:monospace;" placeholder="مثال: 5.6.7.8" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">نوع کپسوله‌سازی (Encapsulation):</label>
+                            <select id="v3-encap" class="form-input" onchange="toggleV3PortInput()">
+                                <option value="udp" selected>UDP (با پورت مشخص - پیشنهادی برای گذر از NAT)</option>
+                                <option value="ip">IP Raw (پروتکل خام 115 بدون پورت)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="v3-port-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">پورت UDP تونل (Port):</label>
+                            <input type="number" id="v3-port" class="form-input" value="5555" min="1" max="65535">
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">نام اینترفیس مجازی لینوکس (Interface):</label>
+                            <input type="text" id="v3-ifname" class="form-input" style="font-family:monospace;" value="l2tpeth100" required>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600;">آدرس IP اختصاصی اینترفیس (اختیاری - Subnet CIDR):</label>
+                            <input type="text" id="v3-ifaddr" class="form-input" style="font-family:monospace;" placeholder="مثال: 10.50.0.1/24">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+                            <i data-lucide="play" style="width: 15px; height: 15px; margin-left: 6px;"></i>
+                            ایجاد و ثبت دائمی تونل در سیستم (Systemd Unit)
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUBTAB 3: Quick Client Connection Guides   -->
+        <!-- ========================================== -->
+        <div id="subtab-content-guides" class="l2tp-subtab-content" style="display: none; flex-direction: column; gap: 24px;">
+            
+            <!-- Windows Guide -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:22px;">🪟</span>
+                        <div>
+                            <h3 class="config-title" style="margin:0;">اتصال خودکار ۱-کلیکی در ویندوز 10 و 11 (PowerShell Script)</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">ساخت خودکار کانکشن L2TP با ست کردن PSK، الگوریتم‌های بهینه و رفع خطای NAT-T ویندوز</p>
+                        </div>
+                    </div>
+                    <a href="/api/l2tp/quick-connect/windows.ps1" class="btn btn-secondary btn-sm" style="width:auto; padding:6px 14px;">
+                        <i data-lucide="download" style="width:14px; height:14px; margin-left:4px;"></i> دانلود اسکریپت Setup-L2TP.ps1
+                    </a>
+                </div>
+
+                <div style="background:#0f172a; border-radius:10px; padding:16px; margin-bottom:14px; position:relative;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:#94a3b8; font-size:11px; font-family:monospace;">Windows PowerShell (Run as Administrator)</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyL2tpWinCmd()" style="padding:4px 10px; font-size:11px; height:28px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> کپی دستور
+                        </button>
+                    </div>
+                    <pre id="l2tp-win-ps-cmd" style="margin:0; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6; overflow-x:auto; white-space:pre-wrap; direction:ltr; text-align:left;">Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\PolicyAgent" -Name "AssumeUDPEncapsulationContextOnSendRule" -Type DWord -Value 2 -Force; Add-VpnConnection -Name "MH-L2TP" -ServerAddress "SERVER_IP" -TunnelType L2tp -L2tpPsk "VpnSecret123" -AuthenticationMethod MSChapv2 -Force</pre>
+                </div>
+
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; font-size: 12px; color: #92400e; line-height: 1.6;">
+                    <strong>نکته مهم ویندوز (رفع خطای Error 789 / 809):</strong>
+                    در صورتی که سرور یا کاربر پشت NAT باشد، ویندوز طبق استاندارد پیش‌فرض مایکروسافت اتصال L2TP را مسدود می‌کند. دستور پاورشل بالا مقدار رجیستری <code>AssumeUDPEncapsulationContextOnSendRule = 2</code> را به صورت خودکار اعمال می‌کند تا اتصال فوراً برقرار شود.
+                </div>
+            </div>
+
+            <!-- MikroTik Guide -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:22px;">📡</span>
+                        <div>
+                            <h3 class="config-title" style="margin:0;">کانفیگ آماده میکروتیک (MikroTik RouterOS Client)</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">اسکریپت کامل ایجاد L2TP Client، تنظیم پروفایل و پروپزال IPsec در ترمینال روتر</p>
+                        </div>
+                    </div>
+                    <a href="/api/l2tp/quick-connect/mikrotik.rsc" class="btn btn-secondary btn-sm" style="width:auto; padding:6px 14px;">
+                        <i data-lucide="download" style="width:14px; height:14px; margin-left:4px;"></i> دانلود فایل mh-l2tp-mikrotik.rsc
+                    </a>
+                </div>
+
+                <div style="background:#0f172a; border-radius:10px; padding:16px; position:relative;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="color:#94a3b8; font-size:11px; font-family:monospace;">MikroTik Terminal Command</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyL2tpMikrotikScript()" style="padding:4px 10px; font-size:11px; height:28px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> کپی اسکریپت
+                        </button>
+                    </div>
+                    <pre id="l2tp-mikrotik-script-display" style="margin:0; color:#4ade80; font-family:'JetBrains Mono', monospace; font-size:12px; line-height:1.6; overflow-x:auto; white-space:pre-wrap; direction:ltr; text-align:left;">/ip ipsec profile add name="MH-L2TP-Profile" hash-algorithm=sha256 enc-algorithm=aes-256,aes-128 dh-group=modp2048,modp1024
+/ip ipsec proposal add name="MH-L2TP-Proposal" auth-algorithms=sha256 enc-algorithms=aes-256-cbc,aes-128-cbc pfs-group=modp2048
+/ip ipsec peer add name="MH-L2TP-Peer" address="SERVER_IP" profile="MH-L2TP-Profile" exchange-mode=main-l2tp
+/ip ipsec identity add peer="MH-L2TP-Peer" auth-method=pre-shared-key secret="VpnSecret123" generate-policy=port-override
+/interface l2tp-client add name="l2tp-out-mh" connect-to="SERVER_IP" user="USER" password="PASSWORD" use-ipsec=yes ipsec-secret="VpnSecret123" disabled=no</pre>
+                </div>
+            </div>
+
+            <!-- iOS & macOS Guide -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:22px;">🍏</span>
+                        <div>
+                            <h3 class="config-title" style="margin:0;">راهنمای اتصال نیتیو در آیفون و مک (iOS & macOS)</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">اتصال آسان از طریق تنظیمات سیستم بدون نیاز به نصب نرم‌افزار جانبی</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
+                    <ol style="padding-right: 20px; margin: 0;">
+                        <li>به منوی <strong>Settings -> VPN & Device Management -> VPN</strong> (در مک: System Settings -> VPN) بروید.</li>
+                        <li>روی <strong>Add VPN Configuration</strong> کلیک کرده و نوع پروتکل را روی <strong>L2TP</strong> قرار دهید.</li>
+                        <li>در بخش <strong>Server</strong>، آدرس IP عمومی سرور <code id="l2tp-guide-ios-ip">SERVER_IP</code> را وارد نمایید.</li>
+                        <li>در بخش <strong>Account</strong> نام کاربری ردیوس و در بخش <strong>Password</strong> رمز عبور کاربر را وارد کنید.</li>
+                        <li>در بخش <strong>Secret</strong>، کلید اشتراکی <code id="l2tp-guide-ios-psk">VpnSecret123</code> را قرار دهید.</li>
+                        <li>تنظیمات را ذخیره کرده و روی دکمه Connect بزنید.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <!-- Android Guide -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span style="font-size:22px;">🤖</span>
+                        <div>
+                            <h3 class="config-title" style="margin:0;">راهنمای اتصال در گوشی‌های اندروید (Android)</h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">استفاده از تنظیمات پیش‌فرض VPN اندروید یا نرم‌افزار VpnCilla</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
+                    <ol style="padding-right: 20px; margin: 0;">
+                        <li>در اندرویدهای قدیمی‌تر: وارد <strong>Settings -> Connections -> More connection settings -> VPN</strong> شوید. روی افزودن VPN زده و نوع را <strong>L2TP/IPSec PSK</strong> انتخاب کنید.</li>
+                        <li>در بخش <strong>IPSec pre-shared key</strong>، مقدار کلید <code id="l2tp-guide-android-psk">VpnSecret123</code> را وارد کنید.</li>
+                        <li>در اندروید ۱۲ به بعد: به دلیل حذف نیتیو L2TP توسط گوگل، پیشنهاد می‌شود از پروتکل <strong>IKEv2</strong> در همین پنل استفاده کنید که سازگاری ۱۰۰٪ با تمامی نسخه‌های اندروید دارد، یا از اپلیکیشن <strong>VpnCilla</strong> استفاده نمایید.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUBTAB 4: Active Sessions & RADIUS Users   -->
+        <!-- ========================================== -->
+        <div id="subtab-content-sessions" class="l2tp-subtab-content" style="display: none; flex-direction: column; gap: 24px;">
+            
+            <!-- Live Active PPP Sessions Table -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 16px;">
+                    <div>
+                        <h3 class="config-title">
+                            <i data-lucide="activity" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
+                            سشن‌های متصل آنلاین L2TP (Active PPP Sessions)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            مشاهده کلاینت‌های متصل در این لحظه، آدرس IP دریافتی و حجم مصرفی
+                        </p>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchL2tpSessions()" style="width: auto; padding: 6px 14px;">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-left: 4px;"></i> بروزرسانی سشن‌ها
+                    </button>
+                </div>
+
+                <div style="overflow-x: auto;">
+                    <table class="data-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>اینترفیس</th>
+                                <th>آدرس IP کاربر</th>
+                                <th>آدرس Gateway سرور</th>
+                                <th>دریافت (Download)</th>
+                                <th>ارسال (Upload)</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="l2tp-sessions-tbody">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                    در حال بارگذاری سشن‌های فعال...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- L2TP & RADIUS Users Management -->
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
+                <!-- Users List -->
+                <div class="glass-card config-card">
+                    <div class="config-header">
+                        <h3 class="config-title">
+                            <i data-lucide="users" style="color: var(--color-secondary); width: 20px; height: 20px;"></i>
+                            کاربران فعال محلی و ردیوس L2TP
+                        </h3>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 16px;">
+                        <div>
+                            <div class="l2tp-client-list" id="l2tp-clients"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create User Box -->
+                <div style="display: flex; flex-direction: column; gap: 24px;">
+                    <div class="glass-card config-card">
+                        <div class="config-header">
+                            <h3 class="config-title">
+                                <i data-lucide="user-plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
+                                ساخت اکانت جدید
+                            </h3>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">نام کاربری</label>
+                                <input class="form-input" style="padding-left:16px;" type="text" id="l2tp-client-username" placeholder="Username" required>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">رمز عبور</label>
+                                <input class="form-input" style="padding-left:16px;" type="password" id="l2tp-client-password" placeholder="Password" required>
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">محدودیت حجم (GB) - اختیاری</label>
+                                <input class="form-input" style="padding-left:16px;" type="number" id="l2tp-client-limit" placeholder="خالی = نامحدود">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label class="form-label">تاریخ انقضا - اختیاری</label>
+                                <input class="form-input" style="padding-left:16px;" type="date" id="l2tp-client-expire">
+                            </div>
+                            <button type="button" class="btn btn-primary" onclick="createL2tpClient()">
+                                <i data-lucide="plus" class="btn-icon"></i> ثبت کاربر
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

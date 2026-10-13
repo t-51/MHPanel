@@ -1,0 +1,61 @@
+# ==============================================================================
+# MH Panel - Git Ignore Rules
+# ==============================================================================
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Python virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# System and local environment files
+.env
+.env.local
+
+# Live credentials and sensitive authentication files
+admin_credentials.txt
+api_key.txt
+session_secret.txt
+panel_port.txt
+
+# Dynamic user databases & traffic stats
+*_users.json
+radius_groups.json
+radius_users.json
+traffic_stats.json
+tunnels_config.json
+servers.json
+multiplexer_config.json
+sstp_config.json
+openvpn_multiport.json
+
+# SSL and CA Certificates & Private Keys
+*.pem
+*.crt
+*.key
+*.p12
+*.ca
+
+# Logs and runtime databases
+log.txt
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Temporary & backup files
+*.bak*
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+/tmp/

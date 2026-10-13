@@ -1,0 +1,253 @@
+<div class="tab-pane" id="tab-shadowsocks">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.96); border: 1px solid rgba(217, 119, 6, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(217, 119, 6, 0.12); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="ss_title">
+                            پروتکل شادوساکس مدرن (Shadowsocks-rust 2022)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ss_subtitle">
+                            نسخه رسمی زبان Rust با الگوریتم‌های جدید AEAD 2022 (Blake3)، بهینه‌سازی TCP Fast Open و عبور قدرتمند از فایروال‌ها
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="ss-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchShadowsocksConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ss_stat_port">پورت شادوساکس (TCP + UDP)</div>
+                    <div style="font-weight: 700; color: #d97706; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ss-stat-port">8388</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ss_stat_cipher">الگوریتم رمزنگاری (Cipher)</div>
+                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ss-stat-cipher">2022-blake3-aes-128-gcm</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ss_stat_tfo">شتابدهنده TCP Fast Open</div>
+                    <div style="font-weight: 700; color: #0284c7; margin-top: 3px;" id="ss-stat-tfo">فعال (TFO On)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ss_stat_connections">اتصالات آنلاین فعلی</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ss-stat-connections">0 آنلاین</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlShadowsocks('restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد سرویس شادوساکس</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="ss-toggle-btn" onclick="toggleShadowsocksService()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Shadowsocks Configuration Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #d97706; width: 20px; height: 20px;"></i>
+                    <span data-i18n="ss_config_title">تنظیمات اصلی و رمزنگاری 2022 AEAD</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="ss_port_label">پورت سرور شادوساکس</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="ss-cfg-port" placeholder="8388">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="ss_port_hint">
+                        پیش‌فرض ۸۳۸۸ (سازگار با کلیه کلاینت‌های اندروید، ویندوز و iOS).
+                    </span>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="ss_cipher_label">الگوریتم رمزنگاری (Cipher / Method)</label>
+                    <select class="form-input" id="ss-cfg-method" onchange="onSsMethodChange()">
+                        <option value="2022-blake3-aes-128-gcm">2022-blake3-aes-128-gcm (استاندارد جدید ضد فیلتر و پرسرعت)</option>
+                        <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm (استاندارد ۲۵۶ بیت ۲۰۲۲)</option>
+                        <option value="2022-blake3-chacha20-poly1305">2022-blake3-chacha20-poly1305 (بهینه برای موبایل و پردازنده‌های ARM)</option>
+                        <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305 (سازگار با کلاینت‌های قدیمی)</option>
+                        <option value="aes-256-gcm">aes-256-gcm (کلاسیک)</option>
+                        <option value="aes-128-gcm">aes-128-gcm (کلاسیک)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <label class="form-label" style="margin:0;" data-i18n="ss_password_label">رمز عبور یا کلید هگز / Base64</label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateSsKey()" style="font-size:11px; padding:3px 8px; width:auto;">
+                            <i data-lucide="refresh-cw" style="width:11px; height:11px; margin-left:3px;"></i> <span data-i18n="ss_gen_key">تولید کلید تصادفی</span>
+                        </button>
+                    </div>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; margin-top:6px;" type="text" id="ss-cfg-password" placeholder="Key or Password">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="ss_key_hint">
+                        در متدهای 2022 کلید باید فرمت معتبر Base64 (۱۶ یا ۳۲ بایت) باشد.
+                    </span>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="ss_tfo_label">شتاب‌دهنده TCP Fast Open (TFO)</label>
+                    <select class="form-input" id="ss-cfg-tfo">
+                        <option value="true">فعال (کاهش تأخیر اتصال اولیه)</option>
+                        <option value="false">غیرفعال</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveShadowsocksConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Fast Share Links & QR Code -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="share-2" style="color: #059669; width: 20px; height: 20px;"></i>
+                    <span data-i18n="ss_links_title">لینک‌های اتصال شادوساکس و کدهای QR</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <!-- Domain Link -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; font-size:13px; color:#1e293b;" data-i18n="ss_link_domain">لینک اتصال مستقیم شادوساکس با دامنه:</span>
+                        <span style="font-size:11px; color:#64748b; font-family:'JetBrains Mono', monospace;" id="ss-link-domain-name">vpn.domain</span>
+                    </div>
+                    <div style="background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:8px 12px; font-family:'JetBrains Mono', monospace; font-size:11.5px; direction:ltr; word-break:break-all; color:#334155;" id="ss-share-link-text">
+                        ss://...
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="copyElementText('ss-share-link-text'); showToast('لینک شادوساکس کپی شد', 'success');" style="flex:1; min-width:140px;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_link">کپی لینک ss://</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showSsQrModal()" style="width:auto; padding:6px 14px;">
+                            <i data-lucide="qr-code" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="show_qr">بارکد QR</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- IP Link -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:14px 16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:700; font-size:13px; color:#1e293b;" data-i18n="ss_link_ip">لینک اتصال مستقیم با آی‌پی سرور (بدون وابستگی به DNS):</span>
+                        <span style="font-size:11px; color:#64748b; font-family:'JetBrains Mono', monospace;">212.227.143.16</span>
+                    </div>
+                    <div style="background:#ffffff; border:1px dashed #cbd5e1; border-radius:8px; padding:8px 12px; font-family:'JetBrains Mono', monospace; font-size:11.5px; direction:ltr; word-break:break-all; color:#334155;" id="ss-share-link-ip-text">
+                        ss://...
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('ss-share-link-ip-text'); showToast('لینک شادوساکس (IP) کپی شد', 'success');" style="flex:1;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_ip_link">کپی لینک بر پایه IP</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Shadowsocks Multi-User / Clients Card -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+                <div>
+                    <h3 class="config-title" style="margin:0;">
+                        <i data-lucide="users" style="color: #d97706; width: 20px; height: 20px;"></i>
+                        <span data-i18n="ss_clients_mgmt">مدیریت کاربران و کلاینت‌های اختصاصی شادوساکس</span>
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0 0;">
+                        تعریف کاربران و کلاینت‌های مستقل. هر کاربر کلید اختصاصی و لینک اتصال مجزا دریافت می‌کند.
+                    </p>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="toggleAddSsClientForm(true)" style="width:auto; padding:6px 14px;">
+                    <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span>افزودن کاربر جدید</span>
+                </button>
+            </div>
+
+            <!-- Add Client Form (Collapsible) -->
+            <div id="ss-add-client-card" style="display:none; background:#f8fafc; border:1px solid rgba(217, 119, 6, 0.25); border-radius:12px; padding:16px; margin-bottom:16px;">
+                <h4 style="margin:0 0 12px 0; font-size:13.5px; color:#b45309; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="plus-circle" style="width:15px; height:15px;"></i> افزودن کاربر شادوساکس
+                </h4>
+                <form onsubmit="submitAddSsClient(event)" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; align-items:end;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-size:12px;">نام کاربری (Username)</label>
+                        <input class="form-input" type="text" id="ss-client-username-input" placeholder="e.g. user1" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-size:12px;">کلید اختصاصی کاربر (اختیاری - خودکار تولید می‌شود)</label>
+                        <input class="form-input" type="text" id="ss-client-password-input" placeholder="کلید Base64 / رمز" style="direction:ltr; font-family:'JetBrains Mono';">
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="submit" class="btn btn-primary btn-sm" style="flex:1; padding:8px 12px;">
+                            <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ذخیره کاربر
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddSsClientForm(false)" style="padding:8px 12px;">
+                            انصراف
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Clients Table -->
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e2e8f0; color:var(--text-muted); font-size:11.5px;">
+                            <th style="padding:10px 12px; text-align:start;">نام کاربری</th>
+                            <th style="padding:10px 12px; text-align:start;">کلید / رمز کاربر</th>
+                            <th style="padding:10px 12px; text-align:start;">تاریخ ثبت</th>
+                            <th style="padding:10px 12px; text-align:center;">لینک اتصال</th>
+                            <th style="padding:10px 12px; text-align:center;">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ss-clients-tbody">
+                        <tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">در حال دریافت لیست کاربران شادوساکس...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Compatible Clients -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="smartphone" style="color: #6366f1; width: 20px; height: 20px;"></i>
+                    <span data-i18n="ss_clients_title">نرم‌افزارهای کلاینت سازگار</span>
+                </h3>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px;">
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="font-weight:700; color:#1e293b; font-size:13px;">Shadowrocket (iOS / iPhone)</div>
+                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">پشتیبانی کامل با اسکن QR یا Import لینک</div>
+                </div>
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="font-weight:700; color:#1e293b; font-size:13px;">v2rayN & Nekoray (ویندوز / لینوکس)</div>
+                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">پشتیبانی بومی از متدهای Blake3 و 2022 AEAD</div>
+                </div>
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="font-weight:700; color:#1e293b; font-size:13px;">Outline & Hiddify (اندروید و مک)</div>
+                    <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">اتصال فوق سریع با ۱ کلیک در کلیه دستگاه‌ها</div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

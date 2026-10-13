@@ -1,0 +1,29 @@
+<header class="app-header">
+    <div class="header-brand">
+        <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileSidebar(true)" aria-label="Toggle Navigation">
+            <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+        </button>
+        <div class="header-logo">
+            <i data-lucide="shield" style="width: 20px; height: 20px;"></i>
+        </div>
+        <h1 class="header-title">MH Panel</h1>
+    </div>
+    <div class="header-actions">
+        <!-- Quick Language Switcher Shortcut Pills -->
+        <div class="header-lang-pills" id="header-lang-pills">
+            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی">🇮🇷 FA</button>
+            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">🇬🇧 EN</button>
+            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский">🇷🇺 RU</button>
+        </div>
+        <!-- Hidden/Fallback Select to keep sync with legacy scripts -->
+        <select id="lang-select" style="display:none;" onchange="changeLanguage(this.value)">
+            <option value="fa">FA</option>
+            <option value="en">EN</option>
+            <option value="ru">RU</option>
+        </select>
+        <span id="server-ip-header" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);"></span>
+        <button type="button" class="header-btn" id="logout-btn">
+            <i data-lucide="log-out" style="width: 15px; height: 15px;"></i> <span data-i18n="logout">خروج</span>
+        </button>
+    </div>
+</header>

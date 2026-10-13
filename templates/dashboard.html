@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    {% include 'partials/head.html' %}
+    {% include 'partials/styles.html' %}
+    <script>
+        (function() {
+            var l = localStorage.getItem("panel_language") || "fa";
+            document.documentElement.dir = (l === "fa" ? "rtl" : "ltr");
+            document.documentElement.lang = l;
+        })();
+    </script>
+</head>
+<body>
+
+    {% if not logged_in %}
+        {% include 'partials/login.html' %}
+    {% else %}
+        <div class="app-container">
+            {% include 'partials/header.html' %}
+
+            <div class="app-layout">
+                {% include 'partials/sidebar.html' %}
+                <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="toggleMobileSidebar(false)"></div>
+
+                <main class="main-content">
+                    {% include 'partials/tab_overview.html' %}
+                    {% include 'partials/tab_radar.html' %}
+                    {% include 'partials/tab_protocols.html' %}
+                    {% include 'partials/tab_wireguard.html' %}
+                    {% include 'partials/tab_amneziawg.html' %}
+                    {% include 'partials/tab_openvpn.html' %}
+                    {% include 'partials/tab_openvpn_addons.html' %}
+                    {% include 'partials/tab_ssh.html' %}
+                    {% include 'partials/tab_tuic.html' %}
+                    {% include 'partials/tab_shadowsocks.html' %}
+                    {% include 'partials/tab_dns_tunnels.html' %}
+                    {% include 'partials/tab_mtproto.html' %}
+                    {% include 'partials/tab_radius.html' %}
+                    {% include 'partials/tab_ssl.html' %}
+                    {% include 'partials/tab_multiplexer.html' %}
+                    {% include 'partials/tab_tunnels.html' %}
+                    {% include 'partials/tab_servers.html' %}
+                    {% include 'partials/tab_ocserv.html' %}
+                    {% include 'partials/tab_l2tp.html' %}
+                    {% include 'partials/tab_ikev2.html' %}
+                    {% include 'partials/tab_sstp.html' %}
+                    {% include 'partials/tab_system.html' %}
+                </main>
+            </div>
+        </div>
+
+        {% include 'partials/modals.html' %}
+    {% endif %}
+
+    {% include 'partials/notifications.html' %}
+
+    {% include 'partials/scripts.html' %}
+</body>
+</html>

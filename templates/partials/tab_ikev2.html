@@ -1,0 +1,493 @@
+<div class="tab-pane" id="tab-ikev2">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- IKEv2 Core Status & Service Control Header -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield-check" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;">
+                            مرکز مدیریت پروتکل IKEv2 / IPsec (StrongSwan)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            پروتکل نیتیو، امن و استاندارد سازگار با انواع سیستم‌عامل‌های ویندوز، iOS، اندروید و مک بدون نیاز به اپلیکیشن جانبی
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="ikev2-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">پورت‌های پروتکل</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">UDP 500 / 4500 (NAT-T)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">شناسه سرور (Server ID)</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ikev2-top-server-id">212.227.143.16</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
+                    <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ikev2-top-auth">EAP-RADIUS (ردیوس سراسری)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">سرتفیکیت سرور</div>
+                    <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ikev2-top-cert-status">فعال و معتبر</div>
+                </div>
+            </div>
+
+            <!-- Service Actions -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="restartIkev2Service()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="reloadIkev2Config()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> ریلود کانفیگ (ipsec update)
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('ikev2')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده
+                </button>
+            </div>
+        </div>
+
+        <!-- Mandatory Certificate Notice Banner -->
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:14px;">
+            <div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                <i data-lucide="alert-triangle" style="width:20px; height:20px;"></i>
+            </div>
+            <div style="font-size: 13px; line-height: 1.6; color: #92400e;">
+                <strong style="color: #b45309; font-size: 14px;">الزامی بودن سرتیفیکیت در اتصال IKEv2 (علاوه بر نام کاربری و رمز عبور):</strong>
+                <p style="margin: 4px 0 0 0;">
+                    در پروتکل IKEv2، تمامی سیستم‌عامل‌ها (ویندوز، آیفون، مک و اندروید) قبل از ارسال یوزرنیم و پسورد، <strong>اعتبار و اعتماد به سرتفیکیت ریشه سرور (Root CA)</strong> را بررسی می‌کنند. در صورت عدم نصب یا عدم اعتماد به گواهی، اتصال پیش از مرحله لاگین مسدود خواهد شد (مانند خطای <code>13801</code> در ویندوز یا خطای <code>User Authentication Failed</code> در آیفون).
+                    برای راحتی کاربران، در پایین صفحه <strong>اسکریپت راه‌انداز خودکار ویندوز</strong> و <strong>پروفایل خودکار اپل</strong> قرار داده شده است.
+                </p>
+            </div>
+        </div>
+
+        <!-- Proposals & Policy Settings Form (Checkbox-based Matrix) -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="sliders" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                        تنظیمات پیشرفته الگوریتم‌ها و پروپزال‌ها (IKE & ESP Algorithm Checkboxes)
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        انتخاب الگوریتم‌های رمزنگاری فاز ۱ و فاز ۲، گروه‌های دیفی-هلمن (DH Groups) به صورت انتخابی (تیکی). تغییرات به صورت بلادرنگ در کانفیگ سرور اعمال می‌شود.
+                    </p>
+                </div>
+            </div>
+
+            <form id="ikev2-policy-form" onsubmit="saveIkev2Config(event)">
+                <!-- Preset Templates Selection -->
+                <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <label class="form-label" style="font-weight:700; color:#4f46e5; margin-bottom:8px;">
+                        <i data-lucide="wand-2" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
+                        پروفایل‌های آماده و سازگار با سیستم‌عامل‌ها (Quick Proposal Presets)
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
+                        <button type="button" class="preset-btn" onclick="applyIkev2Preset('universal')">
+                            <span class="preset-title">⚡ سازگاری کامل (Universal)</span>
+                            <span class="preset-desc">ویندوز، آیفون، مک، اندروید (پیشنهادی)</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyIkev2Preset('windows')">
+                            <span class="preset-title">🪟 بهینه برای ویندوز 10/11</span>
+                            <span class="preset-desc">MODP-2048 & MODP-1024 + SHA256</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyIkev2Preset('apple')">
+                            <span class="preset-title">🍎 بهینه برای iOS و macOS</span>
+                            <span class="preset-desc">ECP-256 (NIST P-256) + AES-GCM</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="applyIkev2Preset('highsec')">
+                            <span class="preset-title">🔒 امنیت فوق‌العاده بالا</span>
+                            <span class="preset-desc">AES-256 + SHA384 + Curve25519</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Phase 1 (IKE) Checkbox Matrix -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                        <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
+                            <i data-lucide="key" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
+                            پروپزال فاز ۱ (IKE Phase 1 - مبادله کلید و احراز هویت)
+                        </h4>
+                        <span style="font-size:11px; color:var(--text-muted);">روی گزینه‌ها تیک بزنید تا به پروپزال اضافه شوند</span>
+                    </div>
+
+                    <!-- Ciphers -->
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های رمزنگاری فاز ۱ (Encryption Ciphers):</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="aes256" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-256 (CBC)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="aes128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-128 (CBC)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="aes256gcm128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-256-GCM (Apple/iOS)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="aes128gcm128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-128-GCM</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="chacha20poly1305" onchange="syncProposalsFromCheckboxes()"> <span>ChaCha20-Poly1305</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-cipher-cb" value="3des" onchange="syncProposalsFromCheckboxes()"> <span>3DES (قدیمی)</span></label>
+                        </div>
+                    </div>
+
+                    <!-- Hashes -->
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های هش و یکپارچگی (Integrity Hashes):</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label class="algo-pill"><input type="checkbox" class="ike-hash-cb" value="sha256" checked onchange="syncProposalsFromCheckboxes()"> <span>SHA2-256 (استاندارد جهانی)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-hash-cb" value="sha1" checked onchange="syncProposalsFromCheckboxes()"> <span>SHA-1 (سازگاری با ویندوز)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-hash-cb" value="sha384" onchange="syncProposalsFromCheckboxes()"> <span>SHA2-384</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-hash-cb" value="sha512" onchange="syncProposalsFromCheckboxes()"> <span>SHA2-512</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-hash-cb" value="md5" onchange="syncProposalsFromCheckboxes()"> <span>MD5</span></label>
+                        </div>
+                    </div>
+
+                    <!-- DH Groups -->
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">گروه‌های دیفی-هلمن (Diffie-Hellman / DH Groups):</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="modp2048" checked onchange="syncProposalsFromCheckboxes()"> <span>MODP-2048 / Group 14 (ویندوز 10/11)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="modp1024" checked onchange="syncProposalsFromCheckboxes()"> <span>MODP-1024 / Group 2 (ویندوز قدیمی)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="ecp256" checked onchange="syncProposalsFromCheckboxes()"> <span>ECP-256 / Group 19 (آیفون، مک، اندروید)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="curve25519" onchange="syncProposalsFromCheckboxes()"> <span>Curve25519 / Group 31 (فوق امن)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="modp3072" onchange="syncProposalsFromCheckboxes()"> <span>MODP-3072 / Group 15</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="modp4096" onchange="syncProposalsFromCheckboxes()"> <span>MODP-4096 / Group 16</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="ike-dh-cb" value="ecp384" onchange="syncProposalsFromCheckboxes()"> <span>ECP-384 / Group 20</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 2 (ESP) Checkbox Matrix -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                        <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
+                            <i data-lucide="lock" style="width:16px; height:16px; color:#059669; vertical-align:middle; margin-left:4px;"></i>
+                            پروپزال فاز ۲ (ESP Phase 2 - انتقال دیتا و رمزنگاری تانل)
+                        </h4>
+                        <span style="font-size:11px; color:var(--text-muted);">انتخاب سایفرها و هش‌های ترافیک تانل</span>
+                    </div>
+
+                    <!-- ESP Ciphers -->
+                    <div style="margin-bottom:14px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های رمزنگاری داده (ESP Ciphers):</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label class="algo-pill"><input type="checkbox" class="esp-cipher-cb" value="aes256" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-256 (CBC)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-cipher-cb" value="aes128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-128 (CBC)</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-cipher-cb" value="aes256gcm128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-256-GCM</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-cipher-cb" value="aes128gcm128" checked onchange="syncProposalsFromCheckboxes()"> <span>AES-128-GCM</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-cipher-cb" value="chacha20poly1305" onchange="syncProposalsFromCheckboxes()"> <span>ChaCha20-Poly1305</span></label>
+                        </div>
+                    </div>
+
+                    <!-- ESP Hashes -->
+                    <div>
+                        <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">الگوریتم‌های هش داده (ESP Hashes):</label>
+                        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                            <label class="algo-pill"><input type="checkbox" class="esp-hash-cb" value="sha256" checked onchange="syncProposalsFromCheckboxes()"> <span>SHA2-256</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-hash-cb" value="sha1" checked onchange="syncProposalsFromCheckboxes()"> <span>SHA-1</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-hash-cb" value="sha384" onchange="syncProposalsFromCheckboxes()"> <span>SHA2-384</span></label>
+                            <label class="algo-pill"><input type="checkbox" class="esp-hash-cb" value="sha512" onchange="syncProposalsFromCheckboxes()"> <span>SHA2-512</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Proposal Strings & Manual Override Toggle -->
+                <div style="background:#f1f5f9; border-radius:10px; padding:14px; margin-bottom:20px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:12px; font-weight:700; color:var(--text-main);">
+                            <i data-lucide="code" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
+                            رشته نهایی پروپزال‌های تولید شده (Generated StrongSwan Proposals)
+                        </span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleManualProposalInputs()" style="width:auto; padding:4px 10px; font-size:11px;">
+                            <i data-lucide="edit-2" style="width:12px; height:12px; margin-left:4px;"></i> ویرایش متنی مستقیم
+                        </button>
+                    </div>
+
+                    <div id="manual-proposals-box" style="display:none; flex-direction:column; gap:10px; margin-top:10px;">
+                        <div>
+                            <label class="form-label" style="font-size:11px;">رشته فاز ۱ (ike=):</label>
+                            <input class="form-input" style="font-family:'JetBrains Mono'; font-size:12px; padding:8px 12px;" type="text" id="ike-proposal-input" required>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11px;">رشته فاز ۲ (esp=):</label>
+                            <input class="form-input" style="font-family:'JetBrains Mono'; font-size:12px; padding:8px 12px;" type="text" id="esp-proposal-input" required>
+                        </div>
+                    </div>
+
+                    <div id="proposals-preview-box" style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#334155; line-height:1.6; word-break:break-all;">
+                        <div><strong>ike:</strong> <span id="ike-preview-text">aes256-sha256-modp2048...</span></div>
+                        <div style="margin-top:4px;"><strong>esp:</strong> <span id="esp-preview-text">aes256-sha256...</span></div>
+                    </div>
+                </div>
+
+                <!-- Core Network Parameters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">شناسه سرور (Server ID / LeftID)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ike-leftid-input" placeholder="212.227.143.16" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">متد احراز هویت (Auth Method)</label>
+                        <select class="form-input" style="padding-left:14px;" id="ike-rightauth-select">
+                            <option value="eap-radius">EAP-RADIUS (ردیوس داخلی - کاربر سراسری)</option>
+                            <option value="eap-mschapv2">EAP-MSCHAPv2 (اکانت‌های محلی پنل)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">دی‌ان‌اس کلاینت‌ها (DNS Push)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ike-dns-input" value="8.8.8.8,1.1.1.1">
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">محدوده آی‌پی کاربران (IP Pool)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ike-pool-input" value="10.10.10.10-10.10.10.250">
+                    </div>
+                </div>
+
+                <!-- Advanced Switches: Fragmentation, NAT-T, DPD -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin-bottom:24px;">
+                    <h4 style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-main);">ویژگی‌های حرفه‌ای عبور از فیلترینگ و پایداری شبکه</h4>
+                    <div class="toggle-grid" style="margin-bottom:0;">
+                        <div class="toggle-item">
+                            <div>
+                                <span class="toggle-item-label">شکستن بسته‌ها (Packet Fragmentation)</span>
+                                <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">جلوگیری از دراپ شدن پکت‌های بزرگ IKE توسط فایروال</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ike-toggle-fragmentation" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-item">
+                            <div>
+                                <span class="toggle-item-label">کپسوله‌سازی NAT-T (Force Encapsulation)</span>
+                                <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">اجبار انتقال پکت‌ها روی پورت UDP 4500 برای عبور از روترها</div>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="ike-toggle-forceencaps" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-item">
+                            <div>
+                                <span class="toggle-item-label">تشخیص قطعی کلاینت (DPD Action)</span>
+                                <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">آزادسازی سشن‌های قطع شده برای جلوگیری از پر شدن آی‌پی</div>
+                            </div>
+                            <select class="form-input" style="width:110px; padding:6px; font-size:12px;" id="ike-dpd-action-select">
+                                <option value="clear">Clear</option>
+                                <option value="restart">Restart</option>
+                                <option value="hold">Hold</option>
+                            </select>
+                        </div>
+
+                        <div class="toggle-item">
+                            <div>
+                                <span class="toggle-item-label">تاخیر بررسی DPD (DPD Delay)</span>
+                                <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">مدت زمان انتظار بررسی ارتباط کلاینت</div>
+                            </div>
+                            <input class="form-input" style="width:110px; padding:6px; font-size:12px; text-align:center;" type="text" id="ike-dpd-delay-input" value="300s">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end;">
+                    <button type="submit" class="btn" style="width:auto; padding:12px 28px; font-size:14px;">
+                        <i data-lucide="save" class="btn-icon"></i> ذخیره و اعمال پالیسی‌ها در `/etc/ipsec.conf`
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Certificates & Server Identity Section -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="award" style="color: #059669; width: 22px; height: 22px;"></i>
+                        مرکز مدیریت سرتفیکیت‌ها (Root CA & Certificates Hub)
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        دانلود سرتفیکیت ریشه در فرمت‌های سازگار با سیستم‌عامل‌ها و صدور مجدد بر اساس دامنه یا آی‌پی جدید
+                    </p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <a href="/api/ikev2/ca.crt" class="btn btn-secondary btn-sm" style="width:auto; text-decoration:none;" download="ca-cert.crt">
+                        <i data-lucide="download" class="btn-icon"></i> دانلود ca-cert.crt (ویندوز / اندروید)
+                    </a>
+                    <a href="/api/ikev2/ca.pem" class="btn btn-secondary btn-sm" style="width:auto; text-decoration:none;" download="ca-cert.pem">
+                        <i data-lucide="download" class="btn-icon"></i> دانلود ca-cert.pem (مک / لینوکس)
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cert Details Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
+                    <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;" id="cert-subject-display">-</div>
+                </div>
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="color:var(--text-muted); font-size:11px;">نام‌های جایگزین (SAN - SubjectAltName)</div>
+                    <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;" id="cert-san-display">-</div>
+                </div>
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="color:var(--text-muted); font-size:11px;">صادرکننده (Root CA)</div>
+                    <div style="font-weight:700; color:var(--text-main); font-size:12px; margin-top:3px;" id="cert-issuer-display">-</div>
+                </div>
+                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                    <div style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
+                    <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;" id="cert-expiry-display">-</div>
+                </div>
+            </div>
+
+            <!-- Issue New Cert Box -->
+            <div style="background: #f8fafc; border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
+                <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
+                    صدور مجدد سرتفیکیت بر اساس دامنه یا آی‌پی جدید (Issue / Renew Certificate)
+                </h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                    اگر از دامنه اختصاصی استفاده می‌کنید (مانند <code>mhpanel.kigaping.com</code>)، آن را در فیلد زیر وارد کنید تا سرتفیکیت معتبر برای آن صادر شده و در شناسه‌ی سرور تنظیم گردد.
+                </p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <input class="form-input" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ike-new-cert-domain" placeholder="مثال: mhpanel.kigaping.com یا 212.227.143.16">
+                    <button type="button" class="btn" style="width:auto; padding:10px 20px;" onclick="renewIkev2Certificate()">
+                        <i data-lucide="sparkles" class="btn-icon"></i> صدور و اعمال سرتفیکیت جدید
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OS Profiles & Client Connection Guide -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="smartphone" style="color: #0ea5e9; width: 22px; height: 22px;"></i>
+                        پروفایل‌ها و ابزارهای اتصال کلاینت با سرتیفیکیت (Client Quick Setup)
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">دانلود ابزارهای راه‌اندازی خودکار به تفکیک سیستم‌عامل برای اتصال ۱۰۰٪ بدون خطا</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
+                
+                <!-- Windows 10/11 (Auto Installer & Manual Guide) -->
+                <div style="background: #f8fafc; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
+                            <h4 style="font-size:14px; font-weight:700; margin:0; color:#0369a1;">ویندوز 10 و 11 (Windows Native)</h4>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                            جهت جلوگیری از خطای <strong>Error 13801</strong> و تطابق DH Group، فایل زیر به صورت خودکار سرتفیکیت CA را در مخزن امین ویندوز (Trusted Root) نصب و کانکشن VPN را آماده می‌کند:
+                        </p>
+                        
+                        <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
+                            <a href="/api/ikev2/windows-setup.ps1" class="btn" style="text-decoration:none; display:flex; justify-content:center; background:#0284c7; padding:10px;" download>
+                                <i data-lucide="download" class="btn-icon"></i> دانلود راه‌انداز خودکار ویندوز (.ps1)
+                            </a>
+                            <div style="font-size:11px; color:var(--text-dim); text-align:center;">
+                                پس از دانلود، روی فایل راست کلیک کرده و گزینه <code>Run with PowerShell</code> را بزنید.
+                            </div>
+                        </div>
+
+                        <div style="margin-top:14px; border-top:1px dashed #cbd5e1; padding-top:10px;">
+                            <div style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">دستور پاورشل دستی:</div>
+                            <div style="background:#0f172a; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:10px; padding:8px 10px; border-radius:6px; overflow-x:auto; direction:ltr; text-align:left;" id="win-ps-command">
+                                Add-VpnConnection -Name "MH-IKEv2" -ServerAddress "212.227.143.16" -TunnelType Ikev2 -AuthenticationMethod EAP
+                            </div>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyWinCommand()" style="width:100%; margin-top:6px; font-size:11px;">
+                                <i data-lucide="copy" class="btn-icon"></i> کپی دستور اتصال
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Apple iOS / macOS -->
+                <div style="background: #f8fafc; border: 1px solid rgba(30, 41, 59, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <i data-lucide="apple" style="width:20px; height:20px; color:#1e293b;"></i>
+                            <h4 style="font-size:14px; font-weight:700; margin:0; color:#1e293b;">آیفون و مک (iOS & macOS)</h4>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                            این پروفایل گواهی Root CA و پارامترهای DH Group 19 را مستقیماً داخل دستگاه اپل تنظیم می‌کند:
+                        </p>
+                        
+                        <div style="margin-top:12px;">
+                            <a href="/api/ikev2/mobileconfig" class="btn" style="text-decoration:none; display:flex; justify-content:center; background:#1e293b; padding:10px;" download>
+                                <i data-lucide="download" class="btn-icon"></i> دانلود پروفایل Mobileconfig برای اپل
+                            </a>
+                        </div>
+
+                        <!-- Crucial Apple Trust Warning -->
+                        <div style="background:#fef2f2; border:1px solid #fecdd3; border-radius:8px; padding:10px; margin-top:14px; font-size:11px; line-height:1.5; color:#991b1b;">
+                            <strong>⚠️ اقدام الزامی در آیفون پس از نصب:</strong><br>
+                            ۱. به مسیر <code>Settings -> General -> About</code> بروید.<br>
+                            ۲. گزینه <code>Certificate Trust Settings</code> را باز کنید.<br>
+                            ۳. سوییچ <code>MH Panel IKEv2 Root CA</code> را روشن (فعال) کنید.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Android & Client Certificate -->
+                <div style="background: #f8fafc; border: 1px solid rgba(22, 163, 74, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <i data-lucide="bot" style="width:20px; height:20px; color:#16a34a;"></i>
+                            <h4 style="font-size:14px; font-weight:700; margin:0; color:#166534;">اندروید و سرتیفیکیت کلاینت</h4>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                            در اندروید با اپلیکیشن رسمی <strong>StrongSwan</strong> یا تنظیمات VPN داخلی اندروید ۱۲+:
+                        </p>
+                        
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                            <a href="/api/ikev2/ca.crt" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; justify-content:center; padding:9px;" download="ca-cert.crt">
+                                <i data-lucide="download" class="btn-icon"></i> دانلود گواهی CA اندروید (.crt)
+                            </a>
+                            <a href="/api/ikev2/client.p12" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; justify-content:center; padding:9px;" download="client-ikev2.p12">
+                                <i data-lucide="key" class="btn-icon"></i> دانلود سرتیفیکیت کاربر (.p12)
+                            </a>
+                        </div>
+
+                        <div style="margin-top:14px; font-size:11px; color:var(--text-muted); background:#f1f5f9; padding:8px; border-radius:6px; text-align:center;">
+                            آدرس سرور: <strong id="android-server-display">212.227.143.16</strong> | متد: EAP
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Local Accounts Management Card (Fallback when RADIUS is not used) -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                        کاربران و اکانت‌های اختصاصی IKEv2
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        در صورت فعال بودن حالت <strong>EAP-RADIUS</strong>، کاربران سراسری ردیوس به صورت خودکار به IKEv2 نیز دسترسی دارند. همچنین می‌توانید اکانت‌های محلی بسازید و سرتفیکیت اختصاصی کاربر (.p12) را دانلود کنید.
+                    </p>
+                </div>
+                <button type="button" class="btn" style="width:auto; padding:8px 16px; font-size:12px;" onclick="showAddIkev2Modal()">
+                    <i data-lucide="user-plus" class="btn-icon"></i> کاربر محلی جدید
+                </button>
+            </div>
+
+            <!-- Client list container -->
+            <div class="ikev2-client-list" id="ikev2-clients">
+                <div style="text-align:center; padding:20px; color:var(--text-muted);">در حال دریافت لیست کاربران...</div>
+            </div>
+        </div>
+
+    </section>
+</div>

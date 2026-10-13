@@ -1,0 +1,157 @@
+<div class="tab-pane" id="tab-tuic">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.96); border: 1px solid rgba(99, 102, 241, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="zap" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="tuic_title">
+                            پروتکل پیشرفته TUIC v5 (بستر QUIC و ضد فیلترینگ فوق سریع)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="tuic_subtitle">
+                            پروتکل نسل جدید بر پایه QUIC / UDP، مجهز به کنترل ازدحام BBR، اتصال فوری 0-RTT و مقاومت حداکثری در برابر اختلالات DPI شبکه ایران
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="tuic-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTuicConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_port">پورت اتصال (UDP)</div>
+                    <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tuic-stat-port">7443</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_congestion">کنترل ازدحام (Congestion)</div>
+                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tuic-stat-congestion">BBR (Google)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_zero_rtt">اتصال فوری 0-RTT</div>
+                    <div style="font-weight: 700; color: #0284c7; margin-top: 3px;" id="tuic-stat-zero-rtt">فعال (Handshake 0-RTT)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_connections">اتصالات آنلاین فعلی</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tuic-stat-connections">0 آنلاین</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlTuic('restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد سرویس TUIC</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="tuic-toggle-btn" onclick="toggleTuicService()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Protocol Settings Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #4f46e5; width: 20px; height: 20px;"></i>
+                    <span data-i18n="tuic_config_title">تنظیمات اصلی و ضد فیلترینگ TUIC</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="tuic_port_label">پورت سرور TUIC (UDP Port)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="tuic-cfg-port" placeholder="7443">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="tuic_port_hint">
+                        پیش‌فرض ۷۴۴۳ (ترافیک بر بستر پروتکل UDP ارسال می‌شود).
+                    </span>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tuic_congestion_label">الگوریتم کنترل ازدحام (Congestion Control)</label>
+                    <select class="form-input" id="tuic-cfg-congestion">
+                        <option value="bbr">BBR (Google BBR - پیشنهادی برای مقابله با کاهش سرعت و پکت‌لاس)</option>
+                        <option value="cubic">Cubic (استاندارد لینوکس)</option>
+                        <option value="new_reno">New Reno</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tuic_zerortt_label">اتصال صفر ثانیه (0-RTT Handshake)</label>
+                    <select class="form-input" id="tuic-cfg-zero-rtt">
+                        <option value="true">فعال (اتصال بدون وقفه و بازگشت داده اولیه 0-RTT)</option>
+                        <option value="false">غیرفعال (۱-RTT استاندارد)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tuic_domain_label">دامنه و SNI متصل به سرور</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="tuic-cfg-domain" readonly>
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="tuic_domain_hint">
+                        دامنه شناسایی شده از تنظیمات SSL (جهت تغییر به تب SSL سرور مراجعه نمایید).
+                    </span>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveTuicConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Users & Client Accounts -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 class="config-title">
+                    <i data-lucide="users" style="color: #059669; width: 20px; height: 20px;"></i>
+                    <span data-i18n="tuic_users_title">کاربران و کلیدهای دسترسی TUIC</span>
+                </h3>
+                <button type="button" class="btn btn-primary btn-sm" onclick="addTuicUserModal()" style="width:auto; padding: 7px 16px;">
+                    <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="add_user">افزودن کاربر جدید</span>
+                </button>
+            </div>
+
+            <div id="tuic-users-list" style="display:flex; flex-direction:column; gap:12px;">
+                <!-- Users injected here -->
+            </div>
+        </div>
+
+        <!-- Client Integration & Apps Guide -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="terminal" style="color: #0284c7; width: 20px; height: 20px;"></i>
+                    <span data-i18n="tuic_clients_title">نحوه اتصال و کانفیگ کلاینت‌ها (Sing-box, Clash, v2rayN)</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;" data-i18n="tuic_clients_guide">
+                    پروتکل TUIC v5 در تمامی کلاینت‌های مدرن شامل <strong>v2rayN</strong>، <strong>Nekoray</strong>، <strong>Hiddify</strong>، <strong>Clash Meta (Mihomo)</strong>، <strong>Sing-box</strong> و <strong>Shadowrocket</strong> (آیفون) پشتیبانی می‌شود. کافیست لینک <code>tuic://</code> بالا را کپی کرده یا کانفیگ JSON / YAML زیر را درون برنامه وارد کنید.
+                </div>
+
+                <div>
+                    <label class="form-label">کانفیگ خروجی Sing-box (Outbound JSON):</label>
+                    <textarea class="form-input" id="tuic-singbox-snippet" rows="8" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#38bdf8;"></textarea>
+                </div>
+
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('tuic-singbox-snippet'); showToast('کانفیگ Sing-box کپی شد', 'success');" style="width:auto;">
+                        <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_singbox">کپی کانفیگ Sing-box</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

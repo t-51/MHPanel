@@ -1,0 +1,394 @@
+<div class="tab-pane" id="tab-sstp">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- SSTP Core Status & Service Control Header -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(14, 165, 233, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:12px; background: rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;">
+                            مرکز مدیریت پیشرفته پروتکل SSTP و بای‌پس ضد فیلترینگ
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            تونل امن SSL/TLS مایکروسافت، ۳ روش اتصال و بای‌پس فیلترینگ، سازگار با کلاینت داخلی ویندوز، اتصال به ردیوس سراسری و مولتی‌پلکسر پورت ۴۴۳
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="sstp-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                    </span>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">روش ۱: پورت مستقیم SSTP</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port">4443 (یا 5555)</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">روش ۲: اشتراک پورت ۴۴۳ (SNI)</div>
+                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-sni">sstp.kigaping.com:443</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">روش ۳: پورت‌های TLS کمکی (Stunnel)</div>
+                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-stunnel-ports">9443, 2087</div>
+                </div>
+                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                    <div style="color: var(--text-muted); font-size: 11px;">احراز هویت و ردیوس</div>
+                    <div style="font-weight: 700; color: #d97706; font-size: 12px; margin-top: 3px;" id="sstp-stat-auth">FreeRADIUS + MS-CHAPv2</div>
+                </div>
+            </div>
+
+            <!-- Service Actions -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="restartSstpServices()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس‌های SSTP
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSstpConfig(); fetchSstpClients(); fetchSstpSessions();" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بروزرسانی وضعیت و نشست‌ها
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('sstp')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده SSTP
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Bypass & Connection Methods Hub -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div>
+                    <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <i data-lucide="zap" style="color: #0284c7; width: 18px; height: 18px;"></i>
+                        مرکز راهنما و ۳ روش پیاده‌سازی و اتصال SSTP (Bypass & Connection Hub)
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        جهت عبور از محدودیت‌های شبکه و DPI، ۳ شیوه اتصال آماده شده است. با یک کلیک اسکریپت کانفیگ خودکار ویندوز را دریافت نمایید.
+                    </p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px;">
+                
+                <!-- Method 1: Direct MS-SSTP -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                            <strong style="color:var(--text-main); font-size:14px;">⚡ روش ۱: اتصال مستقیم مایکروسافت (Direct SSTP)</strong>
+                            <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">Port 4443 / 5555</span>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                            اتصال بومی کلاینت ویندوز، مک و اندروید با رمزنگاری TLS و گواهی رسمی معتبر Let's Encrypt بدون اخطار امنیتی.
+                        </p>
+                        <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-direct-target">
+                            vpn.kigaping.com:4443
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-direction:column;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('direct')" style="width:100%;">
+                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> دانلود اسکریپت ۱-کلیک ویندوز (PowerShell)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:4443', 'آدرس پورت مستقیم SSTP')" style="width:100%;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس سرور
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Method 2: HAProxy 443 SNI Multiplexing -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                            <strong style="color:var(--text-main); font-size:14px;">🌐 روش ۲: پورت ۴۴۳ با تفکیک دامنه (SNI Bypass)</strong>
+                            <span style="font-size:11px; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:600;">Port 443 Multiplex</span>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                            اشتراک پورت استاندارد وب (HTTPS 443) بدون تداخل با سیسکو یا SSH، مخفی‌سازی کامل در ترافیک نرمال TLS جهت عبور از DPI.
+                        </p>
+                        <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-sni-target">
+                            sstp.kigaping.com:443
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-direction:column;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('sni')" style="width:100%;">
+                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> دانلود اسکریپت ۱-کلیک پورت ۴۴۳ (PowerShell)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('sstp.kigaping.com', 'دامنه SNI پورت ۴۴۳')" style="width:100%;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی دامنه اختصاصی SNI
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Method 3: Multi-Port TLS Stunnel -->
+                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                            <strong style="color:var(--text-main); font-size:14px;">🔒 روش ۳: پورت‌های امن لایه TLS (Stunnel Multi-Port)</strong>
+                            <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:6px; font-weight:600;">CDN & ISP Bypass</span>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                            پورت‌های سازگار با کلودفلر و تونل TLS (۹۴۴۳ و ۲۰۸۷) برای عبور از اختلالات مقطعی اپراتورها روی پورت‌های متداول.
+                        </p>
+                        <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
+                            Host: vpn.kigaping.com | Ports: 9443, 2087
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-direction:column;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:2087', 'پورت TLS کمکی')" style="width:100%;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس و پورت ۲۰۸۷
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpAllDetails()" style="width:100%;">
+                            <i data-lucide="clipboard-copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی کامل اطلاعات اتصال
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Admin Advanced Server Configuration & Tuning Card -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(2, 132, 199, 0.2);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                            تنظیمات پیشرفته سرور برای مدیر سیستم (Server Engine & Censorship Tuning)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            امکان دستکاری موتور هسته سرور، پورت‌ها، اشتراک پورت ۴۴۳، سایز پکت‌ها (MTU/MRU) و رمزنگاری برای دستیابی به بالاترین پایداری
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <form onsubmit="saveSstpConfig(event)" style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+                    
+                    <!-- Engine Selector -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">موتور هسته سرور (Server Engine)</label>
+                        <select class="form-input" id="sstp-cfg-engine" style="padding-left:14px; font-weight:600;">
+                            <option value="sstpd">Linux Native sstpd (سبک، پرسرعت، متصل به کرنل)</option>
+                            <option value="softether">SoftEther MS-SSTP Enterprise (انترپرایز مایکروسافت)</option>
+                            <option value="both">فعال‌سازی همزمان هر دو موتور (sstpd + SoftEther)</option>
+                        </select>
+                    </div>
+
+                    <!-- Port -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">پورت مستقیم سرویس (Direct Port)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="number" id="sstp-cfg-port" placeholder="4443" required>
+                    </div>
+
+                    <!-- SNI Domain for Port 443 -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">دامنه تفکیک SNI پورت ۴۴۳</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-sni" placeholder="sstp.kigaping.com" required>
+                    </div>
+
+                    <!-- MTU / MRU -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">اندازه پکت MTU و MRU (ضد قطعی پکت)</label>
+                        <select class="form-input" id="sstp-cfg-mtu" style="padding-left:14px;">
+                            <option value="1400">1400 (پیشنهادی برای اینترنت ایران)</option>
+                            <option value="1360">1360 (بهینه برای ایرانسل و همراه اول)</option>
+                            <option value="1450">1450 (استاندارد شبکه)</option>
+                            <option value="1500">1500 (بزرگ‌ترین سایز فریم)</option>
+                        </select>
+                    </div>
+
+                    <!-- Gateway IP -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">آی‌پی گیت‌وی محلی (Local Gateway IP)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-local-ip" placeholder="10.20.20.1" required>
+                    </div>
+
+                    <!-- Remote Subnet -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">ساب‌نت کلاینت‌ها (Remote Subnet)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-remote-subnet" placeholder="10.20.20.0/24" required>
+                    </div>
+
+                    <!-- Primary DNS -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">دی‌ان‌اس اول (Primary DNS)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-dns1" placeholder="8.8.8.8" required>
+                    </div>
+
+                    <!-- Secondary DNS -->
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">دی‌ان‌اس دوم (Secondary DNS)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-dns2" placeholder="1.1.1.1" required>
+                    </div>
+
+                    <!-- SSTP Encryption & Ciphers Suite Section -->
+                    <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 12px; padding: 16px; margin-top: 4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom: 14px;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <div style="width:32px; height:32px; border-radius:8px; background:rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                                    <i data-lucide="key" style="width: 17px; height: 17px;"></i>
+                                </div>
+                                <div>
+                                    <strong style="font-size: 13.5px; color: var(--text-main);">الگوریتم‌های رمزنگاری و هشینگ (Encryption & Hash Ciphers)</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                                        پیکربندی متدهای امنیتی مانند AES-256، AES-128، SHA-256، SHA-384 و رمزنگاری MPPE مایکروسافت
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                                🛡️ شتاب‌دهی سخت‌افزاری AES-NI فعال
+                            </span>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
+                            <!-- Encryption Method / Cipher Preset -->
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">متد و الگوریتم رمزنگاری TLS (Cipher Suite)</label>
+                                <select class="form-input" id="sstp-cfg-cipher-preset" onchange="onSstpCipherPresetChange(this.value)" style="padding-left:14px; font-weight:600;">
+                                    <option value="all_aes_sha">ترکیبی کامل AES و SHA (AES-256/128 GCM/CBC + SHA-256/384) [پیشنهادی]</option>
+                                    <option value="aes256_sha384">حداکثر امنیت مدرن: AES-256-GCM & SHA-384 (رمزنگاری سنگین)</option>
+                                    <option value="aes128_sha256">پرسرعت بهینه: AES-128-GCM & SHA-256 (حداقل پینگ و مصرف کم CPU)</option>
+                                    <option value="aes256_cbc">سازگار با کلاینت‌های قدیمی: AES-256-CBC & SHA-256 (ویندوز 7/8/10)</option>
+                                    <option value="custom">تنظیم دستی سوییت OpenSSL (Custom Cipher String)</option>
+                                </select>
+                            </div>
+
+                            <!-- PPP MPPE Encryption -->
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">رمزنگاری تونل PPP (مایکروسافت MPPE)</label>
+                                <select class="form-input" id="sstp-cfg-mppe" style="padding-left:14px; font-weight:600;">
+                                    <option value="require-mppe-128">اجباری ۱۲۸ بیتی (Require MPPE 128-bit) [استاندارد امنیت بالا]</option>
+                                    <option value="mppe-stateful">تطبیقی حالت‌دار (MPPE Stateful) [حداکثر پایداری اتصال]</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Manual Cipher String (Auto-updated or editable) -->
+                        <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
+                            <label class="form-label" style="font-weight:600; font-size:11.5px; color: var(--text-muted);">
+                                رشته استاندارد الگوریتم‌های OpenSSL (توسط دیمن sstpd بارگذاری می‌شود):
+                            </label>
+                            <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; font-size:12px;" type="text" id="sstp-cfg-ciphers" oninput="onSstpCipherCustomInput()" placeholder="ECDHE-RSA-AES256-GCM-SHA384:..." required>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:5px; line-height:1.5;">
+                                💡 با تغییر گزینه منوی بالا، رشته به صورت خودکار تغییر می‌کند. هم‌چنین مدیر می‌تواند الگوریتم‌ها را به صورت دستی مطابق دستورالعمل OpenSSL ویرایش کند.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> ذخیره و اعمال آنی تغییرات سرور
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Account Management & Creation Layout -->
+        <section style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: flex-start;">
+            
+            <!-- Accounts List Card -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); min-height: 400px;">
+                <div class="config-header" style="margin-bottom: 16px; justify-content: space-between;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="users" style="color: #0284c7; width: 20px; height: 20px;"></i>
+                        <h3 class="config-title" style="margin:0; font-size:16px;">کاربران و اکانت‌های SSTP</h3>
+                    </div>
+                    <span id="sstp-client-count-badge" style="font-size:12px; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-weight:700;">
+                        ۰ کاربر
+                    </span>
+                </div>
+                
+                <div id="sstp-clients" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="text-align:center; padding:30px; color:var(--text-muted); font-size:13px;">
+                        <i data-lucide="loader" style="width:24px; height:24px; animation:spin 1s linear infinite; margin-bottom:8px;"></i>
+                        <div>در حال دریافت فهرست کاربران...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Account Card -->
+            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+                <div class="config-header" style="margin-bottom: 16px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
+                        <h3 class="config-title" style="margin:0; font-size:16px;">ساخت کاربر جدید</h3>
+                    </div>
+                </div>
+                <form onsubmit="createSstpClient(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">نام کاربری (Username)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="text" id="sstp-client-username" placeholder="مثلا user1" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">کلمه عبور (Password)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="password" id="sstp-client-password" placeholder="کلمه عبور" required>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (گیگابایت) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="number" step="0.5" id="sstp-client-limit" placeholder="خالی = بدون محدودیت">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label" style="font-weight:600; font-size:12px;">تاریخ انقضا - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px;" type="date" id="sstp-client-expire">
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.04);">
+                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#0284c7;"></i>
+                        کاربر همزمان در پایگاه داده ردیوس سراسری، سکرت‌های MS-CHAPv2 و کلیه موتورهای SSTP ساخته شده و بلافاصله آماده اتصال خواهد بود.
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="margin-top:4px;">
+                        <i data-lucide="plus" class="btn-icon"></i> ساخت اکانت SSTP
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Active Sessions Manager -->
+        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="config-header" style="margin-bottom: 16px; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="activity" style="color: #0284c7; width: 20px; height: 20px;"></i>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;">نشست‌های آنلاین و اتصالات فعال SSTP</h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            مشاهده کلاینت‌های متصل به سرور و امکان قطع ارتباط بلادرنگ (Kill Session)
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSstpSessions()" style="width:auto; padding:6px 14px;">
+                    <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> بازخوانی نشست‌ها
+                </button>
+            </div>
+
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #e2e8f0; color:var(--text-muted); font-size:12px;">
+                            <th style="padding:10px 14px;">نام کاربری</th>
+                            <th style="padding:10px 14px;">موتور اتصال</th>
+                            <th style="padding:10px 14px;">آدرس کلاینت / اینترفیس</th>
+                            <th style="padding:10px 14px;">شناسه پردازش (PID / Session)</th>
+                            <th style="padding:10px 14px;">مدت اتصال</th>
+                            <th style="padding:10px 14px; text-align:center;">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sstp-sessions-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                در حال بررسی نشست‌های فعال...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </section>
+</div>

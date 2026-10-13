@@ -1,0 +1,67 @@
+{
+  "enabled": false,
+  "listen_ports": [
+    443
+  ],
+  "web_server_type": "internal",
+  "default_backend": "web",
+  "protocols": [
+    {
+      "id": "web",
+      "name": "Web Server / MH Panel",
+      "enabled": true,
+      "sni": "panel.example.com",
+      "backend_ip": "127.0.0.1",
+      "backend_port": 8444,
+      "is_default": true,
+      "protocol_type": "web",
+      "desc": "HTTPS Web Traffic & Admin Dashboard"
+    },
+    {
+      "id": "ocserv",
+      "name": "Cisco AnyConnect (OCServ)",
+      "enabled": true,
+      "sni": "vpn.example.com",
+      "backend_ip": "127.0.0.1",
+      "backend_port": 10443,
+      "is_default": false,
+      "protocol_type": "cisco",
+      "desc": "Cisco AnyConnect & OpenConnect clients"
+    },
+    {
+      "id": "ssh",
+      "name": "SSH Tunnel & TLS WebSocket",
+      "enabled": true,
+      "sni": "ssh.example.com",
+      "backend_ip": "127.0.0.1",
+      "backend_port": 22,
+      "is_default": false,
+      "protocol_type": "ssh",
+      "desc": "SSH Direct & Stunnel/TLS connections"
+    },
+    {
+      "id": "openvpn",
+      "name": "OpenVPN TCP",
+      "enabled": true,
+      "sni": "ovpn.example.com",
+      "backend_ip": "127.0.0.1",
+      "backend_port": 1194,
+      "is_default": false,
+      "protocol_type": "openvpn",
+      "desc": "Port 443 multiplexing for OpenVPN TCP"
+    },
+    {
+      "id": "sstp",
+      "name": "Windows SSTP (sstpd)",
+      "enabled": true,
+      "sni": "sstp.example.com",
+      "backend_ip": "127.0.0.1",
+      "backend_port": 4443,
+      "is_default": false,
+      "protocol_type": "sstp",
+      "desc": "Native Windows SSTP clients over TLS"
+    }
+  ],
+  "custom_rules": [],
+  "udp_multiports": []
+}

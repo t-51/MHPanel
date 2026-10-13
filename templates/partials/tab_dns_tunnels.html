@@ -1,0 +1,305 @@
+<div class="tab-pane" id="tab-dns-tunnels">
+    <!-- DNS Tunnels Header -->
+    <div class="glass-card config-card" style="margin-bottom: 20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+                <h3 class="config-title" style="margin:0; font-size:18px; display:flex; align-items:center; gap:8px;" data-i18n="dns_tunnels_title">
+                    <i data-lucide="globe" style="color:#14b8a6; width:22px; height:22px;"></i>
+                    تونل‌های پیشرفته DNS و عبور از فیلترینگ (DNS Tunnels)
+                </h3>
+                <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="dns_tunnels_subtitle">
+                    پروتکل‌های عبور از شدیدترین محدودیت‌های اینترنت با تبدیل ترافیک به کوئری‌های DNS استاندارد و رمزنگاری‌شده (SlowDNS).
+                </p>
+            </div>
+            
+            <!-- DNS Tunnel Sub-Tabs Selector -->
+            <div style="display:flex; gap:8px; background:var(--bg-muted); padding:4px; border-radius:8px; border:1px solid var(--border-color);">
+                <button type="button" class="btn btn-sm" id="dns-tab-btn-dnstt" onclick="switchDnsSubTab('dnstt')" style="background:var(--color-primary); color:#fff; padding:6px 14px; font-weight:600;">
+                    DNSTT (SlowDNS)
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="dns-tab-btn-vaydns" onclick="switchDnsSubTab('vaydns')" style="padding:6px 14px; font-weight:600;">
+                    VayDNS (KCP)
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="dns-tab-btn-slipstream" onclick="switchDnsSubTab('slipstream')" style="padding:6px 14px; font-weight:600;">
+                    Slipstream (QUIC)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SUB-PANE 1: DNSTT ================= -->
+    <div id="dns-subpane-dnstt">
+        <div class="glass-card config-card" style="margin-bottom: 20px;">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-dot" id="dnstt-status-dot"></span>
+                    <strong style="font-size:15px;">سرور تونل DNSTT (GetLantern / Bamsoftware)</strong>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="controlProtocol('dnstt', 'restart')">
+                        <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="dnstt-toggle-btn" onclick="toggleProtocolQuick('dnstt')">
+                        <span data-i18n="toggle_service">تغییر وضعیت</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
+                    <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-port">5300</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
+                    <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-domain">t.example.com</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Upstream)</div>
+                    <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-upstream">127.0.0.1:22 (SSH)</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-conns">0</div>
+                </div>
+            </div>
+
+            <!-- Public Key Box -->
+            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:8px; padding:12px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label class="form-label" style="margin:0; font-weight:600; font-size:12px;" data-i18n="dnstt_pubkey">کلید عمومی سرور (Public Key)</label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;">
+                        <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> کپی کلید
+                    </button>
+                </div>
+                <div id="dnstt-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background:#fff; padding:8px; border-radius:6px; border:1px solid rgba(0,0,0,0.08);">-</div>
+            </div>
+
+            <!-- Configuration Form -->
+            <form id="dnstt-config-form" onsubmit="saveDnsttConfig(event)">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" data-i18n="dnstt_port_label">پورت سرور (UDP)</label>
+                        <input class="form-input" type="number" id="dnstt-port-input" value="5300" min="1" max="65535" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" data-i18n="dnstt_domain_label">دامنه تونل (NS Record Domain)</label>
+                        <input class="form-input" type="text" id="dnstt-domain-input" placeholder="t.yourdomain.com" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label" data-i18n="dnstt_upstream_label">مقصد فوروارد ترافیک (Upstream)</label>
+                        <select class="form-input" id="dnstt-upstream-select">
+                            <option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
+                            <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                            <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                            <option value="127.0.0.1:8080">127.0.0.1:8080 (پروکسی HTTP)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="save-dnstt-btn">
+                    <i data-lucide="save" class="btn-icon"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات DNSTT</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Client Guide Card -->
+        <div class="glass-card config-card">
+            <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
+                <span data-i18n="client_guide">دستور اتصال کلاینت (Client Commands)</span>
+            </h4>
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+                برای اتصال در نرم‌افزارهای کلاینت (نظیر <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> در اندروید) کافیست دامنه NS و کلید عمومی بالا را به همراه DoH دلخواه وارد کنید. برای ویندوز و لینوکس:
+            </p>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div class="code-box" id="dnstt-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">dnstt-client -doh https://cloudflare-dns.com/dns-query -pubkey ...</div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-client-cmd-box').textContent)">
+                    <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SUB-PANE 2: VAYDNS ================= -->
+    <div id="dns-subpane-vaydns" style="display:none;">
+        <div class="glass-card config-card" style="margin-bottom: 20px;">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-dot" id="vaydns-status-dot"></span>
+                    <strong style="font-size:15px;">سرور VayDNS (توسعه‌یافته برای دور زدن فیلترینگ ایران - Net2Share)</strong>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="controlProtocol('vaydns', 'restart')">
+                        <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="vaydns-toggle-btn" onclick="toggleProtocolQuick('vaydns')">
+                        <span data-i18n="toggle_service">تغییر وضعیت</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
+                    <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-port">5353</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
+                    <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-domain">v.example.com</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Upstream)</div>
+                    <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-upstream">127.0.0.1:22 (SSH)</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-conns">0</div>
+                </div>
+            </div>
+
+            <!-- Public Key Box -->
+            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:8px; padding:12px; margin-bottom:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <label class="form-label" style="margin:0; font-weight:600; font-size:12px;">کلید عمومی VayDNS (Public Key)</label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;">
+                        <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> کپی کلید
+                    </button>
+                </div>
+                <div id="vaydns-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background:#fff; padding:8px; border-radius:6px; border:1px solid rgba(0,0,0,0.08);">-</div>
+            </div>
+
+            <!-- Configuration Form -->
+            <form id="vaydns-config-form" onsubmit="saveVaydnsConfig(event)">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">پورت سرور (UDP)</label>
+                        <input class="form-input" type="number" id="vaydns-port-input" value="5353" min="1" max="65535" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">دامنه تونل (NS Record Domain)</label>
+                        <input class="form-input" type="text" id="vaydns-domain-input" placeholder="v.yourdomain.com" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">مقصد فوروارد ترافیک (Upstream)</label>
+                        <select class="form-input" id="vaydns-upstream-select">
+                            <option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
+                            <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                            <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
+                        <input type="checkbox" id="vaydns-compat-checkbox" checked>
+                        <span>فعال‌سازی حالت سازگاری با کلاینت‌های DNSTT استاندارد (<code>-dnstt-compat</code>)</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="save-vaydns-btn">
+                    <i data-lucide="save" class="btn-icon"></i> <span>ذخیره و اعمال تنظیمات VayDNS</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Client Guide Card -->
+        <div class="glass-card config-card">
+            <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="terminal" style="width:16px; height:16px; color:#14b8a6;"></i>
+                <span>دستور کلاینت VayDNS</span>
+            </h4>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div class="code-box" id="vaydns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">vaydns-client -udp 8.8.8.8:53 -pubkey ...</div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-client-cmd-box').textContent)">
+                    <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SUB-PANE 3: SLIPSTREAM ================= -->
+    <div id="dns-subpane-slipstream" style="display:none;">
+        <div class="glass-card config-card" style="margin-bottom: 20px;">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="status-dot" id="slipstream-status-dot"></span>
+                    <strong style="font-size:15px;">سرور Slipstream (تونل مخفی QUIC Multipath بر بستر DNS)</strong>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="controlProtocol('slipstream', 'restart')">
+                        <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="slipstream-toggle-btn" onclick="toggleProtocolQuick('slipstream')">
+                        <span data-i18n="toggle_service">تغییر وضعیت</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
+                    <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-port">5354</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
+                    <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-domain">s.example.com</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Target)</div>
+                    <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-upstream">127.0.0.1:22</div>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                    <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-conns">0</div>
+                </div>
+            </div>
+
+            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.04); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
+                <i data-lucide="zap" style="width:14px; height:14px; color:#f59e0b; vertical-align:middle; margin-left:4px;"></i>
+                پروتکل <strong>Slipstream</strong> از معماری QUIC چندمسیره بهره می‌برد که هدر آن تا ۶۰٪ نسبت به DNSTT کوچک‌تر بوده و دارای کنترل ازدحام اختصاصی برای دی‌ان‌اس سرورهای Rate-limited است.
+            </div>
+
+            <!-- Configuration Form -->
+            <form id="slipstream-config-form" onsubmit="saveSlipstreamConfig(event)">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">پورت سرور (UDP)</label>
+                        <input class="form-input" type="number" id="slipstream-port-input" value="5354" min="1" max="65535" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">دامنه اختصاصی (Domain)</label>
+                        <input class="form-input" type="text" id="slipstream-domain-input" placeholder="s.yourdomain.com" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" required>
+                    </div>
+                    <div class="form-group" style="margin:0;">
+                        <label class="form-label">مقصد فوروارد ترافیک (Target)</label>
+                        <select class="form-input" id="slipstream-upstream-select">
+                            <option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
+                            <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                            <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" id="save-slipstream-btn">
+                    <i data-lucide="save" class="btn-icon"></i> <span>ذخیره و اعمال تنظیمات Slipstream</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Client Guide Card -->
+        <div class="glass-card config-card">
+            <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
+                <i data-lucide="terminal" style="width:16px; height:16px; color:#3b82f6;"></i>
+                <span>دستور کلاینت Slipstream</span>
+            </h4>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <div class="code-box" id="slipstream-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">slipstream-client -l 1080 -d ... -s ...</div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-client-cmd-box').textContent)">
+                    <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

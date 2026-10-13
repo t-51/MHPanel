@@ -1,0 +1,246 @@
+<div class="tab-pane" id="tab-radar">
+    <section style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Header -->
+        <div class="section-header" style="margin-bottom: 0;">
+            <div>
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="radar" style="color: #ef4444; width: 24px; height: 24px;"></i>
+                    رادار سلامت اتصال، فیلترینگ و وضعیت شبکه سرور (Censorship & Connectivity Radar)
+                </h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                    بررسی بلادرنگ وضعیت سرور در اپراتورهای همراه و ثابت ایران (همراه اول، ایرانسل، مخابرات)، سلامت دیتاسنترهای بین‌المللی، وضعیت باز بودن پورت‌ها و تشخیص رفتارهای DPI
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <span id="radar-last-update" style="font-size: 11.5px; color: #64748b; background: #f1f5f9; padding: 6px 12px; border-radius: 20px;">
+                    آخرین اسکن: در انتظار بررسی
+                </span>
+                <button type="button" class="btn btn-primary btn-sm" id="radar-scan-btn" onclick="runRadarScan('full')" style="padding: 8px 18px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <i data-lucide="refresh-cw" id="radar-scan-icon" style="width: 14px; height: 14px;"></i> اجرای اسکن جامع رادار
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="copyRadarReport()" style="padding: 8px 14px;">
+                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i> کپی گزارش برای پشتیبانی
+                </button>
+            </div>
+        </div>
+
+        <!-- Top Stat & Gauge Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <!-- Score Card -->
+            <div class="glass-card" style="padding: 20px; border: 1px solid rgba(239, 68, 68, 0.2); background: linear-gradient(135deg, rgba(254, 242, 242, 0.8) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 12px; color: #991b1b; font-weight: 700; display: block; margin-bottom: 4px;">شاخص سلامت و ضدسانسور:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="radar-score-value" style="font-size: 32px; font-weight: 800; color: #dc2626; font-family:'JetBrains Mono', monospace;">--</span>
+                            <span style="font-size: 14px; color: #991b1b; font-weight: 600;">/ ۱۰۰</span>
+                        </div>
+                    </div>
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #dc2626; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="shield-alert" style="width: 22px; height: 22px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <div style="height: 6px; width: 100%; background: #fee2e2; border-radius: 10px; overflow: hidden;">
+                        <div id="radar-score-bar" style="height: 100%; width: 0%; background: #dc2626; transition: width 0.8s ease;"></div>
+                    </div>
+                    <span id="radar-score-desc" style="font-size: 11px; color: #b91c1c; font-weight: 600; display: block; margin-top: 6px;">در حال آماده‌سازی سنجش...</span>
+                </div>
+            </div>
+
+            <!-- Iran Operators Stat -->
+            <div class="glass-card" style="padding: 20px; border: 1px solid rgba(16, 185, 129, 0.2); background: linear-gradient(135deg, rgba(236, 253, 245, 0.8) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 12px; color: #065f46; font-weight: 700; display: block; margin-bottom: 4px;">وضعیت اپراتورهای ایران:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="radar-iran-clean-count" style="font-size: 30px; font-weight: 800; color: #059669; font-family:'JetBrains Mono', monospace;">--</span>
+                            <span id="radar-iran-total-count" style="font-size: 13px; color: #047857; font-weight: 600;">/ ۸ اپراتور فعال</span>
+                        </div>
+                    </div>
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="radio" style="width: 22px; height: 22px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 11.5px; color: #065f46;">
+                    همراه اول، ایرانسل، مخابرات، شاتل و رایتل
+                </div>
+            </div>
+
+            <!-- Latencies Stat -->
+            <div class="glass-card" style="padding: 20px; border: 1px solid rgba(59, 130, 246, 0.2); background: linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 12px; color: #1e40af; font-weight: 700; display: block; margin-bottom: 4px;">میانگین تاخیر شبکه (Ping):</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="radar-avg-iran-ping" style="font-size: 28px; font-weight: 800; color: #2563eb; font-family:'JetBrains Mono', monospace;">--</span>
+                            <span style="font-size: 12px; color: #1d4ed8; font-weight: 600;">میلی‌ثانیه (ایران)</span>
+                        </div>
+                    </div>
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); color: #2563eb; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="activity" style="width: 22px; height: 22px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 11.5px; color: #1e40af;">
+                    میانگین بین‌الملل: <strong id="radar-avg-global-ping" style="font-family:'JetBrains Mono';">--</strong> ms
+                </div>
+            </div>
+
+            <!-- Ports Stat -->
+            <div class="glass-card" style="padding: 20px; border: 1px solid rgba(139, 92, 246, 0.2); background: linear-gradient(135deg, rgba(245, 243, 255, 0.8) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 12px; color: #5b21b6; font-weight: 700; display: block; margin-bottom: 4px;">پورت‌های آماده اتصال:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="radar-active-ports" style="font-size: 30px; font-weight: 800; color: #7c3aed; font-family:'JetBrains Mono', monospace;">--</span>
+                            <span id="radar-total-ports" style="font-size: 13px; color: #6d28d9; font-weight: 600;">/ ۱۵ پورت</span>
+                        </div>
+                    </div>
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(139, 92, 246, 0.15); color: #7c3aed; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="network" style="width: 22px; height: 22px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 12px; font-size: 11.5px; color: #5b21b6;">
+                    پروتکل‌های ۴۴۳، ۴۴۴۳، ۵۱۸۲۰، ۱۱۹۴ و...
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 1: Iran Telecom Operators Status -->
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:34px; height:34px; border-radius:8px; background:rgba(239, 68, 68, 0.12); color:#dc2626; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                            وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه ایران (Iran Telecom & ISPs)
+                        </h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                            بررسی وضعیت اتصال مستقیم، تاخیر، پکت لوس و عدم مسدودیت در شبکه همراه و ثابت کشور
+                        </p>
+                    </div>
+                </div>
+                <span style="font-size: 11px; background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 6px;">
+                    پایش مستقیم از مبدا سرور به گیت‌وی‌های اپراتورها
+                </span>
+            </div>
+
+            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                            <th style="padding: 12px 14px;">نام اپراتور و نوع شبکه</th>
+                            <th style="padding: 12px 14px;">تاخیر (Ping)</th>
+                            <th style="padding: 12px 14px;">پکت لوس (Loss %)</th>
+                            <th style="padding: 12px 14px;">وضعیت دسترسی</th>
+                            <th style="padding: 12px 14px;">بررسی DPI و فیلترینگ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="radar-iran-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                برای بررسی وضعیت اپراتورهای ایران دکمه «اجرای اسکن جامع رادار» را بزنید.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 2: Global Datacenters & CDNs -->
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:34px; height:34px; border-radius:8px; background:rgba(2, 132, 199, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="globe" style="width:18px; height:18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                            وضعیت ارتباط با دیتاسنترها و هاب‌های بین‌المللی اینترنت (Global Datacenters)
+                        </h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                            سنجش کیفیت مسیر، پایداری ترانزیت و تاخیر سرور با مراکز اصلی داده در اروپا، آمریکا و خاورمیانه
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                            <th style="padding: 12px 14px;">مقصد و دیتاسنتر</th>
+                            <th style="padding: 12px 14px;">منطقه جغرافیایی</th>
+                            <th style="padding: 12px 14px;">تاخیر ارتباط (Ping)</th>
+                            <th style="padding: 12px 14px;">پکت لوس</th>
+                            <th style="padding: 12px 14px;">کیفیت ترانزیت</th>
+                        </tr>
+                    </thead>
+                    <tbody id="radar-global-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                در انتظار اجرای اسکن...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Section 3: Server Protocol Ports Matrix -->
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div style="width:34px; height:34px; border-radius:8px; background:rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield-check" style="width:18px; height:18px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                            رادار پورت‌های فعال پروتکل‌های سرور (VPN Protocols Port Matrix)
+                        </h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                            بررسی وضعیت فعال بودن، شنود و پاسخگویی پورت‌های اصلی پروتکل‌های اتصال
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;" id="radar-ports-grid">
+                <!-- Port tiles will render here -->
+            </div>
+        </div>
+
+        <!-- Section 4: Deep Censorship & DPI Analysis -->
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(217, 119, 6, 0.12); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                        تحلیل هوشمند DPI، مسمومیت DNS و ضد فیلترینگ (Deep Filtering Inspection)
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                        بررسی رفتارهای تزریق پکت RST، سناریوهای مسمومیت دی‌ان‌اس و پایداری هندشیک TLS
+                    </p>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 8px;">
+                    نتیجه و تشخیص تحلیلی سیستم (System Verdict):
+                </div>
+                <p id="radar-verdict-text" style="font-size: 13px; color: #334155; line-height: 1.8; margin: 0;">
+                    پس از اجرای اسکن، تحلیل رفتاری فیلترینگ و توصیه‌های فنی در این بخش نمایش داده می‌شود.
+                </p>
+            </div>
+
+            <div id="radar-dpi-details-list" style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Observation items will render here -->
+            </div>
+        </div>
+
+    </section>
+</div>

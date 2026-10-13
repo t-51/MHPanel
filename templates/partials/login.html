@@ -1,0 +1,44 @@
+<div class="login-container">
+    <div class="glass-card login-card" style="position: relative;">
+        <!-- Language Selector Bar on Login Page -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
+            <div class="lang-selector-wrapper" style="margin: 0;">
+                <select id="login-lang-select" class="lang-select" onchange="changeLanguage(this.value)" aria-label="Select Language" style="padding: 4px 10px; font-size: 12px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-color); cursor: pointer;">
+                    <option value="fa">🇮🇷 فارسی</option>
+                    <option value="en">🇬🇧 English</option>
+                    <option value="ru">🇷🇺 Русский</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="brand-logo">
+            <i data-lucide="shield-alert" style="width: 32px; height: 32px;"></i>
+        </div>
+        <h1 class="login-title" data-i18n="login_title">MH Panel</h1>
+        <p class="login-subtitle" data-i18n="login_subtitle">ورود به پنل مدیریت سرور و پروتکل‌های VPN</p>
+        
+        <div id="login-error" style="color: var(--color-rose); font-size: 14px; margin-bottom: 20px; display: none;" data-i18n="login_error">
+            نام کاربری یا رمز عبور اشتباه است.
+        </div>
+
+        <form id="login-form">
+            <div class="form-group" style="margin-bottom:16px;">
+                <label class="form-label" for="username-input" data-i18n="login_username">نام کاربری</label>
+                <div class="input-wrapper">
+                    <i data-lucide="user" class="input-icon"></i>
+                    <input class="form-input" type="text" id="username-input" value="{{ saved_username }}" placeholder="admin" required>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom:20px;">
+                <label class="form-label" for="password-input" data-i18n="login_password">رمز عبور</label>
+                <div class="input-wrapper">
+                    <i data-lucide="lock" class="input-icon"></i>
+                    <input class="form-input" type="password" id="password-input" placeholder="••••••••" required>
+                </div>
+            </div>
+            <button type="submit" class="btn" id="login-btn">
+                <i data-lucide="log-in" class="btn-icon"></i> <span data-i18n="login_signin">ورود به پنل</span>
+            </button>
+        </form>
+    </div>
+</div>

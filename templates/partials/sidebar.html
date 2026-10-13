@@ -1,0 +1,183 @@
+<aside class="sidebar" id="app-sidebar">
+    <!-- Mobile Sidebar Close Header -->
+    <div class="sidebar-mobile-header">
+        <div style="display:flex; align-items:center; gap:8px;">
+            <i data-lucide="shield" style="color: #6366f1; width:20px; height:20px;"></i>
+            <strong style="color:#fff; font-size:15px;">MH Panel</strong>
+        </div>
+        <button type="button" class="sidebar-mobile-close" onclick="toggleMobileSidebar(false)" aria-label="Close Navigation">
+            <i data-lucide="x" style="width:18px; height:18px;"></i>
+        </button>
+    </div>
+
+    <!-- Desktop Sidebar Header with Collapse Toggle -->
+    <div class="sidebar-desktop-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 12px 6px; border-bottom: 1px solid rgba(226, 232, 240, 0.7); margin-bottom: 6px;">
+        <span class="sidebar-header-label" style="font-size: 11.5px; font-weight: 700; color: #64748b; letter-spacing: 0.04em;">منوی ناوبری</span>
+        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" title="جمع کردن / باز کردن منو" aria-label="Toggle Sidebar">
+            <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 16px; height: 16px;"></i>
+        </button>
+    </div>
+
+    <nav class="sidebar-nav">
+        <!-- ۱. بخش داشبورد و آمار عمومی -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="layout-grid"></i>
+                <span data-i18n="nav_sec_dashboard">داشبورد و وضعیت</span>
+            </div>
+            <button class="sidebar-nav-item active" onclick="switchTab('overview')">
+                <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
+                <span data-i18n="nav_overview">نمای کلی (Overview)</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('radar')">
+                <i data-lucide="radar" style="color: #ef4444;"></i>
+                <span data-i18n="nav_radar">رادار فیلترینگ و اتصال</span>
+                <span class="sidebar-badge sidebar-badge-green">Radar</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('protocols')">
+                <i data-lucide="activity" style="color: #0ea5e9;"></i>
+                <span data-i18n="nav_protocols">وضعیت کلی پروتکل‌ها</span>
+            </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ۲. بخش پروتکل‌های اتصال و VPN -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="shield"></i>
+                <span data-i18n="nav_sec_vpn">پروتکل‌های اتصال (VPN)</span>
+            </div>
+            
+            <!-- Cisco AnyConnect (OCServ) -->
+            <button class="sidebar-nav-item" onclick="switchTab('ocserv')">
+                <i data-lucide="radio" style="color: #0284c7;"></i>
+                <span data-i18n="nav_ocserv">سیسکو AnyConnect</span>
+                <span class="sidebar-badge sidebar-badge-blue">Cisco</span>
+            </button>
+
+            <!-- TUIC Protocol (QUIC) -->
+            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
+                <i data-lucide="zap" style="color: #6366f1;"></i>
+                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
+                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
+            </button>
+
+            <!-- Shadowsocks-rust -->
+            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
+                <i data-lucide="shield" style="color: #d97706;"></i>
+                <span data-i18n="nav_shadowsocks">شادوساکس (Rust)</span>
+                <span class="sidebar-badge sidebar-badge-blue">2022</span>
+            </button>
+
+            <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream) -->
+            <button class="sidebar-nav-item" onclick="switchTab('dns-tunnels')">
+                <i data-lucide="globe" style="color: #14b8a6;"></i>
+                <span data-i18n="nav_dns_tunnels">تونل‌های DNS (SlowDNS)</span>
+                <span class="sidebar-badge sidebar-badge-green">Anti-Filter</span>
+            </button>
+
+            <!-- AmneziaWG (Anti-DPI) -->
+            <button class="sidebar-nav-item" onclick="switchTab('amneziawg')">
+                <i data-lucide="shield-check" style="color: #10b981;"></i>
+                <span data-i18n="nav_amneziawg">AmneziaWG</span>
+                <span class="sidebar-badge sidebar-badge-green">Anti-DPI</span>
+            </button>
+
+            <!-- WireGuard Normal -->
+            <button class="sidebar-nav-item" onclick="switchTab('wireguard')">
+                <i data-lucide="zap" style="color: #8b5cf6;"></i>
+                <span data-i18n="nav_wireguard">وایرگارد معمولی</span>
+            </button>
+
+            <!-- OpenVPN -->
+            <button class="sidebar-nav-item" onclick="switchTab('openvpn')">
+                <i data-lucide="lock" style="color: #f59e0b;"></i>
+                <span data-i18n="nav_openvpn">اوپن‌وی‌پی‌ان (OpenVPN)</span>
+                <span class="sidebar-badge sidebar-badge-blue">Dual</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('openvpn-addons')" style="font-size: 12.5px; padding-right: 32px;">
+                <i data-lucide="puzzle" style="color: #f59e0b; width: 16px; height: 16px;"></i>
+                <span data-i18n="nav_openvpn_addons">افزونه‌ها و ضد فیلتر OpenVPN</span>
+            </button>
+
+            <!-- SSH Tunnel -->
+            <button class="sidebar-nav-item" onclick="switchTab('ssh')">
+                <i data-lucide="terminal" style="color: #059669;"></i>
+                <span data-i18n="nav_ssh">تونل SSH</span>
+            </button>
+
+            <!-- IKEv2 / IPsec -->
+            <button class="sidebar-nav-item" onclick="switchTab('ikev2')">
+                <i data-lucide="smartphone" style="color: #ec4899;"></i>
+                <span data-i18n="nav_ikev2">پروتکل IKEv2</span>
+                <span class="sidebar-badge sidebar-badge-purple">iOS/Win</span>
+            </button>
+
+            <!-- L2TP / IPsec -->
+            <button class="sidebar-nav-item" onclick="switchTab('l2tp')">
+                <i data-lucide="layers" style="color: #6366f1;"></i>
+                <span data-i18n="nav_l2tp">پروتکل L2TP / IPsec</span>
+            </button>
+
+            <!-- SSTP -->
+            <button class="sidebar-nav-item" onclick="switchTab('sstp')">
+                <i data-lucide="shuffle" style="color: #06b6d4;"></i>
+                <span data-i18n="nav_sstp">پروتکل SSTP</span>
+            </button>
+
+            <!-- MTProto & SOCKS Proxies -->
+            <button class="sidebar-nav-item" onclick="switchTab('mtproto')">
+                <i data-lucide="send" style="color: #0ea5e9;"></i>
+                <span data-i18n="nav_mtproto">پروکسی‌ها (MTProto / ساکس)</span>
+                <span class="sidebar-badge sidebar-badge-blue">Proxy</span>
+            </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ۳. بخش سرورهای ریموت و کلاستر -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="server"></i>
+                <span data-i18n="nav_sec_cluster">ریموت سرور و کلاستر</span>
+            </div>
+            <button class="sidebar-nav-item" onclick="switchTab('tunnels')">
+                <i data-lucide="route" style="color: #6366f1;"></i>
+                <span data-i18n="nav_tunnels">تونل‌های شبکه (Tunnels)</span>
+                <span class="sidebar-badge sidebar-badge-blue">MikroTik</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('servers')">
+                <i data-lucide="server" style="color: #4f46e5;"></i>
+                <span data-i18n="nav_servers">سرورهای ریموت (Servers)</span>
+            </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ۴. بخش تنظیمات و مدیریت هسته پنل -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="settings"></i>
+                <span data-i18n="nav_sec_settings">تنظیمات و هسته پنل</span>
+            </div>
+            <button class="sidebar-nav-item" onclick="switchTab('radius')">
+                <i data-lucide="database" style="color: #059669;"></i>
+                <span data-i18n="nav_radius">تنظیمات ردیوس (RADIUS)</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('ssl')">
+                <i data-lucide="badge-check" style="color: #d97706;"></i>
+                <span data-i18n="nav_ssl">گواهی‌های امنیتی SSL</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('multiplexer')">
+                <i data-lucide="network" style="color: #0284c7;"></i>
+                <span data-i18n="nav_multiplexer">اشتراک پورت و مولتی‌پورت</span>
+                <span class="sidebar-badge sidebar-badge-blue">MultiPort</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('system')">
+                <i data-lucide="sliders" style="color: #64748b;"></i>
+                <span data-i18n="nav_system">ابزارهای سیستم و لاگ‌ها</span>
+            </button>
+        </div>
+    </nav>
+</aside>

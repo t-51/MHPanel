@@ -1,0 +1,16 @@
+{
+  "udp_enabled": true,
+  "tcp_enabled": true,
+  "primary_udp_port": 1194,
+  "primary_tcp_port": 1194,
+  "extra_udp_ports": [],
+  "extra_tcp_ports": [],
+  "server_host": "",
+  "scramble_enabled": false,
+  "scramble_key": "openvpn_xor",
+  "dns_servers": "1.1.1.1, 8.8.8.8",
+  "mssfix": true,
+  "fast_io": true,
+  "block_outside_dns": true,
+  "tcp_nodelay": true
+}

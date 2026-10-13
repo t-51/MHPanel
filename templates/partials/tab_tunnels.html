@@ -1,0 +1,332 @@
+<div class="tab-pane" id="tab-tunnels">
+    <section style="display: flex; flex-direction: column; gap: 24px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="route" style="color: #6366f1; width: 24px; height: 24px;"></i>
+                    <span>مرکز جامع تونل‌های سرور به سرور و میکروتیک (Tunnel & Bridge Hub)</span>
+                    <span class="sidebar-badge sidebar-badge-blue" style="font-size: 11px;">MikroTik & Linux</span>
+                </h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                    مدیریت گرافیکی انواع تونل‌های استاندارد روتربورد میکروتیک (GRE، IPIP، VXLAN، L2TP، OpenVPN، WireGuard) و تونل‌های پیشرفته ضد فیلتر لینوکس (GOST، WSTunnel، RTT، Chisel، FRP، UDP2Raw، Phantun، Rathole)
+                </p>
+            </div>
+
+            <!-- Sub-Tabs Navigation Switcher -->
+            <div class="rad-tab-nav" id="tunnels-subtab-nav">
+                <button type="button" class="rad-tab-btn active" onclick="switchTunnelSubTab('mikrotik')" id="tun-subtab-btn-mikrotik">
+                    <i data-lucide="router" style="width: 16px; height: 16px; color:#4f46e5;"></i>
+                    تونل‌های میکروتیک و استاندارد
+                    <span class="badge-pill" id="pill-mikrotik-tunnels-count">0</span>
+                </button>
+                <button type="button" class="rad-tab-btn" onclick="switchTunnelSubTab('advanced')" id="tun-subtab-btn-advanced">
+                    <i data-lucide="shield-check" style="width: 16px; height: 16px; color:#10b981;"></i>
+                    تونل‌های ضد فیلتر لینوکس (Anti-Filter)
+                    <span class="badge-pill" id="pill-adv-tunnels-count" style="background:rgba(16,185,129,0.15); color:#059669;">0</span>
+                </button>
+                <button type="button" class="rad-tab-btn" onclick="switchTunnelSubTab('relays')" id="tun-subtab-btn-relays">
+                    <i data-lucide="shuffle" style="width: 16px; height: 16px; color:#d97706;"></i>
+                    رله و فوروارد پورت‌ها
+                    <span class="badge-pill" id="pill-relays-count" style="background:rgba(217,119,6,0.15); color:#b45309;">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Top Stat Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
+            <!-- Active Standard Tunnels -->
+            <div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(99, 102, 241, 0.2); background: linear-gradient(135deg, rgba(238, 242, 255, 0.7) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #4338ca; font-weight: 700; display: block; margin-bottom: 4px;">اینترفیس‌های فعال میکروتیک:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="stat-active-tunnels-count" style="font-size: 28px; font-weight: 800; color: #4f46e5; font-family:'JetBrains Mono', monospace;">0</span>
+                            <span id="stat-total-tunnels-count" style="font-size: 13px; color: #6366f1; font-weight: 600;">/ 0 اینترفیس</span>
+                        </div>
+                    </div>
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #4338ca;">
+                    GRE، IP6GRE، IPIP، IP6TNL، VXLAN، WireGuard (IPv6)، SIT 6in4
+                </div>
+            </div>
+
+            <!-- Active Advanced Anti-Filter Tunnels -->
+            <div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(16, 185, 129, 0.2); background: linear-gradient(135deg, rgba(236, 253, 245, 0.7) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #065f46; font-weight: 700; display: block; margin-bottom: 4px;">تونل‌های ضد فیلتر لینوکس:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="stat-adv-active-count" style="font-size: 28px; font-weight: 800; color: #059669; font-family:'JetBrains Mono', monospace;">0</span>
+                            <span id="stat-adv-total-count" style="font-size: 13px; color: #047857; font-weight: 600;">/ 0 سرویس دائم</span>
+                        </div>
+                    </div>
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="shield-alert" style="width: 20px; height: 20px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #065f46;">
+                    GOST (WSS)، RTT، WSTunnel، Chisel، FRP، UDP2Raw
+                </div>
+            </div>
+
+            <!-- Server IP Card -->
+            <div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(2, 132, 199, 0.2); background: linear-gradient(135deg, rgba(240, 249, 255, 0.7) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #0369a1; font-weight: 700; display: block; margin-bottom: 4px;">آی‌پی عمومی این سرور:</span>
+                        <div style="display:flex; align-items:center; gap:8px; margin-top: 4px;">
+                            <span id="stat-server-public-ip" style="font-size: 17px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">بارگذاری...</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyServerPublicIp()" style="padding: 2px 7px; font-size: 10.5px;" title="کپی آی‌پی">
+                                <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="globe" style="width: 20px; height: 20px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #0369a1;">
+                    جهت درج در فیلد Remote IP سرور یا روتر مقابل
+                </div>
+            </div>
+
+            <!-- Total Bandwidth Card -->
+            <div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(217, 119, 6, 0.2); background: linear-gradient(135deg, rgba(254, 243, 199, 0.7) 0%, #ffffff 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #b45309; font-weight: 700; display: block; margin-bottom: 4px;">مجموع ترافیک عبوری اینترفیس‌ها:</span>
+                        <div style="display:flex; align-items:baseline; gap:8px;">
+                            <span id="stat-tunnels-total-traffic" style="font-size: 20px; font-weight: 800; color: #d97706; font-family:'JetBrains Mono', monospace;">0 MB</span>
+                        </div>
+                    </div>
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(217, 119, 6, 0.15); color: #d97706; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 10px; font-size: 11px; color: #b45309; display:flex; gap:10px;">
+                    <span>دریافت: <strong id="stat-tunnels-rx" style="font-family:'JetBrains Mono';">0 B</strong></span>
+                    <span>|</span>
+                    <span>ارسال: <strong id="stat-tunnels-tx" style="font-family:'JetBrains Mono';">0 B</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- SUB-TAB 1: MIKROTIK & STANDARD ROUTING TUNNELS -->
+        <!-- ========================================================================= -->
+        <div id="tun-pane-mikrotik" class="tun-subpane">
+            <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="router" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                                اینترفیس‌های استاندارد میکروتیک و لینوکس (MikroTik RouterOS Interfaces)
+                            </h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                                GRE، IP6GRE (IPv6)، IPIP، IP6TNL (IPv6)، VXLAN/EoIP، WireGuard، L2TP، OpenVPN، SSTP، SIT 6in4 و PPTP با اسکریپت کانفیگ آماده RouterOS v7 و v6
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openCreateTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);">
+                            <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> ساخت تونل میکروتیک / استاندارد
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTunnels(true)" style="padding: 8px 12px;">
+                            <i data-lucide="refresh-cw" id="tunnels-refresh-icon" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tunnels Table -->
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                                <th style="padding: 12px 14px; width: 60px; text-align:center;">پرچم</th>
+                                <th style="padding: 12px 14px;">نام و پروتکل اینترفیس</th>
+                                <th style="padding: 12px 14px;">آدرس محلی (Local)</th>
+                                <th style="padding: 12px 14px;">آدرس ریموت (Remote)</th>
+                                <th style="padding: 12px 14px;">آی‌پی داخلی تونل</th>
+                                <th style="padding: 12px 14px;">MTU</th>
+                                <th style="padding: 12px 14px;">حجم تبادل (RX / TX)</th>
+                                <th style="padding: 12px 14px; text-align:center;">پینگ به طرف دیگر</th>
+                                <th style="padding: 12px 14px; text-align:left;">عملیات و اسکریپت‌ها</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tunnels-table-body">
+                            <tr>
+                                <td colspan="9" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                                    در حال دریافت لیست تونل‌ها...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- SUB-TAB 2: ADVANCED ANTI-CENSORSHIP LINUX TUNNELS -->
+        <!-- ========================================================================= -->
+        <div id="tun-pane-advanced" class="tun-subpane" style="display:none;">
+            <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(16, 185, 129, 0.12); color:#059669; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                                تونل‌های پیشرفته ضد فیلتر و مبهم‌ساز لینوکس (Advanced Anti-Censorship Tunnels)
+                            </h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                                پروژه‌های اختصاصی دور زدن فیلترینگ شدید: GOST (WSS/TLS)، ReverseTlsTunnel (RTT)، WSTunnel، Chisel، FRP، UDP2Raw (FakeTCP)، Phantun، Rathole
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openCreateAdvTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> راه‌اندازی تونل ضد فیلتر جدید
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTunnels(true)" style="padding: 8px 12px;">
+                            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Tunnels Table -->
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                                <th style="padding: 12px 14px; width: 60px; text-align:center;">وضعیت</th>
+                                <th style="padding: 12px 14px;">نام و پروتکل تونل</th>
+                                <th style="padding: 12px 14px;">نقش سرور (Role)</th>
+                                <th style="padding: 12px 14px;">پورت شنود / اندپوینت</th>
+                                <th style="padding: 12px 14px;">سرویس مقصد (Target)</th>
+                                <th style="padding: 12px 14px;">مبهم‌سازی و ترانسپورت</th>
+                                <th style="padding: 12px 14px;">سرویس سیستم (Systemd)</th>
+                                <th style="padding: 12px 14px; text-align:left;">دستورات و عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adv-tunnels-table-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                                    در حال دریافت وضعیت سرویس‌های ضد فیلتر...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================================================= -->
+        <!-- SUB-TAB 3: PORT FORWARDING & TRAFFIC RELAYS -->
+        <!-- ========================================================================= -->
+        <div id="tun-pane-relays" class="tun-subpane" style="display:none;">
+            <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(217, 119, 6, 0.12); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="shuffle" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                                رله ترافیک و فوروارد پورت‌ها از طریق تونل (Port Forwarding & Traffic Relay)
+                            </h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                                انتقال خودکار پورت‌های سرور مبدا (ایران) از بستر تونل به سرور مقصد (خارج) با قوانین هوشمند IPTables DNAT و NAT Masquerade
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openPortRelayModal()" style="padding: 8px 16px; font-size: 12.5px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%);">
+                        <i data-lucide="plus" style="width: 14px; height: 14px;"></i> افزودن رله پورت جدید
+                    </button>
+                </div>
+
+                <!-- Relays Table -->
+                <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                        <thead>
+                            <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                                <th style="padding: 12px 14px;">عنوان و پورت ورودی این سرور</th>
+                                <th style="padding: 12px 14px;">پروتکل</th>
+                                <th style="padding: 12px 14px;">آدرس و پورت مقصد در تونل</th>
+                                <th style="padding: 12px 14px;">تونل متصل</th>
+                                <th style="padding: 12px 14px;">وضعیت رول IPTables</th>
+                                <th style="padding: 12px 14px; text-align:left;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="relays-table-body">
+                            <tr>
+                                <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                    هیچ رله پورتی ثبت نشده است. برای عبور دادن ترافیک پروتکل‌های VPN از اینترنت ایران به خارج، روی «افزودن رله پورت جدید» بزنید.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Technical Architectural & Anti-Filter Guide -->
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #f8fafc;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="info" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 700; color: #0f172a; margin: 0;">
+                        دانشنامه تخصصی انتخاب تونل (MikroTik vs Linux Anti-Censorship Tunnels)
+                    </h3>
+                    <p style="font-size: 12px; color: #64748b; margin: 2px 0 0 0;">
+                        جدول راهنمای فنی برای انتخاب مناسب‌ترین راهکار بین سرور ایران و خارج بر اساس سناریوی مسدودسازی
+                    </p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; font-size: 12px; line-height: 1.7; color: #334155;">
+                <div style="background: #ffffff; padding: 14px 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div style="font-weight: 700; color: #4338ca; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check" style="width:14px; height:14px; color:#4f46e5;"></i>
+                        <span>تونل‌های استاندارد میکروتیک (GRE, IPIP, L2TP, OVPN, WG):</span>
+                    </div>
+                    مستقیماً در روتربوردهای میکروتیک قابل استفاده هستند. برای شبکه‌های پایدار و دیتاسنترهایی که پکت‌های IP Protocol 47 (GRE) یا 4 (IPIP) مسدود نیستند، بالاترین سرعت ترانزیت و کمترین لود پردازشی را دارند.
+                </div>
+
+                <div style="background: #ffffff; padding: 14px 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div style="font-weight: 700; color: #047857; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check" style="width:14px; height:14px; color:#059669;"></i>
+                        <span>تونل‌های وب‌سوکت و TLS (GOST, WSTunnel, RTT, Chisel):</span>
+                    </div>
+                    ترافیک تونل را به وب‌سوکت رمزنگاری‌شده (WSS) یا TLS استاندارد شبیه وب‌سایت‌های عادی تغییر می‌دهند. می‌توان آن‌ها را از پشت CDN کلودفلر یا با SNI دامنه‌های مجاز عبور داد تا سیستم فیلترینگ DPI قادر به شناسایی ماهیت ترافیک نباشد.
+                </div>
+
+                <div style="background: #ffffff; padding: 14px 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div style="font-weight: 700; color: #b45309; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check" style="width:14px; height:14px; color:#d97706;"></i>
+                        <span>مبدل پکت‌های UDP به Fake TCP (UDP2Raw, Phantun):</span>
+                    </div>
+                    در شبکه‌هایی که اپراتورها پکت‌های UDP و پروتکل‌های WireGuard، AmneziaWG و TUIC را مسدود یا دچار پکت‌لاس شدید می‌کنند، پکت‌های UDP را داخل هندشیک جعلی TCP قرار داده و مانع از مسدودسازی آن‌ها می‌شوند.
+                </div>
+
+                <div style="background: #ffffff; padding: 14px 16px; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div style="font-weight: 700; color: #0369a1; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check" style="width:14px; height:14px; color:#0284c7;"></i>
+                        <span>روتربورد میکروتیک به لینوکس با پورت فوروارد:</span>
+                    </div>
+                    می‌توانید سرور خارج را با یکی از ابزارهای ضد فیلتر (مثل GOST یا RTT) به سرور ایران متصل کنید، و سپس از سرور ایران به روتربورد میکروتیک با GRE یا L2TP ترافیک را تحویل دهید تا کاربران بدون مشکل به اینترنت آزاد برسند.
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>
