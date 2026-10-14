@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
+<title>{{ settings.title or 'MH Panel Subscription' }}</title>
 <link href="/static/favicon.ico" rel="icon" type="image/x-icon"/>
 <script src="/static/lucide.min.js"></script>
 <script src="/static/qrcode.js"></script>
@@ -497,22 +497,22 @@
 <!-- Stats Grid -->
 <div class="stats-grid">
 <div class="stat-box">
-<div class="stat-label" data-i18n="ovpn_expiration_date">تاریخ انقضا</div>
-<div class="stat-val">{{ user.expire_date or 'نامحدود' }}</div>
+<div class="stat-label" data-i18n="sub_expire_date">تاریخ انقضا</div>
+<div class="stat-val">{% if user.expire_date %}{{ user.expire_date }}{% else %}<span data-i18n="common_unlimited">نامحدود</span>{% endif %}</div>
                     {% if days_left is not none %}
-                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
+                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} <span data-i18n="sub_days_left">روز باقی‌مانده</span></div>
                     {% endif %}
                 </div>
 <div class="stat-box">
-<div class="stat-label" data-i18n="consumable_volume_allowed_ceiling">حجم مصرفی / سقف مجاز</div>
+<div class="stat-label" data-i18n="sub_traffic_usage">حجم مصرفی / سقف مجاز</div>
 <div class="stat-val">{{ used_gb }} GB / {{ limit_gb_label }}</div>
 <div class="progress-bar-bg">
 <div class="progress-bar-fill" style="width: {{ traffic_pct }}%;"></div>
 </div>
 </div>
 <div class="stat-box">
-<div class="stat-label" data-i18n="number_of_simultaneous_connections">تعداد اتصال همزمان</div>
-<div class="stat-val">{{ user.simultaneous_use or 2 }} کاربر</div>
+<div class="stat-label" data-i18n="sub_simultaneous_conn">تعداد اتصال همزمان</div>
+<div class="stat-val">{{ user.simultaneous_use or 2 }} <span data-i18n="common_user_unit">کاربر</span></div>
 </div>
 </div>
 </div>

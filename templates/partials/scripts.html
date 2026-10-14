@@ -299,6 +299,8 @@
         ]
     };
 
+    let _isTranslating = false;
+
     function translateDom(root, lang) {
         if (!root || lang === "fa") return;
         const dict = (window.I18N_TRANSLATIONS && window.I18N_TRANSLATIONS[lang]) || {};
@@ -309,15 +311,17 @@
                 const k = el.getAttribute("data-i18n");
                 if (dict[k]) {
                     if (el.children.length === 0) {
-                        el.textContent = dict[k];
+                        if (el.textContent !== dict[k]) el.textContent = dict[k];
                     } else {
                         const textSpan = el.querySelector(".i18n-text") || el.querySelector("span:not([class*='icon']):not([class*='dot']):not([class*='badge'])");
                         if (textSpan) {
-                            textSpan.textContent = dict[k];
+                            if (textSpan.textContent !== dict[k]) textSpan.textContent = dict[k];
                         } else {
                             for (let node of el.childNodes) {
                                 if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
-                                    node.textContent = " " + dict[k];
+                                    if (node.textContent !== (" " + dict[k])) {
+                                        node.textContent = " " + dict[k];
+                                    }
                                     break;
                                 }
                             }
@@ -326,9 +330,14 @@
                 }
             });
 
-            root.querySelectorAll("[data-i18n-html]").forEach(el => {
-                const k = el.getAttribute("data-i18n-html");
-                if (dict[k]) el.innerHTML = dict[k];
+            root.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+                const k = el.getAttribute("data-i18n-placeholder");
+                if (dict[k] && el.placeholder !== dict[k]) el.placeholder = dict[k];
+            });
+
+            root.querySelectorAll("[data-i18n-title]").forEach(el => {
+                const k = el.getAttribute("data-i18n-title");
+                if (dict[k] && el.title !== dict[k]) el.title = dict[k];
             });
         }
 
@@ -369,22 +378,37 @@
 
     let _transObserverTimeout = null;
     const i18nObserver = new MutationObserver((mutations) => {
+        if (_isTranslating) return;
         const currentLang = localStorage.getItem("panel_language") || "fa";
         if (currentLang === "fa") return;
         let hasNewNodes = false;
         for (const m of mutations) {
             if (m.addedNodes && m.addedNodes.length > 0) {
-                hasNewNodes = true;
-                break;
+                for (let i = 0; i < m.addedNodes.length; i++) {
+                    const node = m.addedNodes[i];
+                    if (node.nodeType === Node.ELEMENT_NODE || (node.nodeType === Node.TEXT_NODE && /[\u0600-\u06FF]/.test(node.textContent))) {
+                        hasNewNodes = true;
+                        break;
+                    }
+                }
             }
+            if (hasNewNodes) break;
         }
         if (hasNewNodes) {
             clearTimeout(_transObserverTimeout);
             _transObserverTimeout = setTimeout(() => {
-                const mainEl = document.querySelector(".main-content") || document.body;
-                translateDom(mainEl, currentLang);
-                document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, currentLang));
-            }, 30);
+                if (_isTranslating) return;
+                _isTranslating = true;
+                try {
+                    const mainEl = document.querySelector(".main-content") || document.body;
+                    translateDom(mainEl, currentLang);
+                    document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, currentLang));
+                } catch (e) {
+                    console.error("Translation observer error:", e);
+                } finally {
+                    _isTranslating = false;
+                }
+            }, 60);
         }
     });
 
@@ -400,113 +424,119 @@
 
     function applyLanguage(lang) {
         if (!I18N_TRANSLATIONS[lang]) lang = "fa";
-        document.documentElement.dir = (lang === "fa" ? "rtl" : "ltr");
-        document.documentElement.lang = lang;
+        _isTranslating = true;
+        try {
+            document.documentElement.dir = (lang === "fa" ? "rtl" : "ltr");
+            document.documentElement.lang = lang;
 
-        // Sync all language selectors
-        ["lang-select", "login-lang-select", "settings-lang-select"].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = lang;
-        });
+            // Sync all language selectors
+            ["lang-select", "login-lang-select", "settings-lang-select"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = lang;
+            });
 
-        // Sync header language pills
-        document.querySelectorAll(".lang-pill").forEach(pill => {
-            if (pill.getAttribute("data-lang") === lang) {
-                pill.classList.add("active");
-            } else {
-                pill.classList.remove("active");
-            }
-        });
-
-        // Sync visual settings language choice buttons
-        document.querySelectorAll(".lang-choice-btn").forEach(btn => {
-            if (btn.getAttribute("data-lang") === lang) {
-                btn.classList.add("active");
-            } else {
-                btn.classList.remove("active");
-            }
-        });
-
-        const dict = I18N_TRANSLATIONS[lang];
-        // HTML elements
-        document.querySelectorAll("[data-i18n-html]").forEach(el => {
-            const key = el.getAttribute("data-i18n-html");
-            if (dict && dict[key]) {
-                el.innerHTML = dict[key];
-            }
-        });
-
-        document.querySelectorAll("[data-i18n]").forEach(el => {
-            const key = el.getAttribute("data-i18n");
-            if (dict[key]) {
-                if (el.children.length === 0) {
-                    el.textContent = dict[key];
+            // Sync header language pills
+            document.querySelectorAll(".lang-pill").forEach(pill => {
+                if (pill.getAttribute("data-lang") === lang) {
+                    pill.classList.add("active");
                 } else {
-                    const textSpan = el.querySelector(".i18n-text") || el.querySelector("span:not([class*='icon']):not([class*='dot']):not([class*='badge'])");
-                    if (textSpan) {
-                        textSpan.textContent = dict[key];
+                    pill.classList.remove("active");
+                }
+            });
+
+            // Sync visual settings language choice buttons
+            document.querySelectorAll(".lang-choice-btn").forEach(btn => {
+                if (btn.getAttribute("data-lang") === lang) {
+                    btn.classList.add("active");
+                } else {
+                    btn.classList.remove("active");
+                }
+            });
+
+            const dict = I18N_TRANSLATIONS[lang];
+            // HTML elements
+            document.querySelectorAll("[data-i18n-html]").forEach(el => {
+                const key = el.getAttribute("data-i18n-html");
+                if (dict && dict[key]) {
+                    el.innerHTML = dict[key];
+                }
+            });
+
+            document.querySelectorAll("[data-i18n]").forEach(el => {
+                const key = el.getAttribute("data-i18n");
+                if (dict[key]) {
+                    if (el.children.length === 0) {
+                        el.textContent = dict[key];
                     } else {
-                        // preserve icon child nodes, update text node
-                        let replaced = false;
-                        for (let node of el.childNodes) {
-                            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
-                                node.textContent = " " + dict[key];
-                                replaced = true;
-                                break;
+                        const textSpan = el.querySelector(".i18n-text") || el.querySelector("span:not([class*='icon']):not([class*='dot']):not([class*='badge'])");
+                        if (textSpan) {
+                            textSpan.textContent = dict[key];
+                        } else {
+                            // preserve icon child nodes, update text node
+                            let replaced = false;
+                            for (let node of el.childNodes) {
+                                if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+                                    node.textContent = " " + dict[key];
+                                    replaced = true;
+                                    break;
+                                }
                             }
+                            if (!replaced) el.textContent = dict[key];
                         }
-                        if (!replaced) el.textContent = dict[key];
                     }
                 }
+            });
+
+            // Placeholders and Titles
+            document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+                const key = el.getAttribute("data-i18n-placeholder");
+                if (dict[key]) el.placeholder = dict[key];
+            });
+            document.querySelectorAll("[data-i18n-title]").forEach(el => {
+                const key = el.getAttribute("data-i18n-title");
+                if (dict[key]) el.title = dict[key];
+            });
+
+            // Dynamic chart & component re-renders
+            if (typeof updateChartsLanguage === "function") {
+                updateChartsLanguage(lang);
             }
-        });
+            if (typeof renderProtocolsCards === "function" && typeof loadedProtocolsData !== "undefined" && loadedProtocolsData.length) {
+                renderProtocolsCards();
+            }
+            if (typeof renderSecLogsFiltered === "function") {
+                renderSecLogsFiltered();
+            }
+            if (typeof latestStats !== "undefined" && latestStats) {
+                if (typeof updateHardwareSpecs === "function" && latestStats.system_info) updateHardwareSpecs(latestStats.system_info);
+                if (typeof updatePerCoreWorkload === "function" && latestStats.system_info && latestStats.system_info.cpu) updatePerCoreWorkload(latestStats.system_info.cpu);
+                if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
+            }
 
-        // Placeholders and Titles
-        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
-            const key = el.getAttribute("data-i18n-placeholder");
-            if (dict[key]) el.placeholder = dict[key];
-        });
-        document.querySelectorAll("[data-i18n-title]").forEach(el => {
-            const key = el.getAttribute("data-i18n-title");
-            if (dict[key]) el.title = dict[key];
-        });
+            if (lang !== "fa") {
+                translateDom(document.querySelector(".main-content") || document.body, lang);
+                document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, lang));
+            } else {
+                const activeTab = localStorage.getItem("active_tab") || "overview";
+                if (activeTab === "ssh" && typeof fetchSshClients === "function") fetchSshClients();
+                else if (activeTab === "openvpn" && typeof fetchOvpnClients === "function") fetchOvpnClients();
+                else if (activeTab === "wireguard" && typeof fetchWireGuardClients === "function") fetchWireGuardClients();
+                else if (activeTab === "amneziawg" && typeof fetchAmneziaWGClients === "function") fetchAmneziaWGClients();
+                else if (activeTab === "radius" && typeof fetchRadiusUsers === "function") fetchRadiusUsers();
+                else if (activeTab === "mtproto" && typeof fetchMtprotoInstances === "function") fetchMtprotoInstances();
+                else if (activeTab === "tuic" && typeof fetchTuicConfig === "function") fetchTuicConfig();
+                else if (activeTab === "l2tp" && typeof fetchL2tpClients === "function") fetchL2tpClients();
+                else if (activeTab === "ikev2" && typeof fetchIkev2Clients === "function") fetchIkev2Clients();
+                else if (activeTab === "sstp" && typeof fetchSstpClients === "function") fetchSstpClients();
+                else if (activeTab === "shadowsocks" && typeof fetchShadowsocksClients === "function") fetchShadowsocksClients();
+                else if (activeTab === "servers" && typeof fetchServers === "function") fetchServers();
+            }
 
-        // Dynamic chart & component re-renders
-        if (typeof updateChartsLanguage === "function") {
-            updateChartsLanguage(lang);
-        }
-        if (typeof renderProtocolsCards === "function" && typeof loadedProtocolsData !== "undefined" && loadedProtocolsData.length) {
-            renderProtocolsCards();
-        }
-        if (typeof renderSecLogsFiltered === "function") {
-            renderSecLogsFiltered();
-        }
-        if (typeof latestStats !== "undefined" && latestStats) {
-            if (typeof updateHardwareSpecs === "function" && latestStats.system_info) updateHardwareSpecs(latestStats.system_info);
-            if (typeof updatePerCoreWorkload === "function" && latestStats.system_info && latestStats.system_info.cpu) updatePerCoreWorkload(latestStats.system_info.cpu);
-            if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
-        }
-
-        if (lang !== "fa") {
-            translateDom(document.querySelector(".main-content") || document.body, lang);
-            document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, lang));
-        } else {
-            const activeTab = localStorage.getItem("active_tab") || "overview";
-            if (activeTab === "ssh" && typeof fetchSshClients === "function") fetchSshClients();
-            else if (activeTab === "openvpn" && typeof fetchOvpnClients === "function") fetchOvpnClients();
-            else if (activeTab === "wireguard" && typeof fetchWireGuardClients === "function") fetchWireGuardClients();
-            else if (activeTab === "amneziawg" && typeof fetchAmneziaClients === "function") fetchAmneziaClients();
-            else if (activeTab === "radius" && typeof fetchRadiusUsers === "function") fetchRadiusUsers();
-            else if (activeTab === "mtproto" && typeof fetchMtprotoInstances === "function") fetchMtprotoInstances();
-            else if (activeTab === "tuic" && typeof fetchTuicConfig === "function") fetchTuicConfig();
-            else if (activeTab === "l2tp" && typeof fetchL2tpClients === "function") fetchL2tpClients();
-            else if (activeTab === "ikev2" && typeof fetchIkev2Clients === "function") fetchIkev2Clients();
-            else if (activeTab === "sstp" && typeof fetchSstpClients === "function") fetchSstpClients();
-            else if (activeTab === "shadowsocks" && typeof fetchShadowsocksClients === "function") fetchShadowsocksClients();
-        }
-
-        if (typeof lucide !== "undefined") {
-            lucide.createIcons();
+            if (typeof lucide !== "undefined") {
+                lucide.createIcons();
+            }
+        } finally {
+            _isTranslating = false;
         }
     }
 
@@ -2713,21 +2743,21 @@
                    </span>`;
 
             // Group badge
-            const grpName = u.group_name || currentRadiusGroups[u.group]?.name || "استاندارد";
+            const grpName = u.group_name || currentRadiusGroups[u.group]?.name || (typeof window.t === "function" ? window.t("استاندارد") : "استاندارد");
             const grpBadge = `<span style="background: rgba(99, 102, 241, 0.1); color: #4f46e5; padding: 3px 8px; border-radius: 6px; font-size: 11.5px; font-weight: 600;">
                 ${grpName}
             </span>`;
 
             // Traffic
-            const trafficText = (u.limit_gb && u.limit_gb > 0) ? `${u.limit_gb} GB` : '<span style="color:#64748b;">${window.t("common_unlimited")}</span>';
+            const trafficText = (u.limit_gb && u.limit_gb > 0) ? `${u.limit_gb} GB` : `<span style="color:#64748b;">${window.t("common_unlimited")}</span>`;
 
             // Schedule info (Login-Time badge)
             let schedText = "24/7";
             if (u.start_time && u.end_time && (u.start_time !== "00:00" || u.end_time !== "24:00")) {
                 schedText = `${u.start_time}-${u.end_time}`;
             }
-            if (u.allowed_days === "weekdays") schedText += " (کاری)";
-            else if (u.allowed_days === "weekends") schedText += " (تعطیل)";
+            if (u.allowed_days === "weekdays") schedText += ` (${window.t("radius_allowed_days_weekdays", "کاری")})`;
+            else if (u.allowed_days === "weekends") schedText += ` (${window.t("radius_allowed_days_weekends", "تعطیل")})`;
 
             html += `
                 <tr style="border-bottom: 1px solid #f1f5f9; transition: background 0.15s; ${isChecked ? 'background: rgba(99, 102, 241, 0.04);' : ''}">
@@ -2756,7 +2786,7 @@
                     <td style="padding: 12px 16px;">${connBadge}</td>
                     <td style="padding: 12px 16px; font-family:'JetBrains Mono'; font-weight:600;">${trafficText}</td>
                     <td style="padding: 12px 16px;">
-                        <div style="font-size:12px; font-family:'JetBrains Mono'; color:#0f172a;">${u.expire_date || '<span style="color:#64748b;">${window.t("common_no_expiration")}</span>'}</div>
+                        <div style="font-size:12px; font-family:'JetBrains Mono'; color:#0f172a;">${u.expire_date || `<span style="color:#64748b;">${window.t("common_no_expiration")}</span>`}</div>
                         <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">${window.t("common_time_label")} ${schedText}</div>
                     </td>
                     <td style="padding: 12px 16px; text-align: center;">${statusHtml}</td>
@@ -3485,10 +3515,10 @@
                 const internalBadge = document.getElementById("radius-internal-status-badge");
                 if (internalBadge) {
                     if (data.internal_running) {
-                        internalBadge.innerHTML = `<span class="status-dot active"></span> سرور FreeRADIUS فعال و آماده است`;
+                        internalBadge.innerHTML = `<span class="status-dot active"></span> ${window.t("سرور FreeRADIUS فعال و آماده است")}`;
                         internalBadge.style.color = "#10b981";
                     } else {
-                        internalBadge.innerHTML = `<span class="status-dot inactive"></span> سرور ردیوس متوقف است`;
+                        internalBadge.innerHTML = `<span class="status-dot inactive"></span> ${window.t("سرور ردیوس متوقف است")}`;
                         internalBadge.style.color = "#ef4444";
                     }
                 }
@@ -3496,10 +3526,10 @@
                 const badge = document.getElementById("radius-connection-badge");
                 if (badge) {
                     if (data.enabled_protocols && data.enabled_protocols.length > 0) {
-                        badge.innerHTML = `<span class="status-dot active"></span> متصل (${data.enabled_protocols.length} پروتکل)`;
+                        badge.innerHTML = `<span class="status-dot active"></span> ${window.t("متصل")} (${data.enabled_protocols.length} ${window.t("common_protocol_unit", "پروتکل")})`;
                         badge.style.color = "var(--color-emerald)";
                     } else {
-                        badge.innerHTML = `<span class="status-dot inactive"></span> غیرفعال`;
+                        badge.innerHTML = `<span class="status-dot inactive"></span> ${window.t("غیرفعال")}`;
                         badge.style.color = "var(--color-rose)";
                     }
                 }
@@ -4057,7 +4087,7 @@
             
             container.innerHTML = "";
             if (instances.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:24px; font-size:13px; color:var(--text-muted); background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1;">هیچ اینستنس پروکسی تلگرامی تعریف نشده است. می‌توانید از کادر سمت چپ اینستنس جدید بسازید.</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:24px; font-size:13px; color:var(--text-muted); background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1;">${window.t("no_telegram_proxy_instance_create", "هیچ اینستنس پروکسی تلگرامی تعریف نشده است. می‌توانید از کادر سمت چپ اینستنس جدید بسازید.")}</div>`;
                 return;
             }
             
@@ -4089,15 +4119,15 @@
                                 Port :${inst.port}
                             </span>
                             ${inst.active 
-                                ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active" style="width:6px; height:6px;"></span> فعال</span>` 
-                                : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot inactive" style="width:6px; height:6px;"></span> متوقف</span>`}
+                                ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active" style="width:6px; height:6px;"></span> ${window.t("فعال")}</span>` 
+                                : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot inactive" style="width:6px; height:6px;"></span> ${window.t("متوقف")}</span>`}
                             ${hasSponsor
-                                ? `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="megaphone" style="width:12px; height:12px;"></i> اسپانسر فعال</span>`
-                                : `<span style="font-size:11px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="alert-circle" style="width:12px; height:12px;"></i> بدون اسپانسر</span>`}
+                                ? `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="megaphone" style="width:12px; height:12px;"></i> ${window.t("اسپانسر فعال")}</span>`
+                                : `<span style="font-size:11px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="alert-circle" style="width:12px; height:12px;"></i> ${window.t("بدون اسپانسر")}</span>`}
                         </div>
                         <div style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:6px;">
                             <i data-lucide="users" style="width:14px; height:14px; color:#0284c7;"></i>
-                            اتصالات فعال: <strong style="color:#0f172a;">${inst.active ? inst.connections : 0}</strong>
+                            ${window.t("اتصالات فعال:")} <strong style="color:#0f172a;">${inst.active ? inst.connections : 0}</strong>
                         </div>
                     </div>
 
@@ -4391,13 +4421,13 @@
             const badge = document.getElementById("tuic-status-badge");
             if (badge) {
                 badge.innerHTML = data.active 
-                    ? `<span class="status-dot active"></span> <span style="color:#15803d;">فعال (Active)</span>`
-                    : `<span class="status-dot inactive"></span> <span style="color:#b91c1c;">متوقف (Stopped)</span>`;
+                    ? `<span class="status-dot active"></span> <span style="color:#15803d;">${window.t("فعال")} (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#b91c1c;">${window.t("متوقف")} (Stopped)</span>`;
             }
             if (document.getElementById("tuic-stat-port")) document.getElementById("tuic-stat-port").textContent = data.port;
             if (document.getElementById("tuic-stat-congestion")) document.getElementById("tuic-stat-congestion").textContent = (data.congestion_control || "bbr").toUpperCase();
-            if (document.getElementById("tuic-stat-zero-rtt")) document.getElementById("tuic-stat-zero-rtt").textContent = data.zero_rtt_handshake ? "فعال (0-RTT)" : "غیرفعال";
-            if (document.getElementById("tuic-stat-connections")) document.getElementById("tuic-stat-connections").textContent = `${data.connections} آنلاین`;
+            if (document.getElementById("tuic-stat-zero-rtt")) document.getElementById("tuic-stat-zero-rtt").textContent = data.zero_rtt_handshake ? `${window.t("فعال")} (0-RTT)` : window.t("غیرفعال");
+            if (document.getElementById("tuic-stat-connections")) document.getElementById("tuic-stat-connections").textContent = `${data.connections} ${window.t("آنلاین")}`;
 
             if (document.getElementById("tuic-cfg-port")) document.getElementById("tuic-cfg-port").value = data.port;
             if (document.getElementById("tuic-cfg-congestion")) document.getElementById("tuic-cfg-congestion").value = data.congestion_control;
@@ -4411,7 +4441,7 @@
             if (userContainer) {
                 userContainer.innerHTML = "";
                 if (!data.share_links || data.share_links.length === 0) {
-                    userContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted); font-size:13px;">هیچ کاربری تعریف نشده است. کاربر جدید اضافه کنید.</div>`;
+                    userContainer.innerHTML = `<div style="text-align:center; padding:16px; color:var(--text-muted); font-size:13px;">${window.t("no_user_defined_add_new_one", "هیچ کاربری تعریف نشده است. کاربر جدید اضافه کنید.")}</div>`;
                 } else {
                     data.share_links.forEach(u => {
                         const item = document.createElement("div");
@@ -4555,13 +4585,13 @@
             const badge = document.getElementById("ss-status-badge");
             if (badge) {
                 badge.innerHTML = data.active
-                    ? `<span class="status-dot active"></span> <span style="color:#15803d;">فعال (Active)</span>`
-                    : `<span class="status-dot inactive"></span> <span style="color:#b91c1c;">متوقف (Stopped)</span>`;
+                    ? `<span class="status-dot active"></span> <span style="color:#15803d;">${window.t("فعال")} (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#b91c1c;">${window.t("متوقف")} (Stopped)</span>`;
             }
             if (document.getElementById("ss-stat-port")) document.getElementById("ss-stat-port").textContent = data.port;
             if (document.getElementById("ss-stat-cipher")) document.getElementById("ss-stat-cipher").textContent = data.method;
-            if (document.getElementById("ss-stat-tfo")) document.getElementById("ss-stat-tfo").textContent = data.fast_open ? "فعال (TFO On)" : "غیرفعال";
-            if (document.getElementById("ss-stat-connections")) document.getElementById("ss-stat-connections").textContent = `${data.connections} آنلاین`;
+            if (document.getElementById("ss-stat-tfo")) document.getElementById("ss-stat-tfo").textContent = data.fast_open ? `${window.t("فعال")} (TFO On)` : window.t("غیرفعال");
+            if (document.getElementById("ss-stat-connections")) document.getElementById("ss-stat-connections").textContent = `${data.connections} ${window.t("آنلاین")}`;
 
             if (document.getElementById("ss-cfg-port")) document.getElementById("ss-cfg-port").value = data.port;
             if (document.getElementById("ss-cfg-method")) document.getElementById("ss-cfg-method").value = data.method;
@@ -4893,7 +4923,15 @@
 
         // Save active tab in localStorage
         localStorage.setItem("active_tab", tabId);
-        applyLanguage(localStorage.getItem("panel_language") || "fa");
+        const currentLang = localStorage.getItem("panel_language") || "fa";
+        if (currentLang !== "fa" && targetPane) {
+            _isTranslating = true;
+            try {
+                translateDom(targetPane, currentLang);
+            } finally {
+                _isTranslating = false;
+            }
+        }
 
         // Trigger specific page fetches on switch
         if (tabId === "overview") {
@@ -4903,6 +4941,13 @@
         } else if (tabId === "wireguard") {
             fetchWireGuardClients();
             fetchWgCloudflareConfig();
+        } else if (tabId === "amneziawg") {
+            checkAmneziaWGStatus();
+            fetchAmneziaWGClients();
+            fetchAwgVersion();
+            fetchAwgWarpStatus();
+        } else if (tabId === "servers") {
+            fetchServers();
         } else if (tabId === "tuic") {
             fetchTuicConfig();
         } else if (tabId === "shadowsocks") {
@@ -5000,13 +5045,13 @@
             const badge = document.getElementById("warp-status-badge");
             if (badge) {
                 if (data.connected) {
-                    badge.innerHTML = `<span class="status-dot active"></span> متصل (Connected)`;
+                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("متصل")} (Connected)`;
                     badge.style.color = "#059669";
                 } else if (data.status === "Connecting") {
-                    badge.innerHTML = `<span class="status-dot warning"></span> در حال اتصال...`;
+                    badge.innerHTML = `<span class="status-dot warning"></span> ${window.t("در حال اتصال...")}`;
                     badge.style.color = "#d97706";
                 } else {
-                    badge.innerHTML = `<span class="status-dot inactive"></span> قطع (Disconnected)`;
+                    badge.innerHTML = `<span class="status-dot inactive"></span> ${window.t("قطع")} (Disconnected)`;
                     badge.style.color = "#dc2626";
                 }
             }
@@ -5017,7 +5062,7 @@
                 document.getElementById("warp-socks-port").innerText = `127.0.0.1:${data.socks_port || 40000}`;
             }
             if (document.getElementById("warp-current-license")) {
-                document.getElementById("warp-current-license").innerText = `لایسنس فعال: ${data.license ? data.license : 'پیش‌فرض رایگان'}`;
+                document.getElementById("warp-current-license").innerText = `${window.t("لایسنس فعال:")} ${data.license ? data.license : (window.t("warp_default_free", "پیش‌فرض رایگان"))}`;
             }
         } catch (err) {
             console.error("fetchWarpStatus error:", err);
@@ -5098,12 +5143,12 @@
                     badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (BBR Active)`;
                     badge.style.color = "#059669";
                 } else {
-                    badge.innerHTML = `<span class="status-dot warning"></span> غیرفعال (${data.algo})`;
+                    badge.innerHTML = `<span class="status-dot warning"></span> ${window.t("غیرفعال")} (${data.algo})`;
                     badge.style.color = "#d97706";
                 }
             }
             if (document.getElementById("bbr-current-algo")) {
-                document.getElementById("bbr-current-algo").innerText = `${data.algo.toUpperCase()} (${data.active ? 'فعال' : 'غیرفعال'})`;
+                document.getElementById("bbr-current-algo").innerText = `${data.algo.toUpperCase()} (${data.active ? window.t('فعال') : window.t('غیرفعال')})`;
             }
             if (document.getElementById("bbr-current-qdisc")) {
                 document.getElementById("bbr-current-qdisc").innerText = `${data.qdisc.toUpperCase()} Queuing`;
@@ -7362,13 +7407,13 @@
                 const topBadgeDot = document.querySelector("#ovpn-status-badge .status-dot");
                 if (topSummary) {
                     if (st.udp_active && st.tcp_active) {
-                        topSummary.textContent = "هسته دوگانه UDP/TCP آنلاین";
+                        topSummary.textContent = window.t("هسته دوگانه UDP/TCP آنلاین");
                         if (topBadgeDot) topBadgeDot.className = "status-dot active";
                     } else if (st.udp_active || st.tcp_active) {
-                        topSummary.textContent = "سرویس نیمه‌فعال";
+                        topSummary.textContent = window.t("سرویس نیمه‌فعال");
                         if (topBadgeDot) topBadgeDot.className = "status-dot active";
                     } else {
-                        topSummary.textContent = "سرویس‌های OpenVPN متوقف";
+                        topSummary.textContent = window.t("سرویس‌های OpenVPN متوقف");
                         if (topBadgeDot) topBadgeDot.className = "status-dot inactive";
                     }
                 }
@@ -7381,7 +7426,7 @@
                 if (certIssuer) certIssuer.textContent = ca.issuer || "CN = OpenVPN-CA";
 
                 const certExpiry = document.getElementById("ovpn-cert-expiry-display");
-                if (certExpiry) certExpiry.textContent = ca.expiry || "معتبر تا 2036";
+                if (certExpiry) certExpiry.textContent = ca.expiry || window.t("معتبر تا 2036");
 
                 const certTc = document.getElementById("ovpn-cert-tc-display");
                 if (certTc) {
@@ -7973,10 +8018,10 @@
                 const s = data.services || {};
                 const allActive = s.ssh && s.stunnel && s.ws;
                 if (allActive) {
-                    badge.innerHTML = `<span class="status-dot active"></span> تمامی سرویس‌ها فعال و آماده اتصال`;
+                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("تمامی سرویس‌ها فعال و آماده اتصال")}`;
                     badge.style.color = "#059669";
                 } else {
-                    badge.innerHTML = `<span class="status-dot warning"></span> بررسی وضعیت (SSH: ${s.ssh?'فعال':'قطع'} | TLS: ${s.stunnel?'فعال':'قطع'} | WS: ${s.ws?'فعال':'قطع'})`;
+                    badge.innerHTML = `<span class="status-dot warning"></span> ${window.t("بررسی وضعیت")} (SSH: ${s.ssh ? window.t('فعال') : window.t('قطع')} | TLS: ${s.stunnel ? window.t('فعال') : window.t('قطع')} | WS: ${s.ws ? window.t('فعال') : window.t('قطع')})`;
                     badge.style.color = "#d97706";
                 }
             }
@@ -8494,16 +8539,16 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const badge = document.getElementById('ocserv-status-badge');
             if (badge) {
                 if (data.active) {
-                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">سرویس فعال و آنلاین است</span>`;
+                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">${window.t("سرویس فعال و آنلاین است")}</span>`;
                 } else {
-                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#e11d48;">سرویس غیرفعال است</span>`;
+                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#e11d48;">${window.t("سرویس غیرفعال است")}</span>`;
                 }
             }
 
             // Top Stats
             const topPort = document.getElementById('ocserv-top-port');
             if (topPort) {
-                const udpText = data.enable_udp ? ` + UDP ${data.udp_port}` : ' (فقط TCP)';
+                const udpText = data.enable_udp ? ` + UDP ${data.udp_port}` : ` (${window.t("only_tcp", "فقط TCP")})`;
                 topPort.innerText = `TCP ${data.tcp_port}${udpText}`;
             }
 
@@ -8790,11 +8835,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const badge = document.getElementById("l2tp-status-badge");
             if (badge) {
                 if (data.active && data.ipsec_active) {
-                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">L2TP و IPsec فعال و در حال سرویس‌دهی</span>`;
+                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">${window.t("L2TP و IPsec فعال و در حال سرویس‌دهی")}</span>`;
                 } else if (data.active) {
-                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#d97706;">xl2tpd فعال (IPsec در حال راه‌اندازی)</span>`;
+                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#d97706;">xl2tpd ${window.t("فعال")} (IPsec ${window.t("در حال راه‌اندازی")})</span>`;
                 } else {
-                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#dc2626;">سرویس غیرفعال است</span>`;
+                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#dc2626;">${window.t("سرویس غیرفعال است")}</span>`;
                 }
             }
 
@@ -8805,9 +8850,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const topRad = document.getElementById("l2tp-top-radius-status");
             if (topRad) {
                 if (data.radius_enabled) {
-                    topRad.innerHTML = `<span style="color:#4f46e5;"><i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle;"></i> متصل (FreeRADIUS)</span>`;
+                    topRad.innerHTML = `<span style="color:#4f46e5;"><i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle;"></i> ${window.t("متصل")} (FreeRADIUS)</span>`;
                 } else {
-                    topRad.innerHTML = `<span style="color:#dc2626;"><i data-lucide="x-circle" style="width:13px; height:13px; vertical-align:middle;"></i> غیرفعال (Local Only)</span>`;
+                    topRad.innerHTML = `<span style="color:#dc2626;"><i data-lucide="x-circle" style="width:13px; height:13px; vertical-align:middle;"></i> ${window.t("غیرفعال")} (Local Only)</span>`;
                 }
             }
 
@@ -9170,13 +9215,13 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             tbody.innerHTML = "";
             const tunnels = data.tunnels || [];
             if (tunnels.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">هیچ تونل L2TPv3 فعالی ثبت نشده است</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:24px; color:var(--text-muted);">${window.t("هیچ تونل L2TPv3 فعالی ثبت نشده است")}</td></tr>`;
                 return;
             }
             tunnels.forEach(t => {
                 const statusBadge = t.active ? 
-                    `<span class="badge" style="background:#dcfce7; color:#15803d;">فعال (Active)</span>` : 
-                    `<span class="badge" style="background:#fee2e2; color:#b91c1c;">غیرفعال</span>`;
+                    `<span class="badge" style="background:#dcfce7; color:#15803d;">${window.t("فعال")} (Active)</span>` : 
+                    `<span class="badge" style="background:#fee2e2; color:#b91c1c;">${window.t("غیرفعال")}</span>`;
                 const tr = document.createElement("tr");
                 tr.innerHTML = `
                     <td style="font-family:monospace; font-weight:700;">${t.tunnel_id} (Peer: ${t.peer_tunnel_id})</td>
@@ -9688,9 +9733,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const statusBadge = document.getElementById("ikev2-status-badge");
             if (statusBadge) {
                 if (data.active) {
-                    statusBadge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">سرویس فعال و آماده اتصال (Active)</span>`;
+                    statusBadge.innerHTML = `<span class="status-dot active"></span> <span style="color:#059669;">${window.t("سرویس فعال و آماده اتصال (Active)")}</span>`;
                 } else {
-                    statusBadge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#e11d48;">سرویس متوقف است (Stopped)</span>`;
+                    statusBadge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#e11d48;">${window.t("سرویس متوقف است (Stopped)")}</span>`;
                 }
             }
 
@@ -9700,7 +9745,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
             const topAuth = document.getElementById("ikev2-top-auth");
             if (topAuth) {
-                topAuth.textContent = (data.rightauth === "eap-radius") ? "EAP-RADIUS (ردیوس سراسری)" : "EAP-MSCHAPv2 (کاربران محلی)";
+                topAuth.textContent = (data.rightauth === "eap-radius") ? `EAP-RADIUS (${window.t("radius_global", "ردیوس سراسری")})` : `EAP-MSCHAPv2 (${window.t("local_users", "کاربران محلی")})`;
             }
 
             const topCertStatus = document.getElementById("ikev2-top-cert-status");
@@ -9959,11 +10004,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const badge = document.getElementById("sstp-status-badge");
             if (badge) {
                 const isRunning = services.sstpd || services.vpnserver;
-                const engineName = services.sstpd && services.vpnserver ? "sstpd + SoftEther" : (services.sstpd ? "sstpd (Kernel)" : (services.vpnserver ? "SoftEther MS-SSTP" : "غیرفعال"));
+                const engineName = services.sstpd && services.vpnserver ? "sstpd + SoftEther" : (services.sstpd ? "sstpd (Kernel)" : (services.vpnserver ? "SoftEther MS-SSTP" : window.t("غیرفعال")));
                 if (isRunning) {
-                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (در حال اجرا: ${engineName})`;
+                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (${window.t("در حال اجرا:")} ${engineName})`;
                 } else {
-                    badge.innerHTML = `<span class="status-dot inactive"></span> غیرفعال / متوقف`;
+                    badge.innerHTML = `<span class="status-dot inactive"></span> ${window.t("غیرفعال / متوقف")}`;
                 }
             }
 
@@ -10230,7 +10275,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const sessions = data.sessions || [];
             
             if (sessions.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">در حال حاضر هیچ اتصال فعالی به سرور SSTP برقرار نیست.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">${window.t("در حال حاضر هیچ اتصال فعالی به سرور SSTP برقرار نیست.")}</td></tr>`;
                 return;
             }
 
@@ -10246,7 +10291,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <td style="padding:12px 14px; color:var(--text-muted); font-size:12px;">${s.connected_since || 'Active'}</td>
                     <td style="padding:12px 14px; text-align:center;">
                         <button type="button" class="btn btn-danger btn-sm" onclick="killSstpSession('${s.pid || ''}', '${s.session_name || ''}', '${s.engine}')" style="padding:4px 10px; font-size:11px;">
-                            <i data-lucide="x-circle" style="width:13px; height:13px; margin-left:3px;"></i> قطع اتصال
+                            <i data-lucide="x-circle" style="width:13px; height:13px; margin-left:3px;"></i> ${window.t("قطع اتصال", "Disconnect")}
                         </button>
                     </td>
                 `;
