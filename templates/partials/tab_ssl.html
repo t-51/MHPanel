@@ -1,21 +1,21 @@
-<div class="tab-pane" data-i18n-html="elem_tab_ssl_57" id="tab-ssl">
+<div class="tab-pane" id="tab-ssl">
 <section style="display: flex; flex-direction: column; gap: 24px;">
 <!-- Header -->
 <div class="section-header" style="margin-bottom: 0;">
 <div>
 <h2 class="section-title" style="margin: 0; font-size: 20px;">
-<i data-lucide="shield-check" style="color: var(--color-primary); width: 22px; height: 22px;"></i> <span>مدیریت و صدور گواهی امنیتی HTTPS پنل (SSL &amp; Certificates)</span>
+<i data-lucide="shield-check" style="color: var(--color-primary); width: 22px; height: 22px;"></i> <span data-i18n="ssl_title">مدیریت و صدور گواهی امنیتی HTTPS پنل (SSL &amp; Certificates)</span>
 </h2>
-<p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+<p data-i18n="ssl_get_free_let_s_encrypt" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
                     دریافت گواهی رایگان Let's Encrypt برای دامنه، صدور سرتیفیکیت امن با IP SAN برای آدرس IP، و بارگذاری گواهی سفارشی
                 </p>
 </div>
 <div style="display: flex; gap: 10px; align-items: center;">
 <button class="btn btn-secondary btn-sm" onclick="fetchSSLStatus()" type="button">
-<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span>بروزرسانی وضعیت گواهی</span>
+<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span data-i18n="ssl_update_certificate_status">بروزرسانی وضعیت گواهی</span>
 </button>
 <button class="btn btn-secondary btn-sm" onclick="repairPanelHttps()" style="color: #d97706; border-color: rgba(217, 119, 6, 0.3);" type="button">
-<i data-lucide="wrench" style="width: 14px; height: 14px;"></i> <span>تعمیر خودکار HTTPS</span>
+<i data-lucide="wrench" style="width: 14px; height: 14px;"></i> <span data-i18n="ssl_automatic_https_repair">تعمیر خودکار HTTPS</span>
 </button>
 </div>
 </div>
@@ -27,10 +27,10 @@
 <i data-lucide="globe" style="width:20px; height:20px;"></i>
 </div>
 <div>
-<h3 style="font-size: 15px; font-weight: 700; color: #0369a1; margin: 0;">
+<h3 data-i18n="domain_sec_title" style="font-size: 15px; font-weight: 700; color: #0369a1; margin: 0;">
                             دامنه اصلی سرور و ارتباط پروتکل‌ها (Primary Server Domain)
                         </h3>
-<p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+<p data-i18n="domain_sec_desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                             این دامنه به‌صورت پویا در تمامی پروتکل‌ها (TUIC، شادوساکس، SSTP، سیسکو، تلگرام Fake TLS و SNI) اعمال می‌شود.
                         </p>
 </div>
@@ -41,7 +41,7 @@
 <input class="form-input" data-i18n-placeholder="ssl_myvpn_example_com" id="primary-server-domain-input" placeholder="مثال: myvpn.example.com" style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:13px;" type="text"/>
 </div>
 <button class="btn btn-primary" onclick="savePrimaryServerDomain()" style="width:auto; padding:9px 20px;" type="button">
-<i data-lucide="check" style="width:15px; height:15px; margin-left:6px;"></i> <span>ثبت دامنه اصلی</span>
+<i data-lucide="check" style="width:15px; height:15px; margin-left:6px;"></i> <span data-i18n="save_domain">ثبت دامنه اصلی</span>
 </button>
 <div id="detected-domains-chips" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
 <!-- Auto detected domains pills will render here -->
@@ -52,71 +52,71 @@
 <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); ">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
 <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-<i data-lucide="lock" style="color: #10b981; width: 18px; height: 18px;"></i> <span>وضعیت فعلی گواهی امنیتی وب‌سرویس پنل</span>
+<i data-lucide="lock" style="color: #10b981; width: 18px; height: 18px;"></i> <span data-i18n="ssl_item_7">وضعیت فعلی گواهی امنیتی وب‌سرویس پنل</span>
 </h3>
-<span id="ssl-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+<span data-i18n="ssl_https" id="ssl-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
                     HTTPS فعال است
                 </span>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-<span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">صادرکننده (Issuer):</span>
-<span id="ssl-issuer" style="font-size: 13px; font-weight: 700; color: var(--color-primary); word-break: break-all;">در حال بارگذاری...</span>
+<span data-i18n="ssl_issuer" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">صادرکننده (Issuer):</span>
+<span data-i18n="mtproto_loading" id="ssl-issuer" style="font-size: 13px; font-weight: 700; color: var(--color-primary); word-break: break-all;">در حال بارگذاری...</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-<span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">موضوع / دامنه یا IP (Subject):</span>
-<span id="ssl-subject" style="font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">در حال بارگذاری...</span>
+<span data-i18n="ssl_subject_domain_ip_subject" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">موضوع / دامنه یا IP (Subject):</span>
+<span data-i18n="mtproto_loading" id="ssl-subject" style="font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">در حال بارگذاری...</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-<span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">تاریخ انقضا (Expiry Date):</span>
-<span id="ssl-expiry" style="font-size: 13px; font-weight: 700; color: #059669;">در حال بارگذاری...</span>
+<span data-i18n="ssl_expiry_date" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">تاریخ انقضا (Expiry Date):</span>
+<span data-i18n="mtproto_loading" id="ssl-expiry" style="font-size: 13px; font-weight: 700; color: #059669;">در حال بارگذاری...</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-<span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">جایگزین موضوع (SAN):</span>
+<span data-i18n="ssl_subject_substitution_san" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">جایگزین موضوع (SAN):</span>
 <span id="ssl-san" style="font-size: 12px; font-weight: 600; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">N/A</span>
 </div>
 </div>
 <!-- Path & CA Action bar -->
 <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-<div style="font-size: 11px; color: var(--text-muted);">
+<div data-i18n-html="elem_tab_ssl_57" style="font-size: 11px; color: var(--text-muted);">
                     مسیر گواهی روی سرور: <code id="ssl-cert-path" style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono'; color:#334155;">/etc/vpnpanel/ssl/panel.crt</code>
 </div>
 <div style="display: flex; gap: 8px;">
 <a class="btn btn-secondary btn-sm" download="mhpanel-root-ca.crt" href="/api/ssl/ca.crt" id="ssl-download-ca-btn" style="text-decoration: none;">
-<i data-lucide="download" style="width: 14px; height: 14px;"></i> <span>دانلود فایل Root CA سرور (.crt)</span>
+<i data-lucide="download" style="width: 14px; height: 14px;"></i> <span data-i18n="ssl_download_root_ca_server_file">دانلود فایل Root CA سرور (.crt)</span>
 </a>
 </div>
 </div>
 </div>
 <!-- Setup Methods Grid -->
-<div class="glass-card" data-i18n-html="elem_tab_ssl_65" style="padding: 24px; border: 1px solid var(--border-glow); ">
+<div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); ">
 <div style="margin-bottom: 18px;">
-<h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+<h3 data-i18n="ssl_item_4" style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
                     دریافت و پیکربندی گواهی جدید
                 </h3>
-<p style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
+<p data-i18n="ssl_choose_method_you_want_securely" style="font-size: 12.5px; color: var(--text-muted); margin: 0;">
                     روش مورد نظر خود را برای اتصال امن به پنل انتخاب نمایید:
                 </p>
 </div>
 <!-- Mode Switcher Buttons -->
 <div class="ssl-mode-btn-group" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 24px;">
 <button class="ssl-mode-btn active" id="btn-ssl-auto" onclick="switchSslMode('auto')" type="button">
-<i data-lucide="globe" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span>دامنه (Let's Encrypt)</span>
+<i data-lucide="globe" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="ssl_let_s_encrypt">دامنه (Let's Encrypt)</span>
 </button>
 <button class="ssl-mode-btn" id="btn-ssl-mikrotik" onclick="switchSslMode('mikrotik')" type="button">
-<i data-lucide="router" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#d97706;"></i> <span>مهاجرت از میکروتیک (MikroTik)</span>
+<i data-lucide="router" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#d97706;"></i> <span data-i18n="ssl_mikrotik">مهاجرت از میکروتیک (MikroTik)</span>
 </button>
 <button class="ssl-mode-btn" id="btn-ssl-custom" onclick="switchSslMode('custom')" type="button">
-<i data-lucide="shield-check" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#0284c7;"></i> <span>گواهی سفارشی و تخصیص</span>
+<i data-lucide="shield-check" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#0284c7;"></i> <span data-i18n="ssl_customized_certificate_assignment">گواهی سفارشی و تخصیص</span>
 </button>
 <button class="ssl-mode-btn" id="btn-ssl-ip" onclick="switchSslMode('ip')" type="button">
-<i data-lucide="server" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span>آدرس IP سرور (IP SAN)</span>
+<i data-lucide="server" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="ssl_ip_ip_san">آدرس IP سرور (IP SAN)</span>
 </button>
 <button class="ssl-mode-btn" id="btn-ssl-manual" onclick="switchSslMode('manual')" type="button">
-<i data-lucide="file-text" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span>ثبت دستی متن سرتیفیکیت</span>
+<i data-lucide="file-text" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="ssl_item_3">ثبت دستی متن سرتیفیکیت</span>
 </button>
 <button class="ssl-mode-btn" id="btn-ssl-paths" onclick="switchSslMode('paths')" type="button">
-<i data-lucide="folder" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span>اتصال مسیرهای فایل</span>
+<i data-lucide="folder" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="ssl_connect_file_paths">اتصال مسیرهای فایل</span>
 </button>
 </div>
 <!-- Form 1: Auto Let's Encrypt (Domain) -->
@@ -124,29 +124,29 @@
 <div style="background: var(--bg-base); border: 1px solid rgba(79, 70, 229, 0.15); border-radius: 12px; padding: 18px;">
 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
 <i data-lucide="info" style="width: 18px; height: 18px; color: #4f46e5;"></i>
-<strong style="font-size: 13px; color: #3730a3;">راهنمای دریافت گواهی Let's Encrypt برای دامنه:</strong>
+<strong data-i18n="ssl_guide_getting_let_s_encrypt" style="font-size: 13px; color: #3730a3;">راهنمای دریافت گواهی Let's Encrypt برای دامنه:</strong>
 </div>
 <ul style="font-size: 12px; color: var(--text-muted); line-height: 1.8; margin-right: 20px;">
-<li>پیش از ثبت درخواست، مطمئن شوید رکورد A دامنه شما به IP همین سرور متصل شده باشد.</li>
-<li>سیستم به طور خودکار صحت رکورد را بررسی کرده و گواهی رایگان ۳ ماهه با تمدید خودکار صادر می‌کند.</li>
+<li data-i18n="ssl_before_registering_request_make_sure">پیش از ثبت درخواست، مطمئن شوید رکورد A دامنه شما به IP همین سرور متصل شده باشد.</li>
+<li data-i18n="ssl_item">سیستم به طور خودکار صحت رکورد را بررسی کرده و گواهی رایگان ۳ ماهه با تمدید خودکار صادر می‌کند.</li>
 </ul>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_domain_name" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             نام دامنه (Domain Name):
                         </label>
 <input class="form-input" id="ssl-domain" placeholder="mhpanel.kigaping.com" required="" style="padding: 10px 14px; font-size: 14px; direction: ltr;" type="text"/>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_manager_s_email_renewal_notification" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             ایمیل مدیر جهت اطلاع‌رسانی تمدید (اختیاری):
                         </label>
 <input class="form-input" id="ssl-email" placeholder="admin@example.com" style="padding: 10px 14px; font-size: 14px; direction: ltr;" type="email"/>
 </div>
 </div>
 <button class="btn btn-primary" id="ssl-btn" style="width: auto; align-self: flex-start; padding: 11px 26px;" type="submit">
-<i class="btn-icon" data-lucide="shield-check"></i> <span>صدور خودکار و فعال‌سازی گواهی Let's Encrypt</span>
+<i class="btn-icon" data-lucide="shield-check"></i> <span data-i18n="ssl_automatic_issuance_activation_let_s">صدور خودکار و فعال‌سازی گواهی Let's Encrypt</span>
 </button>
 </form>
 <!-- Form: MikroTik Certificate Migration -->
@@ -154,14 +154,14 @@
 <div style="background: linear-gradient(135deg, rgba(254, 243, 199, 0.5) 0%, rgba(255, 255, 255, 0.9) 100%); border: 1px solid rgba(217, 119, 6, 0.3); border-radius: 12px; padding: 18px;">
 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
 <i data-lucide="router" style="width: 20px; height: 20px; color: #d97706;"></i>
-<strong style="font-size: 14px; color: #92400e;">مهاجرت آسان از میکروتیک (RouterOS) بدون قطعی کاربران:</strong>
+<strong data-i18n="ssl_routeros" style="font-size: 14px; color: #92400e;">مهاجرت آسان از میکروتیک (RouterOS) بدون قطعی کاربران:</strong>
 </div>
-<p style="font-size: 12.5px; color: #78350f; line-height: 1.7; margin: 0;">
-                        اگر از روتر میکروتیک به این سرور مهاجرت کرده‌اید، گواهی <strong>Root CA</strong>، گواهی سرور و کلید خصوصی را در کادرهای زیر وارد کنید. با این کار هویت دیجیتال سرور دقیقاً حفظ شده و تمامی کاربران و کلاینت‌های قبلی شما (مثلاً در <strong>SSTP، سیسکو، OpenVPN یا IKEv2</strong>) بدون نیاز به دریافت فایل جدید یا تغییر در دستگاه‌هایشان، بلافاصله متصل خواهند شد.
+<p data-i18n-html="elem_tab_ssl_58" style="font-size: 12.5px; color: #78350f; line-height: 1.7; margin: 0;">
+                        اگر از روتر میکروتیک به این سرور مهاجرت کرده‌اید، گواهی <strong>Root CA</strong>، گواهی سرور و کلید خصوصی را در کادرهای زیر وارد کنید. با این کار هویت دیجیتال سرور دقیقاً حفظ شده و تمامی کاربران و کلاینت‌های قبلی شما (مثلاً در <strong data-i18n="ssl_sstp_cisco_openvpn_ikev2">SSTP، سیسکو، OpenVPN یا IKEv2</strong>) بدون نیاز به دریافت فایل جدید یا تغییر در دستگاه‌هایشان، بلافاصله متصل خواهند شد.
                     </p>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                         عنوان یا برچسب گواهی (Label):
                     </label>
 <input class="form-input" data-i18n-placeholder="ssl_example_mikrotik_migration_certificate_ss" id="mkt-cert-name" placeholder="مثال: گواهی مهاجرت میکروتیک - SSTP و AnyConnect" required="" style="padding: 10px 14px; font-size: 13px;" type="text"/>
@@ -169,12 +169,12 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
+<label class="form-label" data-i18n-html="elem_tab_ssl_59" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
                                 گواهی Root CA میکروتیک (ca.crt): <span style="color:#ef4444;">*</span>
 </label>
 <input accept=".crt,.pem,.cer" id="mkt-file-ca" onchange="handleCertFileUpload(this, 'mkt-ca-crt')" style="display:none;" type="file"/>
 <button class="btn btn-secondary btn-sm" onclick="document.getElementById('mkt-file-ca').click()" style="padding: 2px 8px; font-size: 11px;" type="button">
-<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span>انتخاب فایل</span>
+<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssl_select_file">انتخاب فایل</span>
 </button>
 </div>
 <textarea class="form-input" data-i18n-placeholder="ssl_begin_certificate_text_mikrotik_s" id="mkt-ca-crt" placeholder="-----BEGIN CERTIFICATE-----
@@ -183,12 +183,12 @@
 </div>
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
+<label class="form-label" data-i18n-html="elem_tab_ssl_60" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
                                 گواهی سرور میکروتیک (server.crt): <span style="color:#ef4444;">*</span>
 </label>
 <input accept=".crt,.pem,.cer" id="mkt-file-srv" onchange="handleCertFileUpload(this, 'mkt-server-crt')" style="display:none;" type="file"/>
 <button class="btn btn-secondary btn-sm" onclick="document.getElementById('mkt-file-srv').click()" style="padding: 2px 8px; font-size: 11px;" type="button">
-<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span>انتخاب فایل</span>
+<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssl_select_file">انتخاب فایل</span>
 </button>
 </div>
 <textarea class="form-input" data-i18n-placeholder="ssl_begin_certificate_10_server_crt" id="mkt-server-crt" placeholder="-----BEGIN CERTIFICATE-----
@@ -197,12 +197,12 @@
 </div>
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
+<label class="form-label" data-i18n-html="elem_tab_ssl_61" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
                                 کلید خصوصی سرور (server.key): <span style="color:#ef4444;">*</span>
 </label>
 <input accept=".key,.pem" id="mkt-file-key" onchange="handleCertFileUpload(this, 'mkt-server-key')" style="display:none;" type="file"/>
 <button class="btn btn-secondary btn-sm" onclick="document.getElementById('mkt-file-key').click()" style="padding: 2px 8px; font-size: 11px;" type="button">
-<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span>انتخاب فایل</span>
+<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssl_select_file">انتخاب فایل</span>
 </button>
 </div>
 <textarea class="form-input" data-i18n-placeholder="ssl_begin_private_key_text_server" id="mkt-server-key" placeholder="-----BEGIN PRIVATE KEY-----
@@ -215,17 +215,17 @@
 <div onclick="toggleOptionalClientFields()" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
 <div style="display:flex; align-items:center; gap:8px;">
 <i data-lucide="user-check" style="width:16px; height:16px; color:#6366f1;"></i>
-<strong style="font-size: 12.5px; color:#334155;">گواهی و کلید کلاینت میکروتیک (Client Certificate - اختیاری)</strong>
-<span style="font-size:11px; color:#64748b; background:#e2e8f0; padding:1px 6px; border-radius:4px;">برای کلاینت‌هایی که نیاز به احراز هویت دوطرفه دارند</span>
+<strong data-i18n="ssl_client_certificate" style="font-size: 12.5px; color:#334155;">گواهی و کلید کلاینت میکروتیک (Client Certificate - اختیاری)</strong>
+<span data-i18n="ssl_clients_that_require_two_way" style="font-size:11px; color:#64748b; background:#e2e8f0; padding:1px 6px; border-radius:4px;">برای کلاینت‌هایی که نیاز به احراز هویت دوطرفه دارند</span>
 </div>
 <i data-lucide="chevron-down" id="mkt-client-toggle-icon" style="width:16px; height:16px; color:#64748b;"></i>
 </div>
 <div id="mkt-client-fields" style="display:none; margin-top:14px; grid-template-columns: 1fr 1fr; gap:14px;">
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-<span style="font-size:11px; font-weight:600; color:#475569;">فایل گواهی کلاینت (client.crt):</span>
+<span data-i18n="ssl_client_crt" style="font-size:11px; font-weight:600; color:#475569;">فایل گواهی کلاینت (client.crt):</span>
 <input accept=".crt,.pem,.cer" id="mkt-file-cli-crt" onchange="handleCertFileUpload(this, 'mkt-client-crt')" style="display:none;" type="file"/>
-<button class="btn btn-secondary btn-sm" onclick="document.getElementById('mkt-file-cli-crt').click()" style="padding:1px 6px; font-size:10.5px;" type="button">انتخاب فایل</button>
+<button class="btn btn-secondary btn-sm" data-i18n="ssl_select_file" onclick="document.getElementById('mkt-file-cli-crt').click()" style="padding:1px 6px; font-size:10.5px;" type="button">انتخاب فایل</button>
 </div>
 <textarea class="form-input" id="mkt-client-crt" placeholder="-----BEGIN CERTIFICATE-----
 ... client.crt ...
@@ -233,9 +233,9 @@
 </div>
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-<span style="font-size:11px; font-weight:600; color:#475569;">کلید اختصاصی کلاینت (client.key):</span>
+<span data-i18n="ssl_client_s_private_key_client" style="font-size:11px; font-weight:600; color:#475569;">کلید اختصاصی کلاینت (client.key):</span>
 <input accept=".key,.pem" id="mkt-file-cli-key" onchange="handleCertFileUpload(this, 'mkt-client-key')" style="display:none;" type="file"/>
-<button class="btn btn-secondary btn-sm" onclick="document.getElementById('mkt-file-cli-key').click()" style="padding:1px 6px; font-size:10.5px;" type="button">انتخاب فایل</button>
+<button class="btn btn-secondary btn-sm" data-i18n="ssl_select_file" onclick="document.getElementById('mkt-file-cli-key').click()" style="padding:1px 6px; font-size:10.5px;" type="button">انتخاب فایل</button>
 </div>
 <textarea class="form-input" id="mkt-client-key" placeholder="-----BEGIN PRIVATE KEY-----
 ... client.key ...
@@ -246,9 +246,9 @@
 <!-- Protocol Assignment Selector -->
 <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
 <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block;">
-<i data-lucide="layers" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#4f46e5;"></i> <span>تخصیص فوری این گواهی به پروتکل‌های سرور:</span>
+<i data-lucide="layers" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#4f46e5;"></i> <span data-i18n="ssl_immediate_assignment_this_certificate_ser">تخصیص فوری این گواهی به پروتکل‌های سرور:</span>
 </label>
-<p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px;">
+<p data-i18n="ssl_specify_which_services_this_certificate" style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px;">
                         مشخص کنید این گواهی بلافاصله پس از ثبت روی کدام سرویس‌ها فعال و جایگزین شود:
                     </p>
 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
@@ -258,24 +258,24 @@
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#eff6ff; border:1px solid #bfdbfe; padding:6px 12px; border-radius:8px;">
 <input checked="" name="mkt-proto" type="checkbox" value="ocserv"/>
-<span style="font-weight:600; color:#1e40af;">سیسکو AnyConnect</span>
+<span data-i18n="nav_ocserv" style="font-weight:600; color:#1e40af;">سیسکو AnyConnect</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#fffbeb; border:1px solid #fde68a; padding:6px 12px; border-radius:8px;">
 <input checked="" name="mkt-proto" type="checkbox" value="openvpn"/>
-<span style="font-weight:600; color:#92400e;">اوپن‌وی‌پی‌ان (OpenVPN)</span>
+<span data-i18n="nav_openvpn" style="font-weight:600; color:#92400e;">اوپن‌وی‌پی‌ان (OpenVPN)</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#faf5ff; border:1px solid #e9d5ff; padding:6px 12px; border-radius:8px;">
 <input name="mkt-proto" type="checkbox" value="ikev2"/>
-<span style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
+<span data-i18n="nav_ikev2" style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background: var(--bg-base); border: 1px solid var(--border-glow); padding:6px 12px; border-radius:8px;">
 <input name="mkt-proto" type="checkbox" value="panel"/>
-<span style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
+<span data-i18n="ssl_management_web_panel_https" style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
 </label>
 </div>
 </div>
 <button class="btn btn-primary" id="mkt-submit-btn" style="width: auto; align-self: flex-start; padding: 11px 28px; background: linear-gradient(135deg, #d97706 0%, #b45309 100%);" type="submit">
-<i class="btn-icon" data-lucide="check-circle"></i> <span>وارد کردن و فعال‌سازی گواهی میکروتیک</span>
+<i class="btn-icon" data-lucide="check-circle"></i> <span data-i18n="ssl_item_8">وارد کردن و فعال‌سازی گواهی میکروتیک</span>
 </button>
 </form>
 <!-- Form: Custom SSL & Protocol Assignment -->
@@ -283,14 +283,14 @@
 <div style="background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 16px;">
 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
 <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #0284c7;"></i>
-<strong style="font-size: 13.5px; color: #0369a1;">بارگذاری سرتیفیکیت استاندارد و تخصیص به پروتکل‌ها:</strong>
+<strong data-i18n="ssl_uploading_standard_certificate_assigning" style="font-size: 13.5px; color: #0369a1;">بارگذاری سرتیفیکیت استاندارد و تخصیص به پروتکل‌ها:</strong>
 </div>
-<p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.6;">
+<p data-i18n="ssl_put_your_commercial_certificate_wildcard" style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.6;">
                         سرتیفیکیت تجاری، Wildcard، یا گواهی خریداری‌شده خود را به همراه کلید خصوصی در کادرهای زیر قرار داده و پروتکل‌های مورد نظر را انتخاب نمایید:
                     </p>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_certificate_name_description" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                         نام یا توضیح گواهی:
                     </label>
 <input class="form-input" data-i18n-placeholder="ssl_example_sectiko_cloudflare_origin_busines" id="cst-cert-name" placeholder="مثال: گواهی تجاری سکتیکو / Cloudflare Origin" required="" style="padding: 10px 14px; font-size: 13px;" type="text"/>
@@ -298,12 +298,12 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
+<label class="form-label" data-i18n-html="elem_tab_ssl_62" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
                                 متن سرتیفیکیت سرور / Fullchain: <span style="color:#ef4444;">*</span>
 </label>
 <input accept=".crt,.pem,.cer" id="cst-file-crt" onchange="handleCertFileUpload(this, 'cst-cert-crt')" style="display:none;" type="file"/>
 <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cst-file-crt').click()" style="padding: 2px 8px; font-size: 11px;" type="button">
-<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span>انتخاب فایل</span>
+<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssl_select_file">انتخاب فایل</span>
 </button>
 </div>
 <textarea class="form-input" id="cst-cert-crt" placeholder="-----BEGIN CERTIFICATE-----
@@ -312,12 +312,12 @@
 </div>
 <div>
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
+<label class="form-label" data-i18n-html="elem_tab_ssl_63" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin: 0;">
                                 کلید خصوصی سرور (Private Key): <span style="color:#ef4444;">*</span>
 </label>
 <input accept=".key,.pem" id="cst-file-key" onchange="handleCertFileUpload(this, 'cst-cert-key')" style="display:none;" type="file"/>
 <button class="btn btn-secondary btn-sm" onclick="document.getElementById('cst-file-key').click()" style="padding: 2px 8px; font-size: 11px;" type="button">
-<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span>انتخاب فایل</span>
+<i data-lucide="upload" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssl_select_file">انتخاب فایل</span>
 </button>
 </div>
 <textarea class="form-input" id="cst-cert-key" placeholder="-----BEGIN PRIVATE KEY-----
@@ -326,7 +326,7 @@
 </div>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_chain_intermediate_root_ca_optional" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                         زنجیره یا Intermediate / Root CA (اختیاری):
                     </label>
 <textarea class="form-input" data-i18n-placeholder="ssl_begin_certificate_10_ca_10" id="cst-cert-ca" placeholder="-----BEGIN CERTIFICATE-----
@@ -335,7 +335,7 @@
 </div>
 <!-- Protocol Assignment Selector -->
 <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
-<label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block;">
+<label class="form-label" data-i18n="ssl_assignment_protocols" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block;">
                         تخصیص به پروتکل‌ها:
                     </label>
 <div style="display: flex; gap: 16px; flex-wrap: wrap;">
@@ -345,24 +345,24 @@
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#eff6ff; border:1px solid #bfdbfe; padding:6px 12px; border-radius:8px;">
 <input name="cst-proto" type="checkbox" value="ocserv"/>
-<span style="font-weight:600; color:#1e40af;">سیسکو AnyConnect</span>
+<span data-i18n="nav_ocserv" style="font-weight:600; color:#1e40af;">سیسکو AnyConnect</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#fffbeb; border:1px solid #fde68a; padding:6px 12px; border-radius:8px;">
 <input name="cst-proto" type="checkbox" value="openvpn"/>
-<span style="font-weight:600; color:#92400e;">اوپن‌وی‌پی‌ان (OpenVPN)</span>
+<span data-i18n="nav_openvpn" style="font-weight:600; color:#92400e;">اوپن‌وی‌پی‌ان (OpenVPN)</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#faf5ff; border:1px solid #e9d5ff; padding:6px 12px; border-radius:8px;">
 <input name="cst-proto" type="checkbox" value="ikev2"/>
-<span style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
+<span data-i18n="nav_ikev2" style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
 </label>
 <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background: var(--bg-base); border: 1px solid var(--border-glow); padding:6px 12px; border-radius:8px;">
 <input checked="" name="cst-proto" type="checkbox" value="panel"/>
-<span style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
+<span data-i18n="ssl_management_web_panel_https" style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
 </label>
 </div>
 </div>
 <button class="btn btn-primary" id="cst-submit-btn" style="width: auto; align-self: flex-start; padding: 11px 28px;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span>ذخیره و فعال‌سازی سرتیفیکیت سفارشی</span>
+<i class="btn-icon" data-lucide="save"></i> <span data-i18n="ssl_item_2">ذخیره و فعال‌سازی سرتیفیکیت سفارشی</span>
 </button>
 </form>
 <!-- Form 2: IP SAN Certificate -->
@@ -370,30 +370,30 @@
 <div style="background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 18px;">
 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
 <i data-lucide="server" style="width: 18px; height: 18px; color: #0284c7;"></i>
-<strong style="font-size: 13px; color: #0369a1;">صدور گواهی امنیتی معتبر ۱۰ ساله برای آدرس IP سرور:</strong>
+<strong data-i18n="ssl_ip" style="font-size: 13px; color: #0369a1;">صدور گواهی امنیتی معتبر ۱۰ ساله برای آدرس IP سرور:</strong>
 </div>
-<p style="font-size: 12px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+<p data-i18n-html="elem_tab_ssl_64" style="font-size: 12px; color: var(--text-muted); line-height: 1.6; margin: 0;">
                         اگر از دامنه استفاده نمی‌کنید و می‌خواهید مستقیماً با آدرس IP به پنل متصل شوید، این گزینه یک سرتیفیکیت معتبر با قابلیت <strong>IP SAN (Subject Alternative Name)</strong> تولید می‌کند. با دانلود فایل Root CA و افزودن آن به دستگاه خود، علامت قفل سبز بدون هیچ هشداری نمایش داده می‌شود.
                     </p>
 </div>
 <div style="max-width: 450px;">
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_server_ip_address" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                         آدرس IP سرور:
                     </label>
 <input class="form-input" id="ssl-server-ip" placeholder="212.227.143.16" required="" style="padding: 10px 14px; font-size: 14px; direction: ltr; font-family: 'JetBrains Mono';" type="text"/>
 </div>
 <button class="btn btn-primary" id="ssl-ip-btn" style="width: auto; align-self: flex-start; padding: 11px 26px;" type="submit">
-<i class="btn-icon" data-lucide="shield"></i> <span>صدور سرتیفیکیت امن برای IP سرور (۱۰ ساله)</span>
+<i class="btn-icon" data-lucide="shield"></i> <span data-i18n="ssl_issuing_secure_certificate_ip_server">صدور سرتیفیکیت امن برای IP سرور (۱۰ ساله)</span>
 </button>
 </form>
 <!-- Form 3: Manual PEM Paste -->
 <form id="ssl-manual-form" onsubmit="saveSslManual(event)" style="display: none; flex-direction: column; gap: 16px;">
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
+<div data-i18n="ssl_cloudflare_origin_certificate" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
                     برای استفاده از گواهی‌های سفارشی (مانند Cloudflare Origin Certificate یا گواهی خریداری‌شده تجاری)، متن کامل فایل‌های گواهی و کلید خصوصی را در کادرهای زیر قرار دهید:
                 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_certificate_pem" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             متن سرتیفیکیت (Certificate PEM):
                         </label>
 <textarea class="form-input" id="ssl-manual-crt" placeholder="-----BEGIN CERTIFICATE-----
@@ -401,7 +401,7 @@
 -----END CERTIFICATE-----" required="" style="padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 11px; height: 160px; direction: ltr;"></textarea>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_text_private_key_private_key" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             متن کلید خصوصی (Private Key PEM):
                         </label>
 <textarea class="form-input" id="ssl-manual-key" placeholder="-----BEGIN PRIVATE KEY-----
@@ -410,30 +410,30 @@
 </div>
 </div>
 <button class="btn btn-primary" style="width: auto; align-self: flex-start; padding: 11px 26px;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span>ذخیره و فعال‌سازی سرتیفیکیت سفارشی</span>
+<i class="btn-icon" data-lucide="save"></i> <span data-i18n="ssl_item_2">ذخیره و فعال‌سازی سرتیفیکیت سفارشی</span>
 </button>
 </form>
 <!-- Form 4: Custom Paths -->
 <form id="ssl-paths-form" onsubmit="saveSslPaths(event)" style="display: none; flex-direction: column; gap: 16px;">
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
+<div data-i18n-html="elem_tab_ssl_65" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
                     اگر گواهی امنیتی از قبل روی سرور قرار دارد، مسیر مطلق فایل‌های <code>.crt</code> و <code>.key</code> را وارد کنید:
                 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_crt_pem" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             مسیر مطلق فایل سرتیفیکیت (.crt / .pem):
                         </label>
 <input class="form-input" id="ssl-paths-crt" placeholder="/etc/letsencrypt/live/domain/fullchain.pem" required="" style="padding: 10px 14px; font-size: 13px; direction: ltr; font-family: 'JetBrains Mono';" type="text"/>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
+<label class="form-label" data-i18n="ssl_absolute_path_private_key_file" style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; display: block;">
                             مسیر مطلق فایل کلید خصوصی (.key):
                         </label>
 <input class="form-input" id="ssl-paths-key" placeholder="/etc/letsencrypt/live/domain/privkey.pem" required="" style="padding: 10px 14px; font-size: 13px; direction: ltr; font-family: 'JetBrains Mono';" type="text"/>
 </div>
 </div>
 <button class="btn btn-primary" style="width: auto; align-self: flex-start; padding: 11px 26px;" type="submit">
-<i class="btn-icon" data-lucide="link"></i> <span>پیوند و اعمال مسیرهای گواهی</span>
+<i class="btn-icon" data-lucide="link"></i> <span data-i18n="ssl_linking_applying_certificate_paths">پیوند و اعمال مسیرهای گواهی</span>
 </button>
 </form>
 </div>
@@ -442,30 +442,30 @@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
 <div>
 <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
-<i data-lucide="layers" style="color: #6366f1; width: 20px; height: 20px;"></i> <span>مرکز گواهی‌های ثبت‌شده و تخصیص پروتکل‌ها (Certificate Hub &amp; Protocol Mapping)</span>
+<i data-lucide="layers" style="color: #6366f1; width: 20px; height: 20px;"></i> <span data-i18n="ssl_certificate_hub_protocol_mapping">مرکز گواهی‌های ثبت‌شده و تخصیص پروتکل‌ها (Certificate Hub &amp; Protocol Mapping)</span>
 </h3>
-<p style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">
+<p data-i18n="ssl_view_download_root_ca_files" style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px; margin-bottom: 0;">
                         مشاهده، دانلود فایل‌های Root CA، تخصیص آنی گواهی‌ها به پروتکل‌ها (SSTP، سیسکو، OpenVPN، IKEv2 و پنل)
                     </p>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="fetchImportedCertificates()" type="button">
-<i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i> <span>بروزرسانی گواهی‌ها</span>
+<i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i> <span data-i18n="ssl_update_certificates">بروزرسانی گواهی‌ها</span>
 </button>
 </div>
 <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
 <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
 <thead>
 <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
-<th style="padding: 12px 14px;">عنوان و نوع گواهی</th>
-<th style="padding: 12px 14px;">صادرکننده و دامنه (Subject / CN)</th>
-<th style="padding: 12px 14px;">اعتبار و انقضا</th>
-<th style="padding: 12px 14px;">پروتکل‌های تخصیص‌یافته</th>
-<th style="padding: 12px 14px; text-align: left;">عملیات</th>
+<th data-i18n="ssl_title_type_certificate" style="padding: 12px 14px;">عنوان و نوع گواهی</th>
+<th data-i18n="ssl_subject_cn" style="padding: 12px 14px;">صادرکننده و دامنه (Subject / CN)</th>
+<th data-i18n="ssl_item_11" style="padding: 12px 14px;">اعتبار و انقضا</th>
+<th data-i18n="ssl_item_6" style="padding: 12px 14px;">پروتکل‌های تخصیص‌یافته</th>
+<th data-i18n="servers_col_actions" style="padding: 12px 14px; text-align: left;">عملیات</th>
 </tr>
 </thead>
 <tbody id="imported-certs-tbody">
 <tr>
-<td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
+<td colspan="5" data-i18n="ssl_loading_certificates" style="text-align: center; padding: 24px; color: var(--text-muted);">
                                 در حال بارگذاری گواهی‌ها...
                             </td>
 </tr>

@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title data-i18n="settings_title_or_mh_panel_user_sub">{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
+<title>{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
 <link href="/static/favicon.ico" rel="icon" type="image/x-icon"/>
 <script src="/static/lucide.min.js"></script>
 <script src="/static/qrcode.js"></script>
@@ -498,9 +498,9 @@
 <div class="stats-grid">
 <div class="stat-box">
 <div class="stat-label" data-i18n="ovpn_expiration_date">تاریخ انقضا</div>
-<div class="stat-val" data-i18n="user_expire_date_or_unlimited">{{ user.expire_date or 'نامحدود' }}</div>
+<div class="stat-val">{{ user.expire_date or 'نامحدود' }}</div>
                     {% if days_left is not none %}
-                    <div data-i18n="days_left_days_left" style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
+                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
                     {% endif %}
                 </div>
 <div class="stat-box">
@@ -512,7 +512,7 @@
 </div>
 <div class="stat-box">
 <div class="stat-label" data-i18n="number_of_simultaneous_connections">تعداد اتصال همزمان</div>
-<div class="stat-val" data-i18n="user_simultaneous_use_or_2_user">{{ user.simultaneous_use or 2 }} کاربر</div>
+<div class="stat-val">{{ user.simultaneous_use or 2 }} کاربر</div>
 </div>
 </div>
 </div>

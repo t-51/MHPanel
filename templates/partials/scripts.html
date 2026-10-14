@@ -128,6 +128,276 @@
         applyLanguage(lang);
     }
 
+    const DYNAMIC_REPLACEMENTS = {
+        en: [
+            // Exact status & badges
+            [/آنلاین/g, "Online"],
+            [/آفلاین/g, "Offline"],
+            [/فعال/g, "Active"],
+            [/غیرفعال/g, "Inactive"],
+            [/متصل/g, "Connected"],
+            [/قطع/g, "Disconnected"],
+            [/نامحدود/g, "Unlimited"],
+            [/در حال بررسی\.\.\./g, "Checking..."],
+            [/کاربر پیش‌فرض/g, "Default User"],
+            [/ردیوس \(کاربر پیش‌فرض\)/g, "RADIUS (Default User)"],
+            [/ساکس ۵ امن بدون شل/g, "Secure SOCKS5"],
+            // Common dynamic labels & prefixes
+            [/سقف حجم:/g, "Volume Limit:"],
+            [/سقف اتصالات:/g, "Conn Limit:"],
+            [/سقف اتصال:/g, "Conn Limit:"],
+            [/سقف:/g, "Quota:"],
+            [/مصرف کل:/g, "Total Usage:"],
+            [/مصرف:/g, "Usage:"],
+            [/حجم مجاز:/g, "Allowed Traffic:"],
+            [/حجم:/g, "Traffic:"],
+            [/انقضا:/g, "Expires:"],
+            [/دانلود:/g, "Download:"],
+            [/آپلود:/g, "Upload:"],
+            [/وضعیت:/g, "Status:"],
+            [/کاربر ردیوس:/g, "RADIUS User:"],
+            [/کاربران انتخابی:/g, "Selected Users:"],
+            [/کاربر:/g, "User:"],
+            [/سرور:/g, "Server:"],
+            [/آدرس سرور:/g, "Server Address:"],
+            [/پورت درخواستی:/g, "Requested Port:"],
+            [/پورت سرور:/g, "Server Port:"],
+            [/پورت:/g, "Port:"],
+            [/ساب‌نت:/g, "Subnet:"],
+            [/نسخه پروتکل:/g, "Protocol Version:"],
+            [/دریافت:/g, "Rx:"],
+            [/ارسال:/g, "Tx:"],
+            [/پینگ:/g, "Ping:"],
+            [/کیفیت:/g, "Quality:"],
+            [/کلید سکرت \(Secret\):/g, "Secret Key:"],
+            [/ماسک Fake TLS:/g, "Fake TLS Mask:"],
+            [/صادرکننده:/g, "Issuer:"],
+            [/محدودیت ترافیک:/g, "Traffic Limit:"],
+            [/اعتبار زمانی:/g, "Validity:"],
+            [/ساعات مجاز:/g, "Allowed Hours:"],
+            [/ساعت مجاز:/g, "Allowed Hours:"],
+            [/اتصالات فعال:/g, "Active Connections:"],
+            [/اتصالات:/g, "Connections:"],
+            [/اتصال امن:/g, "Secure Connection:"],
+            [/مسیر گواهی روی سرور:/g, "Cert Path on Server:"],
+            [/نیم‌سرور دی‌ان‌اس \(Nameserver\):/g, "DNS Nameserver:"],
+            [/آی‌پی سرور:/g, "Server IP:"],
+            [/دامنه سرور:/g, "Server Domain:"],
+            [/دامنه اصلی سرور:/g, "Main Server Domain:"],
+            [/پروتکل احراز هویت:/g, "Auth Protocol:"],
+            [/دسترسی کاربر:/g, "User Access:"],
+            [/مشخصات اتصال کاربر:/g, "User Connection Info:"],
+            [/میانگین تاخیر ایران:/g, "Iran Avg Latency:"],
+            [/میانگین بین‌الملل:/g, "Global Avg:"],
+            [/آخرین اسکن:/g, "Last Scan:"],
+            [/امتیاز سلامت سرور:/g, "Server Health Score:"],
+            [/اپراتورهای سالم ایران:/g, "Healthy Iranian Operators:"],
+            [/سوییت رمزنگاری:/g, "Cipher Suite:"],
+            [/هشدار حذف:/g, "Delete Warning:"],
+            [/هشدار:/g, "Warning:"],
+            [/خطا:/g, "Error:"],
+            [/رمز عبور:/g, "Password:"],
+            [/زمان ثبت:/g, "Registered Time:"],
+            [/لایسنس فعال:/g, "Active License:"],
+            // Units & words
+            [/روز باقی‌مانده/g, "days left"],
+            [/کاربر/g, "user(s)"],
+            [/گیگابایت/g, "GB"],
+            [/مگابایت/g, "MB"],
+            [/کیلوبایت/g, "KB"],
+            [/ثانیه/g, "sec"],
+            [/دقیقه/g, "min"],
+            [/ساعت/g, "hrs"],
+            [/آی‌پی خروجی کلودفلر:/g, "Cloudflare Egress IP:"],
+            [/موتور مسیریابی:/g, "Routing Engine:"],
+            [/رفع قطعی بسته‌ها \(/g, "Fix Packet Drops ("],
+            [/مسدودسازی نشت DNS \(/g, "Block DNS Leaks ("]
+        ],
+        ru: [
+            // Exact status & badges
+            [/آنلاین/g, "Онлайн"],
+            [/آفلاین/g, "Офлайн"],
+            [/فعال/g, "Активен"],
+            [/غیرفعال/g, "Неактивен"],
+            [/متصل/g, "Подключен"],
+            [/قطع/g, "Отключен"],
+            [/نامحدود/g, "Безлимит"],
+            [/در حال بررسی\.\.\./g, "Проверка..."],
+            [/کاربر پیش‌فرض/g, "Пользователь по умолчанию"],
+            [/ردیوس \(کاربر پیش‌فرض\)/g, "RADIUS (По умолчанию)"],
+            [/ساکس ۵ امن بدون شل/g, "Безопасный SOCKS5"],
+            // Common dynamic labels & prefixes
+            [/سقف حجم:/g, "Лимит трафика:"],
+            [/سقف اتصالات:/g, "Лимит подключений:"],
+            [/سقف اتصال:/g, "Лимит подключений:"],
+            [/سقف:/g, "Лимит:"],
+            [/مصرف کل:/g, "Общий расход:"],
+            [/مصرف:/g, "Расход:"],
+            [/حجم مجاز:/g, "Разрешенный трафик:"],
+            [/حجم:/g, "Трафик:"],
+            [/انقضا:/g, "Срок:"],
+            [/دانلود:/g, "Загрузка:"],
+            [/آپلود:/g, "Отдача:"],
+            [/وضعیت:/g, "Статус:"],
+            [/کاربر ردیوس:/g, "Пользователь RADIUS:"],
+            [/کاربران انتخابی:/g, "Выбранные пользователи:"],
+            [/کاربر:/g, "Пользователь:"],
+            [/سرور:/g, "Сервер:"],
+            [/آدرس سرور:/g, "Адрес сервера:"],
+            [/پورت درخواستی:/g, "Запрошенный порт:"],
+            [/پورت سرور:/g, "Порт сервера:"],
+            [/پورت:/g, "Порт:"],
+            [/ساب‌نت:/g, "Подсеть:"],
+            [/نسخه پروتکل:/g, "Версия протокола:"],
+            [/دریافت:/g, "Прием:"],
+            [/ارسال:/g, "Отдача:"],
+            [/پینگ:/g, "Пинг:"],
+            [/کیفیت:/g, "Качество:"],
+            [/کلید سکرت \(Secret\):/g, "Секретный ключ:"],
+            [/ماسک Fake TLS:/g, "Маскировка Fake TLS:"],
+            [/صادرکننده:/g, "Кем выдан:"],
+            [/محدودیت ترافیک:/g, "Лимит трафика:"],
+            [/اعتبار زمانی:/g, "Срок действия:"],
+            [/ساعات مجاز:/g, "Разрешенные часы:"],
+            [/ساعت مجاز:/g, "Разрешенные часы:"],
+            [/اتصالات فعال:/g, "Активные подключения:"],
+            [/اتصالات:/g, "Соединения:"],
+            [/اتصال امن:/g, "Безопасное соединение:"],
+            [/مسیر گواهی روی سرور:/g, "Путь к сертификату:"],
+            [/نیم‌سرور دی‌ان‌اس \(Nameserver\):/g, "DNS-сервер имен:"],
+            [/آی‌پی سرور:/g, "IP сервера:"],
+            [/دامنه سرور:/g, "Домен сервера:"],
+            [/دامنه اصلی سرور:/g, "Основной домен:"],
+            [/پروتکل احراز هویت:/g, "Протокол аутентификации:"],
+            [/دسترسی کاربر:/g, "Доступ пользователя:"],
+            [/مشخصات اتصال کاربر:/g, "Данные подключения пользователя:"],
+            [/میانگین تاخیر ایران:/g, "Средняя задержка Иран:"],
+            [/میانگین بین‌الملل:/g, "Среднее мир:"],
+            [/آخرین اسکن:/g, "Последнее сканирование:"],
+            [/امتیاز سلامت سرور:/g, "Оценка здоровья сервера:"],
+            [/اپراتورهای سالم ایران:/g, "Работающие операторы:"],
+            [/سوییت رمزنگاری:/g, "Набор шифров:"],
+            [/هشدار حذف:/g, "Предупреждение об удалении:"],
+            [/هشدار:/g, "Предупреждение:"],
+            [/خطا:/g, "Ошибка:"],
+            [/رمز عبور:/g, "Пароль:"],
+            [/زمان ثبت:/g, "Время регистрации:"],
+            [/لایسنس فعال:/g, "Активная лицензия:"],
+            // Units & words
+            [/روز باقی‌مانده/g, "дней осталось"],
+            [/کاربر/g, "польз."],
+            [/گیگابایت/g, "ГБ"],
+            [/مگابایت/g, "МБ"],
+            [/کیلوبایت/g, "КБ"],
+            [/ثانیه/g, "сек"],
+            [/دقیقه/g, "мин"],
+            [/ساعت/g, "ч"],
+            [/آی‌پی خروجی کلودفلر:/g, "Выходной IP Cloudflare:"],
+            [/موتور مسیریابی:/g, "Маршрутизатор:"],
+            [/رفع قطعی بسته‌ها \(/g, "Устранение потерь пакетов ("],
+            [/مسدودسازی نشت DNS \(/g, "Блокировка утечек DNS ("]
+        ]
+    };
+
+    function translateDom(root, lang) {
+        if (!root || lang === "fa") return;
+        const dict = (window.I18N_TRANSLATIONS && window.I18N_TRANSLATIONS[lang]) || {};
+        const replacements = DYNAMIC_REPLACEMENTS[lang] || [];
+
+        if (root.querySelectorAll) {
+            root.querySelectorAll("[data-i18n]").forEach(el => {
+                const k = el.getAttribute("data-i18n");
+                if (dict[k]) {
+                    if (el.children.length === 0) {
+                        el.textContent = dict[k];
+                    } else {
+                        const textSpan = el.querySelector(".i18n-text") || el.querySelector("span:not([class*='icon']):not([class*='dot']):not([class*='badge'])");
+                        if (textSpan) {
+                            textSpan.textContent = dict[k];
+                        } else {
+                            for (let node of el.childNodes) {
+                                if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+                                    node.textContent = " " + dict[k];
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            root.querySelectorAll("[data-i18n-html]").forEach(el => {
+                const k = el.getAttribute("data-i18n-html");
+                if (dict[k]) el.innerHTML = dict[k];
+            });
+        }
+
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        const textNodes = [];
+        while (node = walker.nextNode()) {
+            const p = node.parentElement;
+            if (!p || ['SCRIPT', 'STYLE', 'CODE', 'PRE', 'TEXTAREA'].includes(p.tagName)) continue;
+            if (p.hasAttribute('data-i18n') || p.hasAttribute('data-i18n-html')) continue;
+            const txt = node.textContent;
+            if (txt && /[\u0600-\u06FF]/.test(txt)) {
+                textNodes.push(node);
+            }
+        }
+
+        for (let tn of textNodes) {
+            let content = tn.textContent;
+            const clean = content.trim();
+
+            if (typeof window.t === "function") {
+                const fullTrans = window.t(clean);
+                if (fullTrans && fullTrans !== clean) {
+                    tn.textContent = content.replace(clean, fullTrans);
+                    continue;
+                }
+            }
+
+            let updated = content;
+            for (const [re, rep] of replacements) {
+                updated = updated.replace(re, rep);
+            }
+            if (updated !== content) {
+                tn.textContent = updated;
+            }
+        }
+    }
+
+    let _transObserverTimeout = null;
+    const i18nObserver = new MutationObserver((mutations) => {
+        const currentLang = localStorage.getItem("panel_language") || "fa";
+        if (currentLang === "fa") return;
+        let hasNewNodes = false;
+        for (const m of mutations) {
+            if (m.addedNodes && m.addedNodes.length > 0) {
+                hasNewNodes = true;
+                break;
+            }
+        }
+        if (hasNewNodes) {
+            clearTimeout(_transObserverTimeout);
+            _transObserverTimeout = setTimeout(() => {
+                const mainEl = document.querySelector(".main-content") || document.body;
+                translateDom(mainEl, currentLang);
+                document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, currentLang));
+            }, 30);
+        }
+    });
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => {
+            const mc = document.querySelector(".main-content") || document.body;
+            if (mc) i18nObserver.observe(mc, { childList: true, subtree: true });
+        });
+    } else {
+        const mc = document.querySelector(".main-content") || document.body;
+        if (mc) i18nObserver.observe(mc, { childList: true, subtree: true });
+    }
+
     function applyLanguage(lang) {
         if (!I18N_TRANSLATIONS[lang]) lang = "fa";
         document.documentElement.dir = (lang === "fa" ? "rtl" : "ltr");
@@ -215,6 +485,24 @@
             if (typeof updateHardwareSpecs === "function" && latestStats.system_info) updateHardwareSpecs(latestStats.system_info);
             if (typeof updatePerCoreWorkload === "function" && latestStats.system_info && latestStats.system_info.cpu) updatePerCoreWorkload(latestStats.system_info.cpu);
             if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
+        }
+
+        if (lang !== "fa") {
+            translateDom(document.querySelector(".main-content") || document.body, lang);
+            document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, lang));
+        } else {
+            const activeTab = localStorage.getItem("active_tab") || "overview";
+            if (activeTab === "ssh" && typeof fetchSshClients === "function") fetchSshClients();
+            else if (activeTab === "openvpn" && typeof fetchOvpnClients === "function") fetchOvpnClients();
+            else if (activeTab === "wireguard" && typeof fetchWireGuardClients === "function") fetchWireGuardClients();
+            else if (activeTab === "amneziawg" && typeof fetchAmneziaClients === "function") fetchAmneziaClients();
+            else if (activeTab === "radius" && typeof fetchRadiusUsers === "function") fetchRadiusUsers();
+            else if (activeTab === "mtproto" && typeof fetchMtprotoInstances === "function") fetchMtprotoInstances();
+            else if (activeTab === "tuic" && typeof fetchTuicConfig === "function") fetchTuicConfig();
+            else if (activeTab === "l2tp" && typeof fetchL2tpClients === "function") fetchL2tpClients();
+            else if (activeTab === "ikev2" && typeof fetchIkev2Clients === "function") fetchIkev2Clients();
+            else if (activeTab === "sstp" && typeof fetchSstpClients === "function") fetchSstpClients();
+            else if (activeTab === "shadowsocks" && typeof fetchShadowsocksClients === "function") fetchShadowsocksClients();
         }
 
         if (typeof lucide !== "undefined") {

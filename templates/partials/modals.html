@@ -941,47 +941,47 @@
 </div>
 </div>
 <!-- Modal 3: Remote Server Script for Advanced Tunnel -->
-<div class="modal" data-i18n-html="elem_modals_1" id="modal-adv-tunnel-script">
+<div class="modal" id="modal-adv-tunnel-script">
 <div class="modal-card" style="max-width: 720px; border-radius: 16px;">
 <header class="modal-header">
 <h3 class="modal-title">
 <i data-lucide="terminal" style="color: #10b981; width: 22px; height: 22px;"></i>
-<span>اسکریپت و دستورات اجرای سرور مقابل (Remote Server Command)</span>
+<span data-i18n="modal_scripts_commands_run_opposite_server">اسکریپت و دستورات اجرای سرور مقابل (Remote Server Command)</span>
 </h3>
 <button class="modal-close" onclick="closeAdvTunnelScriptModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
-<p style="font-size: 13px; color: #475569; margin-bottom: 14px; line-height: 1.7;">
+<p data-i18n="modal_item_15" style="font-size: 13px; color: #475569; margin-bottom: 14px; line-height: 1.7;">
                 برای برقراری اتصال دوطرفه، کافیست دستورات زیر را در ترمینال سرور مقابل (سرور دیگر شما در ایران یا خارج) اجرا فرمایید:
             </p>
 <div style="position: relative; margin-bottom: 16px;">
 <textarea id="adv-tunnel-script-code" readonly="" style="width: 100%; height: 280px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; background: #0f172a; color: #34d399; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
 <button class="btn btn-primary btn-sm" onclick="copyAdvTunnelScriptCode()" style="position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 5px 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;" type="button">
-<i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span>کپی کامل دستورات</span>
+<i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span data-i18n="modal_full_copy_orders">کپی کامل دستورات</span>
 </button>
 </div>
-<div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #065f46; line-height: 1.6;">
-<strong>💡 راهنمای راه‌اندازی:</strong> دستورات بالا شامل دانلود باینری رسمی، ساخت سرویس دائمی Systemd و راه‌اندازی خودکار پس از ریبوت سرور است.
+<div data-i18n-html="elem_modals_1" style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #065f46; line-height: 1.6;">
+<strong data-i18n="modal_item_25">💡 راهنمای راه‌اندازی:</strong> دستورات بالا شامل دانلود باینری رسمی، ساخت سرویس دائمی Systemd و راه‌اندازی خودکار پس از ریبوت سرور است.
             </div>
 <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
-<button class="btn btn-secondary" onclick="closeAdvTunnelScriptModal()" type="button">بستن</button>
+<button class="btn btn-secondary" data-i18n="modal_btn_close" onclick="closeAdvTunnelScriptModal()" type="button">بستن</button>
 </div>
 </div>
 </div>
 </div>
 <!-- Modal 4: MikroTik & Linux Scripts Generator -->
-<div class="modal" data-i18n-html="elem_modals_2" id="modal-tunnel-scripts">
-<div class="modal-card" data-i18n-html="elem_modals_3" style="max-width: 720px; border-radius: 16px;">
+<div class="modal" id="modal-tunnel-scripts">
+<div class="modal-card" style="max-width: 720px; border-radius: 16px;">
 <header class="modal-header">
 <h3 class="modal-title">
 <i data-lucide="terminal" style="color: #0284c7; width: 22px; height: 22px;"></i>
-<span>اسکریپت‌های راه‌اندازی میکروتیک و لینوکس (RouterOS &amp; Linux)</span>
+<span data-i18n="modal_mikrotik_linux_startup_scripts_routeros">اسکریپت‌های راه‌اندازی میکروتیک و لینوکس (RouterOS &amp; Linux)</span>
 </h3>
 <button class="modal-close" onclick="closeTunnelScriptsModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
-<div style="font-size: 13px; color: var(--text-muted);">
+<div data-i18n-html="elem_modals_2" style="font-size: 13px; color: var(--text-muted);">
                     تونل انتخابی: <strong id="scripts-modal-tun-name" style="color:#0f172a; font-family:'JetBrains Mono';">--</strong>
                     (<span id="scripts-modal-tun-type" style="color:#4f46e5; font-weight:700;">--</span>)
                 </div>
@@ -1002,15 +1002,15 @@
 <div style="position: relative; margin-bottom: 16px;">
 <textarea id="tunnel-script-code" readonly="" style="width: 100%; height: 260px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; background: #0f172a; color: #38bdf8; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
 <button class="btn btn-primary btn-sm" onclick="copyTunnelScriptCode()" style="position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 5px 12px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;" type="button">
-<i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span>کپی کامل اسکریپت</span>
+<i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span data-i18n="modal_full_copy_script">کپی کامل اسکریپت</span>
 </button>
 </div>
 <!-- MikroTik Tip Box -->
-<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #1e40af; line-height: 1.6;">
-<strong>💡 نحوه استفاده در میکروتیک:</strong> کافیست نرم‌افزار WinBox را باز کرده، وارد منوی <strong>New Terminal</strong> شوید و کدهای بالا را Paste کنید تا اینترفیس، آی‌پی، فایروال و NAT روتربورد به صورت خودکار ایجاد شود.
+<div data-i18n-html="elem_modals_3" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #1e40af; line-height: 1.6;">
+<strong data-i18n="modal_item_27">💡 نحوه استفاده در میکروتیک:</strong> کافیست نرم‌افزار WinBox را باز کرده، وارد منوی <strong>New Terminal</strong> شوید و کدهای بالا را Paste کنید تا اینترفیس، آی‌پی، فایروال و NAT روتربورد به صورت خودکار ایجاد شود.
             </div>
 <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
-<button class="btn btn-secondary" onclick="closeTunnelScriptsModal()" type="button">بستن</button>
+<button class="btn btn-secondary" data-i18n="modal_btn_close" onclick="closeTunnelScriptsModal()" type="button">بستن</button>
 </div>
 </div>
 </div>
@@ -1076,7 +1076,7 @@
 <!-- ========================================== -->
 <!-- MODAL: ABOUT MH PANEL (درباره پنل) -->
 <!-- ========================================== -->
-<div class="modal" data-i18n-html="elem_modals_4" id="aboutModal" style="display: none;">
+<div class="modal" id="aboutModal" style="display: none;">
 <div class="modal-content glass-card" style="max-width: 580px; width: 100%;">
 <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
 <div style="display: flex; align-items: center; gap: 10px;">
@@ -1084,8 +1084,8 @@
 <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
 </div>
 <div>
-<h3 style="margin: 0; font-size: 16px; font-weight: 800;">درباره سامانه MH Panel</h3>
-<span style="font-size: 11.5px; color: var(--text-muted);">مرکز جامع مدیریت پروتکل‌های VPN، تانل‌های شبکه و میکروتیک</span>
+<h3 data-i18n="about_title" style="margin: 0; font-size: 16px; font-weight: 800;">درباره سامانه MH Panel</h3>
+<span data-i18n="modal_comprehensive_management_center_vpn_pro" style="font-size: 11.5px; color: var(--text-muted);">مرکز جامع مدیریت پروتکل‌های VPN، تانل‌های شبکه و میکروتیک</span>
 </div>
 </div>
 <button class="modal-close" onclick="closeAboutModal()" type="button"><i data-lucide="x"></i></button>
@@ -1093,32 +1093,32 @@
 <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
 <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
 <div>
-<div style="font-size: 11.5px; color: var(--text-muted);">نسخه فعلی پنل (Version)</div>
+<div data-i18n="modal_current_version_panel_version" style="font-size: 11.5px; color: var(--text-muted);">نسخه فعلی پنل (Version)</div>
 <div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace;">v1.0.0</div>
-<div style="font-size: 11.5px; color: #059669; margin-top: 2px;">پایدار (Stable Release)</div>
+<div data-i18n="modal_stable_release" style="font-size: 11.5px; color: #059669; margin-top: 2px;">پایدار (Stable Release)</div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="checkPanelUpdate(true)" type="button">
-<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span>بررسی آخرین نسخه</span>
+<i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span data-i18n="modal_review_latest_version">بررسی آخرین نسخه</span>
 </button>
 </div>
-<div style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
-<strong>MH Panel</strong> یک پروژه متن‌باز سازمانی است که برای راه‌اندازی، مدیریت و بهینه‌سازی انواع پروتکل‌های مدرن وی‌پی‌ان، تانل‌های ضد فیلترینگ دوطرفه لینوکس، مالتی‌پلکسر پورت ۴۴۳، سیستم احراز هویت FreeRADIUS و ایجاد خودکار کدهای کانفیگ روتربورد میکروتیک (v6 و v7) توسعه داده شده است.
+<div data-i18n-html="elem_modals_4" style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
+<strong data-i18n="login_title">MH Panel</strong> یک پروژه متن‌باز سازمانی است که برای راه‌اندازی، مدیریت و بهینه‌سازی انواع پروتکل‌های مدرن وی‌پی‌ان، تانل‌های ضد فیلترینگ دوطرفه لینوکس، مالتی‌پلکسر پورت ۴۴۳، سیستم احراز هویت FreeRADIUS و ایجاد خودکار کدهای کانفیگ روتربورد میکروتیک (v6 و v7) توسعه داده شده است.
             </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
 <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
-<span style="color: var(--text-muted);">توسعه‌دهنده:</span>
-<strong style="margin-right: 6px;">t-51 &amp; جامعه کاربری</strong>
+<span data-i18n="modal_developer" style="color: var(--text-muted);">توسعه‌دهنده:</span>
+<strong data-i18n="modal_t_51_user_community" style="margin-right: 6px;">t-51 &amp; جامعه کاربری</strong>
 </div>
 <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
-<span style="color: var(--text-muted);">مجوز انتشار:</span>
+<span data-i18n="modal_item_18" style="color: var(--text-muted);">مجوز انتشار:</span>
 <strong style="margin-right: 6px;">MIT Open Source</strong>
 </div>
 </div>
 <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
 <a class="btn btn-secondary btn-sm" href="https://github.com/t-51/MHPanel" style="display: flex; align-items: center; gap: 6px;" target="_blank">
-<i data-lucide="github" style="width: 14px; height: 14px;"></i> <span>مشاهده مخزن در GitHub</span>
+<i data-lucide="github" style="width: 14px; height: 14px;"></i> <span data-i18n="modal_github">مشاهده مخزن در GitHub</span>
 </a>
-<button class="btn btn-primary btn-sm" onclick="closeAboutModal()" type="button">بستن</button>
+<button class="btn btn-primary btn-sm" data-i18n="modal_btn_close" onclick="closeAboutModal()" type="button">بستن</button>
 </div>
 </div>
 </div>
@@ -1215,7 +1215,7 @@
 </header>
 <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
 <div id="twofa-status-banner" style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: center;">
-<span data-i18n-html="elem_modals_5">وضعیت فعلی: <strong id="twofa-current-status">در حال بررسی...</strong></span>
+<span data-i18n-html="elem_modals_5">وضعیت فعلی: <strong data-i18n="checking_status" id="twofa-current-status">در حال بررسی...</strong></span>
 <button class="btn btn-sm btn-secondary" data-i18n="wg_change_status" id="twofa-toggle-btn" onclick="toggleTwoFactorFlow()" type="button">تغییر وضعیت</button>
 </div>
 <!-- Setup Container (Visible when enabling) -->

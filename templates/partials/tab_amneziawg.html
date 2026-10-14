@@ -1,4 +1,4 @@
-<div class="tab-pane" data-i18n-html="elem_tab_amneziawg_7" id="tab-amneziawg">
+<div class="tab-pane" id="tab-amneziawg">
 <section style="position: relative; display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
 <div class="uninstalled-cover" id="awg-uninstalled-overlay" style="display: none; position: absolute; top:0; left:0; width:100%; height:100%; z-index:50;">
 <h4 class="uninstalled-title">AmneziaWG is not installed</h4>
@@ -11,20 +11,20 @@
 <div class="glass-card config-card" id="amneziawg-panel" style="flex: 1;">
 <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
 <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-<i data-lucide="shield-check" style="color: var(--color-emerald); width: 22px; height: 22px;"></i> <span>AmneziaWG Client Manager (Anti-DPI)</span>
+<i data-lucide="shield-check" style="color: var(--color-emerald); width: 22px; height: 22px;"></i> <span data-i18n="awg_amneziawg_client_manager_anti_dpi">AmneziaWG Client Manager (Anti-DPI)</span>
 </h3>
 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
 <button class="btn btn-primary btn-sm" onclick="openAwgVersionModal()" style="padding:6px 14px; background: linear-gradient(135deg, #4f46e5, #4338ca); border-color:#4338ca;" type="button">
-<i class="btn-icon" data-lucide="layers"></i> <span>نسخه پروتکل:</span> <strong id="awg-active-version-btn" style="margin-right:4px;">v2</strong>
+<i class="btn-icon" data-lucide="layers"></i> <span data-i18n="awg_protocol_version">نسخه پروتکل:</span> <strong id="awg-active-version-btn" style="margin-right:4px;">v2</strong>
 </button>
 <button class="btn btn-primary btn-sm" onclick="openAwgPortModal()" style="padding:6px 14px;" type="button">
-<i class="btn-icon" data-lucide="network"></i> <span>تغییر پورت</span>
+<i class="btn-icon" data-lucide="network"></i> <span data-i18n="awg_change_port">تغییر پورت</span>
 </button>
 <button class="btn btn-secondary btn-sm" onclick="viewAwgSettings()" style="padding:6px 14px;" type="button">
-<i class="btn-icon" data-lucide="sliders"></i> <span>تنظیمات ضد فیلترینگ</span>
+<i class="btn-icon" data-lucide="sliders"></i> <span data-i18n="awg_anti_filtering_settings">تنظیمات ضد فیلترینگ</span>
 </button>
 <button class="btn btn-danger btn-sm" onclick="uninstallAmneziaWG()" style="background-color: var(--color-danger); padding:6px 14px;" type="button">
-<i class="btn-icon" data-lucide="trash-2"></i> <span>حذف سرویس</span>
+<i class="btn-icon" data-lucide="trash-2"></i> <span data-i18n="awg_remove_service">حذف سرویس</span>
 </button>
 </div>
 </div>
@@ -33,15 +33,15 @@
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
 <div style="display:flex; align-items:center; gap:10px;">
 <span class="status-dot active"></span>
-<span style="font-weight:700; color:#059669; font-size:14px;">سرویس AmneziaWG فعال و آماده اتصال است</span>
+<span data-i18n="awg_amneziawg_service_active_ready_connect" style="font-weight:700; color:#059669; font-size:14px;">سرویس AmneziaWG فعال و آماده اتصال است</span>
 </div>
 <div style="display:flex; gap:12px; font-size:12px; font-family:'JetBrains Mono', monospace; flex-wrap:wrap;">
-<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;"><span>پورت:</span> <strong id="awg-active-port-display">UDP 443</strong></span>
-<span style="background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); padding:4px 10px; border-radius:6px; font-weight:700;"><span>نسخه پروتکل:</span> <strong id="awg-active-version-display">AmneziaWG v2</strong></span>
-<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;"><span>ساب‌نت:</span> <strong>10.77.77.1/24</strong></span>
+<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">پورت: <strong id="awg-active-port-display">UDP 443</strong></span>
+<span style="background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); padding:4px 10px; border-radius:6px; font-weight:700;">نسخه پروتکل: <strong id="awg-active-version-display">AmneziaWG v2</strong></span>
+<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">ساب‌نت: <strong>10.77.77.1/24</strong></span>
 </div>
 </div>
-<div style="font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
+<div data-i18n-html="elem_tab_amneziawg_7" style="font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
                     🛡️ این پروتکل با پنهان‌سازی هدرهای دست‌دهی (Handshake Obfuscation) و تزریق بسته‌های فیک تصادفی (Junk Packets)، سیستم‌های DPI اپراتورها (ایرانسل، همراه اول، مخابرات) را دور می‌زند. در کلاینت‌های رسمی <strong>Amnezia VPN</strong> در اندروید، iOS، ویندوز و لینوکس قابل استفاده است.
                 </div>
 </div>
@@ -53,34 +53,34 @@
 <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
 </div>
 <div>
-<h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-color);">خروج ترافیک کاربران AmneziaWG از Cloudflare WARP</h4>
-<p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
+<h4 data-i18n="awg_amneziawg_cloudflare_warp" style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-color);">خروج ترافیک کاربران AmneziaWG از Cloudflare WARP</h4>
+<p data-i18n="awg_item_3" style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
                                 عبور ترافیک از شبکه وارپ جهت رفع فیلتر سایت‌های خارجی، رفع تحریم‌های هوش مصنوعی و اسپاتیفای و پنهان‌سازی آی‌پی سرور
                             </p>
 </div>
 </div>
 <div style="display:flex; align-items:center; gap:10px;">
-<span class="badge" id="awg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; color: #475569;">
+<span class="badge" data-i18n="checking_status" id="awg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; color: #475569;">
                             در حال بررسی...
                         </span>
-<button class="btn btn-sm" id="awg-warp-toggle-btn" onclick="toggleAwgWarpClick()" style="padding: 6px 14px; font-size: 12px; width:auto;" type="button">
+<button class="btn btn-sm" data-i18n="awg_warp_activation" id="awg-warp-toggle-btn" onclick="toggleAwgWarpClick()" style="padding: 6px 14px; font-size: 12px; width:auto;" type="button">
                             فعال‌سازی وارپ
                         </button>
 </div>
 </div>
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, 0.06); font-size: 12px;">
 <div style="display:flex; gap:16px; flex-wrap:wrap;">
-<span><span>آی‌پی خروجی کلودفلر:</span> <strong id="awg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#ea580c;">-</strong></span>
-<span><span>موتور مسیریابی:</span> <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (SOCKS5 :40000)</strong></span>
+<span>آی‌پی خروجی کلودفلر: <strong id="awg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#ea580c;">-</strong></span>
+<span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (SOCKS5 :40000)</strong></span>
 </div>
-<div style="color:var(--text-muted); font-size:11.5px;">
+<div data-i18n="awg_disabling_warp_traffic_will_leave" style="color:var(--text-muted); font-size:11.5px;">
                         💡 با غیرفعال کردن وارپ، ترافیک بدون تغییر از آی‌پی اصلی سرور خارج می‌شود.
                     </div>
 </div>
 </div>
 <div style="display: flex; flex-direction: column; gap: 16px;">
 <div>
-<h4 class="form-label" style="margin-bottom: 10px;">کاربران فعال AmneziaWG (Peers)</h4>
+<h4 class="form-label" data-i18n="awg_amneziawg_active_users_peers" style="margin-bottom: 10px;">کاربران فعال AmneziaWG (Peers)</h4>
 <div class="awg-client-list" id="awg-clients"></div>
 </div>
 </div>
@@ -91,25 +91,25 @@
 <div class="glass-card config-card">
 <div class="config-header">
 <h3 class="config-title">
-<i data-lucide="plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span>Create Client Profile</span>
+<i data-lucide="plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span data-i18n="wg_create_client_profile">Create Client Profile</span>
 </h3>
 </div>
 <div style="display: flex; flex-direction: column; gap: 12px;">
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Client name</label>
+<label class="form-label" data-i18n="wg_client_name">Client name</label>
 <input class="form-input" data-i18n-placeholder="wg_client_name" id="awg-client-name" placeholder="Client name" style="padding-left:16px;" type="text"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Volume Limit (GB) - Optional</label>
+<label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
 <input class="form-input" id="awg-client-limit" placeholder="e.g. 50" style="padding-left:16px;" type="number"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Expiration (Days) - Optional</label>
+<label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
 <input class="form-input" id="awg-client-expire-days" min="1" placeholder="e.g. 30" style="padding-left:16px;" type="number"/>
 </div>
 <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
 <input id="awg-client-first-connect" style="width: 16px; height: 16px;" type="checkbox"/>
-<label class="form-label" style="margin: 0;">Start after first connect</label>
+<label class="form-label" data-i18n="wg_start_after_first_connect" style="margin: 0;">Start after first connect</label>
 </div>
 <button class="btn" id="awg-add-btn" type="button">
 <i class="btn-icon" data-lucide="plus"></i> Create
@@ -120,32 +120,32 @@
 <div class="glass-card config-card">
 <div class="config-header">
 <h3 class="config-title">
-<i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span>Bulk Create Clients</span>
+<i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="wg_bulk_create_clients">Bulk Create Clients</span>
 </h3>
 </div>
 <form id="awg-bulk-form" onsubmit="createAwgBulk(event)" style="display: flex; flex-direction: column; gap: 12px;">
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Client Name Prefix</label>
+<label class="form-label" data-i18n="wg_client_name_prefix">Client Name Prefix</label>
 <input class="form-input" id="awg-bulk-prefix" placeholder="e.g. Client" required="" style="padding-left:16px;" type="text" value="Client"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Number of Profiles (1-50)</label>
+<label class="form-label" data-i18n="wg_number_profiles_1_50">Number of Profiles (1-50)</label>
 <input class="form-input" id="awg-bulk-count" max="50" min="1" required="" style="padding-left:16px;" type="number" value="5"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Volume Limit (GB) - Optional</label>
+<label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
 <input class="form-input" id="awg-bulk-limit" placeholder="e.g. 50" style="padding-left:16px;" type="number"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label">Expiration (Days) - Optional</label>
+<label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
 <input class="form-input" id="awg-bulk-expire-days" min="1" placeholder="e.g. 30" style="padding-left:16px;" type="number"/>
 </div>
 <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
 <input id="awg-bulk-first-connect" style="width: 16px; height: 16px;" type="checkbox"/>
-<label class="form-label" style="margin: 0;">Start after first connect</label>
+<label class="form-label" data-i18n="wg_start_after_first_connect" style="margin: 0;">Start after first connect</label>
 </div>
 <button class="btn" id="awg-bulk-btn" type="submit">
-<i class="btn-icon" data-lucide="users"></i> <span>Create Bulk</span>
+<i class="btn-icon" data-lucide="users"></i> <span data-i18n="wg_create_bulk">Create Bulk</span>
 </button>
 </form>
 </div>
@@ -155,7 +155,7 @@
 <div class="modal" id="awg-settings-modal">
 <div class="modal-card" style="max-width: 400px;">
 <header class="modal-header">
-<h3 class="modal-title"><i data-lucide="settings" style="color:var(--color-secondary); width: 18px; height: 18px;"></i> <span>AmneziaWG</span> Settings</h3>
+<h3 class="modal-title"><i data-lucide="settings" style="color:var(--color-secondary); width: 18px; height: 18px;"></i> <span data-i18n="nav_amneziawg">AmneziaWG</span> Settings</h3>
 <button class="modal-close" onclick="closeAwgSettingsModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
@@ -175,21 +175,21 @@
 <div class="modal" id="awg-port-modal">
 <div class="modal-card" style="max-width: 400px;">
 <header class="modal-header">
-<h3 class="modal-title"><i data-lucide="network" style="color:var(--color-primary); width: 18px; height: 18px;"></i> <span>تغییر پورت AmneziaWG</span></h3>
+<h3 class="modal-title"><i data-lucide="network" style="color:var(--color-primary); width: 18px; height: 18px;"></i> <span data-i18n="awg_amneziawg_port_change">تغییر پورت AmneziaWG</span></h3>
 <button class="modal-close" onclick="closeAwgPortModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 20px;">
 <form onsubmit="submitAwgPortChange(event)">
 <div class="form-group" style="margin-bottom: 16px;">
-<label class="form-label" style="font-weight:600; font-size:13px;">پورت جدید سرور (UDP)</label>
+<label class="form-label" data-i18n="awg_new_server_port_udp" style="font-weight:600; font-size:13px;">پورت جدید سرور (UDP)</label>
 <input class="form-input" data-i18n-placeholder="awg_443_51820" id="awg-new-port-input" max="65535" min="1" placeholder="مثلاً 443 یا 51820" required="" style="font-family:'JetBrains Mono', monospace; font-size:15px; padding:8px 12px; font-weight:700;" type="number"/>
-<div style="font-size:11.5px; color:var(--text-muted); margin-top:8px; line-height:1.5;">
+<div data-i18n="awg_iptables" style="font-size:11.5px; color:var(--text-muted); margin-top:8px; line-height:1.5;">
                         با ثبت پورت، فایروال سرور (iptables) به‌روز شده و تمامی پروفایل‌ها و کانفیگ‌های فعال با پورت جدید هماهنگ می‌شوند.
                     </div>
 </div>
 <div style="display: flex; justify-content: flex-end; gap: 10px;">
-<button class="btn btn-secondary" onclick="closeAwgPortModal()" type="button">انصراف</button>
-<button class="btn btn-primary" type="submit">ثبت و اعمال پورت</button>
+<button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closeAwgPortModal()" type="button">انصراف</button>
+<button class="btn btn-primary" data-i18n="awg_register_apply_port" type="submit">ثبت و اعمال پورت</button>
 </div>
 </form>
 </div>
@@ -199,11 +199,11 @@
 <div class="modal" id="awg-version-modal">
 <div class="modal-card" style="max-width: 540px;">
 <header class="modal-header">
-<h3 class="modal-title"><i data-lucide="layers" style="color:var(--color-primary); width: 18px; height: 18px;"></i> <span>تنظیم نسخه پروتکل AmneziaWG</span></h3>
+<h3 class="modal-title"><i data-lucide="layers" style="color:var(--color-primary); width: 18px; height: 18px;"></i> <span data-i18n="awg_amneziawg">تنظیم نسخه پروتکل AmneziaWG</span></h3>
 <button class="modal-close" onclick="closeAwgVersionModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 22px;">
-<p style="font-size: 12.5px; color: var(--text-muted); margin-top: 0; margin-bottom: 16px; line-height: 1.6;">
+<p data-i18n="awg_system_administrator_can_determine_active" style="font-size: 12.5px; color: var(--text-muted); margin-top: 0; margin-bottom: 16px; line-height: 1.6;">
                 مدیر سیستم می‌تواند نسخه پروتکل فعال AmneziaWG را با توجه به کلاینت‌های کاربران تعیین کند. با تغییر نسخه، پارامترهای ضد فیلترینگ و کلیه کانفیگ‌های فعال به صورت خودکار هماهنگ می‌شوند.
             </p>
 <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
@@ -212,10 +212,10 @@
 <input id="awg-radio-v2" name="awg_version_select" style="margin-top: 4px;" type="radio" value="v2"/>
 <div style="flex: 1;">
 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-<strong style="color: var(--text-main); font-size: 14px;">نسخه ۲ (AmneziaWG v2.0)</strong>
-<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">استاندارد پایدار - پیشنهادی</span>
+<strong data-i18n="awg_version_2_amneziawg_v2_0" style="color: var(--text-main); font-size: 14px;">نسخه ۲ (AmneziaWG v2.0)</strong>
+<span class="badge" data-i18n="awg_sustainable_standard_proposed" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">استاندارد پایدار - پیشنهادی</span>
 </div>
-<p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
+<p data-i18n="awg_basic_handshake_hiding_4_headers" style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
                             پنهان‌سازی هندشیک اولیه با هدرهای ۴ گانه (H1-H4)، پدینگ S1/S2 و تزریق بسته‌های فیک (Jc). سازگار با تمامی کلاینت‌های رسمی AmneziaVPN (اندروید، iOS، ویندوز، لینوکس) و مودم‌های OpenWrt.
                         </p>
 </div>
@@ -225,10 +225,10 @@
 <input id="awg-radio-v3" name="awg_version_select" style="margin-top: 4px;" type="radio" value="v3"/>
 <div style="flex: 1;">
 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-<strong style="color: var(--text-main); font-size: 14px;">نسخه ۳ (AmneziaWG v3.0 / v3.1)</strong>
-<span class="badge" style="background: rgba(99, 102, 241, 0.12); color: #4f46e5; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">نسل جدید ضد هوش مصنوعی</span>
+<strong data-i18n="awg_version_3_amneziawg_v3_0" style="color: var(--text-main); font-size: 14px;">نسخه ۳ (AmneziaWG v3.0 / v3.1)</strong>
+<span class="badge" data-i18n="awg_item_2" style="background: rgba(99, 102, 241, 0.12); color: #4f46e5; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">نسل جدید ضد هوش مصنوعی</span>
 </div>
-<p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
+<p data-i18n="awg_transport_obfuscation_s3_s4_amneziavpn" style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
                             محافظت پیشرفته لایه انتقال داده (Transport Obfuscation) با پدینگ S3 (کوکی) و S4 (پکت‌های ترنسپورت). مناسب جهت مقابله با یادگیری ماشین و تشخیص آماری سایز پکت‌های اپراتورها. سازگار با AmneziaVPN نسخه ۵.۰+.
                         </p>
 </div>
@@ -238,19 +238,19 @@
 <input id="awg-radio-v1" name="awg_version_select" style="margin-top: 4px;" type="radio" value="v1"/>
 <div style="flex: 1;">
 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-<strong style="color: var(--text-main); font-size: 14px;">نسخه ۱ (حالت سازگار با WireGuard استاندارد)</strong>
-<span class="badge" style="background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600;">سبک و پایه</span>
+<strong data-i18n="awg_version_1_standard_wireguard_compatible" style="color: var(--text-main); font-size: 14px;">نسخه ۱ (حالت سازگار با WireGuard استاندارد)</strong>
+<span class="badge" data-i18n="awg_item_4" style="background: #f1f5f9; color: #475569; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 600;">سبک و پایه</span>
 </div>
-<p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
+<p data-i18n="awg_basic_sequential_headers_no_side" style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
                             هدرهای متوالی پایه بدون تغییرات جانبی یا پدینگ اضافی. برای اتصال مستقیم به اپلیکیشن‌های معمولی WireGuard بدون دور زدن DPI.
                         </p>
 </div>
 </label>
 </div>
 <div style="display: flex; justify-content: flex-end; gap: 10px;">
-<button class="btn btn-secondary" onclick="closeAwgVersionModal()" type="button">انصراف</button>
+<button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closeAwgVersionModal()" type="button">انصراف</button>
 <button class="btn btn-primary" onclick="submitAwgVersionChange()" type="button">
-<i class="btn-icon" data-lucide="check"></i> <span>ثبت و اعمال نسخه پروتکل</span>
+<i class="btn-icon" data-lucide="check"></i> <span data-i18n="awg_registration_application_protocol_version">ثبت و اعمال نسخه پروتکل</span>
 </button>
 </div>
 </div>

@@ -1,4 +1,4 @@
-<div class="tab-pane" data-i18n-html="elem_tab_openvpn_33" id="tab-openvpn">
+<div class="tab-pane" id="tab-openvpn">
 <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
 <!-- OpenVPN Core Status & Service Control Header -->
 <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.25);">
@@ -9,42 +9,42 @@
 </div>
 <div>
 <h3 class="config-title" style="margin:0; font-size:18px;">
-<span>مرکز مدیریت پروتکل OpenVPN (Dual-Stack UDP/TCP)</span>
+<span data-i18n="ovpn_title">مرکز مدیریت پروتکل OpenVPN (Dual-Stack UDP/TCP)</span>
 </h3>
-<p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+<p data-i18n="ovpn_dual_udp_tcp_service_connected" style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             سرویس دوگانه UDP/TCP متصل به پایگاه احراز هویت متمرکز FreeRADIUS با قابلیت پشتیبانی از چندین پورت همزمان و تولید خودکار فایل کانفیگ .ovpn ضد فیلتر.
                         </p>
 </div>
 </div>
 <div style="display:flex; align-items:center; gap:10px;">
 <span id="ovpn-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-<span class="status-dot active"></span> <span id="ovpn-badge-summary">سرویس‌های OpenVPN آنلاین</span>
+<span class="status-dot active"></span> <span data-i18n="ovpn_openvpn" id="ovpn-badge-summary">سرویس‌های OpenVPN آنلاین</span>
 </span>
 </div>
 </div>
 <!-- Stats Bar -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div style="color: var(--text-muted); font-size: 11px;">پورت‌های اصلی پروتکل</div>
+<div data-i18n="ovpn_item_10" style="color: var(--text-muted); font-size: 11px;">پورت‌های اصلی پروتکل</div>
 <div id="ovpn-top-ports" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">
                         UDP 1194 / TCP 1194
                     </div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div style="color: var(--text-muted); font-size: 11px;">شناسه و دامنه سرور</div>
+<div data-i18n="ovpn_server_id_domain" style="color: var(--text-muted); font-size: 11px;">شناسه و دامنه سرور</div>
 <div id="ovpn-top-server-id" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">
                         212.227.143.16
                     </div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
-<div id="ovpn-top-auth" style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">
+<div data-i18n="ovpn_authentication_method" style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
+<div data-i18n="ovpn_freeradius_pam_npu" id="ovpn-top-auth" style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">
                         FreeRADIUS / PAM (کاربر NPU)
                     </div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div style="color: var(--text-muted); font-size: 11px;">گواهی و رمزنگاری</div>
-<div id="ovpn-top-cert-status" style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;">
+<div data-i18n="ovpn_certificate_encryption" style="color: var(--text-muted); font-size: 11px;">گواهی و رمزنگاری</div>
+<div data-i18n="ovpn_openvpn_ca_tls_crypt_enabled" id="ovpn-top-cert-status" style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;">
                         OpenVPN-CA + TLS-Crypt فعال
                     </div>
 </div>
@@ -52,16 +52,16 @@
 <!-- Service Actions -->
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
 <button class="btn btn-secondary btn-sm" onclick="restartOpenvpnServices()" style="width:auto; padding: 8px 16px;" type="button">
-<i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span>راه‌اندازی مجدد سرویس (Restart)</span>
+<i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_restart">راه‌اندازی مجدد سرویس (Restart)</span>
 </button>
 <button class="btn btn-secondary btn-sm" onclick="fetchOpenvpnConfig()" style="width:auto; padding: 8px 16px;" type="button">
-<i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span>رفرش وضعیت و پورت‌ها</span>
+<i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ovpn_status_ports_refresh">رفرش وضعیت و پورت‌ها</span>
 </button>
 <button class="btn btn-secondary btn-sm" onclick="switchTab('openvpn-addons')" style="width:auto; padding: 8px 16px;" type="button">
-<i data-lucide="puzzle" style="width:14px; height:14px; margin-right:6px;"></i> <span>افزونه‌ها و اسکرامبلر (Addons)</span>
+<i data-lucide="puzzle" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ovpn_addons_scrambler">افزونه‌ها و اسکرامبلر (Addons)</span>
 </button>
 <button class="btn btn-secondary btn-sm" onclick="viewLogs('openvpn')" style="width:auto; padding: 8px 16px;" type="button">
-<i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span>مشاهده لاگ‌های زنده</span>
+<i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span>
 </button>
 </div>
 </div>
@@ -71,9 +71,9 @@
 <i data-lucide="info" style="width:20px; height:20px;"></i>
 </div>
 <div style="font-size: 13px; line-height: 1.6; color: #92400e;">
-<strong style="color: #b45309; font-size: 14px;">معماری دوگانه و یکپارچگی احراز هویت با FreeRADIUS:</strong>
-<p style="margin: 4px 0 0 0;">
-                    در این سیستم هر دو پروتکل <strong>UDP (سریع برای گیمینگ و استریمینگ)</strong> و <strong>TCP (پایدار برای زمان اختلال و مسدودسازی)</strong> به طور همزمان روی سرور فعال هستند. کلیه کاربران بدون نیاز به تعریف مجدد، مستقیماً از پایگاه سراسری <strong>FreeRADIUS</strong> (از جمله کاربر پیش‌فرض <code>NPU</code>) احراز هویت می‌شوند و فایل <code>.ovpn</code> کامل شامل کلیدهای سرور مستقیماً در پایین صفحه قابل دریافت است.
+<strong data-i18n="ovpn_dual_architecture_authentication_integra" style="color: #b45309; font-size: 14px;">معماری دوگانه و یکپارچگی احراز هویت با FreeRADIUS:</strong>
+<p data-i18n-html="elem_tab_openvpn_29" style="margin: 4px 0 0 0;">
+                    در این سیستم هر دو پروتکل <strong data-i18n="ovpn_udp_fast_gaming_streaming">UDP (سریع برای گیمینگ و استریمینگ)</strong> و <strong data-i18n="ovpn_tcp_stable_disruption_blocking_time">TCP (پایدار برای زمان اختلال و مسدودسازی)</strong> به طور همزمان روی سرور فعال هستند. کلیه کاربران بدون نیاز به تعریف مجدد، مستقیماً از پایگاه سراسری <strong>FreeRADIUS</strong> (از جمله کاربر پیش‌فرض <code>NPU</code>) احراز هویت می‌شوند و فایل <code>.ovpn</code> کامل شامل کلیدهای سرور مستقیماً در پایین صفحه قابل دریافت است.
                 </p>
 </div>
 </div>
@@ -82,29 +82,29 @@
 <div class="config-header" style="margin-bottom: 16px;">
 <div>
 <h3 class="config-title">
-<i data-lucide="wand-2" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span>پروفایل‌های آماده و سازگار با شرایط اینترنت (Quick Config Presets)</span>
+<i data-lucide="wand-2" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="ovpn_quick_config_presets">پروفایل‌های آماده و سازگار با شرایط اینترنت (Quick Config Presets)</span>
 </h3>
-<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+<p data-i18n="ovpn_clicking_each_profile_server_settings" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         با کلیک بر روی هر پروفایل، تنظیمات سرور و فایل کانفیگ به صورت خودکار مطابق آن استراتژی آماده‌سازی می‌شود.
                     </p>
 </div>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px;">
 <button class="preset-btn" onclick="applyOvpnPreset('udp')" type="button">
-<span class="preset-title">⚡ حالت UDP توربو (سرعت و گیمینگ)</span>
-<span class="preset-desc">UDP 1194 + mssfix 1360 + fast-io (پیشنهادی)</span>
+<span class="preset-title" data-i18n="ovpn_udp">⚡ حالت UDP توربو (سرعت و گیمینگ)</span>
+<span class="preset-desc" data-i18n="ovpn_udp_1194_mssfix_1360_fast">UDP 1194 + mssfix 1360 + fast-io (پیشنهادی)</span>
 </button>
 <button class="preset-btn" onclick="applyOvpnPreset('tcp')" type="button">
-<span class="preset-title">🛡️ حالت TCP ضد فیلتر (پایدار)</span>
-<span class="preset-desc">TCP 1194 + tcp-nodelay (همراه اول و ایرانسل)</span>
+<span class="preset-title" data-i18n="ovpn_tcp_anti_filter_mode_stable">🛡️ حالت TCP ضد فیلتر (پایدار)</span>
+<span class="preset-desc" data-i18n="ovpn_tcp_1194_tcp_nodelay_first">TCP 1194 + tcp-nodelay (همراه اول و ایرانسل)</span>
 </button>
 <button class="preset-btn" onclick="applyOvpnPreset('multiport')" type="button">
-<span class="preset-title">🔀 حالت چند پورته (Multi-Port)</span>
-<span class="preset-desc">فوروارد همزمان پورت‌های ۵۳، ۵۰۰، ۴۵۰۰ و ۹۴۴۳</span>
+<span class="preset-title" data-i18n="ovpn_multi_port_mode">🔀 حالت چند پورته (Multi-Port)</span>
+<span class="preset-desc" data-i18n="ovpn_item_15">فوروارد همزمان پورت‌های ۵۳، ۵۰۰، ۴۵۰۰ و ۹۴۴۳</span>
 </button>
 <button class="preset-btn" onclick="applyOvpnPreset('xor')" type="button">
-<span class="preset-title">🔒 حالت پنهان‌ساز اختصاصی (Scramble)</span>
-<span class="preset-desc">مبهم‌سازی الگوهای هدر با کلید XOR ضد DPI</span>
+<span class="preset-title" data-i18n="ovpn_scramble">🔒 حالت پنهان‌ساز اختصاصی (Scramble)</span>
+<span class="preset-desc" data-i18n="ovpn_xor_dpi">مبهم‌سازی الگوهای هدر با کلید XOR ضد DPI</span>
 </button>
 </div>
 </div>
@@ -113,9 +113,9 @@
 <div class="config-header" style="margin-bottom: 20px;">
 <div>
 <h3 class="config-title">
-<i data-lucide="sliders" style="color: #0284c7; width: 22px; height: 22px;"></i> <span>تنظیمات هسته سرور، ساب‌نت‌ها و مولتی‌پورت (Server &amp; Network Configuration)</span>
+<i data-lucide="sliders" style="color: #0284c7; width: 22px; height: 22px;"></i> <span data-i18n="ovpn_server_core_settings_subnets_multiport">تنظیمات هسته سرور، ساب‌نت‌ها و مولتی‌پورت (Server &amp; Network Configuration)</span>
 </h3>
-<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+<p data-i18n="ovpn_management_main_ports_multiple_port" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         مدیریت پورت‌های اصلی، فوروارد چندگانه پورت‌ها، رنج آی‌پی کاربران و مکانیزم‌های ضدفیلترینگ
                     </p>
 </div>
@@ -124,21 +124,21 @@
 <!-- Core Network Parameters -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
 <div class="form-group" style="margin:0;">
-<label class="form-label">آدرس سرور / دامنه (Host / Domain)</label>
+<label class="form-label" data-i18n="ovpn_server_address_domain_host_domain">آدرس سرور / دامنه (Host / Domain)</label>
 <input class="form-input" id="ovpn-host-input" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="212.227.143.16"/>
 </div>
 <div class="form-group" style="margin:0;">
-<label class="form-label">شیوه احراز هویت (Auth Engine)</label>
+<label class="form-label" data-i18n="ovpn_authentication_method_auth_engine">شیوه احراز هویت (Auth Engine)</label>
 <select class="form-input" disabled="" id="ovpn-auth-select" style="padding-left:14px;">
-<option selected="" value="freeradius">FreeRADIUS (PAM RADIUS - متمرکز)</option>
+<option data-i18n="ovpn_freeradius_pam_radius_centralized" selected="" value="freeradius">FreeRADIUS (PAM RADIUS - متمرکز)</option>
 </select>
 </div>
 <div class="form-group" style="margin:0;">
-<label class="form-label">دی‌ان‌اس کلاینت‌ها (DNS Push)</label>
+<label class="form-label" data-i18n="ovpn_dns_clients_dns_push">دی‌ان‌اس کلاینت‌ها (DNS Push)</label>
 <input class="form-input" id="ovpn-dns-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="1.1.1.1, 8.8.8.8"/>
 </div>
 <div class="form-group" style="margin:0;">
-<label class="form-label">ساب‌نت‌های شبکه (UDP &amp; TCP Subnets)</label>
+<label class="form-label" data-i18n="ovpn_network_subnets_udp_tcp_subnets">ساب‌نت‌های شبکه (UDP &amp; TCP Subnets)</label>
 <input class="form-input" id="ovpn-pool-input" readonly="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="10.8.0.0/24 (UDP) | 10.9.0.0/24 (TCP)"/>
 </div>
 </div>
@@ -147,7 +147,7 @@
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
 <div style="display: flex; align-items: center; gap: 8px;">
 <i data-lucide="shuffle" style="color: #0284c7; width: 18px; height: 18px;"></i>
-<h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin: 0;">
+<h4 data-i18n="ovpn_multi_port_matrix_udp_tcp" style="font-size: 14px; font-weight: 700; color: var(--text-main); margin: 0;">
                                 ماتریکس چند پورت بودن (UDP &amp; TCP Multi-Port Forwarding)
                             </h4>
 </div>
@@ -162,12 +162,12 @@
 <input checked="" id="ovpn-mp-udp-enabled" type="checkbox"/>
 <span class="slider"></span>
 </label>
-<span style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">سرویس UDP (پورت اصلی: 1194)</span>
+<span data-i18n="ovpn_udp_service_main_port_1194" style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">سرویس UDP (پورت اصلی: 1194)</span>
 </div>
-<span class="badge success" style="font-size: 10.5px;">فعال</span>
+<span class="badge success" data-i18n="wg_active" style="font-size: 10.5px;">فعال</span>
 </div>
 <div>
-<label class="form-label" style="font-size: 11.5px; margin-bottom: 4px;">پورت‌های ورودی کمکی UDP (با کاما جدا کنید):</label>
+<label class="form-label" data-i18n="ovpn_auxiliary_udp_input_ports_separate" style="font-size: 11.5px; margin-bottom: 4px;">پورت‌های ورودی کمکی UDP (با کاما جدا کنید):</label>
 <input class="form-input" data-i18n-placeholder="ovpn_example_1195_1196" id="ovpn-mp-extra-udp" placeholder="مثال: 1195, 1196" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 12.5px;" type="text" value=""/>
 </div>
 </div>
@@ -179,12 +179,12 @@
 <input checked="" id="ovpn-mp-tcp-enabled" type="checkbox"/>
 <span class="slider"></span>
 </label>
-<span style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">سرویس TCP (پورت اصلی: 1194)</span>
+<span data-i18n="ovpn_tcp_service_primary_port_1194" style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">سرویس TCP (پورت اصلی: 1194)</span>
 </div>
-<span class="badge success" style="font-size: 10.5px;">فعال</span>
+<span class="badge success" data-i18n="wg_active" style="font-size: 10.5px;">فعال</span>
 </div>
 <div>
-<label class="form-label" style="font-size: 11.5px; margin-bottom: 4px;">پورت‌های ورودی کمکی TCP (با کاما جدا کنید):</label>
+<label class="form-label" data-i18n="ovpn_auxiliary_tcp_input_ports_separate" style="font-size: 11.5px; margin-bottom: 4px;">پورت‌های ورودی کمکی TCP (با کاما جدا کنید):</label>
 <input class="form-input" data-i18n-placeholder="ovpn_example_9443_8445" id="ovpn-mp-extra-tcp" placeholder="مثال: 9443, 8445" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 12.5px;" type="text" value="9443"/>
 </div>
 </div>
@@ -192,12 +192,12 @@
 </div>
 <!-- Advanced Switches: Anti-DPI & Network Resilience -->
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; margin-bottom:24px;">
-<h4 style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-main);">ویژگی‌های حرفه‌ای عبور از فیلترینگ و پایداری شبکه (Bypass &amp; Resilience)</h4>
+<h4 data-i18n="ovpn_professional_features_filtering_network" style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-main);">ویژگی‌های حرفه‌ای عبور از فیلترینگ و پایداری شبکه (Bypass &amp; Resilience)</h4>
 <div class="toggle-grid" style="margin-bottom:0;">
 <div class="toggle-item">
 <div>
-<span class="toggle-item-label">رفع قطعی و دراپ پکت (MSS Fix 1360)</span>
-<div style="font-size:11px; color:var(--text-dim); margin-top:2px;">جلوگیری از تکه‌تکه شدن بسته‌ها روی اینترنت ایران</div>
+<span class="toggle-item-label" data-i18n="ovpn_fix_outages_drop_packets_mss">رفع قطعی و دراپ پکت (MSS Fix 1360)</span>
+<div data-i18n="ovpn_item_8" style="font-size:11px; color:var(--text-dim); margin-top:2px;">جلوگیری از تکه‌تکه شدن بسته‌ها روی اینترنت ایران</div>
 </div>
 <label class="switch">
 <input checked="" id="ovpn-toggle-mssfix" type="checkbox"/>
@@ -206,8 +206,8 @@
 </div>
 <div class="toggle-item">
 <div>
-<span class="toggle-item-label">شتاب‌دهنده ورودی/خروجی (Fast-IO)</span>
-<div style="font-size:11px; color:var(--text-dim); margin-top:2px;">کاهش درگیری CPU و افزایش چشمگیر سرعت در مد UDP</div>
+<span class="toggle-item-label" data-i18n="ovpn_input_output_accelerator_fast_io">شتاب‌دهنده ورودی/خروجی (Fast-IO)</span>
+<div data-i18n="ovpn_reduced_cpu_contention_dramatically_incr" style="font-size:11px; color:var(--text-dim); margin-top:2px;">کاهش درگیری CPU و افزایش چشمگیر سرعت در مد UDP</div>
 </div>
 <label class="switch">
 <input checked="" id="ovpn-toggle-fastio" type="checkbox"/>
@@ -216,8 +216,8 @@
 </div>
 <div class="toggle-item">
 <div>
-<span class="toggle-item-label">مسدودسازی نشت دی‌ان‌اس (Block Outside DNS)</span>
-<div style="font-size:11px; color:var(--text-dim); margin-top:2px;">جلوگیری از DNS Hijacking و فیلتر شدن دامنه‌ها</div>
+<span class="toggle-item-label" data-i18n="ovpn_block_outside_dns">مسدودسازی نشت دی‌ان‌اس (Block Outside DNS)</span>
+<div data-i18n="ovpn_preventing_dns_hijacking_domain_filterin" style="font-size:11px; color:var(--text-dim); margin-top:2px;">جلوگیری از DNS Hijacking و فیلتر شدن دامنه‌ها</div>
 </div>
 <label class="switch">
 <input checked="" id="ovpn-toggle-dnsleak" type="checkbox"/>
@@ -226,8 +226,8 @@
 </div>
 <div class="toggle-item">
 <div>
-<span class="toggle-item-label">کاهش تاخیر داده‌های وب (TCP NoDelay)</span>
-<div style="font-size:11px; color:var(--text-dim); margin-top:2px;">غیرفعال‌سازی بافر Nagle برای تجربه وبگردی روان‌تر</div>
+<span class="toggle-item-label" data-i18n="ovpn_reducing_web_data_delay_tcp">کاهش تاخیر داده‌های وب (TCP NoDelay)</span>
+<div data-i18n="ovpn_disable_nagle_buffering_smoother_browsin" style="font-size:11px; color:var(--text-dim); margin-top:2px;">غیرفعال‌سازی بافر Nagle برای تجربه وبگردی روان‌تر</div>
 </div>
 <label class="switch">
 <input checked="" id="ovpn-toggle-tcpnodelay" type="checkbox"/>
@@ -244,21 +244,21 @@
 </label>
 <div>
 <div style="display: flex; align-items: center; gap: 6px;">
-<span style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">پنهان‌سازی کدهای هدر دست‌دهی (Scramble XOR)</span>
-<span id="badge-xor-not-installed-server" style="font-size: 11px; color: #ef4444; font-weight: 600;">(نیازمند نصب پچ)</span>
+<span data-i18n="ovpn_scramble_xor" style="font-size: 12.5px; font-weight: 700; color: var(--text-main);">پنهان‌سازی کدهای هدر دست‌دهی (Scramble XOR)</span>
+<span data-i18n="ovpn_item_20" id="badge-xor-not-installed-server" style="font-size: 11px; color: #ef4444; font-weight: 600;">(نیازمند نصب پچ)</span>
 </div>
-<div style="font-size: 11px; color: var(--text-dim);">پچ دور زننده سیستم‌های فیلترینگ هوشمند DPI</div>
+<div data-i18n="ovpn_patch_bypassing_smart_dpi_filtering" style="font-size: 11px; color: var(--text-dim);">پچ دور زننده سیستم‌های فیلترینگ هوشمند DPI</div>
 </div>
 </div>
 <div style="display: flex; align-items: center; gap: 8px;">
-<span style="font-size: 11.5px; color: var(--text-muted);">کلید اسکرامبل:</span>
+<span data-i18n="ovpn_item_3" style="font-size: 11.5px; color: var(--text-muted);">کلید اسکرامبل:</span>
 <input class="form-input" id="ovpn-addon-xor-key" placeholder="openvpn_xor" style="width: 140px; font-family: 'JetBrains Mono'; font-size: 12px; padding: 6px 10px; direction: ltr;" type="text" value="openvpn_xor"/>
 </div>
 </div>
 </div>
 <div style="display:flex; justify-content:flex-end;">
 <button class="btn" style="width:auto; padding:12px 28px; font-size:14px; background: #0284c7;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span>ذخیره و اعمال تنظیمات سرور و فایروال</span>
+<i class="btn-icon" data-lucide="save"></i> <span data-i18n="ovpn_save_apply_server_firewall_settings">ذخیره و اعمال تنظیمات سرور و فایروال</span>
 </button>
 </div>
 </form>
@@ -268,64 +268,64 @@
 <div class="config-header" style="margin-bottom: 20px;">
 <div>
 <h3 class="config-title">
-<i data-lucide="award" style="color: #059669; width: 22px; height: 22px;"></i> <span>مرکز مدیریت سرتفیکیت‌ها و کلیدها (CA &amp; Cryptography Hub)</span>
+<i data-lucide="award" style="color: #059669; width: 22px; height: 22px;"></i> <span data-i18n="ovpn_certificate_key_management_center_ca">مرکز مدیریت سرتفیکیت‌ها و کلیدها (CA &amp; Cryptography Hub)</span>
 </h3>
-<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+<p data-i18n="ovpn_direct_download_root_certificate_ca" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         دانلود مستقیم گواهی ریشه (CA) و کلید محافظت دست‌دهی TLS-Crypt جهت بررسی اعتبار اتصال
                     </p>
 </div>
 <div style="display:flex; gap:8px; flex-wrap:wrap;">
 <a class="btn btn-secondary btn-sm" download="openvpn-ca.crt" href="/api/openvpn/ca.crt" style="width:auto; text-decoration:none;">
-<i class="btn-icon" data-lucide="download"></i> <span>دانلود گواهی ca.crt</span>
+<i class="btn-icon" data-lucide="download"></i> <span data-i18n="ovpn_ca_crt">دانلود گواهی ca.crt</span>
 </a>
 <a class="btn btn-secondary btn-sm" download="tc.key" href="/api/openvpn/tc.key" style="width:auto; text-decoration:none;">
-<i class="btn-icon" data-lucide="key"></i> <span>دانلود کلید tc.key</span>
+<i class="btn-icon" data-lucide="key"></i> <span data-i18n="ovpn_tc_key">دانلود کلید tc.key</span>
 </a>
 </div>
 </div>
 <!-- Cert Details Cards -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
 <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
-<div style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
+<div data-i18n="ovpn_subject_cn" style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
 <div id="ovpn-cert-subject-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;">CN = OpenVPN-CA</div>
 </div>
 <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
-<div style="color:var(--text-muted); font-size:11px;">صادرکننده (Issuer)</div>
+<div data-i18n="ovpn_issuer" style="color:var(--text-muted); font-size:11px;">صادرکننده (Issuer)</div>
 <div id="ovpn-cert-issuer-display" style="font-weight:700; color:var(--text-main); font-size:12px; margin-top:3px;">CN = OpenVPN-CA</div>
 </div>
 <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
-<div style="color:var(--text-muted); font-size:11px;">کلید حفاظتی TLS-Crypt</div>
-<div id="ovpn-cert-tc-display" style="font-weight:700; color:#059669; font-size:12px; margin-top:3px;">فعال (AES-256-CTR)</div>
+<div data-i18n="ovpn_tls_crypt" style="color:var(--text-muted); font-size:11px;">کلید حفاظتی TLS-Crypt</div>
+<div data-i18n="ovpn_active_aes_256_ctr" id="ovpn-cert-tc-display" style="font-weight:700; color:#059669; font-size:12px; margin-top:3px;">فعال (AES-256-CTR)</div>
 </div>
 <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
-<div style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
-<div id="ovpn-cert-expiry-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;">معتبر تا 2036</div>
+<div data-i18n="ovpn_expiration_date" style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
+<div data-i18n="ovpn_valid_until_2036" id="ovpn-cert-expiry-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;">معتبر تا 2036</div>
 </div>
 </div>
 <!-- Issue / Renew Cert Box -->
 <div style="background: var(--bg-base); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
-<h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
+<h4 data-i18n="ovpn_update_connect_dedicated_domain_openvpn" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
                     به‌روزرسانی یا اتصال دامنه اختصاصی به سرور OpenVPN
                 </h4>
-<p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+<p data-i18n-html="elem_tab_openvpn_30" style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
                     اگر از دامنه اختصاصی مانند <code>kigaping.com</code> استفاده می‌کنید، آن را وارد کرده و اعمال نمایید تا شناسه‌ی سرور به‌روزرسانی شود.
                 </p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
 <input class="form-input" data-i18n-placeholder="ovpn_example_kigaping_com_212_227" id="ovpn-new-cert-domain" placeholder="مثال: kigaping.com یا 212.227.143.16" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
 <button class="btn" onclick="renewOpenvpnCertificate()" style="width:auto; padding:10px 20px;" type="button">
-<i class="btn-icon" data-lucide="sparkles"></i> <span>به‌روزرسانی شناسه سرور</span>
+<i class="btn-icon" data-lucide="sparkles"></i> <span data-i18n="ovpn_update_server_id">به‌روزرسانی شناسه سرور</span>
 </button>
 </div>
 </div>
 </div>
 <!-- OS Profiles & Client Connection Guide (ساخت و دانلود کانفیگ .ovpn برای انواع دستگاه‌ها) -->
-<div class="glass-card config-card" data-i18n-html="elem_tab_openvpn_35">
+<div class="glass-card config-card">
 <div class="config-header" style="margin-bottom: 20px;">
 <div>
 <h3 class="config-title">
-<i data-lucide="smartphone" style="color: #4f46e5; width: 22px; height: 22px;"></i> <span>مرکز تولید و دانلود مستقیم کانفیگ کلاینت (.ovpn Profile Generator Hub)</span>
+<i data-lucide="smartphone" style="color: #4f46e5; width: 22px; height: 22px;"></i> <span data-i18n="ovpn_direct_client_config_production_download">مرکز تولید و دانلود مستقیم کانفیگ کلاینت (.ovpn Profile Generator Hub)</span>
 </h3>
-<p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+<p data-i18n="ovpn_automatic_generation_complete_configurat" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         تولید خودکار فایل کانفیگ کامل شامل کلیه گواهی‌ها، کلیدها، رول‌های ضد فیلتر و حساب کاربری ردیوس
                     </p>
 </div>
@@ -335,23 +335,23 @@
 <div style="background: var(--bg-base); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
 <div>
-<label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پروتکل و حالت اتصال:</label>
+<label class="form-label" data-i18n="ovpn_protocol_connection_mode" style="font-size: 12px; margin-bottom: 6px;">پروتکل و حالت اتصال:</label>
 <select class="form-input" id="ovpn-export-proto" onchange="handleOvpnExportProtoChange()" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
-<option value="tcp-443">پروتکل TCP - پورت ۴۴۳ (عبور از فیلترینگ شدید - مشترک با وب)</option>
-<option value="tcp-1194">پروتکل TCP - پورت ۱۱۹۴ (استاندارد و پایدار)</option>
-<option selected="" value="udp-1194">پروتکل UDP - پورت ۱۱۹۴ (سریع و بهینه - پیش‌فرض)</option>
-<option value="custom">تنظیم دستی (پروتکل و پورت سفارشی)</option>
+<option data-i18n="ovpn_tcp_protocol_port_443_passing" value="tcp-443">پروتکل TCP - پورت ۴۴۳ (عبور از فیلترینگ شدید - مشترک با وب)</option>
+<option data-i18n="ovpn_tcp" value="tcp-1194">پروتکل TCP - پورت ۱۱۹۴ (استاندارد و پایدار)</option>
+<option data-i18n="ovpn_udp_protocol_port_1194_fast" selected="" value="udp-1194">پروتکل UDP - پورت ۱۱۹۴ (سریع و بهینه - پیش‌فرض)</option>
+<option data-i18n="ovpn_manual_setting_custom_protocol_port" value="custom">تنظیم دستی (پروتکل و پورت سفارشی)</option>
 </select>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پورت اتصال:</label>
+<label class="form-label" data-i18n="ovpn_connection_port" style="font-size: 12px; margin-bottom: 6px;">پورت اتصال:</label>
 <input class="form-input" id="ovpn-export-port" placeholder="1194" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 13px; height: 42px; padding: 0 14px; border-radius: 10px;" type="number" value="1194"/>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; margin-bottom: 6px;">آدرس هاست / دامنه:</label>
+<label class="form-label" data-i18n="ovpn_host_domain_addresses" style="font-size: 12px; margin-bottom: 6px;">آدرس هاست / دامنه:</label>
 <div style="display: flex; gap: 6px;">
 <input class="form-input" id="ovpn-export-host" placeholder="212.227.143.16" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 13px; height: 42px; padding: 0 14px; border-radius: 10px; flex: 1;" type="text" value="212.227.143.16"/>
-<button class="btn btn-secondary btn-sm" data-i18n-title="ovpn_item_11" onclick="setOvpnExportDomain('kigaping.com')" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از دامنه" type="button">
+<button class="btn btn-secondary btn-sm" data-i18n-html="ovpn_domain" data-i18n-title="ovpn_item_11" onclick="setOvpnExportDomain('kigaping.com')" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از دامنه" type="button">
                                 دامنه
                             </button>
 <button class="btn btn-secondary btn-sm" data-i18n-title="ovpn_use_ip" onclick="setOvpnExportDomain('212.227.143.16')" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از IP" type="button">
@@ -360,10 +360,10 @@
 </div>
 </div>
 <div>
-<label class="form-label" style="font-size: 12px; margin-bottom: 6px;">جایگذاری اکانت ردیوس:</label>
+<label class="form-label" data-i18n="ovpn_place_radius_account" style="font-size: 12px; margin-bottom: 6px;">جایگذاری اکانت ردیوس:</label>
 <select class="form-input" id="ovpn-export-user-select" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
-<option selected="" value="">ورود دستی (بدون ذخیره کاربر در کانفیگ)</option>
-<option value="NPU">کاربر پیش‌فرض ردیوس (NPU)</option>
+<option data-i18n="ovpn_manual_login_without_saving_user" selected="" value="">ورود دستی (بدون ذخیره کاربر در کانفیگ)</option>
+<option data-i18n="ovpn_radius_default_user_npu" value="NPU">کاربر پیش‌فرض ردیوس (NPU)</option>
 </select>
 </div>
 </div>
@@ -371,30 +371,30 @@
 <div style="display: flex; gap: 16px; flex-wrap: wrap; background: var(--bg-surface); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-glow); margin-bottom: 18px;">
 <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
 <input checked="" id="ovpn-export-bypass-dpi" type="checkbox"/>
-<span><span>رفع قطعی بسته‌ها (</span> <code>mssfix 1360</code>)</span>
+<span>رفع قطعی بسته‌ها (<code>mssfix 1360</code>)</span>
 </label>
 <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
 <input checked="" id="ovpn-export-dns-leak" type="checkbox"/>
-<span><span>مسدودسازی نشت DNS (</span> <code>block-outside-dns</code>)</span>
+<span>مسدودسازی نشت DNS (<code>block-outside-dns</code>)</span>
 </label>
 <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
 <input id="ovpn-export-xor" type="checkbox"/>
-<span>فعال‌سازی اسکرامبلر هدر (Scramble XOR)</span>
-<span id="badge-xor-not-installed-export" style="font-size: 11px; color: #ef4444; font-weight: 600;">(نیازمند نصب پچ)</span>
+<span data-i18n="ovpn_activation_header_scrambler_scramble_xor">فعال‌سازی اسکرامبلر هدر (Scramble XOR)</span>
+<span data-i18n="ovpn_item_20" id="badge-xor-not-installed-export" style="font-size: 11px; color: #ef4444; font-weight: 600;">(نیازمند نصب پچ)</span>
 </label>
 <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
 <input id="ovpn-export-udpspeeder" type="checkbox"/>
-<span>شتاب‌دهنده بسته‌ها (UDPspeeder FEC)</span>
-<span id="badge-udp-not-installed-export" style="font-size: 11px; color: #ef4444; font-weight: 600; display: none;">(نیازمند نصب پچ)</span>
+<span data-i18n="ovpn_packet_accelerator_udpspeeder_fec">شتاب‌دهنده بسته‌ها (UDPspeeder FEC)</span>
+<span data-i18n="ovpn_item_20" id="badge-udp-not-installed-export" style="font-size: 11px; color: #ef4444; font-weight: 600; display: none;">(نیازمند نصب پچ)</span>
 </label>
 </div>
 <!-- Action Download & Copy Buttons -->
 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
 <button class="btn btn-primary" onclick="downloadCustomOvpnProfile()" style="flex: 1; padding: 12px 20px; font-size: 14px; background: #4f46e5;" type="button">
-<i class="btn-icon" data-lucide="download"></i> <span>دانلود مستقیم فایل کانفیگ (.ovpn)</span>
+<i class="btn-icon" data-lucide="download"></i> <span data-i18n="ovpn_direct_download_config_file_ovpn">دانلود مستقیم فایل کانفیگ (.ovpn)</span>
 </button>
 <button class="btn btn-secondary" data-i18n-title="ovpn_copy_config_text" onclick="copyOvpnProfileContent()" style="padding: 12px 22px; font-size: 13.5px;" title="کپی متن کانفیگ" type="button">
-<i class="btn-icon" data-lucide="copy"></i> <span>کپی متن کانفیگ در کلیپ‌بورد</span>
+<i class="btn-icon" data-lucide="copy"></i> <span data-i18n="ovpn_item_4">کپی متن کانفیگ در کلیپ‌بورد</span>
 </button>
 </div>
 </div>
@@ -405,15 +405,15 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="smartphone" style="width:20px; height:20px; color:#059669;"></i>
-<h4 style="font-size:14px; font-weight:700; margin:0; color:#047857;">اندروید و آیفون (OpenVPN Connect)</h4>
+<h4 data-i18n="ovpn_android_iphone_openvpn_connect" style="font-size:14px; font-weight:700; margin:0; color:#047857;">اندروید و آیفون (OpenVPN Connect)</h4>
 </div>
-<p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+<p data-i18n-html="elem_tab_openvpn_32" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             اپلیکیشن رسمی <strong>OpenVPN Connect</strong> را از گوگل‌پلی یا اپ‌استور نصب کرده و فایل <code>.ovpn</code> دانلود شده را در آن ایمپورت (Import) کنید:
                         </p>
 <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
 <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
-<div>۱. فایل دانلود شده را باز کرده و با OpenVPN Connect اجرا کنید.</div>
-<div><span>۲. یوزرنیم</span> <code>NPU</code> و رمز عبور <code>56226500</code> را وارد کرده و Connect را بزنید.</div>
+<div data-i18n="ovpn_openvpn_connect">۱. فایل دانلود شده را باز کرده و با OpenVPN Connect اجرا کنید.</div>
+<div data-i18n-html="elem_tab_openvpn_33">۲. یوزرنیم <code>NPU</code> و رمز عبور <code>56226500</code> را وارد کرده و Connect را بزنید.</div>
 </div>
 </div>
 </div>
@@ -423,15 +423,15 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
-<h4 style="font-size:14px; font-weight:700; margin:0; color:#0369a1;">ویندوز و مک (Windows &amp; macOS)</h4>
+<h4 data-i18n="ovpn_windows_macos" style="font-size:14px; font-weight:700; margin:0; color:#0369a1;">ویندوز و مک (Windows &amp; macOS)</h4>
 </div>
-<p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+<p data-i18n-html="elem_tab_openvpn_34" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             در ویندوز با نرم‌افزار رسمی <strong>OpenVPN GUI</strong> و در سیستم‌عامل مک با نرم‌افزار <strong>Tunnelblick</strong>:
                         </p>
 <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
 <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
-<div><span>۱. فایل</span> <code>.ovpn</code> را درون پوشه <code>config</code> کلاینت قرار دهید.</div>
-<div>۲. روی آیکون برنامه در تسک‌بار راست کلیک کرده و Connect را انتخاب نمایید.</div>
+<div data-i18n-html="elem_tab_openvpn_35">۱. فایل <code>.ovpn</code> را درون پوشه <code>config</code> کلاینت قرار دهید.</div>
+<div data-i18n="ovpn_2_right_click_program_icon">۲. روی آیکون برنامه در تسک‌بار راست کلیک کرده و Connect را انتخاب نمایید.</div>
 </div>
 </div>
 </div>
@@ -441,7 +441,7 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="terminal" style="width:20px; height:20px; color:#4f46e5;"></i>
-<h4 style="font-size:14px; font-weight:700; margin:0; color:#4338ca;">اتصال مستقیم در لینوکس (Linux CLI)</h4>
+<h4 data-i18n="ovpn_direct_connection_linux_linux_cli" style="font-size:14px; font-weight:700; margin:0; color:#4338ca;">اتصال مستقیم در لینوکس (Linux CLI)</h4>
 </div>
 <p data-i18n-html="elem_tab_openvpn_36" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             اجرای تک‌خطی بدون نیاز به واسط گرافیکی با بسته‌ی <code>openvpn</code>:
@@ -451,7 +451,7 @@
                                 sudo openvpn --config MHPanel-OpenVPN.ovpn
                             </div>
 <button class="btn btn-secondary btn-sm" onclick="copyOvpnCliCommand()" style="width:100%; margin-top:8px; font-size:11.5px;" type="button">
-<i class="btn-icon" data-lucide="copy"></i> <span>کپی دستور اتصال در لینوکس</span>
+<i class="btn-icon" data-lucide="copy"></i> <span data-i18n="ovpn_item_5">کپی دستور اتصال در لینوکس</span>
 </button>
 </div>
 </div>
@@ -463,19 +463,19 @@
 <div class="config-header" style="margin-bottom: 20px;">
 <div>
 <h3 class="config-title">
-<i data-lucide="users" style="color: #f59e0b; width: 20px; height: 20px;"></i> <span>کاربران و اکانت‌های OpenVPN</span>
+<i data-lucide="users" style="color: #f59e0b; width: 20px; height: 20px;"></i> <span data-i18n="ovpn_openvpn_users_accounts">کاربران و اکانت‌های OpenVPN</span>
 </h3>
 <p data-i18n-html="elem_tab_openvpn_37" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
                         مدیریت مستقیم اکانت‌های OpenVPN و FreeRADIUS. ساخت کاربر جدید، کنترل مصرف و دانلود مستقیم فایل <code>.ovpn</code> آماده بدون نیاز به مراجعه به بخش عمومی کاربران.
                     </p>
 </div>
 <button class="btn" onclick="showAddOvpnModal()" style="width:auto; padding:8px 16px; font-size:12px; background: #f59e0b;" type="button">
-<i class="btn-icon" data-lucide="user-plus"></i> <span>کاربر محلی جدید</span>
+<i class="btn-icon" data-lucide="user-plus"></i> <span data-i18n="ovpn_item_12">کاربر محلی جدید</span>
 </button>
 </div>
 <!-- Client list container -->
 <div class="openvpn-client-list" id="ovpn-clients">
-<div style="text-align:center; padding:20px; color:var(--text-muted);">در حال دریافت لیست کاربران...</div>
+<div data-i18n="ovpn_getting_list_users" style="text-align:center; padding:20px; color:var(--text-muted);">در حال دریافت لیست کاربران...</div>
 </div>
 </div>
 </section>
