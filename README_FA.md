@@ -7,12 +7,23 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.0.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.1.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/مجوز-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/زبان‌ها-فارسی%20%7C%20انگلیسی%20%7C%20روسی-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 امکانات جدید در نسخه ۱.۱.۰ (New in v1.1.0)
+- 🛡️ **ردیابی پکت‌های خراب و دراپ تانل‌ها (Tunnel Packet Tamper & Drop Shield):** پایش بلادرنگ نرخ افت فیزیکی و تانلی اینترفیس‌ها و پکت‌های مشکوک تزریق RST فایروال DPI.
+- 🧪 **آزمایشگاه سنجش سازگاری تانل‌ها (Tunnel Compatibility Lab):** بررسی و پروب همزمان ۱۲ پروتکل تونل بین سرور مبدا و مقصد همراه با نمره سازگاری و عیب‌یابی.
+- 📊 **مانیتورینگ ترافیک و تفکیک دانلود/آپلود ردیوس:** نمایش بصری گیج مصرف با نوار دورنگ، تفکیک سهمیه‌های دانلود و آپلود به سبک یوزر منیجر میکروتیک.
+- ⚡ **کنترل پهنای باند و سرعت (MikroTik Rate-Limiting):** کنترل سرعت کلاینت‌ها (مثل `10M/10M`) بر بستر اتریبیوت‌های استاندارد FreeRADIUS.
+- 🌐 **رادار چندکشوره شبکه:** ارزیابی پورت‌ها و تاخیر برای ایران، روسیه، شبکه جهانی، آلمان و ترکیه با تطبیق خودکار زبان.
+- 🎨 **شخصی‌سازی و لوگوی صفحه ساب:** آپلود لوگو، تنظیم نام برند، پیام اعلان، پالت رنگ و لینک‌های پشتیبانی.
+
 
 ---
 

@@ -29,9 +29,9 @@
         --color-primary-glow: rgba(99, 102, 241, 0.35);
         --color-secondary: #38bdf8;
         --color-secondary-glow: rgba(56, 189, 248, 0.3);
-        --text-main: #f8fafc;
-        --text-muted: #94a3b8;
-        --text-dim: #64748b;
+        --text-main: #ffffff;
+        --text-muted: #e2e8f0;
+        --text-dim: #cbd5e1;
     }
 
     [data-theme="dark"] body,
@@ -232,16 +232,36 @@
     [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 {
         color: #f8fafc !important;
     }
-    [data-theme="dark"] .stat-label,
-    [data-theme="dark"] .stat-meta {
-        color: #94a3b8 !important;
+    [data-theme="dark"] .stat-label {
+        color: #cbd5e1 !important;
     }
-    [data-theme="dark"] [style*="color: #0f172a" i], [data-theme="dark"] [style*="color:#0f172a" i] {
+    [data-theme="dark"] .stat-meta {
         color: #f8fafc !important;
     }
+    [data-theme="dark"] [style*="color: #0f172a" i], [data-theme="dark"] [style*="color:#0f172a" i],
+    [data-theme="dark"] [style*="color: #1e293b" i], [data-theme="dark"] [style*="color:#1e293b" i],
+    [data-theme="dark"] [style*="color: #334155" i], [data-theme="dark"] [style*="color:#334155" i] {
+        color: #ffffff !important;
+    }
+    [data-theme="dark"] [style*="color: #475569" i], [data-theme="dark"] [style*="color:#475569" i],
     [data-theme="dark"] [style*="color: #64748b" i], [data-theme="dark"] [style*="color:#64748b" i],
-    [data-theme="dark"] [style*="color: #475569" i], [data-theme="dark"] [style*="color:#475569" i] {
-        color: #94a3b8 !important;
+    [data-theme="dark"] [style*="color: #94a3b8" i], [data-theme="dark"] [style*="color:#94a3b8" i] {
+        color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] .spec-item-head,
+    [data-theme="dark"] .spec-item-sub,
+    [data-theme="dark"] .proto-rate-label,
+    [data-theme="dark"] .proto-name-en,
+    [data-theme="dark"] .proto-total-metric,
+    [data-theme="dark"] .form-label,
+    [data-theme="dark"] .sec-pill-label {
+        color: #cbd5e1 !important;
+    }
+    [data-theme="dark"] .proto-name-fa,
+    [data-theme="dark"] .spec-item-value,
+    [data-theme="dark"] .proto-rate-value,
+    [data-theme="dark"] .sec-pill-val {
+        color: #ffffff !important;
     }
 
     /* Sidebar and Header in Dark Mode */

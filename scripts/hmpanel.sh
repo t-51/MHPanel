@@ -447,7 +447,7 @@ install_tunnel_tools() {
     # WSTunnel
     if [ ! -x /usr/local/bin/wstunnel ]; then
         echo "    Downloading WSTunnel..."
-        curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
+        curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.1.0/wstunnel_11.1.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
         chmod +x /usr/local/bin/wstunnel 2>/dev/null || true
         count_downloaded=$((count_downloaded + 1))
     fi

@@ -1111,13 +1111,20 @@
                         </div>
                     </div>
 
-                    <div class="proto-total-metric">
-                        <span>${tTotalExchanged}</span>
-                        <span class="proto-total-val">${totalBytesStr}</span>
+                    <div class="proto-total-metric" style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px dashed var(--border-glow); font-size:12px;">
+                        <span style="font-weight:700; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                            <i data-lucide="bar-chart-2" style="width:13px; height:13px; color:var(--color-primary);"></i>
+                            ${tTotalExchanged}
+                        </span>
+                        <span class="proto-total-val" style="font-size:13.5px; font-weight:800; color:var(--color-primary);">${totalBytesStr}</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:-6px;">
-                        <span>${tRxShort} ${rxBytesStr}</span>
-                        <span>${tTxShort} ${txBytesStr}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; padding:5px 10px; border-radius:6px; background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.12);">
+                        <span style="color:#059669; font-weight:700; display:flex; align-items:center; gap:3px;">
+                            <i data-lucide="arrow-down" style="width:12px; height:12px;"></i> ${tRxShort} ${rxBytesStr}
+                        </span>
+                        <span style="color:#0284c7; font-weight:700; display:flex; align-items:center; gap:3px;">
+                            <i data-lucide="arrow-up" style="width:12px; height:12px;"></i> ${tTxShort} ${txBytesStr}
+                        </span>
                     </div>
                 </div>
             `;
@@ -13116,10 +13123,12 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     setTimeout(() => {
         checkPanelUpdate(true);
     }, 4000);
-</script>
 
     // Background polling for tunnel alerts & tamper shield (Requirement 3)
     setTimeout(() => {
-        fetchTunnelAlerts();
-        setInterval(fetchTunnelAlerts, 60000);
+        if (typeof fetchTunnelAlerts === "function") {
+            fetchTunnelAlerts();
+            setInterval(fetchTunnelAlerts, 60000);
+        }
     }, 4000);
+</script>

@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.0.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.1.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
   <img src="https://img.shields.io/badge/Платформа-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Платформа">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Лицензия-MIT-emerald.svg?style=for-the-badge" alt="Лицензия">
@@ -52,7 +52,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.0.0)
+     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.1.0)
   ======================================================================
   [1]  Полная автоматическая установка (все протоколы и компоненты)
   [2]  Пошаговый мастер выборочной установки
