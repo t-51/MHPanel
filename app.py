@@ -178,8 +178,8 @@ PROTOCOL_DEFAULT_PORTS = {
     "vaydns": 5353,
     "slipstream": 5354,
     "hysteria2": 7443,
-    "trojan": 8443,
-    "naiveproxy": 8444,
+    "trojan": 12443,
+    "naiveproxy": 13443,
     "stuntls": 3478,
     "noizdns": 5355,
     "masterdnsvpn": 5356,
@@ -6409,7 +6409,7 @@ def api_trojan_config():
 
     if request.method == "POST":
         data = request.json or {}
-        port = int(data.get("port") or 8443)
+        port = int(data.get("port") or 12443)
         password = (data.get("password") or "mhpanel_trojan_secret").strip()
         sni = (data.get("sni") or domain).strip()
 
@@ -6442,7 +6442,7 @@ def api_trojan_config():
         subprocess.run(["systemctl", "restart", "aethervpn-trojan"], capture_output=True)
         return jsonify({"success": True})
 
-    port = 8443
+    port = 12443
     password = "mhpanel_trojan_secret"
     sni = domain
     if os.path.exists(cfg_file):
@@ -6450,7 +6450,7 @@ def api_trojan_config():
             with open(cfg_file, "r") as f:
                 d = json.load(f)
             inb = d.get("inbounds", [{}])[0]
-            port = int(inb.get("listen_port", 8443))
+            port = int(inb.get("listen_port", 12443))
             users = inb.get("users", [{}])
             if users:
                 password = users[0].get("password", password)
@@ -6481,7 +6481,7 @@ def api_naiveproxy_config():
 
     if request.method == "POST":
         data = request.json or {}
-        port = int(data.get("port") or 8444)
+        port = int(data.get("port") or 13443)
         username = (data.get("username") or "admin").strip()
         password = (data.get("password") or "mhpanel_naive_secret").strip()
         sni = (data.get("sni") or domain).strip()
@@ -6514,7 +6514,7 @@ def api_naiveproxy_config():
         subprocess.run(["systemctl", "restart", "aethervpn-naiveproxy"], capture_output=True)
         return jsonify({"success": True})
 
-    port = 8444
+    port = 13443
     username = "admin"
     password = "mhpanel_naive_secret"
     sni = domain
@@ -6523,7 +6523,7 @@ def api_naiveproxy_config():
             with open(cfg_file, "r") as f:
                 d = json.load(f)
             inb = d.get("inbounds", [{}])[0]
-            port = int(inb.get("listen_port", 8444))
+            port = int(inb.get("listen_port", 13443))
             users = inb.get("users", [{}])
             if users:
                 username = users[0].get("username", username)
