@@ -355,7 +355,7 @@
 <input class="form-input" data-i18n-placeholder="login_password" id="batch-rad-custom-pass" placeholder="رمز عبور" style="padding-left:14px;" type="text"/>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="modal_simultaneous_connection_limit">اتصال همزمان (Limit)</label>
 <input class="form-input" id="batch-rad-sim-use" max="100" min="1" style="padding-left:14px;" type="number" value="2"/>
@@ -365,8 +365,22 @@
 <input class="form-input" id="batch-rad-validity" min="0" style="padding-left:14px;" type="number" value="30"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_traffic_limit_gb">محدودیت ترافیک (GB)</label>
-<input class="form-input" data-i18n-placeholder="ssh_item_8" id="batch-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+<label class="form-label" data-i18n="rad_traffic_limit_gb">سقف کل حجم (GB)</label>
+<input class="form-input" data-i18n-placeholder="ssh_item_8" id="batch-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+<div class="form-group" style="margin: 0;">
+<label class="form-label">سقف دانلود (GB)</label>
+<input class="form-input" id="batch-rad-dl-limit" placeholder="پیش‌فرض پکیج" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label">سقف آپلود (GB)</label>
+<input class="form-input" id="batch-rad-ul-limit" placeholder="پیش‌فرض پکیج" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label">محدودیت سرعت (Rate Limit)</label>
+<input class="form-input" id="batch-rad-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; padding-left:12px; font-size:12px; direction:ltr;" type="text"/>
 </div>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 20px;">

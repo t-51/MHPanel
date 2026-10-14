@@ -206,29 +206,24 @@
 </form>
 </div>
 <!-- Users Interactive Table Card -->
-<div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
+<div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow); box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03);">
 <div style="overflow-x: auto;">
-<table id="radius-users-table" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+<table id="radius-users-table" class="rad-users-table">
 <thead>
-<tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
-<th style="padding: 14px 16px; width: 44px; text-align: center;">
+<tr>
+<th style="width: 44px; text-align: center;">
 <input class="rad-table-check" data-i18n-title="rad_select_all" id="check-select-all-rad" onchange="toggleSelectAllRadiusUsers(this.checked)" title="انتخاب همه" type="checkbox"/>
 </th>
-<th data-i18n="servers_user_label" style="padding: 14px 16px;">نام کاربری (Username)</th>
-<th data-i18n="login_password" style="padding: 14px 16px;">رمز عبور</th>
-<th data-i18n="rad_group_package" style="padding: 14px 16px;">گروه / پکیج</th>
-<th data-i18n="rad_col_used_traffic" style="padding: 14px 16px;">حجم مصرفی (آپلود / دانلود)</th>
-<th data-i18n="rad_col_limits" style="padding: 14px 16px;">سقف مجاز (Quota)</th>
-<th data-i18n="rad_col_bandwidth" style="padding: 14px 16px;">پهنای باند (Rate Limit)</th>
-<th data-i18n="rad_item_8" style="padding: 14px 16px;">اتصال فعال / همزمان</th>
-<th data-i18n="rad_expiration_timing" style="padding: 14px 16px;">انقضا / زمان‌بندی</th>
-<th data-i18n="wg_status" style="padding: 14px 16px; text-align: center;">وضعیت</th>
-<th data-i18n="servers_col_actions" style="padding: 14px 16px; text-align: center; width: 130px;">عملیات</th>
+<th style="min-width: 220px;" data-i18n="rad_col_user_identity">کاربر و مشخصات حساب</th>
+<th style="min-width: 260px;" data-i18n="rad_col_traffic_quotas">مصرف ترافیک و سهمیه‌ها (دانلود / آپلود)</th>
+<th style="min-width: 130px; text-align: center;" data-i18n="rad_col_bandwidth">پهنای باند (Rate Limit)</th>
+<th style="min-width: 140px;" data-i18n="rad_col_expiration_schedule">اعتبار و زمان‌بندی</th>
+<th style="min-width: 170px; text-align: center;" data-i18n="rad_col_sub_actions">لینک ساب و عملیات</th>
 </tr>
 </thead>
 <tbody id="radius-users-tbody">
 <tr>
-<td colspan="9" data-i18n="rad_item_11" style="text-align: center; padding: 40px; color: #94a3b8;">
+<td colspan="6" data-i18n="rad_item_11" style="text-align: center; padding: 40px; color: #94a3b8;">
                                     در حال بارگذاری کاربران ردیوس...
                                 </td>
 </tr>
