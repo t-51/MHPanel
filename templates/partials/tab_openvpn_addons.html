@@ -1,154 +1,137 @@
-<div class="tab-pane" id="tab-openvpn-addons">
-    <div style="display: flex; flex-direction: column; gap: 24px;">
-
-        <!-- Header / Status Banner -->
-        <div class="glass-card config-card" style="padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h2 style="display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
-                        <i data-lucide="puzzle" style="color: #f59e0b; width: 26px; height: 26px;"></i> <span data-i18n="ovpn_addons_title">افزونه‌ها و ابزارهای پیشرفته OpenVPN (Addons & Bypass Tools)</span>
-                    </h2>
-                    <p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.6;" data-i18n="ovpn_addon_plugins_traffic_masking_anti_dpi">
+<div class="tab-pane" data-i18n-html="elem_tab_openvpn_addons_38" id="tab-openvpn-addons">
+<div data-i18n-html="elem_tab_openvpn_addons_39" style="display: flex; flex-direction: column; gap: 24px;">
+<!-- Header / Status Banner -->
+<div class="glass-card config-card" style="padding: 24px;">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+<div>
+<h2 style="display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
+<i data-lucide="puzzle" style="color: #f59e0b; width: 26px; height: 26px;"></i> <span>افزونه‌ها و ابزارهای پیشرفته OpenVPN (Addons &amp; Bypass Tools)</span>
+</h2>
+<p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.6;">
                         افزونه‌های پنهان‌سازی ترافیک (Anti-DPI Scramble)، شتاب‌دهنده بسته‌های گمشده (UDPspeeder FEC) و مدیریت سرویس‌های OpenVPN.
                     </p>
-                </div>
-                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="viewAddonLogs()" style="padding: 8px 14px; font-size: 13px;">
-                        <i data-lucide="file-text" class="btn-icon"></i> <span data-i18n="ovpn_addon_view_installation_logs">مشاهده لاگ‌های نصب</span>
-                    </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="restartOpenvpnServices()" style="padding: 8px 14px; font-size: 13px;">
-                        <i data-lucide="refresh-cw" class="btn-icon"></i> <span data-i18n="ovpn_addon_restart_openvpn_udp_tcp">راه‌اندازی مجدد OpenVPN (UDP & TCP)</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Service Status Indicators -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.06);">
-                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="ovpn_addon_openvpn_service_udp_1194">سرویس OpenVPN (UDP 1194)</div>
-                        <div id="ovpn-status-udp-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #059669;" data-i18n="proto_active_badge">فعال و آنلاین</div>
-                    </div>
-                    <span id="ovpn-dot-udp" class="status-dot active"></span>
-                </div>
-
-                <div style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="ovpn_addon_openvpn_service_tcp_1194">سرویس OpenVPN (TCP 1194)</div>
-                        <div id="ovpn-status-tcp-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #0284c7;" data-i18n="proto_active_badge">فعال و آنلاین</div>
-                    </div>
-                    <span id="ovpn-dot-tcp" class="status-dot active"></span>
-                </div>
-
-                <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="ovpn_addon_freeradius_authentication">احراز هویت FreeRADIUS</div>
-                        <div style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #4f46e5;" data-i18n="ovpn_addon_pam_radius">متصل (PAM RADIUS)</div>
-                    </div>
-                    <i data-lucide="shield-check" style="color: #4f46e5; width: 20px; height: 20px;"></i>
-                </div>
-
-                <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="ovpn_addon_udpspeeder_accelerator">شتاب‌دهنده UDPspeeder</div>
-                        <div id="ovpn-status-udpspeeder-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px;" data-i18n="checking_status">در حال بررسی...</div>
-                    </div>
-                    <span id="ovpn-dot-udpspeeder" class="status-dot"></span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Addons Grid -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-
-            <!-- 1. OpenVPN Scramble / XOR Patch -->
-            <div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i data-lucide="shuffle" style="color: #f59e0b; width: 22px; height: 22px;"></i>
-                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+</div>
+<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+<button class="btn btn-secondary btn-sm" onclick="viewAddonLogs()" style="padding: 8px 14px; font-size: 13px;" type="button">
+<i class="btn-icon" data-lucide="file-text"></i> <span>مشاهده لاگ‌های نصب</span>
+</button>
+<button class="btn btn-secondary btn-sm" onclick="restartOpenvpnServices()" style="padding: 8px 14px; font-size: 13px;" type="button">
+<i class="btn-icon" data-lucide="refresh-cw"></i> <span>راه‌اندازی مجدد OpenVPN (UDP &amp; TCP)</span>
+</button>
+</div>
+</div>
+<!-- Service Status Indicators -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.06);">
+<div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+<div>
+<div style="font-size: 12px; color: var(--text-muted);">سرویس OpenVPN (UDP 1194)</div>
+<div id="ovpn-status-udp-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #059669;">فعال و آنلاین</div>
+</div>
+<span class="status-dot active" id="ovpn-dot-udp"></span>
+</div>
+<div style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+<div>
+<div style="font-size: 12px; color: var(--text-muted);">سرویس OpenVPN (TCP 1194)</div>
+<div id="ovpn-status-tcp-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #0284c7;">فعال و آنلاین</div>
+</div>
+<span class="status-dot active" id="ovpn-dot-tcp"></span>
+</div>
+<div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+<div>
+<div style="font-size: 12px; color: var(--text-muted);">احراز هویت FreeRADIUS</div>
+<div style="font-weight: 700; font-size: 14px; margin-top: 2px; color: #4f46e5;">متصل (PAM RADIUS)</div>
+</div>
+<i data-lucide="shield-check" style="color: #4f46e5; width: 20px; height: 20px;"></i>
+</div>
+<div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
+<div>
+<div style="font-size: 12px; color: var(--text-muted);">شتاب‌دهنده UDPspeeder</div>
+<div id="ovpn-status-udpspeeder-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px;">در حال بررسی...</div>
+</div>
+<span class="status-dot" id="ovpn-dot-udpspeeder"></span>
+</div>
+</div>
+</div>
+<!-- Addons Grid -->
+<div data-i18n-html="elem_tab_openvpn_addons_40" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+<!-- 1. OpenVPN Scramble / XOR Patch -->
+<div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+<div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<i data-lucide="shuffle" style="color: #f59e0b; width: 22px; height: 22px;"></i>
+<h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
                                 OpenVPN XOR Scramble (Anti-DPI)
                             </h3>
-                        </div>
-                        <span id="badge-addon-xor" class="sidebar-badge" style="background: rgba(0,0,0,0.06); color: var(--text-muted); font-size: 11px;" data-i18n="checking_status">در حال بررسی...</span>
-                    </div>
-                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;" data-i18n="ovpn_addon_patch_hide_handshake_codes_xor">
+</div>
+<span class="sidebar-badge" id="badge-addon-xor" style="background: rgba(0,0,0,0.06); color: var(--text-muted); font-size: 11px;">در حال بررسی...</span>
+</div>
+<p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
                         پچ پنهان‌سازی کدهای دست‌دهی با کلید XOR (برگرفته از Tunnelblick). این پچ الگوهای هدر OpenVPN را به طور کامل تغییر داده و سیستم‌های فیلترینگ DPI (همراه اول، ایرانسل و...) را دور می‌زند.
                     </p>
-
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
-                        <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="ovpn_addon_scramble_keyword">کلید اسکرامبل (Scramble Keyword):</label>
-                        <input type="text" id="ovpn-addon-xor-key" class="form-input" value="openvpn_xor" placeholder="openvpn_xor" style="direction: ltr; font-family: monospace; font-size: 13px;">
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">این کلید عیناً در فایل کانفیگ کلاینت به صورت <code>scramble obfuscate &lt;key&gt;</code> قرار می‌گیرد.</div>
-                    </div>
-                </div>
-
-                <div id="actions-addon-xor" style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-primary" style="flex: 1; padding: 8px; background: #0284c7;" onclick="installOvpnAddon('xor')" id="btn-addon-xor">
-                        <i data-lucide="download" class="btn-icon"></i> <span data-i18n="ovpn_addon_installing_xor_patch_compilation_s">نصب پچ XOR (کامپایل سورس)</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 2. UDPspeeder -->
-            <div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i data-lucide="zap" style="color: #8b5cf6; width: 22px; height: 22px;"></i>
-                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="ovpn_addon_udpspeeder_fec">
+<div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<label class="form-label" style="font-size: 12px; margin-bottom: 4px;">کلید اسکرامبل (Scramble Keyword):</label>
+<input class="form-input" id="ovpn-addon-xor-key" placeholder="openvpn_xor" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="openvpn_xor"/>
+<div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;"><span>این کلید عیناً در فایل کانفیگ کلاینت به صورت</span> <code>scramble obfuscate &lt;key&gt;</code> قرار می‌گیرد.</div>
+</div>
+</div>
+<div id="actions-addon-xor" style="display: flex; gap: 8px;">
+<button class="btn btn-primary" id="btn-addon-xor" onclick="installOvpnAddon('xor')" style="flex: 1; padding: 8px; background: #0284c7;" type="button">
+<i class="btn-icon" data-lucide="download"></i> <span>نصب پچ XOR (کامپایل سورس)</span>
+</button>
+</div>
+</div>
+<!-- 2. UDPspeeder -->
+<div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+<div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<i data-lucide="zap" style="color: #8b5cf6; width: 22px; height: 22px;"></i>
+<h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
                                 UDPspeeder (FEC - کاهش پکت‌لاس)
                             </h3>
-                        </div>
-                        <span id="badge-addon-udpspeeder" class="sidebar-badge" style="font-size: 11px;" data-i18n="checking_status">در حال بررسی...</span>
-                    </div>
-                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;" data-i18n="ovpn_addon_forward_error_correction_openvpn_u">
+</div>
+<span class="sidebar-badge" id="badge-addon-udpspeeder" style="font-size: 11px;">در حال بررسی...</span>
+</div>
+<p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
                         سیستم اصلاح خطای رو به جلو (Forward Error Correction). ترافیک OpenVPN UDP را روی پورت ۴۰۰۰ با تزریق بسته‌های بازیابی عبور داده و افت سرعت یا لگ شدید در بازی‌ها و تماس‌های اینترنتی را از بین می‌برد.
                     </p>
-
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-                        <div>📍 پورت سرور: <strong>UDP 4000</strong> ➔ پورت مقصد: <strong>1194</strong></div>
-                        <div>⚡ نسبت پیش‌فرض بازیابی: <strong>fec 20:10</strong> (۳۳٪ ترافیک اضافی برای جبران پکت‌لاس)</div>
-                    </div>
-                </div>
-
-                <div id="actions-addon-udpspeeder" style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-primary" style="flex: 1; padding: 8px; background: #8b5cf6;" onclick="installOvpnAddon('udpspeeder')" id="btn-addon-udpspeeder">
-                        <i data-lucide="download" class="btn-icon"></i> <span data-i18n="ovpn_addon_install_udpspeeder">نصب UDPspeeder</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- 3. Rosenpass -->
-            <div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <i data-lucide="shield-check" style="color: #10b981; width: 22px; height: 22px;"></i>
-                            <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="ovpn_addon_rosenpass">
+<div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+<div><span>📍 پورت سرور:</span> <strong>UDP 4000</strong> ➔ پورت مقصد: <strong>1194</strong></div>
+<div><span>⚡ نسبت پیش‌فرض بازیابی:</span> <strong>fec 20:10</strong> (۳۳٪ ترافیک اضافی برای جبران پکت‌لاس)</div>
+</div>
+</div>
+<div id="actions-addon-udpspeeder" style="display: flex; gap: 8px;">
+<button class="btn btn-primary" id="btn-addon-udpspeeder" onclick="installOvpnAddon('udpspeeder')" style="flex: 1; padding: 8px; background: #8b5cf6;" type="button">
+<i class="btn-icon" data-lucide="download"></i> <span>نصب UDPspeeder</span>
+</button>
+</div>
+</div>
+<!-- 3. Rosenpass -->
+<div class="glass-card config-card" style="padding: 22px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px;">
+<div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<i data-lucide="shield-check" style="color: #10b981; width: 22px; height: 22px;"></i>
+<h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
                                 Rosenpass (لایه ضد کوانتوم)
                             </h3>
-                        </div>
-                        <span id="badge-addon-rosenpass" class="sidebar-badge" style="font-size: 11px;" data-i18n="checking_status">در حال بررسی...</span>
-                    </div>
-                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;" data-i18n="ovpn_addon_post_quantum_key_exchange_protocol">
+</div>
+<span class="sidebar-badge" id="badge-addon-rosenpass" style="font-size: 11px;">در حال بررسی...</span>
+</div>
+<p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 14px;">
                         پروتکل تبادل کلید پساکوانتومی (Post-Quantum Key Exchange) برای مقاومت ۱۰۰٪ در برابر استراق‌سمع و حملات رمزگشایی کامپیوترهای کوانتومی نسل آینده.
                     </p>
-
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;" data-i18n="ovpn_addon_openvpn_wireguard">
+<div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
                         🛡️ قابل ادغام به عنوان لایه محافظت تبادل کلید متقارن روی تونل‌های OpenVPN و WireGuard.
                     </div>
-                </div>
-
-                <div id="actions-addon-rosenpass" style="display: flex; gap: 8px;">
-                    <button type="button" class="btn btn-primary" style="flex: 1; padding: 8px; background: #10b981;" onclick="installOvpnAddon('rosenpass')" id="btn-addon-rosenpass">
-                        <i data-lucide="download" class="btn-icon"></i> <span data-i18n="ovpn_addon_install_rosenpass_binary">نصب باینری Rosenpass</span>
-                    </button>
-                </div>
-            </div>
-
-        </div>
-
-    </div>
+</div>
+<div id="actions-addon-rosenpass" style="display: flex; gap: 8px;">
+<button class="btn btn-primary" id="btn-addon-rosenpass" onclick="installOvpnAddon('rosenpass')" style="flex: 1; padding: 8px; background: #10b981;" type="button">
+<i class="btn-icon" data-lucide="download"></i> <span>نصب باینری Rosenpass</span>
+</button>
+</div>
+</div>
+</div>
+</div>
 </div>

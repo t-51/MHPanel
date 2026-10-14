@@ -158,6 +158,14 @@
         });
 
         const dict = I18N_TRANSLATIONS[lang];
+        // HTML elements
+        document.querySelectorAll("[data-i18n-html]").forEach(el => {
+            const key = el.getAttribute("data-i18n-html");
+            if (dict && dict[key]) {
+                el.innerHTML = dict[key];
+            }
+        });
+
         document.querySelectorAll("[data-i18n]").forEach(el => {
             const key = el.getAttribute("data-i18n");
             if (dict[key]) {
@@ -224,7 +232,8 @@
         const text = document.getElementById("toast-message");
         
         toast.className = "toast active " + type;
-        text.innerText = message;
+        const transMsg = (typeof window.t === "function") ? window.t(message, message) : message;
+        text.innerText = transMsg;
         
         let iconName = "info";
         if (type === "success") iconName = "check-circle";
@@ -244,7 +253,7 @@
     function toggleLoading(show, text = "Loading...") {
         const overlay = document.getElementById("loading-overlay");
         const overlayText = document.getElementById("loading-text");
-        overlayText.innerText = text;
+        overlayText.innerText = (text && typeof window.t === "function") ? window.t(text, text) : (text || "Loading...");
         if (show) {
             overlay.classList.add("active");
         } else {
@@ -539,6 +548,7 @@
     }
 
     function copyToClipboard(text, successMsg = "کپی شد") {
+        if (typeof window.t === "function") successMsg = window.t(successMsg);
         if (!text) return;
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text).then(() => {
@@ -1280,7 +1290,7 @@
             }
 
             const pTitle = (lang === 'fa' ? (meta.faTitle || meta.title) : (lang === 'ru' ? (meta.ruTitle || meta.title) : meta.title));
-            const pSub = (lang === 'fa' ? meta.title : (lang === 'ru' ? (meta.title || meta.ruTitle) : (meta.faTitle || '')));
+            const pSub = (lang === 'fa' ? meta.title : (lang === 'ru' ? (meta.title || meta.ruTitle) : (meta.category ? meta.category.toUpperCase() : '')));
             const pDesc = (lang === 'fa' ? (meta.desc_fa || meta.desc) : (lang === 'ru' ? (meta.desc_ru || meta.desc_en || meta.desc) : (meta.desc_en || meta.desc)));
 
             card.innerHTML = `
@@ -1408,10 +1418,11 @@
         const okBtn = document.getElementById("confirm-modal-ok-btn");
         const cancelBtn = document.getElementById("confirm-modal-cancel-btn");
 
-        if (titleEl) titleEl.innerText = title || "تایید عملیات";
-        if (subtitleEl) subtitleEl.innerText = subtitle || "لطفاً تصمیم خود را بررسی و تایید کنید";
-        if (bodyEl) bodyEl.innerHTML = message;
-        if (cancelBtn) cancelBtn.innerText = cancelText;
+        if (titleEl) titleEl.innerText = title ? (window.t ? window.t(title, title) : title) : (window.t ? window.t("تایید عملیات") : "تایید عملیات");
+        if (subtitleEl) subtitleEl.innerText = subtitle ? (window.t ? window.t(subtitle, subtitle) : subtitle) : "";
+        if (bodyEl) bodyEl.innerHTML = (window.t ? window.t(message, message) : message);
+        if (cancelBtn) cancelBtn.innerText = cancelText ? (window.t ? window.t(cancelText, cancelText) : cancelText) : "";
+        if (okBtn) okBtn.innerText = confirmText ? (window.t ? window.t(confirmText, confirmText) : confirmText) : "";
 
         if (isDanger) {
             if (iconWrap) iconWrap.style.background = "rgba(239, 68, 68, 0.12)";
@@ -1423,7 +1434,7 @@
                 okBtn.style.background = "#dc2626";
                 okBtn.style.borderColor = "#dc2626";
                 okBtn.style.color = "#ffffff";
-                okBtn.innerText = confirmText;
+                okBtn.innerText = confirmText ? (window.t ? window.t(confirmText, confirmText) : confirmText) : "";
             }
         } else {
             if (iconWrap) iconWrap.style.background = "rgba(16, 185, 129, 0.12)";
@@ -1435,7 +1446,7 @@
                 okBtn.style.background = "var(--color-primary)";
                 okBtn.style.borderColor = "var(--color-primary)";
                 okBtn.style.color = "#ffffff";
-                okBtn.innerText = confirmText;
+                okBtn.innerText = confirmText ? (window.t ? window.t(confirmText, confirmText) : confirmText) : "";
             }
         }
 
@@ -1548,7 +1559,7 @@
         if (uninstalled.length === 0) {
             list.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--color-emerald); padding: 16px;">
                 <i data-lucide="check-circle" style="width: 24px; height: 24px; margin-bottom: 6px;"></i>
-                <div>تمامی پروتکل‌های موجود بر روی سرور نصب شده‌اند!</div>
+                <div data-i18n="batch_all_installed">${window.t("all_available_protocols_installed_on_server", "تمامی پروتکل‌های موجود بر روی سرور نصب شده‌اند!")}</div>
             </div>`;
         } else {
             uninstalled.forEach(p => {
@@ -1564,7 +1575,7 @@
                         <input type="checkbox" class="batch-proto-cb" value="${p.name}" checked>
                         <div>
                             <strong style="font-size:13px; color:var(--text-main);">${meta.title}</strong>
-                            <div style="font-size:11px; color:var(--text-muted);">${meta.faTitle}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">${(lang === "fa" ? (meta.faTitle || meta.title) : (lang === "ru" ? (meta.ruTitle || meta.title) : (meta.enTitle || meta.title || meta.category.toUpperCase())))}</div>
                         </div>
                     </div>
                     <span style="font-size:11px; background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono'; color:#475569;">:${p.default_port}</span>
@@ -2373,7 +2384,7 @@
                 <tr>
                     <td colspan="9" style="text-align: center; padding: 40px; color: #94a3b8;">
                         <i data-lucide="user-x" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.6;"></i>
-                        <p style="margin: 0; font-size: 13.5px;">هیچ کاربری با مشخصات فیلترشده یافت نشد.</p>
+                        <p style="margin: 0; font-size: 13.5px;">${window.t("common_no_users_found")}</p>
                     </td>
                 </tr>
             `;
@@ -2396,21 +2407,21 @@
             let connBadge = "";
             if (onlineCount > 0) {
                 connBadge = `<span style="display:inline-flex; align-items:center; gap:5px; font-weight:700; color:#059669; background:rgba(16,185,129,0.1); padding:3px 9px; border-radius:6px; font-size:12px;">
-                    <span class="status-dot active"></span> ${onlineCount} / ${simLimit} اتصال
+                    <span class="status-dot active"></span> ${onlineCount} / ${simLimit} ${window.t("common_connections")}
                 </span>`;
             } else {
                 connBadge = `<span style="display:inline-flex; align-items:center; gap:5px; color:#64748b; background:#f1f5f9; padding:3px 9px; border-radius:6px; font-size:12px;">
-                    0 / ${simLimit} اتصال
+                    0 / ${simLimit} ${window.t("common_connections")}
                 </span>`;
             }
 
             // Status badge
             const statusHtml = isActive 
                 ? `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #059669; display:inline-flex; align-items:center; gap:4px;">
-                    <span class="status-dot active"></span> فعال
+                    <span class="status-dot active"></span> ${window.t("common_active")}
                    </span>`
                 : `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(239, 68, 68, 0.12); color: #dc2626; display:inline-flex; align-items:center; gap:4px;">
-                    <span class="status-dot inactive"></span> ${isExpired ? 'منقضی' : 'مسدود'}
+                    <span class="status-dot inactive"></span> ${isExpired ? window.t('common_expired') : window.t('common_disabled')}
                    </span>`;
 
             // Group badge
@@ -2420,7 +2431,7 @@
             </span>`;
 
             // Traffic
-            const trafficText = (u.limit_gb && u.limit_gb > 0) ? `${u.limit_gb} GB` : '<span style="color:#64748b;">نامحدود</span>';
+            const trafficText = (u.limit_gb && u.limit_gb > 0) ? `${u.limit_gb} GB` : '<span style="color:#64748b;">${window.t("common_unlimited")}</span>';
 
             // Schedule info (Login-Time badge)
             let schedText = "24/7";
@@ -2448,7 +2459,7 @@
                             <span style="background: #f8fafc; border:1px solid #e2e8f0; padding: 2px 7px; border-radius: 5px; font-size:12px; letter-spacing: ${isRevealed ? 'normal' : '2px'};">
                                 ${isRevealed ? u.password : '••••••'}
                             </span>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRevealRadiusPassword('${uname}')" style="padding:2px 6px; height:24px; width:auto; border:none; background:transparent;" title="${isRevealed ? 'مخفی‌سازی رمز' : 'نمایش رمز'}">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRevealRadiusPassword('${uname}')" style="padding:2px 6px; height:24px; width:auto; border:none; background:transparent;" title="${isRevealed ? window.t('common_hide_password') : window.t('common_show_password')}">
                                 <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" style="width:13px; height:13px; color:#64748b;"></i>
                             </button>
                         </div>
@@ -2457,25 +2468,25 @@
                     <td style="padding: 12px 16px;">${connBadge}</td>
                     <td style="padding: 12px 16px; font-family:'JetBrains Mono'; font-weight:600;">${trafficText}</td>
                     <td style="padding: 12px 16px;">
-                        <div style="font-size:12px; font-family:'JetBrains Mono'; color:#0f172a;">${u.expire_date || '<span style="color:#64748b;">بدون انقضا</span>'}</div>
-                        <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">ساعت: ${schedText}</div>
+                        <div style="font-size:12px; font-family:'JetBrains Mono'; color:#0f172a;">${u.expire_date || '<span style="color:#64748b;">${window.t("common_no_expiration")}</span>'}</div>
+                        <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">${window.t("common_time_label")} ${schedText}</div>
                     </td>
                     <td style="padding: 12px 16px; text-align: center;">${statusHtml}</td>
                     <td style="padding: 12px 16px; text-align: center;">
                         <div style="display: inline-flex; gap: 4px; align-items: center;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRadiusUser('${uname}')" style="padding: 5px 8px; width:auto; color: ${isActive ? '#dc2626' : '#10b981'};" title="${isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی'}">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRadiusUser('${uname}')" style="padding: 5px 8px; width:auto; color: ${isActive ? '#dc2626' : '#10b981'};" title="${isActive ? window.t('common_deactivate') : window.t('common_activate')}">
                                 <i data-lucide="${isActive ? 'power' : 'check'}" style="width:13px; height:13px;"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="changeRadiusUserPassword('${uname}')" style="padding: 5px 8px; width:auto;" title="تغییر رمز عبور">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="changeRadiusUserPassword('${uname}')" style="padding: 5px 8px; width:auto;" title="${window.t('common_change_password')}">
                                 <i data-lucide="key" style="width:13px; height:13px;"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="editSingleRadiusUser('${uname}')" style="padding: 5px 8px; width:auto;" title="ویرایش کاربر">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="editSingleRadiusUser('${uname}')" style="padding: 5px 8px; width:auto;" title="${window.t('common_edit_user')}">
                                 <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="showRadiusUserSubModal('${uname}')" style="padding: 5px 8px; width:auto; color: #6366f1;" title="لینک ساب و QR Code کاربر">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="showRadiusUserSubModal('${uname}')" style="padding: 5px 8px; width:auto; color: #6366f1;" title="${window.t('common_user_sub_link')}">
                                 <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
                             </button>
-                            <button type="button" class="btn-proto-delete" onclick="deleteSingleRadiusUser('${uname}')" style="padding: 5px 8px; font-size:11px;" title="حذف کاربر">
+                            <button type="button" class="btn-proto-delete" onclick="deleteSingleRadiusUser('${uname}')" style="padding: 5px 8px; font-size:11px;" title="${window.t('common_delete_user')}">
                                 <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
                             </button>
                         </div>
@@ -3536,7 +3547,7 @@
             
             container.innerHTML = "";
             if (peers.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">No active clients found. Create one below.</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">${window.t("common_no_clients_found")}</div>`;
                 return;
             }
             
@@ -3561,10 +3572,10 @@
                     </div>
                     <div style="display:flex; gap:8px; align-items:center;">
                         ${peer.config ? '<button class="port-btn" style="padding:4px 8px; font-size:11px; background:var(--color-primary); color:white; border:none;" onclick="downloadWgConfig(\'' + peer.name + '\', this.getAttribute(\'data-config\'))" data-config="' + btoa(peer.config) + '" title="Download Config"><i data-lucide="download" style="width:12px; height:12px; margin-right:4px; vertical-align:middle;"></i>Config</button>' : ''}
-                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard')" title="Edit">
-                            Edit
+                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard')" title="${window.t('common_edit')}">
+                            ${window.t('common_edit')}
                         </button>
-                        <button class="wg-delete-btn" onclick="deleteWgClient('${peer.public_key}')" title="Delete"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                        <button class="wg-delete-btn" onclick="deleteWgClient('${peer.public_key}')" title="${window.t('common_delete')}"><i data-lucide="trash-2" style="width:16px;"></i></button>
                     </div>
                 `;
                 container.appendChild(row);
@@ -4796,7 +4807,7 @@
             const badge = document.getElementById("bbr-status-badge");
             if (badge) {
                 if (data.active) {
-                    badge.innerHTML = `<span class="status-dot active"></span> فعال (BBR Active)`;
+                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (BBR Active)`;
                     badge.style.color = "#059669";
                 } else {
                     badge.innerHTML = `<span class="status-dot warning"></span> غیرفعال (${data.algo})`;
@@ -6162,7 +6173,7 @@
             
             container.innerHTML = "";
             if (peers.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">No active clients found. Create one below.</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">${window.t("common_no_clients_found")}</div>`;
                 return;
             }
             
@@ -6187,17 +6198,17 @@
                     </div>
                     <div style="display:flex; gap:8px; align-items:center;">
                         ${peer.config ? `
-                            <button class="port-btn" style="padding:4px 9px; font-size:11px; background:#059669; color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="openAwgQrModal('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="نمایش و اسکن بارکد QR">
-                                <i data-lucide="qr-code" style="width:12px; height:12px;"></i> اسکن (QR)
+                            <button class="port-btn" style="padding:4px 9px; font-size:11px; background:#059669; color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="openAwgQrModal('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="${window.t('common_show_scan_qr')}">
+                                <i data-lucide="qr-code" style="width:12px; height:12px;"></i> ${window.t('common_scan_qr')}
                             </button>
-                            <button class="port-btn" style="padding:4px 8px; font-size:11px; background:var(--color-primary); color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="دانلود فایل کانفیگ">
-                                <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود
+                            <button class="port-btn" style="padding:4px 8px; font-size:11px; background:var(--color-primary); color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="${window.t('common_download_config')}">
+                                <i data-lucide="download" style="width:12px; height:12px;"></i> ${window.t('common_download')}
                             </button>
                         ` : ''}
-                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg')" title="Edit">
-                            ویرایش
+                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg')" title="${window.t('common_edit')}">
+                            ${window.t('common_edit')}
                         </button>
-                        <button class="awg-delete-btn" onclick="deleteAwgClient('${peer.public_key}')" title="Delete"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                        <button class="awg-delete-btn" onclick="deleteAwgClient('${peer.public_key}')" title="${window.t('common_delete')}"><i data-lucide="trash-2" style="width:16px;"></i></button>
                     </div>
                 `;
                 container.appendChild(row);
@@ -6957,14 +6968,14 @@
                 if (container) {
                     container.innerHTML = "";
                     if (Object.keys(users).length === 0) {
-                        container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center;'>هیچ کاربری یافت نشد.</p>";
+                        container.innerHTML = `<p style='color:var(--text-muted); font-size:13px; text-align:center;'>${window.t("common_no_users_found", "هیچ کاربری یافت نشد.")}</p>`;
                     } else {
                         for (const [username, info] of Object.entries(users)) {
                             const rxGb = ((info.rx || 0) / (1024**3)).toFixed(2);
                             const txGb = ((info.tx || 0) / (1024**3)).toFixed(2);
                             const totalGb = (parseFloat(rxGb) + parseFloat(txGb)).toFixed(2);
-                            const limitText = info.limit_gb ? `${info.limit_gb} GB` : 'نامحدود';
-                            const expireText = info.expire_date || 'نامحدود';
+                            const limitText = info.limit_gb ? `${info.limit_gb} GB` : window.t("common_unlimited", "نامحدود");
+                            const expireText = info.expire_date || window.t("common_unlimited", "نامحدود");
                             const statusClass = info.active ? "active" : "inactive";
                             const authSource = info.auth_source || 'FreeRADIUS';
 
@@ -7000,7 +7011,7 @@
                                             <i data-lucide="${info.active ? 'pause' : 'play'}" style="width:14px; height:14px;"></i>
                                         </button>
                                         ${!info.is_default ? `
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteOvpnClient('${username}')" title="حذف کاربر">
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteOvpnClient('${username}')" title="${window.t('common_delete_user')}">
                                             <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                                         </button>` : ''}
                                     </div>
@@ -7716,10 +7727,10 @@
             const userKeys = Object.keys(users);
             
             const countBadge = document.getElementById("ssh-client-count-badge");
-            if (countBadge) countBadge.innerText = `${userKeys.length} کاربر`;
+            if (countBadge) countBadge.innerText = `${userKeys.length} ${window.t("common_users_unit", "کاربر")}`;
             
             if (userKeys.length === 0) {
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted); font-size:13px;'>هیچ کاربری یافت نشد. می‌توانید با فرم روبرو یک اکانت جدید بسازید.</div>";
+                container.innerHTML = `<div style='text-align:center; padding:30px; color:var(--text-muted); font-size:13px;'>${window.t("no_users_found_create_form", "هیچ کاربری یافت نشد. می‌توانید با فرم روبرو یک اکانت جدید بسازید.")}</div>`;
                 return;
             }
             
@@ -7727,8 +7738,8 @@
                 const rxGb = ((info.rx || 0) / (1024**3)).toFixed(2);
                 const txGb = ((info.tx || 0) / (1024**3)).toFixed(2);
                 const totalGb = (parseFloat(rxGb) + parseFloat(txGb)).toFixed(2);
-                const limitText = info.limit_gb ? `${info.limit_gb} GB` : 'نامحدود';
-                const expireText = info.expire_date || 'نامحدود';
+                const limitText = info.limit_gb ? `${info.limit_gb} GB` : window.t("common_unlimited", "نامحدود");
+                const expireText = info.expire_date || window.t("common_unlimited", "نامحدود");
                 const isOnline = !!info.online;
                 const statusClass = info.active ? "active" : "inactive";
                 const onlineBadge = isOnline ? 
@@ -7769,7 +7780,7 @@
                                 <i data-lucide="${info.active ? 'pause' : 'play'}" style="width:13px; height:13px; color:${info.active ? '#d97706' : '#059669'};"></i>
                             </button>
                             ${info.is_default ? '' : `
-                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteSshClient('${username}')" title="حذف کاربر" style="padding:6px 10px;">
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteSshClient('${username}')" title="${window.t('common_delete_user')}" style="padding:6px 10px;">
                                 <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                             </button>`}
                         </div>
@@ -9006,7 +9017,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             
             const users = data.users || {};
             if (Object.keys(users).length === 0) {
-                container.innerHTML = "<p style='color:var(--text-muted); font-size:13px; text-align:center; padding:16px;'>هیچ کاربری ثبت نشده است.</p>";
+                container.innerHTML = `<p style='color:var(--text-muted); font-size:13px; text-align:center; padding:16px;'>${window.t("common_no_users_found", "هیچ کاربری ثبت نشده است.")}</p>`;
                 return;
             }
             
@@ -9014,8 +9025,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 const rxGb = ((info.rx || 0) / (1024**3)).toFixed(2);
                 const txGb = ((info.tx || 0) / (1024**3)).toFixed(2);
                 const totalGb = (parseFloat(rxGb) + parseFloat(txGb)).toFixed(2);
-                const limitText = info.limit_gb ? `${info.limit_gb} GB` : 'نامحدود';
-                const expireText = info.expire_date || 'نامحدود';
+                const limitText = info.limit_gb ? `${info.limit_gb} GB` : window.t("common_unlimited", "نامحدود");
+                const expireText = info.expire_date || window.t("common_unlimited", "نامحدود");
                 const statusClass = info.active ? "active" : "inactive";
                 
                 const card = document.createElement("div");
@@ -9180,7 +9191,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                             <button class="btn btn-secondary btn-sm" onclick="toggleIkev2Client('${username}')" title="تغییر وضعیت">
                                 <i data-lucide="${info.active ? 'pause' : 'play'}" style="width:14px; height:14px;"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteIkev2Client('${username}')" title="حذف کاربر">
+                            <button class="btn btn-danger btn-sm" onclick="deleteIkev2Client('${username}')" title="${window.t('common_delete_user')}">
                                 <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                             </button>
                         </div>
@@ -9662,7 +9673,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 const isRunning = services.sstpd || services.vpnserver;
                 const engineName = services.sstpd && services.vpnserver ? "sstpd + SoftEther" : (services.sstpd ? "sstpd (Kernel)" : (services.vpnserver ? "SoftEther MS-SSTP" : "غیرفعال"));
                 if (isRunning) {
-                    badge.innerHTML = `<span class="status-dot active"></span> فعال (در حال اجرا: ${engineName})`;
+                    badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (در حال اجرا: ${engineName})`;
                 } else {
                     badge.innerHTML = `<span class="status-dot inactive"></span> غیرفعال / متوقف`;
                 }
@@ -9796,10 +9807,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             
             const users = data.users || {};
             const count = Object.keys(users).length;
-            if (badge) badge.innerText = `${count} کاربر`;
+            if (badge) badge.innerText = `${count} ${window.t("common_users_unit", "کاربر")}`;
 
             if (count === 0) {
-                container.innerHTML = "<div style='text-align:center; padding:30px; color:var(--text-muted); font-size:13px;'>هیچ کاربری ساخته نشده است.</div>";
+                container.innerHTML = `<div style='text-align:center; padding:30px; color:var(--text-muted); font-size:13px;'>${window.t("common_no_users_found", "هیچ کاربری ساخته نشده است.")}</div>`;
                 return;
             }
             
@@ -9808,7 +9819,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 const txGb = ((info.tx || 0) / (1024**3)).toFixed(2);
                 const totalGb = (parseFloat(rxGb) + parseFloat(txGb)).toFixed(2);
                 const limitText = info.limit_gb ? `${info.limit_gb} گیگابایت` : 'نامحدود';
-                const expireText = info.expire_date || 'نامحدود';
+                const expireText = info.expire_date || window.t("common_unlimited", "نامحدود");
                 const statusClass = info.active ? "active" : "inactive";
                 const statusLabel = info.active ? "فعال" : "غیرفعال";
                 
@@ -9837,7 +9848,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                             <button class="btn btn-secondary btn-sm" onclick="toggleSstpClient('${username}')" title="${info.active ? 'غیرفعال‌سازی' : 'فعال‌سازی'}">
                                 <i data-lucide="${info.active ? 'pause' : 'play'}" style="width:13px; height:13px;"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteSstpClient('${username}')" title="حذف کاربر">
+                            <button class="btn btn-danger btn-sm" onclick="deleteSstpClient('${username}')" title="${window.t('common_delete_user')}">
                                 <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                             </button>
                         </div>
@@ -10498,7 +10509,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         </button>
                     </td>
                     <td style="padding:10px 12px; text-align:center;">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSsClient('${c.id}')" style="padding:3px 8px; font-size:11px;" title="حذف کاربر">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSsClient('${c.id}')" style="padding:3px 8px; font-size:11px;" title="${window.t('common_delete_user')}">
                             <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
                         </button>
                     </td>
@@ -10776,8 +10787,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <td colspan="9" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
                             <i data-lucide="router" style="width:36px; height:36px; color:#94a3b8;"></i>
-                            <span style="font-size:14px; font-weight:600; color:#475569;">هنوز هیچ تونل استاندارد یا میکروتیک پیکربندی نشده است.</span>
-                            <span style="font-size:12px; color:#64748b;">برای ایجاد تونل GRE، IPIP، VXLAN، L2TP، OpenVPN یا وایرگارد، دکمه «ساخت تونل جدید» را بزنید.</span>
+                            <span style="font-size:14px; font-weight:600; color:#475569;">${window.t("no_standard_or_mikrotik_tunnel_configured", "هنوز هیچ تونل استاندارد یا میکروتیک پیکربندی نشده است.")}</span>
+                            <span style="font-size:12px; color:#64748b;">${window.t("create_tunnel_hint", "برای ایجاد تونل GRE، IPIP، VXLAN، L2TP، OpenVPN یا وایرگارد، دکمه «ساخت تونل جدید» را بزنید.")}</span>
                         </div>
                     </td>
                 </tr>`;

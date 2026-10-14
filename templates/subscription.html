@@ -1,13 +1,14 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="dark">
+
+<html data-theme="dark" dir="rtl" lang="fa">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
-    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
-    <script src="/static/lucide.min.js"></script>
-    <script src="/static/qrcode.js"></script>
-    <style>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title data-i18n="settings_title_or_mh_panel_user_sub">{{ settings.title or 'MH Panel - سرویس اشتراک کاربر' }}</title>
+<link href="/static/favicon.ico" rel="icon" type="image/x-icon"/>
+<script src="/static/lucide.min.js"></script>
+<script src="/static/qrcode.js"></script>
+<style>
         :root {
             --bg-base: #0b0f19;
             --bg-card: #111827;
@@ -445,348 +446,328 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Top Navigation -->
-        <div class="top-bar">
-            <div class="brand">
-                <i data-lucide="shield-check" style="width:24px; height:24px;"></i>
-                <span>{{ settings.title or 'MH Panel Subscription' }}</span>
-            </div>
-            <div class="actions-bar">
-                <button type="button" class="theme-btn" onclick="toggleTheme()" id="theme-btn">
-                    <i data-lucide="sun" id="theme-icon" style="width:14px; height:14px;"></i>
-                    <span id="theme-label">روشن</span>
-                </button>
+<div class="container">
+<!-- Top Navigation -->
+<div class="top-bar">
+<div class="brand">
+<i data-lucide="shield-check" style="width:24px; height:24px;"></i>
+<span>{{ settings.title or 'MH Panel Subscription' }}</span>
+</div>
+<div class="actions-bar">
+<button class="theme-btn" id="theme-btn" onclick="toggleTheme()" type="button">
+<i data-lucide="sun" id="theme-icon" style="width:14px; height:14px;"></i>
+<span data-i18n="bright" id="theme-label">روشن</span>
+</button>
                 {% if settings.support_contact %}
-                <a href="https://t.me/{{ settings.support_contact.lstrip('@') }}" target="_blank" class="btn btn-secondary" style="padding:5px 12px; font-size:12px;">
-                    <i data-lucide="send" style="width:14px; height:14px;"></i> پشتیبانی
-                </a>
+                <a class="btn btn-secondary" href="https://t.me/{{ settings.support_contact.lstrip('@') }}" style="padding:5px 12px; font-size:12px;" target="_blank">
+<i data-lucide="send" style="width:14px; height:14px;"></i><span data-i18n="support">پشتیبانی</span></a>
                 {% endif %}
             </div>
-        </div>
-
-        <!-- Announcement Banner -->
+</div>
+<!-- Announcement Banner -->
         {% if settings.announcement %}
         <div class="banner-notice">
-            <i data-lucide="bell" style="color:var(--color-primary); width:20px; height:20px; flex-shrink:0;"></i>
-            <div>{{ settings.announcement }}</div>
-        </div>
+<i data-lucide="bell" style="color:var(--color-primary); width:20px; height:20px; flex-shrink:0;"></i>
+<div>{{ settings.announcement }}</div>
+</div>
         {% endif %}
 
         <!-- User Status Card -->
-        <div class="card user-status-card">
-            <div class="user-header">
-                <div class="user-title">
-                    <div class="user-avatar">
-                        <i data-lucide="user" style="width:24px; height:24px;"></i>
-                    </div>
-                    <div>
-                        <div style="font-size:18px; font-weight:700;">{{ username }}</div>
-                        <div style="font-size:12px; color:var(--text-muted);">شناسه کاربری در شبکه ردیوس</div>
-                    </div>
-                </div>
-                <div>
+<div class="card user-status-card">
+<div class="user-header">
+<div class="user-title">
+<div class="user-avatar">
+<i data-lucide="user" style="width:24px; height:24px;"></i>
+</div>
+<div>
+<div style="font-size:18px; font-weight:700;">{{ username }}</div>
+<div data-i18n="user_id_in_radius_network" style="font-size:12px; color:var(--text-muted);">شناسه کاربری در شبکه ردیوس</div>
+</div>
+</div>
+<div>
                     {% if user.active %}
                     <span class="status-badge status-active">
-                        <i data-lucide="check-circle" style="width:14px; height:14px;"></i> فعال و مجاز
-                    </span>
+<i data-lucide="check-circle" style="width:14px; height:14px;"></i><span data-i18n="active_and_authorized">فعال و مجاز</span></span>
                     {% else %}
                     <span class="status-badge status-expired">
-                        <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> منقضی / مسدود
-                    </span>
+<i data-lucide="alert-triangle" style="width:14px; height:14px;"></i><span data-i18n="expired_blocked">منقضی / مسدود</span></span>
                     {% endif %}
                 </div>
-            </div>
-
-            <!-- Stats Grid -->
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-label">تاریخ انقضا</div>
-                    <div class="stat-val">{{ user.expire_date or 'نامحدود' }}</div>
+</div>
+<!-- Stats Grid -->
+<div class="stats-grid">
+<div class="stat-box">
+<div class="stat-label" data-i18n="ovpn_expiration_date">تاریخ انقضا</div>
+<div class="stat-val" data-i18n="user_expire_date_or_unlimited">{{ user.expire_date or 'نامحدود' }}</div>
                     {% if days_left is not none %}
-                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
+                    <div data-i18n="days_left_days_left" style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
                     {% endif %}
                 </div>
-                <div class="stat-box">
-                    <div class="stat-label">حجم مصرفی / سقف مجاز</div>
-                    <div class="stat-val">{{ used_gb }} GB / {{ limit_gb_label }}</div>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" style="width: {{ traffic_pct }}%;"></div>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-label">تعداد اتصال همزمان</div>
-                    <div class="stat-val">{{ user.simultaneous_use or 2 }} کاربر</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- All-In-One Universal Subscription Box -->
-        <div class="all-in-one-card">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="zap" style="color:#6366f1; width:20px; height:20px;"></i>
-                    <strong style="font-size:14px;">لینک سابسکرایب جامع (All-In-One Import)</strong>
-                </div>
-                <span style="font-size:11px; color:var(--text-muted);">سازگار با تمامی کلاینت‌های مدرن و نرم‌افزار اختصاصی</span>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                <button type="button" class="btn" onclick="copyText('{{ sub_url }}', 'لینک اشتراک کپی شد!')">
-                    <i data-lucide="copy" style="width:14px; height:14px;"></i> کپی لینک ساب
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="showQrModal('{{ sub_url }}', 'اسکن لینک اشتراک')">
-                    <i data-lucide="qr-code" style="width:14px; height:14px;"></i> بارکد QR
-                </button>
-                <a href="{{ sub_url }}?format=json" target="_blank" class="btn btn-secondary">
-                    <i data-lucide="code" style="width:14px; height:14px;"></i> خروجی JSON (نرم‌افزار اختصاصی)
-                </a>
-            </div>
-        </div>
-
-        <!-- Protocol Configurations List -->
-        <div class="section-heading">
-            <i data-lucide="layers" style="width:20px; height:20px; color:var(--color-primary);"></i>
-            <span>پروتکل‌های فعال و مشخصات اتصال</span>
-        </div>
-
-        <div class="protocols-list">
-            <!-- 1. Cisco AnyConnect / OpenConnect -->
+<div class="stat-box">
+<div class="stat-label" data-i18n="consumable_volume_allowed_ceiling">حجم مصرفی / سقف مجاز</div>
+<div class="stat-val">{{ used_gb }} GB / {{ limit_gb_label }}</div>
+<div class="progress-bar-bg">
+<div class="progress-bar-fill" style="width: {{ traffic_pct }}%;"></div>
+</div>
+</div>
+<div class="stat-box">
+<div class="stat-label" data-i18n="number_of_simultaneous_connections">تعداد اتصال همزمان</div>
+<div class="stat-val" data-i18n="user_simultaneous_use_or_2_user">{{ user.simultaneous_use or 2 }} کاربر</div>
+</div>
+</div>
+</div>
+<!-- All-In-One Universal Subscription Box -->
+<div class="all-in-one-card">
+<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+<div style="display:flex; align-items:center; gap:8px;">
+<i data-lucide="zap" style="color:#6366f1; width:20px; height:20px;"></i>
+<strong data-i18n="comprehensive_subscribe_link_all_in" style="font-size:14px;">لینک سابسکرایب جامع (All-In-One Import)</strong>
+</div>
+<span data-i18n="compatible_with_all_modern_clients_" style="font-size:11px; color:var(--text-muted);">سازگار با تمامی کلاینت‌های مدرن و نرم‌افزار اختصاصی</span>
+</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap;">
+<button class="btn" onclick="copyText('{{ sub_url }}', 'لینک اشتراک کپی شد!')" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i><span data-i18n="copy_the_sub_link">کپی لینک ساب</span></button>
+<button class="btn btn-secondary" onclick="showQrModal('{{ sub_url }}', 'اسکن لینک اشتراک')" type="button">
+<i data-lucide="qr-code" style="width:14px; height:14px;"></i><span data-i18n="show_qr">بارکد QR</span></button>
+<a class="btn btn-secondary" href="{{ sub_url }}?format=json" target="_blank">
+<i data-lucide="code" style="width:14px; height:14px;"></i><span data-i18n="json_output_proprietary_software">خروجی JSON (نرم‌افزار اختصاصی)</span></a>
+</div>
+</div>
+<!-- Protocol Configurations List -->
+<div class="section-heading">
+<i data-lucide="layers" style="width:20px; height:20px; color:var(--color-primary);"></i>
+<span data-i18n="active_protocols_and_connection_spe">پروتکل‌های فعال و مشخصات اتصال</span>
+</div>
+<div class="protocols-list">
+<!-- 1. Cisco AnyConnect / OpenConnect -->
             {% if settings.protocols.ocserv %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="radio" style="color:#0284c7; width:20px; height:20px;"></i>
-                        <span>Cisco AnyConnect / OpenConnect</span>
-                        <span class="proto-tag">سیسکو سازمانی</span>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ server_host }}:{{ ports.ocserv }}', 'آدرس سرور سیسکو کپی شد')">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سرور
-                        </button>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور (Server)</span>
-                        <span class="field-value">{{ server_host }}:{{ ports.ocserv }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری (Username)</span>
-                        <span class="field-value">{{ username }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">رمز عبور (Password)</span>
-                        <span class="field-value">{{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="radio" style="color:#0284c7; width:20px; height:20px;"></i>
+<span>Cisco AnyConnect / OpenConnect</span>
+<span class="proto-tag" data-i18n="cisco_enterprise">سیسکو سازمانی</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="copyText('{{ server_host }}:{{ ports.ocserv }}', 'آدرس سرور سیسکو کپی شد')" type="button">
+<i data-lucide="copy" style="width:13px; height:13px;"></i><span data-i18n="copy_server">کپی سرور</span></button>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="server_address">آدرس سرور (Server)</span>
+<span class="field-value">{{ server_host }}:{{ ports.ocserv }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="servers_user_label">نام کاربری (Username)</span>
+<span class="field-value">{{ username }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="servers_pass_label">رمز عبور (Password)</span>
+<span class="field-value">{{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 2. OpenVPN -->
             {% if settings.protocols.openvpn %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="lock" style="color:#f59e0b; width:20px; height:20px;"></i>
-                        <span>OpenVPN (TCP / UDP)</span>
-                        <span class="proto-tag">اوپن‌وی‌پی‌ان</span>
-                    </div>
-                    <div class="btn-group">
-                        <a href="/sub/{{ sub_token }}/openvpn.ovpn" class="btn">
-                            <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل .ovpn
-                        </a>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور و پورت</span>
-                        <span class="field-value">{{ server_host }}:{{ ports.openvpn }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری</span>
-                        <span class="field-value">{{ username }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">رمز عبور</span>
-                        <span class="field-value">{{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="lock" style="color:#f59e0b; width:20px; height:20px;"></i>
+<span>OpenVPN (TCP / UDP)</span>
+<span class="proto-tag" data-i18n="openvpn">اوپن‌وی‌پی‌ان</span>
+</div>
+<div class="btn-group">
+<a class="btn" href="/sub/{{ sub_token }}/openvpn.ovpn">
+<i data-lucide="download" style="width:13px; height:13px;"></i><span data-i18n="download_the_ovpn_file">دانلود فایل .ovpn</span></a>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="server_address_and_port">آدرس سرور و پورت</span>
+<span class="field-value">{{ server_host }}:{{ ports.openvpn }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="login_username">نام کاربری</span>
+<span class="field-value">{{ username }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="login_password">رمز عبور</span>
+<span class="field-value">{{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 3. Windows SSTP -->
             {% if settings.protocols.sstp %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="shuffle" style="color:#06b6d4; width:20px; height:20px;"></i>
-                        <span>Windows SSTP (SSL VPN)</span>
-                        <span class="proto-tag">ویندوز نیتیو</span>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ sstp_host }}', 'آدرس سرور SSTP کپی شد')">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی آدرس
-                        </button>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور (Host)</span>
-                        <span class="field-value">{{ sstp_host }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری</span>
-                        <span class="field-value">{{ username }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">رمز عبور</span>
-                        <span class="field-value">{{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="shuffle" style="color:#06b6d4; width:20px; height:20px;"></i>
+<span>Windows SSTP (SSL VPN)</span>
+<span class="proto-tag" data-i18n="windows_native">ویندوز نیتیو</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="copyText('{{ sstp_host }}', 'آدرس سرور SSTP کپی شد')" type="button">
+<i data-lucide="copy" style="width:13px; height:13px;"></i><span data-i18n="ssh_copy_address">کپی آدرس</span></button>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="server_address_host">آدرس سرور (Host)</span>
+<span class="field-value">{{ sstp_host }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="login_username">نام کاربری</span>
+<span class="field-value">{{ username }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="login_password">رمز عبور</span>
+<span class="field-value">{{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 4. IKEv2 StrongSwan -->
             {% if settings.protocols.ikev2 %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="smartphone" style="color:#ec4899; width:20px; height:20px;"></i>
-                        <span>IKEv2 / IPsec</span>
-                        <span class="proto-tag">iOS / Android نیتیو</span>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" onclick="copyText('{{ server_host }}', 'آدرس IKEv2 کپی شد')">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سرور
-                        </button>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور (Server)</span>
-                        <span class="field-value">{{ server_host }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">Remote ID</span>
-                        <span class="field-value">{{ server_host }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری و پسورد</span>
-                        <span class="field-value">{{ username }} / {{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="smartphone" style="color:#ec4899; width:20px; height:20px;"></i>
+<span>IKEv2 / IPsec</span>
+<span class="proto-tag" data-i18n="ios_android_native">iOS / Android نیتیو</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="copyText('{{ server_host }}', 'آدرس IKEv2 کپی شد')" type="button">
+<i data-lucide="copy" style="width:13px; height:13px;"></i><span data-i18n="copy_server">کپی سرور</span></button>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="server_address">آدرس سرور (Server)</span>
+<span class="field-value">{{ server_host }}</span>
+</div>
+<div class="field-item">
+<span class="field-title">Remote ID</span>
+<span class="field-value">{{ server_host }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="username_and_password">نام کاربری و پسورد</span>
+<span class="field-value">{{ username }} / {{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 5. L2TP / IPsec -->
             {% if settings.protocols.l2tp %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="layers" style="color:#6366f1; width:20px; height:20px;"></i>
-                        <span>L2TP / IPsec Pre-Shared Key</span>
-                        <span class="proto-tag">روتر و میکروتیک</span>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور (Server)</span>
-                        <span class="field-value">{{ server_host }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">کلید امنیتی (IPsec PSK)</span>
-                        <span class="field-value">{{ l2tp_psk or 'vpn' }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری و پسورد</span>
-                        <span class="field-value">{{ username }} / {{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="layers" style="color:#6366f1; width:20px; height:20px;"></i>
+<span>L2TP / IPsec Pre-Shared Key</span>
+<span class="proto-tag" data-i18n="router_and_mikrotik">روتر و میکروتیک</span>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="server_address">آدرس سرور (Server)</span>
+<span class="field-value">{{ server_host }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="security_key_ipsec_psk">کلید امنیتی (IPsec PSK)</span>
+<span class="field-value">{{ l2tp_psk or 'vpn' }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="username_and_password">نام کاربری و پسورد</span>
+<span class="field-value">{{ username }} / {{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 6. SSH Tunnel & WebSocket -->
             {% if settings.protocols.ssh %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="terminal" style="color:#10b981; width:20px; height:20px;"></i>
-                        <span>SSH Tunnel (Direct & WS) + BadVPN</span>
-                        <span class="proto-tag">تونل لینوکس</span>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-secondary" onclick="copyText('ssh -N -D 1080 {{ username }}@{{ server_host }} -p {{ ports.ssh }}', 'دستور ترمینال SSH کپی شد')">
-                            <i data-lucide="terminal" style="width:13px; height:13px;"></i> کپی دستور SSH
-                        </button>
-                    </div>
-                </div>
-                <div class="proto-fields">
-                    <div class="field-item">
-                        <span class="field-title">آدرس سرور</span>
-                        <span class="field-value">{{ server_host }}</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">پورت مستقیم / پورت TLS</span>
-                        <span class="field-value">{{ ports.ssh }} / 443</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">پورت BadVPN UDP (گیمینگ)</span>
-                        <span class="field-value">7300</span>
-                    </div>
-                    <div class="field-item">
-                        <span class="field-title">نام کاربری و پسورد</span>
-                        <span class="field-value">{{ username }} / {{ user.password }}</span>
-                    </div>
-                </div>
-            </div>
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="terminal" style="color:#10b981; width:20px; height:20px;"></i>
+<span>SSH Tunnel (Direct &amp; WS) + BadVPN</span>
+<span class="proto-tag" data-i18n="linux_tunnel">تونل لینوکس</span>
+</div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="copyText('ssh -N -D 1080 {{ username }}@{{ server_host }} -p {{ ports.ssh }}', 'دستور ترمینال SSH کپی شد')" type="button">
+<i data-lucide="terminal" style="width:13px; height:13px;"></i><span data-i18n="copy_the_ssh_command">کپی دستور SSH</span></button>
+</div>
+</div>
+<div class="proto-fields">
+<div class="field-item">
+<span class="field-title" data-i18n="servers_col_addr">آدرس سرور</span>
+<span class="field-value">{{ server_host }}</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="direct_port_tls_port">پورت مستقیم / پورت TLS</span>
+<span class="field-value">{{ ports.ssh }} / 443</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="badvpn_udp_port_gaming">پورت BadVPN UDP (گیمینگ)</span>
+<span class="field-value">7300</span>
+</div>
+<div class="field-item">
+<span class="field-title" data-i18n="username_and_password">نام کاربری و پسورد</span>
+<span class="field-value">{{ username }} / {{ user.password }}</span>
+</div>
+</div>
+</div>
             {% endif %}
 
             <!-- 7. TUIC & Shadowsocks -->
             {% if settings.protocols.tuic or settings.protocols.shadowsocks %}
             <div class="proto-card">
-                <div class="proto-top">
-                    <div class="proto-name">
-                        <i data-lucide="zap" style="color:#8b5cf6; width:20px; height:20px;"></i>
-                        <span>پروکسی‌های مدرن (TUIC v5 / Shadowsocks 2022)</span>
-                        <span class="proto-tag">ضد DPI</span>
-                    </div>
-                </div>
-                <div class="proto-fields">
+<div class="proto-top">
+<div class="proto-name">
+<i data-lucide="zap" style="color:#8b5cf6; width:20px; height:20px;"></i>
+<span data-i18n="modern_proxies_tuic_v5_shadowsocks_">پروکسی‌های مدرن (TUIC v5 / Shadowsocks 2022)</span>
+<span class="proto-tag" data-i18n="anti_dpi">ضد DPI</span>
+</div>
+</div>
+<div class="proto-fields">
                     {% if settings.protocols.tuic %}
                     <div class="field-item">
-                        <span class="field-title">پروتکل TUIC v5 (QUIC)</span>
-                        <span class="field-value">{{ server_host }}:{{ ports.tuic }}</span>
-                    </div>
+<span class="field-title" data-i18n="tuic_v5_quic_protocol">پروتکل TUIC v5 (QUIC)</span>
+<span class="field-value">{{ server_host }}:{{ ports.tuic }}</span>
+</div>
                     {% endif %}
                     {% if settings.protocols.shadowsocks %}
                     <div class="field-item">
-                        <span class="field-title">پروتکل Shadowsocks</span>
-                        <span class="field-value">{{ server_host }}:{{ ports.shadowsocks }}</span>
-                    </div>
+<span class="field-title" data-i18n="shadowsocks_protocol">پروتکل Shadowsocks</span>
+<span class="field-value">{{ server_host }}:{{ ports.shadowsocks }}</span>
+</div>
                     {% endif %}
                 </div>
-            </div>
+</div>
             {% endif %}
         </div>
-
-        <div class="footer">
-            <div>طراحی و مدیریت شده با <strong>MH Panel v1.0.0</strong></div>
-            <div style="margin-top:4px; opacity:0.7;">تمامی حقوق برای کاربر و سرور محفوظ است.</div>
-        </div>
-    </div>
-
-    <!-- QR Code Modal -->
-    <div class="modal-backdrop" id="qr-modal" onclick="closeQrModal(event)">
-        <div class="modal-box" onclick="event.stopPropagation()">
-            <h3 id="qr-modal-title" style="font-size:16px;">اسکن بارکد QR</h3>
-            <div id="qrcode-box" style="background:#fff; padding:12px; border-radius:12px;"></div>
-            <button type="button" class="btn btn-secondary" onclick="closeQrModal()" style="width:100%;">بستن</button>
-        </div>
-    </div>
-
-    <div class="toast" id="toast-msg">پیام کپی شد</div>
-
-    <script>
+<div class="footer">
+<div><span data-i18n="designed_and_managed_by">طراحی و مدیریت شده با</span><strong>MH Panel v1.0.0</strong></div>
+<div data-i18n="all_rights_are_reserved_for_the_use" style="margin-top:4px; opacity:0.7;">تمامی حقوق برای کاربر و سرور محفوظ است.</div>
+</div>
+</div>
+<!-- QR Code Modal -->
+<div class="modal-backdrop" id="qr-modal" onclick="closeQrModal(event)">
+<div class="modal-box" onclick="event.stopPropagation()">
+<h3 data-i18n="qr_barcode_scanning" id="qr-modal-title" style="font-size:16px;">اسکن بارکد QR</h3>
+<div id="qrcode-box" style="background:#fff; padding:12px; border-radius:12px;"></div>
+<button class="btn btn-secondary" data-i18n="modal_btn_close" onclick="closeQrModal()" style="width:100%;" type="button">بستن</button>
+</div>
+</div>
+<div class="toast" data-i18n="the_message_was_copied" id="toast-msg">پیام کپی شد</div>
+<script>
         lucide.createIcons();
 
         function toggleTheme() {
@@ -850,5 +831,26 @@
             document.getElementById('qr-modal').style.display = 'none';
         }
     </script>
+
+    {% include 'partials/translations.html' %}
+    <script>
+    function applySubLanguage(lang) {
+        if (!window.I18N_TRANSLATIONS || !window.I18N_TRANSLATIONS[lang]) lang = "fa";
+        localStorage.setItem("sub_language", lang);
+        document.documentElement.dir = (lang === "fa" ? "rtl" : "ltr");
+        document.documentElement.lang = lang;
+        const dict = window.I18N_TRANSLATIONS[lang] || {};
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+            const k = el.getAttribute("data-i18n");
+            if (dict[k]) el.textContent = dict[k];
+        });
+        document.querySelectorAll("[data-i18n-html]").forEach(el => {
+            const k = el.getAttribute("data-i18n-html");
+            if (dict[k]) el.innerHTML = dict[k];
+        });
+    }
+    applySubLanguage(localStorage.getItem("sub_language") || "fa");
+    </script>
+    
 </body>
 </html>

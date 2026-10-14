@@ -1,363 +1,340 @@
-<div class="tab-pane" id="tab-system">
-    <!-- Listening ports & Web terminal -->
-    <section class="bottom-section" style="margin-top: 0;">
-        <!-- Active Listening Ports -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:20px; overflow: hidden; flex: 1;">
-            <div class="config-header" style="margin-bottom: 0;">
-                <h3 class="config-title">
-                    <i data-lucide="network" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                    <span data-i18n="sys_ports_title">پورت‌های فعال سرور (Listening Ports)</span>
-                </h3>
-                <button class="btn btn-secondary" style="padding:6px 12px; width:auto; font-size:12px; min-height:unset;" id="refresh-ports-btn" onclick="fetchListeningPorts()">
-                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-inline-end:4px; display:inline-block; vertical-align:middle;"></i> <span data-i18n="refresh">بروزرسانی</span>
-                </button>
-            </div>
-            
-            <div style="display:flex; gap:10px;">
-                <input class="form-input" style="padding-left:16px; font-size:13px; height:36px;" type="text" id="ports-filter-input" placeholder="جستجوی پورت یا سرویس..." data-i18n-placeholder="sys_search_port_service" oninput="filterPortsTable()">
-            </div>
-            
-            <div style="flex:1; overflow-y:auto; max-height: 350px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:start;">
-                    <thead>
-                        <tr style="background:var(--bg-muted); border-bottom: 1px solid var(--border-color); color:var(--text-color); font-weight:600;">
-                            <th style="padding:10px 12px;" data-i18n="col_proto">پروتکل</th>
-                            <th style="padding:10px 12px;" data-i18n="col_port">پورت</th>
-                            <th style="padding:10px 12px;" data-i18n="col_address">آدرس</th>
-                            <th style="padding:10px 12px;" data-i18n="col_process">پردازش / سرویس</th>
-                            <th style="padding:10px 12px;">PID</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listening-ports-table-body">
-                        <!-- Port entries inject here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Web Terminal -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px; flex: 1;">
-            <div class="config-header" style="margin-bottom: 0;">
-                <h3 class="config-title">
-                    <i data-lucide="terminal" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
-                    <span data-i18n="sys_terminal_title">ترمینال تحت وب (Web Terminal)</span>
-                </h3>
-                <button class="btn btn-secondary" style="padding:4px 8px; width:auto; font-size:11px; min-height:unset;" onclick="clearTerminal()">
-                    <span data-i18n="sys_terminal_clear">پاکسازی</span>
-                </button>
-            </div>
-            
-            <div id="terminal-container" style="background:#0a0e14; border:1px solid #1f2430; border-radius:8px; padding:16px; font-family:'JetBrains Mono', monospace; font-size:13px; color:#56b6c2; height: 350px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; cursor:text;">
-                <div id="terminal-output" style="flex:1; overflow-y:auto; margin-bottom:12px; display:flex; flex-direction:column; gap:6px; white-space:pre-wrap; word-break:break-all;">
-                    <div style="color:#98c379;">Welcome to MH Panel Web Terminal.</div>
-                    <div style="color:#5c6370; font-size:11px; margin-bottom:10px;">Type 'help' for instructions. Folder context is maintained.</div>
-                </div>
-                
-                <div style="display:flex; align-items:center; color:#abb2bf;">
-                    <span id="terminal-prompt" style="color:#e06c75; margin-right:8px; font-weight:bold; white-space:nowrap;">root@server:/root#</span>
-                    <input type="text" id="terminal-input" style="flex:1; background:transparent; border:none; outline:none; color:#abb2bf; font-family:'JetBrains Mono', monospace; font-size:13px;" autofocus autocomplete="off" placeholder="Type a command...">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Cloudflare WARP & TCP BBR Optimization Section -->
-    <section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <!-- Cloudflare WARP Management Card -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
-            <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="cloud-lightning" style="color: #ea580c; width: 20px; height: 20px;"></i> <span data-i18n="sys_cloudflare_warp_management_center">مرکز مدیریت کلادفلر وارپ (Cloudflare WARP)</span>
-                    </h3>
-                    <span id="warp-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی...
+<div class="tab-pane" data-i18n-html="elem_tab_system_69" id="tab-system">
+<!-- Listening ports & Web terminal -->
+<section class="bottom-section" style="margin-top: 0;">
+<!-- Active Listening Ports -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; gap:20px; overflow: hidden; flex: 1;">
+<div class="config-header" style="margin-bottom: 0;">
+<h3 class="config-title">
+<i data-lucide="network" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+<span>پورت‌های فعال سرور (Listening Ports)</span>
+</h3>
+<button class="btn btn-secondary" id="refresh-ports-btn" onclick="fetchListeningPorts()" style="padding:6px 12px; width:auto; font-size:12px; min-height:unset;">
+<i data-lucide="refresh-cw" style="width:14px; height:14px; margin-inline-end:4px; display:inline-block; vertical-align:middle;"></i> <span>بروزرسانی</span>
+</button>
+</div>
+<div style="display:flex; gap:10px;">
+<input class="form-input" data-i18n-placeholder="sys_search_port_service" id="ports-filter-input" oninput="filterPortsTable()" placeholder="جستجوی پورت یا سرویس..." style="padding-left:16px; font-size:13px; height:36px;" type="text"/>
+</div>
+<div style="flex:1; overflow-y:auto; max-height: 350px; border-radius: 8px; border: 1px solid var(--border-color);">
+<table style="width:100%; border-collapse:collapse; font-size:13px; text-align:start;">
+<thead>
+<tr style="background:var(--bg-muted); border-bottom: 1px solid var(--border-color); color:var(--text-color); font-weight:600;">
+<th style="padding:10px 12px;">پروتکل</th>
+<th style="padding:10px 12px;">پورت</th>
+<th style="padding:10px 12px;">آدرس</th>
+<th style="padding:10px 12px;">پردازش / سرویس</th>
+<th style="padding:10px 12px;">PID</th>
+</tr>
+</thead>
+<tbody id="listening-ports-table-body">
+<!-- Port entries inject here -->
+</tbody>
+</table>
+</div>
+</div>
+<!-- Web Terminal -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px; flex: 1;">
+<div class="config-header" style="margin-bottom: 0;">
+<h3 class="config-title">
+<i data-lucide="terminal" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
+<span>ترمینال تحت وب (Web Terminal)</span>
+</h3>
+<button class="btn btn-secondary" onclick="clearTerminal()" style="padding:4px 8px; width:auto; font-size:11px; min-height:unset;">
+<span>پاکسازی</span>
+</button>
+</div>
+<div id="terminal-container" style="background:#0a0e14; border:1px solid #1f2430; border-radius:8px; padding:16px; font-family:'JetBrains Mono', monospace; font-size:13px; color:#56b6c2; height: 350px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden; cursor:text;">
+<div id="terminal-output" style="flex:1; overflow-y:auto; margin-bottom:12px; display:flex; flex-direction:column; gap:6px; white-space:pre-wrap; word-break:break-all;">
+<div style="color:#98c379;">Welcome to MH Panel Web Terminal.</div>
+<div style="color:#5c6370; font-size:11px; margin-bottom:10px;">Type 'help' for instructions. Folder context is maintained.</div>
+</div>
+<div style="display:flex; align-items:center; color:#abb2bf;">
+<span id="terminal-prompt" style="color:#e06c75; margin-right:8px; font-weight:bold; white-space:nowrap;">root@server:/root#</span>
+<input autocomplete="off" autofocus="" id="terminal-input" placeholder="Type a command..." style="flex:1; background:transparent; border:none; outline:none; color:#abb2bf; font-family:'JetBrains Mono', monospace; font-size:13px;" type="text"/>
+</div>
+</div>
+</div>
+</section>
+<!-- Cloudflare WARP & TCP BBR Optimization Section -->
+<section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Cloudflare WARP Management Card -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
+<div>
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
+<i data-lucide="cloud-lightning" style="color: #ea580c; width: 20px; height: 20px;"></i> <span>مرکز مدیریت کلادفلر وارپ (Cloudflare WARP)</span>
+</h3>
+<span id="warp-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
+<span class="status-dot active"></span> در حال بررسی...
                     </span>
-                </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;" data-i18n="sys_item">
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     سرویس وارپ خروجی ترافیک سرور را از بستر شبکه جهانی کلودفلر رد می‌کند. این قابلیت آی‌پی تمیز کلودفلر، پایداری اتصالات وب‌سوکت و رفع تحریم سایت‌ها را برای سرور به ارمغان می‌آورد.
                 </p>
-
-                <!-- WARP Info Grid -->
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_account_type">نوع اکانت</div>
-                        <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="warp-account-type">Free</div>
-                    </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_port_sax_5_warp">پورت ساکس ۵ وارپ</div>
-                        <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;" id="warp-socks-port">127.0.0.1:40000</div>
-                    </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_item_7">حالت کاری</div>
-                        <div style="font-weight:700; color:#059669;" id="warp-mode" data-i18n="sys_socks5_proxy_secure">SOCKS5 Proxy (امن)</div>
-                    </div>
-                </div>
-
-                <!-- License Key Form -->
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600; font-size:12px; margin-bottom:6px;" data-i18n="sys_license_warp_plus_zerotrust_optional">لایسنس وارپ پلاس یا زیروتراست (اختیاری):</label>
-                    <div style="display:flex; gap:8px;">
-                        <input class="form-input" style="padding-left:12px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; font-size:12px;" type="text" id="warp-license-input" placeholder="کلید لایسنس WARP+ (مثلا 24 کاراکتری)" data-i18n-placeholder="sys_warp_24">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="setWarpLicense()" style="white-space:nowrap; padding:6px 14px;" data-i18n="sys_license_registration">
+<!-- WARP Info Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">نوع اکانت</div>
+<div id="warp-account-type" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">Free</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">پورت ساکس ۵ وارپ</div>
+<div id="warp-socks-port" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">127.0.0.1:40000</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">حالت کاری</div>
+<div id="warp-mode" style="font-weight:700; color:#059669;">SOCKS5 Proxy (امن)</div>
+</div>
+</div>
+<!-- License Key Form -->
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; margin-bottom:14px;">
+<label class="form-label" style="font-weight:600; font-size:12px; margin-bottom:6px;">لایسنس وارپ پلاس یا زیروتراست (اختیاری):</label>
+<div style="display:flex; gap:8px;">
+<input class="form-input" data-i18n-placeholder="sys_warp_24" id="warp-license-input" placeholder="کلید لایسنس WARP+ (مثلا 24 کاراکتری)" style="padding-left:12px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; font-size:12px;" type="text"/>
+<button class="btn btn-secondary btn-sm" onclick="setWarpLicense()" style="white-space:nowrap; padding:6px 14px;" type="button">
                             ثبت لایسنس
                         </button>
-                    </div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:6px;" id="warp-current-license" data-i18n="sys_current_license">لایسنس فعلی: -</div>
-                </div>
-            </div>
-
-            <!-- WARP Action Buttons -->
-            <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                <button type="button" class="btn btn-primary btn-sm" id="warp-connect-btn" onclick="toggleWarpConnect(true)" style="flex:1;">
-                    <i data-lucide="play" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_connect">اتصال به وارپ (Connect)</span>
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" id="warp-disconnect-btn" onclick="toggleWarpConnect(false)" style="flex:1;">
-                    <i data-lucide="square" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_disconnect">قطع اتصال (Disconnect)</span>
-                </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="resetWarpFree()" title="ساخت مجدد اکانت رایگان کلادفلر" data-i18n-title="sys_item_6" style="white-space:nowrap;">
-                    <i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_new_free_account">اکانت رایگان جدید</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- TCP BBR Optimization Card -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
-            <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="gauge" style="color: #2563eb; width: 20px; height: 20px;"></i> <span data-i18n="sys_tcp_bbr">بهینه‌ساز شبکه و شتاب‌دهنده رشته‌ها (TCP BBR)</span>
-                    </h3>
-                    <span id="bbr-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی...
+</div>
+<div id="warp-current-license" style="font-size:11px; color:var(--text-muted); margin-top:6px;">لایسنس فعلی: -</div>
+</div>
+</div>
+<!-- WARP Action Buttons -->
+<div style="display:flex; gap:10px; flex-wrap:wrap;">
+<button class="btn btn-primary btn-sm" id="warp-connect-btn" onclick="toggleWarpConnect(true)" style="flex:1;" type="button">
+<i data-lucide="play" style="width:14px; height:14px; margin-left:4px;"></i> <span>اتصال به وارپ (Connect)</span>
+</button>
+<button class="btn btn-secondary btn-sm" id="warp-disconnect-btn" onclick="toggleWarpConnect(false)" style="flex:1;" type="button">
+<i data-lucide="square" style="width:14px; height:14px; margin-left:4px;"></i> <span>قطع اتصال (Disconnect)</span>
+</button>
+<button class="btn btn-secondary btn-sm" data-i18n-title="sys_item_6" onclick="resetWarpFree()" style="white-space:nowrap;" title="ساخت مجدد اکانت رایگان کلادفلر" type="button">
+<i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-left:4px;"></i> <span>اکانت رایگان جدید</span>
+</button>
+</div>
+</div>
+<!-- TCP BBR Optimization Card -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
+<div>
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
+<i data-lucide="gauge" style="color: #2563eb; width: 20px; height: 20px;"></i> <span>بهینه‌ساز شبکه و شتاب‌دهنده رشته‌ها (TCP BBR)</span>
+</h3>
+<span id="bbr-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
+<span class="status-dot active"></span> در حال بررسی...
                     </span>
-                </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     الگوریتم ازدحام <strong>Google BBR</strong> همراه با صف‌بندی هوشمند <strong>Fair Queuing (FQ)</strong> باعث کاهش شدید پینگ، پرش پکت (Packet Loss) و افزایش چشمگیر سرعت دانلود/آپلود در شبکه ایران می‌شود.
                 </p>
-
-                <!-- BBR Info Grid -->
-                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_congestion">الگوریتم فعال (Congestion)</div>
-                        <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="bbr-current-algo" data-i18n="sys_bbr_active">BBR (فعال)</div>
-                    </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_packet_queue_management_qdisc">مدیریت صف پکت‌ها (Qdisc)</div>
-                        <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;" id="bbr-current-qdisc">FQ (Fair Queuing)</div>
-                    </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_optimized_buffers">بافرهای بهینه‌شده</div>
-                        <div style="font-weight:700; color:#059669;" id="bbr-current-buffers">16MB Window Scale</div>
-                    </div>
+<!-- BBR Info Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">الگوریتم فعال (Congestion)</div>
+<div id="bbr-current-algo" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">BBR (فعال)</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">مدیریت صف پکت‌ها (Qdisc)</div>
+<div id="bbr-current-qdisc" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">FQ (Fair Queuing)</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="color:var(--text-muted); font-size:11px;">بافرهای بهینه‌شده</div>
+<div id="bbr-current-buffers" style="font-weight:700; color:#059669;">16MB Window Scale</div>
+</div>
+</div>
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:12px; font-size:11px; color:var(--text-muted); line-height:1.6;">
+<i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; color:#059669; margin-left:4px;"></i> <span>پارامترهای</span> <code>tcp_fastopen = 3</code>، <code>tcp_slow_start_after_idle = 0</code> و بافرهای شبکه به صورت دائمی در هسته لینوکس ذخیره و فعال خواهند شد.
                 </div>
-
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:12px; font-size:11px; color:var(--text-muted); line-height:1.6;">
-                    <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; color:#059669; margin-left:4px;"></i> <span data-i18n="awg_parameters">پارامترهای</span> <code>tcp_fastopen = 3</code>، <code>tcp_slow_start_after_idle = 0</code> و بافرهای شبکه به صورت دائمی در هسته لینوکس ذخیره و فعال خواهند شد.
-                </div>
-            </div>
-
-            <!-- BBR Optimize Button -->
-            <button type="button" class="btn btn-primary" onclick="enableBbrOptimizations()" style="width:100%; padding:10px;">
-                <i data-lucide="zap" class="btn-icon"></i> <span data-i18n="sys_advanced_network_optimization_application">بهینه‌سازی پیشرفته شبکه و اعمال بافرهای BBR</span>
-            </button>
-        </div>
-    </section>
-
-    <section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <!-- Default Test User Credentials Settings Panel -->
-        <div class="glass-card config-card">
-            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="user-check" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span data-i18n="sys_default_vpn_user">کاربر پیش‌فرض تست و اتصال سریع (Default VPN User)</span>
-                </h3>
-                <span class="sidebar-badge sidebar-badge-green" style="font-size:11px;" data-i18n="sys_sync_radius">همگام با RADIUS</span>
-            </div>
-            <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
-                این نام کاربری و رمز عبور به صورت خودکار در هسته <strong>FreeRADIUS</strong>، سرویس <strong data-i18n="sys_cisco_ocserv">سیسکو (OCServ)</strong>، <strong>IKEv2</strong>، <strong>L2TP</strong> و <strong>SSTP</strong> ثبت و همگام می‌شود تا کلاینت‌ها بدون نیاز به تعریف مجزا در هر پروتکل، با این مشخصات متصل شوند.
+</div>
+<!-- BBR Optimize Button -->
+<button class="btn btn-primary" onclick="enableBbrOptimizations()" style="width:100%; padding:10px;" type="button">
+<i class="btn-icon" data-lucide="zap"></i> <span>بهینه‌سازی پیشرفته شبکه و اعمال بافرهای BBR</span>
+</button>
+</div>
+</section>
+<section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Default Test User Credentials Settings Panel -->
+<div class="glass-card config-card">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+<i data-lucide="user-check" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span>کاربر پیش‌فرض تست و اتصال سریع (Default VPN User)</span>
+</h3>
+<span class="sidebar-badge sidebar-badge-green" style="font-size:11px;">همگام با RADIUS</span>
+</div>
+<p data-i18n-html="elem_tab_system_70" style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                این نام کاربری و رمز عبور به صورت خودکار در هسته <strong>FreeRADIUS</strong>، سرویس <strong>سیسکو (OCServ)</strong>، <strong>IKEv2</strong>، <strong>L2TP</strong> و <strong>SSTP</strong> ثبت و همگام می‌شود تا کلاینت‌ها بدون نیاز به تعریف مجزا در هر پروتکل، با این مشخصات متصل شوند.
             </p>
-            <form id="test-client-form" onsubmit="saveTestUser(event)">
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;" data-i18n="sys_test_username_username">نام کاربری تست (Username)</label>
-                    <input class="form-input" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text" id="test-user-input" placeholder="NPU" required>
-                </div>
-                <div class="form-group" style="margin-bottom:18px;">
-                    <label class="form-label" style="font-weight:600;" data-i18n="sys_password">رمز عبور تست (Password)</label>
-                    <input class="form-input" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text" id="test-pass-input" placeholder="56226500" required>
-                </div>
-                <button type="submit" class="btn btn-primary" id="save-test-user-btn" style="width:auto; padding:9px 20px;">
-                    <i data-lucide="save" class="btn-icon"></i> <span data-i18n="sys_save_apply_all_protocols">ذخیره و اعمال در تمامی پروتکل‌ها</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Admin Credentials Settings Panel -->
-        <div class="glass-card config-card">
-            <div class="config-header">
-                <h3 class="config-title">
-                    <i data-lucide="user-cog" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                    <span data-i18n="sys_admin_creds">مشخصات ورود مدیر پنل (Admin)</span>
-                </h3>
-            </div>
-            <form id="credentials-form">
-                <div class="form-group" style="margin-bottom:16px;">
-                    <label class="form-label" data-i18n="login_username">نام کاربری ادمین</label>
-                    <input class="form-input" style="padding-left:16px;" type="text" id="admin-user-input" value="{{ saved_username }}" required>
-                </div>
-                <div class="form-group" style="margin-bottom:20px;">
-                    <label class="form-label" data-i18n="sys_new_pass">رمز عبور جدید</label>
-                    <input class="form-input" style="padding-left:16px;" type="password" id="admin-pass-input" placeholder="رمز عبور جدید را وارد کنید" data-i18n-placeholder="sys_enter_new_password" required>
-                </div>
-                <button type="submit" class="btn" id="save-credentials-btn">
-                    <i data-lucide="save" class="btn-icon"></i> <span data-i18n="sys_save_creds">ذخیره مشخصات ورود</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Two-Factor Authentication (2FA) Panel -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                        <i data-lucide="shield-check" style="color: #6366f1; width: 20px; height: 20px;"></i>
-                        <span data-i18n="twofa_title">ورود دو مرحله‌ای (Google Authenticator)</span>
-                    </h3>
-                    <span id="tab-sys-twofa-badge" class="sidebar-badge sidebar-badge-blue">2FA TOTP</span>
-                </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;" data-i18n="twofa_settings_desc">
+<form id="test-client-form" onsubmit="saveTestUser(event)">
+<div class="form-group" style="margin-bottom:14px;">
+<label class="form-label" style="font-weight:600;">نام کاربری تست (Username)</label>
+<input class="form-input" id="test-user-input" placeholder="NPU" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text"/>
+</div>
+<div class="form-group" style="margin-bottom:18px;">
+<label class="form-label" style="font-weight:600;">رمز عبور تست (Password)</label>
+<input class="form-input" id="test-pass-input" placeholder="56226500" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text"/>
+</div>
+<button class="btn btn-primary" id="save-test-user-btn" style="width:auto; padding:9px 20px;" type="submit">
+<i class="btn-icon" data-lucide="save"></i> <span>ذخیره و اعمال در تمامی پروتکل‌ها</span>
+</button>
+</form>
+</div>
+<!-- Admin Credentials Settings Panel -->
+<div class="glass-card config-card">
+<div class="config-header">
+<h3 class="config-title">
+<i data-lucide="user-cog" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+<span>مشخصات ورود مدیر پنل (Admin)</span>
+</h3>
+</div>
+<form id="credentials-form">
+<div class="form-group" style="margin-bottom:16px;">
+<label class="form-label">نام کاربری ادمین</label>
+<input class="form-input" id="admin-user-input" required="" style="padding-left:16px;" type="text" value="{{ saved_username }}"/>
+</div>
+<div class="form-group" style="margin-bottom:20px;">
+<label class="form-label">رمز عبور جدید</label>
+<input class="form-input" data-i18n-placeholder="sys_enter_new_password" id="admin-pass-input" placeholder="رمز عبور جدید را وارد کنید" required="" style="padding-left:16px;" type="password"/>
+</div>
+<button class="btn" id="save-credentials-btn" type="submit">
+<i class="btn-icon" data-lucide="save"></i> <span>ذخیره مشخصات ورود</span>
+</button>
+</form>
+</div>
+<!-- Two-Factor Authentication (2FA) Panel -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+<div>
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+<i data-lucide="shield-check" style="color: #6366f1; width: 20px; height: 20px;"></i>
+<span>ورود دو مرحله‌ای (Google Authenticator)</span>
+</h3>
+<span class="sidebar-badge sidebar-badge-blue" id="tab-sys-twofa-badge">2FA TOTP</span>
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
                     افزایش امنیت ورود به پنل با تولید کدهای ۶ رقمی یکبار مصرف در نرم‌افزارهای Google Authenticator و Microsoft Authenticator.
                 </p>
-                <div style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-                    <span style="font-size: 12px; font-weight: 600;" data-i18n="twofa_status_label">وضعیت احراز هویت:</span>
-                    <strong id="tab-sys-twofa-status-text" style="font-size: 12px; color: #dc2626;" data-i18n="checking_status">در حال بررسی...</strong>
-                </div>
-            </div>
-            <button type="button" class="btn btn-primary" onclick="openTwoFactorModal()" style="width: 100%;">
-                <i data-lucide="key" class="btn-icon"></i> <span data-i18n="twofa_manage_btn">تنظیم و فعال‌سازی 2FA</span>
-            </button>
-        </div>
-
-        <!-- Developer Public API Panel -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-                <div class="config-header">
-                    <h3 class="config-title">
-                        <i data-lucide="code" style="color: var(--color-secondary); width: 20px; height: 20px;"></i>
-                        <span data-i18n="sys_api_title">رابط برنامه‌نویسی وضعیت (Developer API)</span>
-                    </h3>
-                </div>
-                <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;" data-i18n="sys_api_desc">
+<div style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+<span style="font-size: 12px; font-weight: 600;">وضعیت احراز هویت:</span>
+<strong id="tab-sys-twofa-status-text" style="font-size: 12px; color: #dc2626;">در حال بررسی...</strong>
+</div>
+</div>
+<button class="btn btn-primary" onclick="openTwoFactorModal()" style="width: 100%;" type="button">
+<i class="btn-icon" data-lucide="key"></i> <span>تنظیم و فعال‌سازی 2FA</span>
+</button>
+</div>
+<!-- Developer Public API Panel -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+<div>
+<div class="config-header">
+<h3 class="config-title">
+<i data-lucide="code" style="color: var(--color-secondary); width: 20px; height: 20px;"></i>
+<span>رابط برنامه‌نویسی وضعیت (Developer API)</span>
+</h3>
+</div>
+<p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
                     دریافت وضعیت زنده CPU، RAM، پهنای باند و اتصالات فعال از طریق درخواست‌های HTTP:
                 </p>
-                <div class="form-group" style="margin:0;">
-                    <label class="form-label" data-i18n="sys_api_url">اندپوینت عمومی وضعیت سرور:</label>
-                    <div class="code-box" id="api-url-box"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Panel Access URL, Custom Port & Language Settings -->
-    <section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-        <!-- Panel Access URL & Port Settings Card -->
-        <div class="glass-card config-card">
-            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="shield-check" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                    <span data-i18n="panel_access_title">تنظیمات آدرس ورود و پورت پنل</span>
-                </h3>
-                <span class="sidebar-badge sidebar-badge-blue">Security</span>
-            </div>
-            <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;" data-i18n="panel_access_desc">
+<div class="form-group" style="margin:0;">
+<label class="form-label">اندپوینت عمومی وضعیت سرور:</label>
+<div class="code-box" id="api-url-box"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Panel Access URL, Custom Port & Language Settings -->
+<section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Panel Access URL & Port Settings Card -->
+<div class="glass-card config-card">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+<i data-lucide="shield-check" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+<span>تنظیمات آدرس ورود و پورت پنل</span>
+</h3>
+<span class="sidebar-badge sidebar-badge-blue">Security</span>
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                 برای مخفی‌سازی پنل از دید اسکنرهای اینترنت، می‌توانید یک مسیر اختصاصی (Secret Path) و پورت دلخواه تنظیم کنید.
             </p>
-            <form id="panel-access-form" onsubmit="savePanelAccess(event)">
-                <div class="form-group" style="margin-bottom:14px;">
-                    <label class="form-label" style="font-weight:600;" data-i18n="panel_path_label">مسیر اختصاصی صفحه ورود (Secret Path)</label>
-                    <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text" id="panel-path-input" placeholder="/my-secret-admin">
-                    <small style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="panel_path_help">
+<form id="panel-access-form" onsubmit="savePanelAccess(event)">
+<div class="form-group" style="margin-bottom:14px;">
+<label class="form-label" style="font-weight:600;">مسیر اختصاصی صفحه ورود (Secret Path)</label>
+<input class="form-input" id="panel-path-input" placeholder="/my-secret-admin" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
+<small style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
                         در صورت تعیین مسیر، دسترسی به روت (/) خطای 404 برمی‌گرداند. (خالی بگذارید تا مسیر پیش‌فرض باشد).
                     </small>
-                </div>
-                <div class="form-group" style="margin-bottom:16px;">
-                    <label class="form-label" style="font-weight:600;" data-i18n="panel_port_label">پورت وب پنل (Panel Port)</label>
-                    <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="number" id="panel-port-input" value="9090" min="1" max="65535" required>
-                </div>
-                
-                <!-- URL Preview Box -->
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:10px; margin-bottom:16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <span style="font-size:11px; color:var(--text-muted);" data-i18n="panel_full_url">آدرس کامل دسترسی به پنل:</span>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('panel-url-preview').textContent)" style="padding:2px 8px; font-size:11px;">
-                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="copy_link">کپی لینک</span>
-                        </button>
-                    </div>
-                    <div id="panel-url-preview" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#2563eb; word-break:break-all; direction:ltr; text-align:left;">-</div>
-                </div>
-
-                <button type="submit" class="btn btn-primary" id="save-panel-access-btn" style="width:100%; padding:10px;">
-                    <i data-lucide="save" class="btn-icon"></i> <span data-i18n="panel_access_save">ذخیره و اعمال تنظیمات آدرس و پورت</span>
-                </button>
-            </form>
-        </div>
-
-        <!-- Language Settings Card in Settings -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                        <i data-lucide="languages" style="color: #6366f1; width: 20px; height: 20px;"></i>
-                        <span data-i18n="panel_lang_title">تنظیمات زبان و چیدمان پنل</span>
-                    </h3>
-                    <span class="sidebar-badge sidebar-badge-purple">i18n</span>
-                </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;" data-i18n="panel_lang_desc">
+</div>
+<div class="form-group" style="margin-bottom:16px;">
+<label class="form-label" style="font-weight:600;">پورت وب پنل (Panel Port)</label>
+<input class="form-input" id="panel-port-input" max="65535" min="1" required="" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="number" value="9090"/>
+</div>
+<!-- URL Preview Box -->
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:10px; margin-bottom:16px;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+<span style="font-size:11px; color:var(--text-muted);">آدرس کامل دسترسی به پنل:</span>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('panel-url-preview').textContent)" style="padding:2px 8px; font-size:11px;" type="button">
+<i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span>کپی لینک</span>
+</button>
+</div>
+<div id="panel-url-preview" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#2563eb; word-break:break-all; direction:ltr; text-align:left;">-</div>
+</div>
+<button class="btn btn-primary" id="save-panel-access-btn" style="width:100%; padding:10px;" type="submit">
+<i class="btn-icon" data-lucide="save"></i> <span>ذخیره و اعمال تنظیمات آدرس و پورت</span>
+</button>
+</form>
+</div>
+<!-- Language Settings Card in Settings -->
+<div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+<div>
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+<h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+<i data-lucide="languages" style="color: #6366f1; width: 20px; height: 20px;"></i>
+<span>تنظیمات زبان و چیدمان پنل</span>
+</h3>
+<span class="sidebar-badge sidebar-badge-purple">i18n</span>
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
                     زبان محیط مدیریت پنل را انتخاب کنید. در حالت فارسی کل پنل و کشوی منوی موبایل به صورت کاملاً راست‌چین (RTL) نمایش داده می‌شود.
                 </p>
-
-                <div class="form-group" style="margin-bottom:20px;">
-                    <label class="form-label" style="font-weight:600;" data-i18n="select_language">انتخاب زبان فعال:</label>
-                    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px;">
-                        <button type="button" class="btn btn-secondary lang-choice-btn" data-lang="fa" onclick="changeLanguage('fa')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;">
-                            <svg width="22" height="15" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
-                                <rect width="18" height="4.33" fill="#239F40"/>
-                                <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
-                                <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
-                                <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
-                            </svg>
-                            <span data-i18n="sys_item_2">فارسی</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary lang-choice-btn" data-lang="en" onclick="changeLanguage('en')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;">
-                            <svg width="22" height="15" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
-                                <rect width="18" height="13" fill="#012169"/>
-                                <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
-                                <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
-                                <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
-                                <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
-                            </svg>
-                            <span>English</span>
-                        </button>
-                        <button type="button" class="btn btn-secondary lang-choice-btn" data-lang="ru" onclick="changeLanguage('ru')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;">
-                            <svg width="22" height="15" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
-                                <rect width="18" height="4.33" fill="#FFFFFF"/>
-                                <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
-                                <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
-                            </svg>
-                            <span>Русский</span>
-                        </button>
-                    </div>
-                    <select id="settings-lang-select" class="form-input" onchange="changeLanguage(this.value)" style="font-size:13px; font-weight:600;">
-                        <option value="fa" data-i18n="sys_persian_rtl">فارسی (Persian - RTL)</option>
-                        <option value="en">English (LTR)</option>
-                        <option value="ru">Русский (Russian - LTR)</option>
-                    </select>
-                </div>
-
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
-                    <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#6366f1; margin-left:4px;"></i>
-                    <span data-i18n="panel_lang_hint">زبان انتخابی به صورت دائمی در مرورگر ذخیره شده و هم در صفحه ورود و هم داخل داشبورد بلافاصله اعمال می‌شود.</span>
-                </div>
-            </div>
-        </div>
-    </section>
+<div class="form-group" style="margin-bottom:20px;">
+<label class="form-label" style="font-weight:600;">انتخاب زبان فعال:</label>
+<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px;">
+<button class="btn btn-secondary lang-choice-btn" data-lang="fa" onclick="changeLanguage('fa')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;" type="button">
+<svg fill="none" height="15" style="border-radius:2px; flex-shrink:0;" viewbox="0 0 18 13" width="22">
+<rect fill="#239F40" height="4.33" width="18"></rect>
+<rect fill="#FFFFFF" height="4.33" width="18" y="4.33"></rect>
+<rect fill="#DA0000" height="4.33" width="18" y="8.67"></rect>
+<circle cx="9" cy="6.5" fill="#DA0000" r="1.3"></circle>
+</svg>
+<span>فارسی</span>
+</button>
+<button class="btn btn-secondary lang-choice-btn" data-lang="en" onclick="changeLanguage('en')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;" type="button">
+<svg fill="none" height="15" style="border-radius:2px; flex-shrink:0;" viewbox="0 0 18 13" width="22">
+<rect fill="#012169" height="13" width="18"></rect>
+<path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"></path>
+<path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"></path>
+<path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"></path>
+<path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"></path>
+</svg>
+<span>English</span>
+</button>
+<button class="btn btn-secondary lang-choice-btn" data-lang="ru" onclick="changeLanguage('ru')" style="display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 8px; border-radius:10px; font-weight:700;" type="button">
+<svg fill="none" height="15" style="border-radius:2px; flex-shrink:0;" viewbox="0 0 18 13" width="22">
+<rect fill="#FFFFFF" height="4.33" width="18"></rect>
+<rect fill="#0039A6" height="4.33" width="18" y="4.33"></rect>
+<rect fill="#D52B1E" height="4.33" width="18" y="8.67"></rect>
+</svg>
+<span>Русский</span>
+</button>
+</div>
+<select class="form-input" id="settings-lang-select" onchange="changeLanguage(this.value)" style="font-size:13px; font-weight:600;">
+<option value="fa">فارسی (Persian - RTL)</option>
+<option value="en">English (LTR)</option>
+<option value="ru">Русский (Russian - LTR)</option>
+</select>
+</div>
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+<i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#6366f1; margin-left:4px;"></i>
+<span>زبان انتخابی به صورت دائمی در مرورگر ذخیره شده و هم در صفحه ورود و هم داخل داشبورد بلافاصله اعمال می‌شود.</span>
+</div>
+</div>
+</div>
+</section>
 </div>
