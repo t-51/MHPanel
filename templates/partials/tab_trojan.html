@@ -1,0 +1,153 @@
+<div class="tab-pane" id="tab-trojan">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(14, 165, 233, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(14, 165, 233, 0.12); color:#0ea5e9; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="trojan_title">
+                            پروتکل تروجان (Trojan TLS / Sing-Box Core)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="trojan_subtitle">
+                            شبیه‌سازی کامل رفتار وب‌سایت‌های رمزنگاری شده HTTPS با رمزنگاری معتبر TLS، پشتیبانی از مالتی‌پلکسینگ (Mux) و عبور پایدار از فایروال
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="trojan-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTrojanConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت اتصال (TCP TLS)</div>
+                    <div style="font-weight: 700; color: #0ea5e9; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="trojan-stat-port">8443</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="domain">شناسه SNI متصل</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="trojan-stat-sni">-</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="trojan_stat_mux">مالتی‌پلکسینگ (Multiplex)</div>
+                    <div style="font-weight: 700; color: #8b5cf6; margin-top: 3px;" id="trojan-stat-mux">H2 / Smux Active</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="trojan-stat-connections">0</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('trojan', 'restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد Trojan</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="trojan-toggle-btn" onclick="toggleProtocolQuick('trojan')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #0ea5e9; width: 20px; height: 20px;"></i>
+                    <span data-i18n="trojan_config_title">تنظیمات هسته و گواهی امنیتی Trojan</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="trojan_port_label">پورت شنود سرور (TCP Port)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="trojan-cfg-port" placeholder="8443" min="1" max="65535">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="trojan_port_hint">
+                        پیش‌فرض ۸۴۴۳ (یا ۴۴۳ در صورت عدم تداخل با پورت وب)
+                    </span>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="password">رمز عبور کاربر (Password Key)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="trojan-cfg-password" placeholder="mhpanel_trojan_secret">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('trojan-cfg-password', 18)" title="تولید رمز تصادفی">
+                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="domain">نام دامنه و SNI مجاز (Server Name)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="trojan-cfg-sni" placeholder="yourdomain.com">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="trojan_sni_hint">
+                        دامنه معتبر دارای گواهینامه SSL برای دست‌تکانی TLS
+                    </span>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveTrojanConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات Trojan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Client Export & Integration -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="qr-code" style="color: #0ea5e9; width: 20px; height: 20px;"></i>
+                    <span data-i18n="trojan_export_title">لینک اتصال کلاینت و بارکد QR (v2rayN, Shadowrocket, Clash)</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="form-label" data-i18n="trojan_uri_label">لینک مستقیم Trojan (URI):</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" id="trojan-client-uri" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#38bdf8;">
+                        <button type="button" class="btn btn-secondary" onclick="copyElementText('trojan-client-uri'); showToast('لینک کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
+                    <div id="trojan-qrcode-container" style="background:#fff; padding:10px; border-radius:10px; width:160px; height:160px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
+                        <!-- QR code rendered here -->
+                    </div>
+                    <div style="flex:1; min-width:240px; font-size:12.5px; color:var(--text-muted); line-height:1.8;">
+                        <p style="margin:0 0 8px 0;" data-i18n="trojan_client_instructions">
+                            پروتکل تروجان به طور گسترده در برنامه‌های <strong>v2rayNG</strong>، <strong>v2rayN</strong>، <strong>Shadowrocket</strong> (آیفون)، <strong>Clash Verge / Mihomo</strong> و <strong>Sing-Box</strong> پشتیبانی می‌شود.
+                        </p>
+                        <p style="margin:0;">
+                            <i data-lucide="check-circle" style="width:14px; height:14px; color:#10b981; vertical-align:middle; margin-left:4px;"></i>
+                            <span data-i18n="trojan_tls_notice">ترافیک با تایید گواهی معتبر سرور شبیه به دست‌تکانی مرورگر واقعی Google Chrome ارسال می‌شود.</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="trojan_clash_label">کانفیگ Clash Meta (Mihomo) Outbound YAML:</label>
+                    <textarea class="form-input" id="trojan-clash-snippet" rows="8" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#bae6fd;"></textarea>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('trojan-clash-snippet'); showToast('کانفیگ Clash کپی شد', 'success');" style="width:auto;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_clash">کپی کانفیگ Clash</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

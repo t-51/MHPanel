@@ -1,0 +1,133 @@
+<div class="tab-pane" id="tab-stuntls">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(168, 85, 247, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="radio-tower" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="stuntls_title">
+                            پروتکل استتار StunTLS (استتار VoIP / WebRTC بر بستر TLS)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="stuntls_subtitle">
+                            پروتکل رمزنگاری و استتار پکت‌های شبکه با هدر استاندارد RFC 5389 STUN و پوشش TLS جهت شبیه‌سازی مکالمات ویدیویی WebRTC و عبور بی‌صدا از سامانه‌های DPI
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="stuntls-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchStunTlsConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت شنود (TCP/UDP)</div>
+                    <div style="font-weight: 700; color: #a855f7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="stuntls-stat-port">3478</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="stuntls_stat_disguise">نوع استتار (Disguise)</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">RFC 5389 WebRTC STUN</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="upstream">مقصد فوروارد (Upstream)</div>
+                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="stuntls-stat-upstream">127.0.0.1:22</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="stuntls-stat-connections">0</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('stuntls', 'restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد StunTLS</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="stuntls-toggle-btn" onclick="toggleProtocolQuick('stuntls')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #a855f7; width: 20px; height: 20px;"></i>
+                    <span data-i18n="stuntls_config_title">تنظیمات اصلی و رمزنگاری StunTLS</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="port">پورت سرور (STUN Port)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="stuntls-cfg-port" placeholder="3478" min="1" max="65535">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="stuntls_port_hint">
+                        پورت استاندارد ۳۴۷۸ یا ۵۳۴۹ مربوط به سرورهای WebRTC/STUN بین‌المللی است.
+                    </span>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="stuntls_secret_key">کلید امنیتی اشتراکی (Pre-Shared Secret)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="stuntls-cfg-secret" placeholder="mhpanel_stuntls_key">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('stuntls-cfg-secret', 24)" title="تولید کلید رندوم">
+                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="upstream">مقصد فوروارد ترافیک استخراج‌شده (Target)</label>
+                    <select class="form-input" id="stuntls-cfg-upstream">
+                        <option value="127.0.0.1:22">127.0.0.1:22 (SSH لینوکس)</option>
+                        <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس اختصاصی SSH)</option>
+                        <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveStunTlsConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات StunTLS</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Client Guide Card -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="terminal" style="color: #a855f7; width: 20px; height: 20px;"></i>
+                    <span data-i18n="client_guide">دستور اجرای کلاینت و تونل محلی StunTLS</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;" data-i18n="stuntls_guide">
+                    کلاینت StunTLS یک تونل رمزنگاری شده را با هدرهای تصادفی VoIP/STUN روی پورت ۳۴۷۸ ایجاد کرده و یک پورت لوکال SOCKS5 به شما تحویل می‌دهد.
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="stuntls_cmd_label">دستور اجرای کلاینت CLI (ویندوز / لینوکس / مک):</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#e9d5ff;">
+                        <button type="button" class="btn btn-secondary" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

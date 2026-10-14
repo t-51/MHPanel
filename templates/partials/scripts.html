@@ -1503,6 +1503,104 @@
             category: "proxy",
             tab: "mtproto",
             radius: true
+        },
+        hysteria2: {
+            title: "Hysteria 2",
+            faTitle: "هیستوریا ۲ (Hysteria 2)",
+            ruTitle: "Hysteria 2 (QUIC)",
+            desc_en: "High-speed QUIC protocol with Brutal congestion control and Salamander obfuscation.",
+            desc_fa: "پروتکل پرسرعت کوئیک با کنترل ازدحام Brutal و مبهم‌سازی سالاماندر جهت مقابله با پکت‌لاس",
+            desc_ru: "Скоростной QUIC протокол с алгоритмом Brutal и обфускацией Salamander.",
+            icon: "flame",
+            color: "#ef4444",
+            bg: "rgba(239, 68, 68, 0.1)",
+            category: "crypto",
+            tab: "hysteria2",
+            radius: false
+        },
+        trojan: {
+            title: "Trojan TLS",
+            faTitle: "پروتکل تروجان (Trojan)",
+            ruTitle: "Trojan TLS",
+            desc_en: "Unidentifiable TLS masquerade protocol mimicking standard HTTPS web traffic.",
+            desc_fa: "پروتکل استتار کامل در قالب وب‌سایت‌های استاندارد HTTPS با رمزنگاری TLS",
+            desc_ru: "Неопознаваемый протокол маскировки TLS под стандартный трафик HTTPS.",
+            icon: "shield",
+            color: "#0ea5e9",
+            bg: "rgba(14, 165, 233, 0.1)",
+            category: "proxy",
+            tab: "trojan",
+            radius: false
+        },
+        naiveproxy: {
+            title: "NaiveProxy",
+            faTitle: "پروتکل نایو پروکسی (Naive)",
+            ruTitle: "NaiveProxy (Chromium)",
+            desc_en: "Chromium network stack forward proxy disguised as standard Chrome browser traffic.",
+            desc_fa: "پروکسی تحت پشته شبکه کرومیوم با استتار دقیق رفتار مرورگر گوگل کروم",
+            desc_ru: "Форвард-прокси на стеке Chromium, маскирующийся под браузер Chrome.",
+            icon: "compass",
+            color: "#f59e0b",
+            bg: "rgba(245, 158, 11, 0.1)",
+            category: "proxy",
+            tab: "naiveproxy",
+            radius: false
+        },
+        stuntls: {
+            title: "StunTLS",
+            faTitle: "پروتکل استتار StunTLS",
+            ruTitle: "StunTLS (WebRTC)",
+            desc_en: "RFC 5389 STUN disguised VoIP/WebRTC traffic over TLS to bypass DPI inspection.",
+            desc_fa: "پروتکل استتار پکت‌ها با هدر استاندارد WebRTC STUN و رمزنگاری TLS",
+            desc_ru: "Протокол маскировки трафика под VoIP/WebRTC STUN с шифрованием TLS.",
+            icon: "radio-tower",
+            color: "#a855f7",
+            bg: "rgba(168, 85, 247, 0.1)",
+            category: "crypto",
+            tab: "stuntls",
+            radius: false
+        },
+        noizdns: {
+            title: "NoizDNS",
+            faTitle: "پروتکل نویز دی‌ان‌اس (NoizDNS)",
+            ruTitle: "NoizDNS (Анти-DPI)",
+            desc_en: "Noise-padded DNS anti-censorship tunnel stripping DPI fingerprinting patterns.",
+            desc_fa: "تونل ضد فیلترینگ DNS با پدینگ بایت‌های نویز تصادفی جهت دور زدن بازرسی پکت",
+            desc_ru: "DNS антиблокировочный туннель с рандомизированным шумом против DPI.",
+            icon: "globe",
+            color: "#10b981",
+            bg: "rgba(16, 185, 129, 0.1)",
+            category: "crypto",
+            tab: "dns-tunnels",
+            radius: false
+        },
+        masterdnsvpn: {
+            title: "MasterdnsVPN",
+            faTitle: "مستر دی‌ان‌اس وی‌پی‌ان",
+            ruTitle: "MasterdnsVPN",
+            desc_en: "High-speed chunked base64 DNS tunneling VPN protocol with multi-request transport.",
+            desc_fa: "پروتکل تانلینگ پرسرعت تکه‌ای چانک Base64 بر بستر کوئری‌های DNS",
+            desc_ru: "Высокоскоростной фрагментированный DNS VPN протокол на Base64.",
+            icon: "globe",
+            color: "#6366f1",
+            bg: "rgba(99, 102, 241, 0.1)",
+            category: "crypto",
+            tab: "dns-tunnels",
+            radius: false
+        },
+        tor: {
+            title: "Tor Bridge Node",
+            faTitle: "پل تور (Tor Bridges)",
+            ruTitle: "Tor Мост (obfs4)",
+            desc_en: "Tor Bridge node with obfs4, WebTunnel, and Snowflake pluggable transports.",
+            desc_fa: "نود پل ارتباطی تور با ترنسپورت‌های obfs4، وب‌تانل و اسنوفلیک برای شرایط بحرانی",
+            desc_ru: "Узел моста Tor с подключаемыми транспортами obfs4, WebTunnel и Snowflake.",
+            icon: "shield-alert",
+            color: "#8b5cf6",
+            bg: "rgba(139, 92, 246, 0.1)",
+            category: "proxy",
+            tab: "tor",
+            radius: false
         }
     };
 
@@ -5282,6 +5380,19 @@
             fetchOpenvpnConfig();
         } else if (tabId === "radius") {
             fetchRadiusData();
+        } else if (tabId === "hysteria2") {
+            fetchHysteria2Config();
+        } else if (tabId === "trojan") {
+            fetchTrojanConfig();
+        } else if (tabId === "naiveproxy") {
+            fetchNaiveProxyConfig();
+        } else if (tabId === "stuntls") {
+            fetchStunTlsConfig();
+        } else if (tabId === "tor") {
+            fetchTorConfig();
+        } else if (tabId === "dns-management") {
+            fetchSystemDns();
+            fetchProtocolDnsRouting();
         }
     }
 
@@ -10705,7 +10816,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
     // --- DNS Tunnels Management ---
     function switchDnsSubTab(tabName) {
-        const tabs = ['dnstt', 'vaydns', 'slipstream'];
+        const tabs = ['dnstt', 'vaydns', 'slipstream', 'noizdns', 'masterdnsvpn'];
         tabs.forEach(t => {
             const pane = document.getElementById(`dns-subpane-${t}`);
             const btn = document.getElementById(`dns-tab-btn-${t}`);
@@ -10726,6 +10837,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (tabName === 'dnstt') fetchDnsttConfig();
         else if (tabName === 'vaydns') fetchVaydnsConfig();
         else if (tabName === 'slipstream') fetchSlipstreamConfig();
+        else if (tabName === 'noizdns') fetchNoizdnsConfig();
+        else if (tabName === 'masterdnsvpn') fetchMasterdnsvpnConfig();
     }
 
     async function fetchDnsttConfig() {
@@ -13117,6 +13230,744 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         } catch (err) {
             showToast("خطای ارتباط با سرور: " + err.message, "error");
         }
+    }
+
+    // --- Helper Utilities for New Protocols & DNS Hub ---
+    function copyElementText(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            navigator.clipboard.writeText(el.value || el.textContent);
+        }
+    }
+
+    function generateRandomToInput(id, len) {
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let res = "";
+        for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        const el = document.getElementById(id);
+        if (el) el.value = res;
+    }
+
+    function renderQrCodeHelper(containerId, text) {
+        const el = document.getElementById(containerId);
+        if (!el || !text) return;
+        el.innerHTML = "";
+        if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
+            QRCode.toCanvas(text, { width: 140, margin: 1 }, (err, canvas) => {
+                if (!err && canvas) el.appendChild(canvas);
+            });
+        }
+    }
+
+    // --- Hysteria 2 Protocol Functions ---
+    async function fetchHysteria2Config() {
+        try {
+            const res = await fetch("/api/hysteria2/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const badge = document.getElementById("hysteria2-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+            if (document.getElementById("hysteria2-stat-port")) document.getElementById("hysteria2-stat-port").textContent = data.port;
+            if (document.getElementById("hysteria2-stat-connections")) document.getElementById("hysteria2-stat-connections").textContent = `${data.connections || 0}`;
+            if (document.getElementById("hysteria2-cfg-port")) document.getElementById("hysteria2-cfg-port").value = data.port;
+            if (document.getElementById("hysteria2-cfg-password")) document.getElementById("hysteria2-cfg-password").value = data.password;
+            if (document.getElementById("hysteria2-cfg-obfs-pass")) document.getElementById("hysteria2-cfg-obfs-pass").value = data.obfs_password;
+            if (document.getElementById("hysteria2-cfg-domain")) document.getElementById("hysteria2-cfg-domain").value = data.domain;
+            if (document.getElementById("hysteria2-cfg-up")) document.getElementById("hysteria2-cfg-up").value = data.up_mbps || 100;
+            if (document.getElementById("hysteria2-cfg-down")) document.getElementById("hysteria2-cfg-down").value = data.down_mbps || 100;
+            if (document.getElementById("hysteria2-client-uri")) document.getElementById("hysteria2-client-uri").value = data.client_link || "";
+            
+            renderQrCodeHelper("hysteria2-qrcode-container", data.client_link || "");
+
+            const singboxOutbound = {
+                "type": "hysteria2",
+                "tag": "hysteria2-out",
+                "server": data.domain,
+                "server_port": data.port,
+                "up_mbps": data.up_mbps || 100,
+                "down_mbps": data.down_mbps || 100,
+                "password": data.password,
+                "obfs": {
+                    "type": "salamander",
+                    "password": data.obfs_password
+                },
+                "tls": {
+                    "enabled": true,
+                    "server_name": data.domain,
+                    "insecure": true
+                }
+            };
+            if (document.getElementById("hysteria2-singbox-snippet")) {
+                document.getElementById("hysteria2-singbox-snippet").value = JSON.stringify(singboxOutbound, null, 2);
+            }
+        } catch (e) {
+            console.error("fetchHysteria2Config error:", e);
+        }
+    }
+
+    async function saveHysteria2Config() {
+        const port = parseInt(document.getElementById("hysteria2-cfg-port").value) || 7443;
+        const password = document.getElementById("hysteria2-cfg-password").value.trim();
+        const obfs_password = document.getElementById("hysteria2-cfg-obfs-pass").value.trim();
+        const up_mbps = parseInt(document.getElementById("hysteria2-cfg-up").value) || 100;
+        const down_mbps = parseInt(document.getElementById("hysteria2-cfg-down").value) || 100;
+
+        toggleLoading(true, "ذخیره و اعمال تنظیمات Hysteria 2...");
+        try {
+            const res = await fetch("/api/hysteria2/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, password, obfs_password, up_mbps, down_mbps })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات Hysteria 2 با موفقیت ذخیره و سرویس راه‌اندازی شد", "success");
+                fetchHysteria2Config();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- Trojan Protocol Functions ---
+    async function fetchTrojanConfig() {
+        try {
+            const res = await fetch("/api/trojan/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const badge = document.getElementById("trojan-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+            if (document.getElementById("trojan-stat-port")) document.getElementById("trojan-stat-port").textContent = data.port;
+            if (document.getElementById("trojan-stat-sni")) document.getElementById("trojan-stat-sni").textContent = data.sni || data.domain;
+            if (document.getElementById("trojan-stat-connections")) document.getElementById("trojan-stat-connections").textContent = `${data.connections || 0}`;
+            if (document.getElementById("trojan-cfg-port")) document.getElementById("trojan-cfg-port").value = data.port;
+            if (document.getElementById("trojan-cfg-password")) document.getElementById("trojan-cfg-password").value = data.password;
+            if (document.getElementById("trojan-cfg-sni")) document.getElementById("trojan-cfg-sni").value = data.sni || data.domain;
+            if (document.getElementById("trojan-client-uri")) document.getElementById("trojan-client-uri").value = data.client_link || "";
+
+            renderQrCodeHelper("trojan-qrcode-container", data.client_link || "");
+
+            const clashTrojan = `  - name: "Trojan-MHPanel"
+    type: trojan
+    server: ${data.domain}
+    port: ${data.port}
+    password: "${data.password}"
+    sni: ${data.sni || data.domain}
+    skip-cert-verify: true
+    udp: true
+    smux:
+      enabled: true`;
+            if (document.getElementById("trojan-clash-snippet")) {
+                document.getElementById("trojan-clash-snippet").value = clashTrojan;
+            }
+        } catch (e) {
+            console.error("fetchTrojanConfig error:", e);
+        }
+    }
+
+    async function saveTrojanConfig() {
+        const port = parseInt(document.getElementById("trojan-cfg-port").value) || 8443;
+        const password = document.getElementById("trojan-cfg-password").value.trim();
+        const sni = document.getElementById("trojan-cfg-sni").value.trim();
+
+        toggleLoading(true, "ذخیره و اعمال تنظیمات Trojan...");
+        try {
+            const res = await fetch("/api/trojan/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, password, sni })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات Trojan با موفقیت اعمال شد", "success");
+                fetchTrojanConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- NaiveProxy Protocol Functions ---
+    async function fetchNaiveProxyConfig() {
+        try {
+            const res = await fetch("/api/naiveproxy/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const badge = document.getElementById("naiveproxy-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+            if (document.getElementById("naiveproxy-stat-port")) document.getElementById("naiveproxy-stat-port").textContent = data.port;
+            if (document.getElementById("naiveproxy-stat-connections")) document.getElementById("naiveproxy-stat-connections").textContent = `${data.connections || 0}`;
+            if (document.getElementById("naiveproxy-cfg-port")) document.getElementById("naiveproxy-cfg-port").value = data.port;
+            if (document.getElementById("naiveproxy-cfg-username")) document.getElementById("naiveproxy-cfg-username").value = data.username;
+            if (document.getElementById("naiveproxy-cfg-password")) document.getElementById("naiveproxy-cfg-password").value = data.password;
+            if (document.getElementById("naiveproxy-cfg-sni")) document.getElementById("naiveproxy-cfg-sni").value = data.sni || data.domain;
+            if (document.getElementById("naiveproxy-client-uri")) document.getElementById("naiveproxy-client-uri").value = data.client_link || "";
+
+            const clientJson = {
+                "listen": "socks://127.0.0.1:1080",
+                "proxy": `https://${data.username}:${data.password}@${data.domain}:${data.port}`,
+                "insecure-concurrency": 1
+            };
+            if (document.getElementById("naiveproxy-client-json")) {
+                document.getElementById("naiveproxy-client-json").value = JSON.stringify(clientJson, null, 2);
+            }
+
+            const clashNaive = `  - name: "NaiveProxy-MHPanel"
+    type: http
+    server: ${data.domain}
+    port: ${data.port}
+    username: "${data.username}"
+    password: "${data.password}"
+    tls: true
+    skip-cert-verify: true`;
+            if (document.getElementById("naiveproxy-clash-snippet")) {
+                document.getElementById("naiveproxy-clash-snippet").value = clashNaive;
+            }
+        } catch (e) {
+            console.error("fetchNaiveProxyConfig error:", e);
+        }
+    }
+
+    async function saveNaiveProxyConfig() {
+        const port = parseInt(document.getElementById("naiveproxy-cfg-port").value) || 8444;
+        const username = document.getElementById("naiveproxy-cfg-username").value.trim();
+        const password = document.getElementById("naiveproxy-cfg-password").value.trim();
+        const sni = document.getElementById("naiveproxy-cfg-sni").value.trim();
+
+        toggleLoading(true, "ذخیره و اعمال تنظیمات NaiveProxy...");
+        try {
+            const res = await fetch("/api/naiveproxy/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, username, password, sni })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات NaiveProxy با موفقیت اعمال شد", "success");
+                fetchNaiveProxyConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- StunTLS Protocol Functions ---
+    async function fetchStunTlsConfig() {
+        try {
+            const res = await fetch("/api/stuntls/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const badge = document.getElementById("stuntls-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+            if (document.getElementById("stuntls-stat-port")) document.getElementById("stuntls-stat-port").textContent = data.port;
+            if (document.getElementById("stuntls-stat-upstream")) document.getElementById("stuntls-stat-upstream").textContent = data.upstream || "127.0.0.1:22";
+            if (document.getElementById("stuntls-stat-connections")) document.getElementById("stuntls-stat-connections").textContent = `${data.connections || 0}`;
+            if (document.getElementById("stuntls-cfg-port")) document.getElementById("stuntls-cfg-port").value = data.port;
+            if (document.getElementById("stuntls-cfg-secret")) document.getElementById("stuntls-cfg-secret").value = data.secret;
+            if (document.getElementById("stuntls-cfg-upstream")) document.getElementById("stuntls-cfg-upstream").value = data.upstream;
+            if (document.getElementById("stuntls-client-cmd")) document.getElementById("stuntls-client-cmd").value = data.client_cmd || "";
+        } catch (e) {
+            console.error("fetchStunTlsConfig error:", e);
+        }
+    }
+
+    async function saveStunTlsConfig() {
+        const port = parseInt(document.getElementById("stuntls-cfg-port").value) || 3478;
+        const secret = document.getElementById("stuntls-cfg-secret").value.trim();
+        const upstream = document.getElementById("stuntls-cfg-upstream").value.trim();
+
+        toggleLoading(true, "ذخیره تنظیمات StunTLS...");
+        try {
+            const res = await fetch("/api/stuntls/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, secret, upstream })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات StunTLS با موفقیت اعمال شد", "success");
+                fetchStunTlsConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- Tor Protocol Functions ---
+    async function fetchTorConfig() {
+        try {
+            const res = await fetch("/api/tor/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const badge = document.getElementById("tor-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+            if (document.getElementById("tor-stat-orport")) document.getElementById("tor-stat-orport").textContent = data.or_port;
+            if (document.getElementById("tor-stat-bridgeport")) document.getElementById("tor-stat-bridgeport").textContent = `${data.bridge_port} (${data.transport || 'obfs4'})`;
+            if (document.getElementById("tor-stat-socks")) document.getElementById("tor-stat-socks").textContent = `127.0.0.1:${data.socks_port || 9050}`;
+            if (document.getElementById("tor-stat-connections")) document.getElementById("tor-stat-connections").textContent = `${data.connections || 0}`;
+            if (document.getElementById("tor-cfg-transport")) document.getElementById("tor-cfg-transport").value = data.transport || "obfs4";
+            if (document.getElementById("tor-cfg-bridgeport")) document.getElementById("tor-cfg-bridgeport").value = data.bridge_port;
+            if (document.getElementById("tor-cfg-orport")) document.getElementById("tor-cfg-orport").value = data.or_port;
+            if (document.getElementById("tor-cfg-nickname")) document.getElementById("tor-cfg-nickname").value = data.nickname;
+            if (document.getElementById("tor-cfg-contact")) document.getElementById("tor-cfg-contact").value = data.contact;
+            if (document.getElementById("tor-client-bridgeline")) document.getElementById("tor-client-bridgeline").value = data.bridge_line || "";
+        } catch (e) {
+            console.error("fetchTorConfig error:", e);
+        }
+    }
+
+    async function saveTorConfig() {
+        const transport = document.getElementById("tor-cfg-transport").value;
+        const bridge_port = parseInt(document.getElementById("tor-cfg-bridgeport").value) || 9002;
+        const or_port = parseInt(document.getElementById("tor-cfg-orport").value) || 9001;
+        const nickname = document.getElementById("tor-cfg-nickname").value.trim();
+        const contact = document.getElementById("tor-cfg-contact").value.trim();
+
+        toggleLoading(true, "ذخیره و راه‌اندازی Tor Bridge...");
+        try {
+            const res = await fetch("/api/tor/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ transport, bridge_port, or_port, nickname, contact })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("پل ارتباطی Tor با موفقیت پیکربندی و راه‌اندازی شد", "success");
+                fetchTorConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- NoizDNS Protocol Functions ---
+    async function fetchNoizdnsConfig() {
+        try {
+            const res = await fetch("/api/noizdns/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const dot = document.getElementById("noizdns-status-dot");
+            if (dot) dot.className = `status-dot ${data.active ? 'active' : 'inactive'}`;
+            const btn = document.getElementById("noizdns-toggle-btn");
+            if (btn) btn.className = `btn btn-sm ${data.active ? 'btn-danger' : 'btn-success'}`;
+            if (document.getElementById("noizdns-stat-port")) document.getElementById("noizdns-stat-port").textContent = data.port;
+            if (document.getElementById("noizdns-stat-upstream")) document.getElementById("noizdns-stat-upstream").textContent = data.upstream_dns;
+            if (document.getElementById("noizdns-stat-padding")) document.getElementById("noizdns-stat-padding").textContent = `${data.padding_min || 16} - ${data.padding_max || 64} Bytes`;
+            if (document.getElementById("noizdns-stat-conns")) document.getElementById("noizdns-stat-conns").textContent = `${data.connections || 0}`;
+
+            if (document.getElementById("noizdns-port-input")) document.getElementById("noizdns-port-input").value = data.port;
+            if (document.getElementById("noizdns-upstream-input")) document.getElementById("noizdns-upstream-input").value = data.upstream_dns;
+            if (document.getElementById("noizdns-padmin-input")) document.getElementById("noizdns-padmin-input").value = data.padding_min || 16;
+            if (document.getElementById("noizdns-padmax-input")) document.getElementById("noizdns-padmax-input").value = data.padding_max || 64;
+            if (document.getElementById("noizdns-client-cmd-box")) document.getElementById("noizdns-client-cmd-box").textContent = data.client_cmd || "";
+        } catch (e) {
+            console.error("fetchNoizdnsConfig error:", e);
+        }
+    }
+
+    async function saveNoizdnsConfig(e) {
+        if (e) e.preventDefault();
+        const port = parseInt(document.getElementById("noizdns-port-input").value) || 5355;
+        const upstream_dns = document.getElementById("noizdns-upstream-input").value.trim();
+        const padding_min = parseInt(document.getElementById("noizdns-padmin-input").value) || 16;
+        const padding_max = parseInt(document.getElementById("noizdns-padmax-input").value) || 64;
+
+        toggleLoading(true, "ذخیره تنظیمات NoizDNS...");
+        try {
+            const res = await fetch("/api/noizdns/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, upstream_dns, padding_min, padding_max })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات NoizDNS با موفقیت اعمال شد", "success");
+                fetchNoizdnsConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- MasterdnsVPN Protocol Functions ---
+    async function fetchMasterdnsvpnConfig() {
+        try {
+            const res = await fetch("/api/masterdnsvpn/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const dot = document.getElementById("masterdnsvpn-status-dot");
+            if (dot) dot.className = `status-dot ${data.active ? 'active' : 'inactive'}`;
+            const btn = document.getElementById("masterdnsvpn-toggle-btn");
+            if (btn) btn.className = `btn btn-sm ${data.active ? 'btn-danger' : 'btn-success'}`;
+            if (document.getElementById("masterdnsvpn-stat-port")) document.getElementById("masterdnsvpn-stat-port").textContent = data.port;
+            if (document.getElementById("masterdnsvpn-stat-domain")) document.getElementById("masterdnsvpn-stat-domain").textContent = data.domain;
+            if (document.getElementById("masterdnsvpn-stat-upstream")) document.getElementById("masterdnsvpn-stat-upstream").textContent = data.upstream;
+            if (document.getElementById("masterdnsvpn-stat-conns")) document.getElementById("masterdnsvpn-stat-conns").textContent = `${data.connections || 0}`;
+
+            if (document.getElementById("masterdnsvpn-port-input")) document.getElementById("masterdnsvpn-port-input").value = data.port;
+            if (document.getElementById("masterdnsvpn-domain-input")) document.getElementById("masterdnsvpn-domain-input").value = data.domain;
+            if (document.getElementById("masterdnsvpn-key-input")) document.getElementById("masterdnsvpn-key-input").value = data.auth_key;
+            if (document.getElementById("masterdnsvpn-upstream-select")) document.getElementById("masterdnsvpn-upstream-select").value = data.upstream;
+            if (document.getElementById("masterdnsvpn-client-cmd-box")) document.getElementById("masterdnsvpn-client-cmd-box").textContent = data.client_cmd || "";
+        } catch (e) {
+            console.error("fetchMasterdnsvpnConfig error:", e);
+        }
+    }
+
+    async function saveMasterdnsvpnConfig(e) {
+        if (e) e.preventDefault();
+        const port = parseInt(document.getElementById("masterdnsvpn-port-input").value) || 5356;
+        const domain = document.getElementById("masterdnsvpn-domain-input").value.trim();
+        const auth_key = document.getElementById("masterdnsvpn-key-input").value.trim();
+        const upstream = document.getElementById("masterdnsvpn-upstream-select").value.trim();
+
+        toggleLoading(true, "ذخیره تنظیمات MasterdnsVPN...");
+        try {
+            const res = await fetch("/api/masterdnsvpn/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ port, domain, auth_key, upstream })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات MasterdnsVPN با موفقیت اعمال شد", "success");
+                fetchMasterdnsvpnConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- DNS Hub & Protocol Egress Routing Functions ---
+    let cachedDnsRoutingData = {};
+
+    async function fetchSystemDns() {
+        try {
+            const res = await fetch("/api/dns/system");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (document.getElementById("dns-cfg-primary")) document.getElementById("dns-cfg-primary").value = data.primary || "1.1.1.1";
+            if (document.getElementById("dns-cfg-secondary")) document.getElementById("dns-cfg-secondary").value = data.secondary || "";
+            const badge = document.getElementById("dns-system-status-badge");
+            if (badge) {
+                badge.textContent = `وضعیت: ${data.current_status || 'فعال'} (${data.latency_ms || 0}ms)`;
+                badge.style.background = data.is_poisoned ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)";
+                badge.style.color = data.is_poisoned ? "#ef4444" : "#10b981";
+            }
+        } catch (e) {
+            console.error("fetchSystemDns error:", e);
+        }
+    }
+
+    function setSystemDnsInputs(p, s) {
+        if (document.getElementById("dns-cfg-primary")) document.getElementById("dns-cfg-primary").value = p;
+        if (document.getElementById("dns-cfg-secondary")) document.getElementById("dns-cfg-secondary").value = s || "";
+        showToast(`الگوی دی‌ان‌اس ${p} انتخاب شد`, "info");
+    }
+
+    async function testSystemDnsCurrent() {
+        const ip = (document.getElementById("dns-cfg-primary").value || "1.1.1.1").trim();
+        const resultBox = document.getElementById("dns-test-result");
+        if (resultBox) resultBox.innerHTML = `<span style="color:#0ea5e9;">در حال تست اتصال به ${ip}...</span>`;
+        try {
+            const res = await fetch("/api/dns/system/test", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ ip })
+            });
+            const data = await res.json();
+            if (resultBox) {
+                if (data.success && !data.poisoned) {
+                    resultBox.innerHTML = `<span style="color:#10b981;">✓ پاسخ در ${data.rtt}ms (سالم و بدون مسمومیت)</span>`;
+                } else if (data.poisoned) {
+                    resultBox.innerHTML = `<span style="color:#ef4444;">⚠ مسمومیت DNS شناسایی شد! (${data.resolved})</span>`;
+                } else {
+                    resultBox.innerHTML = `<span style="color:#f59e0b;">✗ خطای اتصال یا تایم‌اوت (${data.resolved})</span>`;
+                }
+            }
+        } catch (e) {
+            if (resultBox) resultBox.innerHTML = `<span style="color:#ef4444;">خطای شبکه</span>`;
+        }
+    }
+
+    async function saveSystemDnsConfig() {
+        const primary = document.getElementById("dns-cfg-primary").value.trim();
+        const secondary = document.getElementById("dns-cfg-secondary").value.trim();
+        if (!primary) {
+            showToast("لطفا آدرس Primary DNS را وارد کنید", "warning");
+            return;
+        }
+        toggleLoading(true, "ذخیره و اعمال DNS در سیستم‌عامل لینوکس...");
+        try {
+            const res = await fetch("/api/dns/system", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ primary_dns: primary, secondary_dns: secondary })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات DNS سیستم با موفقیت در /etc/resolv.conf اعمال شد", "success");
+                fetchSystemDns();
+            } else {
+                showToast(data.error || "خطا در اعمال DNS", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function runDnsBenchmarkScan() {
+        const custom_ip = (document.getElementById("dns-custom-scan-ip").value || "").trim();
+        const btn = document.getElementById("btn-run-dns-scan");
+        if (btn) btn.disabled = true;
+        const tbody = document.getElementById("dns-benchmark-tbody");
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:#0ea5e9;">در حال سنجش تاخیر و بررسی سلامت پکت‌های DNS...</td></tr>`;
+        }
+        try {
+            const res = await fetch("/api/dns/scan", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ custom_ip })
+            });
+            const data = await res.json();
+            if (btn) btn.disabled = false;
+            
+            const recBox = document.getElementById("dns-benchmark-recommendations");
+            if (recBox) {
+                recBox.style.display = "block";
+                document.getElementById("dns-best-global-val").textContent = data.best_global || "-";
+                document.getElementById("dns-best-antisanction-val").textContent = data.best_anti_sanction || "-";
+            }
+
+            if (tbody) {
+                tbody.innerHTML = "";
+                (data.results || []).forEach(r => {
+                    let badgeText = `${r.latency_ms} ms`;
+                    let statusBadge = `<span style="color:#10b981; font-weight:600;">سالم (Clean)</span>`;
+                    if (r.poisoned) {
+                        statusBadge = `<span style="color:#ef4444; font-weight:700;">مسموم (${r.resolved})</span>`;
+                    } else if (!r.success) {
+                        statusBadge = `<span style="color:#f59e0b;">قطعی یا خطا</span>`;
+                        badgeText = "Timeout";
+                    }
+
+                    const tr = document.createElement("tr");
+                    tr.style.borderBottom = "1px solid var(--border-glow)";
+                    tr.innerHTML = `
+                        <td style="padding:10px 12px; font-weight:600; color:var(--text-main);">${r.name}</td>
+                        <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; direction:ltr; text-align:right;">${r.ip}</td>
+                        <td style="padding:10px 12px;"><span style="font-size:11px; padding:2px 8px; border-radius:4px; background:var(--bg-muted);">${r.category === 'anti_sanction' ? 'ضد تحریم' : (r.category === 'custom' ? 'سفارشی' : 'جهانی')}</span></td>
+                        <td style="padding:10px 12px;"><span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:2px 8px; border-radius:4px; ${r.success ? 'background:rgba(16,185,129,0.1); color:#10b981;' : 'background:rgba(239,68,68,0.1); color:#ef4444;'}">${badgeText}</span></td>
+                        <td style="padding:10px 12px;">${statusBadge}</td>
+                        <td style="padding:10px 12px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="applyBenchmarkDnsAsSystem('${r.ip}')" style="padding:3px 10px; font-size:11px;" ${!r.success ? 'disabled' : ''}>
+                                اعمال به سیستم
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        } catch (e) {
+            if (btn) btn.disabled = false;
+            console.error("runDnsBenchmarkScan error:", e);
+        }
+    }
+
+    function applyBenchmarkDnsAsSystem(ip) {
+        if (document.getElementById("dns-cfg-primary")) document.getElementById("dns-cfg-primary").value = ip;
+        saveSystemDnsConfig();
+    }
+
+    async function fetchProtocolDnsRouting() {
+        try {
+            const res = await fetch("/api/dns/protocol-routing");
+            if (!res.ok) return;
+            const data = await res.json();
+            cachedDnsRoutingData = data.egress_routing || {};
+            renderProtocolDnsRoutingTable(data.egress_routing);
+        } catch (e) {
+            console.error("fetchProtocolDnsRouting error:", e);
+        }
+    }
+
+    function renderProtocolDnsRoutingTable(routingMap) {
+        const tbody = document.getElementById("dns-routing-tbody");
+        if (!tbody) return;
+        tbody.innerHTML = "";
+
+        const presetOptions = [
+            {name: "Cloudflare (1.1.1.1)", ip: "1.1.1.1"},
+            {name: "Google (8.8.8.8)", ip: "8.8.8.8"},
+            {name: "Quad9 (9.9.9.9)", ip: "9.9.9.9"},
+            {name: "Shecan شکن (178.22.122.100)", ip: "178.22.122.100"},
+            {name: "Electro الکترو (78.157.42.100)", ip: "78.157.42.100"},
+            {name: "سامانه ۴۰۳ (10.202.10.202)", ip: "10.202.10.202"},
+            {name: "رادار گیم (10.202.10.10)", ip: "10.202.10.10"}
+        ];
+
+        Object.keys(routingMap).forEach(proto => {
+            const item = routingMap[proto];
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid var(--border-glow)";
+
+            const ifaceDesc = item.interface ? `کارت شبکه: <code>${item.interface}</code>` : (item.subnet ? `ساب‌نت: <code>${item.subnet}</code>` : `<span style="color:var(--text-muted);">پراکسی اپلیکیشن</span>`);
+
+            let optionsHtml = presetOptions.map(p => `<option value="${p.ip}" ${item.dns === p.ip ? 'selected' : ''}>${p.name}</option>`).join("");
+            if (!presetOptions.some(p => p.ip === item.dns)) {
+                optionsHtml = `<option value="${item.dns}" selected>سفارشی (${item.dns})</option>` + optionsHtml;
+            }
+
+            tr.innerHTML = `
+                <td style="padding:10px 12px; font-weight:600; color:var(--text-main);">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span>${item.label}</span>
+                        ${item.installed ? '<span class="status-dot active" title="نصب شده"></span>' : '<span class="status-dot inactive" title="نصب نیست"></span>'}
+                    </div>
+                </td>
+                <td style="padding:10px 12px; font-size:12px;">${ifaceDesc}</td>
+                <td style="padding:10px 12px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="checkbox" id="dns-route-chk-${proto}" ${item.enabled ? 'checked' : ''} onchange="toggleRouteInput('${proto}')">
+                        <span style="font-size:12px;">${item.enabled ? 'فعال' : 'غیرفعال'}</span>
+                    </label>
+                </td>
+                <td style="padding:10px 12px;">
+                    <div style="display:flex; gap:6px; align-items:center;">
+                        <select class="form-input" id="dns-route-sel-${proto}" style="font-size:12px; width:220px;" ${!item.enabled ? 'disabled' : ''} onchange="onRoutePresetChange('${proto}')">
+                            ${optionsHtml}
+                            <option value="custom">-- آدرس دستی دیگر --</option>
+                        </select>
+                        <input type="text" class="form-input" id="dns-route-custom-${proto}" placeholder="IP" style="font-size:12px; width:130px; font-family:'JetBrains Mono', monospace; display:none;">
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function toggleRouteInput(proto) {
+        const chk = document.getElementById(`dns-route-chk-${proto}`);
+        const sel = document.getElementById(`dns-route-sel-${proto}`);
+        if (chk && sel) {
+            sel.disabled = !chk.checked;
+            const span = chk.nextElementSibling;
+            if (span) span.textContent = chk.checked ? 'فعال' : 'غیرفعال';
+        }
+    }
+
+    function onRoutePresetChange(proto) {
+        const sel = document.getElementById(`dns-route-sel-${proto}`);
+        const customInp = document.getElementById(`dns-route-custom-${proto}`);
+        if (sel && customInp) {
+            if (sel.value === 'custom') {
+                customInp.style.display = 'block';
+                customInp.focus();
+            } else {
+                customInp.style.display = 'none';
+            }
+        }
+    }
+
+    async function saveProtocolDnsRouting() {
+        const egressMap = {};
+        Object.keys(cachedDnsRoutingData).forEach(proto => {
+            const item = cachedDnsRoutingData[proto];
+            const chk = document.getElementById(`dns-route-chk-${proto}`);
+            const sel = document.getElementById(`dns-route-sel-${proto}`);
+            const customInp = document.getElementById(`dns-route-custom-${proto}`);
+            
+            let targetDns = item.dns || "1.1.1.1";
+            if (sel) {
+                targetDns = sel.value === 'custom' && customInp && customInp.value.trim() ? customInp.value.trim() : sel.value;
+            }
+
+            egressMap[proto] = {
+                enabled: chk ? chk.checked : false,
+                dns: targetDns,
+                interface: item.interface || "",
+                subnet: item.subnet || "",
+                label: item.label
+            };
+        });
+
+        toggleLoading(true, "اعمال قوانین مسیریابی خروجی DNS در هسته iptables...");
+        try {
+            const res = await fetch("/api/dns/protocol-routing", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ egress_routing: egressMap })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("قوانین مسیریابی خروجی DNS با موفقیت در هسته لینوکس اعمال شد", "success");
+                fetchProtocolDnsRouting();
+            } else {
+                showToast(data.error || "خطا در اعمال قوانین", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function refreshDnsHubData() {
+        fetchSystemDns();
+        fetchProtocolDnsRouting();
+        showToast("اطلاعات DNS Hub بروزرسانی شد", "info");
     }
 
     // Check updates quietly in background on page load

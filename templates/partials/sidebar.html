@@ -56,11 +56,39 @@
                 <span class="sidebar-badge sidebar-badge-blue">Cisco</span>
             </button>
 
+            <!-- Hysteria 2 (QUIC / Brutal) -->
+            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
+                <i data-lucide="flame" style="color: #ef4444;"></i>
+                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
+            </button>
+
+            <!-- Trojan TLS -->
+            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
+                <i data-lucide="shield" style="color: #0ea5e9;"></i>
+                <span data-i18n="nav_trojan">پروتکل Trojan</span>
+                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
+            </button>
+
+            <!-- NaiveProxy -->
+            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
+                <i data-lucide="compass" style="color: #f59e0b;"></i>
+                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
+                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
+            </button>
+
             <!-- TUIC Protocol (QUIC) -->
             <button class="sidebar-nav-item" onclick="switchTab('tuic')">
                 <i data-lucide="zap" style="color: #6366f1;"></i>
                 <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
                 <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
+            </button>
+
+            <!-- StunTLS (WebRTC VoIP) -->
+            <button class="sidebar-nav-item" onclick="switchTab('stuntls')">
+                <i data-lucide="radio-tower" style="color: #a855f7;"></i>
+                <span data-i18n="nav_stuntls">پروتکل StunTLS</span>
+                <span class="sidebar-badge sidebar-badge-purple">STUN</span>
             </button>
 
             <!-- Shadowsocks-rust -->
@@ -70,11 +98,18 @@
                 <span class="sidebar-badge sidebar-badge-blue">2022</span>
             </button>
 
-            <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream) -->
+            <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream / NoizDNS / MasterdnsVPN) -->
             <button class="sidebar-nav-item" onclick="switchTab('dns-tunnels')">
                 <i data-lucide="globe" style="color: #14b8a6;"></i>
                 <span data-i18n="nav_dns_tunnels">تونل‌های DNS (SlowDNS)</span>
                 <span class="sidebar-badge sidebar-badge-green">Anti-Filter</span>
+            </button>
+
+            <!-- Tor Bridges -->
+            <button class="sidebar-nav-item" onclick="switchTab('tor')">
+                <i data-lucide="shield-alert" style="color: #8b5cf6;"></i>
+                <span data-i18n="nav_tor">پل‌های تور (Tor Bridges)</span>
+                <span class="sidebar-badge sidebar-badge-blue">obfs4</span>
             </button>
 
             <!-- AmneziaWG (Anti-DPI) -->
@@ -173,6 +208,11 @@
                 <i data-lucide="network" style="color: #0284c7;"></i>
                 <span data-i18n="nav_multiplexer">اشتراک پورت و مولتی‌پورت</span>
                 <span class="sidebar-badge sidebar-badge-blue">MultiPort</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('dns-management')">
+                <i data-lucide="network" style="color: #14b8a6;"></i>
+                <span data-i18n="nav_dns_management">مدیریت DNS و مسیریابی خروجی</span>
+                <span class="sidebar-badge sidebar-badge-green">DNS Hub</span>
             </button>
             <button class="sidebar-nav-item" onclick="switchTab('system')">
                 <i data-lucide="sliders" style="color: #64748b;"></i>

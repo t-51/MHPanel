@@ -1,0 +1,140 @@
+<div class="tab-pane" id="tab-tor">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(139, 92, 246, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(139, 92, 246, 0.12); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield-alert" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="tor_title">
+                            پل‌های ارتباطی تور (Tor Bridge Node + Pluggable Transports)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="tor_subtitle">
+                            پل اختصاصی شبکه تور با ترنسپورت‌های ضد فیلترینگ obfs4، WebTunnel و Snowflake جهت دور زدن قطعی سراسری اینترنت
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="tor-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTorConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tor_stat_orport">پورت رله اصلی (ORPort)</div>
+                    <div style="font-weight: 700; color: #8b5cf6; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tor-stat-orport">9001</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tor_stat_bridge_port">پورت ترنسپورت پل (Bridge Port)</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tor-stat-bridgeport">9002 (obfs4)</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tor_stat_socks">پروکسی محلی SOCKS5</div>
+                    <div style="font-weight: 700; color: #0ea5e9; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tor-stat-socks">127.0.0.1:9050</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tor-stat-connections">0</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('tor', 'restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد Tor Daemon</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="tor-toggle-btn" onclick="toggleProtocolQuick('tor')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #8b5cf6; width: 20px; height: 20px;"></i>
+                    <span data-i18n="tor_config_title">تنظیمات نود پل و ترنسپورت‌های مبهم‌ساز Tor</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="tor_transport_label">نوع پلاگین ترنسپورت (Pluggable Transport)</label>
+                    <select class="form-input" id="tor-cfg-transport">
+                        <option value="obfs4">obfs4 (پیشنهادی - مبهم‌سازی ترافیک با لایه ScrambleSuit)</option>
+                        <option value="webtunnel">WebTunnel (استتار در قالب ترافیک HTTPS معتبر)</option>
+                        <option value="snowflake">Snowflake (پروکسی وب کلاینت WebRTC)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tor_bridge_port_label">پورت پل obfs4 / ترنسپورت (TCP)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="tor-cfg-bridgeport" placeholder="9002" min="1" max="65535">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tor_orport_label">پورت رله اصلی سرور (ORPort)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="tor-cfg-orport" placeholder="9001" min="1" max="65535">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tor_nickname_label">نام مستعار پل (Bridge Nickname)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="tor-cfg-nickname" placeholder="MHPanelBridge">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="tor_contact_label">اطلاعات تماس ادمین (Contact Info)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="tor-cfg-contact" placeholder="admin@kigaping.com">
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveTorConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات Tor Bridge</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Bridge Line Generator Card -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="key" style="color: #10b981; width: 20px; height: 20px;"></i>
+                    <span data-i18n="tor_bridgeline_title">خط پل ارتباطی جهت درج در Tor Browser و Orbot</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="form-label" data-i18n="tor_bridgeline_label">خط پل اختصاصی کلاینت (Bridge Line):</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" id="tor-client-bridgeline" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#c4b5fd;">
+                        <button type="button" class="btn btn-secondary" onclick="copyElementText('tor-client-bridgeline'); showToast('خط پل کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; font-size:12.5px; color:var(--text-muted); line-height:1.8;">
+                    <h5 style="margin:0 0 6px 0; color:var(--text-main); font-size:13px; font-weight:700;" data-i18n="tor_how_to_use">نحوه استفاده در مرورگر تور (Tor Browser) و گوشی:</h5>
+                    <ol style="margin:0; padding-right:20px; padding-left:0;">
+                        <li>در منوی تنظیمات Tor Browser وارد بخش <strong>Connection</strong> شوید.</li>
+                        <li>گزینه <strong>Bridges -> Add a Bridge Manually</strong> را انتخاب کنید.</li>
+                        <li>خط تولیدشده در کادر بالا را در آن پیست کرده و روی <strong>Connect</strong> کلیک کنید. ترافیک شما بدون امکان ردیابی یا فیلتر به شبکه جهانی متصل می‌شود.</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

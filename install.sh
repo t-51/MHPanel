@@ -71,7 +71,7 @@ ensure_cli_shortcuts() {
 ensure_cli_shortcuts
 
 # Supported Protocols List
-PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn)
+PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor)
 
 # Banner Display
 show_banner() {
@@ -164,6 +164,13 @@ protocol_is_installed() {
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/aethervpn-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && command -v badvpn-udpgw >/dev/null 2>&1 ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] ;;
         *) return 1 ;;
     esac
 }
@@ -186,6 +193,13 @@ protocol_service_status() {
         mtproto) svc="aethervpn-mtproto" ;;
         pptp) svc="pptpd" ;;
         badvpn) svc="badvpn" ;;
+        hysteria2) svc="aethervpn-hysteria2" ;;
+        trojan) svc="aethervpn-trojan" ;;
+        naiveproxy) svc="aethervpn-naiveproxy" ;;
+        stuntls) svc="aethervpn-stuntls" ;;
+        noizdns) svc="aethervpn-noizdns" ;;
+        masterdnsvpn) svc="aethervpn-masterdnsvpn" ;;
+        tor) svc="aethervpn-tor" ;;
     esac
 
     if [ -n "$svc" ] && systemctl is-active --quiet "$svc" 2>/dev/null; then
@@ -214,6 +228,13 @@ protocol_current_port() {
         mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $3}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;
         badvpn) echo "7300 (UDP)" ;;
+        hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443" ;;
+        trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443" ;;
+        naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444" ;;
+        stuntls) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478" ;;
+        noizdns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355" ;;
+        masterdnsvpn) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356" ;;
+        tor) grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' || echo "9001" ;;
         *) echo "-" ;;
     esac
 }

@@ -31,7 +31,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="3.2.0-Pro"
+VERSION="1.1.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -71,7 +71,7 @@ ensure_cli_shortcuts() {
 ensure_cli_shortcuts
 
 # Supported Protocols List
-PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn)
+PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor)
 
 # Banner Display
 show_banner() {
@@ -87,6 +87,7 @@ show_banner() {
 EOF
     echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (${VERSION})${NC}"
     echo -e "${DIM}   Anti-Censorship VPN Protocols, Network Tunnels & MikroTik RouterOS Hub${NC}"
+    echo -e "${YELLOW}   [v1.1.0] ردیابی پکت‌های خراب و دراپ - مانیتور ترافیک - رادار چندکشوره - شخصی‌سازی ساب${NC}" 
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }
 
@@ -163,6 +164,13 @@ protocol_is_installed() {
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/aethervpn-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && command -v badvpn-udpgw >/dev/null 2>&1 ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] ;;
         *) return 1 ;;
     esac
 }
@@ -185,6 +193,13 @@ protocol_service_status() {
         mtproto) svc="aethervpn-mtproto" ;;
         pptp) svc="pptpd" ;;
         badvpn) svc="badvpn" ;;
+        hysteria2) svc="aethervpn-hysteria2" ;;
+        trojan) svc="aethervpn-trojan" ;;
+        naiveproxy) svc="aethervpn-naiveproxy" ;;
+        stuntls) svc="aethervpn-stuntls" ;;
+        noizdns) svc="aethervpn-noizdns" ;;
+        masterdnsvpn) svc="aethervpn-masterdnsvpn" ;;
+        tor) svc="aethervpn-tor" ;;
     esac
 
     if [ -n "$svc" ] && systemctl is-active --quiet "$svc" 2>/dev/null; then
@@ -213,6 +228,13 @@ protocol_current_port() {
         mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $3}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;
         badvpn) echo "7300 (UDP)" ;;
+        hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443" ;;
+        trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443" ;;
+        naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444" ;;
+        stuntls) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478" ;;
+        noizdns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355" ;;
+        masterdnsvpn) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356" ;;
+        tor) grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' || echo "9001" ;;
         *) echo "-" ;;
     esac
 }
@@ -447,7 +469,7 @@ install_tunnel_tools() {
     # WSTunnel
     if [ ! -x /usr/local/bin/wstunnel ]; then
         echo "    Downloading WSTunnel..."
-        curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.1.0/wstunnel_11.1.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
+        curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
         chmod +x /usr/local/bin/wstunnel 2>/dev/null || true
         count_downloaded=$((count_downloaded + 1))
     fi

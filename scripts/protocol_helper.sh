@@ -139,6 +139,13 @@ is_protocol_installed() {
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         l2tpv3) [ -f "/etc/vpnpanel/l2tpv3_config.json" ] ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] ;;
         *) return 1 ;;
     esac
 }
@@ -1442,6 +1449,362 @@ set_mtproto_ad_tag() {
     fi
 }
 
+# ----------------- HYSTERIA 2 -----------------
+install_hysteria2() {
+    local port=${1:-7443}
+    mkdir -p /etc/vpnpanel
+    generate_certs
+    if [ ! -f /etc/vpnpanel/hysteria2.yaml ]; then
+        local secret=$(openssl rand -hex 16)
+        local obfs_sec=$(openssl rand -hex 16)
+        cat > /etc/vpnpanel/hysteria2.yaml <<EOF
+server:
+  listen: :${port}
+
+tls:
+  cert: /etc/vpnpanel/ssl/panel.crt
+  key: /etc/vpnpanel/ssl/panel.key
+
+auth:
+  type: password
+  password: ${secret}
+
+obfs:
+  type: salamander
+  salamander:
+    password: ${obfs_sec}
+
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  keepAlivePeriod: 10s
+
+bandwidth:
+  up: 100 mbps
+  down: 100 mbps
+
+outbounds:
+  - name: default
+    type: direct
+EOF
+    fi
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-hysteria2
+    systemctl restart aethervpn-hysteria2
+    echo "Hysteria 2 installed on UDP port ${port}."
+}
+
+uninstall_hysteria2() {
+    systemctl stop aethervpn-hysteria2 || true
+    systemctl disable aethervpn-hysteria2 || true
+    local port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443")
+    deny_port "${port}" "udp"
+    rm -f /etc/vpnpanel/hysteria2.yaml
+    echo "Hysteria 2 uninstalled."
+}
+
+set_port_hysteria2() {
+    local port=$1
+    if [ -f /etc/vpnpanel/hysteria2.yaml ]; then
+        local old_port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/listen: :[0-9]+/listen: :${port}/g" /etc/vpnpanel/hysteria2.yaml
+        allow_port "${port}" "udp"
+        systemctl restart aethervpn-hysteria2
+    fi
+}
+
+# ----------------- TROJAN -----------------
+install_trojan() {
+    local port=${1:-8443}
+    mkdir -p /etc/vpnpanel
+    generate_certs
+    if [ ! -f /etc/vpnpanel/trojan.json ]; then
+        local secret=$(openssl rand -hex 16)
+        cat > /etc/vpnpanel/trojan.json <<EOF
+{
+  "log": {"level": "warn"},
+  "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+  "inbounds": [
+    {
+      "type": "trojan",
+      "tag": "trojan-in",
+      "listen": "::",
+      "listen_port": ${port},
+      "users": [{"name": "default_user", "password": "${secret}"}],
+      "tls": {
+        "enabled": true,
+        "server_name": "vpn.kigaping.com",
+        "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
+        "key_path": "/etc/vpnpanel/ssl/panel.key"
+      },
+      "multiplex": {"enabled": true}
+    }
+  ],
+  "outbounds": [{"type": "direct", "tag": "direct"}]
+}
+EOF
+    fi
+    allow_port "${port}" "tcp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-trojan
+    systemctl restart aethervpn-trojan
+    echo "Trojan installed on TCP port ${port}."
+}
+
+uninstall_trojan() {
+    systemctl stop aethervpn-trojan || true
+    systemctl disable aethervpn-trojan || true
+    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443")
+    deny_port "${port}" "tcp"
+    rm -f /etc/vpnpanel/trojan.json
+    echo "Trojan uninstalled."
+}
+
+set_port_trojan() {
+    local port=$1
+    if [ -f /etc/vpnpanel/trojan.json ]; then
+        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443")
+        deny_port "${old_port}" "tcp"
+        sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/trojan.json
+        allow_port "${port}" "tcp"
+        systemctl restart aethervpn-trojan
+    fi
+}
+
+# ----------------- NAIVEPROXY -----------------
+install_naiveproxy() {
+    local port=${1:-8444}
+    mkdir -p /etc/vpnpanel
+    generate_certs
+    if [ ! -f /etc/vpnpanel/naiveproxy.json ]; then
+        local secret=$(openssl rand -hex 16)
+        cat > /etc/vpnpanel/naiveproxy.json <<EOF
+{
+  "log": {"level": "warn"},
+  "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+  "inbounds": [
+    {
+      "type": "naive",
+      "tag": "naive-in",
+      "listen": "::",
+      "listen_port": ${port},
+      "users": [{"username": "admin", "password": "${secret}"}],
+      "tls": {
+        "enabled": true,
+        "server_name": "vpn.kigaping.com",
+        "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
+        "key_path": "/etc/vpnpanel/ssl/panel.key"
+      }
+    }
+  ],
+  "outbounds": [{"type": "direct", "tag": "direct"}]
+}
+EOF
+    fi
+    allow_port "${port}" "tcp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-naiveproxy
+    systemctl restart aethervpn-naiveproxy
+    echo "NaiveProxy installed on TCP port ${port}."
+}
+
+uninstall_naiveproxy() {
+    systemctl stop aethervpn-naiveproxy || true
+    systemctl disable aethervpn-naiveproxy || true
+    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444")
+    deny_port "${port}" "tcp"
+    rm -f /etc/vpnpanel/naiveproxy.json
+    echo "NaiveProxy uninstalled."
+}
+
+set_port_naiveproxy() {
+    local port=$1
+    if [ -f /etc/vpnpanel/naiveproxy.json ]; then
+        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444")
+        deny_port "${old_port}" "tcp"
+        sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/naiveproxy.json
+        allow_port "${port}" "tcp"
+        systemctl restart aethervpn-naiveproxy
+    fi
+}
+
+# ----------------- STUNTLS -----------------
+install_stuntls() {
+    local port=${1:-3478}
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/stuntls.json ]; then
+        cat > /etc/vpnpanel/stuntls.json <<EOF
+{
+  "port": ${port},
+  "secret": "stuntls-secret",
+  "upstream": "127.0.0.1:22",
+  "mode": "webrtc_stun"
+}
+EOF
+    fi
+    allow_port "${port}" "tcp"
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-stuntls
+    systemctl restart aethervpn-stuntls
+    echo "StunTLS installed on port ${port}."
+}
+
+uninstall_stuntls() {
+    systemctl stop aethervpn-stuntls || true
+    systemctl disable aethervpn-stuntls || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478")
+    deny_port "${port}" "tcp"
+    deny_port "${port}" "udp"
+    rm -f /etc/vpnpanel/stuntls.json
+    echo "StunTLS uninstalled."
+}
+
+set_port_stuntls() {
+    local port=$1
+    if [ -f /etc/vpnpanel/stuntls.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478")
+        deny_port "${old_port}" "tcp"
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/stuntls.json
+        allow_port "${port}" "tcp"
+        allow_port "${port}" "udp"
+        systemctl restart aethervpn-stuntls
+    fi
+}
+
+# ----------------- NOIZDNS -----------------
+install_noizdns() {
+    local port=${1:-5355}
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/noizdns.json ]; then
+        cat > /etc/vpnpanel/noizdns.json <<EOF
+{
+  "port": ${port},
+  "upstream_dns": "1.1.1.1:53",
+  "noise_seed": "mhpanel-noiz-salt",
+  "padding_min": 16,
+  "padding_max": 64,
+  "jitter_ms": 2
+}
+EOF
+    fi
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-noizdns
+    systemctl restart aethervpn-noizdns
+    echo "NoizDNS installed on UDP port ${port}."
+}
+
+uninstall_noizdns() {
+    systemctl stop aethervpn-noizdns || true
+    systemctl disable aethervpn-noizdns || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355")
+    deny_port "${port}" "udp"
+    rm -f /etc/vpnpanel/noizdns.json
+    echo "NoizDNS uninstalled."
+}
+
+set_port_noizdns() {
+    local port=$1
+    if [ -f /etc/vpnpanel/noizdns.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/noizdns.json
+        allow_port "${port}" "udp"
+        systemctl restart aethervpn-noizdns
+    fi
+}
+
+# ----------------- MASTERDNSVPN -----------------
+install_masterdnsvpn() {
+    local port=${1:-5356}
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/masterdnsvpn.json ]; then
+        cat > /etc/vpnpanel/masterdnsvpn.json <<EOF
+{
+  "port": ${port},
+  "domain": "t.kigaping.com",
+  "auth_key": "master-secret-key-mhpanel",
+  "upstream": "127.0.0.1:1080",
+  "mtu": 1280
+}
+EOF
+    fi
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-masterdnsvpn
+    systemctl restart aethervpn-masterdnsvpn
+    echo "MasterdnsVPN installed on UDP port ${port}."
+}
+
+uninstall_masterdnsvpn() {
+    systemctl stop aethervpn-masterdnsvpn || true
+    systemctl disable aethervpn-masterdnsvpn || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356")
+    deny_port "${port}" "udp"
+    rm -f /etc/vpnpanel/masterdnsvpn.json
+    echo "MasterdnsVPN uninstalled."
+}
+
+set_port_masterdnsvpn() {
+    local port=$1
+    if [ -f /etc/vpnpanel/masterdnsvpn.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/masterdnsvpn.json
+        allow_port "${port}" "udp"
+        systemctl restart aethervpn-masterdnsvpn
+    fi
+}
+
+# ----------------- TOR BRIDGES -----------------
+install_tor() {
+    local or_port=${1:-9001}
+    local bridge_port=${2:-9002}
+    mkdir -p /etc/vpnpanel /var/lib/tor
+    chown -R debian-tor:debian-tor /var/lib/tor 2>/dev/null || true
+    cat > /etc/tor/torrc <<EOF
+SocksPort 127.0.0.1:9050
+RunAsDaemon 0
+ORPort ${or_port}
+BridgeRelay 1
+ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+ServerTransportListenAddr obfs4 0.0.0.0:${bridge_port}
+PublishServerDescriptor 0
+ContactInfo admin@kigaping.com
+Nickname MHPanelBridge
+DataDirectory /var/lib/tor
+EOF
+    allow_port "${or_port}" "tcp"
+    allow_port "${bridge_port}" "tcp"
+    systemctl daemon-reload
+    systemctl enable aethervpn-tor
+    systemctl restart aethervpn-tor
+    echo "Tor Bridge installed with obfs4 on ports ${or_port}/${bridge_port}."
+}
+
+uninstall_tor() {
+    systemctl stop aethervpn-tor || true
+    systemctl disable aethervpn-tor || true
+    deny_port "9001" "tcp"
+    deny_port "9002" "tcp"
+    echo "Tor uninstalled."
+}
+
+set_port_tor() {
+    local port=$1
+    if [ -f /etc/tor/torrc ]; then
+        sed -i -E "s/^ORPort [0-9]+/ORPort ${port}/g" /etc/tor/torrc
+        allow_port "${port}" "tcp"
+        systemctl restart aethervpn-tor
+    fi
+}
 
 # Color definitions for terminal output
 RED='\033[0;31m'
@@ -1813,6 +2176,13 @@ case "${ACTION}" in
             tuic) install_tuic "$ARG3" ;;
             mtproto) install_mtproto "$ARG3" "$ARG4" ;;
             pptp) install_pptp "$ARG3" ;;
+            hysteria2) install_hysteria2 "$ARG3" ;;
+            trojan) install_trojan "$ARG3" ;;
+            naiveproxy) install_naiveproxy "$ARG3" ;;
+            stuntls) install_stuntls "$ARG3" ;;
+            noizdns) install_noizdns "$ARG3" ;;
+            masterdnsvpn) install_masterdnsvpn "$ARG3" ;;
+            tor) install_tor "$ARG3" "$ARG4" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -1833,6 +2203,13 @@ case "${ACTION}" in
             tuic) uninstall_tuic ;;
             mtproto) uninstall_mtproto ;;
             pptp) uninstall_pptp ;;
+            hysteria2) uninstall_hysteria2 ;;
+            trojan) uninstall_trojan ;;
+            naiveproxy) uninstall_naiveproxy ;;
+            stuntls) uninstall_stuntls ;;
+            noizdns) uninstall_noizdns ;;
+            masterdnsvpn) uninstall_masterdnsvpn ;;
+            tor) uninstall_tor ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -1852,6 +2229,13 @@ case "${ACTION}" in
             tuic) set_port_tuic "$ARG3" ;;
             mtproto) set_port_mtproto "$ARG3" ;;
             pptp) set_port_pptp "$ARG3" ;;
+            hysteria2) set_port_hysteria2 "$ARG3" ;;
+            trojan) set_port_trojan "$ARG3" ;;
+            naiveproxy) set_port_naiveproxy "$ARG3" ;;
+            stuntls) set_port_stuntls "$ARG3" ;;
+            noizdns) set_port_noizdns "$ARG3" ;;
+            masterdnsvpn) set_port_masterdnsvpn "$ARG3" ;;
+            tor) set_port_tor "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;

@@ -1,0 +1,197 @@
+<div class="tab-pane" id="tab-dns-management">
+    <section style="max-width: 1100px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(20, 184, 166, 0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(20, 184, 166, 0.12); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="network" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="dns_hub_title">
+                            مرکز مدیریت DNS، اسکنر پکت و مسیریابی خروجی پروتکل‌ها
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="dns_hub_subtitle">
+                            تغییر DNS داخلی سیستم سرور، اسکن و بنچمارک زنده دی‌ان‌اس‌ها با شناسایی مسمومیت شبکه، و تعیین Upstream DNS اختصاصی به ازای هر پروتکل VPN
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="refreshDnsHubData();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی داده‌ها</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 1. SERVER SYSTEM DNS CARD -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="server" style="color: #0284c7; width: 22px; height: 22px;"></i>
+                    <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="dns_system_title">
+                        تنظیمات DNS داخلی سیستم‌عامل سرور (/etc/resolv.conf)
+                    </h3>
+                </div>
+                <span id="dns-system-status-badge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:6px; background:rgba(16,185,129,0.15); color:#10b981;">
+                    وضعیت: فعال
+                </span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="dns_primary_label">دی‌ان‌اس اصلی سرور (Primary DNS)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="dns-cfg-primary" placeholder="1.1.1.1">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="dns_secondary_label">دی‌ان‌اس پشتیبان (Secondary DNS - اختیاری)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="dns-cfg-secondary" placeholder="8.8.8.8">
+                </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div style="margin-bottom: 18px;">
+                <label class="form-label" style="font-size:12px; margin-bottom:8px; display:block;" data-i18n="dns_quick_presets">الگوهای سریع دی‌ان‌اس (Quick Presets):</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('1.1.1.1', '1.0.0.1')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#0ea5e9; font-weight:700;">Cloudflare</span> (1.1.1.1)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('8.8.8.8', '8.8.4.4')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#22c55e; font-weight:700;">Google</span> (8.8.8.8)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('9.9.9.9', '149.112.112.112')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#a855f7; font-weight:700;">Quad9</span> (9.9.9.9)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('178.22.122.100', '185.51.200.2')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#f59e0b; font-weight:700;">شکن (Shecan)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('78.157.42.100', '78.157.42.101')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#ec4899; font-weight:700;">الکترو (Electro)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('10.202.10.202', '10.202.10.102')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#6366f1; font-weight:700;">سامانه ۴۰۳</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSystemDnsInputs('10.202.10.10', '10.202.10.11')" style="font-size:11.5px; padding:4px 10px;">
+                        <span style="color:#14b8a6; font-weight:700;">رادار گیم</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div id="dns-test-result" style="font-size:12.5px; font-family:'JetBrains Mono', monospace;"></div>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" class="btn btn-secondary" onclick="testSystemDnsCurrent()" style="width:auto; padding: 8px 18px;">
+                        <i data-lucide="zap" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="dns_test_btn">تست پاسخ‌دهی و تاخیر</span>
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveSystemDnsConfig()" style="width:auto; padding: 8px 24px;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_apply">ذخیره و اعمال DNS سرور</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. LIVE DNS SCANNER & BENCHMARK RADAR -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="radar" style="color: #ef4444; width: 22px; height: 22px;"></i>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="dns_scanner_title">
+                            اسکنر و بنچمارک دی‌ان‌اس (DNS Benchmark & Poisoning Detector)
+                        </h3>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;" data-i18n="dns_scanner_desc">
+                            سنجش سرعت و کشف دستکاری یا مسمومیت پکت‌های DNS (نظیر آلودگی 10.10.34.34) جهت انتخاب بهترین مسیر ترافیک
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="dns-custom-scan-ip" placeholder="آدرس IP دلخواه (مثلا 208.67.222.222)" style="width:240px; font-size:12px; font-family:'JetBrains Mono', monospace;" class="form-input">
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-run-dns-scan" onclick="runDnsBenchmarkScan()" style="width:auto; padding: 7px 18px; white-space:nowrap;">
+                        <i data-lucide="play" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="dns_run_scan">اجرای اسکن کامل</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Best recommendations banner -->
+            <div id="dns-benchmark-recommendations" style="display:none; margin-bottom:16px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:12px 16px;">
+                <div style="display:flex; gap:24px; flex-wrap:wrap; font-size:12.5px;">
+                    <div>
+                        <span style="color:var(--text-muted);" data-i18n="dns_best_global">سریع‌ترین دی‌ان‌اس جهانی سالم:</span>
+                        <strong id="dns-best-global-val" style="color:#10b981; margin-right:6px; font-family:'JetBrains Mono', monospace;">-</strong>
+                    </div>
+                    <div>
+                        <span style="color:var(--text-muted);" data-i18n="dns_best_antisanction">بهترین دی‌ان‌اس ضد تحریم:</span>
+                        <strong id="dns-best-antisanction-val" style="color:#0ea5e9; margin-right:6px; font-family:'JetBrains Mono', monospace;">-</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Benchmark Results Table -->
+            <div class="table-responsive" style="max-height: 400px; overflow-y:auto;">
+                <table class="table" style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border-glow); text-align:right;">
+                            <th style="padding:10px 12px;" data-i18n="name">ارائه‌دهنده DNS</th>
+                            <th style="padding:10px 12px;" data-i18n="ip_address">آدرس IP</th>
+                            <th style="padding:10px 12px;" data-i18n="category">دسته‌بندی</th>
+                            <th style="padding:10px 12px;" data-i18n="latency">تاخیر (RTT)</th>
+                            <th style="padding:10px 12px;" data-i18n="status">وضعیت سلامت</th>
+                            <th style="padding:10px 12px;" data-i18n="actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dns-benchmark-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);" data-i18n="dns_click_to_scan">
+                                جهت آغاز تست سرعت و بررسی سلامت دی‌ان‌اس‌ها روی دکمه «اجرای اسکن کامل» کلیک کنید.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. PROTOCOL-SPECIFIC EGRESS DNS ROUTING CARD -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="route" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="dns_egress_routing_title">
+                            مسیریابی خروجی DNS اختصاصی به ازای هر پروتکل (Egress DNS Routing)
+                        </h3>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;" data-i18n="dns_egress_routing_desc">
+                            هنگامی که ترافیک پروتکل VPN کاربر وارد سرور شده و قصد خروج دارد، می‌توانید تعیین کنید کوئری‌های DNS آن پروتکل مشخص، از چه سرور دی‌ان‌اس خارجی یا داخلی عبور کند (اعمال در سطح هسته لینوکس از طریق iptables DNAT).
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table of Protocols and their Egress DNS -->
+            <div class="table-responsive" style="margin-bottom: 16px;">
+                <table class="table" style="width:100%; border-collapse:collapse; font-size:13px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border-glow); text-align:right;">
+                            <th style="padding:10px 12px;" data-i18n="protocol">پروتکل اتصال</th>
+                            <th style="padding:10px 12px;" data-i18n="interface">کارت شبکه / ساب‌نت</th>
+                            <th style="padding:10px 12px;" data-i18n="status">فعال‌سازی روت</th>
+                            <th style="padding:10px 12px;" data-i18n="dns_target">دی‌ان‌اس خروجی (Target Upstream DNS)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dns-routing-tbody">
+                        <!-- Rendered dynamically -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveProtocolDnsRouting()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="dns_save_routing">ذخیره و اعمال قوانین مسیریابی خروجی DNS</span>
+                </button>
+            </div>
+        </div>
+
+    </section>
+</div>

@@ -21,6 +21,12 @@
 <button class="btn btn-sm btn-secondary" id="dns-tab-btn-slipstream" onclick="switchDnsSubTab('slipstream')" style="padding:6px 14px; font-weight:600;" type="button">
                     Slipstream (QUIC)
                 </button>
+<button class="btn btn-sm btn-secondary" id="dns-tab-btn-noizdns" onclick="switchDnsSubTab('noizdns')" style="padding:6px 14px; font-weight:600;" type="button">
+                    NoizDNS (Anti-DPI)
+                </button>
+<button class="btn btn-sm btn-secondary" id="dns-tab-btn-masterdnsvpn" onclick="switchDnsSubTab('masterdnsvpn')" style="padding:6px 14px; font-weight:600;" type="button">
+                    MasterdnsVPN (Chunked)
+                </button>
 </div>
 </div>
 </div>
@@ -279,6 +285,163 @@
 <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-client-cmd-box').textContent)" type="button">
 <i data-lucide="copy" style="width:13px; height:13px;"></i>
 </button>
+</div>
+</div>
+<!-- ================= SUB-PANE 4: NOIZDNS ================= -->
+<div id="dns-subpane-noizdns" style="display:none;">
+<div class="glass-card config-card" style="margin-bottom: 20px;">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+<div style="display:flex; align-items:center; gap:8px;">
+<span class="status-dot" id="noizdns-status-dot"></span>
+<strong data-i18n="dns_noizdns_title" style="font-size:15px;">سرور NoizDNS (پراکسی ضد DPI با نویز تصادفی و پدینگ فریم)</strong>
+</div>
+<div style="display:flex; gap:8px;">
+<button class="btn btn-secondary btn-sm" onclick="controlProtocol('noizdns', 'restart')">
+<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+</button>
+<button class="btn btn-primary btn-sm" id="noizdns-toggle-btn" onclick="toggleProtocolQuick('noizdns')">
+<span data-i18n="toggle_service">تغییر وضعیت</span>
+</button>
+</div>
+</div>
+<!-- Stats Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
+<div id="noizdns-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5355</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">دی‌ان‌اس بالادستی (Upstream)</div>
+<div id="noizdns-stat-upstream" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">1.1.1.1:53</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="dns_padding_range" style="color:var(--text-muted); font-size:11px;">محدوده پدینگ نویز</div>
+<div id="noizdns-stat-padding" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">16 - 64 Bytes</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
+<div id="noizdns-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
+</div>
+</div>
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
+<i data-lucide="shield" style="width:14px; height:14px; color:#10b981; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="dns_noizdns_desc">پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های تصادفی نویز و دگرگون‌سازی طول پکت‌های DNS مانع شناسایی الگوهای درخواست توسط سامانه‌های مانیتورینگ DPI و کاهش سرعت کوئری‌ها می‌شود.</span>
+</div>
+<!-- Configuration Form -->
+<form id="noizdns-config-form" onsubmit="saveNoizdnsConfig(event)">
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="port">پورت شنود سرور (UDP)</label>
+<input class="form-input" id="noizdns-port-input" max="65535" min="1" required="" type="number" value="5355"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="upstream">دی‌ان‌اس بالادستی (Upstream DNS)</label>
+<input class="form-input" id="noizdns-upstream-input" placeholder="1.1.1.1:53" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text" value="1.1.1.1:53"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="dns_pad_min">حداقل نویز پدینگ (Bytes)</label>
+<input class="form-input" id="noizdns-padmin-input" max="256" min="4" required="" type="number" value="16"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="dns_pad_max">حداکثر نویز پدینگ (Bytes)</label>
+<input class="form-input" id="noizdns-padmax-input" max="512" min="16" required="" type="number" value="64"/>
+</div>
+</div>
+<button class="btn btn-primary" id="save-noizdns-btn" type="submit">
+<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات NoizDNS</span>
+</button>
+</form>
+</div>
+<!-- Client Guide Card -->
+<div class="glass-card config-card">
+<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i data-lucide="terminal" style="width:16px; height:16px; color:#10b981;"></i>
+<span data-i18n="client_guide">دستور اتصال کلاینت NoizDNS</span>
+</h4>
+<div style="display:flex; gap:8px; align-items:center;">
+<div class="code-box" id="noizdns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">noizdns-client -server 212.227.143.16:5355 -local 127.0.0.1:53</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-client-cmd-box').textContent)" type="button">
+<i data-lucide="copy" style="width:13px; height:13px;"></i>
+</button>
+</div>
+</div>
+</div>
+<!-- ================= SUB-PANE 5: MASTERDNSVPN ================= -->
+<div id="dns-subpane-masterdnsvpn" style="display:none;">
+<div class="glass-card config-card" style="margin-bottom: 20px;">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+<div style="display:flex; align-items:center; gap:8px;">
+<span class="status-dot" id="masterdnsvpn-status-dot"></span>
+<strong data-i18n="dns_masterdnsvpn_title" style="font-size:15px;">سرور MasterdnsVPN (تونل چانک بیس۶۴ با سرعت بالا بر بستر DNS)</strong>
+</div>
+<div style="display:flex; gap:8px;">
+<button class="btn btn-secondary btn-sm" onclick="controlProtocol('masterdnsvpn', 'restart')">
+<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+</button>
+<button class="btn btn-primary btn-sm" id="masterdnsvpn-toggle-btn" onclick="toggleProtocolQuick('masterdnsvpn')">
+<span data-i18n="toggle_service">تغییر وضعیت</span>
+</button>
+</div>
+</div>
+<!-- Stats Grid -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
+<div id="masterdnsvpn-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5356</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="domain" style="color:var(--text-muted); font-size:11px;">دامنه NS</div>
+<div id="masterdnsvpn-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">t.mhpanel.kigaping.com</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">مقصد هدایت (Target)</div>
+<div id="masterdnsvpn-stat-upstream" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">127.0.0.1:1080 (SOCKS5)</div>
+</div>
+<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
+<div id="masterdnsvpn-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
+</div>
+</div>
+<!-- Configuration Form -->
+<form id="masterdnsvpn-config-form" onsubmit="saveMasterdnsvpnConfig(event)">
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="port">پورت سرور (UDP)</label>
+<input class="form-input" id="masterdnsvpn-port-input" max="65535" min="1" required="" type="number" value="5356"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="domain">دامنه تونل (NS Record Domain)</label>
+<input class="form-input" id="masterdnsvpn-domain-input" placeholder="t.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="masterdnsvpn_key">کلید احراز هویت (Auth Key)</label>
+<input class="form-input" id="masterdnsvpn-key-input" placeholder="master-secret-key-mhpanel" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
+</div>
+<div class="form-group" style="margin:0;">
+<label class="form-label" data-i18n="upstream">مقصد فوروارد ترافیک (Target)</label>
+<select class="form-input" id="masterdnsvpn-upstream-select">
+<option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+<option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
+<option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+</select>
+</div>
+</div>
+<button class="btn btn-primary" id="save-masterdnsvpn-btn" type="submit">
+<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات MasterdnsVPN</span>
+</button>
+</form>
+</div>
+<!-- Client Guide Card -->
+<div class="glass-card config-card">
+<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
+<i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
+<span data-i18n="client_guide">دستور کلاینت MasterdnsVPN</span>
+</h4>
+<div style="display:flex; gap:8px; align-items:center;">
+<div class="code-box" id="masterdnsvpn-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">masterdnsvpn-client -domain t.example.com -key ... -l 1080</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-client-cmd-box').textContent)" type="button">
+<i data-lucide="copy" style="width:13px; height:13px;"></i>
+</button>
+</div>
 </div>
 </div>
 </div>

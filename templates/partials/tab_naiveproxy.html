@@ -1,0 +1,147 @@
+<div class="tab-pane" id="tab-naiveproxy">
+    <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:44px; height:44px; border-radius:12px; background: rgba(245, 158, 11, 0.12); color:#f59e0b; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="compass" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="naiveproxy_title">
+                            پروتکل نیو‌پروکسی (NaiveProxy over HTTP/2 & QUIC)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="naiveproxy_subtitle">
+                            استفاده از پشته شبکه کرومیوم (Chromium Network Stack) برای استتار کامل ۱۰۰ درصدی در قالب ترافیک وبگردی مرورگر کروم واقعی
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="naiveproxy-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchNaiveProxyConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت اتصال (TCP TLS)</div>
+                    <div style="font-weight: 700; color: #f59e0b; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="naiveproxy-stat-port">8444</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="naiveproxy_stat_engine">موتور پروتکل (Core Engine)</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">Chromium Stack</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="naiveproxy_stat_fingerprint">اثر انگشت (Fingerprint)</div>
+                    <div style="font-weight: 700; color: #6366f1; margin-top: 3px;">Chrome Browser TLS</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="naiveproxy-stat-connections">0</div>
+                </div>
+            </div>
+
+            <!-- Service Control Buttons -->
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('naiveproxy', 'restart')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart_service">راه‌اندازی مجدد NaiveProxy</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="naiveproxy-toggle-btn" onclick="toggleProtocolQuick('naiveproxy')" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="power" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="toggle_service">توقف / شروع سرویس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Settings Form -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="sliders" style="color: #f59e0b; width: 20px; height: 20px;"></i>
+                    <span data-i18n="naiveproxy_config_title">تنظیمات اصلی سرور NaiveProxy</span>
+                </h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <div>
+                    <label class="form-label" data-i18n="port">پورت شنود سرور (TCP Port)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="naiveproxy-cfg-port" placeholder="8444" min="1" max="65535">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="username">نام کاربری (Basic Auth Username)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="naiveproxy-cfg-username" placeholder="admin">
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="password">رمز عبور کاربر (Password)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="naiveproxy-cfg-password" placeholder="mhpanel_naive_secret">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('naiveproxy-cfg-password', 18)" title="تولید رمز">
+                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="domain">نام دامنه استتار (SNI Hostname)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="naiveproxy-cfg-sni" placeholder="yourdomain.com">
+                </div>
+            </div>
+
+            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
+                <button type="button" class="btn btn-primary" onclick="saveNaiveProxyConfig()" style="width:auto; padding: 9px 24px;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات NaiveProxy</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Client Export Card -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="terminal" style="color: #f59e0b; width: 20px; height: 20px;"></i>
+                    <span data-i18n="naiveproxy_client_export">لینک اتصال و فایل پیکربندی کلاینت NaiveProxy</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label class="form-label" data-i18n="naiveproxy_link_label">آدرس اتصال (Naive URL):</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" id="naiveproxy-client-uri" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#fde68a;">
+                        <button type="button" class="btn btn-secondary" onclick="copyElementText('naiveproxy-client-uri'); showToast('آدرس کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="naiveproxy_config_json">کانفیگ رسمی کلاینت (config.json برای Naive Client):</label>
+                    <textarea class="form-input" id="naiveproxy-client-json" rows="7" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#fef08a;"></textarea>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('naiveproxy-client-json'); showToast('کانفیگ کپی شد', 'success');" style="width:auto;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی JSON کلاینت</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" data-i18n="naiveproxy_clash_label">کانفیگ Clash Meta (Mihomo):</label>
+                    <textarea class="form-input" id="naiveproxy-clash-snippet" rows="7" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#fed7aa;"></textarea>
+                    <div style="margin-top:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('naiveproxy-clash-snippet'); showToast('کانفیگ Clash کپی شد', 'success');" style="width:auto;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_clash">کپی کانفیگ Clash</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

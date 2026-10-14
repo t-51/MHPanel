@@ -158,7 +158,7 @@ VPN_SERVER_CERT = os.path.join(VPN_CERT_DIR, "vpn-server.crt")
 VPN_SERVER_KEY = os.path.join(VPN_CERT_DIR, "vpn-server.key")
 PANEL_CERT = os.path.join(PANEL_SSL_DIR, "panel.crt")
 PANEL_KEY = os.path.join(PANEL_SSL_DIR, "panel.key")
-PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream"]
+PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "noizdns", "masterdnsvpn", "tor"]
 PROTOCOL_DEFAULT_PORTS = {
     "ssh": 2222,
     "openvpn": 1194,
@@ -177,6 +177,13 @@ PROTOCOL_DEFAULT_PORTS = {
     "dnstt": 5300,
     "vaydns": 5353,
     "slipstream": 5354,
+    "hysteria2": 7443,
+    "trojan": 8443,
+    "naiveproxy": 8444,
+    "stuntls": 3478,
+    "noizdns": 5355,
+    "masterdnsvpn": 5356,
+    "tor": 9001,
 }
 PROTOCOL_SERVICE_MAP = {
     "ssh": "aethervpn-ssh",
@@ -196,6 +203,13 @@ PROTOCOL_SERVICE_MAP = {
     "dnstt": "aethervpn-dnstt",
     "vaydns": "aethervpn-vaydns",
     "slipstream": "aethervpn-slipstream",
+    "hysteria2": "aethervpn-hysteria2",
+    "trojan": "aethervpn-trojan",
+    "naiveproxy": "aethervpn-naiveproxy",
+    "stuntls": "aethervpn-stuntls",
+    "noizdns": "aethervpn-noizdns",
+    "masterdnsvpn": "aethervpn-masterdnsvpn",
+    "tor": "aethervpn-tor",
 }
 
 def get_session_secret():
@@ -315,10 +329,10 @@ def get_connection_count(protocol):
                     if ts > 0 and (curr_time - ts) < 120:
                         count += 1
             return count
-        elif protocol in ["http", "socks", "shadowsocks", "mtproto"]:
+        elif protocol in ["http", "socks", "shadowsocks", "mtproto", "trojan", "naiveproxy", "stuntls", "tor"]:
             res = subprocess.run(f"ss -t -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True)
             return int(res.stdout.strip())
-        elif protocol in ["tuic", "dnstt", "vaydns", "slipstream"]:
+        elif protocol in ["tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "noizdns", "masterdnsvpn"]:
             res = subprocess.run(f"ss -u -a | grep -E ':{port}\\s' | wc -l", shell=True, capture_output=True, text=True)
             return max(0, int(res.stdout.strip()) - 1)
     except Exception:
@@ -485,6 +499,20 @@ def is_installed(protocol):
         return os.path.exists("/usr/local/bin/vaydns-server") or os.path.exists("/etc/systemd/system/aethervpn-vaydns.service")
     elif protocol == "slipstream":
         return os.path.exists("/usr/local/bin/slipstream-server") or os.path.exists("/etc/systemd/system/aethervpn-slipstream.service")
+    elif protocol == "hysteria2":
+        return os.path.exists("/etc/vpnpanel/hysteria2.yaml") or os.path.exists("/usr/local/bin/hysteria")
+    elif protocol == "trojan":
+        return os.path.exists("/etc/vpnpanel/trojan.json")
+    elif protocol == "naiveproxy":
+        return os.path.exists("/etc/vpnpanel/naiveproxy.json")
+    elif protocol == "stuntls":
+        return os.path.exists("/etc/vpnpanel/stuntls.json") or os.path.exists("/usr/local/bin/stuntls-server")
+    elif protocol == "noizdns":
+        return os.path.exists("/etc/vpnpanel/noizdns.json") or os.path.exists("/usr/local/bin/noizdns-server")
+    elif protocol == "masterdnsvpn":
+        return os.path.exists("/etc/vpnpanel/masterdnsvpn.json") or os.path.exists("/usr/local/bin/masterdnsvpn-server")
+    elif protocol == "tor":
+        return os.path.exists("/etc/tor/torrc") or os.path.exists("/usr/bin/tor")
     return False
 
 
@@ -626,6 +654,59 @@ def get_active_port(protocol):
                 except Exception:
                     pass
             return 5354
+        elif protocol == "hysteria2":
+            if os.path.exists("/etc/vpnpanel/hysteria2.yaml"):
+                try:
+                    with open("/etc/vpnpanel/hysteria2.yaml", "r") as f:
+                        m = re.search(r"listen:\s*:(\d+)", f.read())
+                        if m: return int(m.group(1))
+                except Exception: pass
+            return 7443
+        elif protocol == "trojan":
+            if os.path.exists("/etc/vpnpanel/trojan.json"):
+                try:
+                    with open("/etc/vpnpanel/trojan.json", "r") as f:
+                        m = re.search(r'"listen_port":\s*(\d+)', f.read())
+                        if m: return int(m.group(1))
+                except Exception: pass
+            return 8443
+        elif protocol == "naiveproxy":
+            if os.path.exists("/etc/vpnpanel/naiveproxy.json"):
+                try:
+                    with open("/etc/vpnpanel/naiveproxy.json", "r") as f:
+                        m = re.search(r'"listen_port":\s*(\d+)', f.read())
+                        if m: return int(m.group(1))
+                except Exception: pass
+            return 8444
+        elif protocol == "stuntls":
+            if os.path.exists("/etc/vpnpanel/stuntls.json"):
+                try:
+                    with open("/etc/vpnpanel/stuntls.json", "r") as f:
+                        return int(json.load(f).get("port", 3478))
+                except Exception: pass
+            return 3478
+        elif protocol == "noizdns":
+            if os.path.exists("/etc/vpnpanel/noizdns.json"):
+                try:
+                    with open("/etc/vpnpanel/noizdns.json", "r") as f:
+                        return int(json.load(f).get("port", 5355))
+                except Exception: pass
+            return 5355
+        elif protocol == "masterdnsvpn":
+            if os.path.exists("/etc/vpnpanel/masterdnsvpn.json"):
+                try:
+                    with open("/etc/vpnpanel/masterdnsvpn.json", "r") as f:
+                        return int(json.load(f).get("port", 5356))
+                except Exception: pass
+            return 5356
+        elif protocol == "tor":
+            if os.path.exists("/etc/tor/torrc"):
+                try:
+                    with open("/etc/tor/torrc", "r") as f:
+                        m = re.search(r"^ORPort\s+(\d+)", f.read(), re.MULTILINE)
+                        if m: return int(m.group(1))
+                except Exception: pass
+            return 9001
         if protocol in ["http", "socks", "shadowsocks"] and os.path.exists(path):
             with open(path, "r") as f:
                 content = f.read()
@@ -2189,6 +2270,20 @@ def get_service_names(protocol):
         return ["aethervpn-vaydns"]
     elif protocol == "slipstream":
         return ["aethervpn-slipstream"]
+    elif protocol == "hysteria2":
+        return ["aethervpn-hysteria2"]
+    elif protocol == "trojan":
+        return ["aethervpn-trojan"]
+    elif protocol == "naiveproxy":
+        return ["aethervpn-naiveproxy"]
+    elif protocol == "stuntls":
+        return ["aethervpn-stuntls"]
+    elif protocol == "noizdns":
+        return ["aethervpn-noizdns"]
+    elif protocol == "masterdnsvpn":
+        return ["aethervpn-masterdnsvpn"]
+    elif protocol == "tor":
+        return ["aethervpn-tor", "tor@default", "tor"]
     return []
 
 @app.route("/api/protocols/control", methods=["POST"])
@@ -6204,6 +6299,771 @@ WantedBy=multi-user.target
     cfg["server_domain"] = get_server_domain()
     cfg["client_cmd"] = f"slipstream-client -l 1080 -d {cfg.get('domain')} -s {get_server_domain()}"
     return jsonify(cfg)
+
+
+# ==============================================================================
+# NEW PROTOCOLS & ADVANCED DNS ROUTING HUB API
+# (Hysteria 2, Trojan, NaiveProxy, StunTLS, NoizDNS, MasterdnsVPN, Tor, DNS Scanner & System DNS)
+# ==============================================================================
+
+# --- Hysteria 2 Protocol API ---
+@app.route("/api/hysteria2/config", methods=["GET", "POST"])
+def api_hysteria2_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/hysteria2.yaml"
+    domain = get_server_domain()
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 7443)
+        password = (data.get("password") or "mhpanel_hysteria_secret").strip()
+        obfs_pass = (data.get("obfs_password") or "mhpanel_salamander_key").strip()
+        up_mbps = int(data.get("up_mbps") or 100)
+        down_mbps = int(data.get("down_mbps") or 100)
+
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        yaml_content = f"""server:
+  listen: :{port}
+
+tls:
+  cert: /etc/vpnpanel/ssl/panel.crt
+  key: /etc/vpnpanel/ssl/panel.key
+
+auth:
+  type: password
+  password: {password}
+
+obfs:
+  type: salamander
+  salamander:
+    password: {obfs_pass}
+
+quic:
+  initStreamReceiveWindow: 8388608
+  maxStreamReceiveWindow: 8388608
+  initConnReceiveWindow: 20971520
+  maxConnReceiveWindow: 20971520
+  maxIdleTimeout: 30s
+  keepAlivePeriod: 10s
+
+bandwidth:
+  up: {up_mbps} mbps
+  down: {down_mbps} mbps
+
+outbounds:
+  - name: default
+    type: direct
+"""
+        with open(cfg_file, "w") as f:
+            f.write(yaml_content)
+        subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-hysteria2"], capture_output=True)
+        return jsonify({"success": True})
+
+    # GET
+    port = 7443
+    password = "mhpanel_hysteria_secret"
+    obfs_pass = "mhpanel_salamander_key"
+    up_mbps, down_mbps = 100, 100
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                c = f.read()
+            m = re.search(r"listen:\s*:(\d+)", c)
+            if m: port = int(m.group(1))
+            m = re.search(r"password:\s*([^\s\n]+)", c)
+            if m: password = m.group(1).strip()
+            m = re.search(r"salamander:\s*\n\s*password:\s*([^\s\n]+)", c)
+            if m: obfs_pass = m.group(1).strip()
+            m = re.search(r"up:\s*(\d+)", c)
+            if m: up_mbps = int(m.group(1))
+            m = re.search(r"down:\s*(\d+)", c)
+            if m: down_mbps = int(m.group(1))
+        except Exception:
+            pass
+
+    client_link = f"hysteria2://{password}@{domain}:{port}/?insecure=1&obfs=salamander&obfs-password={obfs_pass}&sni={domain}#MHPanel-Hysteria2"
+    return jsonify({
+        "port": port,
+        "password": password,
+        "obfs_password": obfs_pass,
+        "up_mbps": up_mbps,
+        "down_mbps": down_mbps,
+        "domain": domain,
+        "client_link": client_link,
+        "installed": is_installed("hysteria2"),
+        "active": get_protocol_active("hysteria2"),
+        "connections": get_connection_count("hysteria2")
+    })
+
+
+# --- Trojan Protocol API ---
+@app.route("/api/trojan/config", methods=["GET", "POST"])
+def api_trojan_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/trojan.json"
+    domain = get_server_domain()
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 8443)
+        password = (data.get("password") or "mhpanel_trojan_secret").strip()
+        sni = (data.get("sni") or domain).strip()
+
+        cfg = {
+            "log": {"level": "warn", "timestamp": True},
+            "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+            "inbounds": [
+                {
+                    "type": "trojan",
+                    "tag": "trojan-in",
+                    "listen": "::",
+                    "listen_port": port,
+                    "users": [{"name": "default_user", "password": password}],
+                    "tls": {
+                        "enabled": True,
+                        "server_name": sni,
+                        "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
+                        "key_path": "/etc/vpnpanel/ssl/panel.key"
+                    },
+                    "multiplex": {"enabled": True}
+                }
+            ],
+            "outbounds": [{"type": "direct", "tag": "direct"}]
+        }
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
+        subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-trojan"], capture_output=True)
+        return jsonify({"success": True})
+
+    port = 8443
+    password = "mhpanel_trojan_secret"
+    sni = domain
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                d = json.load(f)
+            inb = d.get("inbounds", [{}])[0]
+            port = int(inb.get("listen_port", 8443))
+            users = inb.get("users", [{}])
+            if users:
+                password = users[0].get("password", password)
+            sni = inb.get("tls", {}).get("server_name", domain)
+        except Exception:
+            pass
+
+    client_link = f"trojan://{password}@{domain}:{port}?security=tls&sni={sni}&allowInsecure=1#MHPanel-Trojan"
+    return jsonify({
+        "port": port,
+        "password": password,
+        "sni": sni,
+        "domain": domain,
+        "client_link": client_link,
+        "installed": is_installed("trojan"),
+        "active": get_protocol_active("trojan"),
+        "connections": get_connection_count("trojan")
+    })
+
+
+# --- NaiveProxy Protocol API ---
+@app.route("/api/naiveproxy/config", methods=["GET", "POST"])
+def api_naiveproxy_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/naiveproxy.json"
+    domain = get_server_domain()
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 8444)
+        username = (data.get("username") or "admin").strip()
+        password = (data.get("password") or "mhpanel_naive_secret").strip()
+        sni = (data.get("sni") or domain).strip()
+
+        cfg = {
+            "log": {"level": "warn"},
+            "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+            "inbounds": [
+                {
+                    "type": "naive",
+                    "tag": "naive-in",
+                    "listen": "::",
+                    "listen_port": port,
+                    "users": [{"username": username, "password": password}],
+                    "tls": {
+                        "enabled": True,
+                        "server_name": sni,
+                        "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
+                        "key_path": "/etc/vpnpanel/ssl/panel.key"
+                    }
+                }
+            ],
+            "outbounds": [{"type": "direct", "tag": "direct"}]
+        }
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
+        subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-naiveproxy"], capture_output=True)
+        return jsonify({"success": True})
+
+    port = 8444
+    username = "admin"
+    password = "mhpanel_naive_secret"
+    sni = domain
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                d = json.load(f)
+            inb = d.get("inbounds", [{}])[0]
+            port = int(inb.get("listen_port", 8444))
+            users = inb.get("users", [{}])
+            if users:
+                username = users[0].get("username", username)
+                password = users[0].get("password", password)
+            sni = inb.get("tls", {}).get("server_name", domain)
+        except Exception:
+            pass
+
+    client_link = f"naive+https://{username}:{password}@{domain}:{port}"
+    return jsonify({
+        "port": port,
+        "username": username,
+        "password": password,
+        "sni": sni,
+        "domain": domain,
+        "client_link": client_link,
+        "installed": is_installed("naiveproxy"),
+        "active": get_protocol_active("naiveproxy"),
+        "connections": get_connection_count("naiveproxy")
+    })
+
+
+# --- StunTLS Protocol API ---
+@app.route("/api/stuntls/config", methods=["GET", "POST"])
+def api_stuntls_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/stuntls.json"
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 3478)
+        secret = (data.get("secret") or "mhpanel_stuntls_key").strip()
+        upstream = (data.get("upstream") or "127.0.0.1:22").strip()
+
+        cfg = {"port": port, "secret": secret, "upstream": upstream, "mode": "webrtc_stun"}
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
+        subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-stuntls"], capture_output=True)
+        return jsonify({"success": True})
+
+    cfg = {"port": 3478, "secret": "mhpanel_stuntls_key", "upstream": "127.0.0.1:22", "mode": "webrtc_stun"}
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+    cfg["installed"] = is_installed("stuntls")
+    cfg["active"] = get_protocol_active("stuntls")
+    cfg["connections"] = get_connection_count("stuntls")
+    cfg["client_cmd"] = f"stuntls-client -server {get_server_domain()}:{cfg.get('port')} -key {cfg.get('secret')} -l 1080"
+    return jsonify(cfg)
+
+
+# --- NoizDNS Protocol API ---
+@app.route("/api/noizdns/config", methods=["GET", "POST"])
+def api_noizdns_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/noizdns.json"
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 5355)
+        upstream = (data.get("upstream_dns") or "1.1.1.1:53").strip()
+        padding_min = int(data.get("padding_min") or 16)
+        padding_max = int(data.get("padding_max") or 64)
+
+        cfg = {
+            "port": port,
+            "upstream_dns": upstream,
+            "noise_seed": "mhpanel-noiz-salt",
+            "padding_min": padding_min,
+            "padding_max": padding_max,
+            "jitter_ms": 2
+        }
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-noizdns"], capture_output=True)
+        return jsonify({"success": True})
+
+    cfg = {"port": 5355, "upstream_dns": "1.1.1.1:53", "padding_min": 16, "padding_max": 64}
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+    cfg["installed"] = is_installed("noizdns")
+    cfg["active"] = get_protocol_active("noizdns")
+    cfg["connections"] = get_connection_count("noizdns")
+    cfg["client_cmd"] = f"noizdns-client -server {get_server_domain()}:{cfg.get('port')} -local 127.0.0.1:53"
+    return jsonify(cfg)
+
+
+# --- MasterdnsVPN Protocol API ---
+@app.route("/api/masterdnsvpn/config", methods=["GET", "POST"])
+def api_masterdnsvpn_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/masterdnsvpn.json"
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 5356)
+        domain = (data.get("domain") or f"t.{get_server_domain()}").strip()
+        auth_key = (data.get("auth_key") or "master-secret-key-mhpanel").strip()
+        upstream = (data.get("upstream") or "127.0.0.1:1080").strip()
+
+        cfg = {"port": port, "domain": domain, "auth_key": auth_key, "upstream": upstream, "mtu": 1280}
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-masterdnsvpn"], capture_output=True)
+        return jsonify({"success": True})
+
+    cfg = {"port": 5356, "domain": f"t.{get_server_domain()}", "auth_key": "master-secret-key-mhpanel", "upstream": "127.0.0.1:1080", "mtu": 1280}
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+    cfg["installed"] = is_installed("masterdnsvpn")
+    cfg["active"] = get_protocol_active("masterdnsvpn")
+    cfg["connections"] = get_connection_count("masterdnsvpn")
+    cfg["client_cmd"] = f"masterdnsvpn-client -domain {cfg.get('domain')} -key {cfg.get('auth_key')} -l 1080"
+    return jsonify(cfg)
+
+
+# --- Tor + Bridges Protocol API ---
+@app.route("/api/tor/config", methods=["GET", "POST"])
+def api_tor_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/tor_bridge.json"
+    torrc_file = "/etc/tor/torrc"
+
+    if request.method == "POST":
+        data = request.json or {}
+        or_port = int(data.get("or_port") or 9001)
+        transport = (data.get("transport") or "obfs4").strip()
+        bridge_port = int(data.get("bridge_port") or 9002)
+        nickname = (data.get("nickname") or "MHPanelBridge").strip()
+        contact = (data.get("contact") or "admin@kigaping.com").strip()
+
+        cfg = {
+            "or_port": or_port,
+            "transport": transport,
+            "bridge_port": bridge_port,
+            "socks_port": 9050,
+            "nickname": nickname,
+            "contact": contact
+        }
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+
+        torrc_content = f"""SocksPort 127.0.0.1:9050
+RunAsDaemon 0
+ORPort {or_port}
+BridgeRelay 1
+ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+ServerTransportListenAddr obfs4 0.0.0.0:{bridge_port}
+PublishServerDescriptor 0
+ContactInfo {contact}
+Nickname {nickname}
+DataDirectory /var/lib/tor
+"""
+        with open(torrc_file, "w") as f:
+            f.write(torrc_content)
+        subprocess.run(["ufw", "allow", f"{or_port}/tcp"], capture_output=True)
+        subprocess.run(["ufw", "allow", f"{bridge_port}/tcp"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "aethervpn-tor"], capture_output=True)
+        return jsonify({"success": True})
+
+    cfg = {
+        "or_port": 9001,
+        "transport": "obfs4",
+        "bridge_port": 9002,
+        "socks_port": 9050,
+        "nickname": "MHPanelBridge",
+        "contact": "admin@kigaping.com"
+    }
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+
+    # Extract fingerprint
+    fingerprint = ""
+    for fp_path in ["/var/lib/tor/fingerprint", "/var/lib/tor/pt_state/obfs4_bridgeline.txt"]:
+        if os.path.exists(fp_path):
+            try:
+                with open(fp_path, "r") as f:
+                    content = f.read().strip()
+                if "Bridge" in content:
+                    fingerprint = content
+                else:
+                    parts = content.split()
+                    if len(parts) >= 2:
+                        fingerprint = parts[1]
+                if fingerprint:
+                    break
+            except Exception:
+                pass
+
+    cfg["fingerprint"] = fingerprint or "GENERATING_AFTER_FIRST_CONNECT"
+    server_ip = "212.227.143.16"
+    cfg["server_ip"] = server_ip
+    cfg["bridge_line"] = f"Bridge obfs4 {server_ip}:{cfg.get('bridge_port')} {cfg.get('fingerprint')} cert=AUTO iat-mode=0"
+    cfg["installed"] = is_installed("tor")
+    cfg["active"] = get_protocol_active("tor")
+    cfg["connections"] = get_connection_count("tor")
+    return jsonify(cfg)
+
+
+# ==============================================================================
+# SERVER SYSTEM DNS & SCANNER & PROTOCOL EGRESS DNS ROUTING APIS
+# ==============================================================================
+
+DNS_PRESETS = [
+    {"name": "Cloudflare DNS", "ip": "1.1.1.1", "sec_ip": "1.0.0.1", "cat": "global"},
+    {"name": "Google DNS", "ip": "8.8.8.8", "sec_ip": "8.8.4.4", "cat": "global"},
+    {"name": "Quad9 Clean", "ip": "9.9.9.9", "sec_ip": "149.112.112.112", "cat": "global"},
+    {"name": "OpenDNS Home", "ip": "208.67.222.222", "sec_ip": "208.67.220.220", "cat": "global"},
+    {"name": "AdGuard DNS", "ip": "94.140.14.14", "sec_ip": "94.140.15.15", "cat": "global"},
+    {"name": "Shecan (شکن ضد تحریم)", "ip": "178.22.122.100", "sec_ip": "185.51.200.2", "cat": "anti_sanction"},
+    {"name": "Electro (الکترو)", "ip": "78.157.42.100", "sec_ip": "78.157.42.101", "cat": "anti_sanction"},
+    {"name": "403 Online (سامانه ۴۰۳)", "ip": "10.202.10.202", "sec_ip": "10.202.10.102", "cat": "anti_sanction"},
+    {"name": "Begzar (بگذر)", "ip": "185.55.226.26", "sec_ip": "185.55.225.25", "cat": "anti_sanction"},
+    {"name": "Radar Game (رادار گیم)", "ip": "10.202.10.10", "sec_ip": "10.202.10.11", "cat": "anti_sanction"}
+]
+
+def query_single_dns(server_ip, domain="google.com", timeout=1.5):
+    import struct
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(timeout)
+        pkt = struct.pack(">HHHHHH", 0x2468, 0x0100, 1, 0, 0, 0)
+        for part in domain.split("."):
+            pkt += struct.pack("B", len(part)) + part.encode("latin-1")
+        pkt += b"\x00" + struct.pack(">HH", 1, 1)
+
+        t0 = time.time()
+        sock.sendto(pkt, (server_ip, 53))
+        data, _ = sock.recvfrom(512)
+        rtt = round((time.time() - t0) * 1000, 1)
+        sock.close()
+
+        is_poisoned = False
+        resolved_type = "Clean"
+        if len(data) > 12:
+            # Check for standard Iranian DNS poisoning redirect 10.10.34.34
+            if b"\x0a\x0a\x22\x22" in data:
+                is_poisoned = True
+                resolved_type = "Poisoned (10.10.34.34)"
+            elif b"\x7f\x00\x00\x01" in data: # 127.0.0.1
+                is_poisoned = True
+                resolved_type = "Poisoned (127.0.0.1)"
+        return {"success": True, "rtt": rtt, "poisoned": is_poisoned, "resolved": resolved_type}
+    except socket.timeout:
+        return {"success": False, "rtt": 999, "poisoned": False, "resolved": "Timeout"}
+    except Exception as e:
+        return {"success": False, "rtt": 999, "poisoned": False, "resolved": str(e)}
+
+# --- Server System DNS API ---
+@app.route("/api/dns/system", methods=["GET", "POST"])
+def api_dns_system():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "POST":
+        data = request.json or {}
+        primary = (data.get("primary_dns") or "1.1.1.1").strip()
+        secondary = (data.get("secondary_dns") or "").strip()
+
+        # Update /etc/resolv.conf
+        resolv_content = f"# Generated by MHPanel System DNS Manager\nnameserver {primary}\n"
+        if secondary:
+            resolv_content += f"nameserver {secondary}\n"
+
+        try:
+            with open("/etc/resolv.conf", "w") as f:
+                f.write(resolv_content)
+
+            # Persist to /etc/resolvconf if directory exists
+            if os.path.exists("/etc/resolvconf/resolv.conf.d/base"):
+                with open("/etc/resolvconf/resolv.conf.d/base", "w") as f:
+                    f.write(resolv_content)
+
+            # Persist to systemd-resolved if installed
+            if os.path.exists("/etc/systemd/resolved.conf"):
+                try:
+                    with open("/etc/systemd/resolved.conf", "r") as f:
+                        r_conf = f.read()
+                    dns_line = f"DNS={primary} {secondary}".strip()
+                    if re.search(r"^DNS=.*", r_conf, re.MULTILINE):
+                        r_conf = re.sub(r"^DNS=.*", dns_line, r_conf, flags=re.MULTILINE)
+                    else:
+                        r_conf += f"\n[Resolve]\n{dns_line}\n"
+                    with open("/etc/systemd/resolved.conf", "w") as f:
+                        f.write(r_conf)
+                except Exception:
+                    pass
+
+            # Quick verification
+            test_res = query_single_dns(primary)
+            return jsonify({
+                "success": True,
+                "primary": primary,
+                "secondary": secondary,
+                "verification": test_res
+            })
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # GET
+    nameservers = []
+    if os.path.exists("/etc/resolv.conf"):
+        try:
+            with open("/etc/resolv.conf", "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if line.startswith("nameserver"):
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            nameservers.append(parts[1])
+        except Exception:
+            pass
+
+    primary = nameservers[0] if len(nameservers) > 0 else "8.8.8.8"
+    secondary = nameservers[1] if len(nameservers) > 1 else ""
+
+    test_res = query_single_dns(primary)
+
+    return jsonify({
+        "primary": primary,
+        "secondary": secondary,
+        "nameservers": nameservers,
+        "current_status": "Active" if test_res["success"] else "Degraded",
+        "latency_ms": test_res["rtt"],
+        "is_poisoned": test_res.get("poisoned", False),
+        "presets": DNS_PRESETS
+    })
+
+# --- DNS System Test API ---
+@app.route("/api/dns/system/test", methods=["POST"])
+def api_dns_system_test():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    ip = (data.get("ip") or "1.1.1.1").strip()
+    res = query_single_dns(ip)
+    return jsonify(res)
+
+# --- DNS Scanner Benchmark API ---
+@app.route("/api/dns/scan", methods=["POST"])
+def api_dns_scan():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    import concurrent.futures
+
+    data = request.json or {}
+    custom_ip = (data.get("custom_ip") or "").strip()
+
+    targets = list(DNS_PRESETS)
+    if custom_ip:
+        targets.insert(0, {"name": f"Custom DNS ({custom_ip})", "ip": custom_ip, "cat": "custom"})
+
+    results = []
+    def _scan(item):
+        ip = item["ip"]
+        r = query_single_dns(ip)
+        return {
+            "name": item["name"],
+            "ip": ip,
+            "category": item.get("cat", "global"),
+            "latency_ms": r["rtt"],
+            "success": r["success"],
+            "poisoned": r.get("poisoned", False),
+            "status": "clean" if (r["success"] and not r.get("poisoned")) else ("poisoned" if r.get("poisoned") else "timeout"),
+            "resolved": r.get("resolved", "")
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(_scan, t) for t in targets]
+        for f in concurrent.futures.as_completed(futures):
+            try:
+                results.append(f.result())
+            except Exception:
+                pass
+
+    # Sort results by latency (ascending)
+    results.sort(key=lambda x: (not x["success"], x["poisoned"], x["latency_ms"]))
+
+    best_global = next((r["ip"] for r in results if r["success"] and not r["poisoned"] and r["category"] == "global"), "1.1.1.1")
+    best_anti_sanction = next((r["ip"] for r in results if r["success"] and not r["poisoned"] and r["category"] == "anti_sanction"), "178.22.122.100")
+
+    return jsonify({
+        "results": results,
+        "best_global": best_global,
+        "best_anti_sanction": best_anti_sanction
+    })
+
+# --- Protocol-Specific Egress DNS Routing API ---
+@app.route("/api/dns/protocol-routing", methods=["GET", "POST"])
+def api_dns_protocol_routing():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    routing_file = "/etc/vpnpanel/protocol_dns_routing.json"
+
+    if request.method == "POST":
+        data = request.json or {}
+        egress_map = data.get("egress_routing") or {}
+
+        # Save config
+        cfg = {"egress_routing": egress_map}
+        os.makedirs(os.path.dirname(routing_file), exist_ok=True)
+        with open(routing_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+
+        # Apply iptables MHPANEL_DNS_ROUTING chain
+        try:
+            subprocess.run(["iptables", "-t", "nat", "-N", "MHPANEL_DNS_ROUTING"], capture_output=True)
+            subprocess.run(["iptables", "-t", "nat", "-F", "MHPANEL_DNS_ROUTING"], capture_output=True)
+            # Ensure it is hooked into PREROUTING
+            subprocess.run(["iptables", "-t", "nat", "-D", "PREROUTING", "-j", "MHPANEL_DNS_ROUTING"], capture_output=True)
+            subprocess.run(["iptables", "-t", "nat", "-I", "PREROUTING", "1", "-j", "MHPANEL_DNS_ROUTING"], capture_output=True)
+
+            applied_rules = []
+            for proto_name, rule_data in egress_map.items():
+                if rule_data.get("enabled"):
+                    target_dns = rule_data.get("dns", "1.1.1.1").strip()
+                    if not target_dns:
+                        continue
+
+                    iface = rule_data.get("interface", "")
+                    subnet = rule_data.get("subnet", "")
+
+                    if iface:
+                        subprocess.run(["iptables", "-t", "nat", "-A", "MHPANEL_DNS_ROUTING", "-i", iface, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", f"{target_dns}:53"], capture_output=True)
+                        subprocess.run(["iptables", "-t", "nat", "-A", "MHPANEL_DNS_ROUTING", "-i", iface, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", f"{target_dns}:53"], capture_output=True)
+                        applied_rules.append(f"{proto_name} (iface {iface} -> {target_dns})")
+                    elif subnet:
+                        subprocess.run(["iptables", "-t", "nat", "-A", "MHPANEL_DNS_ROUTING", "-s", subnet, "-p", "udp", "--dport", "53", "-j", "DNAT", "--to-destination", f"{target_dns}:53"], capture_output=True)
+                        subprocess.run(["iptables", "-t", "nat", "-A", "MHPANEL_DNS_ROUTING", "-s", subnet, "-p", "tcp", "--dport", "53", "-j", "DNAT", "--to-destination", f"{target_dns}:53"], capture_output=True)
+                        applied_rules.append(f"{proto_name} (subnet {subnet} -> {target_dns})")
+
+                    # For proxy protocols, update their config files
+                    if proto_name in ["trojan", "naiveproxy"]:
+                        t_cfg = f"/etc/vpnpanel/{proto_name}.json"
+                        if os.path.exists(t_cfg):
+                            try:
+                                with open(t_cfg, "r") as f:
+                                    pj = json.load(f)
+                                pj["dns"] = {"servers": [{"tag": "remote", "type": "udp", "server": target_dns}]}
+                                with open(t_cfg, "w") as f:
+                                    json.dump(pj, f, indent=2)
+                                subprocess.run(["systemctl", "restart", f"aethervpn-{proto_name}"], capture_output=True)
+                                applied_rules.append(f"{proto_name} (proxy config -> {target_dns})")
+                            except Exception:
+                                pass
+                    elif proto_name == "noizdns":
+                        nz_cfg = "/etc/vpnpanel/noizdns.json"
+                        if os.path.exists(nz_cfg):
+                            try:
+                                with open(nz_cfg, "r") as f:
+                                    nj = json.load(f)
+                                nj["upstream_dns"] = f"{target_dns}:53"
+                                with open(nz_cfg, "w") as f:
+                                    json.dump(nj, f, indent=2)
+                                subprocess.run(["systemctl", "restart", "aethervpn-noizdns"], capture_output=True)
+                                applied_rules.append(f"noizdns -> {target_dns}")
+                            except Exception:
+                                pass
+
+            # Write persistent script
+            persist_script = """#!/usr/bin/env bash
+iptables -t nat -N MHPANEL_DNS_ROUTING 2>/dev/null || true
+iptables -t nat -C PREROUTING -j MHPANEL_DNS_ROUTING 2>/dev/null || iptables -t nat -I PREROUTING 1 -j MHPANEL_DNS_ROUTING
+"""
+            with open("/etc/vpnpanel/apply_dns_routing.sh", "w") as f:
+                f.write(persist_script)
+            os.chmod("/etc/vpnpanel/apply_dns_routing.sh", 0o755)
+
+            return jsonify({"success": True, "applied_rules": applied_rules})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+
+    # GET
+    cfg = {}
+    if os.path.exists(routing_file):
+        try:
+            with open(routing_file, "r") as f:
+                cfg = json.load(f).get("egress_routing", {})
+        except Exception:
+            pass
+
+    # Provide defaults for all active protocols
+    default_mappings = {
+        "openvpn": {"interface": "tun0", "subnet": "10.8.0.0/24", "label": "OpenVPN (TUN)"},
+        "wireguard": {"interface": "wg0", "subnet": "10.66.66.0/24", "label": "WireGuard Kernel"},
+        "amneziawg": {"interface": "awg0", "subnet": "10.77.77.0/24", "label": "AmneziaWG Anti-DPI"},
+        "ocserv": {"interface": "vpns+", "subnet": "10.10.10.0/24", "label": "Cisco AnyConnect"},
+        "ikev2": {"interface": "ipsec0", "subnet": "10.20.20.0/24", "label": "IKEv2 StrongSwan"},
+        "l2tp": {"interface": "ppp+", "subnet": "192.168.42.0/24", "label": "L2TP / IPsec"},
+        "sstp": {"interface": "sstpc+", "subnet": "10.30.30.0/24", "label": "SSTP Windows"},
+        "trojan": {"interface": "", "subnet": "", "label": "Trojan TLS", "type": "proxy"},
+        "hysteria2": {"interface": "", "subnet": "", "label": "Hysteria 2 QUIC", "type": "proxy"},
+        "naiveproxy": {"interface": "", "subnet": "", "label": "NaiveProxy", "type": "proxy"},
+        "tuic": {"interface": "", "subnet": "", "label": "TUIC QUIC", "type": "proxy"},
+        "shadowsocks": {"interface": "", "subnet": "", "label": "Shadowsocks-rust", "type": "proxy"},
+        "noizdns": {"interface": "", "subnet": "", "label": "NoizDNS Anti-DPI", "type": "dns_tunnel"},
+        "masterdnsvpn": {"interface": "", "subnet": "", "label": "MasterdnsVPN", "type": "dns_tunnel"}
+    }
+
+    result = {}
+    for proto, meta in default_mappings.items():
+        user_val = cfg.get(proto, {})
+        result[proto] = {
+            "label": meta["label"],
+            "interface": meta.get("interface", ""),
+            "subnet": meta.get("subnet", ""),
+            "type": meta.get("type", "interface"),
+            "enabled": user_val.get("enabled", False),
+            "dns": user_val.get("dns", "1.1.1.1"),
+            "installed": is_installed(proto)
+        }
+
+    return jsonify({"egress_routing": result, "dns_presets": DNS_PRESETS})
 
 
 # --- Certificate Management API ---
