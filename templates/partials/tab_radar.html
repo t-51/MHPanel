@@ -11,6 +11,18 @@
 <span data-i18n="radar_subtitle">بررسی بلادرنگ وضعیت سرور در اپراتورهای همراه و ثابت ایران، سلامت دیتاسنترها و پورت‌های فعال</span></p>
 </div>
 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+<div style="display: flex; align-items: center; gap: 8px; background: var(--bg-surface); border: 1px solid var(--border-glow); padding: 5px 12px; border-radius: 12px;">
+<i data-lucide="globe-2" style="width: 16px; height: 16px; color: #ef4444;"></i>
+<label style="font-size: 12px; font-weight: 700; margin: 0; color: var(--text-main);" data-i18n="radar_country_select">رادار کشور:</label>
+<select id="radar-country-select" onchange="changeRadarCountry(this.value)" class="form-select" style="padding: 3px 8px; font-size: 12px; height: 30px; border: none; background: transparent; font-weight: 700; color: var(--text-main); cursor: pointer;">
+<option value="auto">🌐 خودکار (همگام با زبان پنل)</option>
+<option value="ir" selected>🇮🇷 ایران (اپراتورها، ترانزیت و IXP)</option>
+<option value="global">🌍 بین‌المللی (Global Tier 1 & Anycast)</option>
+<option value="ru">🇷🇺 روسیه (Россия - TSPU & RKN)</option>
+<option value="de">🇩🇪 آلمان (Germany / Central EU)</option>
+<option value="tr">🇹🇷 ترکیه (Turkey & Middle East)</option>
+</select>
+</div>
 <span id="radar-last-update" style="font-size: 11.5px; color: #64748b; background: #f1f5f9; padding: 6px 12px; border-radius: 20px;">
 <span data-i18n="radar_last_scan">آخرین اسکن:</span> <span data-i18n="radar_scan_waiting">در انتظار بررسی</span>
 </span>
@@ -45,21 +57,21 @@
 <span id="radar-score-desc" style="font-size: 11px; font-weight: 600; display: block; margin-top: 6px; color: var(--text-muted);">در حال آماده‌سازی سنجش...</span>
 </div>
 </div>
-<!-- Iran Operators Stat -->
+<!-- Country Operators Stat -->
 <div class="glass-card radar-stat-card radar-stat-green">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="radar_status_iranian_operators" style="font-size: 12px; color: #059669; font-weight: 700; display: block; margin-bottom: 4px;">وضعیت اپراتورهای ایران:</span>
+<span id="radar-country-stat-label" data-i18n="radar_status_country_operators" style="font-size: 12px; color: #059669; font-weight: 700; display: block; margin-bottom: 4px;">وضعیت اپراتورهای کشور:</span>
 <div style="display:flex; align-items:baseline; gap:6px;">
 <span id="radar-iran-clean-count" style="font-size: 30px; font-weight: 800; color: #059669; font-family:'JetBrains Mono', monospace;">--</span>
 <span id="radar-iran-total-count" style="font-size: 13px; font-weight: 600;">/ ۸ اپراتور فعال</span>
 </div>
 </div>
 <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center;">
-<i data-lucide="radio" style="width: 22px; height: 22px;"></i>
+<span id="radar-country-flag" style="font-size: 22px;">🇮🇷</span>
 </div>
 </div>
-<div data-i18n="radar_first_companion_irancell_telecom_shuttl" style="margin-top: 12px; font-size: 11.5px; color: var(--text-muted);">
+<div id="radar-country-stat-desc" data-i18n="radar_first_companion_irancell_telecom_shuttl" style="margin-top: 12px; font-size: 11.5px; color: var(--text-muted);">
                     همراه اول، ایرانسل، مخابرات، شاتل و رایتل
                 </div>
 </div>
@@ -109,10 +121,10 @@
 </div>
 <div>
 <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
-<span data-i18n="radar_table_isp_title">وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه ایران (Iran Telecom &amp; ISPs)</span>
+<span id="radar-country-table-title" data-i18n="radar_table_isp_title">وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه (Telecom &amp; ISPs)</span>
 </h3>
-<p data-i18n="radar_checking_status_direct_connection_delay" style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
-                            بررسی وضعیت اتصال مستقیم، تاخیر، پکت لوس و عدم مسدودیت در شبکه همراه و ثابت کشور
+<p id="radar-country-table-desc" data-i18n="radar_checking_status_direct_connection_delay" style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
+                            بررسی وضعیت اتصال مستقیم، تاخیر، پکت لوس و عدم مسدودیت در شبکه همراه و ثابت
                         </p>
 </div>
 </div>

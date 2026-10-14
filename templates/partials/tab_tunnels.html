@@ -30,6 +30,14 @@
 <i data-lucide="globe" style="width: 16px; height: 16px; color:#14b8a6;"></i> <span data-i18n="nav_dns_tunnels">تونل‌های DNS (SlowDNS)</span>
 <span class="badge-pill" id="pill-dns-tunnels-count" style="background:rgba(20,184,166,0.15); color:#0d9488;">DNSTT</span>
 </button>
+<button class="rad-tab-btn" id="tun-subtab-btn-tester" onclick="switchTunnelSubTab('tester')" type="button">
+<i data-lucide="flask-conical" style="width: 16px; height: 16px; color:#ec4899;"></i> <span data-i18n="tun_tester_tab_btn">ارزیاب سازگاری تونل‌ها</span>
+<span class="badge-pill" style="background:rgba(236,72,153,0.15); color:#db2777;">Tester</span>
+</button>
+<button class="rad-tab-btn" id="tun-subtab-btn-shield" onclick="switchTunnelSubTab('shield')" type="button">
+<i data-lucide="shield-alert" style="width: 16px; height: 16px; color:#ef4444;"></i> <span data-i18n="tun_shield_tab_btn">پایش دستکاری و دراپ پکت‌ها</span>
+<span class="badge-pill" id="pill-tun-alerts-badge" style="background:rgba(239,68,68,0.15); color:#dc2626;">0</span>
+</button>
 </div>
 </div>
 <!-- Top Stat Cards -->
@@ -307,6 +315,207 @@
                 </div>
 </div>
 </div>
+<!-- ========================================================================= -->
+<!-- SUB-TAB 5: TUNNEL COMPATIBILITY & CONNECTIVITY TESTER (REQUIREMENT 2) -->
+<!-- ========================================================================= -->
+<div class="tun-subpane" id="tun-pane-tester" style="display:none; flex-direction:column; gap:20px;">
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); background: linear-gradient(135deg, rgba(253, 242, 248, 0.4) 0%, var(--bg-surface) 100%);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(236, 72, 153, 0.12); color:#db2777; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="flask-conical" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0;" data-i18n="tunnel_tester_title">
+                        آزمایشگاه و ارزیاب هوشمند سازگاری تونل‌ها بین سرور مبدا و مقصد
+                    </h3>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;" data-i18n="tunnel_tester_desc">
+                        با وارد کردن آدرس سرور مبدا و مقصد، سامانه به طور خودکار تمامی پروتکل‌های تونل میکروتیک و ضد فیلتر را ارزیابی کرده و موارد فعال و مسدود را گزارش می‌کند.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inputs Box -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-bottom:18px; background:var(--bg-base); padding:16px; border-radius:12px; border:1px solid var(--border-glow);">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-size:12px; font-weight:700;" data-i18n="tun_tester_src_label">سرور مبدا (Source Host / IP):</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="tun-test-src-ip" class="form-input" placeholder="آی‌پی سرور مبدا (این سرور)" style="font-family:'JetBrains Mono'; font-size:12.5px;" value="212.227.143.16">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('tun-test-src-ip').value = '212.227.143.16'" title="تنظیم به آی‌پی این سرور" style="padding:0 10px; font-size:11px;">محلی</button>
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-size:12px; font-weight:700;" data-i18n="tun_tester_dst_label">سرور مقصد (Destination Host / IP):</label>
+                <div style="display:flex; gap:6px;">
+                    <input type="text" id="tun-test-dst-ip" class="form-input" placeholder="مثال: 1.1.1.1 یا hostname" style="font-family:'JetBrains Mono'; font-size:12.5px;">
+                    <select id="tun-test-server-select" class="form-select" onchange="if(this.value) document.getElementById('tun-test-dst-ip').value = this.value;" style="width:auto; max-width:130px; font-size:11.5px; padding:4px 8px;">
+                        <option value="">سرورهای من...</option>
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; align-items:flex-end;">
+                <button type="button" id="btn-run-tun-test" onclick="runTunnelCompatibilityTest()" class="btn btn-primary" style="width:100%; height:38px; font-size:13px; background:linear-gradient(135deg, #ec4899 0%, #db2777 100%); display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <i data-lucide="zap" id="tun-test-btn-icon" style="width:16px; height:16px;"></i>
+                    <span data-i18n="tun_tester_btn_run">شروع بررسی جامع سازگاری تونل‌ها</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Card (Hidden initially) -->
+        <div id="tun-test-results-container" style="display:none; flex-direction:column; gap:16px;">
+            <!-- Summary Score & Verdict Row -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px;">
+                <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(236,72,153,0.3); background:rgba(236,72,153,0.06);">
+                    <div style="font-size:11.5px; color:#be185d; font-weight:700;" data-i18n="tun_score_title">امتیاز سازگاری مسیر:</div>
+                    <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                        <span id="tun-test-score-val" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#db2777;">--</span>
+                        <span style="font-size:12px; font-weight:600;">/ ۱۰۰</span>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.06);">
+                    <div style="font-size:11.5px; color:#047857; font-weight:700;" data-i18n="tun_compat_count">تونل‌های فعال و سازگار:</div>
+                    <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                        <span id="tun-test-compat-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#059669;">--</span>
+                        <span id="tun-test-total-count" style="font-size:12px; font-weight:600; color:#047857;">/ ۱۲ پروتکل</span>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.06);">
+                    <div style="font-size:11.5px; color:#b91c1c; font-weight:700;" data-i18n="tun_blocked_count">تونل‌های مسدود یا پر ریسک:</div>
+                    <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                        <span id="tun-test-blocked-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#dc2626;">--</span>
+                        <span style="font-size:12px; font-weight:600; color:#b91c1c;" data-i18n="tun_blocked_label">پروتکل غیرقابل استفاده</span>
+                    </div>
+                </div>
+                <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(2,132,199,0.3); background:rgba(2,132,199,0.06);">
+                    <div style="font-size:11.5px; color:#0369a1; font-weight:700;" data-i18n="tun_icmp_ping">تاخیر مسیر (ICMP Ping):</div>
+                    <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                        <span id="tun-test-ping-val" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#0284c7;">--</span>
+                        <span style="font-size:12px; font-weight:600;">ms</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendation Alert Box -->
+            <div class="config-card" style="border-radius:12px; padding:14px 18px; border-left:4px solid #db2777;">
+                <div style="font-size:13px; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="check-circle" style="width:16px; height:16px; color:#db2777;"></i>
+                    <span data-i18n="tun_rec_verdict_title">توصیه فنی و انتخاب بهینه برای اتصال:</span>
+                </div>
+                <p id="tun-test-recommendation-text" style="font-size:12.5px; color:var(--text-muted); line-height:1.7; margin:6px 0 0 0;">
+                    --
+                </p>
+            </div>
+
+            <!-- Protocols Matrix Table -->
+            <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-glow); border-radius:12px;">
+                <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:right;">
+                    <thead>
+                        <tr style="background:var(--bg-base); border-bottom:1px solid var(--border-glow); color:#475569;">
+                            <th style="padding:12px 14px;" data-i18n="tun_col_name">پروتکل و نوع تونل</th>
+                            <th style="padding:12px 14px;" data-i18n="tun_col_transport">لایه و پورت تست</th>
+                            <th style="padding:12px 14px;" data-i18n="tun_col_latency">تاخیر (Ping)</th>
+                            <th style="padding:12px 14px;" data-i18n="tun_col_loss">پکت‌لاس</th>
+                            <th style="padding:12px 14px; text-align:center;" data-i18n="tun_col_status">وضعیت سازگاری</th>
+                            <th style="padding:12px 14px;" data-i18n="tun_col_dpi">تحلیل فیلترینگ و تشخیص سیستم</th>
+                            <th style="padding:12px 14px; text-align:left;" data-i18n="tun_col_action">اقدام سریع</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tun-test-tbody">
+                        <!-- Rendered via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- SUB-TAB 6: TUNNEL PACKET TAMPER & DROP SHIELD (REQUIREMENT 3) -->
+<!-- ========================================================================= -->
+<div class="tun-subpane" id="tun-pane-shield" style="display:none; flex-direction:column; gap:20px;">
+    <div class="glass-card" style="padding: 24px; border: 1px solid rgba(239,68,68,0.25); background: linear-gradient(135deg, rgba(254, 242, 242, 0.4) 0%, var(--bg-surface) 100%);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(239, 68, 68, 0.12); color:#dc2626; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="shield-alert" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0;" data-i18n="tun_shield_title">
+                        مرکز هوشمند پایش دستکاری و دراپ پکت‌های تونل (Tunnel Packet Tamper &amp; Drop Shield)
+                    </h3>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;" data-i18n="tun_shield_desc">
+                        پایش بلادرنگ تزریق پکت‌های جعلی RST توسط DPI، دراپ شدید پکت‌های UDP و خطاهای انتقال اینترفیس‌های فعال سرور
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="runTunnelIntegrityAudit()" style="padding:8px 14px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                    <i data-lucide="refresh-cw" id="tun-audit-icon" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_audit">ارزیابی فوری پکت‌ها</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadTunnelAlertsReport()" style="padding:8px 12px;" title="دانلود فایل گزارش رسمی">
+                    <i data-lucide="download" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_report">دانلود گزارش</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="clearTunnelAlerts()" style="padding:8px 12px; color:#dc2626;" title="پاکسازی هشدارهای خوانده شده">
+                    <i data-lucide="check-check" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_clear">پاکسازی هشدارها</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 3 Quick Integrity Metric Gauges -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:18px;">
+            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(239,68,68,0.25); background:rgba(254, 242, 242, 0.7);">
+                <div style="font-size:11.5px; color:#991b1b; font-weight:700;" data-i18n="tun_shield_stat_active">هشدارهای فعال امنیتی:</div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                    <span id="shield-active-alerts-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#dc2626;">0</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#991b1b;" data-i18n="tun_shield_case">مورد بحرانی</span>
+                </div>
+            </div>
+            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(217,119,6,0.25); background:rgba(254, 243, 199, 0.7);">
+                <div style="font-size:11.5px; color:#92400e; font-weight:700;" data-i18n="tun_shield_stat_rst">پکت‌های Reset نامتعارف (DPI):</div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                    <span id="shield-rst-aborts-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#d97706;">--</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#92400e;">پکت تزریقی</span>
+                </div>
+            </div>
+            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(79,70,229,0.25); background:rgba(238, 242, 255, 0.7);">
+                <div style="font-size:11.5px; color:#3730a3; font-weight:700;" data-i18n="tun_shield_stat_interfaces">اینترفیس‌های تحت پایش:</div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
+                    <span id="shield-monitored-ifaces-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#4f46e5;">--</span>
+                    <span style="font-size:11.5px; font-weight:600; color:#3730a3;">اینترفیس فعال</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-time Alerts Table -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <strong style="font-size:13.5px; color:var(--text-main);" data-i18n="tun_shield_incidents_title">لاگ حوادث و گزارش هشدارهای پکت‌های تونل:</strong>
+            <span id="shield-last-audit-time" style="font-size:11px; color:#64748b;">آخرین پایش: لحظاتی پیش</span>
+        </div>
+        <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-glow); border-radius:12px;">
+            <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:right;">
+                <thead>
+                    <tr style="background:var(--bg-base); border-bottom:1px solid var(--border-glow); color:#475569;">
+                        <th style="padding:12px 14px; width:70px; text-align:center;" data-i18n="tun_col_severity">شدت</th>
+                        <th style="padding:12px 14px; width:140px;" data-i18n="tun_col_time">زمان رخداد</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_iface">اینترفیس / مسیر</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_tamper_title">نوع دستکاری / دراپ پکت</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_details">جزئیات تشخیصی سیستم</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_rec">راهکار پیشنهادی رفع اختلال</th>
+                    </tr>
+                </thead>
+                <tbody id="tun-shield-tbody">
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted);" data-i18n="tun_shield_loading">
+                            در حال ارزیابی سلامت پکت‌ها و اینترفیس‌های تونل...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Section: Technical Architectural & Anti-Filter Guide -->
 <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); background: var(--bg-base);">
 <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">

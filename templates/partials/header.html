@@ -10,6 +10,14 @@
             <span data-i18n="login_title">MH Panel</span>
             <span class="badge-pill" onclick="openAboutModal()" style="font-size:11px; padding:2px 8px; cursor:pointer; background:rgba(99,102,241,0.2); color:#818cf8; font-weight:700;" title="مشاهده مشخصات و درباره پنل" data-i18n-title="header_view_specifications_about_panel">v1.0.0</span>
         </h1>
+        <!-- Tunnel Packet Tamper & Drop Alert Pill (Requirement 3) -->
+        <div id="header-tunnel-alert-badge" style="display:none; margin-inline-start:8px;">
+            <button type="button" onclick="switchTab('tunnels'); switchTunnelSubTab('shield');" class="badge-pill" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.5); font-size:11px; padding:3px 10px; cursor:pointer; display:flex; align-items:center; gap:6px; animation:pulse 1.8s infinite;" title="مشاهده گزارش دستکاری یا دراپ پکت‌ها">
+                <i data-lucide="shield-alert" style="width:13px; height:13px; color:#ef4444;"></i>
+                <span id="header-tunnel-alert-text">هشدار دستکاری/دراپ پکت‌های تونل!</span>
+            </button>
+        </div>
+
         <!-- Update Available Notification Pill -->
         <div id="header-update-badge" style="display:none; margin-right:8px;">
             <button type="button" onclick="openUpdateModal()" class="badge-pill" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-size:11px; padding:3px 9px; cursor:pointer; display:flex; align-items:center; gap:5px;">

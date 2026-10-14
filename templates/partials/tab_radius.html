@@ -147,8 +147,32 @@
 <input class="form-input" id="new-rad-expire" style="padding-left:14px;" type="date"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_traffic_limit_gb">محدودیت ترافیک (GB)</label>
-<input class="form-input" data-i18n-placeholder="ssh_item_8" id="new-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+<label class="form-label" data-i18n="rad_traffic_limit_gb">سقف کل حجم (GB)</label>
+<input class="form-input" data-i18n-placeholder="ssh_item_8" id="new-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label" data-i18n="rad_down_limit_gb">سقف مجاز دانلود (GB)</label>
+<input class="form-input" id="new-rad-download-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label" data-i18n="rad_up_limit_gb">سقف مجاز آپلود (GB)</label>
+<input class="form-input" id="new-rad-upload-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label" data-i18n="rad_rate_limit_label">محدودیت پهنای باند و سرعت (Rate Limit)</label>
+<div style="display:flex; gap:6px;">
+<input class="form-input" id="new-rad-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; padding-left:12px; font-size:12.5px; direction:ltr;" type="text"/>
+<select class="form-select" onchange="if(this.value) document.getElementById('new-rad-rate-limit').value = this.value;" style="width:auto; font-size:11.5px; padding:4px 8px;">
+<option value="">پرزیت سرعت...</option>
+<option value="2M/2M">۲ مگابیت (2M/2M)</option>
+<option value="5M/5M">۵ مگابیت (5M/5M)</option>
+<option value="10M/10M">۱۰ مگابیت (10M/10M)</option>
+<option value="20M/20M">۲۰ مگابیت (20M/20M)</option>
+<option value="50M/50M">۵۰ مگابیت (50M/50M)</option>
+<option value="100M/100M">۱۰۰ مگابیت (100M/100M)</option>
+<option value="">نامحدود</option>
+</select>
+</div>
 </div>
 </div>
 <!-- Login-Time schedule config -->
@@ -193,8 +217,10 @@
 <th data-i18n="servers_user_label" style="padding: 14px 16px;">نام کاربری (Username)</th>
 <th data-i18n="login_password" style="padding: 14px 16px;">رمز عبور</th>
 <th data-i18n="rad_group_package" style="padding: 14px 16px;">گروه / پکیج</th>
+<th data-i18n="rad_col_used_traffic" style="padding: 14px 16px;">حجم مصرفی (آپلود / دانلود)</th>
+<th data-i18n="rad_col_limits" style="padding: 14px 16px;">سقف مجاز (Quota)</th>
+<th data-i18n="rad_col_bandwidth" style="padding: 14px 16px;">پهنای باند (Rate Limit)</th>
 <th data-i18n="rad_item_8" style="padding: 14px 16px;">اتصال فعال / همزمان</th>
-<th data-i18n="rad_item" style="padding: 14px 16px;">حجم مجاز</th>
 <th data-i18n="rad_expiration_timing" style="padding: 14px 16px;">انقضا / زمان‌بندی</th>
 <th data-i18n="wg_status" style="padding: 14px 16px; text-align: center;">وضعیت</th>
 <th data-i18n="servers_col_actions" style="padding: 14px 16px; text-align: center; width: 130px;">عملیات</th>

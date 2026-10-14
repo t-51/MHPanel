@@ -2761,8 +2761,31 @@
                 ${grpName}
             </span>`;
 
-            // Traffic
-            const trafficText = (u.limit_gb && u.limit_gb > 0) ? `${u.limit_gb} GB` : `<span style="color:#64748b;">${window.t("common_unlimited")}</span>`;
+            // Used Traffic: Download & Upload separated (Requirement 5)
+            const rxFmt = formatTrafficBytes(u.upload_bytes || (u.used_upload_gb ? u.used_upload_gb * (1024**3) : 0));
+            const txFmt = formatTrafficBytes(u.download_bytes || (u.used_download_gb ? u.used_download_gb * (1024**3) : 0));
+            const totFmt = formatTrafficBytes((u.upload_bytes || 0) + (u.download_bytes || 0));
+
+            const usedTrafficHtml = `
+                <div style="display:flex; flex-direction:column; gap:2px; font-size:11.5px; font-family:'JetBrains Mono';">
+                    <span style="color:#0284c7; display:flex; align-items:center; gap:4px;" title="حجم دانلود شده"><i data-lucide="arrow-down" style="width:12px; height:12px;"></i> ${txFmt} <span style="font-size:10px; color:#64748b;">(دانلود)</span></span>
+                    <span style="color:#d97706; display:flex; align-items:center; gap:4px;" title="حجم آپلود شده"><i data-lucide="arrow-up" style="width:12px; height:12px;"></i> ${rxFmt} <span style="font-size:10px; color:#64748b;">(آپلود)</span></span>
+                    <span style="color:#334155; font-weight:700; margin-top:2px; font-size:11px;">مجموع: ${totFmt}</span>
+                </div>
+            `;
+
+            // Quotas (Download, Upload, Total)
+            let quotaHtml = `<div style="display:flex; flex-direction:column; gap:2px; font-size:11px; font-family:'JetBrains Mono'; color:#475569;">`;
+            if (u.download_limit_gb && u.download_limit_gb > 0) quotaHtml += `<div>دانلود: <strong style="color:#0284c7;">${u.download_limit_gb} GB</strong></div>`;
+            if (u.upload_limit_gb && u.upload_limit_gb > 0) quotaHtml += `<div>آپلود: <strong style="color:#d97706;">${u.upload_limit_gb} GB</strong></div>`;
+            if (u.limit_gb && u.limit_gb > 0) quotaHtml += `<div>کل: <strong>${u.limit_gb} GB</strong></div>`;
+            if (!u.download_limit_gb && !u.upload_limit_gb && (!u.limit_gb || u.limit_gb <= 0)) quotaHtml += `<span style="color:#64748b;">نامحدود</span>`;
+            quotaHtml += `</div>`;
+
+            // Bandwidth Rate Limit (MikroTik Rate-Limit)
+            const rateLimitHtml = (u.rate_limit && u.rate_limit.trim())
+                ? `<span style="background:rgba(217,119,6,0.12); color:#b45309; padding:3px 8px; border-radius:6px; font-size:11.5px; font-weight:700; font-family:'JetBrains Mono';" title="محدودیت پهنای باند میکروتیک">⚡ ${escapeHtml(u.rate_limit)}</span>`
+                : `<span style="color:#64748b; font-size:11px;">نامحدود</span>`;
 
             // Schedule info (Login-Time badge)
             let schedText = "24/7";
@@ -2796,8 +2819,10 @@
                         </div>
                     </td>
                     <td style="padding: 12px 16px;">${grpBadge}</td>
+                    <td style="padding: 12px 16px;">${usedTrafficHtml}</td>
+                    <td style="padding: 12px 16px;">${quotaHtml}</td>
+                    <td style="padding: 12px 16px;">${rateLimitHtml}</td>
                     <td style="padding: 12px 16px;">${connBadge}</td>
-                    <td style="padding: 12px 16px; font-family:'JetBrains Mono'; font-weight:600;">${trafficText}</td>
                     <td style="padding: 12px 16px;">
                         <div style="font-size:12px; font-family:'JetBrains Mono'; color:#0f172a;">${u.expire_date || `<span style="color:#64748b;">${window.t("common_no_expiration")}</span>`}</div>
                         <div style="font-size:10.5px; color:#94a3b8; margin-top:2px;">${window.t("common_time_label")} ${schedText}</div>
@@ -2977,6 +3002,9 @@
         const simultaneous_use = parseInt(document.getElementById("new-rad-sim-use").value || 2);
         const expire_date = document.getElementById("new-rad-expire").value || null;
         const limit_gb = document.getElementById("new-rad-limit").value ? parseFloat(document.getElementById("new-rad-limit").value) : null;
+        const download_limit_gb = document.getElementById("new-rad-download-limit").value ? parseFloat(document.getElementById("new-rad-download-limit").value) : null;
+        const upload_limit_gb = document.getElementById("new-rad-upload-limit").value ? parseFloat(document.getElementById("new-rad-upload-limit").value) : null;
+        const rate_limit = (document.getElementById("new-rad-rate-limit")?.value || "").trim();
         const allowed_days = document.getElementById("new-rad-days").value;
         const start_time = document.getElementById("new-rad-start-time").value || "00:00";
         const end_time = document.getElementById("new-rad-end-time").value || "24:00";
@@ -2993,7 +3021,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     username, password, group, simultaneous_use,
-                    expire_date, limit_gb, allowed_days, start_time, end_time
+                    expire_date, limit_gb, download_limit_gb, upload_limit_gb, rate_limit, allowed_days, start_time, end_time
                 })
             });
             const data = await res.json();
@@ -3025,6 +3053,9 @@
         document.getElementById("new-rad-sim-use").value = u.simultaneous_use || 2;
         document.getElementById("new-rad-expire").value = u.expire_date || "";
         document.getElementById("new-rad-limit").value = u.limit_gb || "";
+        document.getElementById("new-rad-download-limit").value = u.download_limit_gb || "";
+        document.getElementById("new-rad-upload-limit").value = u.upload_limit_gb || "";
+        document.getElementById("new-rad-rate-limit").value = u.rate_limit || "";
         if (u.allowed_days) document.getElementById("new-rad-days").value = u.allowed_days;
         if (u.start_time) document.getElementById("new-rad-start-time").value = u.start_time;
         if (u.end_time) document.getElementById("new-rad-end-time").value = u.end_time;
@@ -3280,11 +3311,14 @@
 
                     ${g.description ? `<p style="font-size:12px; color:#475569; margin:0; line-height:1.5;">${g.description}</p>` : ''}
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; background:#f8fafc; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0;">
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11.5px; background:#f8fafc; padding:10px 12px; border-radius:10px; border:1px solid #e2e8f0;">
                         <div><span style="color:#64748b;">سقف اتصال:</span> <strong style="color:#0f172a;">${g.simultaneous_use || 2} کاربر</strong></div>
-                        <div><span style="color:#64748b;">حجم مجاز:</span> <strong style="color:#0f172a;">${trafficLabel}</strong></div>
+                        <div><span style="color:#64748b;">کل ترافیک:</span> <strong style="color:#0f172a;">${trafficLabel}</strong></div>
+                        <div><span style="color:#64748b;">سقف دانلود:</span> <strong style="color:#0284c7;">${g.download_gb ? g.download_gb + ' GB' : 'نامحدود'}</strong></div>
+                        <div><span style="color:#64748b;">سقف آپلود:</span> <strong style="color:#d97706;">${g.upload_gb ? g.upload_gb + ' GB' : 'نامحدود'}</strong></div>
+                        <div><span style="color:#64748b;">پهنای باند:</span> <strong style="color:#b45309;">${g.rate_limit ? '⚡ ' + g.rate_limit : 'نامحدود'}</strong></div>
                         <div><span style="color:#64748b;">اعتبار:</span> <strong style="color:#0f172a;">${g.validity_days || 30} روز</strong></div>
-                        <div><span style="color:#64748b;">ساعت مجاز:</span> <strong style="color:#0f172a; font-size:11px;">${schedLabel}</strong></div>
+                        <div style="grid-column:1/-1;"><span style="color:#64748b;">ساعت مجاز:</span> <strong style="color:#0f172a; font-size:11px;">${schedLabel}</strong></div>
                     </div>
 
                     <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:4px;">
@@ -3320,6 +3354,9 @@
             idInput.setAttribute("readonly", "true");
             document.getElementById("rad-grp-name").value = g.name;
             document.getElementById("rad-grp-traffic").value = g.traffic_gb || 0;
+            document.getElementById("rad-grp-download").value = g.download_gb || 0;
+            document.getElementById("rad-grp-upload").value = g.upload_gb || 0;
+            document.getElementById("rad-grp-rate-limit").value = g.rate_limit || "";
             document.getElementById("rad-grp-validity").value = g.validity_days || 30;
             document.getElementById("rad-grp-sim-use").value = g.simultaneous_use || 2;
             if (g.allowed_days) document.getElementById("rad-grp-days").value = g.allowed_days;
@@ -3347,6 +3384,9 @@
         const id = document.getElementById("rad-grp-id").value.trim().toLowerCase();
         const name = document.getElementById("rad-grp-name").value.trim();
         const traffic_gb = parseFloat(document.getElementById("rad-grp-traffic").value || 0);
+        const download_gb = parseFloat(document.getElementById("rad-grp-download")?.value || 0);
+        const upload_gb = parseFloat(document.getElementById("rad-grp-upload")?.value || 0);
+        const rate_limit = (document.getElementById("rad-grp-rate-limit")?.value || "").trim();
         const validity_days = parseInt(document.getElementById("rad-grp-validity").value || 30);
         const simultaneous_use = parseInt(document.getElementById("rad-grp-sim-use").value || 2);
         const allowed_days = document.getElementById("rad-grp-days").value;
@@ -6053,6 +6093,12 @@
 
     // --- Professional Network Radar & Censorship Inspector ---
     let lastRadarData = null;
+    let currentRadarCountry = 'auto';
+
+    function changeRadarCountry(country) {
+        currentRadarCountry = country || 'auto';
+        runRadarScan('quick');
+    }
 
     async function runRadarScan(mode = 'full') {
         const scanBtn = document.getElementById("radar-scan-btn");
@@ -6060,8 +6106,11 @@
         if (scanBtn) scanBtn.disabled = true;
         if (scanIcon) scanIcon.classList.add("spin");
 
+        const countryVal = document.getElementById("radar-country-select")?.value || currentRadarCountry || 'auto';
+        const langVal = (typeof window.currentLang !== "undefined") ? window.currentLang : (localStorage.getItem("mhpanel_lang") || "fa");
+
         try {
-            const res = await fetch(`/api/network/radar?mode=${mode}`);
+            const res = await fetch(`/api/network/radar?mode=${mode}&country=${encodeURIComponent(countryVal)}&lang=${encodeURIComponent(langVal)}`);
             const data = await res.json();
             if (res.ok && data.success) {
                 lastRadarData = data;
@@ -6096,10 +6145,19 @@
             else scoreDesc.innerText = "هشدار: اختلال شدید یا فیلترینگ در برخی مسیرها";
         }
 
+        const countryFlagEl = document.getElementById("radar-country-flag");
+        if (countryFlagEl && data.country_flag) countryFlagEl.innerText = data.country_flag;
+
+        const statLabelEl = document.getElementById("radar-country-stat-label");
+        if (statLabelEl && data.country_name) statLabelEl.innerText = `وضعیت اپراتورهای ${data.country_name}:`;
+
+        const tableTitleEl = document.getElementById("radar-country-table-title");
+        if (tableTitleEl && data.country_name) tableTitleEl.innerText = `وضعیت دسترسی و کیفیت اتصال در اپراتورهای ${data.country_name} (Telecom & ISPs)`;
+
         const cleanIran = document.getElementById("radar-iran-clean-count");
         const totalIran = document.getElementById("radar-iran-total-count");
-        if (cleanIran) cleanIran.innerText = data.clean_iran_count ?? "--";
-        if (totalIran) totalIran.innerText = `/ ${data.total_iran_count || 8} اپراتور فعال`;
+        if (cleanIran) cleanIran.innerText = (data.clean_country_count ?? data.clean_iran_count ?? "--");
+        if (totalIran) totalIran.innerText = `/ ${data.total_country_count || data.total_iran_count || 8} اپراتور فعال`;
 
         const avgIran = document.getElementById("radar-avg-iran-ping");
         if (avgIran) avgIran.innerText = data.avg_iran_latency !== null ? data.avg_iran_latency : "--";
@@ -6116,9 +6174,10 @@
         if (lastUp) lastUp.innerText = "آخرین اسکن: " + (data.timestamp || "لحظاتی پیش");
 
         const iranTbody = document.getElementById("radar-iran-tbody");
-        if (iranTbody && data.iran_operators) {
+        const opList = data.country_operators || data.iran_operators;
+        if (iranTbody && opList) {
             let html = "";
-            data.iran_operators.forEach(op => {
+            opList.forEach(op => {
                 let badgeClass = "sidebar-badge-green";
                 let statusText = "سالم و متصل";
                 if (op.status === "degraded") {
@@ -11082,19 +11141,308 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     let currentScriptTab = "ros7";
     let currentActiveTunnelSubTab = "mikrotik";
 
+    
+    // =========================================================================
+    // TUNNEL COMPATIBILITY TESTER FUNCTIONS (REQUIREMENT 2)
+    // =========================================================================
+    function populateTunnelTesterServers() {
+        const sel = document.getElementById("tun-test-server-select");
+        if (!sel) return;
+        const sList = (typeof currentServers !== "undefined" && currentServers) ? currentServers : [];
+        sel.innerHTML = `<option value="">سرورهای من...</option>`;
+        sList.forEach(s => {
+            const ip = s.ip || s.host || "";
+            if (ip) {
+                sel.innerHTML += `<option value="${escapeHtml(ip)}">${escapeHtml(s.name || ip)} (${escapeHtml(ip)})</option>`;
+            }
+        });
+    }
+
+    async function runTunnelCompatibilityTest() {
+        const srcIp = (document.getElementById("tun-test-src-ip")?.value || "").trim();
+        const dstIp = (document.getElementById("tun-test-dst-ip")?.value || "").trim();
+        const btn = document.getElementById("btn-run-tun-test");
+        const icon = document.getElementById("tun-test-btn-icon");
+
+        if (!dstIp) {
+            showToast("لطفاً آدرس سرور مقصد را وارد فرمایید.", "warning");
+            document.getElementById("tun-test-dst-ip")?.focus();
+            return;
+        }
+
+        if (btn) btn.disabled = true;
+        if (icon) icon.classList.add("spin");
+        toggleLoading(true, "در حال بررسی و پروب تمامی پروتکل‌های تونل بین سرور مبدا و مقصد...");
+
+        try {
+            const res = await fetch(`/api/tunnels/test-compatibility?source_ip=${encodeURIComponent(srcIp)}&dest_ip=${encodeURIComponent(dstIp)}`);
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                renderTunnelTestResults(data);
+                showToast("ارزیابی جامع سازگاری تونل‌ها با موفقیت انجام شد.", "success");
+            } else {
+                showToast(data.error || "خطا در تست سازگاری تونل‌ها", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+
+        if (btn) btn.disabled = false;
+        if (icon) icon.classList.remove("spin");
+    }
+
+    function renderTunnelTestResults(data) {
+        const container = document.getElementById("tun-test-results-container");
+        if (!container) return;
+        container.style.display = "flex";
+
+        document.getElementById("tun-test-score-val").innerText = data.overall_compatibility_score ?? "--";
+        document.getElementById("tun-test-compat-count").innerText = data.compatible_count ?? 0;
+        document.getElementById("tun-test-blocked-count").innerText = data.blocked_count ?? 0;
+        document.getElementById("tun-test-ping-val").innerText = data.icmp?.latency_ms !== null ? data.icmp.latency_ms : "Timeout";
+
+        const recEl = document.getElementById("tun-test-recommendation-text");
+        if (recEl) recEl.innerText = data.optimal_recommendation || "مسیر بررسی شد.";
+
+        const tbody = document.getElementById("tun-test-tbody");
+        if (!tbody || !data.tunnels) return;
+
+        let html = "";
+        data.tunnels.forEach(t => {
+            let badgeClass = "sidebar-badge-green";
+            if (t.status === "degraded") badgeClass = "sidebar-badge-yellow";
+            else if (t.status === "blocked") badgeClass = "sidebar-badge-red";
+
+            const pingTxt = t.latency_ms !== null 
+                ? `<strong style="font-family:'JetBrains Mono'; color:#0f172a;">${t.latency_ms}</strong> <span style="font-size:11px; color:#64748b;">ms</span>`
+                : `<span style="color:#ef4444; font-size:11.5px; font-weight:700;">Timeout</span>`;
+
+            const lossTxt = t.loss_pct === 0 
+                ? `<span style="color:#059669; font-weight:700; font-family:'JetBrains Mono';">0%</span>`
+                : `<span style="color:#ef4444; font-weight:700; font-family:'JetBrains Mono';">${t.loss_pct}%</span>`;
+
+            html += `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:12px 14px;">
+                        <strong style="color:#0f172a; font-size:13px;">${escapeHtml(t.name)}</strong>
+                        <div style="font-size:11px; color:#64748b; margin-top:2px;">${escapeHtml(t.category)}</div>
+                    </td>
+                    <td style="padding:12px 14px; font-family:'JetBrains Mono'; font-size:12px; color:#475569;">
+                        ${escapeHtml(t.transport)}
+                    </td>
+                    <td style="padding:12px 14px;">${pingTxt}</td>
+                    <td style="padding:12px 14px;">${lossTxt}</td>
+                    <td style="padding:12px 14px; text-align:center;">
+                        <span class="sidebar-badge ${badgeClass}" style="font-size:11.5px; padding:3px 10px;">${escapeHtml(t.badge_text)}</span>
+                    </td>
+                    <td style="padding:12px 14px; font-size:12px; color:#334155; line-height:1.5; max-width:320px;">
+                        ${escapeHtml(t.diagnosis)}
+                        <div style="font-size:11px; color:#0284c7; margin-top:3px;"><strong>پیشنهاد:</strong> ${escapeHtml(t.recommendation)}</div>
+                    </td>
+                    <td style="padding:12px 14px; text-align:left;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="deployTunnelFromTest('${t.deploy_type}', '${escapeHtml(data.dest_ip)}') style="padding:5px 10px; font-size:11px; white-space:nowrap;">
+                            <i data-lucide="plus-circle" style="width:12px; height:12px;"></i> ساخت تونل
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function deployTunnelFromTest(deployType, destIp) {
+        if (deployType === "adv") {
+            switchTunnelSubTab("advanced");
+            openCreateAdvTunnelModal();
+            setTimeout(() => {
+                const epInput = document.getElementById("adv-tun-endpoint");
+                if (epInput && destIp) epInput.value = `${destIp}:443`;
+            }, 300);
+        } else if (deployType === "dns") {
+            switchTunnelSubTab("dns");
+        } else {
+            switchTunnelSubTab("mikrotik");
+            openCreateTunnelModal();
+            setTimeout(() => {
+                const remInput = document.getElementById("tun-remote-ip");
+                if (remInput && destIp) remInput.value = destIp;
+            }, 300);
+        }
+    }
+
+    // =========================================================================
+    // TUNNEL INTEGRITY, TAMPER & DROP ALERT SHIELD FUNCTIONS (REQUIREMENT 3)
+    // =========================================================================
+    async function fetchTunnelAlerts() {
+        try {
+            const res = await fetch("/api/tunnels/alerts");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                renderTunnelShieldData(data);
+            }
+        } catch (err) {
+            console.error("fetchTunnelAlerts error:", err);
+        }
+    }
+
+    function renderTunnelShieldData(data) {
+        // 1. Update Header Alert Badge
+        const headerBadge = document.getElementById("header-tunnel-alert-badge");
+        const headerText = document.getElementById("header-tunnel-alert-text");
+        const subtabBadge = document.getElementById("pill-tun-alerts-badge");
+
+        if (subtabBadge) subtabBadge.innerText = data.active_alerts_count || 0;
+
+        if (headerBadge) {
+            if (data.has_active_alerts) {
+                headerBadge.style.display = "inline-flex";
+                if (headerText) headerText.innerText = `هشدار دستکاری/دراپ (${data.active_alerts_count} مورد)`;
+            } else {
+                headerBadge.style.display = "none";
+            }
+        }
+
+        // 2. Update Shield Subpane Metric Cards
+        const activeAlertsEl = document.getElementById("shield-active-alerts-count");
+        if (activeAlertsEl) activeAlertsEl.innerText = data.active_alerts_count || 0;
+
+        const rstAbortsEl = document.getElementById("shield-rst-aborts-count");
+        if (rstAbortsEl) {
+            const aborts = data.tcp_anomalies?.TCPAbortOnData || data.tcp_anomalies?.EstabResets || 0;
+            rstAbortsEl.innerText = Number(aborts).toLocaleString();
+        }
+
+        const ifacesCountEl = document.getElementById("shield-monitored-ifaces-count");
+        if (ifacesCountEl && data.interface_stats) {
+            ifacesCountEl.innerText = Object.keys(data.interface_stats).length;
+        }
+
+        const lastAuditEl = document.getElementById("shield-last-audit-time");
+        if (lastAuditEl) lastAuditEl.innerText = "آخرین پایش: " + (data.timestamp || "لحظاتی پیش");
+
+        // 3. Render Incident Table
+        const tbody = document.getElementById("tun-shield-tbody");
+        if (!tbody) return;
+
+        const alertsList = data.all_alerts || [];
+        if (alertsList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:32px; color:#059669; font-weight:600;">
+                        <i data-lucide="check-circle" style="width:28px; height:28px; margin-bottom:6px; color:#10b981;"></i>
+                        <p style="margin:0; font-size:13px;">هیچ رخداد مشکوک به دستکاری یا دراپ پکت در شبکه ثبت نشده است. مسیر تونل‌ها کاملاً تمیز است.</p>
+                    </td>
+                </tr>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        let html = "";
+        alertsList.slice().reverse().forEach(a => {
+            const isCrit = a.severity === "CRITICAL";
+            const badgeBg = isCrit ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
+            const badgeColor = isCrit ? "#dc2626" : "#d97706";
+            const severityText = isCrit ? "بحرانی" : "هشدار";
+
+            html += `
+                <tr style="border-bottom:1px solid #f1f5f9; ${a.dismissed ? 'opacity:0.6;' : ''}">
+                    <td style="padding:12px 14px; text-align:center;">
+                        <span style="background:${badgeBg}; color:${badgeColor}; font-weight:800; font-size:11px; padding:3px 8px; border-radius:6px;">
+                            ${severityText}
+                        </span>
+                    </td>
+                    <td style="padding:12px 14px; font-family:'JetBrains Mono'; font-size:11.5px; color:#64748b;">
+                        ${escapeHtml(a.timestamp)}
+                    </td>
+                    <td style="padding:12px 14px;">
+                        <strong style="color:#0f172a; font-family:'JetBrains Mono'; font-size:12.5px;">${escapeHtml(a.interface)}</strong>
+                    </td>
+                    <td style="padding:12px 14px;">
+                        <strong style="color:${badgeColor}; font-size:12.5px;">${escapeHtml(a.title)}</strong>
+                    </td>
+                    <td style="padding:12px 14px; font-size:12px; color:#334155; line-height:1.5;">
+                        ${escapeHtml(a.details)}
+                    </td>
+                    <td style="padding:12px 14px; font-size:11.5px; color:#0284c7; line-height:1.5;">
+                        ${escapeHtml(a.recommendation || "-")}
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function runTunnelIntegrityAudit() {
+        const icon = document.getElementById("tun-audit-icon");
+        if (icon) icon.classList.add("spin");
+        toggleLoading(true, "در حال بررسی عمیق پکت‌های اینترفیس‌های تونل و شمارنده‌های هسته سیستم...");
+
+        try {
+            const res = await fetch("/api/tunnels/alerts/audit", { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                renderTunnelShieldData(data);
+                showToast("ارزیابی سلامت و پایش پکت‌ها با موفقیت انجام گردید.", "success");
+            } else {
+                showToast("خطا در انجام ارزیابی پکت‌ها", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطا در ارتباط با سرور: " + err.message, "error");
+        }
+
+        if (icon) icon.classList.remove("spin");
+    }
+
+    async function clearTunnelAlerts() {
+        try {
+            const res = await fetch("/api/tunnels/alerts/clear", { method: "POST" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("تمامی هشدارهای قبلی با موفقیت پاکسازی و بایگانی شدند.", "success");
+                fetchTunnelAlerts();
+            } else {
+                showToast("خطا در پاکسازی هشدارها", "error");
+            }
+        } catch (err) {
+            showToast("خطای سرور: " + err.message, "error");
+        }
+    }
+
+    function downloadTunnelAlertsReport() {
+        window.open("/api/tunnels/alerts/report", "_blank");
+    }
+
     function switchTunnelSubTab(subTabId) {
         currentActiveTunnelSubTab = subTabId;
         const subpanes = document.querySelectorAll(".tun-subpane");
         subpanes.forEach(p => p.style.display = "none");
 
         const targetPane = document.getElementById(`tun-pane-${subTabId}`);
-        if (targetPane) targetPane.style.display = "block";
+        if (targetPane) {
+            targetPane.style.display = (subTabId === "dns" || subTabId === "tester" || subTabId === "shield") ? "flex" : "block";
+        }
 
         const tabBtns = document.querySelectorAll("#tunnels-subtab-nav .rad-tab-btn");
         tabBtns.forEach(b => b.classList.remove("active"));
 
         const activeBtn = document.getElementById(`tun-subtab-btn-${subTabId}`);
         if (activeBtn) activeBtn.classList.add("active");
+
+        if (subTabId === "shield") {
+            fetchTunnelAlerts();
+        } else if (subTabId === "tester") {
+            populateTunnelTesterServers();
+        }
 
         if (window.lucide) lucide.createIcons();
     }
@@ -12415,6 +12763,71 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    function updateSubLogoPreview(url) {
+        const img = document.getElementById("sub-logo-preview-img");
+        const placeholder = document.getElementById("sub-logo-preview-placeholder");
+        if (!img || !placeholder) return;
+        if (url && url.trim()) {
+            img.src = url.trim();
+            img.style.display = "block";
+            placeholder.style.display = "none";
+        } else {
+            img.src = "";
+            img.style.display = "none";
+            placeholder.style.display = "block";
+        }
+    }
+
+    function setSubColorPreset(color) {
+        const txt = document.getElementById("subset-accent-color");
+        const picker = document.getElementById("subset-color-picker");
+        if (txt) txt.value = color;
+        if (picker) picker.value = color;
+    }
+
+    function handleSubLogoFileSelect(input) {
+        if (!input.files || !input.files[0]) return;
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            const b64 = e.target.result;
+            updateSubLogoPreview(b64);
+            // Auto-upload
+            toggleLoading(true, "در حال آپلود لوگوی مجموعه...");
+            try {
+                const res = await fetch("/api/sub/logo/upload", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ image_base64: b64 })
+                });
+                const data = await res.json();
+                toggleLoading(false);
+                if (res.ok && data.success) {
+                    showToast("لوگو با موفقیت در سرور ذخیره گردید.", "success");
+                    const urlInput = document.getElementById("subset-logo-url");
+                    if (urlInput) urlInput.value = data.logo_url;
+                    updateSubLogoPreview(data.logo_url);
+                } else {
+                    showToast(data.error || "خطا در آپلود لوگو", "error");
+                }
+            } catch (err) {
+                toggleLoading(false);
+                showToast("خطا در آپلود لوگو: " + err.message, "error");
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function removeSubLogo() {
+        const urlInput = document.getElementById("subset-logo-url");
+        if (urlInput) urlInput.value = "";
+        updateSubLogoPreview("");
+        try {
+            await fetch("/api/sub/logo/remove", { method: "POST" });
+            showToast("لوگو حذف شد و آیکون پیش‌فرض فعال گردید.", "success");
+        } catch (err) {}
+    }
+
     async function openSubSettingsModal() {
         const modal = document.getElementById("subSettingsModal");
         if (modal) {
@@ -12428,15 +12841,31 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (res.ok && data.success && data.settings) {
                 const s = data.settings;
                 const titleEl = document.getElementById("subset-title");
-                if (titleEl) titleEl.value = s.title || "";
+                if (titleEl) titleEl.value = s.brand_name || s.title || "";
+
+                const subTitleEl = document.getElementById("subset-brand-subtitle");
+                if (subTitleEl) subTitleEl.value = s.brand_subtitle || "";
+
+                const logoUrlEl = document.getElementById("subset-logo-url");
+                if (logoUrlEl) logoUrlEl.value = s.logo_url || "";
+                updateSubLogoPreview(s.logo_url || "");
+
+                const color = s.accent_color || "#6366f1";
+                setSubColorPreset(color);
 
                 const annEl = document.getElementById("subset-announcement");
                 if (annEl) annEl.value = s.announcement || "";
 
                 const supEl = document.getElementById("subset-support");
-                if (supEl) supEl.value = s.support_telegram || "";
+                if (supEl) supEl.value = s.support_contact || s.support_telegram || "";
 
-                const protos = s.enabled_protocols || {};
+                const chanEl = document.getElementById("subset-channel");
+                if (chanEl) chanEl.value = s.channel_link || "";
+
+                const footEl = document.getElementById("subset-custom-footer");
+                if (footEl) footEl.value = s.custom_footer || "";
+
+                const protos = s.enabled_protocols || s.protocols || {};
                 ["ocserv", "openvpn", "wireguard", "sstp", "ikev2", "l2tp", "ssh", "tuic"].forEach(p => {
                     const cb = document.getElementById(`subset-proto-${p}`);
                     if (cb) cb.checked = protos[p] !== false;
@@ -12467,8 +12896,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const payload = {
             title: (document.getElementById("subset-title")?.value || "").trim(),
+            brand_name: (document.getElementById("subset-title")?.value || "").trim(),
+            brand_subtitle: (document.getElementById("subset-brand-subtitle")?.value || "").trim(),
+            logo_url: (document.getElementById("subset-logo-url")?.value || "").trim(),
+            accent_color: (document.getElementById("subset-accent-color")?.value || "#6366f1").trim(),
             announcement: (document.getElementById("subset-announcement")?.value || "").trim(),
             support_telegram: (document.getElementById("subset-support")?.value || "").trim(),
+            channel_link: (document.getElementById("subset-channel")?.value || "").trim(),
+            custom_footer: (document.getElementById("subset-custom-footer")?.value || "").trim(),
             enabled_protocols: protos
         };
 
@@ -12495,3 +12930,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         checkPanelUpdate(true);
     }, 4000);
 </script>
+
+    // Background polling for tunnel alerts & tamper shield (Requirement 3)
+    setTimeout(() => {
+        fetchTunnelAlerts();
+        setInterval(fetchTunnelAlerts, 60000);
+    }, 4000);

@@ -452,9 +452,9 @@
 <input class="form-input" data-i18n-placeholder="modal_example_special_vip_package" id="rad-grp-name" placeholder="مثال: پکیج ویژه VIP" required="" style="padding-left:14px;" type="text"/>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_allowed_size_gb">حجم مجاز (GB)</label>
+<label class="form-label" data-i18n="modal_allowed_size_gb">سقف کل ترافیک (GB)</label>
 <input class="form-input" id="rad-grp-traffic" min="0" style="padding-left:14px;" type="number" value="50"/>
 </div>
 <div class="form-group" style="margin: 0;">
@@ -464,6 +464,31 @@
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="modal_simultaneous_connection_limit">اتصال همزمان (Limit)</label>
 <input class="form-input" id="rad-grp-sim-use" max="100" min="1" style="padding-left:14px;" type="number" value="2"/>
+</div>
+</div>
+<!-- MikroTik User Manager Style: Separate Upload & Download Quotas and Rate-Limit -->
+<div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 12px; margin-bottom: 16px; background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow);">
+<div class="form-group" style="margin: 0;">
+<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_down_gb">سقف مجاز دانلود (GB):</label>
+<input class="form-input" id="rad-grp-download" min="0" placeholder="0 = نامحدود" style="padding-left:12px; font-size:12.5px;" type="number" value="0"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_up_gb">سقف مجاز آپلود (GB):</label>
+<input class="form-input" id="rad-grp-upload" min="0" placeholder="0 = نامحدود" style="padding-left:12px; font-size:12.5px;" type="number" value="0"/>
+</div>
+<div class="form-group" style="margin: 0;">
+<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_rate_limit">پهنای باند / Rate Limit:</label>
+<div style="display:flex; gap:4px;">
+<input class="form-input" id="rad-grp-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; font-size:12px; direction:ltr; padding-left:8px;" type="text"/>
+<select class="form-select" onchange="if(this.value) document.getElementById('rad-grp-rate-limit').value = this.value;" style="width:auto; font-size:11px; padding:2px 6px;">
+<option value="">انتخاب...</option>
+<option value="5M/5M">5M</option>
+<option value="10M/10M">10M</option>
+<option value="20M/20M">20M</option>
+<option value="50M/50M">50M</option>
+<option value="">نامحدود</option>
+</select>
+</div>
 </div>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
