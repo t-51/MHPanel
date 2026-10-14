@@ -1,24 +1,38 @@
-# 🚀 MH Panel - Unified VPN, Tunnel & MikroTik RouterOS Management Hub
+# 🚀 MH Panel - Enterprise Unified VPN, Anti-Censorship Tunnels & MikroTik RouterOS Management Hub
 
-[English Documentation](README.md) | [مستندات فارسی](README_FA.md)
+<p align="center">
+  <a href="README.md"><b>🇬🇧 English</b></a> |
+  <a href="README_FA.md"><b>🇮🇷 فارسی</b></a> |
+  <a href="README_RU.md"><b>🇷🇺 Русский</b></a>
+</p>
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.8%2B-brightgreen.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/platform-Ubuntu%20%7C%20Debian-orange.svg)](https://ubuntu.com/)
-
-**MH Panel** is an enterprise-grade, intelligent, and modular server management system engineered for Linux (Ubuntu & Debian). It provides a sleek, responsive Web Dashboard and an all-in-one Management CLI (`mhpanel`) designed to orchestrate modern VPN protocols, dual-stack anti-censorship network tunnels (IPv4 & IPv6), Port 443 SNI multiplexing, and automated MikroTik RouterOS bridging (v6 & v7).
+<p align="center">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.0.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
+  <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
+  <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/Languages-EN%20%7C%20FA%20%7C%20RU-purple.svg?style=for-the-badge" alt="Languages">
+</p>
 
 ---
 
-## ⚡ One-Line Quick Installation
+## 📖 Overview
 
-Run the master installer on your Ubuntu or Debian VPS as **root**:
+**MH Panel** is an enterprise-grade, highly modular, all-in-one VPN orchestration and anti-censorship infrastructure designed specifically for Linux (Ubuntu 20.04/22.04/24.04 and Debian 11/12). 
+
+It combines a modern, high-performance responsive **Web Dashboard** (Glassmorphism design, Dark/Light modes) and an interactive **Master CLI Management Console** (`mhpanel`), giving system administrators complete autonomy to deploy, monitor, and scale 11+ VPN and proxy protocols, layer-2/layer-3 site-to-site anti-censorship network tunnels, SNI-based port multiplexing on port 443, centralized FreeRADIUS user accounting, and automated MikroTik RouterOS bridge configuration scripts.
+
+---
+
+## ⚡ Quick Installation
+
+Run the master automated installer with `root` privileges on any clean Ubuntu or Debian VPS:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh)
 ```
 
-### Alternatively, Install via Git Clone:
+### Alternative Installation via Git Clone:
 
 ```bash
 git clone https://github.com/t-51/MHPanel.git /www/wwwroot/mhpanel
@@ -28,22 +42,18 @@ sudo bash install.sh
 
 ---
 
-## 🌟 What's New in Version 1.0.0
+## 🧭 Master Interactive CLI Hub (`mhpanel`)
 
-- 🔐 **Two-Factor Authentication (2FA / TOTP):** Native RFC 6238 TOTP engine compatible with Google Authenticator and Microsoft Authenticator.
-- 🌓 **Dark Theme & Modern Glassmorphism:** Sleek dark mode switch with automatic preference persistence.
-- 🔗 **Client Subscription Portal (`/sub/<token>`):** Personalized subscription pages with QR codes, direct configs, `.ovpn` download, and JSON payload export for proprietary client apps.
-- 🌐 **DNS Tunnels (SlowDNS / DNSTT):** Full SlowDNS integration for severe censorship and international outages.
-- 🔄 **GitHub Update Checker:** In-panel update notifications and one-click self-updating directly from GitHub.
-- 🌍 **Trilingual Localization:** Complete native translations for Persian (🇮🇷), English (🇬🇧), and Russian (🇷🇺).
+In addition to the Web UI, MH Panel installs a command-line tool accessible server-wide. Simply execute:
 
----
-
-## 🧭 Master CLI Management Hub (`mhpanel`)
-
-Once installed, simply type **`mhpanel`** (or `hmpanel`) anywhere in your server's terminal to access the full-featured interactive management hub:
+```bash
+mhpanel
+```
 
 ```text
+  ======================================================================
+     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.0.0)
+  ======================================================================
   [1]  Run Full Automated Installation (Setup All Missing Components)
   [2]  Run Step-by-Step Custom Installation Wizard
   [3]  Install Lightweight Web UI Only
@@ -61,107 +71,135 @@ Once installed, simply type **`mhpanel`** (or `hmpanel`) anywhere in your server
 
 ---
 
-## 📚 Deep Dive: Supported VPN Protocols
+## 🌟 Key Architecture & Superpowers
 
-MH Panel integrates industry-leading VPN technologies optimized for extreme censorship evasion, low latency, and zero-client setup across all client platforms:
+```
+                    ┌───────────────────────────────────────────────┐
+                    │          Internet / Mobile Operators          │
+                    │      (MCI, Irancell, Mokhaberat, Rightel)     │
+                    └───────────────────────┬───────────────────────┘
+                                            │
+                                            ▼
+                    ┌───────────────────────────────────────────────┐
+                    │      Port 443 HAProxy SNI Multiplexer         │
+                    │          (Single Public Port Entry)           │
+                    └───┬─────────────┬─────────────┬───────────┬───┘
+                        │             │             │           │
+        ┌───────────────┘             │             │           └────────────────┐
+        ▼                             ▼             ▼                            ▼
+┌───────────────┐             ┌───────────────┐ ┌───────────────┐        ┌───────────────┐
+│ MH Web Panel  │             │CiscoAnyConnect│ │ Windows SSTP  │        │ SSH TLS WSS   │
+│  (:9090 SSL)  │             │ (OCServ 443)  │ │ (sstpd 4443)  │        │ (Stunnel 4444)│
+└───────┬───────┘             └───────┬───────┘ └───────┬───────┘        └───────┬───────┘
+        │                             │                 │                        │
+        └─────────────────────────────┼─────────────────┴────────────────────────┘
+                                      ▼
+                    ┌───────────────────────────────────────────────┐
+                    │           Centralized FreeRADIUS 3            │
+                    │  (Unified Auth, Speed, Quota & Expiry Limits) │
+                    └───────────────────────────────────────────────┘
+```
 
-### 1. AmneziaWG (AWG) - Anti-DPI Obfuscated WireGuard
-- **Mechanism:** A modified WireGuard implementation that introduces junk packet delivery (`Jc`, `Jmin`, `Jmax`) and protocol handshake obfuscation (`S1`, `S2`, `H1..H4`).
-- **Advantage:** Deep Packet Inspection (DPI) systems can instantly detect and block standard WireGuard handshakes. AmneziaWG scrambles packet headers and injects randomized noise, rendering the traffic indistinguishable from random noise or HTTPS traffic.
-- **Client Support:** Official AmneziaVPN app on Windows, Android, iOS, and macOS.
-- **Performance:** Kernel-level high throughput with minimal CPU overhead.
+### 1. 🔀 Port 443 SNI Multiplexing (HAProxy Dispatcher)
+Run multiple SSL/TLS services simultaneously over a single public port (443):
+- `panel.domain.com` ➔ Dispatched to MH Panel Web Console (Port 9090)
+- `vpn.domain.com` ➔ Dispatched to Cisco AnyConnect / OCServ (Port 10443)
+- `sstp.domain.com` ➔ Dispatched to Windows SSTP (Port 4443)
+- `ssh.domain.com` ➔ Dispatched to SSH TLS Stunnel (Port 4444)
+- `ovpn.domain.com` ➔ Dispatched to OpenVPN TCP (Port 1194)
+- **Result:** To state-level DPI firewalls, your server behaves identical to an ordinary corporate HTTPS web server.
 
-### 2. WireGuard Standard (IPv4 & IPv6 Dual-Stack)
-- **Mechanism:** State-of-the-art cryptographic tunnel using Noise protocol framework, Curve25519, and ChaCha20-Poly1305.
-- **Features in MH Panel:** Dual-stack IPv4/IPv6 internal address assignment, automated MSS Clamping for mobile networks, and seamless peering with MikroTik RouterOS v7.
+### 2. 👥 Centralized FreeRADIUS 3 & Mikrotik-Style User Manager
+- **Single Account, Multiple Protocols:** One username and password grants access across OpenVPN, Cisco AnyConnect, L2TP, IKEv2, SSTP, SSH, and SOCKS5.
+- **Traffic Quotas & Expiration:** Set total gigabyte limits (`Max-Octets`) and account expiration timestamps (`Expiration`).
+- **Simultaneous Connection Enforcement:** Limit how many devices can log in concurrently per user (`Simultaneous-Use`).
+- **Live Session Termination:** Real-time online user tracker with one-click Packet of Disconnect (PoD / Disconnect-Request) support.
 
-### 3. OpenVPN (Multi-Port, XOR Scramble & UDPspeeder)
-- **Multi-Port Listening:** Run OpenVPN across multiple TCP and UDP ports simultaneously (e.g., 443, 1194, 9443) to bypass ISP-level port throttles.
-- **XOR Scramble Patch (Tunnelblick):** Masks OpenVPN headers with a custom symmetric XOR key to defeat DPI fingerprinting.
-- **UDPspeeder Integration:** Deploys Forward Error Correction (FEC) over lossy international links, reconstructing dropped packets without retransmission delay to maintain stable ping.
+### 3. 🛡️ Advanced Anti-DPI & Anti-Censorship Suite
+- **AmneziaWG (AWG):** Obfuscated WireGuard protocol with randomized junk packets (`Jc`, `Jmin`, `Jmax`) and disguised handshakes (`S1`, `S2`, `H1..H4`).
+- **OpenVPN Scramble (XOR):** Scrambles packet signatures to neutralize deep packet inspection.
+- **UDPspeeder (FEC):** Injects Forward Error Correction packets to eliminate lag, jitter, and packet loss on congested international routes.
+- **Rosenpass:** Quantum-resistant symmetric key exchange protocol to protect against future quantum computing decryption attacks.
+- **SlowDNS / DNSTT Tunnels:** Bypasses total international internet blackouts using base32-encoded DNS query/TXT record encapsulation.
 
-### 4. Cisco AnyConnect / OCServ (OpenConnect)
-- **Mechanism:** Enterprise SSL/DTLS VPN protocol running over TCP and UDP.
-- **Advantage:** Extremely resilient against restrictive firewalls and mobile network throttling (MCI, Irancell, Rightel).
-- **Client Support:** Supported out of the box by official **Cisco AnyConnect / Cisco Secure Client** and OpenConnect across Windows, macOS, iOS, Android, and Linux.
-- **SNI Multiplexing:** Can share port 443 alongside the web server.
+### 4. 🔗 Multi-Protocol Client Subscription Portal (`/sub/<token>`)
+- Each client receives a unique, secret subscription link (`/sub/<token>`).
+- Features interactive QR codes, direct one-click config import, `.ovpn` file downloads, and real-time usage meters (traffic used vs. allowed quota, expiry date).
+- **JSON API Export:** Provides `/sub/<token>/json` ready for integration with custom Android, iOS, Windows, or macOS client apps.
 
-### 5. IKEv2 StrongSwan (IPSec)
-- **Mechanism:** High-speed, kernel-level IPSec protocol with MOBIKE support.
-- **Advantage:** **Zero third-party apps required.** Native configuration on iOS, macOS, Windows, and Android settings.
-- Highly resilient when switching between Wi-Fi and mobile data roaming.
-
-### 6. L2TP/IPsec
-- **Mechanism:** Layer 2 Tunneling Protocol secured with IPsec Pre-Shared Keys (PSK).
-- **Use Cases:** Legacy devices, routers, and site-to-site bridges with MikroTik hardware.
-
-### 7. Windows SSTP (sstpd)
-- **Mechanism:** Microsoft Secure Socket Tunneling Protocol transporting PPP traffic over TLS 1.2/1.3.
-- **Advantage:** **Built into Windows 7, 10, and 11 by default.** Requires no external software; appears as regular HTTPS web traffic to external firewalls.
-
-### 8. SSH Tunnel (Direct & TLS WebSocket) + BadVPN
-- **SSH Direct:** Hardened Linux SSH tunneling with public key or password authentication.
-- **WebSocket / Stunnel Proxy:** Wraps SSH within HTTP WebSocket upgrade requests, enabling Cloudflare/CDN routing and SNI fronting.
-- **BadVPN UDP-GW (Port 7300):** Enables UDP packet translation for TCP-based SSH connections, unlocking WhatsApp/Discord voice calls and low-latency online gaming.
-
-### 9. TUIC v5 (QUIC 0-RTT)
-- **Mechanism:** Next-generation proxy protocol built on top of QUIC (HTTP/3) over UDP.
-- **Advantage:** 0-RTT handshakes eliminate round-trip latency, providing instant page load times and resilience against packet loss.
-
-### 10. Shadowsocks (AEAD 2022)
-- Lightweight encrypted SOCKS5 proxy leveraging ChaCha20-Poly1305 and AES-256-GCM ciphers.
-
-### 11. MTProto Proxy (Telegram)
-- Dedicated Telegram proxy protocol featuring Fake-TLS emulation (mimicking trusted domains like Google or Cloudflare) and secret hex tagging for promotional sponsor channels.
+### 5. 🌍 100% Trilingual Native Localization
+- Instant one-click toggle between **English (🇬🇧)**, **Persian / فارسی (🇮🇷)**, and **Russian / Русский (🇷🇺)**.
+- Every modal, chart label, notification, terminal output, and technical description is translated natively with zero unlocalized strings.
 
 ---
 
-## 🌐 Network Tunnels (Bridge & Relay Hub)
+## 📚 Complete Protocols Breakdown
 
-MH Panel includes a complete suite of tunneling solutions for bridging Iran ↔ Kharej servers:
+| Protocol | Transport Layer | Client Compatibility | Key Advantage & Use Case |
+|---|---|---|---|
+| **AmneziaWG (AWG)** | UDP | Windows, Android, iOS, macOS (AmneziaVPN) | **#1 Anti-DPI:** Scrambles handshakes and sends randomized junk packet bursts. Immune to WireGuard blocks. |
+| **WireGuard Standard** | UDP (v4 & v6) | All platforms (Official WireGuard) | Highest kernel throughput, dual-stack IPv4/IPv6 address pools, automated MTU/MSS clamping. |
+| **Cisco AnyConnect (OCServ)**| SSL/TLS + DTLS | Official Cisco AnyConnect, OpenConnect | Ultra-stable on mobile networks (MCI, Irancell, Rightel). Seamless port 443 multiplexing. |
+| **Windows SSTP (sstpd)** | HTTPS / Port 443 | Built-in on Windows 7/10/11 (No app needed) | Standard HTTPS traffic footprint; works natively in Windows without installing third-party apps. |
+| **IKEv2 StrongSwan** | IPSec / UDP 500, 4500 | iOS, macOS, Windows, Android (Native) | **Zero-app configuration.** Native OS settings support; instant reconnect during Wi-Fi ↔ 4G/5G handovers (MOBIKE). |
+| **L2TP / IPsec** | UDP 1701, 500, 4500 | Legacy OS, MikroTik, Android, Windows | Proven interoperability for legacy routers, embedded systems, and enterprise site-to-site bridges. |
+| **OpenVPN Dual-Stack** | Multi-Port TCP & UDP | Official OpenVPN Connect, Tunnelblick | Multi-port listening (443, 1194, 9443), XOR Scramble patch, UDPspeeder FEC, Rosenpass post-quantum encryption. |
+| **SSH Direct & WebSocket** | TCP / WSS / Stunnel | PuTTY, Termius, NapsternetV, v2rayNG | Direct hardened SSH + HTTP/WebSocket upgrade tunneling for CDN fronting + BadVPN UDP-GW (Port 7300 for VoIP/Gaming). |
+| **TUIC v5** | QUIC (HTTP/3) / UDP | Clash Meta, Sing-box, v2rayNG | 0-RTT handshake eliminates latency; advanced congestion control algorithms (BBR, Cubic). |
+| **Shadowsocks (Rust 2022)**| TCP & UDP | Shadowsocks, Clash, Outline, Sing-box | High-speed AEAD ciphers (`2022-blake3-chacha20poly1305`, `2022-blake3-aes-256-gcm`). |
+| **MTProto Proxy** | Fake-TLS / TCP | Official Telegram (Desktop, Mobile) | Native Telegram proxy with Fake-TLS domain impersonation (Google/Cloudflare) and `@MTProxybot` sponsor tag. |
+| **DNS Tunnels (SlowDNS)** | UDP Port 53 | SlowDNS apps, DNSTT client | Operates over raw DNS requests during total internet shutdowns and strict firewall blackouts. |
 
-| Tunnel Type | Transport | Key Feature & Use Case |
+---
+
+## 🌐 Network Tunnels & Bridge Hub (Relay / Kharej ↔ Iran)
+
+MH Panel includes a carrier-grade tunneling engine to interconnect domestic (Iran) relay VPS with international (Kharej) endpoints:
+
+| Tunnel Type | Transport | Key Feature & Purpose |
 |---|---|---|
 | **`IP6GRE`** | Native IPv6 | **Top Censorship Resistance:** GRE tunnel encapsulated in IPv6. Circumvents domestic DPI filters that only inspect IPv4 traffic. |
-| **`IP6TNL` (IPIP6)** | Native IPv6 | IPv4 over pure IPv6 transport. Minimal 20-byte header overhead for lowest ping. |
+| **`IP6TNL` (IPIP6)** | Native IPv6 | IPv4 over pure IPv6 transport. Minimal 20-byte header overhead for ultra-low latency. |
 | **`SIT` (6in4)** | IPv4 | 6in4 encapsulation carrying IPv6 traffic across legacy IPv4 networks. |
-| **`GRE` & `IPIP`** | IPv4 | Standard Linux layer 3 point-to-point tunnels. |
-| **`WireGuard P2P`** | UDP (v4/v6) | Peer-to-peer modern encrypted tunnel with dual-stack masquerade. |
-| **`GOST v3`** | Multi-protocol | Swiss-army knife tunnel (Relay, TLS, WSS, KCP, Multi-Hop forwarding). |
-| **`WSTunnel`** | WebSocket | High-performance TCP/UDP tunneling over WebSockets. |
-| **`Reverse TLS (RTT)`** | TLS Reverse | Establishes tunnel from Kharej into Iran without requiring open inbound ports on Iran VPS. |
-| **`Chisel & Rathole`** | HTTP / Rust | Lightweight NAT traversal and fast reverse port forwarding. |
-| **`Phantun & UDP2Raw`** | Fake TCP | Converts UDP packets into fake TCP SYN/ACK handshakes to bypass aggressive UDP blocking. |
+| **`GRE` & `IPIP`** | IPv4 | Standard Linux layer-3 point-to-point tunnels with kernel acceleration. |
+| **`WireGuard P2P`** | UDP (v4/v6) | Peer-to-peer encrypted tunnel with dual-stack masquerading. |
+| **`GOST v3`** | Multi-Protocol | Versatile relay supporting TLS, WSS, KCP, HTTP2, and multi-hop forwarding chains. |
+| **`WSTunnel`** | WebSocket | High-performance TCP/UDP tunneling over WebSockets (Cloudflare CDN friendly). |
+| **`Reverse TLS (RTT)`**| TLS Reverse | Initiates connection from international server to domestic server without open inbound ports on the domestic node. |
+| **`Chisel & Rathole`** | HTTP / Rust | Ultra-low memory NAT traversal and high-throughput port forwarding. |
+| **`Phantun & UDP2Raw`**| Fake TCP | Converts UDP packets into fake TCP SYN/ACK handshakes to bypass aggressive UDP blocking. |
 
-### 📟 Automated MikroTik RouterOS Script Generator
-For every configured tunnel, MH Panel instantly generates ready-to-run terminal scripts tailored for both **RouterOS v7** and **RouterOS v6**:
-- Tunnel interface creation (`/interface/gre`, `ip6gre`, `ipip`, `wireguard`)
-- Local and remote IP configuration (`/ip/address` and `/ipv6/address`)
-- Static routing (`/ip/route`)
-- Firewall NAT Masquerading and MSS Clamping rules
-
----
-
-## 🔀 Port 443 SNI Multiplexer (HAProxy Dispatcher)
-
-Host multiple SSL services on a single public IP address through Server Name Indication (SNI) routing:
-- `panel.yourdomain.com` ⬅️ Routed to MH Panel Web UI
-- `vpn.yourdomain.com` ⬅️ Routed to Cisco AnyConnect (OCServ)
-- `ssh.yourdomain.com` ⬅️ Routed to SSH TLS / Stunnel
-- `ovpn.yourdomain.com` ⬅️ Routed to OpenVPN TCP
-- `sstp.yourdomain.com` ⬅️ Routed to Windows SSTP
-- All services coexist seamlessly behind port 443, making traffic indistinguishable from typical HTTPS web traffic.
+### 📟 Automated MikroTik RouterOS Configuration Generator
+For any tunnel created, MH Panel dynamically generates tested, copy-paste-ready scripts for both **RouterOS v7** and **RouterOS v6**:
+- Interface initialization (`/interface gre`, `/interface ip6gre`, `/interface wireguard`)
+- IP addressing (`/ip address`, `/ipv6 address`)
+- Routing tables & default gateways (`/ip route`)
+- Firewall NAT Masquerade and MSS Clamping rules (`/ip firewall mangle`, `/ip firewall nat`)
 
 ---
 
-## 🔒 Security & Privacy
+## 📡 Live ISP Censorship Radar & Connectivity Analyzer
 
-- **Zero Credentials Committed:** Sensitive files (`admin_credentials.txt`, `api_key.txt`, `session_secret.txt`), user accounts (`*_users.json`), and private keys are strictly ignored via [`.gitignore`](.gitignore).
-- **Service Isolation:** All daemons are managed via dedicated Systemd unit files with automatic restart policies.
-- **Firewall Hardening:** Automatic iptables and UFW port configuration for all active protocols.
+MH Panel features an integrated **Censorship Radar** that continuously tests live connectivity against major Iranian telecommunication providers:
+- **Hamrah Aval (MCI)**
+- **Irancell (MTN)**
+- **Mokhaberat (TCI)**
+- **Shatel**
+- **Rightel**
+- **System Verdict & Behavioral Analysis:** Evaluates packet loss, DNS tampering, TCP RST injection, and UDP dropping to provide actionable protocol optimization recommendations.
+
+---
+
+## 🔐 Security & Hardening
+
+- **Two-Factor Authentication (2FA / TOTP):** Native RFC 6238 TOTP engine compatible with Google Authenticator and Microsoft Authenticator.
+- **SSL Certificate Automation:** Built-in Let's Encrypt client with auto-renewal plus self-signed 10-year IP SAN certificates with downloadable Root CA (`.crt`) for client devices.
+- **Zero Sensitive Data in Git:** Private keys, credentials, session secrets, and user databases are protected and excluded via `.gitignore`.
+- **Systemd Supervision:** Every background daemon runs under an isolated, supervised systemd unit with automatic crash recovery.
+- **Kernel-Level Tuning:** Automated activation of Google BBR congestion control, increased file descriptors (`nofile` 65535), and optimized TCP memory buffers.
 
 ---
 
 ## 📄 License
 
-This software is released under the [MIT License](LICENSE).
+This project is licensed under the terms of the [MIT License](LICENSE).
