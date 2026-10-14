@@ -53,7 +53,7 @@
         </div>
 
         <!-- Current Certificate Status Card -->
-        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+        <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); ">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="lock" style="color: #10b981; width: 18px; height: 18px;"></i>
@@ -65,22 +65,22 @@
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">صادرکننده (Issuer):</span>
                     <span id="ssl-issuer" style="font-size: 13px; font-weight: 700; color: var(--color-primary); word-break: break-all;">در حال بارگذاری...</span>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">موضوع / دامنه یا IP (Subject):</span>
                     <span id="ssl-subject" style="font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">در حال بارگذاری...</span>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">تاریخ انقضا (Expiry Date):</span>
                     <span id="ssl-expiry" style="font-size: 13px; font-weight: 700; color: #059669;">در حال بارگذاری...</span>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
                     <span style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">جایگزین موضوع (SAN):</span>
                     <span id="ssl-san" style="font-size: 12px; font-weight: 600; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">N/A</span>
                 </div>
@@ -100,7 +100,7 @@
         </div>
 
         <!-- Setup Methods Grid -->
-        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+        <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); ">
             <div style="margin-bottom: 18px;">
                 <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
                     دریافت و پیکربندی گواهی جدید
@@ -140,7 +140,7 @@
 
             <!-- Form 1: Auto Let's Encrypt (Domain) -->
             <form id="ssl-form" style="display: flex; flex-direction: column; gap: 16px;">
-                <div style="background: #f8fafc; border: 1px solid rgba(79, 70, 229, 0.15); border-radius: 12px; padding: 18px;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(79, 70, 229, 0.15); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                         <i data-lucide="info" style="width: 18px; height: 18px; color: #4f46e5;"></i>
                         <strong style="font-size: 13px; color: #3730a3;">راهنمای دریافت گواهی Let's Encrypt برای دامنه:</strong>
@@ -232,7 +232,7 @@
                 </div>
 
                 <!-- Optional Client Cert Collapse -->
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;" onclick="toggleOptionalClientFields()">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <i data-lucide="user-check" style="width:16px; height:16px; color:#6366f1;"></i>
@@ -263,7 +263,7 @@
                 </div>
 
                 <!-- Protocol Assignment Selector -->
-                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px;">
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                     <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block;">
                         <i data-lucide="layers" style="width:14px; height:14px; vertical-align:middle; margin-left:4px; color:#4f46e5;"></i>
                         تخصیص فوری این گواهی به پروتکل‌های سرور:
@@ -288,7 +288,7 @@
                             <input type="checkbox" name="mkt-proto" value="ikev2">
                             <span style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
                         </label>
-                        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#f8fafc; border:1px solid #e2e8f0; padding:6px 12px; border-radius:8px;">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background: var(--bg-base); border: 1px solid var(--border-glow); padding:6px 12px; border-radius:8px;">
                             <input type="checkbox" name="mkt-proto" value="panel">
                             <span style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
                         </label>
@@ -302,7 +302,7 @@
 
             <!-- Form: Custom SSL & Protocol Assignment -->
             <form id="ssl-custom-form" onsubmit="submitCustomCert(event)" style="display: none; flex-direction: column; gap: 18px;">
-                <div style="background: #f8fafc; border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 16px;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 16px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
                         <i data-lucide="shield-check" style="width: 18px; height: 18px; color: #0284c7;"></i>
                         <strong style="font-size: 13.5px; color: #0369a1;">بارگذاری سرتیفیکیت استاندارد و تخصیص به پروتکل‌ها:</strong>
@@ -355,7 +355,7 @@
                 </div>
 
                 <!-- Protocol Assignment Selector -->
-                <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px;">
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                     <label class="form-label" style="font-size: 12.5px; font-weight: 700; color: #1e293b; margin-bottom: 8px; display: block;">
                         تخصیص به پروتکل‌ها:
                     </label>
@@ -376,7 +376,7 @@
                             <input type="checkbox" name="cst-proto" value="ikev2">
                             <span style="font-weight:600; color:#6b21a8;">پروتکل IKEv2</span>
                         </label>
-                        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background:#f8fafc; border:1px solid #e2e8f0; padding:6px 12px; border-radius:8px;">
+                        <label style="display:flex; align-items:center; gap:6px; font-size:12.5px; cursor:pointer; background: var(--bg-base); border: 1px solid var(--border-glow); padding:6px 12px; border-radius:8px;">
                             <input type="checkbox" name="cst-proto" value="panel" checked>
                             <span style="font-weight:600; color:#334155;">پنل وب مدیریت (HTTPS)</span>
                         </label>
@@ -390,7 +390,7 @@
 
             <!-- Form 2: IP SAN Certificate -->
             <form id="ssl-ip-form" onsubmit="saveSslIp(event)" style="display: none; flex-direction: column; gap: 16px;">
-                <div style="background: #f8fafc; border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 18px;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
                         <i data-lucide="server" style="width: 18px; height: 18px; color: #0284c7;"></i>
                         <strong style="font-size: 13px; color: #0369a1;">صدور گواهی امنیتی معتبر ۱۰ ساله برای آدرس IP سرور:</strong>
@@ -414,7 +414,7 @@
 
             <!-- Form 3: Manual PEM Paste -->
             <form id="ssl-manual-form" onsubmit="saveSslManual(event)" style="display: none; flex-direction: column; gap: 16px;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
                     برای استفاده از گواهی‌های سفارشی (مانند Cloudflare Origin Certificate یا گواهی خریداری‌شده تجاری)، متن کامل فایل‌های گواهی و کلید خصوصی را در کادرهای زیر قرار دهید:
                 </div>
 
@@ -440,7 +440,7 @@
 
             <!-- Form 4: Custom Paths -->
             <form id="ssl-paths-form" onsubmit="saveSslPaths(event)" style="display: none; flex-direction: column; gap: 16px;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; font-size: 12px; color: var(--text-muted);">
                     اگر گواهی امنیتی از قبل روی سرور قرار دارد، مسیر مطلق فایل‌های <code>.crt</code> و <code>.key</code> را وارد کنید:
                 </div>
 
@@ -466,7 +466,7 @@
         </div>
 
         <!-- Certificate Hub & Protocol Mapping Table -->
-        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(0, 0, 0, 0.08); background: #ffffff;">
+        <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); ">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                 <div>
                     <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
@@ -482,10 +482,10 @@
                 </button>
             </div>
 
-            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
                 <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
                     <thead>
-                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                        <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
                             <th style="padding: 12px 14px;">عنوان و نوع گواهی</th>
                             <th style="padding: 12px 14px;">صادرکننده و دامنه (Subject / CN)</th>
                             <th style="padding: 12px 14px;">اعتبار و انقضا</th>

@@ -51,26 +51,46 @@
     [data-theme="dark"] .login-card,
     [data-theme="dark"] .modal-content,
     [data-theme="dark"] .modal-card,
+    [data-theme="dark"] .modal-box,
     [data-theme="dark"] .radar-stat-card,
     [data-theme="dark"] .group-card,
     [data-theme="dark"] .proto-bandwidth-card,
+    [data-theme="dark"] .protocol-card,
+    [data-theme="dark"] .core-meter-card,
     [data-theme="dark"] #add-radius-user-box,
-    [data-theme="dark"] div[style*="background: #ffffff"],
-    [data-theme="dark"] div[style*="background:#ffffff"],
-    [data-theme="dark"] div[style*="background: #fff"],
-    [data-theme="dark"] div[style*="background:#fff"],
-    [data-theme="dark"] div[style*="background: white"],
-    [data-theme="dark"] div[style*="background: rgba(255, 255, 255"],
-    [data-theme="dark"] div[style*="background:rgba(255, 255, 255"] {
+    [data-theme="dark"] [style*="background: #ffffff" i],
+    [data-theme="dark"] [style*="background:#ffffff" i],
+    [data-theme="dark"] [style*="background: #fff;" i],
+    [data-theme="dark"] [style*="background:#fff;" i],
+    [data-theme="dark"] [style*="background: #fff " i],
+    [data-theme="dark"] [style*="background:#fff " i],
+    [data-theme="dark"] [style*="background: white" i],
+    [data-theme="dark"] [style*="background:white" i],
+    [data-theme="dark"] [style*="background: rgba(255, 255, 255" i],
+    [data-theme="dark"] [style*="background:rgba(255, 255, 255" i],
+    [data-theme="dark"] [style*="background: rgba(255,255,255" i],
+    [data-theme="dark"] [style*="background:rgba(255,255,255" i] {
         background: #111827 !important;
         border-color: rgba(255, 255, 255, 0.1) !important;
         color: #f8fafc !important;
         box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6) !important;
     }
 
-    /* Inner boxes, stat pills, spec boxes in Dark Mode */
+    /* Modal Backdrop in Dark Mode */
+    [data-theme="dark"] .modal {
+        background: rgba(10, 15, 29, 0.85) !important;
+    }
+
+    /* Uninstalled Protocol Overlay in Dark Mode */
+    [data-theme="dark"] .uninstalled-cover {
+        background: rgba(17, 24, 39, 0.92) !important;
+        color: #f8fafc !important;
+    }
+
+    /* Inner boxes, stat pills, spec boxes, core cards in Dark Mode */
     [data-theme="dark"] .spec-item-box,
     [data-theme="dark"] .sec-stat-pill,
+    [data-theme="dark"] .core-meter-card,
     [data-theme="dark"] .proto-rate-metrics,
     [data-theme="dark"] .rad-tab-nav,
     [data-theme="dark"] .rad-tab-btn,
@@ -79,16 +99,60 @@
     [data-theme="dark"] .preset-btn,
     [data-theme="dark"] .ssl-mode-btn,
     [data-theme="dark"] .lang-choice-btn,
-    [data-theme="dark"] div[style*="background: #f8fafc"],
-    [data-theme="dark"] div[style*="background:#f8fafc"],
-    [data-theme="dark"] div[style*="background: #f1f5f9"],
-    [data-theme="dark"] div[style*="background:#f1f5f9"],
-    [data-theme="dark"] div[style*="background: rgba(0,0,0,0.02)"],
-    [data-theme="dark"] div[style*="background: rgba(0, 0, 0, 0.02)"] {
+    [data-theme="dark"] .header-lang-pills,
+    [data-theme="dark"] .sidebar-collapse-toggle,
+    [data-theme="dark"] .port-btn,
+    [data-theme="dark"] [style*="background: #f8fafc" i],
+    [data-theme="dark"] [style*="background:#f8fafc" i],
+    [data-theme="dark"] [style*="background: #f1f5f9" i],
+    [data-theme="dark"] [style*="background:#f1f5f9" i],
+    [data-theme="dark"] [style*="background: #f3f4f6" i],
+    [data-theme="dark"] [style*="background:#f3f4f6" i],
+    [data-theme="dark"] [style*="background: #e2e8f0" i],
+    [data-theme="dark"] [style*="background:#e2e8f0" i],
+    [data-theme="dark"] [style*="background: rgba(0,0,0,0.02)"],
+    [data-theme="dark"] [style*="background: rgba(0, 0, 0, 0.02)"] {
         background: #1e293b !important;
         border-color: rgba(255, 255, 255, 0.08) !important;
         color: #f8fafc !important;
     }
+
+    /* Core Progress Track & Proto Total border in Dark Mode */
+    [data-theme="dark"] .core-progress-track {
+        background: #0f172a !important;
+    }
+    [data-theme="dark"] .proto-total-metric {
+        border-top-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Hover States in Dark Mode: Prevent any white flash on hover */
+    [data-theme="dark"] .spec-item-box:hover,
+    [data-theme="dark"] .core-meter-card:hover,
+    [data-theme="dark"] .proto-bandwidth-card:hover,
+    [data-theme="dark"] .sec-stat-pill:hover,
+    [data-theme="dark"] .algo-pill:hover,
+    [data-theme="dark"] .preset-btn:hover,
+    [data-theme="dark"] .ssl-mode-btn:hover,
+    [data-theme="dark"] .rad-tab-btn:hover,
+    [data-theme="dark"] .group-card:hover,
+    [data-theme="dark"] .header-btn:hover,
+    [data-theme="dark"] .theme-toggle-btn:hover,
+    [data-theme="dark"] .logout-btn:hover,
+    [data-theme="dark"] .user-profile-widget:hover,
+    [data-theme="dark"] .tab-btn:hover,
+    [data-theme="dark"] .action-btn-sm:hover,
+    [data-theme="dark"] .port-btn:hover,
+    [data-theme="dark"] .proto-filter-btn:hover {
+        background: #273549 !important;
+        border-color: rgba(99, 102, 241, 0.4) !important;
+        color: #f8fafc !important;
+    }
+    [data-theme="dark"] tbody tr:hover,
+    [data-theme="dark"] .table tr:hover td {
+        background: rgba(255, 255, 255, 0.04) !important;
+        color: #f8fafc !important;
+    }
+
     [data-theme="dark"] .rad-tab-btn.active,
     [data-theme="dark"] .proto-filter-btn.active,
     [data-theme="dark"] .lang-choice-btn.active {
@@ -97,11 +161,70 @@
         border-color: var(--color-primary) !important;
     }
 
-    [data-theme="dark"] div[style*="background: #fffbeb"],
-    [data-theme="dark"] div[style*="background:#fffbeb"] {
+    /* Amber / Yellow warning boxes in Dark Mode */
+    [data-theme="dark"] [style*="background: #fffbeb" i],
+    [data-theme="dark"] [style*="background:#fffbeb" i],
+    [data-theme="dark"] [style*="background: #fef3c7" i],
+    [data-theme="dark"] [style*="background:#fef3c7" i],
+    [data-theme="dark"] [style*="background: #fff7ed" i],
+    [data-theme="dark"] [style*="background:#fff7ed" i] {
         background: rgba(245, 158, 11, 0.15) !important;
         border-color: rgba(245, 158, 11, 0.3) !important;
         color: #fbbf24 !important;
+    }
+
+    /* Emerald / Green success & info boxes in Dark Mode */
+    [data-theme="dark"] [style*="background: #dcfce7" i],
+    [data-theme="dark"] [style*="background:#dcfce7" i],
+    [data-theme="dark"] [style*="background: #ecfdf5" i],
+    [data-theme="dark"] [style*="background:#ecfdf5" i],
+    [data-theme="dark"] [style*="background: #f0fdf4" i],
+    [data-theme="dark"] [style*="background:#f0fdf4" i] {
+        background: rgba(16, 185, 129, 0.15) !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        color: #34d399 !important;
+    }
+
+    /* Red / Rose error boxes in Dark Mode */
+    [data-theme="dark"] [style*="background: #fee2e2" i],
+    [data-theme="dark"] [style*="background:#fee2e2" i],
+    [data-theme="dark"] [style*="background: #fef2f2" i],
+    [data-theme="dark"] [style*="background:#fef2f2" i] {
+        background: rgba(244, 63, 94, 0.15) !important;
+        border-color: rgba(244, 63, 94, 0.3) !important;
+        color: #fb7185 !important;
+    }
+
+    /* Blue / Sky info boxes in Dark Mode */
+    [data-theme="dark"] [style*="background: #eff6ff" i],
+    [data-theme="dark"] [style*="background:#eff6ff" i],
+    [data-theme="dark"] [style*="background: #e0f2fe" i],
+    [data-theme="dark"] [style*="background:#e0f2fe" i],
+    [data-theme="dark"] [style*="background: #eef2ff" i],
+    [data-theme="dark"] [style*="background:#eef2ff" i],
+    [data-theme="dark"] [style*="background: #e0e7ff" i],
+    [data-theme="dark"] [style*="background:#e0e7ff" i] {
+        background: rgba(56, 189, 248, 0.12) !important;
+        border-color: rgba(56, 189, 248, 0.25) !important;
+        color: #38bdf8 !important;
+    }
+
+    /* Purple accent boxes in Dark Mode */
+    [data-theme="dark"] [style*="background: #faf5ff" i],
+    [data-theme="dark"] [style*="background:#faf5ff" i],
+    [data-theme="dark"] [style*="background: #f3e8ff" i],
+    [data-theme="dark"] [style*="background:#f3e8ff" i] {
+        background: rgba(168, 85, 247, 0.12) !important;
+        border-color: rgba(168, 85, 247, 0.25) !important;
+        color: #c084fc !important;
+    }
+
+    /* Preserve QR Code Canvas readability with high contrast white background */
+    #qrcode-canvas, #awg-qrcode-canvas, #sub-qrcode-container, #twofa-qr-container, .qr-canvas-box {
+        background: #ffffff !important;
+        padding: 12px !important;
+        border-radius: 12px !important;
+        display: inline-block !important;
     }
 
     /* Text & Headings in Dark Mode */
@@ -109,11 +232,15 @@
     [data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 {
         color: #f8fafc !important;
     }
-    [data-theme="dark"] [style*="color: #0f172a"], [data-theme="dark"] [style*="color:#0f172a"] {
+    [data-theme="dark"] .stat-label,
+    [data-theme="dark"] .stat-meta {
+        color: #94a3b8 !important;
+    }
+    [data-theme="dark"] [style*="color: #0f172a" i], [data-theme="dark"] [style*="color:#0f172a" i] {
         color: #f8fafc !important;
     }
-    [data-theme="dark"] [style*="color: #64748b"], [data-theme="dark"] [style*="color:#64748b"],
-    [data-theme="dark"] [style*="color: #475569"], [data-theme="dark"] [style*="color:#475569"] {
+    [data-theme="dark"] [style*="color: #64748b" i], [data-theme="dark"] [style*="color:#64748b" i],
+    [data-theme="dark"] [style*="color: #475569" i], [data-theme="dark"] [style*="color:#475569" i] {
         color: #94a3b8 !important;
     }
 
@@ -151,16 +278,19 @@
     [data-theme="dark"] input[type="text"],
     [data-theme="dark"] input[type="password"],
     [data-theme="dark"] input[type="number"],
-    [data-theme="dark"] textarea {
+    [data-theme="dark"] textarea,
+    [data-theme="dark"] .port-input {
         background: #1e293b !important;
         color: #f8fafc !important;
         border-color: rgba(255, 255, 255, 0.12) !important;
     }
     [data-theme="dark"] .form-input:focus,
     [data-theme="dark"] select:focus,
-    [data-theme="dark"] textarea:focus {
+    [data-theme="dark"] textarea:focus,
+    [data-theme="dark"] input:focus {
         border-color: var(--color-primary) !important;
         box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+        background: #0f172a !important;
     }
 
     [data-theme="dark"] .modal-content,
@@ -193,7 +323,9 @@
 
     [data-theme="dark"] .code-box,
     [data-theme="dark"] pre,
-    [data-theme="dark"] code {
+    [data-theme="dark"] code,
+    [data-theme="dark"] .console-body,
+    [data-theme="dark"] .config-viewer {
         background: #0f172a !important;
         color: #e2e8f0 !important;
         border-color: rgba(255, 255, 255, 0.1) !important;
@@ -206,6 +338,10 @@
     }
     [data-theme="dark"] .btn-secondary:hover {
         background: rgba(255, 255, 255, 0.15) !important;
+        color: #ffffff !important;
+    }
+    [data-theme="dark"] .btn-secondary svg {
+        color: #f8fafc !important;
     }
 
     [data-theme="dark"] .lang-pill,
@@ -341,6 +477,101 @@
     html:not([data-theme="dark"]) select,
     html:not([data-theme="dark"]) textarea {
         background: #ffffff !important;
+        color: #0f172a !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    /* Modal Backdrop in Light Mode */
+    html[data-theme="light"] .modal,
+    html:not([data-theme="dark"]) .modal {
+        background: rgba(15, 23, 42, 0.45) !important;
+    }
+
+    /* Uninstalled Protocol Overlay in Light Mode */
+    html[data-theme="light"] .uninstalled-cover,
+    html:not([data-theme="dark"]) .uninstalled-cover {
+        background: rgba(255, 255, 255, 0.92) !important;
+        color: #0f172a !important;
+    }
+
+    /* Core Progress Track & hover cards in Light Mode */
+    html[data-theme="light"] .core-progress-track,
+    html:not([data-theme="dark"]) .core-progress-track {
+        background: #e2e8f0 !important;
+    }
+    html[data-theme="light"] .spec-item-box:hover,
+    html[data-theme="light"] .core-meter-card:hover,
+    html[data-theme="light"] .proto-bandwidth-card:hover,
+    html[data-theme="light"] .sec-stat-pill:hover,
+    html:not([data-theme="dark"]) .spec-item-box:hover,
+    html:not([data-theme="dark"]) .core-meter-card:hover,
+    html:not([data-theme="dark"]) .proto-bandwidth-card:hover,
+    html:not([data-theme="dark"]) .sec-stat-pill:hover {
+        background: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+        border-color: rgba(99, 102, 241, 0.3) !important;
+    }
+
+    /* Code / Command / Terminal snippets in Light Mode */
+    html[data-theme="light"] [style*="background: #0f172a" i],
+    html[data-theme="light"] [style*="background:#0f172a" i],
+    html[data-theme="light"] [style*="background: #181d28" i],
+    html[data-theme="light"] [style*="background:#181d28" i],
+    html[data-theme="light"] [style*="background: #0a0e14" i],
+    html[data-theme="light"] [style*="background:#0a0e14" i],
+    html[data-theme="light"] [style*="background: #090d16" i],
+    html[data-theme="light"] [style*="background:#090d16" i],
+    html[data-theme="light"] #terminal-container,
+    html[data-theme="light"] .terminal-container,
+    html:not([data-theme="dark"]) [style*="background: #0f172a" i],
+    html:not([data-theme="dark"]) [style*="background:#0f172a" i],
+    html:not([data-theme="dark"]) [style*="background: #181d28" i],
+    html:not([data-theme="dark"]) [style*="background:#181d28" i],
+    html:not([data-theme="dark"]) [style*="background: #0a0e14" i],
+    html:not([data-theme="dark"]) [style*="background:#0a0e14" i],
+    html:not([data-theme="dark"]) [style*="background: #090d16" i],
+    html:not([data-theme="dark"]) [style*="background:#090d16" i],
+    html:not([data-theme="dark"]) #terminal-container,
+    html:not([data-theme="dark"]) .terminal-container {
+        background: #f1f5f9 !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+    }
+
+    html[data-theme="light"] [style*="#0f172a" i] pre,
+    html[data-theme="light"] [style*="#0f172a" i] code,
+    html[data-theme="light"] [style*="#0a0e14" i] pre,
+    html[data-theme="light"] [style*="#0a0e14" i] code,
+    html:not([data-theme="dark"]) [style*="#0f172a" i] pre,
+    html:not([data-theme="dark"]) [style*="#0f172a" i] code,
+    html:not([data-theme="dark"]) [style*="#0a0e14" i] pre,
+    html:not([data-theme="dark"]) [style*="#0a0e14" i] code {
+        color: #0369a1 !important;
+    }
+
+    html[data-theme="light"] textarea[style*="#0f172a" i],
+    html:not([data-theme="dark"]) textarea[style*="#0f172a" i] {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    /* Adapt dark buttons and links in Light Mode */
+    html[data-theme="light"] a[style*="background:#1e293b" i],
+    html[data-theme="light"] a[style*="background: #1e293b" i],
+    html[data-theme="light"] a[style*="background:#0f172a" i],
+    html[data-theme="light"] a[style*="background: #0f172a" i],
+    html:not([data-theme="dark"]) a[style*="background:#1e293b" i],
+    html:not([data-theme="dark"]) a[style*="background: #1e293b" i],
+    html:not([data-theme="dark"]) a[style*="background:#0f172a" i],
+    html:not([data-theme="dark"]) a[style*="background: #0f172a" i] {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+    }
+
+    html[data-theme="light"] #login-theme-btn,
+    html:not([data-theme="dark"]) #login-theme-btn {
+        background: rgba(0, 0, 0, 0.05) !important;
         color: #0f172a !important;
         border-color: #cbd5e1 !important;
     }
@@ -1938,8 +2169,9 @@
             max-width: 85vw;
             height: 100vh !important;
             overflow-y: auto !important;
-            background: #0f172a !important;
-            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+            background: var(--bg-surface) !important;
+            border-inline-end: 1px solid var(--border-glow) !important;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             padding: 16px 14px !important;
         }
@@ -1964,23 +2196,47 @@
             transform: translateX(0) !important;
         }
 
-        .sidebar .sidebar-nav-item {
+        [data-theme="dark"] .sidebar .sidebar-nav-item {
             color: #cbd5e1 !important;
         }
-        .sidebar .sidebar-nav-item:hover {
+        [data-theme="dark"] .sidebar .sidebar-nav-item:hover {
             background: rgba(255, 255, 255, 0.1) !important;
             color: #ffffff !important;
         }
-        .sidebar .sidebar-nav-item.active {
+        [data-theme="dark"] .sidebar .sidebar-nav-item.active {
             background: rgba(99, 102, 241, 0.28) !important;
             color: #ffffff !important;
             border-color: rgba(99, 102, 241, 0.55) !important;
         }
-        .sidebar .sidebar-section-header {
+        [data-theme="dark"] .sidebar .sidebar-section-header {
             color: #64748b !important;
         }
-        .sidebar .sidebar-divider {
+        [data-theme="dark"] .sidebar .sidebar-divider {
             background: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        html[data-theme="light"] .sidebar .sidebar-nav-item,
+        html:not([data-theme="dark"]) .sidebar .sidebar-nav-item {
+            color: #475569 !important;
+        }
+        html[data-theme="light"] .sidebar .sidebar-nav-item:hover,
+        html:not([data-theme="dark"]) .sidebar .sidebar-nav-item:hover {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+        }
+        html[data-theme="light"] .sidebar .sidebar-nav-item.active,
+        html:not([data-theme="dark"]) .sidebar .sidebar-nav-item.active {
+            background: #e0e7ff !important;
+            color: #4338ca !important;
+            border-color: #6366f1 !important;
+        }
+        html[data-theme="light"] .sidebar .sidebar-section-header,
+        html:not([data-theme="dark"]) .sidebar .sidebar-section-header {
+            color: #94a3b8 !important;
+        }
+        html[data-theme="light"] .sidebar .sidebar-divider,
+        html:not([data-theme="dark"]) .sidebar .sidebar-divider {
+            background: #e2e8f0 !important;
         }
 
         .main-content {

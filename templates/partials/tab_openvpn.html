@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- OpenVPN Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(245, 158, 11, 0.25);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.25);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(245, 158, 11, 0.12); color:#f59e0b; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پروتکل OpenVPN (Dual-Stack UDP/TCP)
+                            <span data-i18n="ovpn_title">مرکز مدیریت پروتکل OpenVPN (Dual-Stack UDP/TCP)</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             سرویس دوگانه UDP/TCP متصل به پایگاه احراز هویت متمرکز FreeRADIUS با قابلیت پشتیبانی از چندین پورت همزمان و تولید خودکار فایل کانفیگ .ovpn ضد فیلتر.
@@ -26,25 +26,25 @@
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های اصلی پروتکل</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ovpn-top-ports">
                         UDP 1194 / TCP 1194
                     </div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">شناسه و دامنه سرور</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ovpn-top-server-id">
                         212.227.143.16
                     </div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
                     <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ovpn-top-auth">
                         FreeRADIUS / PAM (کاربر NPU)
                     </div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">گواهی و رمزنگاری</div>
                     <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ovpn-top-cert-status">
                         OpenVPN-CA + TLS-Crypt فعال
@@ -55,7 +55,7 @@
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartOpenvpnServices()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_restart">راه‌اندازی مجدد سرویس (Restart)</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchOpenvpnConfig()" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> رفرش وضعیت و پورت‌ها
@@ -64,7 +64,7 @@
                     <i data-lucide="puzzle" style="width:14px; height:14px; margin-right:6px;"></i> افزونه‌ها و اسکرامبلر (Addons)
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('openvpn')" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span>
                 </button>
             </div>
         </div>
@@ -83,7 +83,7 @@
         </div>
 
         <!-- Presets Bar (پروفایل‌های آماده و سریع) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div>
                     <h3 class="config-title">
@@ -117,7 +117,7 @@
         </div>
 
         <!-- Server & Network Core Settings (تنظیمات ساخت سرور و شبکه) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -155,7 +155,7 @@
                 </div>
 
                 <!-- Multi-Port Engine Settings -->
-                <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="shuffle" style="color: #0284c7; width: 18px; height: 18px;"></i>
@@ -168,7 +168,7 @@
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
                         <!-- UDP Ports Card -->
-                        <div style="background: #ffffff; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 14px;">
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <label class="switch">
@@ -186,7 +186,7 @@
                         </div>
 
                         <!-- TCP Ports Card -->
-                        <div style="background: #ffffff; border: 1px solid rgba(0,0,0,0.08); border-radius: 10px; padding: 14px;">
+                        <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     <label class="switch">
@@ -206,7 +206,7 @@
                 </div>
 
                 <!-- Advanced Switches: Anti-DPI & Network Resilience -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin-bottom:24px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; margin-bottom:24px;">
                     <h4 style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-main);">ویژگی‌های حرفه‌ای عبور از فیلترینگ و پایداری شبکه (Bypass & Resilience)</h4>
                     <div class="toggle-grid" style="margin-bottom:0;">
                         <div class="toggle-item">
@@ -285,7 +285,7 @@
         </div>
 
         <!-- Certificates & Cryptography Hub (مرکز مدیریت سرتفیکیت‌ها و کلیدهای رمزنگاری) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -308,26 +308,26 @@
 
             <!-- Cert Details Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
                     <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;" id="ovpn-cert-subject-display">CN = OpenVPN-CA</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">صادرکننده (Issuer)</div>
                     <div style="font-weight:700; color:var(--text-main); font-size:12px; margin-top:3px;" id="ovpn-cert-issuer-display">CN = OpenVPN-CA</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">کلید حفاظتی TLS-Crypt</div>
                     <div style="font-weight:700; color:#059669; font-size:12px; margin-top:3px;" id="ovpn-cert-tc-display">فعال (AES-256-CTR)</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
                     <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;" id="ovpn-cert-expiry-display">معتبر تا 2036</div>
                 </div>
             </div>
 
             <!-- Issue / Renew Cert Box -->
-            <div style="background: #f8fafc; border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
+            <div style="background: var(--bg-base); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
                 <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
                     به‌روزرسانی یا اتصال دامنه اختصاصی به سرور OpenVPN
                 </h4>
@@ -344,7 +344,7 @@
         </div>
 
         <!-- OS Profiles & Client Connection Guide (ساخت و دانلود کانفیگ .ovpn برای انواع دستگاه‌ها) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -359,11 +359,11 @@
             </div>
 
             <!-- Profile Customizer Bar -->
-            <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+            <div style="background: var(--bg-base); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
                     <div>
                         <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پروتکل و حالت اتصال:</label>
-                        <select id="ovpn-export-proto" class="form-input" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: #ffffff; border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;" onchange="handleOvpnExportProtoChange()">
+                        <select id="ovpn-export-proto" class="form-input" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;" onchange="handleOvpnExportProtoChange()">
                             <option value="tcp-443">پروتکل TCP - پورت ۴۴۳ (عبور از فیلترینگ شدید - مشترک با وب)</option>
                             <option value="tcp-1194">پروتکل TCP - پورت ۱۱۹۴ (استاندارد و پایدار)</option>
                             <option value="udp-1194" selected>پروتکل UDP - پورت ۱۱۹۴ (سریع و بهینه - پیش‌فرض)</option>
@@ -391,7 +391,7 @@
 
                     <div>
                         <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">جایگذاری اکانت ردیوس:</label>
-                        <select id="ovpn-export-user-select" class="form-input" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: #ffffff; border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
+                        <select id="ovpn-export-user-select" class="form-input" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
                             <option value="" selected>ورود دستی (بدون ذخیره کاربر در کانفیگ)</option>
                             <option value="NPU">کاربر پیش‌فرض ردیوس (NPU)</option>
                         </select>
@@ -399,7 +399,7 @@
                 </div>
 
                 <!-- Toggles for Profile Export -->
-                <div style="display: flex; gap: 16px; flex-wrap: wrap; background: #ffffff; padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.06); margin-bottom: 18px;">
+                <div style="display: flex; gap: 16px; flex-wrap: wrap; background: var(--bg-surface); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-glow); margin-bottom: 18px;">
                     <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
                         <input type="checkbox" id="ovpn-export-bypass-dpi" checked>
                         <span>رفع قطعی بسته‌ها (<code>mssfix 1360</code>)</span>
@@ -437,7 +437,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
                 
                 <!-- Android & iOS (OpenVPN Connect) -->
-                <div style="background: #f8fafc; border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="smartphone" style="width:20px; height:20px; color:#059669;"></i>
@@ -448,7 +448,7 @@
                         </p>
                         
                         <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-                            <div style="background:#ffffff; border:1px solid rgba(0,0,0,0.06); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
+                            <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
                                 <div>۱. فایل دانلود شده را باز کرده و با OpenVPN Connect اجرا کنید.</div>
                                 <div>۲. یوزرنیم <code>NPU</code> و رمز عبور <code>56226500</code> را وارد کرده و Connect را بزنید.</div>
                             </div>
@@ -457,7 +457,7 @@
                 </div>
 
                 <!-- Windows & Mac Native (OpenVPN GUI / Tunnelblick) -->
-                <div style="background: #f8fafc; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
@@ -468,7 +468,7 @@
                         </p>
                         
                         <div style="margin-top:12px; display:flex; flex-direction:column; gap:8px;">
-                            <div style="background:#ffffff; border:1px solid rgba(0,0,0,0.06); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
+                            <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); padding:10px; border-radius:8px; font-size:11.5px; line-height:1.5;">
                                 <div>۱. فایل <code>.ovpn</code> را درون پوشه <code>config</code> کلاینت قرار دهید.</div>
                                 <div>۲. روی آیکون برنامه در تسک‌بار راست کلیک کرده و Connect را انتخاب نمایید.</div>
                             </div>
@@ -477,7 +477,7 @@
                 </div>
 
                 <!-- Linux CLI Quick Connection -->
-                <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="terminal" style="width:20px; height:20px; color:#4f46e5;"></i>
@@ -502,7 +502,7 @@
         </div>
 
         <!-- Local Accounts Management Card (مانند IKEv2) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-top: 24px;">
+        <div class="glass-card config-card" style="margin-top: 24px;">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">

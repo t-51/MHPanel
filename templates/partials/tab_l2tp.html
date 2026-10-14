@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- L2TP Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(99, 102, 241, 0.2);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پروتکل L2TP (L2TPv2 / L2TPv3)
+                            <span data-i18n="l2tp_title">مرکز مدیریت پروتکل L2TP (L2TPv2 / L2TPv3)</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             پشتیبانی کامل از L2TPv2 بر بستر IPsec با احراز هویت متمرکز ردیوس داخلی (FreeRADIUS) + تونل‌سازی پیشرفته لایه ۲ اترنت L2TPv3 (Pseudowire) برای میکروتیک و روترها
@@ -19,28 +19,28 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span id="l2tp-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                        <span class="status-dot active"></span> <span data-i18n="proto_checking_status">در حال بررسی وضعیت...</span>
                     </span>
                 </div>
             </div>
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های پروتکل</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">UDP 1701 / 500 / 4500</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">آدرس عمومی سرور</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="l2tp-top-server-ip">-</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">وضعیت ردیوس داخلی</div>
                     <div style="font-weight: 700; color: #4f46e5; font-size: 12px; margin-top: 3px;" id="l2tp-top-radius-status">
                         <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; margin-left:3px;"></i> متصل (FreeRADIUS)
                     </div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">ماژول کرنل L2TPv3</div>
                     <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="l2tp-top-v3-status">
                         بارگذاری شده (Active)
@@ -51,7 +51,7 @@
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartL2tpService()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_restart">راه‌اندازی مجدد سرویس (Restart)</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="reloadL2tpConfig()" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بازخوانی کانفیگ (ipsec update)
@@ -92,7 +92,7 @@
             
             <form id="l2tp-policy-form" onsubmit="saveL2tpConfig(event)">
                 <!-- Card 1: PSK & FreeRADIUS Integration -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                <div class="glass-card config-card" style="margin-bottom: 24px;">
                     <div class="config-header" style="margin-bottom: 18px;">
                         <div>
                             <h3 class="config-title">
@@ -107,7 +107,7 @@
 
                     <div style="display: grid; grid-template-columns: 1fr; gap: 16px;">
                         <!-- PSK Input & Generator -->
-                        <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 12px; padding: 16px;">
+                        <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                             <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
                                 کلید امنیتی پیش‌فرض (IPsec Pre-Shared Key):
                             </label>
@@ -165,7 +165,7 @@
                 </div>
 
                 <!-- Card 2: Network, IP Pool, DNS & Auth Modes -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                <div class="glass-card config-card" style="margin-bottom: 24px;">
                     <div class="config-header" style="margin-bottom: 18px;">
                         <div>
                             <h3 class="config-title">
@@ -209,7 +209,7 @@
                     </div>
 
                     <!-- PPP Authentication Protocol Select -->
-                    <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 14px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
                         <label class="form-label" style="font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
                             روش‌های احراز هویت پروتکل PPP (PPP Authentication Mode):
                         </label>
@@ -235,7 +235,7 @@
                 </div>
 
                 <!-- Card 3: Advanced IPsec Proposals Matrix (Phase 1 & Phase 2 Checkboxes) -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-bottom: 24px;">
+                <div class="glass-card config-card" style="margin-bottom: 24px;">
                     <div class="config-header" style="margin-bottom: 20px;">
                         <div>
                             <h3 class="config-title">
@@ -249,7 +249,7 @@
                     </div>
 
                     <!-- Preset Buttons -->
-                    <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="background: var(--bg-base); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                         <label class="form-label" style="font-weight:700; color:#4f46e5; margin-bottom:8px;">
                             <i data-lucide="wand-2" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
                             پروفایل‌های آماده و سازگار با سیستم‌عامل‌ها (Quick Proposal Presets):
@@ -275,7 +275,7 @@
                     </div>
 
                     <!-- Phase 1 (IKE) Checkbox Matrix -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:18px; margin-bottom:18px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                             <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
                                 <i data-lucide="key" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
@@ -317,7 +317,7 @@
                     </div>
 
                     <!-- Phase 2 (ESP) Checkbox Matrix -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:18px; margin-bottom:18px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                             <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
                                 <i data-lucide="lock" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
@@ -360,7 +360,7 @@
                     </div>
 
                     <!-- DPD Settings -->
-                    <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 14px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 20px; display: flex; gap: 16px; flex-wrap: wrap;">
                         <div style="flex: 1; min-width: 180px;">
                             <label class="form-label" style="font-weight: 600;">اقدام هنگام قطع اتصال (DPD Action):</label>
                             <select id="l2tp-dpd-action-select" class="form-input">
@@ -405,7 +405,7 @@
             </div>
 
             <!-- Kernel Modules Status -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 14px;">
                     <h3 class="config-title">
                         <i data-lucide="cpu" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
@@ -413,19 +413,19 @@
                     </h3>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: var(--bg-base); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_core</span>
                         <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
                     </div>
-                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: var(--bg-base); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_netlink</span>
                         <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
                     </div>
-                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: var(--bg-base); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_eth</span>
                         <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
                     </div>
-                    <div style="background: #f8fafc; padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="background: var(--bg-base); padding: 10px 14px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;">
                         <span style="font-family: monospace; font-size: 12px; font-weight: 600;">l2tp_ip</span>
                         <span class="badge" style="background: #dcfce7; color: #15803d; font-size: 11px;">آماده و فعال</span>
                     </div>
@@ -433,7 +433,7 @@
             </div>
 
             <!-- Configured Tunnels List -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div>
                         <h3 class="config-title">
@@ -472,7 +472,7 @@
             </div>
 
             <!-- Create L2TPv3 Tunnel Form Card -->
-            <div class="glass-card config-card" id="l2tp-v3-create-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card" id="l2tp-v3-create-card">
                 <div class="config-header" style="margin-bottom: 16px;">
                     <h3 class="config-title">
                         <i data-lucide="plus-circle" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
@@ -549,7 +549,7 @@
         <div id="subtab-content-guides" class="l2tp-subtab-content" style="display: none; flex-direction: column; gap: 24px;">
             
             <!-- Windows Guide -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="font-size:22px;">🪟</span>
@@ -580,7 +580,7 @@
             </div>
 
             <!-- MikroTik Guide -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="font-size:22px;">📡</span>
@@ -610,7 +610,7 @@
             </div>
 
             <!-- iOS & macOS Guide -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="font-size:22px;">🍏</span>
@@ -634,7 +634,7 @@
             </div>
 
             <!-- Android Guide -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span style="font-size:22px;">🤖</span>
@@ -661,7 +661,7 @@
         <div id="subtab-content-sessions" class="l2tp-subtab-content" style="display: none; flex-direction: column; gap: 24px;">
             
             <!-- Live Active PPP Sessions Table -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div>
                         <h3 class="config-title">

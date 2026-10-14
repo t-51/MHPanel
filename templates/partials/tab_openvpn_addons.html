@@ -80,7 +80,7 @@
                         پچ پنهان‌سازی کدهای دست‌دهی با کلید XOR (برگرفته از Tunnelblick). این پچ الگوهای هدر OpenVPN را به طور کامل تغییر داده و سیستم‌های فیلترینگ DPI (همراه اول، ایرانسل و...) را دور می‌زند.
                     </p>
 
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
                         <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">کلید اسکرامبل (Scramble Keyword):</label>
                         <input type="text" id="ovpn-addon-xor-key" class="form-input" value="openvpn_xor" placeholder="openvpn_xor" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">این کلید عیناً در فایل کانفیگ کلاینت به صورت <code>scramble obfuscate &lt;key&gt;</code> قرار می‌گیرد.</div>
@@ -111,7 +111,7 @@
                         سیستم اصلاح خطای رو به جلو (Forward Error Correction). ترافیک OpenVPN UDP را روی پورت ۴۰۰۰ با تزریق بسته‌های بازیابی عبور داده و افت سرعت یا لگ شدید در بازی‌ها و تماس‌های اینترنتی را از بین می‌برد.
                     </p>
 
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
                         <div>📍 پورت سرور: <strong>UDP 4000</strong> ➔ پورت مقصد: <strong>1194</strong></div>
                         <div>⚡ نسبت پیش‌فرض بازیابی: <strong>fec 20:10</strong> (۳۳٪ ترافیک اضافی برای جبران پکت‌لاس)</div>
                     </div>
@@ -141,7 +141,7 @@
                         پروتکل تبادل کلید پساکوانتومی (Post-Quantum Key Exchange) برای مقاومت ۱۰۰٪ در برابر استراق‌سمع و حملات رمزگشایی کامپیوترهای کوانتومی نسل آینده.
                     </p>
 
-                    <div style="background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.06); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                    <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
                         🛡️ قابل ادغام به عنوان لایه محافظت تبادل کلید متقارن روی تونل‌های OpenVPN و WireGuard.
                     </div>
                 </div>

@@ -278,7 +278,7 @@
 
 <!-- Batch Protocol Installer Modal -->
 <div class="modal" id="batch-install-modal">
-    <div class="modal-card" style="max-width: 650px; background: #ffffff;">
+    <div class="modal-card" style="max-width: 650px;">
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="download-cloud" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
@@ -295,14 +295,14 @@
                 <!-- Injected via JS based on loaded protocols -->
             </div>
 
-            <div id="batch-install-progress" style="display: none; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; font-size: 12px; font-family: 'JetBrains Mono'; color: #334155; max-height: 140px; overflow-y: auto;">
+            <div id="batch-install-progress" style="display: none; background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; font-size: 12px; font-family: 'JetBrains Mono'; color: var(--text-main); max-height: 140px; overflow-y: auto;">
                 <!-- Live progress messages -->
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px;">
-                <button type="button" class="btn btn-secondary" onclick="closeBatchInstallModal()">انصراف</button>
+                <button type="button" class="btn btn-secondary" onclick="closeBatchInstallModal()" data-i18n="modal_btn_cancel">انصراف</button>
                 <button type="button" class="btn btn-primary" id="start-batch-install-btn" onclick="executeBatchProtocolInstall()">
-                    <i data-lucide="play" class="btn-icon"></i> شروع نصب موارد انتخاب‌شده
+                    <i data-lucide="play" class="btn-icon"></i> <span data-i18n="modal_btn_start_install">شروع نصب موارد انتخاب‌شده</span>
                 </button>
             </div>
         </div>
@@ -312,26 +312,26 @@
 <!-- Action Confirmation Modal (پاپ‌آپ اختصاصی تایید یا رد عملیات) -->
 <div class="modal" id="action-confirm-modal">
     <div class="modal-card" style="max-width: 480px; border-radius: 16px;">
-        <header class="modal-header" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 16px 20px;">
+        <header class="modal-header" style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); padding: 16px 20px;">
             <div style="display:flex; align-items:center; gap:12px;">
                 <div id="confirm-modal-icon-wrap" style="width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(239, 68, 68, 0.1);">
                     <i data-lucide="alert-triangle" id="confirm-modal-icon" style="width: 20px; height: 20px; color: #dc2626;"></i>
                 </div>
                 <div>
-                    <h3 class="modal-title" id="confirm-modal-title" style="font-size: 15.5px; font-weight: 700; color: #0f172a; margin: 0;">تایید عملیات</h3>
-                    <p id="confirm-modal-subtitle" style="font-size: 11.5px; color: #64748b; margin: 0; margin-top: 2px;">لطفاً تصمیم خود را تایید یا لغو کنید</p>
+                    <h3 class="modal-title" id="confirm-modal-title" style="font-size: 15.5px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="confirm_modal_title">تایید عملیات</h3>
+                    <p id="confirm-modal-subtitle" style="font-size: 11.5px; color: var(--text-muted); margin: 0; margin-top: 2px;" data-i18n="confirm_modal_subtitle">لطفاً تصمیم خود را تایید یا لغو کنید</p>
                 </div>
             </div>
             <button class="modal-close" onclick="closeConfirmModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
-            <div id="confirm-modal-body" style="font-size: 13.5px; color: #334155; line-height: 1.7; margin-bottom: 24px;">
+            <div id="confirm-modal-body" style="font-size: 13.5px; color: var(--text-main); line-height: 1.7; margin-bottom: 24px;">
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()" id="confirm-modal-cancel-btn" style="min-width: 110px; color: #475569 !important;">
+                <button type="button" class="btn btn-secondary" onclick="closeConfirmModal()" id="confirm-modal-cancel-btn" style="min-width: 110px;" data-i18n="confirm_btn_cancel">
                     انصراف (رد)
                 </button>
-                <button type="button" class="btn" id="confirm-modal-ok-btn" style="min-width: 140px;">
+                <button type="button" class="btn" id="confirm-modal-ok-btn" style="min-width: 140px;" data-i18n="confirm_btn_ok">
                     تایید و ادامه
                 </button>
             </div>
@@ -399,7 +399,7 @@
                     </div>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 20px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 20px;">
                     <div style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 8px;">محدودیت ساعت و روزهای دسترسی (Login-Time)</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                         <div>
@@ -501,7 +501,7 @@
                     </div>
                 </div>
 
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                     <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                         <div>
@@ -551,7 +551,7 @@
         </header>
         <div style="padding: 24px;">
             <input type="hidden" id="assign-cert-id">
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 16px;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
                 <span style="font-size: 11px; color: var(--text-muted); display: block;">گواهی انتخاب‌شده:</span>
                 <strong id="assign-cert-title" style="font-size: 13.5px; color: #1e293b; display: block; margin-top: 2px;">--</strong>
             </div>
@@ -593,7 +593,7 @@
                     <span style="font-size:11px; color:#7e22ce; background:#f3e8ff; padding:2px 8px; border-radius:6px;">iOS / Android</span>
                 </label>
 
-                <label style="display:flex; align-items:center; justify-content:space-between; background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:10px; cursor:pointer;">
+                <label style="display:flex; align-items:center; justify-content:space-between; background: var(--bg-base); border: 1px solid var(--border-glow); padding:10px 14px; border-radius:10px; cursor:pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="assign-proto-chk" value="panel">
                         <strong style="font-size:13px; color:#334155;">پنل وب مدیریت (HTTPS Web)</strong>
@@ -627,57 +627,57 @@
             <div style="margin-bottom: 18px;">
                 <label class="form-label" style="font-weight: 700; margin-bottom: 8px; display:block;">نوع پروتکل تونل (Tunnel Protocol):</label>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-gre">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-gre">
                         <input type="radio" name="tunnel_type" value="gre" checked onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#4338ca;">GRE</strong>
                         <span style="font-size:10px; color:#64748b;">لایه ۳ میکروتیک</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ipip">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ipip">
                         <input type="radio" name="tunnel_type" value="ipip" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0369a1;">IPIP</strong>
                         <span style="font-size:10px; color:#64748b;">سبک و کم‌مصرف</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-vxlan">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-vxlan">
                         <input type="radio" name="tunnel_type" value="vxlan" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#047857;">VXLAN / EoIP</strong>
                         <span style="font-size:10px; color:#64748b;">لایه ۲ روی UDP</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-wireguard">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-wireguard">
                         <input type="radio" name="tunnel_type" value="wireguard" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#b45309;">WireGuard</strong>
                         <span style="font-size:10px; color:#64748b;">همتابه‌همتا P2P</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-l2tp">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-l2tp">
                         <input type="radio" name="tunnel_type" value="l2tp" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#dc2626;">L2TP/IPsec</strong>
                         <span style="font-size:10px; color:#64748b;">Site-to-Site</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-openvpn">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-openvpn">
                         <input type="radio" name="tunnel_type" value="openvpn" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#d97706;">OpenVPN</strong>
                         <span style="font-size:10px; color:#64748b;">تونل P2P ثابت</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sstp">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sstp">
                         <input type="radio" name="tunnel_type" value="sstp" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0284c7;">SSTP</strong>
                         <span style="font-size:10px; color:#64748b;">SSL VPN میکروتیک</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6gre">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6gre">
                         <input type="radio" name="tunnel_type" value="ip6gre" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#6366f1;">IP6GRE</strong>
                         <span style="font-size:10px; color:#64748b;">GRE روی IPv6</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6tnl">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6tnl">
                         <input type="radio" name="tunnel_type" value="ip6tnl" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0891b2;">IP6TNL</strong>
                         <span style="font-size:10px; color:#64748b;">IPIP روی IPv6</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sit">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sit">
                         <input type="radio" name="tunnel_type" value="sit" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#7e22ce;">6in4 SIT</strong>
                         <span style="font-size:10px; color:#64748b;">IPv6 روی IPv4</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-pptp">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-pptp">
                         <input type="radio" name="tunnel_type" value="pptp" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#64748b;">PPTP</strong>
                         <span style="font-size:10px; color:#64748b;">کلاسیک</span>
@@ -837,7 +837,7 @@
             </div>
 
             <!-- Checkbox Options -->
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px;">
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px 14px;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#1e293b;">
                     <input type="checkbox" id="tun-opt-nat" checked>
                     <strong>فعال‌سازی خودکار NAT Masquerade (امکان روت و انتقال اینترنت)</strong>
@@ -879,42 +879,42 @@
                         <strong style="display:block; font-size:13px; color:#065f46;">GOST v3</strong>
                         <span style="font-size:10px; color:#64748b;">WSS, TLS, Relay</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-wstunnel">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-wstunnel">
                         <input type="radio" name="adv_tool" value="wstunnel" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#0369a1;">WSTunnel</strong>
                         <span style="font-size:10px; color:#64748b;">WebSocket v11</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rtt">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rtt">
                         <input type="radio" name="adv_tool" value="rtt" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#b45309;">RTT (ReverseTLS)</strong>
                         <span style="font-size:10px; color:#64748b;">تونل معکوس TLS</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-udp2raw">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-udp2raw">
                         <input type="radio" name="adv_tool" value="udp2raw" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#dc2626;">UDP2Raw</strong>
                         <span style="font-size:10px; color:#64748b;">Fake TCP فریب فیلتر</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-chisel">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-chisel">
                         <input type="radio" name="adv_tool" value="chisel" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#4f46e5;">Chisel</strong>
                         <span style="font-size:10px; color:#64748b;">HTTP/WS over SSH</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-phantun">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-phantun">
                         <input type="radio" name="adv_tool" value="phantun" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#0284c7;">Phantun</strong>
                         <span style="font-size:10px; color:#64748b;">UDP to TCP سبک</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rathole">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rathole">
                         <input type="radio" name="adv_tool" value="rathole" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#7e22ce;">Rathole</strong>
                         <span style="font-size:10px; color:#64748b;">Rust Reverse Proxy</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-frp">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-frp">
                         <input type="radio" name="adv_tool" value="frp" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#334155;">FRP</strong>
                         <span style="font-size:10px; color:#64748b;">Fast Reverse Proxy</span>
                     </label>
-                    <label style="border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-kcptun">
+                    <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-kcptun">
                         <input type="radio" name="adv_tool" value="kcptun" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#059669;">Kcptun</strong>
                         <span style="font-size:10px; color:#64748b;">UDP با FEC شتابدهنده</span>
@@ -923,7 +923,7 @@
             </div>
 
             <!-- Role Selector: Server (خارج) vs Client (ایران) -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
                 <label class="form-label" style="font-size:12px; font-weight:700; margin-bottom:6px;">نقش این سرور در این سناریو (Role):</label>
                 <div style="display:flex; gap:16px;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
@@ -1056,7 +1056,7 @@
                 </div>
                 <!-- Script Tabs -->
                 <div style="display:flex; gap:6px; background:#f1f5f9; padding:3px; border-radius:8px;">
-                    <button type="button" class="btn btn-sm" id="btn-tab-ros7" onclick="switchScriptTab('ros7')" style="font-size:11.5px; padding:4px 10px; background:#ffffff; box-shadow:0 1px 2px rgba(0,0,0,0.05); font-weight:700; color:#0284c7;">
+                    <button type="button" class="btn btn-sm" id="btn-tab-ros7" onclick="switchScriptTab('ros7')" style="font-size:11.5px; padding:4px 10px; background: var(--bg-surface); box-shadow:0 1px 2px rgba(0,0,0,0.05); font-weight:700; color:#0284c7;">
                         MikroTik v7
                     </button>
                     <button type="button" class="btn btn-sm" id="btn-tab-ros6" onclick="switchScriptTab('ros6')" style="font-size:11.5px; padding:4px 10px; color:#64748b;">

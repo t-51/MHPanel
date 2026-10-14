@@ -47,33 +47,33 @@
 
             <!-- Stats Grid -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
                     <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-port">5300</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
                     <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-domain">t.example.com</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Upstream)</div>
                     <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-upstream">127.0.0.1:22 (SSH)</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
                     <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="dnstt-stat-conns">0</div>
                 </div>
             </div>
 
             <!-- Public Key Box -->
-            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:8px; padding:12px; margin-bottom:16px;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; margin-bottom:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                     <label class="form-label" style="margin:0; font-weight:600; font-size:12px;" data-i18n="dnstt_pubkey">کلید عمومی سرور (Public Key)</label>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;">
                         <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> کپی کلید
                     </button>
                 </div>
-                <div id="dnstt-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background:#fff; padding:8px; border-radius:6px; border:1px solid rgba(0,0,0,0.08);">-</div>
+                <div id="dnstt-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background: var(--bg-surface); padding:8px; border-radius:6px; border: 1px solid var(--border-glow);">-</div>
             </div>
 
             <!-- Configuration Form -->
@@ -141,33 +141,33 @@
 
             <!-- Stats Grid -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
                     <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-port">5353</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
                     <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-domain">v.example.com</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Upstream)</div>
                     <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-upstream">127.0.0.1:22 (SSH)</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
                     <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="vaydns-stat-conns">0</div>
                 </div>
             </div>
 
             <!-- Public Key Box -->
-            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:8px; padding:12px; margin-bottom:16px;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; margin-bottom:16px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                     <label class="form-label" style="margin:0; font-weight:600; font-size:12px;">کلید عمومی VayDNS (Public Key)</label>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;">
                         <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> کپی کلید
                     </button>
                 </div>
-                <div id="vaydns-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background:#fff; padding:8px; border-radius:6px; border:1px solid rgba(0,0,0,0.08);">-</div>
+                <div id="vaydns-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background: var(--bg-surface); padding:8px; border-radius:6px; border: 1px solid var(--border-glow);">-</div>
             </div>
 
             <!-- Configuration Form -->
@@ -239,25 +239,25 @@
 
             <!-- Stats Grid -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="port">پورت شنود (UDP)</div>
                     <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-port">5354</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="domain">دامنه NS</div>
                     <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-domain">s.example.com</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="upstream">مقصد هدایت (Target)</div>
                     <div style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-upstream">127.0.0.1:22</div>
                 </div>
-                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.05);">
+                <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;" data-i18n="online_conns">اتصالات فعال</div>
                     <div style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;" id="slipstream-stat-conns">0</div>
                 </div>
             </div>
 
-            <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.04); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
                 <i data-lucide="zap" style="width:14px; height:14px; color:#f59e0b; vertical-align:middle; margin-left:4px;"></i>
                 پروتکل <strong>Slipstream</strong> از معماری QUIC چندمسیره بهره می‌برد که هدر آن تا ۶۰٪ نسبت به DNSTT کوچک‌تر بوده و دارای کنترل ازدحام اختصاصی برای دی‌ان‌اس سرورهای Rate-limited است.
             </div>

@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- SSTP Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(14, 165, 233, 0.25);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(14, 165, 233, 0.25);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پیشرفته پروتکل SSTP و بای‌پس ضد فیلترینگ
+                            <span data-i18n="sstp_title">مرکز مدیریت پیشرفته پروتکل SSTP و بای‌پس ضد فیلترینگ</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             تونل امن SSL/TLS مایکروسافت، ۳ روش اتصال و بای‌پس فیلترینگ، سازگار با کلاینت داخلی ویندوز، اتصال به ردیوس سراسری و مولتی‌پلکسر پورت ۴۴۳
@@ -19,26 +19,26 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span id="sstp-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                        <span class="status-dot active"></span> <span data-i18n="proto_checking_status">در حال بررسی وضعیت...</span>
                     </span>
                 </div>
             </div>
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">روش ۱: پورت مستقیم SSTP</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port">4443 (یا 5555)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">روش ۲: اشتراک پورت ۴۴۳ (SNI)</div>
                     <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-sni">sstp.kigaping.com:443</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">روش ۳: پورت‌های TLS کمکی (Stunnel)</div>
                     <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-stunnel-ports">9443, 2087</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">احراز هویت و ردیوس</div>
                     <div style="font-weight: 700; color: #d97706; font-size: 12px; margin-top: 3px;" id="sstp-stat-auth">FreeRADIUS + MS-CHAPv2</div>
                 </div>
@@ -53,13 +53,13 @@
                     <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بروزرسانی وضعیت و نشست‌ها
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('sstp')" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده SSTP
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span> SSTP
                 </button>
             </div>
         </div>
 
         <!-- 3 Bypass & Connection Methods Hub -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div>
                     <h3 class="config-title" style="margin:0; font-size:16px;">
@@ -75,7 +75,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px;">
                 
                 <!-- Method 1: Direct MS-SSTP -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">⚡ روش ۱: اتصال مستقیم مایکروسافت (Direct SSTP)</strong>
@@ -99,7 +99,7 @@
                 </div>
 
                 <!-- Method 2: HAProxy 443 SNI Multiplexing -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🌐 روش ۲: پورت ۴۴۳ با تفکیک دامنه (SNI Bypass)</strong>
@@ -123,7 +123,7 @@
                 </div>
 
                 <!-- Method 3: Multi-Port TLS Stunnel -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🔒 روش ۳: پورت‌های امن لایه TLS (Stunnel Multi-Port)</strong>
@@ -150,7 +150,7 @@
         </div>
 
         <!-- Admin Advanced Server Configuration & Tuning Card -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(2, 132, 199, 0.2);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(2, 132, 199, 0.2);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <div style="width:36px; height:36px; border-radius:10px; background:#e0f2fe; color:#0284c7; display:flex; align-items:center; justify-content:center;">
@@ -228,7 +228,7 @@
                     </div>
 
                     <!-- SSTP Encryption & Ciphers Suite Section -->
-                    <div style="grid-column: 1 / -1; background: #f8fafc; border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 12px; padding: 16px; margin-top: 4px;">
+                    <div style="grid-column: 1 / -1; background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 12px; padding: 16px; margin-top: 4px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom: 14px;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <div style="width:32px; height:32px; border-radius:8px; background:rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
@@ -295,7 +295,7 @@
         <section style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: flex-start;">
             
             <!-- Accounts List Card -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); min-height: 400px;">
+            <div class="glass-card config-card" style="min-height: 400px;">
                 <div class="config-header" style="margin-bottom: 16px; justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="users" style="color: #0284c7; width: 20px; height: 20px;"></i>
@@ -315,7 +315,7 @@
             </div>
 
             <!-- Create Account Card -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
@@ -339,7 +339,7 @@
                         <label class="form-label" style="font-weight:600; font-size:12px;">تاریخ انقضا - اختیاری</label>
                         <input class="form-input" style="padding-left:14px;" type="date" id="sstp-client-expire">
                     </div>
-                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.04);">
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                         <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#0284c7;"></i>
                         کاربر همزمان در پایگاه داده ردیوس سراسری، سکرت‌های MS-CHAPv2 و کلیه موتورهای SSTP ساخته شده و بلافاصله آماده اتصال خواهد بود.
                     </div>
@@ -351,7 +351,7 @@
         </section>
 
         <!-- Active Sessions Manager -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 16px; justify-content:space-between;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="activity" style="color: #0284c7; width: 20px; height: 20px;"></i>

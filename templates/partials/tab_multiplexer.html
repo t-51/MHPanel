@@ -89,7 +89,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <label class="form-label" style="margin: 0; font-weight: 600;">پورت‌های ورودی فعال (Listening Ports):</label>
-                <div id="mpx-listen-ports-container" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 42px; padding: 10px 14px; background: rgba(0,0,0,0.02); border: 1px solid rgba(0,0,0,0.08); border-radius: 10px;">
+                <div id="mpx-listen-ports-container" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 42px; padding: 10px 14px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px;">
                     <!-- Port tags rendered dynamically -->
                 </div>
 
@@ -135,7 +135,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 16px;" id="mpx-protocols-list">
                 <!-- 1. Web Server / MHPanel -->
-                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -174,7 +174,7 @@
                 </div>
 
                 <!-- 2. Cisco AnyConnect (OCServ) -->
-                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -205,7 +205,7 @@
                 </div>
 
                 <!-- 3. SSH Stunnel / TLS -->
-                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -235,7 +235,7 @@
                 </div>
 
                 <!-- 4. OpenVPN TCP -->
-                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -265,7 +265,7 @@
                 </div>
 
                 <!-- 5. SSTP -->
-                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+                <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -330,7 +330,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 18px;">
                 <!-- WireGuard UDP Multiport -->
-                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px;">
+                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -354,7 +354,7 @@
                 </div>
 
                 <!-- AmneziaWG UDP Multiport -->
-                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px;">
+                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">
@@ -378,7 +378,7 @@
                 </div>
 
                 <!-- Cisco DTLS UDP Multiport -->
-                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 18px;">
+                <div class="mpx-udp-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <label class="switch">

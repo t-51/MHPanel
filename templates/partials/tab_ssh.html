@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- SSH Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(99, 102, 241, 0.2);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پیشرفته پروتکل SSH و بای‌پس ضد فیلترینگ
+                            <span data-i18n="ssh_title">مرکز مدیریت پیشرفته پروتکل SSH و بای‌پس ضد فیلترینگ</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             اتصال امن متصل به ردیوس سراسری سراسری، وب‌سوکت (WS/WSS)، تونل امن TLS (Stunnel)، اینترنت ملی SlowDNS و BadVPN UDPGW
@@ -19,26 +19,26 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span id="ssh-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                        <span class="status-dot active"></span> <span data-i18n="proto_checking_status">در حال بررسی وضعیت...</span>
                     </span>
                 </div>
             </div>
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های SSH مستقیم</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-direct-ports">22, 2053, 443</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های وب‌سوکت (WS/WSS)</div>
                     <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-ws-ports">80, 443, 8088 (/ssh)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های TLS / SSL (Stunnel)</div>
                     <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-tls-ports">9443, 2087, 443</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت صوتی BadVPN UDPGW</div>
                     <div style="font-weight: 700; color: #d97706; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-udpgw-port">7300 (فعال)</div>
                 </div>
@@ -59,7 +59,7 @@
         </div>
 
         <!-- Bypass Methods & Quick Payloads Hub -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div>
                     <h3 class="config-title" style="margin:0; font-size:16px;">
@@ -75,7 +75,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 16px;">
                 
                 <!-- Card 1: Direct SSH & SOCKS5 -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">⚡ اتصال مستقیم و پروکسی ساکس ۵</strong>
@@ -94,7 +94,7 @@
                 </div>
 
                 <!-- Card 2: WebSocket (WS / WSS) CDN Bypass -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🌐 وب‌سوکت و پروکسی CDN (WS/WSS)</strong>
@@ -113,7 +113,7 @@
                 </div>
 
                 <!-- Card 3: TLS / SSL (Stunnel) -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🔒 تونل رمزنگاری TLS / SSL (Stunnel)</strong>
@@ -132,7 +132,7 @@
                 </div>
 
                 <!-- Card 4: SlowDNS (dnstt) -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🛡️ تونل اینترنت ملی SlowDNS (dnstt)</strong>
@@ -153,7 +153,7 @@
                 </div>
 
                 <!-- Card 5: BadVPN UDPGW Forwarder -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">🎮 پورت گیمینگ و تماس BadVPN UDPGW</strong>
@@ -172,7 +172,7 @@
                 </div>
 
                 <!-- Card 6: Complete Config Template -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
                             <strong style="color:var(--text-main); font-size:14px;">📋 مشخصات کلی سرور</strong>
@@ -194,7 +194,7 @@
         </div>
 
         <!-- Client Setup & Authentication Error Guide Banner -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(234, 88, 12, 0.25);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(234, 88, 12, 0.25);">
             <div class="config-header" style="margin-bottom: 14px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <div style="width:36px; height:36px; border-radius:10px; background:#fff7ed; color:#ea580c; display:flex; align-items:center; justify-content:center;">
@@ -223,7 +223,7 @@
                 <!-- 4 Valid Working Connection Methods -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
                     <!-- Method 1: Port 9443 or 2087 (Recommended) -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:14px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
                         <div style="font-weight:700; color:#059669; margin-bottom:6px;">
                             ✅ روش ۱: پورت مستقیم Stunnel (پیشنهادی و ۱۰۰٪ تست شده)
                         </div>
@@ -240,7 +240,7 @@
                     </div>
 
                     <!-- Method 2: Port 443 with Dedicated SNI -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:14px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
                         <div style="font-weight:700; color:#2563eb; margin-bottom:6px;">
                             ⚡ روش ۲: اتصال به پورت ۴۴۳ با تفکیک SNI
                         </div>
@@ -256,7 +256,7 @@
                     </div>
 
                     <!-- Method 3: WebSocket (WS / WSS) CDN -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:14px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
                         <div style="font-weight:700; color:#7c3aed; margin-bottom:6px;">
                             🌐 روش ۳: حالت وب‌سوکت (WS / WSS) برای CDN و HTTP Custom
                         </div>
@@ -272,7 +272,7 @@
                     </div>
 
                     <!-- Method 4: Direct SSH without TLS -->
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:10px; padding:14px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
                         <div style="font-weight:700; color:#b45309; margin-bottom:6px;">
                             🔌 روش ۴: اتصال مستقیم Direct SSH (بدون لایه TLS)
                         </div>
@@ -293,7 +293,7 @@
         <section style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: flex-start;">
             
             <!-- Accounts List Card -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); min-height: 400px;">
+            <div class="glass-card config-card" style="min-height: 400px;">
                 <div class="config-header" style="margin-bottom: 16px; justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
@@ -313,7 +313,7 @@
             </div>
 
             <!-- Create Account Card -->
-            <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+            <div class="glass-card config-card">
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
@@ -337,7 +337,7 @@
                         <label class="form-label" style="font-weight:600; font-size:12px;">تاریخ انقضا - اختیاری</label>
                         <input class="form-input" style="padding-left:14px;" type="date" id="ssh-client-expire">
                     </div>
-                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background:#f8fafc; padding:10px; border-radius:8px; border:1px solid rgba(0,0,0,0.04);">
+                    <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
                         <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#4f46e5;"></i>
                         کاربر همزمان در پایگاه داده ردیوس سراسری و سیستم‌عامل لینوکس با شل ایزوله (Jailed) ساخته شده و امکان دسترسی به فایل‌های سرور را نخواهد داشت.
                     </div>
@@ -349,7 +349,7 @@
         </section>
 
         <!-- Active Sessions Manager -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 16px; justify-content:space-between;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="activity" style="color: #2563eb; width: 20px; height: 20px;"></i>

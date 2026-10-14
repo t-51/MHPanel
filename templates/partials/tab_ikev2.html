@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- IKEv2 Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(99, 102, 241, 0.2);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پروتکل IKEv2 / IPsec (StrongSwan)
+                            <span data-i18n="ikev2_title">مرکز مدیریت پروتکل IKEv2 / IPsec (StrongSwan)</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             پروتکل نیتیو، امن و استاندارد سازگار با انواع سیستم‌عامل‌های ویندوز، iOS، اندروید و مک بدون نیاز به اپلیکیشن جانبی
@@ -19,26 +19,26 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span id="ikev2-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                        <span class="status-dot active"></span> <span data-i18n="proto_checking_status">در حال بررسی وضعیت...</span>
                     </span>
                 </div>
             </div>
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">پورت‌های پروتکل</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">UDP 500 / 4500 (NAT-T)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">شناسه سرور (Server ID)</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ikev2-top-server-id">212.227.143.16</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
                     <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ikev2-top-auth">EAP-RADIUS (ردیوس سراسری)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;">سرتفیکیت سرور</div>
                     <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ikev2-top-cert-status">فعال و معتبر</div>
                 </div>
@@ -47,13 +47,13 @@
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartIkev2Service()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_restart">راه‌اندازی مجدد سرویس (Restart)</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="reloadIkev2Config()" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> ریلود کانفیگ (ipsec update)
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('ikev2')" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span>
                 </button>
             </div>
         </div>
@@ -73,7 +73,7 @@
         </div>
 
         <!-- Proposals & Policy Settings Form (Checkbox-based Matrix) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -88,7 +88,7 @@
 
             <form id="ikev2-policy-form" onsubmit="saveIkev2Config(event)">
                 <!-- Preset Templates Selection -->
-                <div style="background: #f8fafc; border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
                     <label class="form-label" style="font-weight:700; color:#4f46e5; margin-bottom:8px;">
                         <i data-lucide="wand-2" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
                         پروفایل‌های آماده و سازگار با سیستم‌عامل‌ها (Quick Proposal Presets)
@@ -114,7 +114,7 @@
                 </div>
 
                 <!-- Phase 1 (IKE) Checkbox Matrix -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                         <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
                             <i data-lucide="key" style="width:16px; height:16px; color:#4f46e5; vertical-align:middle; margin-left:4px;"></i>
@@ -164,7 +164,7 @@
                 </div>
 
                 <!-- Phase 2 (ESP) Checkbox Matrix -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:18px; margin-bottom:18px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                         <h4 style="font-size:14px; font-weight:700; color:var(--text-main); margin:0;">
                             <i data-lucide="lock" style="width:16px; height:16px; color:#059669; vertical-align:middle; margin-left:4px;"></i>
@@ -250,7 +250,7 @@
                 </div>
 
                 <!-- Advanced Switches: Fragmentation, NAT-T, DPD -->
-                <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:16px; margin-bottom:24px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; margin-bottom:24px;">
                     <h4 style="font-size:13px; font-weight:700; margin-bottom:12px; color:var(--text-main);">ویژگی‌های حرفه‌ای عبور از فیلترینگ و پایداری شبکه</h4>
                     <div class="toggle-grid" style="margin-bottom:0;">
                         <div class="toggle-item">
@@ -306,7 +306,7 @@
         </div>
 
         <!-- Certificates & Server Identity Section -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -329,26 +329,26 @@
 
             <!-- Cert Details Cards -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
                     <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;" id="cert-subject-display">-</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">نام‌های جایگزین (SAN - SubjectAltName)</div>
                     <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;" id="cert-san-display">-</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">صادرکننده (Root CA)</div>
                     <div style="font-weight:700; color:var(--text-main); font-size:12px; margin-top:3px;" id="cert-issuer-display">-</div>
                 </div>
-                <div style="background:#f8fafc; padding:12px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.06);">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
                     <div style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
                     <div style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;" id="cert-expiry-display">-</div>
                 </div>
             </div>
 
             <!-- Issue New Cert Box -->
-            <div style="background: #f8fafc; border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
+            <div style="background: var(--bg-base); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
                 <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
                     صدور مجدد سرتفیکیت بر اساس دامنه یا آی‌پی جدید (Issue / Renew Certificate)
                 </h4>
@@ -365,7 +365,7 @@
         </div>
 
         <!-- OS Profiles & Client Connection Guide -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">
@@ -379,7 +379,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px;">
                 
                 <!-- Windows 10/11 (Auto Installer & Manual Guide) -->
-                <div style="background: #f8fafc; border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
@@ -411,7 +411,7 @@
                 </div>
 
                 <!-- Apple iOS / macOS -->
-                <div style="background: #f8fafc; border: 1px solid rgba(30, 41, 59, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(30, 41, 59, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="apple" style="width:20px; height:20px; color:#1e293b;"></i>
@@ -438,7 +438,7 @@
                 </div>
 
                 <!-- Android & Client Certificate -->
-                <div style="background: #f8fafc; border: 1px solid rgba(22, 163, 74, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                <div style="background: var(--bg-base); border: 1px solid rgba(22, 163, 74, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
                     <div>
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
                             <i data-lucide="bot" style="width:20px; height:20px; color:#16a34a;"></i>
@@ -467,7 +467,7 @@
         </div>
 
         <!-- Local Accounts Management Card (Fallback when RADIUS is not used) -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95);">
+        <div class="glass-card config-card">
             <div class="config-header" style="margin-bottom: 20px;">
                 <div>
                     <h3 class="config-title">

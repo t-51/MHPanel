@@ -39,6 +39,9 @@
         if (loginIcon) {
             loginIcon.setAttribute("data-lucide", theme === "dark" ? "sun" : "moon");
         }
+        if (typeof updateChartsTheme === "function") {
+            updateChartsTheme(theme);
+        }
         if (typeof lucide !== "undefined") {
             lucide.createIcons();
         }
@@ -279,7 +282,112 @@
             servers_col_addr: "آدرس سرور",
             servers_col_port: "پورت SSH",
             servers_col_user: "نام کاربری",
-            servers_col_actions: "عملیات"
+            servers_col_actions: "عملیات",
+// Chart Labels
+            chart_cpu: "مصرف پردازنده (CPU %)",
+            chart_ram: "مصرف رم (RAM %)",
+            chart_rx: "دانلود (Rx) KB/s",
+            chart_tx: "آپلود (Tx) KB/s",
+
+            // Dynamic overview states
+            loading_cores: "در حال دریافت بار پردازشی هسته‌ها...",
+            loading_traffic: "در حال بارگذاری ترافیک پروتکل‌ها...",
+            loading_sec_logs: "در حال دریافت آخرین لاگ‌ها و رویدادهای امنیتی سرور...",
+            nav_menu_title: "منوی ناوبری پنل",
+
+            // Protocol Common Stats & Actions
+            proto_active_badge: "فعال و آنلاین",
+            proto_inactive_badge: "متوقف",
+            proto_uninstalled_badge: "نصب نشده",
+            proto_checking_status: "در حال بررسی وضعیت...",
+            proto_stat_port_proto: "پورت و پروتکل فعال",
+            proto_stat_camo: "حالت ضد فیلترینگ (Camouflage)",
+            proto_stat_auth: "احراز هویت کاربران",
+            proto_stat_sessions: "سشن‌های آنلاین فعلی",
+            proto_stat_active_port: "پورت فعال (Active Port)",
+            proto_stat_connections: "اتصالات آنلاین",
+            proto_action_restart: "راه‌اندازی مجدد سرویس (Restart)",
+            proto_action_reload: "بازخوانی کانفیگ بدون قطعی (Reload)",
+            proto_action_logs: "مشاهده لاگ‌های زنده",
+            proto_action_save: "ذخیره و اعمال تغییرات",
+            proto_subtab_config: "تنظیمات جامع و ضد فیلترینگ",
+            proto_subtab_users: "مدیریت کاربران و اکانت‌ها",
+            proto_subtab_sessions: "سشن‌های آنلاین و مانیتورینگ",
+            proto_subtab_guides: "راهنمای اتصال و کلاینت‌ها",
+            proto_subtab_addons: "افزونه‌های پیشرفته",
+            proto_table_user: "نام کاربری",
+            proto_table_ip: "آی‌پی کلاینت",
+            proto_table_duration: "مدت اتصال",
+            proto_table_traffic: "ترافیک مصرفی",
+            proto_table_actions: "عملیات",
+            proto_table_empty_sessions: "در حال حاضر هیچ کلاینتی متصل نیست",
+            proto_table_empty_users: "هیچ کاربری ثبت نشده است.",
+
+            // Radar Tab
+            radar_title: "رادار سلامت اتصال، فیلترینگ و وضعیت شبکه سرور",
+            radar_subtitle: "بررسی بلادرنگ وضعیت سرور در اپراتورهای همراه و ثابت ایران، سلامت دیتاسنترها و پورت‌های فعال",
+            radar_last_scan: "آخرین اسکن:",
+            radar_scan_waiting: "در انتظار بررسی",
+            radar_btn_scan: "اجرای اسکن جامع رادار",
+            radar_btn_copy: "کپی گزارش برای پشتیبانی",
+            radar_stat_censorship: "شاخص سلامت عبور از فیلترینگ",
+            radar_stat_iran_isps: "اپراتورهای فعال کشور",
+            radar_stat_avg_ping: "میانگین تاخیر پینگ",
+            radar_stat_active_ports: "پورت‌های پاسخگو",
+            radar_table_isp_title: "وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه ایران (Iran Telecom & ISPs)",
+            radar_col_operator: "نام اپراتور و نوع شبکه",
+            radar_col_ping: "تاخیر (Ping)",
+            radar_col_loss: "پکت لوس (Loss %)",
+            radar_col_status: "وضعیت دسترسی",
+            radar_col_dpi: "بررسی DPI و فیلترینگ",
+            radar_global_dc_title: "وضعیت ارتباط با دیتاسنترها و هاب‌های بین‌المللی اینترنت (Global Datacenters)",
+            radar_col_dest: "مقصد و دیتاسنتر",
+            radar_col_region: "منطقه جغرافیایی",
+            radar_col_transit: "کیفیت ترانزیت",
+            radar_port_matrix_title: "رادار پورت‌های فعال پروتکل‌های سرور (VPN Protocols Port Matrix)",
+            radar_dpi_analysis_title: "تحلیل هوشمند DPI، مسمومیت DNS و ضد فیلترینگ (Deep Filtering Inspection)",
+            radar_system_verdict: "نتیجه و تشخیص تحلیلی سیستم (System Verdict):",
+
+            // Protocol Titles & Subtitles
+            ocserv_title: "مرکز مدیریت پروتکل OpenConnect / Cisco AnyConnect (OCServ)",
+            ocserv_desc: "پروتکل صنعتی و فوق‌العاده پایدار سیسکو سازگار با تمامی سیستم‌عامل‌ها، مجهز به بای‌پس پیشرفته DPI و ردیوس",
+            ikev2_title: "مرکز مدیریت پروتکل IKEv2 / IPsec (StrongSwan)",
+            ikev2_desc: "پروتکل نیتیو، امن و استاندارد سازگار با انواع سیستم‌عامل‌های موبایل و دسکتاپ با پایداری حداکثری",
+            l2tp_title: "مرکز مدیریت پروتکل L2TP (L2TPv2 / L2TPv3)",
+            l2tp_desc: "پشتیبانی کامل از L2TPv2 بر بستر IPsec و تونل L2TPv3 با احراز هویت متمرکز ردیوس سراسری",
+            sstp_title: "مرکز مدیریت پیشرفته پروتکل SSTP و بای‌پس ضد فیلترینگ",
+            sstp_desc: "تونل امن SSL/TLS مایکروسافت، ۳ روش اتصال و بای‌پس فیلترینگ، سازگار با کلاینت داخلی ویندوز",
+            ssh_title: "مرکز مدیریت پیشرفته پروتکل SSH و بای‌پس ضد فیلترینگ",
+            ssh_desc: "اتصال امن متصل به ردیوس سراسری، وب‌سوکت (WS/WSS)، تونل امن TLS، و اینترنت ملی SlowDNS",
+            ovpn_title: "مرکز مدیریت پروتکل OpenVPN (Dual-Stack UDP/TCP)",
+            ovpn_desc: "سرویس دوگانه UDP/TCP متصل به پایگاه احراز هویت متمرکز FreeRADIUS و کلاینت‌های استاندارد",
+            ovpn_addons_title: "افزونه‌ها و ابزارهای پیشرفته OpenVPN (Addons & Bypass Tools)",
+            ovpn_addons_desc: "افزونه‌های پنهان‌سازی ترافیک (Anti-DPI Scramble)، شتاب‌دهنده بسته‌های گمشده (UDPspeeder FEC) و مدیریت امنیت",
+            wg_title: "مرکز مدیریت پروتکل WireGuard استاندارد",
+            wg_desc: "پروتکل فوق‌سریع WireGuard استاندارد برای اتصال در کلاینت‌های رسمی WireGuard با سرعت حداکثری",
+            awg_title: "مرکز مدیریت پروتکل AmneziaWG (ضد فیلترینگ پیشرفته)",
+            awg_desc: "نگارش پیشرفته وایرگارد مجهز به فاکتورهای مبهم‌سازی Jc, Jmin, Jmax, S1, S2, H1-H4 جهت دور زدن DPI",
+            mtproto_title: "مرکز مدیریت پروکسی تلگرام (MTProto Official Proxy)",
+            mtproto_desc: "پروکسی رسمی تلگرام با پشتیبانی از کانال اسپانسر، سکرت‌های ضد فیلتر و رمزنگاری TLS Fake-Domain",
+            mpx_title: "مرکز مالتی‌پلکسر پورت‌های سرور (Port Multiplexer - sslh)",
+            mpx_desc: "اشتراک‌گذاری همزمان چند پروتکل روی پورت واحد ۴۴۳ با تفکیک هوشمند پکت‌ها",
+            radius_title: "مدیریت یکپارچه ردیوس و کاربران سراسری (FreeRADIUS Hub)",
+            radius_desc: "سیستم مدیریت جامع کاربران، بسته‌ها، نشست‌های آنلاین و احراز هویت متمرکز تمامی پروتکل‌ها",
+            ssl_title: "مدیریت و صدور گواهی امنیتی HTTPS پنل (SSL & Certificates)",
+            ssl_desc: "دریافت گواهی رایگان Let's Encrypt برای دامنه، صدور سرتیفیکیت امن با IP SAN برای آدرس IP",
+            tunnels_title: "مرکز جامع تونل‌های سرور به سرور و میکروتیک (Tunnel & Bridge Hub)",
+            tunnels_desc: "مدیریت گرافیکی انواع تونل‌های استاندارد روتربورد میکروتیک و تونل‌های ضد فیلتر لینوکس",
+
+            // Modals & Confirmations
+            modal_btn_cancel: "انصراف",
+            modal_btn_save: "ذخیره تنظیمات",
+            modal_btn_confirm: "تایید و ادامه",
+            confirm_modal_title: "تایید عملیات",
+            confirm_modal_subtitle: "لطفاً تصمیم خود را تایید یا لغو کنید",
+            confirm_btn_cancel: "انصراف (رد)",
+            confirm_btn_ok: "تایید و ادامه",
+            modal_btn_start_install: "شروع نصب موارد انتخاب‌شده",
+            modal_btn_close: "بستن",
         },
         en: {
             nav_sec_dashboard: "Dashboard & Status",
@@ -486,7 +594,112 @@
             servers_col_addr: "Server Address",
             servers_col_port: "SSH Port",
             servers_col_user: "Username",
-            servers_col_actions: "Actions"
+            servers_col_actions: "Actions",
+// Chart Labels
+            chart_cpu: "CPU Usage (%)",
+            chart_ram: "RAM Usage (%)",
+            chart_rx: "Download (Rx) KB/s",
+            chart_tx: "Upload (Tx) KB/s",
+
+            // Dynamic overview states
+            loading_cores: "Fetching per-core workload...",
+            loading_traffic: "Loading protocol bandwidth...",
+            loading_sec_logs: "Fetching recent security logs...",
+            nav_menu_title: "Navigation Menu",
+
+            // Protocol Common Stats & Actions
+            proto_active_badge: "Active & Online",
+            proto_inactive_badge: "Stopped",
+            proto_uninstalled_badge: "Not Installed",
+            proto_checking_status: "Checking status...",
+            proto_stat_port_proto: "Active Port & Protocol",
+            proto_stat_camo: "Anti-Censorship (Camouflage)",
+            proto_stat_auth: "User Authentication",
+            proto_stat_sessions: "Current Online Sessions",
+            proto_stat_active_port: "Active Port",
+            proto_stat_connections: "Online Connections",
+            proto_action_restart: "Restart Service",
+            proto_action_reload: "Reload Config",
+            proto_action_logs: "View Live Logs",
+            proto_action_save: "Save & Apply Changes",
+            proto_subtab_config: "Config & Anti-DPI",
+            proto_subtab_users: "Users & Accounts",
+            proto_subtab_sessions: "Online Sessions & Monitor",
+            proto_subtab_guides: "Connection Guides & Clients",
+            proto_subtab_addons: "Advanced Addons",
+            proto_table_user: "Username",
+            proto_table_ip: "Client IP",
+            proto_table_duration: "Duration",
+            proto_table_traffic: "Traffic Used",
+            proto_table_actions: "Actions",
+            proto_table_empty_sessions: "No active clients connected right now",
+            proto_table_empty_users: "No users registered yet.",
+
+            // Radar Tab
+            radar_title: "Censorship & Connectivity Radar",
+            radar_subtitle: "Real-time inspection of server connectivity across Iranian telecom carriers, global datacenters, and VPN listening ports",
+            radar_last_scan: "Last Scan:",
+            radar_scan_waiting: "Pending Scan",
+            radar_btn_scan: "Run Radar Scan",
+            radar_btn_copy: "Copy Support Report",
+            radar_stat_censorship: "Censorship Health Score",
+            radar_stat_iran_isps: "Active Domestic ISPs",
+            radar_stat_avg_ping: "Average Ping Latency",
+            radar_stat_active_ports: "Responding Ports",
+            radar_table_isp_title: "Iran Telecom & ISPs Connectivity Status",
+            radar_col_operator: "Carrier & Network",
+            radar_col_ping: "Latency (Ping)",
+            radar_col_loss: "Packet Loss (%)",
+            radar_col_status: "Access Status",
+            radar_col_dpi: "DPI & Censorship",
+            radar_global_dc_title: "Global Datacenters & Transit Quality",
+            radar_col_dest: "Destination & DC",
+            radar_col_region: "Region",
+            radar_col_transit: "Transit Quality",
+            radar_port_matrix_title: "VPN Protocols Port Matrix",
+            radar_dpi_analysis_title: "Deep Filtering Inspection (DPI & DNS)",
+            radar_system_verdict: "System Verdict & Technical Analysis:",
+
+            // Protocol Titles & Subtitles
+            ocserv_title: "OpenConnect / Cisco AnyConnect Hub (OCServ)",
+            ocserv_desc: "Enterprise-grade Cisco protocol compatible with all operating systems, featuring Anti-DPI camouflage and FreeRADIUS integration",
+            ikev2_title: "IKEv2 / IPsec Hub (StrongSwan)",
+            ikev2_desc: "Native, secure, and standard protocol for mobile and desktop clients with maximum stability",
+            l2tp_title: "L2TP Protocol Hub (L2TPv2 / L2TPv3)",
+            l2tp_desc: "Full L2TPv2 over IPsec and L2TPv3 tunnel support with centralized FreeRADIUS authentication",
+            sstp_title: "SSTP Protocol & Anti-Censorship Bypass Hub",
+            sstp_desc: "Microsoft SSL/TLS tunnel featuring 3 bypass connection modes, native Windows support",
+            ssh_title: "Advanced SSH & Anti-Censorship Bypass Hub",
+            ssh_desc: "Secure SSH linked to FreeRADIUS, WebSocket (WS/WSS), TLS Stunnel, and SlowDNS",
+            ovpn_title: "OpenVPN Dual-Stack Manager (UDP/TCP)",
+            ovpn_desc: "Dual-stack UDP/TCP service integrated with central FreeRADIUS database",
+            ovpn_addons_title: "OpenVPN Advanced Addons & Bypass Tools",
+            ovpn_addons_desc: "Traffic obfuscation (Anti-DPI Scramble), UDPspeeder FEC accelerator, and security tools",
+            wg_title: "Standard WireGuard Protocol Hub",
+            wg_desc: "Ultra-fast standard WireGuard protocol for official clients with maximum throughput",
+            awg_title: "AmneziaWG Advanced Anti-Censorship Hub",
+            awg_desc: "Advanced WireGuard fork with obfuscation parameters Jc, Jmin, Jmax, S1, S2, H1-H4",
+            mtproto_title: "Telegram MTProto Official Proxy Manager",
+            mtproto_desc: "Official Telegram proxy supporting sponsor channels, TLS Fake-Domain, and anti-filter secrets",
+            mpx_title: "Server Port Multiplexer (sslh)",
+            mpx_desc: "Share multiple protocols on a single port 443 with smart packet demultiplexing",
+            radius_title: "Centralized RADIUS & User Management (FreeRADIUS Hub)",
+            radius_desc: "Comprehensive management for users, profiles, online sessions, and unified authentication",
+            ssl_title: "HTTPS SSL Certificates Manager",
+            ssl_desc: "Free Let's Encrypt certificates for domains and IP SAN SSL certificate generation",
+            tunnels_title: "Server-to-Server & MikroTik Tunnel Hub",
+            tunnels_desc: "Visual management of MikroTik router tunnels and anti-filter Linux tunnels",
+
+            // Modals & Confirmations
+            modal_btn_cancel: "Cancel",
+            modal_btn_save: "Save Settings",
+            modal_btn_confirm: "Confirm & Proceed",
+            confirm_modal_title: "Confirm Action",
+            confirm_modal_subtitle: "Please confirm or cancel your action",
+            confirm_btn_cancel: "Cancel",
+            confirm_btn_ok: "Confirm & Proceed",
+            modal_btn_start_install: "Start Batch Install",
+            modal_btn_close: "Close",
         },
         ru: {
             nav_sec_dashboard: "Панель и статус",
@@ -693,9 +906,154 @@
             servers_col_addr: "Адрес сервера",
             servers_col_port: "Порт SSH",
             servers_col_user: "Имя пользователя",
-            servers_col_actions: "Действия"
+            servers_col_actions: "Действия",
+// Chart Labels
+            chart_cpu: "Загрузка ЦП (CPU %)",
+            chart_ram: "Память (RAM %)",
+            chart_rx: "Входящий (Rx) KB/s",
+            chart_tx: "Исходящий (Tx) KB/s",
+
+            // Dynamic overview states
+            loading_cores: "Загрузка нагрузки ядер...",
+            loading_traffic: "Загрузка трафика протоколов...",
+            loading_sec_logs: "Загрузка журнала безопасности...",
+            nav_menu_title: "Меню навигации",
+
+            // Protocol Common Stats & Actions
+            proto_active_badge: "Активен и онлайн",
+            proto_inactive_badge: "Остановлен",
+            proto_uninstalled_badge: "Не установлен",
+            proto_checking_status: "Проверка статуса...",
+            proto_stat_port_proto: "Активный порт и протокол",
+            proto_stat_camo: "Анти-блокировка (Camouflage)",
+            proto_stat_auth: "Аутентификация пользователей",
+            proto_stat_sessions: "Текущие онлайн-сессии",
+            proto_stat_active_port: "Активный порт",
+            proto_stat_connections: "Онлайн соединения",
+            proto_action_restart: "Перезапустить службу",
+            proto_action_reload: "Перезагрузить конфиг",
+            proto_action_logs: "Живой журнал логов",
+            proto_action_save: "Сохранить и применить",
+            proto_subtab_config: "Настройки и Anti-DPI",
+            proto_subtab_users: "Пользователи и аккаунты",
+            proto_subtab_sessions: "Онлайн-сессии и мониторинг",
+            proto_subtab_guides: "Руководство и клиенты",
+            proto_subtab_addons: "Расширения",
+            proto_table_user: "Имя пользователя",
+            proto_table_ip: "IP клиента",
+            proto_table_duration: "Длительность",
+            proto_table_traffic: "Использовано трафика",
+            proto_table_actions: "Действия",
+            proto_table_empty_sessions: "В настоящее время нет подключенных клиентов",
+            proto_table_empty_users: "Пользователи не найдены.",
+
+            // Radar Tab
+            radar_title: "Радар сетевой связности и цензуры",
+            radar_subtitle: "Мониторинг доступности серверов у операторов связи Ирана, в дата-центрах и на портах VPN",
+            radar_last_scan: "Последнее сканирование:",
+            radar_scan_waiting: "Ожидание проверки",
+            radar_btn_scan: "Запустить сканирование",
+            radar_btn_copy: "Копировать отчет",
+            radar_stat_censorship: "Индекс обхода блокировок",
+            radar_stat_iran_isps: "Активные операторы",
+            radar_stat_avg_ping: "Средний пинг",
+            radar_stat_active_ports: "Отвечающие порты",
+            radar_table_isp_title: "Доступность у операторов связи Ирана",
+            radar_col_operator: "Оператор и тип сети",
+            radar_col_ping: "Задержка (Ping)",
+            radar_col_loss: "Потеря пакетов (%)",
+            radar_col_status: "Статус доступа",
+            radar_col_dpi: "DPI и блокировки",
+            radar_global_dc_title: "Связь с международными дата-центрами",
+            radar_col_dest: "Назначение и ДЦ",
+            radar_col_region: "Регион",
+            radar_col_transit: "Качество транзита",
+            radar_port_matrix_title: "Матрица портов протоколов VPN",
+            radar_dpi_analysis_title: "Анализ глубокой фильтрации (DPI и DNS)",
+            radar_system_verdict: "Заключение системы (System Verdict):",
+
+            // Protocol Titles & Subtitles
+            ocserv_title: "Центр управления OpenConnect / Cisco AnyConnect (OCServ)",
+            ocserv_desc: "Промышленный протокол Cisco, совместимый со всеми ОС, с маскировкой Anti-DPI и FreeRADIUS",
+            ikev2_title: "Центр управления IKEv2 / IPsec (StrongSwan)",
+            ikev2_desc: "Нативный, безопасный и стандартный протокол для мобильных и настольных клиентов",
+            l2tp_title: "Центр протокола L2TP (L2TPv2 / L2TPv3)",
+            l2tp_desc: "Полная поддержка L2TPv2 поверх IPsec и L2TPv3 с централизованной аутентификацией FreeRADIUS",
+            sstp_title: "Центр протокола SSTP и обхода блокировок",
+            sstp_desc: "Туннель Microsoft SSL/TLS с 3 режимами подключения и поддержкой Windows",
+            ssh_title: "Центр управления SSH и обхода цензуры",
+            ssh_desc: "Защищенный SSH с поддержкой FreeRADIUS, WebSocket, TLS Stunnel и SlowDNS",
+            ovpn_title: "Управление OpenVPN (UDP/TCP Dual-Stack)",
+            ovpn_desc: "Двухстековый сервис UDP/TCP с интеграцией FreeRADIUS",
+            ovpn_addons_title: "Расширения и инструменты обхода OpenVPN",
+            ovpn_addons_desc: "Маскировка трафика (Anti-DPI Scramble), ускоритель UDPspeeder FEC и безопасность",
+            wg_title: "Центр управления WireGuard",
+            wg_desc: "Сверхбыстрый стандартный протокол WireGuard для официальных клиентов",
+            awg_title: "Центр протокола AmneziaWG (Анти-блокировка)",
+            awg_desc: "Продвинутый форк WireGuard с обфускацией Jc, Jmin, Jmax, S1, S2, H1-H4",
+            mtproto_title: "Управление официальным MTProto прокси Telegram",
+            mtproto_desc: "Официальный прокси Telegram с поддержкой спонсорских каналов и TLS Fake-Domain",
+            mpx_title: "Мультиплексор портов сервера (sslh)",
+            mpx_desc: "Совместное использование порта 443 несколькими протоколами с демультиплексированием",
+            radius_title: "Централизованный RADIUS и управление пользователями",
+            radius_desc: "Управление пользователями, профилями, онлайн-сессиями и аутентификацией",
+            ssl_title: "Управление SSL-сертификатами HTTPS",
+            ssl_desc: "Бесплатные сертификаты Let's Encrypt для домена и генерация IP SAN SSL",
+            tunnels_title: "Туннели сервер-сервер и MikroTik",
+            tunnels_desc: "Управление туннелями MikroTik и антиблокировочными туннелями Linux",
+
+            // Modals & Confirmations
+            modal_btn_cancel: "Отмена",
+            modal_btn_save: "Сохранить настройки",
+            modal_btn_confirm: "Подтвердить",
+            confirm_modal_title: "Подтверждение действия",
+            confirm_modal_subtitle: "Пожалуйста, подтвердите или отмените действие",
+            confirm_btn_cancel: "Отмена",
+            confirm_btn_ok: "Подтвердить и продолжить",
+            modal_btn_start_install: "Начать пакетную установку",
+            modal_btn_close: "Закрыть",
         }
     };
+
+    
+    // --- Dynamic Chart Theme & Language Functions ---
+    function updateChartsTheme(theme) {
+        const isDark = (theme === "dark");
+        const tickColor = isDark ? "#94a3b8" : "#475569";
+        const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(226, 232, 240, 0.8)";
+        const labelColor = isDark ? "#f8fafc" : "#0f172a";
+
+        [usageChart, bandwidthChart].forEach(chart => {
+            if (!chart) return;
+            if (chart.options && chart.options.scales && chart.options.scales.y) {
+                if (chart.options.scales.y.ticks) chart.options.scales.y.ticks.color = tickColor;
+                if (chart.options.scales.y.grid) chart.options.scales.y.grid.color = gridColor;
+            }
+            if (chart.options && chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+                chart.options.plugins.legend.labels.color = labelColor;
+            }
+            chart.update();
+        });
+    }
+
+    function updateChartsLanguage(lang) {
+        const dict = I18N_TRANSLATIONS[lang] || I18N_TRANSLATIONS.fa;
+        const tCpu = dict.chart_cpu || "CPU Usage (%)";
+        const tRam = dict.chart_ram || "RAM Usage (%)";
+        const tRx = dict.chart_rx || "Download (Rx) KB/s";
+        const tTx = dict.chart_tx || "Upload (Tx) KB/s";
+
+        if (usageChart && usageChart.data && usageChart.data.datasets) {
+            if (usageChart.data.datasets[0]) usageChart.data.datasets[0].label = tCpu;
+            if (usageChart.data.datasets[1]) usageChart.data.datasets[1].label = tRam;
+            usageChart.update();
+        }
+        if (bandwidthChart && bandwidthChart.data && bandwidthChart.data.datasets) {
+            if (bandwidthChart.data.datasets[0]) bandwidthChart.data.datasets[0].label = tRx;
+            if (bandwidthChart.data.datasets[1]) bandwidthChart.data.datasets[1].label = tTx;
+            bandwidthChart.update();
+        }
+    }
 
     function changeLanguage(lang) {
         if (!I18N_TRANSLATIONS[lang]) lang = "fa";
@@ -736,9 +1094,53 @@
         document.querySelectorAll("[data-i18n]").forEach(el => {
             const key = el.getAttribute("data-i18n");
             if (dict[key]) {
-                el.textContent = dict[key];
+                if (el.children.length === 0) {
+                    el.textContent = dict[key];
+                } else {
+                    const textSpan = el.querySelector(".i18n-text") || el.querySelector("span:not([class*='icon']):not([class*='dot']):not([class*='badge'])");
+                    if (textSpan) {
+                        textSpan.textContent = dict[key];
+                    } else {
+                        // preserve icon child nodes, update text node
+                        let replaced = false;
+                        for (let node of el.childNodes) {
+                            if (node.nodeType === Node.TEXT_NODE && node.textContent.trim().length > 0) {
+                                node.textContent = " " + dict[key];
+                                replaced = true;
+                                break;
+                            }
+                        }
+                        if (!replaced) el.textContent = dict[key];
+                    }
+                }
             }
         });
+
+        // Placeholders and Titles
+        document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+            const key = el.getAttribute("data-i18n-placeholder");
+            if (dict[key]) el.placeholder = dict[key];
+        });
+        document.querySelectorAll("[data-i18n-title]").forEach(el => {
+            const key = el.getAttribute("data-i18n-title");
+            if (dict[key]) el.title = dict[key];
+        });
+
+        // Dynamic chart & component re-renders
+        if (typeof updateChartsLanguage === "function") {
+            updateChartsLanguage(lang);
+        }
+        if (typeof renderProtocolsCards === "function" && typeof loadedProtocolsData !== "undefined" && loadedProtocolsData.length) {
+            renderProtocolsCards();
+        }
+        if (typeof renderSecLogsFiltered === "function") {
+            renderSecLogsFiltered();
+        }
+        if (typeof latestStats !== "undefined" && latestStats) {
+            if (typeof updateHardwareSpecs === "function") updateHardwareSpecs(latestStats);
+            if (typeof updatePerCoreWorkload === "function" && latestStats.cpu_per_core) updatePerCoreWorkload(latestStats.cpu_per_core);
+            if (typeof updateProtocolTraffic === "function" && latestStats.proto_traffic) updateProtocolTraffic(latestStats.proto_traffic);
+        }
 
         if (typeof lucide !== "undefined") {
             lucide.createIcons();
@@ -1100,12 +1502,14 @@
         const os = info.os || {};
         const cpu = info.cpu || {};
         const ram = info.ram || {};
+        const lang = localStorage.getItem("panel_language") || "fa";
 
         const osEl = document.getElementById("spec-os-val");
         if (osEl && os.distro) osEl.innerText = os.distro;
 
         const kernelEl = document.getElementById("spec-kernel-val");
-        if (kernelEl && os.kernel) kernelEl.innerText = `کرنل: ${os.kernel} | ${os.arch || 'x86_64'}`;
+        const kLabel = (lang === "fa" ? "کرنل" : (lang === "ru" ? "Ядро" : "Kernel"));
+        if (kernelEl && os.kernel) kernelEl.innerText = `${kLabel}: ${os.kernel} | ${os.arch || "x86_64"}`;
 
         const uptimeEl = document.getElementById("spec-uptime-val");
         if (uptimeEl && os.uptime) uptimeEl.innerText = os.uptime;
@@ -1114,7 +1518,8 @@
         if (coresEl) {
             const phys = cpu.physical_cores || 1;
             const logi = cpu.logical_cores || phys;
-            coresEl.innerText = `${logi} هسته پردازشی (${phys} هسته فیزیکی)`;
+            const cStr = (lang === "fa" ? `${logi} هسته پردازشی (${phys} هسته فیزیکی)` : (lang === "ru" ? `${logi} лог. ядер (${phys} физ. ядер)` : `${logi} Logical Cores (${phys} Physical)`));
+            coresEl.innerText = cStr;
         }
 
         const modelEl = document.getElementById("spec-model-val");
@@ -1136,14 +1541,19 @@
         if (ramStatusEl) {
             const usedGb = (ram.used / (1024 ** 3)).toFixed(1);
             const availGb = (ram.available / (1024 ** 3)).toFixed(1);
-            ramStatusEl.innerText = `مصرفی: ${usedGb} GB | در دسترس: ${availGb} GB`;
+            const rUsed = (lang === "fa" ? "مصرفی" : (lang === "ru" ? "Использовано" : "Used"));
+            const rAvail = (lang === "fa" ? "در دسترس" : (lang === "ru" ? "Доступно" : "Available"));
+            ramStatusEl.innerText = `${rUsed}: ${usedGb} GB | ${rAvail}: ${availGb} GB`;
         }
 
         const busEl = document.getElementById("spec-bus-val");
         if (busEl && ram.bus_speed) busEl.innerText = ram.bus_speed;
 
         const ramTypeEl = document.getElementById("spec-ram-type-val");
-        if (ramTypeEl && ram.type) ramTypeEl.innerText = `استاندارد حافظه: ${ram.type} (High-Speed Bus)`;
+        if (ramTypeEl && ram.type) {
+            const memStd = (lang === "fa" ? "استاندارد حافظه" : (lang === "ru" ? "Стандарт памяти" : "Memory Standard"));
+            ramTypeEl.innerText = `${memStd}: ${ram.type} (High-Speed Bus)`;
+        }
     }
 
     // Update Per-Core Workload Capacity
@@ -1153,16 +1563,20 @@
         if (!container) return;
 
         const perCore = cpuData.per_core;
+        const lang = localStorage.getItem("panel_language") || "fa";
+        const coreWord = (lang === "fa" ? "هسته" : (lang === "ru" ? "Ядро" : "Core"));
+        const loadCapWord = (lang === "fa" ? "ظرفیت لود" : (lang === "ru" ? "Нагрузка" : "Load Capacity"));
+        const procWord = (lang === "fa" ? "در حال پردازش" : (lang === "ru" ? "Обработка" : "Processing"));
         
-        if (container.children.length !== perCore.length || container.querySelector('.core-meter-card') === null) {
-            let html = '';
+        if (container.children.length !== perCore.length || container.querySelector(".core-meter-card") === null) {
+            let html = "";
             perCore.forEach((val, idx) => {
                 html += `
                     <div class="core-meter-card" id="core-card-${idx}">
                         <div class="core-meter-header">
                             <span class="core-name-badge">
                                 <i data-lucide="cpu" style="width:14px; height:14px; color:var(--color-secondary);"></i>
-                                هسته #${idx} (Core ${idx})
+                                ${coreWord} #${idx}
                             </span>
                             <span class="core-load-val" id="core-val-${idx}">${val}%</span>
                         </div>
@@ -1170,14 +1584,14 @@
                             <div class="core-progress-fill" id="core-fill-${idx}" style="width: ${Math.min(100, Math.max(0, val))}%;"></div>
                         </div>
                         <div class="core-status-text">
-                            <span id="core-status-${idx}">در حال پردازش</span>
-                            <span style="font-family:'JetBrains Mono',monospace;">ظرفیت لود</span>
+                            <span id="core-status-${idx}">${procWord}</span>
+                            <span style="font-family:'JetBrains Mono',monospace;">${loadCapWord}</span>
                         </div>
                     </div>
                 `;
             });
             container.innerHTML = html;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+            if (typeof lucide !== "undefined") lucide.createIcons();
         }
 
         perCore.forEach((val, idx) => {
@@ -1189,17 +1603,17 @@
             if (fillEl) {
                 fillEl.style.width = `${Math.min(100, Math.max(0, val))}%`;
                 if (val < 50) {
-                    fillEl.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-                    if (valEl) valEl.style.color = '#10b981';
-                    if (statusEl) statusEl.innerText = 'سبک و روان (Optimal)';
+                    fillEl.style.background = "linear-gradient(90deg, #10b981, #059669)";
+                    if (valEl) valEl.style.color = "#10b981";
+                    if (statusEl) statusEl.innerText = (lang === "fa" ? "سبک و روان (Optimal)" : (lang === "ru" ? "Оптимальная" : "Optimal Load"));
                 } else if (val < 80) {
-                    fillEl.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
-                    if (valEl) valEl.style.color = '#f59e0b';
-                    if (statusEl) statusEl.innerText = 'متوسط و فعال (Moderate)';
+                    fillEl.style.background = "linear-gradient(90deg, #f59e0b, #d97706)";
+                    if (valEl) valEl.style.color = "#f59e0b";
+                    if (statusEl) statusEl.innerText = (lang === "fa" ? "متوسط و فعال (Moderate)" : (lang === "ru" ? "Средняя" : "Moderate Load"));
                 } else {
-                    fillEl.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
-                    if (valEl) valEl.style.color = '#ef4444';
-                    if (statusEl) statusEl.innerText = 'بار کاری سنگین (High Load)';
+                    fillEl.style.background = "linear-gradient(90deg, #ef4444, #dc2626)";
+                    if (valEl) valEl.style.color = "#ef4444";
+                    if (statusEl) statusEl.innerText = (lang === "fa" ? "بار کاری سنگین (High Load)" : (lang === "ru" ? "Высокая нагрузка" : "High Workload"));
                 }
             }
         });
@@ -1218,30 +1632,45 @@
 
         const list = protoData.protocols;
         const totalVpnBytes = Math.max(1, protoData.total_vpn_bytes || 1);
+        const lang = localStorage.getItem("panel_language") || "fa";
 
-        let html = '';
+        const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
+        const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
+        const tRxLabel = (lang === "fa" ? "سرعت دانلود (Rx)" : (lang === "ru" ? "Скорость скачивания (Rx)" : "Download Speed (Rx)"));
+        const tTxLabel = (lang === "fa" ? "سرعت آپلود (Tx)" : (lang === "ru" ? "Скорость отдачи (Tx)" : "Upload Speed (Tx)"));
+        const tShareLabel = (lang === "fa" ? "سهم ترافیک:" : (lang === "ru" ? "Доля трафика:" : "Traffic Share:"));
+        const tConnsLabel = (lang === "fa" ? "اتصالات فعال:" : (lang === "ru" ? "Активные:" : "Active Connections:"));
+        const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польз." : "users"));
+        const tTotalExchanged = (lang === "fa" ? "حجم کل مبادله شده:" : (lang === "ru" ? "Всего передано:" : "Total Exchanged:"));
+        const tRxShort = (lang === "fa" ? "دانلود:" : (lang === "ru" ? "Вход:" : "Rx:"));
+        const tTxShort = (lang === "fa" ? "آپلود:" : (lang === "ru" ? "Исход:" : "Tx:"));
+
+        let html = "";
         list.forEach(item => {
-            const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : '0 KB/s';
-            const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : '0 KB/s';
+            const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : "0 KB/s";
+            const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : "0 KB/s";
             const totalBytesStr = formatBytes(item.total_bytes);
             const rxBytesStr = formatBytes(item.rx_bytes);
             const txBytesStr = formatBytes(item.tx_bytes);
             const sharePercent = Math.min(100, Math.round((item.total_bytes / totalVpnBytes) * 100));
 
             const activeBadge = item.active 
-                ? `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.12); color:#059669; font-weight:700; border:1px solid rgba(16,185,129,0.3);"><span class="status-dot active"></span> فعال</span>`
-                : `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(148,163,184,0.15); color:#64748b; font-weight:600;"><span class="status-dot"></span> غیرفعال</span>`;
+                ? `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.12); color:#059669; font-weight:700; border:1px solid rgba(16,185,129,0.3);"><span class="status-dot active"></span> ${tActiveBadge}</span>`
+                : `<span style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(148,163,184,0.15); color:#64748b; font-weight:600;"><span class="status-dot"></span> ${tInactiveBadge}</span>`;
+
+            const dispName = (lang === "fa" ? (item.fa_name || item.name) : item.name);
+            const subName = (lang === "fa" ? `${item.name} ${item.port ? `(${item.port})` : ""}` : (item.port ? `Port ${item.port}` : ""));
 
             html += `
-                <div class="proto-bandwidth-card" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="کلیک برای مشاهده تنظیمات ${item.fa_name}">
+                <div class="proto-bandwidth-card" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="${dispName}">
                     <div class="proto-card-top">
                         <div class="proto-card-identity">
                             <div class="proto-icon-circle" style="background:${item.color}15; color:${item.color}; border:1px solid ${item.color}35;">
-                                <i data-lucide="${item.icon || 'shield'}" style="width:18px; height:18px;"></i>
+                                <i data-lucide="${item.icon || shield}" style="width:18px; height:18px;"></i>
                             </div>
                             <div class="proto-name-box">
-                                <span class="proto-name-fa">${item.fa_name}</span>
-                                <span class="proto-name-en">${item.name} ${item.port ? `(${item.port})` : ''}</span>
+                                <span class="proto-name-fa">${dispName}</span>
+                                ${subName ? `<span class="proto-name-en">${subName}</span>` : ""}
                             </div>
                         </div>
                         ${activeBadge}
@@ -1251,14 +1680,14 @@
                         <div class="proto-rate-item">
                             <span class="proto-rate-label">
                                 <i data-lucide="arrow-down" style="width:11px; height:11px; color:#10b981;"></i>
-                                سرعت دانلود (Rx)
+                                ${tRxLabel}
                             </span>
                             <span class="proto-rate-value" style="color:#10b981;">${rxSpeed}</span>
                         </div>
                         <div class="proto-rate-item">
                             <span class="proto-rate-label">
                                 <i data-lucide="arrow-up" style="width:11px; height:11px; color:#0ea5e9;"></i>
-                                سرعت آپلود (Tx)
+                                ${tTxLabel}
                             </span>
                             <span class="proto-rate-value" style="color:#0ea5e9;">${txSpeed}</span>
                         </div>
@@ -1266,8 +1695,8 @@
 
                     <div style="display:flex; flex-direction:column; gap:6px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
-                            <span>سهم ترافیک: <strong>${sharePercent}%</strong></span>
-                            <span>اتصالات فعال: <strong>${item.connections || 0} کاربر</strong></span>
+                            <span>${tShareLabel} <strong>${sharePercent}%</strong></span>
+                            <span>${tConnsLabel} <strong>${item.connections || 0} ${tUserUnit}</strong></span>
                         </div>
                         <div class="core-progress-track" style="height:6px;">
                             <div class="core-progress-fill" style="width:${sharePercent}%; background:${item.color};"></div>
@@ -1275,41 +1704,43 @@
                     </div>
 
                     <div class="proto-total-metric">
-                        <span>حجم کل مبادله شده:</span>
+                        <span>${tTotalExchanged}</span>
                         <span class="proto-total-val">${totalBytesStr}</span>
                     </div>
                     <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-top:-6px;">
-                        <span>دانلود: ${rxBytesStr}</span>
-                        <span>آپلود: ${txBytesStr}</span>
+                        <span>${tRxShort} ${rxBytesStr}</span>
+                        <span>${tTxShort} ${txBytesStr}</span>
                     </div>
                 </div>
             `;
         });
 
         container.innerHTML = html;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        if (typeof lucide !== "undefined") lucide.createIcons();
     }
 
     // Security Radar State
     window.allSecEvents = [];
-    window.currentSecFilter = 'all';
+    window.currentSecFilter = "all";
 
     function updateSecurityLogs(secData) {
         if (!secData) return;
+        const lang = localStorage.getItem("panel_language") || "fa";
+        const locale = (lang === "fa" ? "fa-IR" : (lang === "ru" ? "ru-RU" : "en-US"));
         
         const totBannedEl = document.getElementById("sec-total-banned-val");
         if (totBannedEl && secData.total_banned !== undefined) {
-            totBannedEl.innerText = Number(secData.total_banned).toLocaleString('fa-IR');
+            totBannedEl.innerText = Number(secData.total_banned).toLocaleString(locale);
         }
 
         const curBannedEl = document.getElementById("sec-current-banned-val");
         if (curBannedEl && secData.currently_banned !== undefined) {
-            curBannedEl.innerText = Number(secData.currently_banned).toLocaleString('fa-IR');
+            curBannedEl.innerText = Number(secData.currently_banned).toLocaleString(locale);
         }
 
         const failEl = document.getElementById("sec-failed-attempts-val");
         if (failEl && secData.total_failed !== undefined) {
-            failEl.innerText = Number(secData.total_failed).toLocaleString('fa-IR');
+            failEl.innerText = Number(secData.total_failed).toLocaleString(locale);
         }
 
         if (secData.events && Array.isArray(secData.events)) {
@@ -1321,43 +1752,51 @@
     function renderSecLogsFiltered() {
         const streamEl = document.getElementById("sec-log-stream");
         if (!streamEl) return;
+        const lang = localStorage.getItem("panel_language") || "fa";
 
         let filtered = window.allSecEvents;
-        if (window.currentSecFilter === 'ban') {
-            filtered = window.allSecEvents.filter(e => e.type === 'ban');
-        } else if (window.currentSecFilter === 'threat') {
-            filtered = window.allSecEvents.filter(e => e.type === 'threat' || e.type === 'auth_fail');
+        if (window.currentSecFilter === "ban") {
+            filtered = window.allSecEvents.filter(e => e.type === "ban");
+        } else if (window.currentSecFilter === "threat") {
+            filtered = window.allSecEvents.filter(e => e.type === "threat" || e.type === "auth_fail");
         }
 
+        const tEmptySec = (lang === "fa" ? "هیچ رویدادی در این فیلتر ثبت نشده است. سپر امنیتی بدون مشکل در حال فعالیت است." : (lang === "ru" ? "В этом фильтре нет событий. Защита работает в штатном режиме." : "No security events recorded in this filter. Shield is operating normally."));
+
         if (!filtered || filtered.length === 0) {
-            streamEl.innerHTML = `<div style="color: #64748b; text-align: center; padding: 30px 0;">هیچ رویدادی در این فیلتر ثبت نشده است. سپر امنیتی بدون مشکل در حال فعالیت است.</div>`;
+            streamEl.innerHTML = `<div style="color: #64748b; text-align: center; padding: 30px 0;">${tEmptySec}</div>`;
             return;
         }
 
-        let html = '';
+        const tAttackBlocked = (lang === "fa" ? "حمله تخریبی مسدود شد" : (lang === "ru" ? "Атака заблокирована" : "Attack Blocked"));
+        const tThreatDetected = (lang === "fa" ? "تلاش نفوذ رصد شد" : (lang === "ru" ? "Попытка вторжения" : "Intrusion Detected"));
+        const tFailedAuth = (lang === "fa" ? "تلاش ناموفق ورود" : (lang === "ru" ? "Неудачный вход" : "Failed Login"));
+        const tCopyIp = (lang === "fa" ? "کپی آی‌پی" : (lang === "ru" ? "Копировать IP" : "Copy IP"));
+
+        let html = "";
         filtered.forEach(ev => {
-            let tagBadge = '';
-            if (ev.type === 'ban') {
-                tagBadge = `<span class="sec-tag sec-tag-critical"><i data-lucide="shield-alert" style="width:12px; height:12px;"></i> حمله تخریبی مسدود شد</span>`;
-            } else if (ev.type === 'threat') {
-                tagBadge = `<span class="sec-tag sec-tag-warning"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> تلاش نفوذ رصد شد</span>`;
+            let tagBadge = "";
+            if (ev.type === "ban") {
+                tagBadge = `<span class="sec-tag sec-tag-critical"><i data-lucide="shield-alert" style="width:12px; height:12px;"></i> ${tAttackBlocked}</span>`;
+            } else if (ev.type === "threat") {
+                tagBadge = `<span class="sec-tag sec-tag-warning"><i data-lucide="alert-triangle" style="width:12px; height:12px;"></i> ${tThreatDetected}</span>`;
             } else {
-                tagBadge = `<span class="sec-tag sec-tag-info"><i data-lucide="info" style="width:12px; height:12px;"></i> تلاش ناموفق ورود</span>`;
+                tagBadge = `<span class="sec-tag sec-tag-info"><i data-lucide="info" style="width:12px; height:12px;"></i> ${tFailedAuth}</span>`;
             }
 
             const ipChip = ev.ip ? `
-                <span class="sec-ip-chip" onclick="copyToClipboard('${ev.ip}', 'آی‌پی ${ev.ip} کپی شد')" title="کلیک برای کپی کردن آی‌پی">
+                <span class="sec-ip-chip" onclick="copyToClipboard('${ev.ip}', '${ev.ip}')" title="${tCopyIp}">
                     <i data-lucide="copy" style="width:10px; height:10px;"></i>
                     ${ev.ip}
                 </span>
-            ` : '';
+            ` : "";
 
             html += `
                 <div class="sec-event-row">
                     <div class="sec-event-main">
                         ${tagBadge}
                         ${ipChip}
-                        <span class="sec-event-desc" title="${ev.message || ''}">${ev.message || ev.title}</span>
+                        <span class="sec-event-desc" title="${ev.message || ""}">${ev.message || ev.title}</span>
                     </div>
                     <span class="sec-event-time">${ev.time}</span>
                 </div>
@@ -1365,7 +1804,7 @@
         });
 
         streamEl.innerHTML = html;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
+        if (typeof lucide !== "undefined") lucide.createIcons();
     }
 
     window.filterSecLogs = function(filterType, btn) {
@@ -1471,7 +1910,10 @@
         ikev2: {
             title: "IKEv2 / IPsec",
             faTitle: "آی‌کی‌ای نسخه ۲ (StrongSwan)",
-            desc: "پروتکل بومی و امن بدون نیاز به اپ در ویندوز، iOS، مک و اندروید",
+            ruTitle: "IKEv2 / IPsec",
+            desc_en: "Native high-performance IPsec protocol requiring no third-party app on iOS, Windows, macOS, and Android.",
+            desc_fa: "پروتکل بومی و امن بدون نیاز به اپ در ویندوز، iOS، مک و اندروید با اتصال متمرکز ردیوس",
+            desc_ru: "Встроенный безопасный протокол без сторонних приложений для iOS, Windows, macOS и Android.",
             icon: "shield-check",
             color: "#4f46e5",
             bg: "rgba(99, 102, 241, 0.1)",
@@ -1482,7 +1924,10 @@
         ocserv: {
             title: "Cisco AnyConnect",
             faTitle: "سیسکو انی‌کانکت (OpenConnect)",
-            desc: "پروتکل تجاری سازمانی با پایداری حداکثری و عبور مطمئن از فیلترینگ",
+            ruTitle: "Cisco AnyConnect (OpenConnect)",
+            desc_en: "Enterprise protocol with maximum stability, anti-DPI camouflage, and direct FreeRADIUS integration.",
+            desc_fa: "پروتکل تجاری سازمانی با پایداری حداکثری و عبور مطمئن از فیلترینگ با اتصال ردیوس سراسری",
+            desc_ru: "Корпоративный протокол с максимальной стабильностью, маскировкой от DPI и FreeRADIUS.",
             icon: "radio",
             color: "#0284c7",
             bg: "rgba(2, 132, 199, 0.1)",
@@ -1493,7 +1938,10 @@
         openvpn: {
             title: "OpenVPN",
             faTitle: "اوپن‌وی‌پی‌ان (SSL/TLS)",
-            desc: "استاندارد معتبر تانلینگ با پشتیبانی گسترده بر بستر پورت‌های TCP و UDP",
+            ruTitle: "OpenVPN (SSL/TLS)",
+            desc_en: "Trusted tunneling standard with dual UDP/TCP support, anti-DPI scramble, and centralized FreeRADIUS.",
+            desc_fa: "استاندارد معتبر تانلینگ با پشتیبانی گسترده بر بستر پورت‌های TCP و UDP و ضد فیلتر",
+            desc_ru: "Надежный стандарт туннелирования с поддержкой TCP/UDP портов, маскировки и FreeRADIUS.",
             icon: "lock",
             color: "#ea580c",
             bg: "rgba(234, 88, 12, 0.1)",
@@ -1504,7 +1952,10 @@
         ssh: {
             title: "SSH Direct & WS",
             faTitle: "تانل اختصاصی اس‌اس‌اچ",
-            desc: "اتصال امن پوسته لینوکس و وب‌سوکت با احراز هویت متمرکز ردیوس",
+            ruTitle: "SSH Прямой и WS туннель",
+            desc_en: "Secure Linux shell & WebSocket tunnel with Stunnel TLS, SlowDNS key, and FreeRADIUS authentication.",
+            desc_fa: "اتصال امن پوسته لینوکس و وب‌سوکت با احراز هویت متمرکز ردیوس و کلید اختصاصی SlowDNS",
+            desc_ru: "Безопасный туннель Linux Shell и WebSocket со Stunnel TLS, SlowDNS и FreeRADIUS.",
             icon: "terminal",
             color: "#16a34a",
             bg: "rgba(22, 163, 74, 0.1)",
@@ -1515,7 +1966,10 @@
         wireguard: {
             title: "WireGuard",
             faTitle: "وایرگارد کرنل",
-            desc: "سریع‌ترین و نوین‌ترین پروتکل رمزنگاری تانل با مصرف بهینه باتری",
+            ruTitle: "WireGuard (Ядро)",
+            desc_en: "High-speed modern kernel cryptographic tunnel with minimal latency and battery consumption.",
+            desc_fa: "سریع‌ترین و نوین‌ترین پروتکل رمزنگاری تانل با مصرف بهینه باتری در کلاینت‌های رسمی",
+            desc_ru: "Скоростной современный протокол криптографического туннеля ядра Linux.",
             icon: "zap",
             color: "#9333ea",
             bg: "rgba(147, 51, 234, 0.1)",
@@ -1526,7 +1980,10 @@
         l2tp: {
             title: "L2TP / IPsec",
             faTitle: "ال‌تو‌تی‌پی (IPsec)",
-            desc: "پروتکل استاندارد سازگار با انواع سیستم‌عامل‌ها، روترهای میکروتیک و مودم‌ها",
+            ruTitle: "L2TP / IPsec",
+            desc_en: "Standard Layer 2/3 protocol compatible with Windows, macOS, Android, and MikroTik routers.",
+            desc_fa: "پروتکل استاندارد سازگار با انواع سیستم‌عامل‌ها، روترهای میکروتیک و مودم‌ها با احراز هویت ردیوس",
+            desc_ru: "Стандартный протокол L2TP/IPsec, совместимый с ОС, роутерами MikroTik и модемами.",
             icon: "repeat",
             color: "#2563eb",
             bg: "rgba(37, 99, 235, 0.1)",
@@ -1537,7 +1994,10 @@
         sstp: {
             title: "SSTP",
             faTitle: "اس‌اس‌تی‌پی (SSL تانل)",
-            desc: "تانل با گواهی SSL سازگار مستقیم با تمامی نسخه‌های سیستم‌عامل ویندوز",
+            ruTitle: "SSTP (SSL туннель)",
+            desc_en: "Microsoft SSL/TLS tunnel directly compatible with all versions of Windows with 3 bypass modes.",
+            desc_fa: "تانل با گواهی SSL سازگار مستقیم با تمامی نسخه‌های ویندوز و ۳ روش اتصال و بای‌پس فیلترینگ",
+            desc_ru: "SSL-туннель Microsoft с 3 методами обхода и прямой поддержкой Windows.",
             icon: "globe",
             color: "#0d9488",
             bg: "rgba(13, 148, 136, 0.1)",
@@ -1548,7 +2008,10 @@
         mtproto: {
             title: "MTProto Proxy",
             faTitle: "پروکسی تلگرام",
-            desc: "پروکسی ضد فیلتر اختصاصی تلگرام با پشتیبانی از TLS Fake Domain و تگ اسپانسر",
+            ruTitle: "MTProto Прокси",
+            desc_en: "Dedicated anti-censorship Telegram proxy with TLS Fake Domain and official sponsor channel tags.",
+            desc_fa: "پروکسی ضد فیلتر اختصاصی تلگرام با پشتیبانی از TLS Fake Domain و تگ اسپانسر رسمی",
+            desc_ru: "Антиблокировочный прокси для Telegram с поддержкой Fake TLS и тегов спонсора.",
             icon: "send",
             color: "#0ea5e9",
             bg: "rgba(14, 165, 233, 0.1)",
@@ -1559,7 +2022,10 @@
         shadowsocks: {
             title: "Shadowsocks-rust",
             faTitle: "شادوساکس (Rust)",
-            desc: "پروتکل شادوساکس با رمزنگاری مدرن 2022 AEAD و شتابدهنده TCP Fast Open",
+            ruTitle: "Shadowsocks-rust 2022",
+            desc_en: "Official Rust implementation with modern 2022 AEAD ciphers and TCP Fast Open acceleration.",
+            desc_fa: "پروتکل شادوساکس با رمزنگاری مدرن 2022 AEAD و شتابدهنده TCP Fast Open",
+            desc_ru: "Официальная версия на Rust с шифрованием 2022 AEAD и ускорителем TCP Fast Open.",
             icon: "shield",
             color: "#d97706",
             bg: "rgba(217, 119, 6, 0.1)",
@@ -1570,7 +2036,10 @@
         tuic: {
             title: "TUIC Protocol",
             faTitle: "پروتکل TUIC (کوییک)",
-            desc: "پروتکل نسل جدید بر پایه QUIC / UDP، مجهز به BBR و اتصال صفر ثانیه 0-RTT",
+            ruTitle: "Протокол TUIC (QUIC)",
+            desc_en: "Next-generation QUIC / UDP protocol with BBR congestion control and 0-RTT instant handshake.",
+            desc_fa: "پروتکل نسل جدید بر پایه QUIC / UDP، مجهز به BBR و اتصال صفر ثانیه 0-RTT",
+            desc_ru: "Протокол нового поколения на базе QUIC / UDP с контролем BBR и 0-RTT рукопожатием.",
             icon: "zap",
             color: "#6366f1",
             bg: "rgba(99, 102, 241, 0.1)",
@@ -1581,7 +2050,10 @@
         pptp: {
             title: "PPTP",
             faTitle: "پی‌پی‌تی‌پی",
-            desc: "پروتکل اتصال سنتی پوینت‌تو‌پوینت شبکه",
+            ruTitle: "PPTP",
+            desc_en: "Legacy point-to-point tunneling protocol for legacy client compatibility.",
+            desc_fa: "پروتکل اتصال سنتی پوینت‌تو‌پوینت شبکه جهت کلاینت‌های قدیمی",
+            desc_ru: "Классический протокол соединения point-to-point для устаревших устройств.",
             icon: "link",
             color: "#64748b",
             bg: "rgba(100, 116, 139, 0.1)",
@@ -1592,7 +2064,10 @@
         socks: {
             title: "SOCKS5 Proxy",
             faTitle: "پروکسی ساکس ۵",
-            desc: "پروکسی سوکت شبکه جهت استفاده در نرم‌افزارهای تجاری و مرورگرها با احراز هویت ردیوس",
+            ruTitle: "SOCKS5 Прокси",
+            desc_en: "Network socket proxy for applications and browsers with global FreeRADIUS authentication.",
+            desc_fa: "پروکسی سوکت شبکه جهت استفاده در نرم‌افزارهای تجاری و مرورگرها با احراز هویت ردیوس",
+            desc_ru: "Сетевой сокет-прокси для приложений и браузеров с FreeRADIUS авторизацией.",
             icon: "cpu",
             color: "#059669",
             bg: "rgba(16, 185, 129, 0.1)",
@@ -1603,7 +2078,10 @@
         http: {
             title: "HTTP Proxy",
             faTitle: "پروکسی وب HTTP",
-            desc: "پروکسی استاندارد تحت پروتکل وب با احراز هویت ردیوس سراسری",
+            ruTitle: "HTTP Прокси",
+            desc_en: "Standard web HTTP proxy with centralized FreeRADIUS accounting and access control.",
+            desc_fa: "پروکسی استاندارد تحت پروتکل وب با احراز هویت ردیوس سراسری",
+            desc_ru: "Стандартный веб HTTP прокси с централизованной FreeRADIUS авторизацией.",
             icon: "compass",
             color: "#8b5cf6",
             bg: "rgba(139, 92, 246, 0.1)",
@@ -1643,17 +2121,43 @@
         if (!container) return;
         container.innerHTML = "";
 
+        const lang = localStorage.getItem("panel_language") || "fa";
+
         const filtered = loadedProtocolsData.filter(proto => {
             if (currentProtoFilter === 'all') return true;
             const meta = PROTOCOL_META[proto.name] || {};
             return meta.category === currentProtoFilter;
         });
 
+        const tUninstalled = (lang === 'fa' ? 'نصب نشده' : (lang === 'ru' ? 'Не установлен' : 'Not Installed'));
+        const tActive = (lang === 'fa' ? 'فعال و آنلاین' : (lang === 'ru' ? 'Активен и онлайн' : 'Active & Online'));
+        const tStopped = (lang === 'fa' ? 'متوقف' : (lang === 'ru' ? 'Остановлен' : 'Stopped'));
+        const tIkev2Btn = (lang === 'fa' ? 'مدیریت حرفه‌ای IKEv2' : (lang === 'ru' ? 'Управление IKEv2' : 'Manage IKEv2'));
+        const tManageBtn = (lang === 'fa' ? 'مدیریت اختصاصی' : (lang === 'ru' ? 'Управление' : 'Dedicated Manager'));
+        const tSettingsBtn = (lang === 'fa' ? 'تنظیمات' : (lang === 'ru' ? 'Настройки' : 'Settings'));
+        const tPortLabel = (lang === 'fa' ? 'پورت فعال (Active Port)' : (lang === 'ru' ? 'Активный порт' : 'Active Port'));
+        const tOnlineConns = (lang === 'fa' ? 'اتصالات آنلاین' : (lang === 'ru' ? 'Онлайн соединения' : 'Online Connections'));
+        const tUsers = (lang === 'fa' ? 'کاربر' : (lang === 'ru' ? 'польز.' : 'users'));
+        const tAuthMech = (lang === 'fa' ? 'مکانیزم احراز هویت' : (lang === 'ru' ? 'Механизм аутентификации' : 'Auth Mechanism'));
+        const tRadiusAuth = (lang === 'fa' ? 'ردیوس سراسری (RADIUS)' : (lang === 'ru' ? 'Глобальный RADIUS' : 'Global RADIUS'));
+        const tLocalAuth = (lang === 'fa' ? 'محلی (Local / Key)' : (lang === 'ru' ? 'Локальный / Ключ' : 'Local / Key'));
+        const tChangePort = (lang === 'fa' ? 'تغییر پورت' : (lang === 'ru' ? 'Сменить порт' : 'Change Port'));
+        const tReadyInstall = (lang === 'fa' ? 'این سرویس روی سرور آماده نصب و پیکربندی سریع است.' : (lang === 'ru' ? 'Служба готова к быстрой установке на сервере.' : 'This service is ready for quick setup on the server.'));
+        const tInstallService = (lang === 'fa' ? 'نصب سرویس' : (lang === 'ru' ? 'Установить службу' : 'Install Service'));
+        const tStop = (lang === 'fa' ? 'توقف' : (lang === 'ru' ? 'Остановить' : 'Stop'));
+        const tStart = (lang === 'fa' ? 'شروع' : (lang === 'ru' ? 'Запустить' : 'Start'));
+        const tLogs = (lang === 'fa' ? 'مشاهده لاگ' : (lang === 'ru' ? 'Логи' : 'Logs'));
+        const tUninstall = (lang === 'fa' ? 'حذف کامل پروتکل' : (lang === 'ru' ? 'Удалить протокол' : 'Uninstall Protocol'));
+        const tIkev2Setup = (lang === 'fa' ? 'پیکربندی و تنظیمات IKEv2' : (lang === 'ru' ? 'Настройка IKEv2' : 'Configure IKEv2'));
+
         filtered.forEach(proto => {
             const meta = PROTOCOL_META[proto.name] || {
                 title: proto.name.toUpperCase(),
                 faTitle: proto.name,
-                desc: "سرویس ارتباطی سرور",
+                ruTitle: proto.name.toUpperCase(),
+                desc_en: "Server communication service",
+                desc_fa: "سرویس ارتباطی سرور",
+                desc_ru: "Служба связи сервера",
                 icon: "server",
                 color: "#6366f1",
                 bg: "rgba(99, 102, 241, 0.1)",
@@ -1664,8 +2168,7 @@
 
             const card = document.createElement("div");
             card.className = "glass-card protocol-card";
-            card.style.background = "rgba(255, 255, 255, 0.95)";
-            card.style.border = proto.active ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid rgba(0, 0, 0, 0.08)";
+            card.style.border = proto.active ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid var(--border-glow)";
             card.style.display = "flex";
             card.style.flexDirection = "column";
             card.style.justifyContent = "space-between";
@@ -1674,18 +2177,18 @@
             let statusBadge = "";
             if (!proto.installed) {
                 statusBadge = `
-                    <span style="display:inline-flex; align-items:center; gap:5px; background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
-                        <span class="status-dot uninstalled"></span> نصب نشده
+                    <span class="proto-status-pill uninstalled" style="display:inline-flex; align-items:center; gap:5px; background:var(--bg-base); color:var(--text-muted); border:1px solid var(--border-glow); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                        <span class="status-dot uninstalled"></span> ${tUninstalled}
                     </span>`;
             } else if (proto.active) {
                 statusBadge = `
-                    <span style="display:inline-flex; align-items:center; gap:5px; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
-                        <span class="status-dot active"></span> فعال و آنلاین
+                    <span class="proto-status-pill active" style="display:inline-flex; align-items:center; gap:5px; background:rgba(16, 185, 129, 0.12); color:#10b981; border:1px solid rgba(16, 185, 129, 0.25); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                        <span class="status-dot active"></span> ${tActive}
                     </span>`;
             } else {
                 statusBadge = `
-                    <span style="display:inline-flex; align-items:center; gap:5px; background:#fef2f2; color:#e11d48; border:1px solid #fecdd3; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
-                        <span class="status-dot inactive"></span> متوقف
+                    <span class="proto-status-pill inactive" style="display:inline-flex; align-items:center; gap:5px; background:rgba(244, 63, 94, 0.12); color:#f43f5e; border:1px solid rgba(244, 63, 94, 0.25); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                        <span class="status-dot inactive"></span> ${tStopped}
                     </span>`;
             }
 
@@ -1694,20 +2197,24 @@
             let settingsButton = "";
             if (proto.name === 'ikev2') {
                 settingsButton = `
-                    <button class="btn btn-sm" onclick="switchTab('ikev2')" style="flex:1; background:#4f46e5; color:#fff;" title="تنظیمات پیشرفته IKEv2">
-                        <i data-lucide="shield-check" style="width:14px; margin-right:4px;"></i> مدیریت حرفه‌ای IKEv2
+                    <button class="btn btn-sm" onclick="switchTab('ikev2')" style="flex:1; background:#4f46e5; color:#fff;" title="${tIkev2Btn}">
+                        <i data-lucide="shield-check" style="width:14px; margin-right:4px;"></i> ${tIkev2Btn}
                     </button>`;
             } else if (meta.tab) {
                 settingsButton = `
-                    <button class="btn btn-secondary btn-sm" onclick="switchTab('${meta.tab}')" style="flex:1;" title="مدیریت">
-                        <i data-lucide="sliders" style="width:14px; margin-right:4px;"></i> مدیریت اختصاصی
+                    <button class="btn btn-secondary btn-sm" onclick="switchTab('${meta.tab}')" style="flex:1;" title="${tManageBtn}">
+                        <i data-lucide="sliders" style="width:14px; margin-right:4px;"></i> ${tManageBtn}
                     </button>`;
             } else if (['sstp', 'pptp', 'shadowsocks', 'socks', 'http'].includes(proto.name)) {
                 settingsButton = `
-                    <button class="btn btn-secondary btn-sm" onclick="openProtocolSettings('${proto.name}')" style="flex:1;">
-                        <i data-lucide="settings" style="width:14px; margin-right:4px;"></i> تنظیمات
+                    <button class="btn btn-secondary btn-sm" onclick="openProtocolSettings('${proto.name}')" style="flex:1;" title="${tSettingsBtn}">
+                        <i data-lucide="settings" style="width:14px; margin-right:4px;"></i> ${tSettingsBtn}
                     </button>`;
             }
+
+            const pTitle = (lang === 'fa' ? (meta.faTitle || meta.title) : (lang === 'ru' ? (meta.ruTitle || meta.title) : meta.title));
+            const pSub = (lang === 'fa' ? meta.title : (lang === 'ru' ? (meta.title || meta.ruTitle) : (meta.faTitle || '')));
+            const pDesc = (lang === 'fa' ? (meta.desc_fa || meta.desc) : (lang === 'ru' ? (meta.desc_ru || meta.desc_en || meta.desc) : (meta.desc_en || meta.desc)));
 
             card.innerHTML = `
                 <div>
@@ -1718,8 +2225,8 @@
                                 <i data-lucide="${meta.icon}" style="width:20px; height:20px;"></i>
                             </div>
                             <div>
-                                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main);">${meta.title}</h3>
-                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${meta.faTitle}</div>
+                                <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main);">${pTitle}</h3>
+                                ${pSub ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${pSub}</div>` : ''}
                             </div>
                         </div>
                         <div>
@@ -1729,29 +2236,29 @@
 
                     <!-- Description -->
                     <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:16px; min-height:36px;">
-                        ${meta.desc}
+                        ${pDesc}
                     </p>
 
                     ${proto.installed ? `
                         <!-- Details Grid -->
-                        <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.05); border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                        <div class="proto-details-box" style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:10px; padding:10px 14px; margin-bottom:14px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:var(--text-muted);">پورت فعال (Active Port)</span>
+                                <span style="color:var(--text-muted);">${tPortLabel}</span>
                                 <span style="font-family:'JetBrains Mono'; font-weight:700; color:var(--text-main);">${proto.port || '-'}</span>
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:var(--text-muted);">اتصالات آنلاین</span>
-                                <span style="font-weight:700; color:${proto.active ? '#059669' : 'var(--text-dim)'};">${proto.active ? proto.connections : 0} کاربر</span>
+                                <span style="color:var(--text-muted);">${tOnlineConns}</span>
+                                <span style="font-weight:700; color:${proto.active ? '#059669' : 'var(--text-dim)'};">${proto.active ? proto.connections : 0} ${tUsers}</span>
                             </div>
                             <div style="display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:var(--text-muted);">مکانیزم احراز هویت</span>
+                                <span style="color:var(--text-muted);">${tAuthMech}</span>
                                 ${meta.radius ? `
-                                    <span style="background:rgba(99,102,241,0.1); color:#4f46e5; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;">
-                                        ردیوس سراسری (RADIUS)
+                                    <span style="background:rgba(99,102,241,0.12); color:#818cf8; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:700;">
+                                        ${tRadiusAuth}
                                     </span>
                                 ` : `
-                                    <span style="background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600;">
-                                        محلی (Local / Key)
+                                    <span style="background:var(--bg-surface); color:var(--text-muted); border:1px solid var(--border-glow); padding:2px 8px; border-radius:12px; font-size:10px; font-weight:600;">
+                                        ${tLocalAuth}
                                     </span>
                                 `}
                             </div>
@@ -1760,18 +2267,18 @@
                         ${!isFixedPort ? `
                             <div class="port-input-group" style="margin-bottom:16px;">
                                 <input type="number" class="port-input" id="port-change-${proto.name}" value="${proto.port}">
-                                <button class="port-btn" onclick="changePort('${proto.name}')">تغییر پورت</button>
+                                <button class="port-btn" onclick="changePort('${proto.name}')">${tChangePort}</button>
                             </div>
                         ` : ''}
                     ` : `
-                        <div style="background:#f8fafc; border:1px dashed rgba(0,0,0,0.12); border-radius:10px; padding:12px; margin-bottom:16px; text-align:center;">
+                        <div class="proto-uninstalled-box" style="background:var(--bg-base); border:1px dashed var(--border-glow); border-radius:10px; padding:12px; margin-bottom:16px; text-align:center;">
                             <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
-                                این سرویس روی سرور آماده نصب و پیکربندی سریع است.
+                                ${tReadyInstall}
                             </div>
                             <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
                                 <input type="number" class="port-input" id="install-port-${proto.name}" value="${proto.default_port}" ${isFixedPort ? 'disabled' : ''} style="width:75px;">
                                 <button class="btn btn-sm" onclick="confirmInstallProtocol('${proto.name}', '${proto.display_name || proto.name}')" style="width:auto; padding:8px 16px;">
-                                    <i data-lucide="download-cloud" style="width:14px; margin-right:4px;"></i> نصب سرویس
+                                    <i data-lucide="download-cloud" style="width:14px; margin-right:4px;"></i> ${tInstallService}
                                 </button>
                             </div>
                         </div>
@@ -1783,16 +2290,16 @@
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
                         <div style="display:flex; gap:8px;">
                             ${settingsButton}
-                            <button class="btn btn-secondary btn-sm" onclick="toggleService('${proto.name}', '${proto.active ? 'stop' : 'start'}')" style="width:auto; padding:8px 14px;" title="${proto.active ? 'توقف' : 'شروع'}">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleService('${proto.name}', '${proto.active ? 'stop' : 'start'}')" style="width:auto; padding:8px 14px;" title="${proto.active ? tStop : tStart}">
                                 <i data-lucide="${proto.active ? 'square' : 'play'}" style="width:14px;"></i>
                             </button>
-                            <button class="btn btn-secondary btn-sm" onclick="viewLogs('${proto.name}')" style="width:auto; padding:8px 14px;" title="مشاهده لاگ">
+                            <button class="btn btn-secondary btn-sm" onclick="viewLogs('${proto.name}')" style="width:auto; padding:8px 14px;" title="${tLogs}">
                                 <i data-lucide="terminal" style="width:14px;"></i>
                             </button>
                         </div>
                         <div style="display:flex; justify-content:flex-end;">
-                            <button class="btn-proto-delete" onclick="confirmUninstallProtocol('${proto.name}', '${proto.display_name || proto.name}')" title="حذف کامل این پروتکل از سرور">
-                                <i data-lucide="trash-2" style="width:13px; height:13px;"></i> حذف کامل پروتکل
+                            <button class="btn-proto-delete" onclick="confirmUninstallProtocol('${proto.name}', '${proto.display_name || proto.name}')" title="${tUninstall}">
+                                <i data-lucide="trash-2" style="width:13px; height:13px;"></i> ${tUninstall}
                             </button>
                         </div>
                     </div>
@@ -1800,7 +2307,7 @@
                     ${proto.name === 'ikev2' ? `
                         <div style="margin-top:10px;">
                             <button class="btn btn-secondary btn-sm" onclick="switchTab('ikev2')" style="width:100%;">
-                                <i data-lucide="sliders" style="width:14px; margin-right:4px;"></i> پیکربندی و تنظیمات IKEv2
+                                <i data-lucide="sliders" style="width:14px; margin-right:4px;"></i> ${tIkev2Setup}
                             </button>
                         </div>
                     ` : ''}
@@ -2157,7 +2664,7 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
                             <label class="form-label">Gateway Ports</label>
-                            <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_ssh_gateway_ports">
+                            <select class="form-input form-select" style="padding-left:16px;" id="setting_ssh_gateway_ports">
                                 <option value="clientspecified" ${(settings.ssh_gateway_ports||'clientspecified')==='clientspecified'?'selected':''}>Client-Specified (Remote Forwarding)</option>
                                 <option value="yes" ${settings.ssh_gateway_ports==='yes'?'selected':''}>Yes (All Interfaces)</option>
                                 <option value="no" ${settings.ssh_gateway_ports==='no'?'selected':''}>No (Disabled)</option>
@@ -2165,7 +2672,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Compression</label>
-                            <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_ssh_compression">
+                            <select class="form-input form-select" style="padding-left:16px;" id="setting_ssh_compression">
                                 <option value="yes" ${(settings.ssh_compression||'yes')==='yes'?'selected':''}>Enabled</option>
                                 <option value="no" ${settings.ssh_compression==='no'?'selected':''}>Disabled</option>
                             </select>
@@ -2173,7 +2680,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Permit Root Login</label>
-                        <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_ssh_permit_root">
+                        <select class="form-input form-select" style="padding-left:16px;" id="setting_ssh_permit_root">
                             <option value="yes" ${(settings.ssh_permit_root||'yes')==='yes'?'selected':''}>Yes</option>
                             <option value="without-password" ${settings.ssh_permit_root==='without-password'?'selected':''}>Key-Only (without-password)</option>
                             <option value="no" ${settings.ssh_permit_root==='no'?'selected':''}>No</option>
@@ -2209,14 +2716,14 @@
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
                         <div class="form-group">
                             <label class="form-label">Transport Protocol</label>
-                            <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_openvpn_proto">
+                            <select class="form-input form-select" style="padding-left:16px;" id="setting_openvpn_proto">
                                 <option value="udp" ${settings.openvpn_proto === 'udp' ? 'selected' : ''}>UDP</option>
                                 <option value="tcp" ${settings.openvpn_proto === 'tcp' ? 'selected' : ''}>TCP</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Cryptography Cipher</label>
-                            <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_openvpn_cipher">
+                            <select class="form-input form-select" style="padding-left:16px;" id="setting_openvpn_cipher">
                                 <option value="AES-256-GCM" ${settings.openvpn_cipher === 'AES-256-GCM' ? 'selected' : ''}>AES-256-GCM</option>
                                 <option value="AES-128-GCM" ${settings.openvpn_cipher === 'AES-128-GCM' ? 'selected' : ''}>AES-128-GCM</option>
                                 <option value="CHACHA20-POLY1305" ${settings.openvpn_cipher === 'CHACHA20-POLY1305' ? 'selected' : ''}>CHACHA20-POLY1305</option>
@@ -2310,7 +2817,7 @@
                     </div>
                     <div class="form-group">
                         <label class="form-label">Authentication Mode</label>
-                        <select class="form-input" style="padding-left:16px; background:#181d28; border:1px solid rgba(255,255,255,0.08); color:#fff;" id="setting_l2tp_auth_mode">
+                        <select class="form-input form-select" style="padding-left:16px;" id="setting_l2tp_auth_mode">
                             <option value="mschapv2" ${(settings.l2tp_auth_mode||'mschapv2')==='mschapv2'?'selected':''}>MS-CHAPv2 (Recommended)</option>
                             <option value="chap" ${settings.l2tp_auth_mode==='chap'?'selected':''}>CHAP</option>
                             <option value="pap" ${settings.l2tp_auth_mode==='pap'?'selected':''}>PAP (Plaintext)</option>
@@ -7395,8 +7902,8 @@
 
                             const card = document.createElement("div");
                             card.className = "client-item";
-                            card.style.background = "#f8fafc";
-                            card.style.border = "1px solid rgba(0,0,0,0.08)";
+                            card.style.background = "var(--bg-base)";
+                            card.style.border = "1px solid var(--border-glow)";
                             card.style.padding = "14px 16px";
                             card.style.borderRadius = "10px";
                             card.style.marginBottom = "10px";
@@ -8166,8 +8673,8 @@
 
                 const card = document.createElement("div");
                 card.className = "client-item";
-                card.style.background = info.active ? "#ffffff" : "#f8fafc";
-                card.style.border = "1px solid " + (info.active ? "rgba(99, 102, 241, 0.15)" : "rgba(0,0,0,0.08)");
+                card.style.background = info.active ? "var(--bg-surface)" : "var(--bg-base)";
+                card.style.border = "1px solid " + (info.active ? "rgba(99, 102, 241, 0.25)" : "var(--border-glow)");
                 card.style.padding = "14px 16px";
                 card.style.borderRadius = "10px";
                 card.style.boxShadow = "0 1px 3px rgba(0,0,0,0.03)";
@@ -9445,8 +9952,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 
                 const card = document.createElement("div");
                 card.className = "client-item";
-                card.style.background = "#f8fafc";
-                card.style.border = "1px solid rgba(0,0,0,0.06)";
+                card.style.background = "var(--bg-base)";
+                card.style.border = "1px solid var(--border-glow)";
                 card.style.padding = "14px";
                 card.style.borderRadius = "8px";
                 card.style.marginBottom = "8px";
@@ -10239,8 +10746,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 
                 const card = document.createElement("div");
                 card.className = "client-item";
-                card.style.background = "#f8fafc";
-                card.style.border = "1px solid rgba(0,0,0,0.06)";
+                card.style.background = "var(--bg-base)";
+                card.style.border = "1px solid var(--border-glow)";
                 card.style.padding = "14px 16px";
                 card.style.borderRadius = "10px";
                 card.innerHTML = `
@@ -11494,13 +12001,13 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (r.checked) {
                 selectedType = r.value;
                 if (card) {
-                    card.style.borderColor = "#6366f1";
-                    card.style.background = "#eef2ff";
+                    card.style.borderColor = "var(--color-primary)";
+                    card.style.background = "rgba(99, 102, 241, 0.12)";
                 }
             } else {
                 if (card) {
-                    card.style.borderColor = "#cbd5e1";
-                    card.style.background = "#ffffff";
+                    card.style.borderColor = "var(--border-glow)";
+                    card.style.background = "var(--bg-surface)";
                 }
             }
         }
@@ -11772,10 +12279,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const activeBtn = tabName === "ros7" ? btnRos7 : (tabName === "ros6" ? btnRos6 : btnLinux);
         if (activeBtn) {
-            activeBtn.style.background = "#ffffff";
-            activeBtn.style.color = "#0284c7";
+            activeBtn.style.background = "var(--color-primary)";
+            activeBtn.style.color = "#ffffff";
             activeBtn.style.fontWeight = "700";
-            activeBtn.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
+            activeBtn.style.boxShadow = "0 1px 4px rgba(0,0,0,0.15)";
         }
 
         if (codeArea && currentTunnelScripts) {
@@ -11826,13 +12333,13 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (r.checked) {
                 selectedTool = r.value;
                 if (card) {
-                    card.style.borderColor = "#10b981";
-                    card.style.background = "#ecfdf5";
+                    card.style.borderColor = "var(--color-emerald)";
+                    card.style.background = "rgba(16, 185, 129, 0.12)";
                 }
             } else {
                 if (card) {
-                    card.style.borderColor = "#cbd5e1";
-                    card.style.background = "#ffffff";
+                    card.style.borderColor = "var(--border-glow)";
+                    card.style.background = "var(--bg-surface)";
                 }
             }
         }

@@ -2,7 +2,7 @@
     <section style="max-width: 1050px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
         
         <!-- OCServ Core Status & Service Control Header -->
-        <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(99, 102, 241, 0.2);">
+        <div class="glass-card config-card" style="border: 1px solid rgba(99, 102, 241, 0.2);">
             <div class="config-header" style="margin-bottom: 16px;">
                 <div style="display:flex; align-items:center; gap:12px;">
                     <div style="width:42px; height:42px; border-radius:12px; background: rgba(99, 102, 241, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:18px;">
-                            مرکز مدیریت پروتکل OpenConnect / Cisco AnyConnect (OCServ)
+                            <span data-i18n="ocserv_title">مرکز مدیریت پروتکل OpenConnect / Cisco AnyConnect (OCServ)</span>
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             پروتکل صنعتی و فوق‌العاده پایدار سیسکو سازگار با تمامی سیستم‌عامل‌ها، مجهز به بای‌پس پیشرفته DPI (پنهان‌سازی Camouflage) و اتصال به ردیوس متمرکز
@@ -19,27 +19,27 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <span id="ocserv-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
-                        <span class="status-dot active"></span> در حال بررسی وضعیت...
+                        <span class="status-dot active"></span> <span data-i18n="proto_checking_status">در حال بررسی وضعیت...</span>
                     </span>
                 </div>
             </div>
 
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پورت و پروتکل فعال</div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_port_proto">پورت و پروتکل فعال</span></div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ocserv-top-port">TCP 10443 (TLS 1.3)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
-                    <div style="color: var(--text-muted); font-size: 11px;">حالت ضد فیلترینگ (Camouflage)</div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_camo">حالت ضد فیلترینگ (Camouflage)</span></div>
                     <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ocserv-top-camo-status">فعال (پنهان در برابر اسکنرها)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
-                    <div style="color: var(--text-muted); font-size: 11px;">احراز هویت کاربران</div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_auth">احراز هویت کاربران</span></div>
                     <div style="font-weight: 700; color: #4f46e5; font-size: 12px; margin-top: 3px;" id="ocserv-top-auth">FreeRADIUS (ردیوس سراسری)</div>
                 </div>
-                <div style="background: #f8fafc; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(0,0,0,0.06);">
-                    <div style="color: var(--text-muted); font-size: 11px;">سشن‌های آنلاین فعلی</div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_sessions">سشن‌های آنلاین فعلی</span></div>
                     <div style="font-weight: 700; color: #d97706; font-size: 13px; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ocserv-top-sessions">0 کاربر متصل</div>
                 </div>
             </div>
@@ -47,13 +47,13 @@
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartOcservService()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس (Restart)
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_restart">راه‌اندازی مجدد سرویس (Restart)</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="reloadOcservConfig()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بازخوانی کانفیگ بدون قطعی (Reload)
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_reload">بازخوانی کانفیگ بدون قطعی (Reload)</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('ocserv')" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> مشاهده لاگ‌های زنده
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span>
                 </button>
             </div>
         </div>
@@ -62,19 +62,19 @@
         <div style="display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto;">
             <button type="button" class="ocserv-subtab-btn active" id="btn-subtab-ocserv-config" onclick="switchOcservSubTab('config')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: #4f46e5; color: #fff; transition: all 0.2s;">
                 <i data-lucide="sliders" style="width:16px; height:16px;"></i>
-                تنظیمات جامع و ضد فیلترینگ (Anti-DPI)
+                <span data-i18n="proto_subtab_config">تنظیمات جامع و ضد فیلترینگ (Anti-DPI)</span>
             </button>
             <button type="button" class="ocserv-subtab-btn" id="btn-subtab-ocserv-users" onclick="switchOcservSubTab('users')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
                 <i data-lucide="users" style="width:16px; height:16px;"></i>
-                مدیریت کاربران و اکانت‌ها
+                <span data-i18n="proto_subtab_users">مدیریت کاربران و اکانت‌ها</span>
             </button>
             <button type="button" class="ocserv-subtab-btn" id="btn-subtab-ocserv-sessions" onclick="switchOcservSubTab('sessions')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
                 <i data-lucide="activity" style="width:16px; height:16px;"></i>
-                سشن‌های آنلاین و مانیتورینگ زنده
+                <span data-i18n="proto_subtab_sessions">سشن‌های آنلاین و مانیتورینگ زنده</span>
             </button>
             <button type="button" class="ocserv-subtab-btn" id="btn-subtab-ocserv-guides" onclick="switchOcservSubTab('guides')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: transparent; color: var(--text-muted); transition: all 0.2s;">
                 <i data-lucide="download" style="width:16px; height:16px;"></i>
-                راهنمای اتصال و نرم‌افزارها
+                <span data-i18n="proto_subtab_guides">راهنمای اتصال و نرم‌افزارها</span>
             </button>
         </div>
 
@@ -85,7 +85,7 @@
             <form id="ocserv-config-form" onsubmit="saveOcservConfig(event)">
                 
                 <!-- Anti-DPI Stealth & Camouflage Card -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); border-right: 4px solid #059669;">
+                <div class="glass-card config-card" style="border-right: 4px solid #059669;">
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
@@ -128,7 +128,7 @@
                         </div>
 
                         <!-- Anti-UDP / TCP-Only Switch -->
-                        <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 16px;">
+                        <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                             <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:700; color:var(--text-main);">
                                 <input type="checkbox" id="ocserv-enable-udp" style="width:18px; height:18px; accent-color:#4f46e5;">
                                 فعال بودن شتاب‌دهنده UDP DTLS (غیرفعال‌سازی برای Anti-DPI TCP-Only)
@@ -141,7 +141,7 @@
                 </div>
 
                 <!-- Ports, Domain & SSL Certificate Card -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-top: 20px;">
+                <div class="glass-card config-card" style="margin-top: 20px;">
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
@@ -173,7 +173,7 @@
                     </div>
 
                     <!-- SSL Certificate Choice -->
-                    <div style="background: #f8fafc; border: 1px solid rgba(0,0,0,0.08); border-radius: 12px; padding: 16px;">
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                         <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">انتخاب نوع گواهی امنیتی (SSL / TLS):</div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
@@ -203,7 +203,7 @@
                 </div>
 
                 <!-- Network, Routing & Limits Card -->
-                <div class="glass-card config-card" style="background: rgba(255, 255, 255, 0.95); margin-top: 20px;">
+                <div class="glass-card config-card" style="margin-top: 20px;">
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
@@ -396,7 +396,7 @@
                 <p style="font-size:13px; color:#15803d; margin:0 0 14px 0; line-height:1.6;">
                     برای اتصال با اپلیکیشن رسمی <strong>Cisco AnyConnect / Cisco Secure Client</strong> در تمامی سیستم‌عامل‌ها، آدرس زیر را بدون هیچ پیشوند یا پسوند اضافه در نرم‌افزار وارد کنید:
                 </p>
-                <div style="background:#fff; border:1px solid #86efac; border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div style="background: var(--bg-surface); border:1px solid #86efac; border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
                     <code style="font-family:'JetBrains Mono', monospace; font-size:15px; color:#166534; font-weight:700;" id="ocserv-connect-url-preview">
                         vpn.kigaping.com
                     </code>

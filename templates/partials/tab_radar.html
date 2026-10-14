@@ -5,21 +5,20 @@
             <div>
                 <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
                     <i data-lucide="radar" style="color: #ef4444; width: 24px; height: 24px;"></i>
-                    رادار سلامت اتصال، فیلترینگ و وضعیت شبکه سرور (Censorship & Connectivity Radar)
+                    <span data-i18n="radar_title">رادار سلامت اتصال، فیلترینگ و وضعیت شبکه سرور</span>
                 </h2>
                 <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-                    بررسی بلادرنگ وضعیت سرور در اپراتورهای همراه و ثابت ایران (همراه اول، ایرانسل، مخابرات)، سلامت دیتاسنترهای بین‌المللی، وضعیت باز بودن پورت‌ها و تشخیص رفتارهای DPI
-                </p>
+                    <span data-i18n="radar_subtitle">بررسی بلادرنگ وضعیت سرور در اپراتورهای همراه و ثابت ایران، سلامت دیتاسنترها و پورت‌های فعال</span></p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <span id="radar-last-update" style="font-size: 11.5px; color: #64748b; background: #f1f5f9; padding: 6px 12px; border-radius: 20px;">
-                    آخرین اسکن: در انتظار بررسی
+                    <span data-i18n="radar_last_scan">آخرین اسکن:</span> <span data-i18n="radar_scan_waiting">در انتظار بررسی</span>
                 </span>
                 <button type="button" class="btn btn-primary btn-sm" id="radar-scan-btn" onclick="runRadarScan('full')" style="padding: 8px 18px; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                    <i data-lucide="refresh-cw" id="radar-scan-icon" style="width: 14px; height: 14px;"></i> اجرای اسکن جامع رادار
+                    <i data-lucide="refresh-cw" id="radar-scan-icon" style="width: 14px; height: 14px;"></i> <span data-i18n="radar_btn_scan">اجرای اسکن جامع رادار</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="copyRadarReport()" style="padding: 8px 14px;">
-                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i> کپی گزارش برای پشتیبانی
+                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i> <span data-i18n="radar_btn_copy">کپی گزارش برای پشتیبانی</span>
                 </button>
             </div>
         </div>
@@ -115,7 +114,7 @@
                     </div>
                     <div>
                         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
-                            وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه ایران (Iran Telecom & ISPs)
+                            <span data-i18n="radar_table_isp_title">وضعیت دسترسی و کیفیت اتصال در اپراتورهای شبکه ایران (Iran Telecom & ISPs)</span>
                         </h3>
                         <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
                             بررسی وضعیت اتصال مستقیم، تاخیر، پکت لوس و عدم مسدودیت در شبکه همراه و ثابت کشور
@@ -127,10 +126,10 @@
                 </span>
             </div>
 
-            <div class="table-container" style="overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
                 <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
                     <thead>
-                        <tr style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #475569;">
+                        <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
                             <th style="padding: 12px 14px;">نام اپراتور و نوع شبکه</th>
                             <th style="padding: 12px 14px;">تاخیر (Ping)</th>
                             <th style="padding: 12px 14px;">پکت لوس (Loss %)</th>
@@ -141,7 +140,7 @@
                     <tbody id="radar-iran-tbody">
                         <tr>
                             <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                                برای بررسی وضعیت اپراتورهای ایران دکمه «اجرای اسکن جامع رادار» را بزنید.
+                                برای بررسی وضعیت اپراتورهای ایران دکمه «<span data-i18n="radar_btn_scan">اجرای اسکن جامع رادار</span>» را بزنید.
                             </td>
                         </tr>
                     </tbody>
@@ -158,7 +157,7 @@
                     </div>
                     <div>
                         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
-                            وضعیت ارتباط با دیتاسنترها و هاب‌های بین‌المللی اینترنت (Global Datacenters)
+                            <span data-i18n="radar_global_dc_title">وضعیت ارتباط با دیتاسنترها و هاب‌های بین‌المللی اینترنت (Global Datacenters)</span>
                         </h3>
                         <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
                             سنجش کیفیت مسیر، پایداری ترانزیت و تاخیر سرور با مراکز اصلی داده در اروپا، آمریکا و خاورمیانه
@@ -198,7 +197,7 @@
                     </div>
                     <div>
                         <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
-                            رادار پورت‌های فعال پروتکل‌های سرور (VPN Protocols Port Matrix)
+                            <span data-i18n="radar_port_matrix_title">رادار پورت‌های فعال پروتکل‌های سرور (VPN Protocols Port Matrix)</span>
                         </h3>
                         <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
                             بررسی وضعیت فعال بودن، شنود و پاسخگویی پورت‌های اصلی پروتکل‌های اتصال
@@ -220,7 +219,7 @@
                 </div>
                 <div>
                     <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
-                        تحلیل هوشمند DPI، مسمومیت DNS و ضد فیلترینگ (Deep Filtering Inspection)
+                        <span data-i18n="radar_dpi_analysis_title">تحلیل هوشمند DPI، مسمومیت DNS و ضد فیلترینگ (Deep Filtering Inspection)</span>
                     </h3>
                     <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
                         بررسی رفتارهای تزریق پکت RST، سناریوهای مسمومیت دی‌ان‌اس و پایداری هندشیک TLS
@@ -230,7 +229,7 @@
 
             <div class="config-card" style="border-radius: 12px; padding: 18px; margin-bottom: 16px;">
                 <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">
-                    نتیجه و تشخیص تحلیلی سیستم (System Verdict):
+                    <strong data-i18n="radar_system_verdict">نتیجه و تشخیص تحلیلی سیستم (System Verdict):</strong>
                 </div>
                 <p id="radar-verdict-text" style="font-size: 13px; color: var(--text-muted); line-height: 1.8; margin: 0;">
                     پس از اجرای اسکن، تحلیل رفتاری فیلترینگ و توصیه‌های فنی در این بخش نمایش داده می‌شود.
