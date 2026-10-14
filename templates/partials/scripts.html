@@ -1,4 +1,13 @@
 <script>
+    // Global State Variables (hoisted to top to prevent TDZ ReferenceErrors)
+    var usageChart = null;
+    var bandwidthChart = null;
+    var loadedProtocolsData = [];
+    var currentProtoFilter = 'all';
+    var latestStats = null;
+    var prevRecv = 0;
+    var prevSent = 0;
+
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -55,11 +64,6 @@
 
     initTheme();
 
-    // Global variables
-    let usageChart = null;
-    let bandwidthChart = null;
-    let prevRecv = 0;
-    let prevSent = 0;
     const apiKey = "{{ api_key }}";
 
     // --- Mobile Sidebar Drawer Toggle ---
@@ -1137,9 +1141,9 @@
             renderSecLogsFiltered();
         }
         if (typeof latestStats !== "undefined" && latestStats) {
-            if (typeof updateHardwareSpecs === "function") updateHardwareSpecs(latestStats);
-            if (typeof updatePerCoreWorkload === "function" && latestStats.cpu_per_core) updatePerCoreWorkload(latestStats.cpu_per_core);
-            if (typeof updateProtocolTraffic === "function" && latestStats.proto_traffic) updateProtocolTraffic(latestStats.proto_traffic);
+            if (typeof updateHardwareSpecs === "function" && latestStats.system_info) updateHardwareSpecs(latestStats.system_info);
+            if (typeof updatePerCoreWorkload === "function" && latestStats.system_info && latestStats.system_info.cpu) updatePerCoreWorkload(latestStats.system_info.cpu);
+            if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
         }
 
         if (typeof lucide !== "undefined") {
@@ -1666,7 +1670,7 @@
                     <div class="proto-card-top">
                         <div class="proto-card-identity">
                             <div class="proto-icon-circle" style="background:${item.color}15; color:${item.color}; border:1px solid ${item.color}35;">
-                                <i data-lucide="${item.icon || shield}" style="width:18px; height:18px;"></i>
+                                <i data-lucide="${item.icon || 'shield'}" style="width:18px; height:18px;"></i>
                             </div>
                             <div class="proto-name-box">
                                 <span class="proto-name-fa">${dispName}</span>
@@ -1839,6 +1843,7 @@
             const res = await fetch("/api/stats");
             if (!res.ok) return;
             const data = await res.json();
+            latestStats = data;
             
             document.getElementById("cpu-val").innerText = Math.round(data.cpu) + " %";
             
@@ -1903,8 +1908,7 @@
         }
     }
 
-    let currentProtoFilter = 'all';
-    let loadedProtocolsData = [];
+    // Protocol filters and loaded data managed via hoisted global state
 
     const PROTOCOL_META = {
         ikev2: {
