@@ -12,7 +12,7 @@
                         <h3 class="config-title" style="margin:0; font-size:18px;">
                             <span data-i18n="ssh_title">مرکز مدیریت پیشرفته پروتکل SSH و بای‌پس ضد فیلترینگ</span>
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ssh_secure_connection_connected_worldwide_glo">
                             اتصال امن متصل به ردیوس سراسری سراسری، وب‌سوکت (WS/WSS)، تونل امن TLS (Stunnel)، اینترنت ملی SlowDNS و BadVPN UDPGW
                         </p>
                     </div>
@@ -27,33 +27,33 @@
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پورت‌های SSH مستقیم</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ssh_direct_ssh_ports">پورت‌های SSH مستقیم</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-direct-ports">22, 2053, 443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پورت‌های وب‌سوکت (WS/WSS)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ssh_websocket_ports_ws_wss">پورت‌های وب‌سوکت (WS/WSS)</div>
                     <div style="font-weight: 700; color: #4f46e5; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-ws-ports">80, 443, 8088 (/ssh)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پورت‌های TLS / SSL (Stunnel)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ssh_tls_ssl_stunnel_2">پورت‌های TLS / SSL (Stunnel)</div>
                     <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-tls-ports">9443, 2087, 443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پورت صوتی BadVPN UDPGW</div>
-                    <div style="font-weight: 700; color: #d97706; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-udpgw-port">7300 (فعال)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="ssh_badvpn_udpgw_audio_port">پورت صوتی BadVPN UDPGW</div>
+                    <div style="font-weight: 700; color: #d97706; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ssh-stat-udpgw-port" data-i18n="ssh_7300">7300 (فعال)</div>
                 </div>
             </div>
 
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartSshServices()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس‌های SSH
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ssh_ssh">راه‌اندازی مجدد سرویس‌های SSH</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSshConfig(); fetchSshClients(); fetchSshSessions();" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بروزرسانی وضعیت و نشست‌ها
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ssh_status_updates_meetings">بروزرسانی وضعیت و نشست‌ها</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('ssh')" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> لاگ‌های زنده OpenSSH
+                    <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ssh_openssh_live_logs">لاگ‌های زنده OpenSSH</span>
                 </button>
             </div>
         </div>
@@ -63,10 +63,9 @@
             <div class="config-header" style="margin-bottom: 16px;">
                 <div>
                     <h3 class="config-title" style="margin:0; font-size:16px;">
-                        <i data-lucide="zap" style="color: #f59e0b; width: 18px; height: 18px;"></i>
-                        مرکز راهنما و پی‌لودهای بای‌پس فیلترینگ (Connection & Payloads Hub)
+                        <i data-lucide="zap" style="color: #f59e0b; width: 18px; height: 18px;"></i> <span data-i18n="ssh_connection_payloads_hub">مرکز راهنما و پی‌لودهای بای‌پس فیلترینگ (Connection & Payloads Hub)</span>
                     </h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="ssh_all_filtering_bypass_methods_are">
                         تمامی روش‌های دورزدن فیلترینگ با یک کلیک کپی می‌شوند و آماده استفاده در برنامه‌های HTTP Custom, NapsternetV, NetMod, OpenTunnel, Bitvise هستند.
                     </p>
                 </div>
@@ -78,10 +77,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">⚡ اتصال مستقیم و پروکسی ساکس ۵</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_direct_connection_sax_proxy_5">⚡ اتصال مستقیم و پروکسی ساکس ۵</strong>
                             <span style="font-size:11px; background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:6px; font-weight:600;">SOCKS5 Direct</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="ssh_direct_tcp_connection_ports_22">
                             اتصال مستقیم TCP با پورت‌های ۲۲، ۲۰۵۳ و ۴۴۳ (از طریق مولتی‌پلکسر HAProxy) با قابلیت فوروارد نامحدود.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="ssh-box-socks5-cmd">
@@ -89,7 +88,7 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-socks5-cmd').innerText, 'دستور ساکس ۵')" style="width:100%;">
-                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی دستور اتصال SOCKS5
+                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_socks5">کپی دستور اتصال SOCKS5</span>
                     </button>
                 </div>
 
@@ -97,7 +96,7 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🌐 وب‌سوکت و پروکسی CDN (WS/WSS)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_websocket_cdn_proxy_ws_wss">🌐 وب‌سوکت و پروکسی CDN (WS/WSS)</strong>
                             <span style="font-size:11px; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:600;">Cloudflare WS</span>
                         </div>
                         <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
@@ -108,7 +107,7 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-ws-payload').innerText, 'پی‌لود وب‌سوکت')" style="width:100%;">
-                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی پی‌لود وب‌سوکت (HTTP Custom)
+                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_websocket_payload_http_custom">کپی پی‌لود وب‌سوکت (HTTP Custom)</span>
                     </button>
                 </div>
 
@@ -116,10 +115,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🔒 تونل رمزنگاری TLS / SSL (Stunnel)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_tls_ssl_stunnel">🔒 تونل رمزنگاری TLS / SSL (Stunnel)</strong>
                             <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:6px; font-weight:600;">TLS Wrapper</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="ssh_encrypting_ssh_frames_tls_layer">
                             پنهان‌سازی فریم‌های SSH در لایه TLS با گواهی معتبر Let's Encrypt جهت عبور از DPI. پورت‌های ۹۴۴۳، ۲۰۸۷ و ۴۴۳.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="ssh-box-stunnel-info">
@@ -127,7 +126,7 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copySshText('vpn.kigaping.com:9443', 'مشخصات TLS/Stunnel')" style="width:100%;">
-                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس و پورت Stunnel
+                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_stunnel_address_port">کپی آدرس و پورت Stunnel</span>
                     </button>
                 </div>
 
@@ -135,20 +134,20 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🛡️ تونل اینترنت ملی SlowDNS (dnstt)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_slowdns_national_internet_tunnel_dnstt">🛡️ تونل اینترنت ملی SlowDNS (dnstt)</strong>
                             <span style="font-size:11px; background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:6px; font-weight:600;">National Intranet</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="ssh_connection_during_complete_internet_outag">
                             اتصال در زمان قطعی کامل اینترنت و فیلترینگ شدید با انتقال ترافیک بر بستر درخواست‌های مجاز DNS (UDP 53).
                         </p>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">پابلیک کی سرور (Public Key):</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;" data-i18n="ssh_public_key">پابلیک کی سرور (Public Key):</div>
                         <div style="background:#0f172a; color:#38bdf8; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:10px; direction:ltr; word-break:break-all;" id="ssh-box-slowdns-key">
                             b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         </div>
                         <div style="font-size:11px; color:var(--text-muted); margin-top:6px;">نیم‌سرور دی‌ان‌اس (Nameserver): <code style="direction:ltr; font-family:'JetBrains Mono',monospace; color:#4f46e5;">t.kigaping.com</code></div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-slowdns-key').innerText, 'کلید عمومی SlowDNS')" style="width:100%;">
-                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی کلید عمومی SlowDNS
+                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_slowdns_public_key">کپی کلید عمومی SlowDNS</span>
                     </button>
                 </div>
 
@@ -156,10 +155,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🎮 پورت گیمینگ و تماس BadVPN UDPGW</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_badvpn_udpgw_gaming_port_call">🎮 پورت گیمینگ و تماس BadVPN UDPGW</strong>
                             <span style="font-size:11px; background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:6px; font-weight:600;">UDP Voice/Gaming</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="ssh_udp_forwarder_service_solve_problem">
                             سرویس فورواردر UDP برای رفع مشکل تماس صوتی و تصویری (واتساپ و تلگرام) و بازی‌های آنلاین در کلاینت‌های موبایل.
                         </p>
                         <div style="background:#0f172a; color:#a7f3d0; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr;">
@@ -167,7 +166,7 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copySshText('7300', 'پورت UDPGW')" style="width:100%;">
-                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی پورت BadVPN UDPGW (7300)
+                        <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_badvpn_udpgw_port_copy_7300">کپی پورت BadVPN UDPGW (7300)</span>
                     </button>
                 </div>
 
@@ -175,18 +174,18 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">📋 مشخصات کلی سرور</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="ssh_general_server_specifications">📋 مشخصات کلی سرور</strong>
                             <span style="font-size:11px; background:#e2e8f0; color:#334155; padding:2px 8px; border-radius:6px; font-weight:600;">Server Details</span>
                         </div>
                         <div style="font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
                             <div>آی‌پی سرور: <code style="direction:ltr; font-family:'JetBrains Mono',monospace;">212.227.143.16</code></div>
                             <div>دامنه سرور: <code style="direction:ltr; font-family:'JetBrains Mono',monospace;">vpn.kigaping.com</code></div>
                             <div>پروتکل احراز هویت: <strong>FreeRADIUS + Linux PAM</strong></div>
-                            <div>دسترسی کاربر: <strong>ساکس ۵ ایمن (بدون شل روت)</strong></div>
+                            <div>دسترسی کاربر: <strong data-i18n="ssh_saks_5_safe_without_shell">ساکس ۵ ایمن (بدون شل روت)</strong></div>
                         </div>
                     </div>
                     <button type="button" class="btn btn-primary btn-sm" onclick="copySshAllDetails()" style="width:100%;">
-                        <i data-lucide="clipboard-copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی کامل اطلاعات اتصال
+                        <i data-lucide="clipboard-copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_item_3">کپی کامل اطلاعات اتصال</span>
                     </button>
                 </div>
 
@@ -201,10 +200,10 @@
                         <i data-lucide="help-circle" style="width:20px; height:20px;"></i>
                     </div>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px; color:#c2410c;">
+                        <h3 class="config-title" style="margin:0; font-size:16px; color:#c2410c;" data-i18n="ssh_guide_fix_authentication_error_authentica">
                             راهنمای رفع خطای احراز هویت (Authentication Error) و نحوه تنظیم در NapsternetV / NPV / HTTP Custom
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ssh_reason_not_connecting_port_443">
                             دلیل عدم اتصال روی پورت ۴۴۳ و تنظیم دقیق گزینه‌های Host، Port و SNI در کلاینت‌های مختلف
                         </p>
                     </div>
@@ -214,9 +213,9 @@
             <div style="display:flex; flex-direction:column; gap:14px; font-size:13px; line-height:1.7;">
                 <!-- Error explanation alert -->
                 <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px 16px; color:#92400e;">
-                    <strong style="color:#b45309; font-size:14px;">⚠️ چرا روی پورت ۴۴۳ خطای احراز هویت یا قطعی دریافت می‌کردید؟</strong>
+                    <strong style="color:#b45309; font-size:14px;" data-i18n="ssh_why_were_you_receiving_authentication">⚠️ چرا روی پورت ۴۴۳ خطای احراز هویت یا قطعی دریافت می‌کردید؟</strong>
                     <p style="margin:4px 0 0 0;">
-                        روی پورت ۴۴۳ به دلیل اشتراک‌گذاری همزمان چند پروتکل (Cisco AnyConnect، وب‌سایت‌های پنل، SSH و OpenVPN)، تفکیک ترافیک با <strong>SNI (نام دامنه داخل پکت SSL)</strong> انجام می‌شود. دامنه اصلی <code>vpn.kigaping.com</code> روی پورت ۴۴۳ به پروتکل سیسکو (Cisco AnyConnect) اختصاص دارد؛ بنابراین اگر در کلاینت SSH مقدار SNI را <code>vpn.kigaping.com</code> وارد کرده و به ۴۴۳ متصل شوید، ترافیک به سمت سرور سیسکو رفته و خطای احراز هویت (یا 401) می‌دهد!
+                        روی پورت ۴۴۳ به دلیل اشتراک‌گذاری همزمان چند پروتکل (Cisco AnyConnect، وب‌سایت‌های پنل، SSH و OpenVPN)، تفکیک ترافیک با <strong data-i18n="ssh_sni_domain_name_inside_ssl">SNI (نام دامنه داخل پکت SSL)</strong> انجام می‌شود. دامنه اصلی <code>vpn.kigaping.com</code> روی پورت ۴۴۳ به پروتکل سیسکو (Cisco AnyConnect) اختصاص دارد؛ بنابراین اگر در کلاینت SSH مقدار SNI را <code>vpn.kigaping.com</code> وارد کرده و به ۴۴۳ متصل شوید، ترافیک به سمت سرور سیسکو رفته و خطای احراز هویت (یا 401) می‌دهد!
                     </p>
                 </div>
 
@@ -224,65 +223,65 @@
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
                     <!-- Method 1: Port 9443 or 2087 (Recommended) -->
                     <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
-                        <div style="font-weight:700; color:#059669; margin-bottom:6px;">
+                        <div style="font-weight:700; color:#059669; margin-bottom:6px;" data-i18n="ssh_method_1_stunnel_direct_port">
                             ✅ روش ۱: پورت مستقیم Stunnel (پیشنهادی و ۱۰۰٪ تست شده)
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;" data-i18n="ssh_these_ports_are_managed_non">
                             این پورت‌ها بدون تداخل و مستقیماً توسط سرویس TLS Stunnel با گواهی معتبر مدیریت می‌شوند:
                         </p>
                         <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-                            <li><strong>نوع پروتکل:</strong> SSH (با فعال‌سازی گزینه SSL / TLS)</li>
-                            <li><strong>Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
-                            <li><strong>Port (پورت):</strong> <code>9443</code> یا <code>2087</code> (پورت امن کلودفلر)</li>
+                            <li><strong data-i18n="ssh_protocol_type">نوع پروتکل:</strong> SSH (با فعال‌سازی گزینه SSL / TLS)</li>
+                            <li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
+                            <li><strong data-i18n="ssh_port">Port (پورت):</strong> <code>9443</code> یا <code>2087</code> (پورت امن کلودفلر)</li>
                             <li><strong>Server Name Indication (SNI):</strong> <code>vpn.kigaping.com</code></li>
-                            <li><strong>نام کاربری و رمز:</strong> اکانت ساخته‌شده در پنل (یا NPU / 123456)</li>
+                            <li><strong data-i18n="ssh_item_7">نام کاربری و رمز:</strong> اکانت ساخته‌شده در پنل (یا NPU / 123456)</li>
                         </ul>
                     </div>
 
                     <!-- Method 2: Port 443 with Dedicated SNI -->
                     <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
-                        <div style="font-weight:700; color:#2563eb; margin-bottom:6px;">
+                        <div style="font-weight:700; color:#2563eb; margin-bottom:6px;" data-i18n="ssh_method_2_connect_port_443">
                             ⚡ روش ۲: اتصال به پورت ۴۴۳ با تفکیک SNI
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;" data-i18n="ssh_bypass_filtering_port_443_you">
                             برای دورزدن فیلترینگ با پورت ۴۴۳ حتماً باید SNI متفاوت از سیسکو وارد کنید:
                         </p>
                         <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-                            <li><strong>Host (سرور):</strong> <code>vpn.kigaping.com</code> یا <code>212.227.143.16</code></li>
-                            <li><strong>Port (پورت):</strong> <code>443</code></li>
-                            <li><strong>تیک SSL/TLS:</strong> روشن (فعال)</li>
+                            <li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code> یا <code>212.227.143.16</code></li>
+                            <li><strong data-i18n="ssh_port">Port (پورت):</strong> <code>443</code></li>
+                            <li><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> روشن (فعال)</li>
                             <li><strong>SNI:</strong> حتماً <code>ssh.kigaping.com</code></li>
                         </ul>
                     </div>
 
                     <!-- Method 3: WebSocket (WS / WSS) CDN -->
                     <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
-                        <div style="font-weight:700; color:#7c3aed; margin-bottom:6px;">
+                        <div style="font-weight:700; color:#7c3aed; margin-bottom:6px;" data-i18n="ssh_ws_wss_cdn_http_custom">
                             🌐 روش ۳: حالت وب‌سوکت (WS / WSS) برای CDN و HTTP Custom
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;" data-i18n="ssh_best_way_get_behind_cloudflare">
                             بهترین روش برای عبور از پشت شبکه کلودفلر و مخفی‌سازی کامل:
                         </p>
                         <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-                            <li><strong>نوع اتصال:</strong> SSH + WebSocket</li>
-                            <li><strong>پورت:</strong> <code>80</code> (بدون SSL) یا <code>443</code> (با SSL) یا <code>8088</code></li>
-                            <li><strong>مسیر (Path):</strong> <code>/ssh</code> یا <code>/ws</code></li>
-                            <li><strong>پی‌لود:</strong> <code>GET /ssh HTTP/1.1[crlf]Host: vpn.kigaping.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
+                            <li><strong data-i18n="ssh_connection_type">نوع اتصال:</strong> SSH + WebSocket</li>
+                            <li><strong data-i18n="wg_port_2">پورت:</strong> <code>80</code> (بدون SSL) یا <code>443</code> (با SSL) یا <code>8088</code></li>
+                            <li><strong data-i18n="ssh_path">مسیر (Path):</strong> <code>/ssh</code> یا <code>/ws</code></li>
+                            <li><strong data-i18n="ssh_item_4">پی‌لود:</strong> <code>GET /ssh HTTP/1.1[crlf]Host: vpn.kigaping.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
                         </ul>
                     </div>
 
                     <!-- Method 4: Direct SSH without TLS -->
                     <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
-                        <div style="font-weight:700; color:#b45309; margin-bottom:6px;">
+                        <div style="font-weight:700; color:#b45309; margin-bottom:6px;" data-i18n="ssh_method_4_direct_ssh_connection">
                             🔌 روش ۴: اتصال مستقیم Direct SSH (بدون لایه TLS)
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;" data-i18n="ssh_bitvise_putty">
                             مناسب برنامه‌های ویندوزی مانند Bitvise و PuTTY و کلاینت‌های ساده:
                         </p>
                         <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-                            <li><strong>Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
-                            <li><strong>پورت‌ها:</strong> <code>22</code> (استاندارد) یا <code>2053</code> (کلودفلر) یا <code>443</code></li>
-                            <li><strong>تیک SSL/TLS:</strong> خاموش (غیرفعال)</li>
+                            <li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
+                            <li><strong data-i18n="ssh_ports">پورت‌ها:</strong> <code>22</code> (استاندارد) یا <code>2053</code> (کلودفلر) یا <code>443</code></li>
+                            <li><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> خاموش (غیرفعال)</li>
                         </ul>
                     </div>
                 </div>
@@ -297,9 +296,9 @@
                 <div class="config-header" style="margin-bottom: 16px; justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">کاربران و اکانت‌های SSH</h3>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="ssh_ssh_users_accounts">کاربران و اکانت‌های SSH</h3>
                     </div>
-                    <span id="ssh-client-count-badge" style="font-size:12px; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-weight:700;">
+                    <span id="ssh-client-count-badge" style="font-size:12px; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-weight:700;" data-i18n="ssh_0_users">
                         ۰ کاربر
                     </span>
                 </div>
@@ -307,7 +306,7 @@
                 <div id="ssh-clients" style="display: flex; flex-direction: column; gap: 10px;">
                     <div style="text-align:center; padding:30px; color:var(--text-muted); font-size:13px;">
                         <i data-lucide="loader" style="width:24px; height:24px; animation:spin 1s linear infinite; margin-bottom:8px;"></i>
-                        <div>در حال دریافت فهرست کاربران...</div>
+                        <div data-i18n="ssh_item">در حال دریافت فهرست کاربران...</div>
                     </div>
                 </div>
             </div>
@@ -317,32 +316,31 @@
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">ساخت کاربر جدید</h3>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="ovpn_item_2">ساخت کاربر جدید</h3>
                     </div>
                 </div>
                 <form onsubmit="createSshClient(event)" style="display: flex; flex-direction: column; gap: 14px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">نام کاربری (Username)</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="text" id="ssh-client-username" placeholder="مثلا user1" required>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="text" id="ssh-client-username" placeholder="مثلا user1" data-i18n-placeholder="ssh_example_user1" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">کلمه عبور (Password)</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="password" id="ssh-client-password" placeholder="کلمه عبور" required>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_password_2">کلمه عبور (Password)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="password" id="ssh-client-password" placeholder="کلمه عبور" data-i18n-placeholder="ssh_password" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (گیگابایت) - اختیاری</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="number" step="0.5" id="ssh-client-limit" placeholder="خالی = بدون محدودیت">
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_size_limit_gb_optional">محدودیت حجم (گیگابایت) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="number" step="0.5" id="ssh-client-limit" placeholder="خالی = بدون محدودیت" data-i18n-placeholder="ssh_empty_no_limit">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">تاریخ انقضا - اختیاری</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_expiry_date_optional">تاریخ انقضا - اختیاری</label>
                         <input class="form-input" style="padding-left:14px;" type="date" id="ssh-client-expire">
                     </div>
                     <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#4f46e5;"></i>
-                        کاربر همزمان در پایگاه داده ردیوس سراسری و سیستم‌عامل لینوکس با شل ایزوله (Jailed) ساخته شده و امکان دسترسی به فایل‌های سرور را نخواهد داشت.
+                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#4f46e5;"></i> <span data-i18n="ssh_user_created_same_time_global">کاربر همزمان در پایگاه داده ردیوس سراسری و سیستم‌عامل لینوکس با شل ایزوله (Jailed) ساخته شده و امکان دسترسی به فایل‌های سرور را نخواهد داشت.</span>
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-top:4px;">
-                        <i data-lucide="plus" class="btn-icon"></i> ساخت اکانت SSH
+                        <i data-lucide="plus" class="btn-icon"></i> <span data-i18n="ssh_ssh_2">ساخت اکانت SSH</span>
                     </button>
                 </form>
             </div>
@@ -354,14 +352,14 @@
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="activity" style="color: #2563eb; width: 20px; height: 20px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">نشست‌های آنلاین و اتصالات فعال SSH</h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="ssh_online_sessions_active_ssh_connections">نشست‌های آنلاین و اتصالات فعال SSH</h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ssh_viewing_clients_connected_server_possibil">
                             مشاهده کلاینت‌های متصل به سرور و امکان قطع ارتباط بلادرنگ (Kill Session)
                         </p>
                     </div>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSshSessions()" style="width:auto; padding:6px 14px;">
-                    <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> بازخوانی نشست‌ها
+                    <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_review_meetings">بازخوانی نشست‌ها</span>
                 </button>
             </div>
 
@@ -369,16 +367,16 @@
                 <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
                     <thead>
                         <tr style="border-bottom: 2px solid #e2e8f0; color:var(--text-muted); font-size:12px;">
-                            <th style="padding:10px 14px;">نام کاربری</th>
-                            <th style="padding:10px 14px;">آدرس کلاینت (Peer IP)</th>
-                            <th style="padding:10px 14px;">شناسه پردازش (PID)</th>
-                            <th style="padding:10px 14px;">زمان آغاز نشست</th>
-                            <th style="padding:10px 14px; text-align:center;">عملیات</th>
+                            <th style="padding:10px 14px;" data-i18n="login_username">نام کاربری</th>
+                            <th style="padding:10px 14px;" data-i18n="ssh_peer_ip">آدرس کلاینت (Peer IP)</th>
+                            <th style="padding:10px 14px;" data-i18n="ssh_process_id_pid">شناسه پردازش (PID)</th>
+                            <th style="padding:10px 14px;" data-i18n="ssh_item_6">زمان آغاز نشست</th>
+                            <th style="padding:10px 14px; text-align:center;" data-i18n="servers_col_actions">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="ssh-sessions-tbody">
                         <tr>
-                            <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">
+                            <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);" data-i18n="ssh_checking_active_sessions">
                                 در حال بررسی نشست‌های فعال...
                             </td>
                         </tr>

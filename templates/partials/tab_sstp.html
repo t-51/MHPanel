@@ -12,7 +12,7 @@
                         <h3 class="config-title" style="margin:0; font-size:18px;">
                             <span data-i18n="sstp_title">مرکز مدیریت پیشرفته پروتکل SSTP و بای‌پس ضد فیلترینگ</span>
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="sstp_ssl_tls">
                             تونل امن SSL/TLS مایکروسافت، ۳ روش اتصال و بای‌پس فیلترینگ، سازگار با کلاینت داخلی ویندوز، اتصال به ردیوس سراسری و مولتی‌پلکسر پورت ۴۴۳
                         </p>
                     </div>
@@ -27,19 +27,19 @@
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">روش ۱: پورت مستقیم SSTP</div>
-                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port">4443 (یا 5555)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_1_sstp_direct_port">روش ۱: پورت مستقیم SSTP</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port" data-i18n="sstp_4443_5555">4443 (یا 5555)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">روش ۲: اشتراک پورت ۴۴۳ (SNI)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_2_share_port_443">روش ۲: اشتراک پورت ۴۴۳ (SNI)</div>
                     <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-sni">sstp.kigaping.com:443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">روش ۳: پورت‌های TLS کمکی (Stunnel)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_3_auxiliary_tls_ports">روش ۳: پورت‌های TLS کمکی (Stunnel)</div>
                     <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-stunnel-ports">9443, 2087</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">احراز هویت و ردیوس</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_authentication_radius">احراز هویت و ردیوس</div>
                     <div style="font-weight: 700; color: #d97706; font-size: 12px; margin-top: 3px;" id="sstp-stat-auth">FreeRADIUS + MS-CHAPv2</div>
                 </div>
             </div>
@@ -47,10 +47,10 @@
             <!-- Service Actions -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartSstpServices()" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> راه‌اندازی مجدد سرویس‌های SSTP
+                    <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="sstp_sstp_3">راه‌اندازی مجدد سرویس‌های SSTP</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSstpConfig(); fetchSstpClients(); fetchSstpSessions();" style="width:auto; padding: 8px 16px;">
-                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> بروزرسانی وضعیت و نشست‌ها
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ssh_status_updates_meetings">بروزرسانی وضعیت و نشست‌ها</span>
                 </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('sstp')" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span> SSTP
@@ -63,10 +63,9 @@
             <div class="config-header" style="margin-bottom: 16px;">
                 <div>
                     <h3 class="config-title" style="margin:0; font-size:16px;">
-                        <i data-lucide="zap" style="color: #0284c7; width: 18px; height: 18px;"></i>
-                        مرکز راهنما و ۳ روش پیاده‌سازی و اتصال SSTP (Bypass & Connection Hub)
+                        <i data-lucide="zap" style="color: #0284c7; width: 18px; height: 18px;"></i> <span data-i18n="sstp_sstp_bypass_connection_hub">مرکز راهنما و ۳ روش پیاده‌سازی و اتصال SSTP (Bypass & Connection Hub)</span>
                     </h3>
-                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="sstp_order_overcome_network_dpi_limitations">
                         جهت عبور از محدودیت‌های شبکه و DPI، ۳ شیوه اتصال آماده شده است. با یک کلیک اسکریپت کانفیگ خودکار ویندوز را دریافت نمایید.
                     </p>
                 </div>
@@ -78,10 +77,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">⚡ روش ۱: اتصال مستقیم مایکروسافت (Direct SSTP)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="sstp_method_1_microsoft_direct_connection">⚡ روش ۱: اتصال مستقیم مایکروسافت (Direct SSTP)</strong>
                             <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">Port 4443 / 5555</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_tls_let_s_encrypt">
                             اتصال بومی کلاینت ویندوز، مک و اندروید با رمزنگاری TLS و گواهی رسمی معتبر Let's Encrypt بدون اخطار امنیتی.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-direct-target">
@@ -90,10 +89,10 @@
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('direct')" style="width:100%;">
-                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> دانلود اسکریپت ۱-کلیک ویندوز (PowerShell)
+                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_powershell">دانلود اسکریپت ۱-کلیک ویندوز (PowerShell)</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:4443', 'آدرس پورت مستقیم SSTP')" style="width:100%;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس سرور
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_copy_server_address">کپی آدرس سرور</span>
                         </button>
                     </div>
                 </div>
@@ -102,10 +101,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🌐 روش ۲: پورت ۴۴۳ با تفکیک دامنه (SNI Bypass)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="sstp_sni_bypass">🌐 روش ۲: پورت ۴۴۳ با تفکیک دامنه (SNI Bypass)</strong>
                             <span style="font-size:11px; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:600;">Port 443 Multiplex</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_standard_web_port_sharing_https">
                             اشتراک پورت استاندارد وب (HTTPS 443) بدون تداخل با سیسکو یا SSH، مخفی‌سازی کامل در ترافیک نرمال TLS جهت عبور از DPI.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-sni-target">
@@ -114,10 +113,10 @@
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('sni')" style="width:100%;">
-                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> دانلود اسکریپت ۱-کلیک پورت ۴۴۳ (PowerShell)
+                            <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_download_script_1_click_port">دانلود اسکریپت ۱-کلیک پورت ۴۴۳ (PowerShell)</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('sstp.kigaping.com', 'دامنه SNI پورت ۴۴۳')" style="width:100%;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی دامنه اختصاصی SNI
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_sni_proprietary_domain_copy">کپی دامنه اختصاصی SNI</span>
                         </button>
                     </div>
                 </div>
@@ -126,10 +125,10 @@
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                     <div>
                         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                            <strong style="color:var(--text-main); font-size:14px;">🔒 روش ۳: پورت‌های امن لایه TLS (Stunnel Multi-Port)</strong>
+                            <strong style="color:var(--text-main); font-size:14px;" data-i18n="sstp_method_3_tls_layer_secure">🔒 روش ۳: پورت‌های امن لایه TLS (Stunnel Multi-Port)</strong>
                             <span style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:6px; font-weight:600;">CDN & ISP Bypass</span>
                         </div>
-                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_cloudflare_compatible_ports_tls_tunnelin">
                             پورت‌های سازگار با کلودفلر و تونل TLS (۹۴۴۳ و ۲۰۸۷) برای عبور از اختلالات مقطعی اپراتورها روی پورت‌های متداول.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
@@ -138,10 +137,10 @@
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:2087', 'پورت TLS کمکی')" style="width:100%;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس و پورت ۲۰۸۷
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_copy_address_port_2087">کپی آدرس و پورت ۲۰۸۷</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpAllDetails()" style="width:100%;">
-                            <i data-lucide="clipboard-copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی کامل اطلاعات اتصال
+                            <i data-lucide="clipboard-copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_item_3">کپی کامل اطلاعات اتصال</span>
                         </button>
                     </div>
                 </div>
@@ -157,10 +156,10 @@
                         <i data-lucide="sliders" style="width:20px; height:20px;"></i>
                     </div>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="sstp_advanced_server_settings_system_administ">
                             تنظیمات پیشرفته سرور برای مدیر سیستم (Server Engine & Censorship Tuning)
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="sstp_ability_manipulate_server_core_engine">
                             امکان دستکاری موتور هسته سرور، پورت‌ها، اشتراک پورت ۴۴۳، سایز پکت‌ها (MTU/MRU) و رمزنگاری برای دستیابی به بالاترین پایداری
                         </p>
                     </div>
@@ -172,58 +171,58 @@
                     
                     <!-- Engine Selector -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">موتور هسته سرور (Server Engine)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_server_engine">موتور هسته سرور (Server Engine)</label>
                         <select class="form-input" id="sstp-cfg-engine" style="padding-left:14px; font-weight:600;">
-                            <option value="sstpd">Linux Native sstpd (سبک، پرسرعت، متصل به کرنل)</option>
-                            <option value="softether">SoftEther MS-SSTP Enterprise (انترپرایز مایکروسافت)</option>
-                            <option value="both">فعال‌سازی همزمان هر دو موتور (sstpd + SoftEther)</option>
+                            <option value="sstpd" data-i18n="sstp_linux_native_sstpd_lightweight_fast">Linux Native sstpd (سبک، پرسرعت، متصل به کرنل)</option>
+                            <option value="softether" data-i18n="sstp_softether_ms_sstp_enterprise">SoftEther MS-SSTP Enterprise (انترپرایز مایکروسافت)</option>
+                            <option value="both" data-i18n="sstp_sstpd_softether">فعال‌سازی همزمان هر دو موتور (sstpd + SoftEther)</option>
                         </select>
                     </div>
 
                     <!-- Port -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">پورت مستقیم سرویس (Direct Port)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_direct_port_service_direct_port">پورت مستقیم سرویس (Direct Port)</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="number" id="sstp-cfg-port" placeholder="4443" required>
                     </div>
 
                     <!-- SNI Domain for Port 443 -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">دامنه تفکیک SNI پورت ۴۴۳</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_port_443_sni_resolution_range">دامنه تفکیک SNI پورت ۴۴۳</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-sni" placeholder="sstp.kigaping.com" required>
                     </div>
 
                     <!-- MTU / MRU -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">اندازه پکت MTU و MRU (ضد قطعی پکت)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_mtu_mru">اندازه پکت MTU و MRU (ضد قطعی پکت)</label>
                         <select class="form-input" id="sstp-cfg-mtu" style="padding-left:14px;">
-                            <option value="1400">1400 (پیشنهادی برای اینترنت ایران)</option>
-                            <option value="1360">1360 (بهینه برای ایرانسل و همراه اول)</option>
-                            <option value="1450">1450 (استاندارد شبکه)</option>
-                            <option value="1500">1500 (بزرگ‌ترین سایز فریم)</option>
+                            <option value="1400" data-i18n="sstp_1400_proposal_iran_internet">1400 (پیشنهادی برای اینترنت ایران)</option>
+                            <option value="1360" data-i18n="sstp_1360_optimal_irancell_first_mobile">1360 (بهینه برای ایرانسل و همراه اول)</option>
+                            <option value="1450" data-i18n="sstp_1450_network_standard">1450 (استاندارد شبکه)</option>
+                            <option value="1500" data-i18n="sstp_1500_largest_frame_size">1500 (بزرگ‌ترین سایز فریم)</option>
                         </select>
                     </div>
 
                     <!-- Gateway IP -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">آی‌پی گیت‌وی محلی (Local Gateway IP)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_local_gateway_ip">آی‌پی گیت‌وی محلی (Local Gateway IP)</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-local-ip" placeholder="10.20.20.1" required>
                     </div>
 
                     <!-- Remote Subnet -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">ساب‌نت کلاینت‌ها (Remote Subnet)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_subnet_clients_remote_subnet">ساب‌نت کلاینت‌ها (Remote Subnet)</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-remote-subnet" placeholder="10.20.20.0/24" required>
                     </div>
 
                     <!-- Primary DNS -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">دی‌ان‌اس اول (Primary DNS)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_primary_dns">دی‌ان‌اس اول (Primary DNS)</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-dns1" placeholder="8.8.8.8" required>
                     </div>
 
                     <!-- Secondary DNS -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">دی‌ان‌اس دوم (Secondary DNS)</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="l2tp_secondary_dns">دی‌ان‌اس دوم (Secondary DNS)</label>
                         <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-dns2" placeholder="1.1.1.1" required>
                     </div>
 
@@ -235,13 +234,13 @@
                                     <i data-lucide="key" style="width: 17px; height: 17px;"></i>
                                 </div>
                                 <div>
-                                    <strong style="font-size: 13.5px; color: var(--text-main);">الگوریتم‌های رمزنگاری و هشینگ (Encryption & Hash Ciphers)</strong>
-                                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                                    <strong style="font-size: 13.5px; color: var(--text-main);" data-i18n="sstp_encryption_hash_ciphers">الگوریتم‌های رمزنگاری و هشینگ (Encryption & Hash Ciphers)</strong>
+                                    <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;" data-i18n="sstp_aes_256_aes_128_sha">
                                         پیکربندی متدهای امنیتی مانند AES-256، AES-128، SHA-256، SHA-384 و رمزنگاری MPPE مایکروسافت
                                     </div>
                                 </div>
                             </div>
-                            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 700;">
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #059669; font-size: 11px; padding: 4px 10px; border-radius: 6px; font-weight: 700;" data-i18n="sstp_aes_ni_hardware_acceleration_enabled">
                                 🛡️ شتاب‌دهی سخت‌افزاری AES-NI فعال
                             </span>
                         </div>
@@ -249,33 +248,33 @@
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px;">
                             <!-- Encryption Method / Cipher Preset -->
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">متد و الگوریتم رمزنگاری TLS (Cipher Suite)</label>
+                                <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_tls_cipher_suite">متد و الگوریتم رمزنگاری TLS (Cipher Suite)</label>
                                 <select class="form-input" id="sstp-cfg-cipher-preset" onchange="onSstpCipherPresetChange(this.value)" style="padding-left:14px; font-weight:600;">
-                                    <option value="all_aes_sha">ترکیبی کامل AES و SHA (AES-256/128 GCM/CBC + SHA-256/384) [پیشنهادی]</option>
-                                    <option value="aes256_sha384">حداکثر امنیت مدرن: AES-256-GCM & SHA-384 (رمزنگاری سنگین)</option>
-                                    <option value="aes128_sha256">پرسرعت بهینه: AES-128-GCM & SHA-256 (حداقل پینگ و مصرف کم CPU)</option>
-                                    <option value="aes256_cbc">سازگار با کلاینت‌های قدیمی: AES-256-CBC & SHA-256 (ویندوز 7/8/10)</option>
-                                    <option value="custom">تنظیم دستی سوییت OpenSSL (Custom Cipher String)</option>
+                                    <option value="all_aes_sha" data-i18n="sstp_full_combination_aes_sha_aes">ترکیبی کامل AES و SHA (AES-256/128 GCM/CBC + SHA-256/384) [پیشنهادی]</option>
+                                    <option value="aes256_sha384" data-i18n="sstp_maximum_modern_security_aes_256">حداکثر امنیت مدرن: AES-256-GCM & SHA-384 (رمزنگاری سنگین)</option>
+                                    <option value="aes128_sha256" data-i18n="sstp_optimum_high_speed_aes_128">پرسرعت بهینه: AES-128-GCM & SHA-256 (حداقل پینگ و مصرف کم CPU)</option>
+                                    <option value="aes256_cbc" data-i18n="sstp_aes_256_cbc_sha_256">سازگار با کلاینت‌های قدیمی: AES-256-CBC & SHA-256 (ویندوز 7/8/10)</option>
+                                    <option value="custom" data-i18n="sstp_manual_setting_openssl_suite_custom">تنظیم دستی سوییت OpenSSL (Custom Cipher String)</option>
                                 </select>
                             </div>
 
                             <!-- PPP MPPE Encryption -->
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">رمزنگاری تونل PPP (مایکروسافت MPPE)</label>
+                                <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_ppp_tunnel_encryption_microsoft_mppe">رمزنگاری تونل PPP (مایکروسافت MPPE)</label>
                                 <select class="form-input" id="sstp-cfg-mppe" style="padding-left:14px; font-weight:600;">
-                                    <option value="require-mppe-128">اجباری ۱۲۸ بیتی (Require MPPE 128-bit) [استاندارد امنیت بالا]</option>
-                                    <option value="mppe-stateful">تطبیقی حالت‌دار (MPPE Stateful) [حداکثر پایداری اتصال]</option>
+                                    <option value="require-mppe-128" data-i18n="sstp_128_bit_mandatory_require_mppe">اجباری ۱۲۸ بیتی (Require MPPE 128-bit) [استاندارد امنیت بالا]</option>
+                                    <option value="mppe-stateful" data-i18n="sstp_mppe_stateful">تطبیقی حالت‌دار (MPPE Stateful) [حداکثر پایداری اتصال]</option>
                                 </select>
                             </div>
                         </div>
 
                         <!-- Manual Cipher String (Auto-updated or editable) -->
                         <div class="form-group" style="margin-top: 12px; margin-bottom: 0;">
-                            <label class="form-label" style="font-weight:600; font-size:11.5px; color: var(--text-muted);">
+                            <label class="form-label" style="font-weight:600; font-size:11.5px; color: var(--text-muted);" data-i18n="sstp_openssl_sstpd">
                                 رشته استاندارد الگوریتم‌های OpenSSL (توسط دیمن sstpd بارگذاری می‌شود):
                             </label>
                             <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; font-size:12px;" type="text" id="sstp-cfg-ciphers" oninput="onSstpCipherCustomInput()" placeholder="ECDHE-RSA-AES256-GCM-SHA384:..." required>
-                            <div style="font-size:11px; color:var(--text-muted); margin-top:5px; line-height:1.5;">
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:5px; line-height:1.5;" data-i18n="sstp_openssl">
                                 💡 با تغییر گزینه منوی بالا، رشته به صورت خودکار تغییر می‌کند. هم‌چنین مدیر می‌تواند الگوریتم‌ها را به صورت دستی مطابق دستورالعمل OpenSSL ویرایش کند.
                             </div>
                         </div>
@@ -285,7 +284,7 @@
 
                 <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:6px;">
                     <button type="submit" class="btn btn-primary" style="padding: 10px 24px;">
-                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> ذخیره و اعمال آنی تغییرات سرور
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="sstp_save_apply_server_changes_instantly">ذخیره و اعمال آنی تغییرات سرور</span>
                     </button>
                 </div>
             </form>
@@ -299,9 +298,9 @@
                 <div class="config-header" style="margin-bottom: 16px; justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="users" style="color: #0284c7; width: 20px; height: 20px;"></i>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">کاربران و اکانت‌های SSTP</h3>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="sstp_sstp_2">کاربران و اکانت‌های SSTP</h3>
                     </div>
-                    <span id="sstp-client-count-badge" style="font-size:12px; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-weight:700;">
+                    <span id="sstp-client-count-badge" style="font-size:12px; background:#f1f5f9; color:#475569; padding:3px 10px; border-radius:12px; font-weight:700;" data-i18n="ssh_0_users">
                         ۰ کاربر
                     </span>
                 </div>
@@ -309,7 +308,7 @@
                 <div id="sstp-clients" style="display: flex; flex-direction: column; gap: 10px;">
                     <div style="text-align:center; padding:30px; color:var(--text-muted); font-size:13px;">
                         <i data-lucide="loader" style="width:24px; height:24px; animation:spin 1s linear infinite; margin-bottom:8px;"></i>
-                        <div>در حال دریافت فهرست کاربران...</div>
+                        <div data-i18n="ssh_item">در حال دریافت فهرست کاربران...</div>
                     </div>
                 </div>
             </div>
@@ -319,32 +318,31 @@
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">ساخت کاربر جدید</h3>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="ovpn_item_2">ساخت کاربر جدید</h3>
                     </div>
                 </div>
                 <form onsubmit="createSstpClient(event)" style="display: flex; flex-direction: column; gap: 14px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">نام کاربری (Username)</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="text" id="sstp-client-username" placeholder="مثلا user1" required>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="text" id="sstp-client-username" placeholder="مثلا user1" data-i18n-placeholder="ssh_example_user1" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">کلمه عبور (Password)</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="password" id="sstp-client-password" placeholder="کلمه عبور" required>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_password_2">کلمه عبور (Password)</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="password" id="sstp-client-password" placeholder="کلمه عبور" data-i18n-placeholder="ssh_password" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (گیگابایت) - اختیاری</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="number" step="0.5" id="sstp-client-limit" placeholder="خالی = بدون محدودیت">
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_size_limit_gb_optional">محدودیت حجم (گیگابایت) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left;" type="number" step="0.5" id="sstp-client-limit" placeholder="خالی = بدون محدودیت" data-i18n-placeholder="ssh_empty_no_limit">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;">تاریخ انقضا - اختیاری</label>
+                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="ssh_expiry_date_optional">تاریخ انقضا - اختیاری</label>
                         <input class="form-input" style="padding-left:14px;" type="date" id="sstp-client-expire">
                     </div>
                     <div style="font-size:11px; color:var(--text-muted); line-height:1.5; background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#0284c7;"></i>
-                        کاربر همزمان در پایگاه داده ردیوس سراسری، سکرت‌های MS-CHAPv2 و کلیه موتورهای SSTP ساخته شده و بلافاصله آماده اتصال خواهد بود.
+                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle; margin-left:3px; color:#0284c7;"></i> <span data-i18n="sstp_ms_chapv2_sstp">کاربر همزمان در پایگاه داده ردیوس سراسری، سکرت‌های MS-CHAPv2 و کلیه موتورهای SSTP ساخته شده و بلافاصله آماده اتصال خواهد بود.</span>
                     </div>
                     <button type="submit" class="btn btn-primary" style="margin-top:4px;">
-                        <i data-lucide="plus" class="btn-icon"></i> ساخت اکانت SSTP
+                        <i data-lucide="plus" class="btn-icon"></i> <span data-i18n="sstp_create_sstp_account">ساخت اکانت SSTP</span>
                     </button>
                 </form>
             </div>
@@ -356,14 +354,14 @@
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="activity" style="color: #0284c7; width: 20px; height: 20px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">نشست‌های آنلاین و اتصالات فعال SSTP</h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="sstp_sstp">نشست‌های آنلاین و اتصالات فعال SSTP</h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ssh_viewing_clients_connected_server_possibil">
                             مشاهده کلاینت‌های متصل به سرور و امکان قطع ارتباط بلادرنگ (Kill Session)
                         </p>
                     </div>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSstpSessions()" style="width:auto; padding:6px 14px;">
-                    <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> بازخوانی نشست‌ها
+                    <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_review_meetings">بازخوانی نشست‌ها</span>
                 </button>
             </div>
 
@@ -371,17 +369,17 @@
                 <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:right;">
                     <thead>
                         <tr style="border-bottom: 2px solid #e2e8f0; color:var(--text-muted); font-size:12px;">
-                            <th style="padding:10px 14px;">نام کاربری</th>
-                            <th style="padding:10px 14px;">موتور اتصال</th>
-                            <th style="padding:10px 14px;">آدرس کلاینت / اینترفیس</th>
-                            <th style="padding:10px 14px;">شناسه پردازش (PID / Session)</th>
-                            <th style="padding:10px 14px;">مدت اتصال</th>
-                            <th style="padding:10px 14px; text-align:center;">عملیات</th>
+                            <th style="padding:10px 14px;" data-i18n="login_username">نام کاربری</th>
+                            <th style="padding:10px 14px;" data-i18n="sstp_item">موتور اتصال</th>
+                            <th style="padding:10px 14px;" data-i18n="sstp_address_client_interface">آدرس کلاینت / اینترفیس</th>
+                            <th style="padding:10px 14px;" data-i18n="sstp_process_id_pid_session">شناسه پردازش (PID / Session)</th>
+                            <th style="padding:10px 14px;" data-i18n="proto_table_duration">مدت اتصال</th>
+                            <th style="padding:10px 14px; text-align:center;" data-i18n="servers_col_actions">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="sstp-sessions-tbody">
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+                            <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);" data-i18n="ssh_checking_active_sessions">
                                 در حال بررسی نشست‌های فعال...
                             </td>
                         </tr>

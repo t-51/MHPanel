@@ -9,7 +9,7 @@
                         <i data-lucide="send" style="width:24px; height:24px;"></i>
                     </div>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:18px;">
+                        <h3 class="config-title" style="margin:0; font-size:18px;" data-i18n="mtproto_telegram_proxy_management_mtproto_net">
                             مدیریت پروکسی تلگرام (MTProto) و پروکسی‌های شبکه (SOCKS5 / HTTP)
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
@@ -19,7 +19,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="fetchMtprotoInstances();" style="width:auto; padding: 7px 14px;">
-                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> بروزرسانی
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
                     </button>
                 </div>
             </div>
@@ -27,19 +27,19 @@
             <!-- Stats Bar -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پروکسی تلگرام (Fake TLS)</div>
-                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="mtproto-stat-port">پورت 4433 (فعال)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="mtproto_telegram_proxy_fake_tls">پروکسی تلگرام (Fake TLS)</div>
+                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="mtproto-stat-port" data-i18n="mtproto_4433">پورت 4433 (فعال)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پروکسی ساکس ۵ (SOCKS5)</div>
-                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">پورت 1080 (ردیوس فعال)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="mtproto_socks5_proxy">پروکسی ساکس ۵ (SOCKS5)</div>
+                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" data-i18n="mtproto_1080">پورت 1080 (ردیوس فعال)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">پروکسی وب (HTTP Proxy)</div>
-                    <div style="font-weight: 700; color: #8b5cf6; font-family: 'JetBrains Mono', monospace; margin-top: 3px;">پورت 3128 (ردیوس فعال)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="mtproto_web_proxy_http_proxy">پروکسی وب (HTTP Proxy)</div>
+                    <div style="font-weight: 700; color: #8b5cf6; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" data-i18n="mtproto_3128">پورت 3128 (ردیوس فعال)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;">دامنه و سرور رسمی</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="mtproto_official_domain_server">دامنه و سرور رسمی</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">vpn.kigaping.com</div>
                 </div>
             </div>
@@ -53,16 +53,16 @@
                         <i data-lucide="megaphone" style="width:20px; height:20px;"></i>
                     </div>
                     <div>
-                        <h4 style="margin:0; font-size:16px; font-weight:700; color:#0369a1;">
+                        <h4 style="margin:0; font-size:16px; font-weight:700; color:#0369a1;" data-i18n="mtproto_sponsorship_telegram_proxy_promoted_c">
                             قابلیت اسپانسری پروکسی تلگرام (Promoted Channel)
                         </h4>
-                        <span style="font-size:12px; color:var(--text-muted);">
+                        <span style="font-size:12px; color:var(--text-muted);" data-i18n="mtproto_automatic_pinning_your_telegram_chann">
                             پین کردن خودکار کانال تلگرام شما در بالای چت‌های تمام کاربرانی که به پروکسی وصل می‌شوند
                         </span>
                     </div>
                 </div>
                 <a href="https://t.me/MTProxybot" target="_blank" class="btn btn-primary btn-sm" style="width:auto; padding:7px 14px; text-decoration:none;">
-                    <i data-lucide="external-link" style="width:14px; height:14px; margin-left:6px;"></i> باز کردن ربات رسمی @MTProxybot
+                    <i data-lucide="external-link" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="mtproto_unlocking_official_mtproxybot_bot">باز کردن ربات رسمی @MTProxybot</span>
                 </a>
             </div>
 
@@ -71,7 +71,7 @@
                 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">۱</span>
-                        <strong style="font-size:12.5px; color:#0369a1;">ثبت پروکسی در ربات</strong>
+                        <strong style="font-size:12.5px; color:#0369a1;" data-i18n="mtproto_item_5">ثبت پروکسی در ربات</strong>
                     </div>
                     <p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
                         در تلگرام به ربات <code>@MTProxybot</code> پیام دهید و دستور <code>/newproxy</code> را ارسال کنید.
@@ -81,7 +81,7 @@
                 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">۲</span>
-                        <strong style="font-size:12.5px; color:#0369a1;">ارسال هاست و کلید</strong>
+                        <strong style="font-size:12.5px; color:#0369a1;" data-i18n="mtproto_send_host_key">ارسال هاست و کلید</strong>
                     </div>
                     <p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
                         آدرس <code>vpn.kigaping.com:4433</code> (یا آی‌پی) و کلید Secret هگز را به ربات بفرستید.
@@ -91,9 +91,9 @@
                 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">۳</span>
-                        <strong style="font-size:12.5px; color:#0369a1;">دریافت تگ و ذخیره در پنل</strong>
+                        <strong style="font-size:12.5px; color:#0369a1;" data-i18n="mtproto_get_tag_save_panel">دریافت تگ و ذخیره در پنل</strong>
                     </div>
-                    <p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
+                    <p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;" data-i18n="mtproto_bot_will_give_you_32">
                         ربات یک تگ ۳۲ کاراکتری (Proxy Tag) به شما می‌دهد. آن را در کادر زیر وارد و ذخیره کنید.
                     </p>
                 </div>
@@ -101,7 +101,7 @@
                 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
                         <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">۴</span>
-                        <strong style="font-size:12.5px; color:#0369a1;">انتخاب کانال اسپانسر</strong>
+                        <strong style="font-size:12.5px; color:#0369a1;" data-i18n="mtproto_choosing_sponsor_channel">انتخاب کانال اسپانسر</strong>
                     </div>
                     <p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
                         در ربات با دستور <code>/myproxies</code> پروکسی را انتخاب کرده و با <code>Set promotion</code> کانال خود را لینک دهید!
@@ -112,20 +112,20 @@
             <!-- Quick Ad Tag Form -->
             <div style="background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 10px; padding: 14px 18px; display:flex; flex-direction:column; gap:10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <label class="form-label" style="margin:0; font-weight:700; color:#1e293b;">
+                    <label class="form-label" style="margin:0; font-weight:700; color:#1e293b;" data-i18n="mtproto_quick_setting_sponsor_advertising_tag">
                         تنظیم سریع تگ تبلیغاتی اسپانسر (Global Ad Tag):
                     </label>
-                    <span style="font-size:11.5px; color:var(--text-muted);">
+                    <span style="font-size:11.5px; color:var(--text-muted);" data-i18n="mtproto_tag_received_from_mtproxybot_32">
                         تگ دریافتی از @MTProxybot (۳۲ کاراکتر هگزادسیمال)
                     </span>
                 </div>
                 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <input class="form-input" style="flex:1; min-width:280px; font-family:'JetBrains Mono', monospace; font-size:13px; direction:ltr;" type="text" id="global-mtproto-ad-tag" placeholder="مثال: 5e6c7d8a9b0c1d2e3f4a5b6c7d8e9f0a">
+                    <input class="form-input" style="flex:1; min-width:280px; font-family:'JetBrains Mono', monospace; font-size:13px; direction:ltr;" type="text" id="global-mtproto-ad-tag" placeholder="مثال: 5e6c7d8a9b0c1d2e3f4a5b6c7d8e9f0a" data-i18n-placeholder="mtproto_5e6c7d8a9b0c1d2e3f4a5b6c7d8e9f0a">
                     <button type="button" class="btn btn-primary" onclick="saveGlobalMtprotoAdTag()" style="width:auto; padding:9px 20px;">
-                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> ثبت و اعمال تگ اسپانسر
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="mtproto_register_apply_sponsor_tag">ثبت و اعمال تگ اسپانسر</span>
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="clearGlobalMtprotoAdTag()" style="width:auto; padding:9px 16px;">
-                        <i data-lucide="x" style="width:16px; height:16px; margin-left:6px;"></i> حذف تگ
+                        <i data-lucide="x" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="mtproto_remove_tag">حذف تگ</span>
                     </button>
                 </div>
             </div>
@@ -137,10 +137,9 @@
             <div class="glass-card config-card">
                 <div class="config-header">
                     <h3 class="config-title">
-                        <i data-lucide="radio" style="color: #0284c7; width: 20px; height: 20px;"></i>
-                        اینستنس‌های فعال پروکسی تلگرام (MTProto)
+                        <i data-lucide="radio" style="color: #0284c7; width: 20px; height: 20px;"></i> <span data-i18n="mtproto_active_telegram_proxy_instances_mtpro">اینستنس‌های فعال پروکسی تلگرام (MTProto)</span>
                     </h3>
-                    <span id="mtproto-instances-count" style="font-size:12px; background:rgba(14, 165, 233, 0.1); color:#0284c7; padding:4px 10px; border-radius:12px; font-weight:600;">
+                    <span id="mtproto-instances-count" style="font-size:12px; background:rgba(14, 165, 233, 0.1); color:#0284c7; padding:4px 10px; border-radius:12px; font-weight:600;" data-i18n="mtproto_loading">
                         در حال بارگذاری...
                     </span>
                 </div>
@@ -154,37 +153,36 @@
             <div class="glass-card config-card">
                 <div class="config-header">
                     <h3 class="config-title">
-                        <i data-lucide="plus-circle" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                        ساخت اینستنس جدید MTProto
+                        <i data-lucide="plus-circle" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="mtproto_creating_new_instance_mtproto">ساخت اینستنس جدید MTProto</span>
                     </h3>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 16px;">
                     <div>
-                        <label class="form-label">پورت پروکسی (Port)</label>
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="mtproto-port" placeholder="مثال: 8443 یا 4434">
-                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
+                        <label class="form-label" data-i18n="mtproto_proxy_port">پورت پروکسی (Port)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="mtproto-port" placeholder="مثال: 8443 یا 4434" data-i18n-placeholder="mtproto_example_8443_4434">
+                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="mtproto_port_through_which_you_want">
                             پورتی که مایلید تلگرام از طریق آن متصل شود (نباید با سایر پروتکل‌ها تداخل داشته باشد).
                         </span>
                     </div>
 
                     <div>
-                        <label class="form-label">تگ تبلیغاتی اسپانسر (اختیاری - Ad Tag)</label>
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="mtproto-ad-tag" placeholder="۳۲ کاراکتر هگز دریافتی از @MTProxybot">
-                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
+                        <label class="form-label" data-i18n="mtproto_ad_tag">تگ تبلیغاتی اسپانسر (اختیاری - Ad Tag)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="mtproto-ad-tag" placeholder="۳۲ کاراکتر هگز دریافتی از @MTProxybot" data-i18n-placeholder="mtproto_mtproxybot">
+                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="mtproto_if_you_want_telegram_channel">
                             اگر می‌خواهید کانال تلگرام برای این اینستنس متصل باشد تگ را اینجا وارد کنید.
                         </span>
                     </div>
 
                     <div>
-                        <label class="form-label">دامنه جعلی ضد فیلتر (Fake TLS Domain)</label>
+                        <label class="form-label" data-i18n="mtproto_anti_filter_fake_domain_fake">دامنه جعلی ضد فیلتر (Fake TLS Domain)</label>
                         <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="mtproto-tls-domain" value="www.cloudflare.com" readonly>
-                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
+                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="mtproto_dpi_cloudflare">
                             جهت عبور بدون اختلال از سیستم فیلترینگ DPI، ترافیک تحت پوشش Cloudflare مبدل می‌شود.
                         </span>
                     </div>
 
                     <button type="button" class="btn btn-primary" id="mtproto-add-btn" style="margin-top:4px;">
-                        <i data-lucide="plus" class="btn-icon"></i> راه‌اندازی اینستنس پروکسی
+                        <i data-lucide="plus" class="btn-icon"></i> <span data-i18n="mtproto_setting_up_proxy_instance">راه‌اندازی اینستنس پروکسی</span>
                     </button>
                 </div>
             </div>
@@ -198,10 +196,10 @@
                         <i data-lucide="cpu" style="width:22px; height:22px;"></i>
                     </div>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:17px;">
+                        <h3 class="config-title" style="margin:0; font-size:17px;" data-i18n="mtproto_network_socket_proxies_socks5_http">
                             پروکسی‌های شبکه و سوکت (SOCKS5 & HTTP) متصل به FreeRADIUS
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="mtproto_authenticated_radius_central_system_c">
                             احراز هویت شده توسط سیستم مرکزی ردیوس، سازگار با انواع نرم‌افزارها، مرورگرها، تلگرام دسکتاپ و تلفن همراه
                         </p>
                     </div>
@@ -213,24 +211,24 @@
                 <div style="background: var(--bg-base); border:1px solid rgba(16, 185, 129, 0.2); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-weight:700; font-size:14px; color:#0f766e;">پروکسی ساکس ۵ (SOCKS5)</span>
-                            <span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600;">سرویس فعال</span>
+                            <span style="font-weight:700; font-size:14px; color:#0f766e;" data-i18n="mtproto_socks5_proxy">پروکسی ساکس ۵ (SOCKS5)</span>
+                            <span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600;" data-i18n="mtproto_active_service">سرویس فعال</span>
                         </div>
                         <span style="font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; color:#0f766e;">Port 1080</span>
                     </div>
 
                     <div style="font-size:12px; color:#475569; display:flex; flex-direction:column; gap:6px;">
                         <div style="display:flex; justify-content:space-between;">
-                            <span>آدرس سرور:</span>
+                            <span data-i18n="mtproto_server_address">آدرس سرور:</span>
                             <span style="font-family:'JetBrains Mono', monospace; font-weight:600;">vpn.kigaping.com</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
-                            <span>پورت سوکت:</span>
+                            <span data-i18n="mtproto_socket_port">پورت سوکت:</span>
                             <span style="font-family:'JetBrains Mono', monospace; font-weight:600;">1080</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
-                            <span>نوع احراز هویت:</span>
-                            <span style="color:#059669; font-weight:600;">نام‌کاربری و رمز عبور (FreeRADIUS)</span>
+                            <span data-i18n="mtproto_authentication_type">نوع احراز هویت:</span>
+                            <span style="color:#059669; font-weight:600;" data-i18n="mtproto_freeradius">نام‌کاربری و رمز عبور (FreeRADIUS)</span>
                         </div>
                     </div>
 
@@ -240,7 +238,7 @@
 
                     <div style="display:flex; gap:8px; margin-top:auto;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('vpn.kigaping.com:1080'); showToast('آدرس SOCKS5 کپی شد', 'success');" style="flex:1;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_address">کپی آدرس</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="restartProxyService('socks')" style="width:auto;">
                             <i data-lucide="rotate-cw" style="width:13px; height:13px;"></i>
@@ -252,24 +250,24 @@
                 <div style="background: var(--bg-base); border:1px solid rgba(139, 92, 246, 0.2); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-weight:700; font-size:14px; color:#6d28d9;">پروکسی تحت وب (HTTP Proxy)</span>
-                            <span style="font-size:11px; background:#ede9fe; color:#6d28d9; padding:2px 8px; border-radius:10px; font-weight:600;">سرویس فعال</span>
+                            <span style="font-weight:700; font-size:14px; color:#6d28d9;" data-i18n="mtproto_http_proxy">پروکسی تحت وب (HTTP Proxy)</span>
+                            <span style="font-size:11px; background:#ede9fe; color:#6d28d9; padding:2px 8px; border-radius:10px; font-weight:600;" data-i18n="mtproto_active_service">سرویس فعال</span>
                         </div>
                         <span style="font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:700; color:#6d28d9;">Port 3128</span>
                     </div>
 
                     <div style="font-size:12px; color:#475569; display:flex; flex-direction:column; gap:6px;">
                         <div style="display:flex; justify-content:space-between;">
-                            <span>آدرس سرور:</span>
+                            <span data-i18n="mtproto_server_address">آدرس سرور:</span>
                             <span style="font-family:'JetBrains Mono', monospace; font-weight:600;">vpn.kigaping.com</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
-                            <span>پورت وب:</span>
+                            <span data-i18n="mtproto_item">پورت وب:</span>
                             <span style="font-family:'JetBrains Mono', monospace; font-weight:600;">3128</span>
                         </div>
                         <div style="display:flex; justify-content:space-between;">
-                            <span>نوع احراز هویت:</span>
-                            <span style="color:#6d28d9; font-weight:600;">نام‌کاربری و رمز عبور (FreeRADIUS)</span>
+                            <span data-i18n="mtproto_authentication_type">نوع احراز هویت:</span>
+                            <span style="color:#6d28d9; font-weight:600;" data-i18n="mtproto_freeradius">نام‌کاربری و رمز عبور (FreeRADIUS)</span>
                         </div>
                     </div>
 
@@ -279,7 +277,7 @@
 
                     <div style="display:flex; gap:8px; margin-top:auto;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('vpn.kigaping.com:3128'); showToast('آدرس HTTP Proxy کپی شد', 'success');" style="flex:1;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی آدرس
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_address">کپی آدرس</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="restartProxyService('http')" style="width:auto;">
                             <i data-lucide="rotate-cw" style="width:13px; height:13px;"></i>
@@ -294,14 +292,14 @@
                     <div>
                         <h4 style="margin:0; font-size:15px; color:#1e293b; display:flex; align-items:center; gap:8px;">
                             <i data-lucide="users" style="width:18px; height:18px; color:#059669;"></i>
-                            <span>مدیریت کاربران و کلاینت‌های اختصاصی پروکسی (SOCKS5 & HTTP)</span>
+                            <span data-i18n="mtproto_management_users_dedicated_proxy_clie">مدیریت کاربران و کلاینت‌های اختصاصی پروکسی (SOCKS5 & HTTP)</span>
                         </h4>
-                        <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0 0;">
+                        <p style="font-size:12px; color:var(--text-muted); margin:4px 0 0 0;" data-i18n="mtproto_socks5_1080_http_3128">
                             تعریف کاربران لوکال بدون وابستگی به ردیوس. این کاربران می‌توانند هم در SOCKS5 (پورت 1080) و هم در HTTP (پورت 3128) متصل شوند.
                         </p>
                     </div>
                     <button type="button" class="btn btn-primary btn-sm" onclick="toggleAddProxyClientForm(true)" style="width:auto; padding:6px 14px;">
-                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span>افزودن کاربر پروکسی</span>
+                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="mtproto_item_2">افزودن کاربر پروکسی</span>
                     </button>
                 </div>
 
@@ -309,26 +307,26 @@
                 <div id="proxy-add-client-card" style="display:none; background: var(--bg-base); border:1px solid rgba(16, 185, 129, 0.3); border-radius:10px; padding:14px; margin-bottom:14px;">
                     <form onsubmit="submitAddProxyClient(event)" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; align-items:end;">
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-size:12px;">نام کاربری (Username)</label>
+                            <label class="form-label" style="font-size:12px;" data-i18n="servers_user_label">نام کاربری (Username)</label>
                             <input class="form-input" type="text" id="proxy-client-username-input" placeholder="e.g. user1" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-size:12px;">رمز عبور (Password)</label>
+                            <label class="form-label" style="font-size:12px;" data-i18n="servers_pass_label">رمز عبور (Password)</label>
                             <input class="form-input" type="text" id="proxy-client-password-input" placeholder="e.g. secret123" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-size:12px;">دسترسی پروتکل</label>
+                            <label class="form-label" style="font-size:12px;" data-i18n="mtproto_access_protocol">دسترسی پروتکل</label>
                             <select class="form-input" id="proxy-client-proto-select">
-                                <option value="all">هر دو (SOCKS5 + HTTP)</option>
-                                <option value="socks5">فقط SOCKS5 (1080)</option>
-                                <option value="http">فقط HTTP (3128)</option>
+                                <option value="all" data-i18n="mtproto_both_socks5_http">هر دو (SOCKS5 + HTTP)</option>
+                                <option value="socks5" data-i18n="mtproto_socks5_1080">فقط SOCKS5 (1080)</option>
+                                <option value="http" data-i18n="mtproto_http_3128">فقط HTTP (3128)</option>
                             </select>
                         </div>
                         <div style="display:flex; gap:8px;">
                             <button type="submit" class="btn btn-primary btn-sm" style="flex:1; padding:8px 12px;">
-                                <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ذخیره
+                                <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="wg_save">ذخیره</span>
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddProxyClientForm(false)" style="padding:8px 12px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAddProxyClientForm(false)" style="padding:8px 12px;" data-i18n="modal_btn_cancel">
                                 انصراف
                             </button>
                         </div>
@@ -340,17 +338,17 @@
                     <table style="width:100%; border-collapse:collapse; font-size:13px;">
                         <thead>
                             <tr style="border-bottom: 2px solid #e2e8f0; color:var(--text-muted); font-size:11.5px;">
-                                <th style="padding:8px 10px; text-align:start;">نام کاربری</th>
-                                <th style="padding:8px 10px; text-align:start;">رمز عبور</th>
-                                <th style="padding:8px 10px; text-align:start;">پروتکل‌ها</th>
-                                <th style="padding:8px 10px; text-align:start;">تاریخ ثبت</th>
-                                <th style="padding:8px 10px; text-align:center;">لینک SOCKS5</th>
-                                <th style="padding:8px 10px; text-align:center;">لینک HTTP</th>
-                                <th style="padding:8px 10px; text-align:center;">حذف</th>
+                                <th style="padding:8px 10px; text-align:start;" data-i18n="login_username">نام کاربری</th>
+                                <th style="padding:8px 10px; text-align:start;" data-i18n="login_password">رمز عبور</th>
+                                <th style="padding:8px 10px; text-align:start;" data-i18n="dns_protocols">پروتکل‌ها</th>
+                                <th style="padding:8px 10px; text-align:start;" data-i18n="ss_date_registration">تاریخ ثبت</th>
+                                <th style="padding:8px 10px; text-align:center;" data-i18n="mtproto_socks5_link">لینک SOCKS5</th>
+                                <th style="padding:8px 10px; text-align:center;" data-i18n="mtproto_http">لینک HTTP</th>
+                                <th style="padding:8px 10px; text-align:center;" data-i18n="awg_remove">حذف</th>
                             </tr>
                         </thead>
                         <tbody id="proxy-clients-tbody">
-                            <tr><td colspan="7" style="text-align:center; padding:16px; color:var(--text-muted);">در حال دریافت لیست کاربران...</td></tr>
+                            <tr><td colspan="7" style="text-align:center; padding:16px; color:var(--text-muted);" data-i18n="ovpn_getting_list_users">در حال دریافت لیست کاربران...</td></tr>
                         </tbody>
                     </table>
                 </div>

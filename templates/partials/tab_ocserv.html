@@ -12,7 +12,7 @@
                         <h3 class="config-title" style="margin:0; font-size:18px;">
                             <span data-i18n="ocserv_title">مرکز مدیریت پروتکل OpenConnect / Cisco AnyConnect (OCServ)</span>
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ocserv_cisco_s_highly_stable_industrial">
                             پروتکل صنعتی و فوق‌العاده پایدار سیسکو سازگار با تمامی سیستم‌عامل‌ها، مجهز به بای‌پس پیشرفته DPI (پنهان‌سازی Camouflage) و اتصال به ردیوس متمرکز
                         </p>
                     </div>
@@ -32,15 +32,15 @@
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_camo">حالت ضد فیلترینگ (Camouflage)</span></div>
-                    <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ocserv-top-camo-status">فعال (پنهان در برابر اسکنرها)</div>
+                    <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="ocserv-top-camo-status" data-i18n="ocserv_item_2">فعال (پنهان در برابر اسکنرها)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_auth">احراز هویت کاربران</span></div>
-                    <div style="font-weight: 700; color: #4f46e5; font-size: 12px; margin-top: 3px;" id="ocserv-top-auth">FreeRADIUS (ردیوس سراسری)</div>
+                    <div style="font-weight: 700; color: #4f46e5; font-size: 12px; margin-top: 3px;" id="ocserv-top-auth" data-i18n="ocserv_freeradius">FreeRADIUS (ردیوس سراسری)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;"><span data-i18n="proto_stat_sessions">سشن‌های آنلاین فعلی</span></div>
-                    <div style="font-weight: 700; color: #d97706; font-size: 13px; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ocserv-top-sessions">0 کاربر متصل</div>
+                    <div style="font-weight: 700; color: #d97706; font-size: 13px; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="ocserv-top-sessions" data-i18n="ocserv_0_users_connected">0 کاربر متصل</div>
                 </div>
             </div>
 
@@ -89,10 +89,9 @@
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="eye-off" style="color: #059669; width: 20px; height: 20px;"></i>
-                                قابلیت‌های ضد فیلترینگ و استتار ترافیک (Anti-DPI Stealth & Camouflage)
+                                <i data-lucide="eye-off" style="color: #059669; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_anti_dpi_stealth_camouflage_features">قابلیت‌های ضد فیلترینگ و استتار ترافیک (Anti-DPI Stealth & Camouflage)</span>
                             </h3>
-                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="ocserv_these_features_prevent_censorship_syst">
                                 این قابلیت‌ها باعث می‌شوند سیستم‌های سانسور (DPI) و پروب‌های فعال (Active Probers) سرور شما را به عنوان AnyConnect شناسایی نکنند و پورت مسدود نشود.
                             </p>
                         </div>
@@ -102,27 +101,26 @@
                         <!-- Camouflage Toggle -->
                         <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px;">
                             <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:700; color:#166534;">
-                                <input type="checkbox" id="ocserv-camo-enable" style="width:18px; height:18px; accent-color:#059669;" onchange="toggleCamoInputs()">
-                                فعال‌سازی حالت استتار کامل سرور (Camouflage Stealth Mode)
+                                <input type="checkbox" id="ocserv-camo-enable" style="width:18px; height:18px; accent-color:#059669;" onchange="toggleCamoInputs()"> <span data-i18n="ocserv_activating_full_server_camouflage_mode">فعال‌سازی حالت استتار کامل سرور (Camouflage Stealth Mode)</span>
                             </label>
                             <p style="font-size:12px; color:#15803d; margin:6px 0 0 28px; line-height: 1.5;">
-                                وقتی فعال باشد، اسکنرهای فیلترینگ و هر درخواستی که بدون کلید اختصاصی ارسال شود، ارور <strong>401 یا 404 (صفحه وب عادی)</strong> دریافت می‌کند و هویت سیسکو کاملاً مخفی می‌ماند. اتصال فقط با اضافه کردن آدرس سکرت برقرار می‌شود.
+                                وقتی فعال باشد، اسکنرهای فیلترینگ و هر درخواستی که بدون کلید اختصاصی ارسال شود، ارور <strong data-i18n="ocserv_401_404_normal_web_page">401 یا 404 (صفحه وب عادی)</strong> دریافت می‌کند و هویت سیسکو کاملاً مخفی می‌ماند. اتصال فقط با اضافه کردن آدرس سکرت برقرار می‌شود.
                             </p>
 
                             <div id="ocserv-camo-fields" style="display:none; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #bbf7d0;">
                                 <div class="form-group" style="margin:0;">
-                                    <label class="form-label" style="font-size:12px; font-weight:600; color:#166534;">
+                                    <label class="form-label" style="font-size:12px; font-weight:600; color:#166534;" data-i18n="ocserv_private_key_path_secret_url">
                                         مسیر کلید اختصاصی (Secret URL Prefix)
                                     </label>
                                     <input type="text" class="form-input" id="ocserv-camo-secret" placeholder="e.g. secure_bypass" style="font-family:'JetBrains Mono', monospace; font-size:13px;" required>
                                     <span style="font-size:11px; color:#15803d;">در کلاینت این مقدار بعد از علامت ? قرار می‌گیرد (مثال: <code>https://domain:port/?secret</code>)</span>
                                 </div>
                                 <div class="form-group" style="margin:0;">
-                                    <label class="form-label" style="font-size:12px; font-weight:600; color:#166534;">
+                                    <label class="form-label" style="font-size:12px; font-weight:600; color:#166534;" data-i18n="ocserv_web_answer_title_camouflage_realm">
                                         عنوان پاسخ وب (Camouflage Realm)
                                     </label>
                                     <input type="text" class="form-input" id="ocserv-camo-realm" placeholder="Restricted Area" style="font-size:13px;">
-                                    <span style="font-size:11px; color:#15803d;">پیامی که اسکنر هنگام باز کردن آدرس بدون کلید مشاهده می‌کند</span>
+                                    <span style="font-size:11px; color:#15803d;" data-i18n="ocserv_message_scanner_sees_when_opening">پیامی که اسکنر هنگام باز کردن آدرس بدون کلید مشاهده می‌کند</span>
                                 </div>
                             </div>
                         </div>
@@ -130,11 +128,10 @@
                         <!-- Anti-UDP / TCP-Only Switch -->
                         <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
                             <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:700; color:var(--text-main);">
-                                <input type="checkbox" id="ocserv-enable-udp" style="width:18px; height:18px; accent-color:#4f46e5;">
-                                فعال بودن شتاب‌دهنده UDP DTLS (غیرفعال‌سازی برای Anti-DPI TCP-Only)
+                                <input type="checkbox" id="ocserv-enable-udp" style="width:18px; height:18px; accent-color:#4f46e5;"> <span data-i18n="ocserv_enable_udp_dtls_accelerator_disable">فعال بودن شتاب‌دهنده UDP DTLS (غیرفعال‌سازی برای Anti-DPI TCP-Only)</span>
                             </label>
                             <p style="font-size:12px; color:var(--text-muted); margin:6px 0 0 28px; line-height: 1.5;">
-                                <strong>توصیه ویژه برای اپراتورهای ایرانسل و همراه اول:</strong> در شرایط اختلال شدید اینترنت، اپراتورها پکت‌های UDP را دراپ یا تراتل می‌کنند. با <strong>برداشتن تیک این گزینه</strong>، OCServ به حالت خالص TCP سوئیچ می‌کند و تمامی ترافیک بر بستر امن TLS 1.3 استاندارد منتقل شده و فیلتر شکن بسیار پایدارتر وصل خواهد ماند.
+                                <strong data-i18n="ocserv_special_advice_irancell_mobile_first">توصیه ویژه برای اپراتورهای ایرانسل و همراه اول:</strong> در شرایط اختلال شدید اینترنت، اپراتورها پکت‌های UDP را دراپ یا تراتل می‌کنند. با <strong data-i18n="ocserv_uncheck_this_option">برداشتن تیک این گزینه</strong>، OCServ به حالت خالص TCP سوئیچ می‌کند و تمامی ترافیک بر بستر امن TLS 1.3 استاندارد منتقل شده و فیلتر شکن بسیار پایدارتر وصل خواهد ماند.
                             </p>
                         </div>
                     </div>
@@ -145,10 +142,9 @@
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="lock" style="color: #4f46e5; width: 20px; height: 20px;"></i>
-                                پورت‌ها، دامنه و گواهی امنیتی SSL
+                                <i data-lucide="lock" style="color: #4f46e5; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_ssl">پورت‌ها، دامنه و گواهی امنیتی SSL</span>
                             </h3>
-                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="ocserv_let_s_encrypt_self_signed">
                                 تنظیم پورت ارتباطی و انتخاب گواهی معتبر Let's Encrypt یا Self-Signed
                             </p>
                         </div>
@@ -156,33 +152,33 @@
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">پورت TCP سرویس (TLS)</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_tcp_port_service_tls">پورت TCP سرویس (TLS)</label>
                             <input type="number" class="form-input" id="ocserv-tcp-port" value="10443" min="1" max="65535" required style="font-family:'JetBrains Mono', monospace;">
-                            <span style="font-size:11px; color:var(--text-muted);">پورت اصلی HTTPS که کاربران سیسکو به آن وصل می‌شوند (پیش‌فرض: 10443 یا 443)</span>
+                            <span style="font-size:11px; color:var(--text-muted);" data-i18n="ocserv_https_10443_443">پورت اصلی HTTPS که کاربران سیسکو به آن وصل می‌شوند (پیش‌فرض: 10443 یا 443)</span>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">پورت UDP سرویس (DTLS)</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_udp_port_service_dtls">پورت UDP سرویس (DTLS)</label>
                             <input type="number" class="form-input" id="ocserv-udp-port" value="10443" min="1" max="65535" required style="font-family:'JetBrains Mono', monospace;">
-                            <span style="font-size:11px; color:var(--text-muted);">در صورت فعال بودن پروتکل UDP، روی این پورت اجرا می‌شود</span>
+                            <span style="font-size:11px; color:var(--text-muted);" data-i18n="ocserv_udp_2">در صورت فعال بودن پروتکل UDP، روی این پورت اجرا می‌شود</span>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">دامنه اتصال سرور (Default Domain)</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_server_connection_domain_default_domai">دامنه اتصال سرور (Default Domain)</label>
                             <input type="text" class="form-input" id="ocserv-domain" placeholder="vpn.kigaping.com" style="font-family:'JetBrains Mono', monospace;" required>
-                            <span style="font-size:11px; color:var(--text-muted);">نام دامنه سرور که در گواهی SSL ثبت شده است</span>
+                            <span style="font-size:11px; color:var(--text-muted);" data-i18n="ocserv_ssl_2">نام دامنه سرور که در گواهی SSL ثبت شده است</span>
                         </div>
                     </div>
 
                     <!-- SSL Certificate Choice -->
                     <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
-                        <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">انتخاب نوع گواهی امنیتی (SSL / TLS):</div>
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;" data-i18n="ocserv_choose_type_security_certificate_ssl">انتخاب نوع گواهی امنیتی (SSL / TLS):</div>
                         <div style="display: flex; flex-direction: column; gap: 10px;">
                             <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
                                 <input type="radio" name="ocserv-cert-type" value="letsencrypt" id="cert-type-le" style="margin-top: 3px;" checked>
                                 <div>
-                                    <div style="font-size: 13px; font-weight: 700; color: #059669;">
+                                    <div style="font-size: 13px; font-weight: 700; color: #059669;" data-i18n="ocserv_let_s_encrypt_globally_valid">
                                         گواهی معتبر جهانی Let's Encrypt (پیشنهادی ⚡)
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" data-i18n="ocserv_connection_without_any_certificate_err">
                                         اتصال بدون هیچ‌گونه ارور سرتیفیکیت در ویندوز، مک، آیفون و اندروید. رفتار سرور کاملاً مشابه یک وبسایت HTTPS واقعی خواهد بود.
                                     </div>
                                 </div>
@@ -190,10 +186,10 @@
                             <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer;">
                                 <input type="radio" name="ocserv-cert-type" value="self_signed" id="cert-type-self" style="margin-top: 3px;">
                                 <div>
-                                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);">
+                                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main);" data-i18n="ocserv_self_signed_root_ca">
                                         گواهی اختصاصی سرور (Self-Signed Root CA)
                                     </div>
-                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;" data-i18n="ocserv_using_server_s_internal_certificate">
                                         استفاده از گواهی داخلی سرور. در AnyConnect باید تیک Block Untrusted Servers برداشته شود یا فایل CA نصب گردد.
                                     </div>
                                 </div>
@@ -207,10 +203,9 @@
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="network" style="color: #4f46e5; width: 20px; height: 20px;"></i>
-                                شبکه، روتینگ و تنظیمات پکت‌ها
+                                <i data-lucide="network" style="color: #4f46e5; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_network_routing_packet_settings">شبکه، روتینگ و تنظیمات پکت‌ها</span>
                             </h3>
-                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;" data-i18n="ocserv_ip_dns_mtu">
                                 کنترل محدوده IP داخلی، DNS سرورها و مقدار MTU جهت بهینه‌سازی سرعت
                             </p>
                         </div>
@@ -218,32 +213,32 @@
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">رنج IP کلاینت‌ها (IPv4 Network)</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_ip_ipv4_network">رنج IP کلاینت‌ها (IPv4 Network)</label>
                             <input type="text" class="form-input" id="ocserv-ipv4-network" value="10.30.30.0" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">ساب‌نت ماسک (IPv4 Netmask)</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_subnet_mask_ipv4_netmask">ساب‌نت ماسک (IPv4 Netmask)</label>
                             <input type="text" class="form-input" id="ocserv-ipv4-netmask" value="255.255.255.0" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">DNS سرور اول</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_first_dns_server">DNS سرور اول</label>
                             <input type="text" class="form-input" id="ocserv-dns1" value="8.8.8.8" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">DNS سرور دوم</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_second_dns_server">DNS سرور دوم</label>
                             <input type="text" class="form-input" id="ocserv-dns2" value="1.1.1.1" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">اندازه MTU پکت‌ها</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_mtu">اندازه MTU پکت‌ها</label>
                             <input type="number" class="form-input" id="ocserv-mtu" value="1200" min="1000" max="1500" style="font-family:'JetBrains Mono', monospace;" required>
-                            <span style="font-size:11px; color:var(--text-muted);">مقدار 1200 از قطعه‌قطعه شدن پکت‌ها و فیلتر شدن آن‌ها جلوگیری می‌کند</span>
+                            <span style="font-size:11px; color:var(--text-muted);" data-i18n="ocserv_value_1200_prevents_packets_from">مقدار 1200 از قطعه‌قطعه شدن پکت‌ها و فیلتر شدن آن‌ها جلوگیری می‌کند</span>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">حداکثر کاربران همزمان</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_maximum_concurrent_users">حداکثر کاربران همزمان</label>
                             <input type="number" class="form-input" id="ocserv-max-clients" value="128" min="1" max="1024" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-weight:600;">حداکثر اتصال با یک کاربر</label>
+                            <label class="form-label" style="font-weight:600;" data-i18n="ocserv_maximum_connection_one_user">حداکثر اتصال با یک کاربر</label>
                             <input type="number" class="form-input" id="ocserv-max-same-clients" value="4" min="1" max="32" style="font-family:'JetBrains Mono', monospace;" required>
                         </div>
                         <div class="form-group" style="margin:0;">
@@ -254,12 +249,10 @@
 
                     <div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9;">
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
-                            <input type="checkbox" id="ocserv-cisco-compat" style="width:16px; height:16px; accent-color:#4f46e5;" checked>
-                            سازگاری کامل با نرم‌افزار رسمی سیسکو (Cisco AnyConnect Client Compatibility)
+                            <input type="checkbox" id="ocserv-cisco-compat" style="width:16px; height:16px; accent-color:#4f46e5;" checked> <span data-i18n="ocserv_full_compatibility_official_cisco_soft">سازگاری کامل با نرم‌افزار رسمی سیسکو (Cisco AnyConnect Client Compatibility)</span>
                         </label>
                         <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
-                            <input type="checkbox" id="ocserv-compression" style="width:16px; height:16px; accent-color:#4f46e5;" checked>
-                            فشرده‌سازی پکت‌های دیتا (Compression)
+                            <input type="checkbox" id="ocserv-compression" style="width:16px; height:16px; accent-color:#4f46e5;" checked> <span data-i18n="ocserv_compression_data_packets">فشرده‌سازی پکت‌های دیتا (Compression)</span>
                         </label>
                     </div>
                 </div>
@@ -267,8 +260,7 @@
                 <!-- Save Action Button -->
                 <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
                     <button type="submit" class="btn btn-primary" id="btn-save-ocserv-config" style="padding: 12px 28px; font-weight: 700;">
-                        <i data-lucide="check" style="width: 18px; height: 18px; margin-right: 6px;"></i>
-                        ذخیره و اعمال تنظیمات OCServ
+                        <i data-lucide="check" style="width: 18px; height: 18px; margin-right: 6px;"></i> <span data-i18n="ocserv_save_apply_ocserv_settings">ذخیره و اعمال تنظیمات OCServ</span>
                     </button>
                 </div>
             </form>
@@ -285,15 +277,14 @@
                     <div class="config-header" style="margin-bottom: 16px;">
                         <div>
                             <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                                <i data-lucide="users" style="color: #4f46e5; width: 20px; height: 20px;"></i>
-                                لیست اکانت‌های فعال OCServ
+                                <i data-lucide="users" style="color: #4f46e5; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_list_active_ocserv_accounts">لیست اکانت‌های فعال OCServ</span>
                             </h3>
-                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ocserv_synchronized_accounts_freeradius_centr">
                                 اکانت‌های همگام با سیستم متمرکز FreeRADIUS و دیتابیس پنل
                             </p>
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="fetchOcservClients()" style="width:auto;">
-                            <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> رفرش
+                            <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> <span data-i18n="ovpn_item_16">رفرش</span>
                         </button>
                     </div>
                     
@@ -306,29 +297,28 @@
                 <div class="glass-card config-card" style="height: fit-content;">
                     <div class="config-header" style="margin-bottom: 16px;">
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                            <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i>
-                            ایجاد اکانت جدید
+                            <i data-lucide="user-plus" style="color: #059669; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_create_new_account">ایجاد اکانت جدید</span>
                         </h3>
                     </div>
                     <form onsubmit="handleCreateOcservUser(event)" style="display: flex; flex-direction: column; gap: 14px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">نام کاربری (Username)</label>
+                            <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
                             <input class="form-input" type="text" id="ocserv-client-username" placeholder="Username" required style="font-family:'JetBrains Mono', monospace;">
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">رمز عبور (Password)</label>
+                            <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
                             <input class="form-input" type="password" id="ocserv-client-password" placeholder="Password" required style="font-family:'JetBrains Mono', monospace;">
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">محدودیت حجم (GB) - اختیاری</label>
-                            <input class="form-input" type="number" id="ocserv-client-limit" placeholder="نامحدود">
+                            <label class="form-label" data-i18n="ocserv_size_limit_gb_optional">محدودیت حجم (GB) - اختیاری</label>
+                            <input class="form-input" type="number" id="ocserv-client-limit" placeholder="نامحدود" data-i18n-placeholder="ssh_item_8">
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">تاریخ انقضا - اختیاری</label>
+                            <label class="form-label" data-i18n="ssh_expiry_date_optional">تاریخ انقضا - اختیاری</label>
                             <input class="form-input" type="date" id="ocserv-client-expire">
                         </div>
                         <button type="submit" class="btn btn-primary" style="margin-top: 6px;">
-                            <i data-lucide="plus" style="width:16px; height:16px; margin-right:6px;"></i> ثبت و ایجاد اکانت
+                            <i data-lucide="plus" style="width:16px; height:16px; margin-right:6px;"></i> <span data-i18n="ocserv_item_4">ثبت و ایجاد اکانت</span>
                         </button>
                     </form>
                 </div>
@@ -343,15 +333,14 @@
                 <div class="config-header" style="margin-bottom: 16px;">
                     <div>
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-                            <i data-lucide="activity" style="color: #059669; width: 20px; height: 20px;"></i>
-                            سشن‌های متصل به سرور (Active OpenConnect Sessions)
+                            <i data-lucide="activity" style="color: #059669; width: 20px; height: 20px;"></i> <span data-i18n="ocserv_sessions_connected_server_active_openc">سشن‌های متصل به سرور (Active OpenConnect Sessions)</span>
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="ocserv_real_time_report_online_users">
                             گزارش بلادرنگ کاربران آنلاین از هسته occtl به همراه ترافیک مصرفی و امکان قطع سشن
                         </p>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="fetchOcservSessions()" style="width:auto;">
-                        <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> رفرش لیست سشن‌ها
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> <span data-i18n="ocserv_refresh_list_sessions">رفرش لیست سشن‌ها</span>
                     </button>
                 </div>
 
@@ -359,20 +348,20 @@
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
                         <thead>
                             <tr style="border-bottom: 2px solid #e2e8f0; text-align: right; color: var(--text-muted); font-size: 12px;">
-                                <th style="padding: 10px 14px;">شناسه</th>
-                                <th style="padding: 10px 14px;">نام کاربری</th>
-                                <th style="padding: 10px 14px;">IP واقعی کلاینت</th>
-                                <th style="padding: 10px 14px;">IP اختصاصی تونل</th>
-                                <th style="padding: 10px 14px;">دیوایس</th>
-                                <th style="padding: 10px 14px;">زمان اتصال</th>
-                                <th style="padding: 10px 14px;">دانلود / آپلود</th>
-                                <th style="padding: 10px 14px; text-align: center;">عملیات</th>
+                                <th style="padding: 10px 14px;" data-i18n="ovpn_id">شناسه</th>
+                                <th style="padding: 10px 14px;" data-i18n="login_username">نام کاربری</th>
+                                <th style="padding: 10px 14px;" data-i18n="ocserv_real_ip_client">IP واقعی کلاینت</th>
+                                <th style="padding: 10px 14px;" data-i18n="ocserv_dedicated_tunnel_ip">IP اختصاصی تونل</th>
+                                <th style="padding: 10px 14px;" data-i18n="ocserv_item_3">دیوایس</th>
+                                <th style="padding: 10px 14px;" data-i18n="rad_item_12">زمان اتصال</th>
+                                <th style="padding: 10px 14px;" data-i18n="ocserv_item">دانلود / آپلود</th>
+                                <th style="padding: 10px 14px; text-align: center;" data-i18n="servers_col_actions">عملیات</th>
                             </tr>
                         </thead>
                         <tbody id="ocserv-sessions-table-body">
                             <!-- Injected by JavaScript -->
                             <tr>
-                                <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);">
+                                <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-muted);" data-i18n="ocserv_loading_online_sessions">
                                     در حال بارگذاری سشن‌های آنلاین...
                                 </td>
                             </tr>
@@ -390,8 +379,7 @@
             <!-- Connection URL Banner -->
             <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px;">
                 <h4 style="margin:0 0 8px 0; color:#166534; font-size:16px; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="link" style="width:20px; height:20px;"></i>
-                    آدرس اتصال به سرور برای Cisco AnyConnect و OpenConnect
+                    <i data-lucide="link" style="width:20px; height:20px;"></i> <span data-i18n="ocserv_server_connection_address_cisco_anycon">آدرس اتصال به سرور برای Cisco AnyConnect و OpenConnect</span>
                 </h4>
                 <p style="font-size:13px; color:#15803d; margin:0 0 14px 0; line-height:1.6;">
                     برای اتصال با اپلیکیشن رسمی <strong>Cisco AnyConnect / Cisco Secure Client</strong> در تمامی سیستم‌عامل‌ها، آدرس زیر را بدون هیچ پیشوند یا پسوند اضافه در نرم‌افزار وارد کنید:
@@ -401,13 +389,13 @@
                         vpn.kigaping.com
                     </code>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="copyOcservConnectUrl()" style="width:auto; padding:6px 14px;">
-                        <i data-lucide="copy" style="width:14px; height:14px; margin-right:4px;"></i> کپی آدرس
+                        <i data-lucide="copy" style="width:14px; height:14px; margin-right:4px;"></i> <span data-i18n="ssh_copy_address">کپی آدرس</span>
                     </button>
                 </div>
                 <div style="font-size:12px; color:#15803d; margin-top:10px; line-height:1.6;">
-                    • <strong>آدرس اصلی (پیشنهادی ⚡):</strong> <code>vpn.kigaping.com</code> یا <code>vpn.kigaping.com:443</code> (روی پورت استاندارد ۴۴۳ فعال است، دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br>
-                    • <strong>حالت ضد فیلترینگ:</strong> ترافیک AnyConnect به عنوان ترافیک امن وب HTTPS استاندارد (TLS 1.3) از پورت ۴۴۳ عبور می‌کند و غیرقابل شناسایی است.<br>
-                    • <strong>نکته:</strong> در Cisco AnyConnect نیازی به وارد کردن پورت نیست؛ صرفاً وارد کردن <code>vpn.kigaping.com</code> کافی است.
+                    • <strong data-i18n="ocserv_main_address_suggested">آدرس اصلی (پیشنهادی ⚡):</strong> <code>vpn.kigaping.com</code> یا <code>vpn.kigaping.com:443</code> (روی پورت استاندارد ۴۴۳ فعال است، دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br>
+                    • <strong data-i18n="ocserv_anti_filtering_mode">حالت ضد فیلترینگ:</strong> ترافیک AnyConnect به عنوان ترافیک امن وب HTTPS استاندارد (TLS 1.3) از پورت ۴۴۳ عبور می‌کند و غیرقابل شناسایی است.<br>
+                    • <strong data-i18n="ocserv_note">نکته:</strong> در Cisco AnyConnect نیازی به وارد کردن پورت نیست؛ صرفاً وارد کردن <code>vpn.kigaping.com</code> کافی است.
                 </div>
             </div>
 
@@ -417,13 +405,13 @@
                 <div class="glass-card config-card" style="padding: 18px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <i data-lucide="monitor" style="width:24px; height:24px; color:#2563eb;"></i>
-                        <strong style="font-size:14px;">ویندوز (Windows)</strong>
+                        <strong style="font-size:14px;" data-i18n="ocserv_windows">ویندوز (Windows)</strong>
                     </div>
-                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;" data-i18n="ocserv_official_cisco_anyconnect_secure_clien">
                         نرم‌افزار رسمی Cisco AnyConnect Secure Client یا کلاینت سبک OpenConnect GUI برای ویندوز
                     </p>
                     <a href="https://openconnect.github.io/openconnect-gui/" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
-                        <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود OpenConnect GUI
+                        <i data-lucide="download" style="width:14px; height:14px;"></i> <span data-i18n="ocserv_openconnect_gui">دانلود OpenConnect GUI</span>
                     </a>
                 </div>
 
@@ -431,13 +419,13 @@
                 <div class="glass-card config-card" style="padding: 18px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <i data-lucide="smartphone" style="width:24px; height:24px; color:#16a34a;"></i>
-                        <strong style="font-size:14px;">اندروید (Android)</strong>
+                        <strong style="font-size:14px;" data-i18n="ocserv_android">اندروید (Android)</strong>
                     </div>
-                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;" data-i18n="ocserv_cisco_secure_client_anyconnect_opencon">
                         اپلیکیشن Cisco Secure Client-AnyConnect یا اپ رایگان OpenConnect در گوگل پلی
                     </p>
                     <a href="https://play.google.com/store/apps/details?id=com.cisco.anyconnect.vpn.android.avf" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
-                        <i data-lucide="external-link" style="width:14px; height:14px;"></i> دانلود از Google Play
+                        <i data-lucide="external-link" style="width:14px; height:14px;"></i> <span data-i18n="ocserv_google_play">دانلود از Google Play</span>
                     </a>
                 </div>
 
@@ -445,13 +433,13 @@
                 <div class="glass-card config-card" style="padding: 18px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <i data-lucide="apple" style="width:24px; height:24px; color:#334155;"></i>
-                        <strong style="font-size:14px;">آیفون و مک (iOS & Mac)</strong>
+                        <strong style="font-size:14px;" data-i18n="ocserv_iphone_mac_ios_mac">آیفون و مک (iOS & Mac)</strong>
                     </div>
-                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;" data-i18n="ocserv_official_cisco_secure_client_applicati">
                         اپلیکیشن رسمی Cisco Secure Client در اپ استور سازگار با تمامی نسخه‌های iOS و macOS
                     </p>
                     <a href="https://apps.apple.com/app/cisco-secure-client/id1135064690" target="_blank" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
-                        <i data-lucide="external-link" style="width:14px; height:14px;"></i> دانلود از App Store
+                        <i data-lucide="external-link" style="width:14px; height:14px;"></i> <span data-i18n="ocserv_app_store">دانلود از App Store</span>
                     </a>
                 </div>
 
@@ -459,13 +447,13 @@
                 <div class="glass-card config-card" style="padding: 18px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <i data-lucide="file-check" style="width:24px; height:24px; color:#d97706;"></i>
-                        <strong style="font-size:14px;">گواهی CA سرور</strong>
+                        <strong style="font-size:14px;" data-i18n="ocserv_ca">گواهی CA سرور</strong>
                     </div>
-                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;" data-i18n="ocserv_if_you_use_self_signed">
                         در صورت استفاده از حالت سرتیفیکیت Self-Signed، می‌توانید فایل CA سرور را دانلود نمایید.
                     </p>
                     <a href="/api/ocserv/ca.crt" download class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none;">
-                        <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود فایل ca.crt
+                        <i data-lucide="download" style="width:14px; height:14px;"></i> <span data-i18n="ocserv_download_ca_crt_file">دانلود فایل ca.crt</span>
                     </a>
                 </div>
             </div>
@@ -476,11 +464,11 @@
                     <i data-lucide="info" style="width:20px; height:20px;"></i>
                 </div>
                 <div style="font-size: 13px; line-height: 1.6; color: #92400e;">
-                    <strong style="color: #b45309; font-size: 14px;">نکات مهم در هنگام اتصال به Cisco AnyConnect:</strong>
+                    <strong style="color: #b45309; font-size: 14px;" data-i18n="ocserv_important_points_when_connecting_cisco">نکات مهم در هنگام اتصال به Cisco AnyConnect:</strong>
                     <ul style="margin: 6px 0 0 16px; padding: 0;">
                         <li>در کلاینت AnyConnect در بخش تنظیمات (چرخ‌دنده)، تیک گزینه <strong>Block Untrusted Servers</strong> را بردارید تا با ارور امنیتی مواجه نشوید (در صورت استفاده از Let's Encrypt نیازی به این کار نیست).</li>
                         <li>هنگام اتصال، نام کاربری و رمز عبور همان اکانت‌های متمرکز ردیوس پنل (مانند کاربر <code>NPU</code>) می‌باشد.</li>
-                        <li>در صورتی که اینترنت روی بسته‌های UDP اختلال دارد، گزینه شتاب‌دهنده UDP را در تب تنظیمات خاموش کنید تا اتصال در حالت فوق‌العاده پایدار TCP برقرار گردد.</li>
+                        <li data-i18n="ocserv_if_internet_disturbed_udp_packets">در صورتی که اینترنت روی بسته‌های UDP اختلال دارد، گزینه شتاب‌دهنده UDP را در تب تنظیمات خاموش کنید تا اتصال در حالت فوق‌العاده پایدار TCP برقرار گردد.</li>
                     </ul>
                 </div>
             </div>

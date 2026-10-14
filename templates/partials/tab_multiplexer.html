@@ -6,25 +6,21 @@
             <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
                 <div>
                     <h2 style="display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
-                        <i data-lucide="network" style="color: #0284c7; width: 26px; height: 26px;"></i>
-                        مدیریت اشتراک پورت و مولتی‌پورت (Port Multiplexer & Multi-Port Engine)
+                        <i data-lucide="network" style="color: #0284c7; width: 26px; height: 26px;"></i> <span data-i18n="mpx_port_multiplexer_multi_port_engine">مدیریت اشتراک پورت و مولتی‌پورت (Port Multiplexer & Multi-Port Engine)</span>
                     </h2>
-                    <p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.6;">
+                    <p style="color: var(--text-muted); font-size: 13.5px; line-height: 1.6;" data-i18n="mpx_simultaneous_connection_several_protocols">
                         اتصال همزمان چندین پروتکل (آپاچی، انجین‌یکس، سیسکو، SSH، اوپن‌وی‌پی‌ان و...) روی پورت ۴۴۳ و فراخوانی همزمان هر پروتکل روی چندین پورت مختلف.
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <button type="button" class="btn btn-secondary btn-sm" onclick="installMultiplexer()" style="padding: 8px 14px; font-size: 13px;">
-                        <i data-lucide="wrench" class="btn-icon"></i>
-                        نصب / بررسی خودکار HAProxy
+                        <i data-lucide="wrench" class="btn-icon"></i> <span data-i18n="mpx_haproxy">نصب / بررسی خودکار HAProxy</span>
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="reloadMultiplexerService()" style="padding: 8px 14px; font-size: 13px;">
-                        <i data-lucide="refresh-cw" class="btn-icon"></i>
-                        راه‌اندازی مجدد HAProxy
+                        <i data-lucide="refresh-cw" class="btn-icon"></i> <span data-i18n="mpx_haproxy_2">راه‌اندازی مجدد HAProxy</span>
                     </button>
                     <button type="button" class="btn btn-primary" onclick="saveMultiplexerConfig()" style="padding: 8px 20px; font-size: 13.5px; background: #0284c7;">
-                        <i data-lucide="check" class="btn-icon"></i>
-                        ذخیره و اعمال تنظیمات
+                        <i data-lucide="check" class="btn-icon"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات</span>
                     </button>
                 </div>
             </div>
@@ -33,23 +29,23 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.06);">
                 <div style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <div style="font-size: 12px; color: var(--text-muted);">وضعیت هسته HAProxy</div>
-                        <div id="mpx-status-haproxy" style="font-weight: 700; font-size: 14px; margin-top: 2px;">در حال بررسی...</div>
+                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_status_haproxy_core">وضعیت هسته HAProxy</div>
+                        <div id="mpx-status-haproxy" style="font-weight: 700; font-size: 14px; margin-top: 2px;" data-i18n="checking_status">در حال بررسی...</div>
                     </div>
                     <span id="mpx-dot-haproxy" class="status-dot"></span>
                 </div>
 
                 <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <div style="font-size: 12px; color: var(--text-muted);">وضعیت وب‌سرور (Apache/Nginx)</div>
-                        <div id="mpx-status-web" style="font-weight: 700; font-size: 14px; margin-top: 2px;">در حال بررسی...</div>
+                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_apache_nginx">وضعیت وب‌سرور (Apache/Nginx)</div>
+                        <div id="mpx-status-web" style="font-weight: 700; font-size: 14px; margin-top: 2px;" data-i18n="checking_status">در حال بررسی...</div>
                     </div>
                     <span id="mpx-dot-web" class="status-dot active"></span>
                 </div>
 
                 <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <div style="font-size: 12px; color: var(--text-muted);">پورت‌های فعال اشتراکی</div>
+                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_shared_active_ports">پورت‌های فعال اشتراکی</div>
                         <div id="mpx-active-ports-badge" style="font-weight: 700; font-size: 14px; margin-top: 2px; font-family: monospace;">443</div>
                     </div>
                     <i data-lucide="radio" style="color: #6366f1; width: 20px; height: 20px;"></i>
@@ -57,8 +53,8 @@
 
                 <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;">
                     <div>
-                        <div style="font-size: 12px; color: var(--text-muted);">مسیریابی مولتی‌پورت UDP</div>
-                        <div id="mpx-status-udp" style="font-weight: 700; font-size: 14px; margin-top: 2px;">آماده</div>
+                        <div style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_udp">مسیریابی مولتی‌پورت UDP</div>
+                        <div id="mpx-status-udp" style="font-weight: 700; font-size: 14px; margin-top: 2px;" data-i18n="awg_item_5">آماده</div>
                     </div>
                     <i data-lucide="zap" style="color: #f59e0b; width: 20px; height: 20px;"></i>
                 </div>
@@ -70,12 +66,12 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i data-lucide="layers" style="color: #0284c7; width: 22px; height: 22px;"></i>
-                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="mpx_tcp_shared_listen_ports">
                         ۱. پورت‌های اشتراکی چندگانه (TCP Shared Listen Ports)
                     </h3>
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">فعال‌سازی سیستم اشتراک پورت:</span>
+                    <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);" data-i18n="mpx_item_4">فعال‌سازی سیستم اشتراک پورت:</span>
                     <label class="switch">
                         <input type="checkbox" id="mpx-master-toggle" checked onchange="handleMasterToggleChange()">
                         <span class="slider"></span>
@@ -84,11 +80,11 @@
             </div>
 
             <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 16px;">
-                تمامی پروتکل‌های فعال در بخش زیر همزمان روی <strong>تمام پورت‌های لیست زیر</strong> پاسخگو خواهند بود. اگر به طور مثال پورت ۴۴۳ مسدود یا فیلتر شود، کاربران می‌توانند با همان دامنه روی پورت‌های جایگزین (مانند ۲۰۸۷، ۲۰۹۶ یا ۹۴۴۳) بدون هیچ تغییری در سرور متصل شوند.
+                تمامی پروتکل‌های فعال در بخش زیر همزمان روی <strong data-i18n="mpx_item_5">تمام پورت‌های لیست زیر</strong> پاسخگو خواهند بود. اگر به طور مثال پورت ۴۴۳ مسدود یا فیلتر شود، کاربران می‌توانند با همان دامنه روی پورت‌های جایگزین (مانند ۲۰۸۷، ۲۰۹۶ یا ۹۴۴۳) بدون هیچ تغییری در سرور متصل شوند.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 12px;">
-                <label class="form-label" style="margin: 0; font-weight: 600;">پورت‌های ورودی فعال (Listening Ports):</label>
+                <label class="form-label" style="margin: 0; font-weight: 600;" data-i18n="mpx_active_input_ports_listening_ports">پورت‌های ورودی فعال (Listening Ports):</label>
                 <div id="mpx-listen-ports-container" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 42px; padding: 10px 14px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 10px;">
                     <!-- Port tags rendered dynamically -->
                 </div>
@@ -96,20 +92,19 @@
                 <!-- Add Port Form & Presets -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 6px;">
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="number" id="mpx-new-port-input" class="form-input" placeholder="شماره پورت (مثلاً 2087)" style="width: 180px; padding: 7px 12px; font-size: 13px; height: 38px;">
+                        <input type="number" id="mpx-new-port-input" class="form-input" placeholder="شماره پورت (مثلاً 2087)" data-i18n-placeholder="mpx_port_number_eg_2087" style="width: 180px; padding: 7px 12px; font-size: 13px; height: 38px;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="addListenPort()" style="height: 38px; padding: 0 16px;">
-                            <i data-lucide="plus" class="btn-icon"></i>
-                            افزودن پورت
+                            <i data-lucide="plus" class="btn-icon"></i> <span data-i18n="mpx_add_port">افزودن پورت</span>
                         </button>
                     </div>
 
                     <!-- Quick Presets -->
                     <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                        <span style="font-size: 12px; color: var(--text-muted);">افزودن سریع:</span>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="addPortPreset([2053, 2087, 2096, 8443])" style="font-size: 12px; padding: 5px 10px;">
+                        <span style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_item_7">افزودن سریع:</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addPortPreset([2053, 2087, 2096, 8443])" style="font-size: 12px; padding: 5px 10px;" data-i18n="mpx_cloudflare_secure_ports_2087_2096">
                             + پورت‌های امن کلودفلر (2087, 2096, 8443)
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="addPortPreset([443, 9443])" style="font-size: 12px; padding: 5px 10px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addPortPreset([443, 9443])" style="font-size: 12px; padding: 5px 10px;" data-i18n="mpx_standard_ports_443_9443">
                             + پورت‌های استاندارد (443, 9443)
                         </button>
                     </div>
@@ -122,14 +117,14 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i data-lucide="shuffle" style="color: #0ea5e9; width: 22px; height: 22px;"></i>
-                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="mpx_2_intelligent_separation_protocols_shared">
                         ۲. تفکیک هوشمند پروتکل‌ها روی پورت اشتراکی (SNI Routing & Multi-Service)
                     </h3>
                 </div>
                 <span class="sidebar-badge sidebar-badge-blue" style="font-size: 12px;">SNI Routing</span>
             </div>
 
-            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px;" data-i18n="mpx_check_protocols_that_you_want">
                 پروتکل‌هایی که مایلید روی پورت‌های اشتراکی بالا همزمان کار کنند را تیک بزنید و دامنه اختصاصی هر کدام را وارد نمایید. سیستم هوشمند HAProxy بسته به دامنه‌ای که کلاینت درخواست می‌دهد، ترافیک را به پروتکل مناسب هدایت می‌کند.
             </p>
 
@@ -144,30 +139,29 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="globe" style="color: #6366f1; width: 18px; height: 18px;"></i>
-                                    وب‌سرور اصلی و پنل مدیریت (Apache / Nginx / MHPanel)
+                                    <i data-lucide="globe" style="color: #6366f1; width: 18px; height: 18px;"></i> <span data-i18n="mpx_apache_nginx_mhpanel">وب‌سرور اصلی و پنل مدیریت (Apache / Nginx / MHPanel)</span>
                                     <span class="sidebar-badge sidebar-badge-green" style="font-size: 11px;">Default Fallback</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">ترافیک مرورگر، صفحات وب و ترافیک بدون SNI (رفتار سایت واقعی برای گمراه‌سازی فیلترینگ)</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_sni">ترافیک مرورگر، صفحات وب و ترافیک بدون SNI (رفتار سایت واقعی برای گمراه‌سازی فیلترینگ)</div>
                             </div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="font-size: 12px; color: var(--text-muted);">نوع سرور وب:</span>
+                            <span style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_web_server_type">نوع سرور وب:</span>
                             <select id="mpx-web-server-type" class="form-input" style="width: 140px; padding: 4px 8px; font-size: 12.5px; height: 32px;" onchange="handleWebServerTypeChange()">
-                                <option value="apache" selected>آپاچی (Apache)</option>
-                                <option value="nginx">انجین‌یکس (Nginx)</option>
-                                <option value="custom">پورت دلخواه</option>
+                                <option value="apache" selected data-i18n="mpx_apache">آپاچی (Apache)</option>
+                                <option value="nginx" data-i18n="mpx_nginx">انجین‌یکس (Nginx)</option>
+                                <option value="custom" data-i18n="mpx_item_6">پورت دلخواه</option>
                             </select>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">دامنه وب‌پنل (SNI Domain):</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_web_panel_domain_sni_domain">دامنه وب‌پنل (SNI Domain):</label>
                             <input type="text" id="mpx-proto-web-sni" class="form-input" value="mhpanel.kigaping.com" placeholder="e.g. mhpanel.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی وب‌سرور:</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_item_3">آدرس و پورت داخلی وب‌سرور:</label>
                             <input type="text" id="mpx-proto-web-target" class="form-input" value="127.0.0.1:8444" placeholder="127.0.0.1:8444" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                     </div>
@@ -183,22 +177,21 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="radio" style="color: #0284c7; width: 18px; height: 18px;"></i>
-                                    سیسکو AnyConnect / OpenConnect (OCServ)
+                                    <i data-lucide="radio" style="color: #0284c7; width: 18px; height: 18px;"></i> <span data-i18n="mpx_cisco_anyconnect_openconnect_ocserv">سیسکو AnyConnect / OpenConnect (OCServ)</span>
                                     <span class="sidebar-badge sidebar-badge-blue" style="font-size: 11px;">Cisco SSL</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اتصال کلاینت‌های رسمی سیسکو با پورت مشترک با وب‌سایت</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_connect_official_cisco_clients_shared">اتصال کلاینت‌های رسمی سیسکو با پورت مشترک با وب‌سایت</div>
                             </div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">دامنه اختصاصی سیسکو (SNI Domain):</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_cisco_exclusive_domain_sni_domain">دامنه اختصاصی سیسکو (SNI Domain):</label>
                             <input type="text" id="mpx-proto-ocserv-sni" class="form-input" value="vpn.kigaping.com" placeholder="e.g. vpn.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی سرور سیسکو:</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_cisco_server_internal_address_port">آدرس و پورت داخلی سرور سیسکو:</label>
                             <input type="text" id="mpx-proto-ocserv-target" class="form-input" value="127.0.0.1:10443" placeholder="127.0.0.1:10443" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                     </div>
@@ -214,21 +207,20 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="terminal" style="color: #059669; width: 18px; height: 18px;"></i>
-                                    تونل امن SSH بر بستر TLS (Stunnel / SSH)
+                                    <i data-lucide="terminal" style="color: #059669; width: 18px; height: 18px;"></i> <span data-i18n="mpx_ssh_tls_stunnel_ssh">تونل امن SSH بر بستر TLS (Stunnel / SSH)</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">مسیریابی ترافیک SSH با پوشش رمزنگاری TLS روی پورت اشتراکی ۴۴۳</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_ssh_traffic_routing_tls_encryption">مسیریابی ترافیک SSH با پوشش رمزنگاری TLS روی پورت اشتراکی ۴۴۳</div>
                             </div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">دامنه اتصال SSH (SNI Domain):</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_ssh_connection_domain_sni_domain">دامنه اتصال SSH (SNI Domain):</label>
                             <input type="text" id="mpx-proto-ssh-sni" class="form-input" value="ssh.kigaping.com" placeholder="e.g. ssh.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی Stunnel:</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_stunnel_internal_address_port">آدرس و پورت داخلی Stunnel:</label>
                             <input type="text" id="mpx-proto-ssh-target" class="form-input" value="127.0.0.1:4444" placeholder="127.0.0.1:4444" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                     </div>
@@ -244,21 +236,20 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="lock" style="color: #f59e0b; width: 18px; height: 18px;"></i>
-                                    اوپن‌وی‌پی‌ان (OpenVPN TCP)
+                                    <i data-lucide="lock" style="color: #f59e0b; width: 18px; height: 18px;"></i> <span data-i18n="mpx_openvpn_tcp">اوپن‌وی‌پی‌ان (OpenVPN TCP)</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اتصال کلاینت‌های OpenVPN حالت TCP با SNI روی پورت ۴۴۳</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_connect_openvpn_tcp_mode_clients">اتصال کلاینت‌های OpenVPN حالت TCP با SNI روی پورت ۴۴۳</div>
                             </div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">دامنه OpenVPN (SNI Domain):</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_openvpn_domain_sni_domain">دامنه OpenVPN (SNI Domain):</label>
                             <input type="text" id="mpx-proto-openvpn-sni" class="form-input" value="ovpn.kigaping.com" placeholder="e.g. ovpn.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی OpenVPN TCP:</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_openvpn_tcp_internal_address_port">آدرس و پورت داخلی OpenVPN TCP:</label>
                             <input type="text" id="mpx-proto-openvpn-target" class="form-input" value="127.0.0.1:1194" placeholder="127.0.0.1:1194" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                     </div>
@@ -274,21 +265,20 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="shuffle" style="color: #06b6d4; width: 18px; height: 18px;"></i>
-                                    پروتکل ویندوز SSTP (Accel-PPP)
+                                    <i data-lucide="shuffle" style="color: #06b6d4; width: 18px; height: 18px;"></i> <span data-i18n="mpx_windows_sstp_protocol_accel_ppp">پروتکل ویندوز SSTP (Accel-PPP)</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">اتصال مستقیم کانکشن داخلی ویندوز بدون فیلترینگ با SNI</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_direct_connection_internal_windows_connec">اتصال مستقیم کانکشن داخلی ویندوز بدون فیلترینگ با SNI</div>
                             </div>
                         </div>
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">دامنه SSTP (SNI Domain):</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_sstp_domain_sni_domain">دامنه SSTP (SNI Domain):</label>
                             <input type="text" id="mpx-proto-sstp-sni" class="form-input" value="sstp.kigaping.com" placeholder="e.g. sstp.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی SSTP:</label>
+                            <label class="form-label" style="font-size: 12px; margin-bottom: 4px;" data-i18n="mpx_internal_sstp_address_port">آدرس و پورت داخلی SSTP:</label>
                             <input type="text" id="mpx-proto-sstp-target" class="form-input" value="127.0.0.1:4443" placeholder="127.0.0.1:4443" style="direction: ltr; font-family: monospace; font-size: 13px;">
                         </div>
                     </div>
@@ -298,12 +288,11 @@
             <!-- Custom SNI Rules -->
             <div style="margin-top: 24px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 18px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="mpx_custom_sni_rules">
                         قوانین سفارشی SNI (Custom SNI Rules)
                     </h4>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="addCustomSniRow()">
-                        <i data-lucide="plus" class="btn-icon"></i>
-                        افزودن رول سفارشی
+                        <i data-lucide="plus" class="btn-icon"></i> <span data-i18n="mpx_add_custom_roll">افزودن رول سفارشی</span>
                     </button>
                 </div>
                 <div id="mpx-custom-rules-container" style="display: flex; flex-direction: column; gap: 10px;">
@@ -317,14 +306,14 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <i data-lucide="zap" style="color: #f59e0b; width: 22px; height: 22px;"></i>
-                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="mpx_udp_multi_port_engine">
                         ۳. فراخوانی یک پروتکل روی چندین پورت به صورت همزمان (UDP Multi-Port Engine)
                     </h3>
                 </div>
                 <span class="sidebar-badge sidebar-badge-purple" style="font-size: 12px;">Kernel REDIRECT</span>
             </div>
 
-            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px;" data-i18n="mpx_udp_sni_iptables">
                 برای پروتکل‌های UDP (مانند وایرگارد و امنزیا) که با SNI کار نمی‌کنند، هسته فایروال سیستم (iptables) ترافیک تمامی پورت‌های ورودی انتخاب شده را مستقیماً به پورت اصلی پروتکل هدایت می‌کند. کلاینت‌ها بدون نیاز به تغییر سرور می‌توانند روی هر یک از این پورت‌ها متصل شوند!
             </p>
 
@@ -339,16 +328,15 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="zap" style="color: #8b5cf6; width: 18px; height: 18px;"></i>
-                                    وایرگارد معمولی (WireGuard UDP)
-                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">پورت اصلی: UDP 904</span>
+                                    <i data-lucide="zap" style="color: #8b5cf6; width: 18px; height: 18px;"></i> <span data-i18n="mpx_normal_wireguard_wireguard_udp">وایرگارد معمولی (WireGuard UDP)</span>
+                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;" data-i18n="mpx_default_port_udp_904">پورت اصلی: UDP 904</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">دریافت ترافیک روی پورت‌های متعدد و هدایت به ۹۰۴</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_receive_traffic_multiple_ports_redirect">دریافت ترافیک روی پورت‌های متعدد و هدایت به ۹۰۴</div>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;" data-i18n="mpx_auxiliary_input_ports_separate_commas">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
                         <input type="text" id="mpx-udp-wireguard-ports" class="form-input" value="53, 500, 4500" placeholder="53, 500, 4500" style="direction: ltr; font-family: monospace; font-size: 13px;">
                     </div>
                 </div>
@@ -363,16 +351,15 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="shield-check" style="color: #10b981; width: 18px; height: 18px;"></i>
-                                    امنزیا وایرگارد ضد فیلترینگ (AmneziaWG Anti-DPI)
-                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">پورت اصلی: UDP 51820</span>
+                                    <i data-lucide="shield-check" style="color: #10b981; width: 18px; height: 18px;"></i> <span data-i18n="mpx_amnezia_wireguard_anti_filtering_amneziaw">امنزیا وایرگارد ضد فیلترینگ (AmneziaWG Anti-DPI)</span>
+                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;" data-i18n="mpx_udp_51820">پورت اصلی: UDP 51820</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">دریافت ترافیک روی پورت‌های متعدد و هدایت به ۵۱۸۲۰</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_receive_traffic_multiple_ports_forward">دریافت ترافیک روی پورت‌های متعدد و هدایت به ۵۱۸۲۰</div>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;" data-i18n="mpx_auxiliary_input_ports_separate_commas">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
                         <input type="text" id="mpx-udp-amneziawg-ports" class="form-input" value="2087, 2096, 8080, 9443" placeholder="2087, 2096, 8080, 9443" style="direction: ltr; font-family: monospace; font-size: 13px;">
                     </div>
                 </div>
@@ -387,16 +374,15 @@
                             </label>
                             <div>
                                 <div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
-                                    <i data-lucide="radio" style="color: #0284c7; width: 18px; height: 18px;"></i>
-                                    سیسکو AnyConnect DTLS (UDP OCServ)
-                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;">پورت اصلی: UDP 10443</span>
+                                    <i data-lucide="radio" style="color: #0284c7; width: 18px; height: 18px;"></i> <span data-i18n="mpx_cisco_anyconnect_dtls_udp_ocserv">سیسکو AnyConnect DTLS (UDP OCServ)</span>
+                                    <span style="font-size: 12px; font-family: monospace; background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px;" data-i18n="mpx_default_port_udp_10443">پورت اصلی: UDP 10443</span>
                                 </div>
-                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">هدایت ترافیک پورت‌های کمکی UDP به سیسکو DTLS برای افزایش سرعت و کاهش پینگ</div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="mpx_forward_udp_auxiliary_port_traffic">هدایت ترافیک پورت‌های کمکی UDP به سیسکو DTLS برای افزایش سرعت و کاهش پینگ</div>
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
+                        <label class="form-label" style="font-size: 12px; margin-bottom: 6px;" data-i18n="mpx_auxiliary_input_ports_separate_commas">پورت‌های ورودی کمکی (با کاما جدا کنید):</label>
                         <input type="text" id="mpx-udp-cisco-ports" class="form-input" value="443, 2087" placeholder="443, 2087" style="direction: ltr; font-family: monospace; font-size: 13px;">
                     </div>
                 </div>
@@ -408,13 +394,12 @@
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="shield-check" style="color: #10b981; width: 24px; height: 24px;"></i>
                 <div>
-                    <div style="font-weight: 700; font-size: 14px; color: var(--text-main);">اعتبارسنجی خودکار قبل از اعمال</div>
-                    <div style="font-size: 12px; color: var(--text-muted);">کانفیگ HAProxy و فایروال قبل از ذخیره‌سازی تست شده تا از پایداری کامل سرور اطمینان حاصل شود.</div>
+                    <div style="font-weight: 700; font-size: 14px; color: var(--text-main);" data-i18n="mpx_item">اعتبارسنجی خودکار قبل از اعمال</div>
+                    <div style="font-size: 12px; color: var(--text-muted);" data-i18n="mpx_haproxy_firewall_configs_are_tested">کانفیگ HAProxy و فایروال قبل از ذخیره‌سازی تست شده تا از پایداری کامل سرور اطمینان حاصل شود.</div>
                 </div>
             </div>
             <button type="button" class="btn btn-primary" onclick="saveMultiplexerConfig()" style="padding: 10px 28px; font-size: 14px; background: #0284c7;">
-                <i data-lucide="save" class="btn-icon"></i>
-                ذخیره و اعمال سراسری تنظیمات
+                <i data-lucide="save" class="btn-icon"></i> <span data-i18n="mpx_save_apply_settings_globally">ذخیره و اعمال سراسری تنظیمات</span>
             </button>
         </div>
 

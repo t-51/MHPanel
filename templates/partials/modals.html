@@ -83,15 +83,14 @@
     <div class="modal-card" style="max-width: 600px;">
         <header class="modal-header">
             <h3 class="modal-title">
-                <i data-lucide="shield-check" style="color: var(--color-emerald); width: 18px; height: 18px;"></i>
-                AmneziaWG Profiles (Anti-DPI)
+                <i data-lucide="shield-check" style="color: var(--color-emerald); width: 18px; height: 18px;"></i> <span data-i18n="nav_amneziawg">AmneziaWG</span> Profiles (Anti-DPI)
             </h3>
             <button class="modal-close" id="awg-close-btn"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px; display:flex; flex-direction:column; gap:20px; align-items:center;">
             <!-- Single client result -->
             <div id="awg-single-result" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;">
-                <p style="font-size: 14px; text-align: center; color: var(--text-muted);">
+                <p style="font-size: 14px; text-align: center; color: var(--text-muted);" data-i18n="modal_scan_barcode_official_amnezia_vpn">
                     اسکن بارکد در اپلیکیشن رسمی Amnezia VPN یا دانلود فایل کانفیگ برای اتصال در تمامی سیستم‌عامل‌ها
                 </p>
                 <div id="awg-qrcode-canvas" style="background:#fff; padding:12px; border-radius:12px;"></div>
@@ -174,16 +173,16 @@
                         <input class="form-input" style="padding-left:16px;" type="text" id="edit-client-name" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Volume Limit (GB) - Optional</label>
+                        <label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" id="edit-client-limit" placeholder="No limit">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Expiration (Days) - Optional</label>
+                        <label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" min="1" id="edit-client-expire" placeholder="No expiration">
                     </div>
                     <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="edit-client-first-connect" style="width: 16px; height: 16px;">
-                        <label class="form-label" style="margin: 0;">Start after first connect</label>
+                        <label class="form-label" style="margin: 0;" data-i18n="wg_start_after_first_connect">Start after first connect</label>
                     </div>
                 </div>
 
@@ -201,8 +200,7 @@
     <div class="modal-card" style="max-width: 440px;">
         <header class="modal-header">
             <h3 class="modal-title">
-                <i data-lucide="user-plus" style="color: var(--color-primary); width: 18px; height: 18px;"></i>
-                افزودن کاربر محلی IKEv2
+                <i data-lucide="user-plus" style="color: var(--color-primary); width: 18px; height: 18px;"></i> <span data-i18n="modal_ikev2">افزودن کاربر محلی IKEv2</span>
             </h3>
             <button class="modal-close" onclick="closeAddIkev2Modal()"><i data-lucide="x"></i></button>
         </header>
@@ -210,26 +208,26 @@
             <form id="ikev2-add-form" onsubmit="submitIkev2Client(event)">
                 <div style="display:flex; flex-direction:column; gap:16px; margin-bottom: 20px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">نام کاربری (Username)</label>
-                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ikev2-client-username" required placeholder="مثال: client1">
+                        <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ikev2-client-username" required placeholder="مثال: client1" data-i18n-placeholder="rad_client1">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">رمز عبور (Password)</label>
-                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="password" id="ikev2-client-password" required placeholder="رمز عبور">
+                        <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="password" id="ikev2-client-password" required placeholder="رمز عبور" data-i18n-placeholder="login_password">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">محدودیت حجم (GB) - اختیاری</label>
-                        <input class="form-input" style="padding-left:14px;" type="number" id="ikev2-client-limit" placeholder="نامحدود">
+                        <label class="form-label" data-i18n="ocserv_size_limit_gb_optional">محدودیت حجم (GB) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px;" type="number" id="ikev2-client-limit" placeholder="نامحدود" data-i18n-placeholder="ssh_item_8">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تاریخ انقضا (YYYY-MM-DD) - اختیاری</label>
-                        <input class="form-input" style="padding-left:14px;" type="text" id="ikev2-client-expire" placeholder="بدون انقضا">
+                        <label class="form-label" data-i18n="modal_expiration_date_yyyy_mm_dd">تاریخ انقضا (YYYY-MM-DD) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px;" type="text" id="ikev2-client-expire" placeholder="بدون انقضا" data-i18n-placeholder="modal_item_8">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <button type="button" class="btn btn-secondary" onclick="closeAddIkev2Modal()" style="flex:1;">انصراف</button>
-                    <button type="submit" class="btn" style="flex:1;"><i data-lucide="save" class="btn-icon"></i> ایجاد کاربر</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddIkev2Modal()" style="flex:1;" data-i18n="modal_btn_cancel">انصراف</button>
+                    <button type="submit" class="btn" style="flex:1;"><i data-lucide="save" class="btn-icon"></i> <span data-i18n="modal_item_20">ایجاد کاربر</span></button>
                 </div>
             </form>
         </div>
@@ -241,8 +239,7 @@
     <div class="modal-card" style="max-width: 440px;">
         <header class="modal-header">
             <h3 class="modal-title">
-                <i data-lucide="user-plus" style="color: #f59e0b; width: 18px; height: 18px;"></i>
-                افزودن کاربر محلی OpenVPN
+                <i data-lucide="user-plus" style="color: #f59e0b; width: 18px; height: 18px;"></i> <span data-i18n="modal_add_local_openvpn_user">افزودن کاربر محلی OpenVPN</span>
             </h3>
             <button class="modal-close" onclick="closeAddOvpnModal()"><i data-lucide="x"></i></button>
         </header>
@@ -250,26 +247,26 @@
             <form id="openvpn-add-form" onsubmit="submitOvpnClient(event)">
                 <div style="display:flex; flex-direction:column; gap:16px; margin-bottom: 20px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">نام کاربری (Username)</label>
-                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ovpn-modal-client-username" required placeholder="مثال: client1">
+                        <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" id="ovpn-modal-client-username" required placeholder="مثال: client1" data-i18n-placeholder="rad_client1">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">رمز عبور (Password)</label>
-                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="password" id="ovpn-modal-client-password" required placeholder="رمز عبور">
+                        <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
+                        <input class="form-input" style="padding-left:14px; font-family:'JetBrains Mono';" type="password" id="ovpn-modal-client-password" required placeholder="رمز عبور" data-i18n-placeholder="login_password">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">محدودیت حجم (GB) - اختیاری</label>
-                        <input class="form-input" style="padding-left:14px;" type="number" id="ovpn-modal-client-limit" placeholder="نامحدود">
+                        <label class="form-label" data-i18n="ocserv_size_limit_gb_optional">محدودیت حجم (GB) - اختیاری</label>
+                        <input class="form-input" style="padding-left:14px;" type="number" id="ovpn-modal-client-limit" placeholder="نامحدود" data-i18n-placeholder="ssh_item_8">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تاریخ انقضا (YYYY-MM-DD) - اختیاری</label>
+                        <label class="form-label" data-i18n="modal_expiration_date_yyyy_mm_dd">تاریخ انقضا (YYYY-MM-DD) - اختیاری</label>
                         <input class="form-input" style="padding-left:14px;" type="date" id="ovpn-modal-client-expire">
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; align-items: center;">
-                    <button type="button" class="btn btn-secondary" onclick="closeAddOvpnModal()" style="flex:1;">انصراف</button>
-                    <button type="submit" class="btn btn-primary" style="flex:1; background:#f59e0b;"><i data-lucide="save" class="btn-icon"></i> ایجاد کاربر</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAddOvpnModal()" style="flex:1;" data-i18n="modal_btn_cancel">انصراف</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1; background:#f59e0b;"><i data-lucide="save" class="btn-icon"></i> <span data-i18n="modal_item_20">ایجاد کاربر</span></button>
                 </div>
             </form>
         </div>
@@ -282,12 +279,12 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="download-cloud" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                <span>نصب گروهی و خودکار پروتکل‌های VPN</span>
+                <span data-i18n="modal_vpn">نصب گروهی و خودکار پروتکل‌های VPN</span>
             </h3>
             <button class="modal-close" onclick="closeBatchInstallModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px; display:flex; flex-direction:column; gap:16px;">
-            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin: 0;" data-i18n="modal_mark_your_desired_protocols_so">
                 پروتکل‌های مورد نظر خود را علامت بزنید تا پکیج‌های سیستمی و کانفیگ‌های لازم به صورت خودکار بر روی سرور نصب و فعال شوند:
             </p>
 
@@ -345,7 +342,7 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                <span>ساخت دسته‌جمعی کاربران یکپارچه ردیوس</span>
+                <span data-i18n="modal_mass_creation_integrated_radius_users">ساخت دسته‌جمعی کاربران یکپارچه ردیوس</span>
             </h3>
             <button class="modal-close" onclick="closeBatchRadiusModal()"><i data-lucide="x"></i></button>
         </header>
@@ -353,78 +350,78 @@
             <form id="form-batch-radius-user" onsubmit="submitBatchRadiusUsers(event)">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">پیشوند نام کاربری (Prefix)</label>
-                        <input class="form-input" style="padding-left:14px;" type="text" id="batch-rad-prefix" value="user_" placeholder="مثال: vip_">
+                        <label class="form-label" data-i18n="modal_prefix">پیشوند نام کاربری (Prefix)</label>
+                        <input class="form-input" style="padding-left:14px;" type="text" id="batch-rad-prefix" value="user_" placeholder="مثال: vip_" data-i18n-placeholder="modal_vip_2">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تعداد اکانت (Count)</label>
+                        <label class="form-label" data-i18n="modal_number_accounts_count">تعداد اکانت (Count)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="batch-rad-count" value="10" min="1" max="200" required>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">گروه / پکیج کاربری (Mikrotik Profile)</label>
+                        <label class="form-label" data-i18n="rad_mikrotik_profile">گروه / پکیج کاربری (Mikrotik Profile)</label>
                         <select class="form-select" id="batch-rad-group" onchange="onBatchGroupChange(this.value)">
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">نوع تولید رمز عبور</label>
+                        <label class="form-label" data-i18n="modal_password_generation_type">نوع تولید رمز عبور</label>
                         <select class="form-select" id="batch-rad-pwd-type" onchange="toggleBatchPasswordInput(this.value)">
-                            <option value="random">رمز تصادفی و امن (۸ کاراکتر)</option>
-                            <option value="fixed">رمز یکسان برای همه</option>
+                            <option value="random" data-i18n="modal_item_17">رمز تصادفی و امن (۸ کاراکتر)</option>
+                            <option value="fixed" data-i18n="modal_same_password_everyone">رمز یکسان برای همه</option>
                         </select>
                     </div>
                 </div>
 
                 <div id="batch-fixed-pwd-wrap" style="display: none; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">رمز عبور مشترک</label>
-                        <input class="form-input" style="padding-left:14px;" type="text" id="batch-rad-custom-pass" placeholder="رمز عبور">
+                        <label class="form-label" data-i18n="modal_shared_password">رمز عبور مشترک</label>
+                        <input class="form-input" style="padding-left:14px;" type="text" id="batch-rad-custom-pass" placeholder="رمز عبور" data-i18n-placeholder="login_password">
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">اتصال همزمان (Limit)</label>
+                        <label class="form-label" data-i18n="modal_simultaneous_connection_limit">اتصال همزمان (Limit)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="batch-rad-sim-use" value="2" min="1" max="100">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">مدت اعتبار (روز)</label>
+                        <label class="form-label" data-i18n="modal_validity_period_days">مدت اعتبار (روز)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="batch-rad-validity" value="30" min="0">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">محدودیت ترافیک (GB)</label>
-                        <input class="form-input" style="padding-left:14px;" type="number" id="batch-rad-limit" placeholder="نامحدود">
+                        <label class="form-label" data-i18n="rad_traffic_limit_gb">محدودیت ترافیک (GB)</label>
+                        <input class="form-input" style="padding-left:14px;" type="number" id="batch-rad-limit" placeholder="نامحدود" data-i18n-placeholder="ssh_item_8">
                     </div>
                 </div>
 
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 20px;">
-                    <div style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 8px;">محدودیت ساعت و روزهای دسترسی (Login-Time)</div>
+                    <div style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 8px;" data-i18n="modal_limitation_hours_days_access_login">محدودیت ساعت و روزهای دسترسی (Login-Time)</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="rad_allowed_days">روزهای مجاز:</label>
                             <select class="form-select" id="batch-rad-days" style="padding: 6px 10px; font-size: 12px;">
-                                <option value="all">تمام روزهای هفته (24/7)</option>
-                                <option value="weekdays">روزهای کاری (دوشنبه-جمعه)</option>
-                                <option value="weekends">آخر هفته‌ها</option>
+                                <option value="all" data-i18n="rad_24_7">تمام روزهای هفته (24/7)</option>
+                                <option value="weekdays" data-i18n="modal_working_days_monday_friday">روزهای کاری (دوشنبه-جمعه)</option>
+                                <option value="weekends" data-i18n="rad_weekends">آخر هفته‌ها</option>
                             </select>
                         </div>
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">از ساعت:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="modal_item_9">از ساعت:</label>
                             <input type="time" class="form-input" id="batch-rad-start-time" value="00:00" style="padding: 6px 8px; font-size: 12px;">
                         </div>
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">تا ساعت:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="modal_until_hour">تا ساعت:</label>
                             <input type="time" class="form-input" id="batch-rad-end-time" value="24:00" style="padding: 6px 8px; font-size: 12px;">
                         </div>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeBatchRadiusModal()">انصراف</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeBatchRadiusModal()" data-i18n="modal_btn_cancel">انصراف</button>
                     <button type="submit" class="btn btn-primary" id="btn-submit-batch-rad">
-                        <i data-lucide="zap" class="btn-icon"></i> شروع ساخت دسته‌جمعی
+                        <i data-lucide="zap" class="btn-icon"></i> <span data-i18n="modal_start_mass_production">شروع ساخت دسته‌جمعی</span>
                     </button>
                 </div>
             </form>
@@ -438,24 +435,24 @@
         <header class="modal-header" style="background: rgba(16, 185, 129, 0.08); border-bottom: 1px solid rgba(16, 185, 129, 0.2);">
             <h3 class="modal-title" style="color: #065f46;">
                 <i data-lucide="check-circle" style="color: #10b981; width: 20px; height: 20px;"></i>
-                <span>اکانت‌های دسته‌جمعی با موفقیت ایجاد شدند</span>
+                <span data-i18n="modal_item_19">اکانت‌های دسته‌جمعی با موفقیت ایجاد شدند</span>
             </h3>
             <button class="modal-close" onclick="closeBatchResultModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
-            <p style="font-size: 13px; color: #475569; margin-bottom: 14px;">
+            <p style="font-size: 13px; color: #475569; margin-bottom: 14px;" data-i18n="modal_following_user_profiles_are_stored">
                 مشخصات کاربران زیر در هسته FreeRADIUS و تمامی پروتکل‌ها ذخیره و همگام‌سازی شدند:
             </p>
             <div id="batch-created-text-box" style="background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 14px; border-radius: 10px; max-height: 250px; overflow-y: auto; white-space: pre; line-height: 1.6; user-select: all;">
             </div>
             <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 18px;">
                 <button type="button" class="btn btn-secondary" onclick="copyBatchResults()" id="btn-copy-batch-results">
-                    <i data-lucide="copy" class="btn-icon"></i> کپی مشخصات
+                    <i data-lucide="copy" class="btn-icon"></i> <span data-i18n="modal_item_22">کپی مشخصات</span>
                 </button>
                 <button type="button" class="btn btn-secondary" onclick="downloadBatchResults()">
-                    <i data-lucide="download" class="btn-icon"></i> دانلود فایل متنی (.txt)
+                    <i data-lucide="download" class="btn-icon"></i> <span data-i18n="modal_download_text_file_txt">دانلود فایل متنی (.txt)</span>
                 </button>
-                <button type="button" class="btn" onclick="closeBatchResultModal()">
+                <button type="button" class="btn" onclick="closeBatchResultModal()" data-i18n="modal_close_window">
                     بستن پنجره
                 </button>
             </div>
@@ -469,7 +466,7 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="layers" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                <span id="radius-group-modal-title">تعریف بسته / گروه کاربری جدید</span>
+                <span id="radius-group-modal-title" data-i18n="modal_define_package_new_user_group">تعریف بسته / گروه کاربری جدید</span>
             </h3>
             <button class="modal-close" onclick="closeRadiusGroupModal()"><i data-lucide="x"></i></button>
         </header>
@@ -477,61 +474,61 @@
             <form id="form-radius-group" onsubmit="submitRadiusGroup(event)">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">شناسه گروه (Group ID انگلیسی)</label>
-                        <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-id" placeholder="مثال: vip" required>
+                        <label class="form-label" data-i18n="modal_group_id_english_group_id">شناسه گروه (Group ID انگلیسی)</label>
+                        <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-id" placeholder="مثال: vip" data-i18n-placeholder="modal_vip" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">نام نمایشی پکیج</label>
-                        <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-name" placeholder="مثال: پکیج ویژه VIP" required>
+                        <label class="form-label" data-i18n="modal_display_name_package">نام نمایشی پکیج</label>
+                        <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-name" placeholder="مثال: پکیج ویژه VIP" data-i18n-placeholder="modal_example_special_vip_package" required>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">حجم مجاز (GB)</label>
+                        <label class="form-label" data-i18n="modal_allowed_size_gb">حجم مجاز (GB)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="rad-grp-traffic" value="50" min="0">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">مدت اعتبار (روز)</label>
+                        <label class="form-label" data-i18n="modal_validity_period_days">مدت اعتبار (روز)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="rad-grp-validity" value="30" min="1">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">اتصال همزمان (Limit)</label>
+                        <label class="form-label" data-i18n="modal_simultaneous_connection_limit">اتصال همزمان (Limit)</label>
                         <input class="form-input" style="padding-left:14px;" type="number" id="rad-grp-sim-use" value="2" min="1" max="100">
                     </div>
                 </div>
 
                 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-                    <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
+                    <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;" data-i18n="modal_setting_allowed_connection_times_freera">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">روزهای فعال:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="modal_active_days">روزهای فعال:</label>
                             <select class="form-select" id="rad-grp-days" style="padding: 7px 10px; font-size: 12px;">
-                                <option value="all">تمام روزهای هفته (24/7)</option>
-                                <option value="weekdays">روزهای اداری/کاری (دوشنبه تا جمعه)</option>
-                                <option value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>
+                                <option value="all" data-i18n="rad_24_7">تمام روزهای هفته (24/7)</option>
+                                <option value="weekdays" data-i18n="modal_office_working_days_monday_friday">روزهای اداری/کاری (دوشنبه تا جمعه)</option>
+                                <option value="weekends" data-i18n="rad_item_7">آخر هفته‌ها (شنبه و یکشنبه)</option>
                             </select>
                         </div>
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">ساعت شروع:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="rad_start_time">ساعت شروع:</label>
                             <input type="time" class="form-input" id="rad-grp-start-time" value="00:00" style="padding: 7px 8px; font-size: 12px;">
                         </div>
                         <div>
-                            <label style="font-size: 11px; color: #64748b;">ساعت پایان:</label>
+                            <label style="font-size: 11px; color: #64748b;" data-i18n="rad_end_time">ساعت پایان:</label>
                             <input type="time" class="form-input" id="rad-grp-end-time" value="24:00" style="padding: 7px 8px; font-size: 12px;">
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 20px;">
-                    <label class="form-label">توضیحات بسته (اختیاری)</label>
-                    <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-desc" placeholder="مثلاً: مناسب کاربران گیمینگ با پینگ پایین">
+                    <label class="form-label" data-i18n="modal_item_21">توضیحات بسته (اختیاری)</label>
+                    <input class="form-input" style="padding-left:14px;" type="text" id="rad-grp-desc" placeholder="مثلاً: مناسب کاربران گیمینگ با پینگ پایین" data-i18n-placeholder="modal_example_suitable_gaming_users_low">
                 </div>
 
                 <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                    <button type="button" class="btn btn-secondary" onclick="closeRadiusGroupModal()">انصراف</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRadiusGroupModal()" data-i18n="modal_btn_cancel">انصراف</button>
                     <button type="submit" class="btn btn-primary">
-                        <i data-lucide="check" class="btn-icon"></i> ذخیره بسته
+                        <i data-lucide="check" class="btn-icon"></i> <span data-i18n="modal_save_package">ذخیره بسته</span>
                     </button>
                 </div>
             </form>
@@ -545,18 +542,18 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="layers" style="color: #6366f1; width: 20px; height: 20px;"></i>
-                <span>تخصیص گواهی امنیتی به پروتکل‌ها</span>
+                <span data-i18n="modal_item_12">تخصیص گواهی امنیتی به پروتکل‌ها</span>
             </h3>
             <button class="modal-close" onclick="closeAssignCertModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
             <input type="hidden" id="assign-cert-id">
             <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
-                <span style="font-size: 11px; color: var(--text-muted); display: block;">گواهی انتخاب‌شده:</span>
+                <span style="font-size: 11px; color: var(--text-muted); display: block;" data-i18n="modal_item_16">گواهی انتخاب‌شده:</span>
                 <strong id="assign-cert-title" style="font-size: 13.5px; color: #1e293b; display: block; margin-top: 2px;">--</strong>
             </div>
 
-            <p style="font-size: 12.5px; color: #475569; margin-bottom: 14px;">
+            <p style="font-size: 12.5px; color: #475569; margin-bottom: 14px;" data-i18n="modal_item_11">
                 پروتکل‌هایی که می‌خواهید از این گواهی برای رمزنگاری و اتصال کاربران استفاده کنند را علامت بزنید:
             </p>
 
@@ -566,13 +563,13 @@
                         <input type="checkbox" name="assign-proto-chk" value="sstp">
                         <strong style="font-size:13px; color:#166534;">SSTP (Windows & MikroTik)</strong>
                     </div>
-                    <span style="font-size:11px; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:6px;">پروتکل ویندوز</span>
+                    <span style="font-size:11px; color:#15803d; background:#dcfce7; padding:2px 8px; border-radius:6px;" data-i18n="mpx_windows_protocol">پروتکل ویندوز</span>
                 </label>
 
                 <label style="display:flex; align-items:center; justify-content:space-between; background:#eff6ff; border:1px solid #bfdbfe; padding:10px 14px; border-radius:10px; cursor:pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="assign-proto-chk" value="ocserv">
-                        <strong style="font-size:13px; color:#1e40af;">سیسکو AnyConnect (OCServ)</strong>
+                        <strong style="font-size:13px; color:#1e40af;" data-i18n="modal_cisco_anyconnect_ocserv">سیسکو AnyConnect (OCServ)</strong>
                     </div>
                     <span style="font-size:11px; color:#1d4ed8; background:#dbeafe; padding:2px 8px; border-radius:6px;">Cisco VPN</span>
                 </label>
@@ -580,7 +577,7 @@
                 <label style="display:flex; align-items:center; justify-content:space-between; background:#fffbeb; border:1px solid #fde68a; padding:10px 14px; border-radius:10px; cursor:pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="assign-proto-chk" value="openvpn">
-                        <strong style="font-size:13px; color:#92400e;">اوپن‌وی‌پی‌ان (OpenVPN)</strong>
+                        <strong style="font-size:13px; color:#92400e;" data-i18n="nav_openvpn">اوپن‌وی‌پی‌ان (OpenVPN)</strong>
                     </div>
                     <span style="font-size:11px; color:#b45309; background:#fef3c7; padding:2px 8px; border-radius:6px;">Dual Stack</span>
                 </label>
@@ -588,7 +585,7 @@
                 <label style="display:flex; align-items:center; justify-content:space-between; background:#faf5ff; border:1px solid #e9d5ff; padding:10px 14px; border-radius:10px; cursor:pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="assign-proto-chk" value="ikev2">
-                        <strong style="font-size:13px; color:#6b21a8;">پروتکل IKEv2 / IPsec</strong>
+                        <strong style="font-size:13px; color:#6b21a8;" data-i18n="ikev2_ikev2_ipsec">پروتکل IKEv2 / IPsec</strong>
                     </div>
                     <span style="font-size:11px; color:#7e22ce; background:#f3e8ff; padding:2px 8px; border-radius:6px;">iOS / Android</span>
                 </label>
@@ -596,16 +593,16 @@
                 <label style="display:flex; align-items:center; justify-content:space-between; background: var(--bg-base); border: 1px solid var(--border-glow); padding:10px 14px; border-radius:10px; cursor:pointer;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" name="assign-proto-chk" value="panel">
-                        <strong style="font-size:13px; color:#334155;">پنل وب مدیریت (HTTPS Web)</strong>
+                        <strong style="font-size:13px; color:#334155;" data-i18n="modal_management_web_panel_https_web">پنل وب مدیریت (HTTPS Web)</strong>
                     </div>
-                    <span style="font-size:11px; color:#475569; background:#e2e8f0; padding:2px 8px; border-radius:6px;">داشبورد پنل</span>
+                    <span style="font-size:11px; color:#475569; background:#e2e8f0; padding:2px 8px; border-radius:6px;" data-i18n="modal_dashboard_panel">داشبورد پنل</span>
                 </label>
             </div>
 
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeAssignCertModal()">انصراف</button>
+                <button type="button" class="btn btn-secondary" onclick="closeAssignCertModal()" data-i18n="modal_btn_cancel">انصراف</button>
                 <button type="button" class="btn btn-primary" onclick="submitCertAssignment()">
-                    <i data-lucide="check" class="btn-icon"></i> ذخیره و اعمال آنی
+                    <i data-lucide="check" class="btn-icon"></i> <span data-i18n="sstp_item_2">ذخیره و اعمال آنی</span>
                 </button>
             </div>
         </div>
@@ -618,34 +615,34 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="router" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                <span>ایجاد تونل استاندارد میکروتیک و شبکه (MikroTik & Routing)</span>
+                <span data-i18n="modal_mikrotik_routing">ایجاد تونل استاندارد میکروتیک و شبکه (MikroTik & Routing)</span>
             </h3>
             <button class="modal-close" onclick="closeCreateTunnelModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
             <!-- Tunnel Type Selector -->
             <div style="margin-bottom: 18px;">
-                <label class="form-label" style="font-weight: 700; margin-bottom: 8px; display:block;">نوع پروتکل تونل (Tunnel Protocol):</label>
+                <label class="form-label" style="font-weight: 700; margin-bottom: 8px; display:block;" data-i18n="modal_tunnel_protocol">نوع پروتکل تونل (Tunnel Protocol):</label>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-gre">
                         <input type="radio" name="tunnel_type" value="gre" checked onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#4338ca;">GRE</strong>
-                        <span style="font-size:10px; color:#64748b;">لایه ۳ میکروتیک</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_microtic_layer_3">لایه ۳ میکروتیک</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ipip">
                         <input type="radio" name="tunnel_type" value="ipip" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0369a1;">IPIP</strong>
-                        <span style="font-size:10px; color:#64748b;">سبک و کم‌مصرف</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_light_low_consumption">سبک و کم‌مصرف</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-vxlan">
                         <input type="radio" name="tunnel_type" value="vxlan" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#047857;">VXLAN / EoIP</strong>
-                        <span style="font-size:10px; color:#64748b;">لایه ۲ روی UDP</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_layer_2_over_udp">لایه ۲ روی UDP</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-wireguard">
                         <input type="radio" name="tunnel_type" value="wireguard" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#b45309;">WireGuard</strong>
-                        <span style="font-size:10px; color:#64748b;">همتابه‌همتا P2P</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_peer_peer_p2p">همتابه‌همتا P2P</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-l2tp">
                         <input type="radio" name="tunnel_type" value="l2tp" onchange="onTunnelTypeChange()" style="display:none;">
@@ -655,32 +652,32 @@
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-openvpn">
                         <input type="radio" name="tunnel_type" value="openvpn" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#d97706;">OpenVPN</strong>
-                        <span style="font-size:10px; color:#64748b;">تونل P2P ثابت</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_fixed_p2p_tunnel">تونل P2P ثابت</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sstp">
                         <input type="radio" name="tunnel_type" value="sstp" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0284c7;">SSTP</strong>
-                        <span style="font-size:10px; color:#64748b;">SSL VPN میکروتیک</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_ssl_vpn">SSL VPN میکروتیک</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6gre">
                         <input type="radio" name="tunnel_type" value="ip6gre" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#6366f1;">IP6GRE</strong>
-                        <span style="font-size:10px; color:#64748b;">GRE روی IPv6</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_gre_ipv6">GRE روی IPv6</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-ip6tnl">
                         <input type="radio" name="tunnel_type" value="ip6tnl" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#0891b2;">IP6TNL</strong>
-                        <span style="font-size:10px; color:#64748b;">IPIP روی IPv6</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_ipip_over_ipv6">IPIP روی IPv6</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-sit">
                         <input type="radio" name="tunnel_type" value="sit" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#7e22ce;">6in4 SIT</strong>
-                        <span style="font-size:10px; color:#64748b;">IPv6 روی IPv4</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_ipv6_ipv4">IPv6 روی IPv4</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;" id="type-card-pptp">
                         <input type="radio" name="tunnel_type" value="pptp" onchange="onTunnelTypeChange()" style="display:none;">
                         <strong style="display:block; font-size:12.5px; color:#64748b;">PPTP</strong>
-                        <span style="font-size:10px; color:#64748b;">کلاسیک</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="ss_classic">کلاسیک</span>
                     </label>
                 </div>
             </div>
@@ -688,52 +685,52 @@
             <!-- Basic Interface Fields -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">نام اینترفیس (Interface Name):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_interface_name">نام اینترفیس (Interface Name):</label>
                     <input type="text" class="form-input" id="tun-name" placeholder="gre1" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">MTU اینترفیس:</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_interface_mtu">MTU اینترفیس:</label>
                     <input type="number" class="form-input" id="tun-mtu" value="1476" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آدرس محلی سرور (Local Public IP):</label>
-                    <input type="text" class="form-input" id="tun-local-ip" placeholder="آی‌پی این سرور" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_local_server_address_local_public">آدرس محلی سرور (Local Public IP):</label>
+                    <input type="text" class="form-input" id="tun-local-ip" placeholder="آی‌پی این سرور" data-i18n-placeholder="tunnels_item_7" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آدرس ریموت روتر/سرور مقصد (Remote IP):</label>
-                    <input type="text" class="form-input" id="tun-remote-ip" placeholder="مثلاً آی‌پی روتر یا خارج" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_remote_address_destination_router_serve">آدرس ریموت روتر/سرور مقصد (Remote IP):</label>
+                    <input type="text" class="form-input" id="tun-remote-ip" placeholder="مثلاً آی‌پی روتر یا خارج" data-i18n-placeholder="modal_example_router_ip_outside" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
             <!-- Tunnel Inner IPs -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آی‌پی داخلی این سرور (Tunnel Local IP):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_internal_ip_this_server_tunnel">آی‌پی داخلی این سرور (Tunnel Local IP):</label>
                     <input type="text" class="form-input" id="tun-inner-local" value="10.10.10.1/30" placeholder="10.10.10.1/30" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آی‌پی داخلی طرف مقابل (Remote Tunnel IP):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_remote_tunnel_ip">آی‌پی داخلی طرف مقابل (Remote Tunnel IP):</label>
                     <input type="text" class="form-input" id="tun-inner-remote" value="10.10.10.2" placeholder="10.10.10.2" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
             <!-- L2TP specific fields -->
             <div id="tun-l2tp-fields" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
-                <span style="font-size:12px; font-weight:700; color:#991b1b; display:block; margin-bottom:8px;">تنظیمات Site-to-Site پروتکل L2TP:</span>
+                <span style="font-size:12px; font-weight:700; color:#991b1b; display:block; margin-bottom:8px;" data-i18n="modal_l2tp_site_site_settings">تنظیمات Site-to-Site پروتکل L2TP:</span>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#991b1b;">نام کاربری (Username):</label>
+                        <label class="form-label" style="font-size:11px; color:#991b1b;" data-i18n="modal_username">نام کاربری (Username):</label>
                         <input type="text" class="form-input" id="tun-l2tp-user" value="l2tp_tunnel" style="font-family:'JetBrains Mono'; direction:ltr; font-size:12px;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#991b1b;">رمز عبور (Password):</label>
+                        <label class="form-label" style="font-size:11px; color:#991b1b;" data-i18n="modal_password">رمز عبور (Password):</label>
                         <input type="text" class="form-input" id="tun-l2tp-pass" value="L2tpPass123!" style="font-family:'JetBrains Mono'; direction:ltr; font-size:12px;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#991b1b;">کلید IPsec Secret (PSK):</label>
+                        <label class="form-label" style="font-size:11px; color:#991b1b;" data-i18n="modal_ipsec_secret_key_psk">کلید IPsec Secret (PSK):</label>
                         <input type="text" class="form-input" id="tun-l2tp-psk" value="vpnSecret123" style="font-family:'JetBrains Mono'; direction:ltr; font-size:12px;">
                     </div>
                 </div>
@@ -742,48 +739,48 @@
             <!-- OpenVPN P2P specific fields -->
             <div id="tun-openvpn-fields" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:12px; font-weight:700; color:#92400e;">تنظیمات تونل اختصاصی OpenVPN P2P:</span>
+                    <span style="font-size:12px; font-weight:700; color:#92400e;" data-i18n="modal_openvpn_p2p">تنظیمات تونل اختصاصی OpenVPN P2P:</span>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="generateOpenVpnP2pKey()" style="font-size:11px; padding:2px 8px;">
-                        <i data-lucide="key" style="width:12px; height:12px;"></i> تولید کلید محرمانه (Secret Key)
+                        <i data-lucide="key" style="width:12px; height:12px;"></i> <span data-i18n="modal_secret_key_2">تولید کلید محرمانه (Secret Key)</span>
                     </button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom:8px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#92400e;">پورت تونل:</label>
+                        <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_item_3">پورت تونل:</label>
                         <input type="number" class="form-input" id="tun-ovpn-port" value="1195" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#92400e;">پروتکل شبکه:</label>
+                        <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_item_26">پروتکل شبکه:</label>
                         <select class="form-input" id="tun-ovpn-proto" style="font-family:'JetBrains Mono';">
-                            <option value="udp">UDP (پرسرعت)</option>
-                            <option value="tcp">TCP (ضد افت پکت)</option>
+                            <option value="udp" data-i18n="modal_udp">UDP (پرسرعت)</option>
+                            <option value="tcp" data-i18n="modal_tcp_anti_packet_dropping">TCP (ضد افت پکت)</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#92400e;">الگوریتم رمزنگاری:</label>
+                        <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_encryption_algorithm">الگوریتم رمزنگاری:</label>
                         <select class="form-input" id="tun-ovpn-cipher" style="font-family:'JetBrains Mono';">
                             <option value="AES-256-GCM">AES-256-GCM</option>
                             <option value="AES-128-GCM">AES-128-GCM</option>
-                            <option value="none">None (بدون رمزنگاری - حداکثر سرعت)</option>
+                            <option value="none" data-i18n="modal_none_no_encryption_maximum_speed">None (بدون رمزنگاری - حداکثر سرعت)</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:11px; color:#92400e;">کلید متقارن Static Secret (جهت اتصال بدون نیاز به CA):</label>
-                    <textarea class="form-input" id="tun-ovpn-secret" style="font-family:'JetBrains Mono'; direction:ltr; font-size:10px; height:60px;" placeholder="کلید محرمانه P2P"></textarea>
+                    <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_static_secret_symmetric_key_connect">کلید متقارن Static Secret (جهت اتصال بدون نیاز به CA):</label>
+                    <textarea class="form-input" id="tun-ovpn-secret" style="font-family:'JetBrains Mono'; direction:ltr; font-size:10px; height:60px;" placeholder="کلید محرمانه P2P" data-i18n-placeholder="modal_p2p_secret_key"></textarea>
                 </div>
             </div>
 
             <!-- SSTP / PPTP specific fields -->
             <div id="tun-sstp-fields" style="display: none; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
-                <span style="font-size:12px; font-weight:700; color:#0369a1; display:block; margin-bottom:8px;">احراز هویت Site-to-Site پروتکل SSTP / PPTP:</span>
+                <span style="font-size:12px; font-weight:700; color:#0369a1; display:block; margin-bottom:8px;" data-i18n="modal_site_site_sstp_pptp">احراز هویت Site-to-Site پروتکل SSTP / PPTP:</span>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#0369a1;">نام کاربری (Username):</label>
+                        <label class="form-label" style="font-size:11px; color:#0369a1;" data-i18n="modal_username">نام کاربری (Username):</label>
                         <input type="text" class="form-input" id="tun-sstp-user" value="sstp_tunnel" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#0369a1;">رمز عبور (Password):</label>
+                        <label class="form-label" style="font-size:11px; color:#0369a1;" data-i18n="modal_password">رمز عبور (Password):</label>
                         <input type="text" class="form-input" id="tun-sstp-pass" value="SstpPass123!" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                 </div>
@@ -793,11 +790,11 @@
             <div id="tun-vxlan-fields" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11.5px; color:#166534;">شناسه VNI / Tunnel ID:</label>
+                        <label class="form-label" style="font-size:11.5px; color:#166534;" data-i18n="modal_vni_tunnel_id">شناسه VNI / Tunnel ID:</label>
                         <input type="number" class="form-input" id="tun-vxlan-vni" value="100" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11.5px; color:#166534;">پورت شنود UDP:</label>
+                        <label class="form-label" style="font-size:11.5px; color:#166534;" data-i18n="modal_udp_listening_port">پورت شنود UDP:</label>
                         <input type="number" class="form-input" id="tun-vxlan-port" value="4789" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                 </div>
@@ -806,23 +803,23 @@
             <!-- WireGuard specific fields -->
             <div id="tun-wireguard-fields" style="display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                    <span style="font-size:12px; font-weight:700; color:#92400e;">تنظیمات کلیدها و پورت وایرگارد:</span>
+                    <span style="font-size:12px; font-weight:700; color:#92400e;" data-i18n="modal_item">تنظیمات کلیدها و پورت وایرگارد:</span>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="generateWgTunnelKeys()" style="font-size:11px; padding:2px 8px;">
-                        <i data-lucide="key" style="width:12px; height:12px;"></i> تولید خودکار کلیدها
+                        <i data-lucide="key" style="width:12px; height:12px;"></i> <span data-i18n="modal_automatic_generation_keys">تولید خودکار کلیدها</span>
                     </button>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 8px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#92400e;">پورت محلی (Listen Port):</label>
+                        <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_local_port_listen_port">پورت محلی (Listen Port):</label>
                         <input type="number" class="form-input" id="tun-wg-port" value="51830" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11px; color:#92400e;">کلید عمومی سرور مقابل (Remote Public Key):</label>
-                        <input type="text" class="form-input" id="tun-wg-remote-pubkey" placeholder="Public Key طرف مقابل (اختیاری)" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
+                        <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_public_key_opposite_server_remote">کلید عمومی سرور مقابل (Remote Public Key):</label>
+                        <input type="text" class="form-input" id="tun-wg-remote-pubkey" placeholder="Public Key طرف مقابل (اختیاری)" data-i18n-placeholder="modal_other_party_s_public_key" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
                     </div>
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:11px; color:#92400e;">کلید خصوصی این سرور (Private Key):</label>
+                    <label class="form-label" style="font-size:11px; color:#92400e;" data-i18n="modal_private_key_this_server_private">کلید خصوصی این سرور (Private Key):</label>
                     <input type="text" class="form-input" id="tun-wg-privkey" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
                 </div>
                 <input type="hidden" id="tun-wg-pubkey">
@@ -831,8 +828,8 @@
             <!-- GRE Key (Optional) -->
             <div id="tun-gre-fields" style="margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">کلید امنیتی GRE Key (اختیاری):</label>
-                    <input type="text" class="form-input" id="tun-gre-key" placeholder="اختیاری - در صورت فعال بودن در میکروتیک" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_security_key_gre_key_optional">کلید امنیتی GRE Key (اختیاری):</label>
+                    <input type="text" class="form-input" id="tun-gre-key" placeholder="اختیاری - در صورت فعال بودن در میکروتیک" data-i18n-placeholder="modal_item_10" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
@@ -840,19 +837,19 @@
             <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px 14px;">
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#1e293b;">
                     <input type="checkbox" id="tun-opt-nat" checked>
-                    <strong>فعال‌سازی خودکار NAT Masquerade (امکان روت و انتقال اینترنت)</strong>
+                    <strong data-i18n="modal_automatic_activation_nat_masquerade_pos">فعال‌سازی خودکار NAT Masquerade (امکان روت و انتقال اینترنت)</strong>
                 </label>
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#1e293b;">
                     <input type="checkbox" id="tun-opt-mss" checked>
-                    <span>بهینه‌سازی پکت‌ها با TCP MSS Clamping (جلوگیری از دراپ شدن پکت‌های بزرگ)</span>
+                    <span data-i18n="modal_optimizing_packets_tcp_mss_clamping">بهینه‌سازی پکت‌ها با TCP MSS Clamping (جلوگیری از دراپ شدن پکت‌های بزرگ)</span>
                 </label>
             </div>
 
             <!-- Actions -->
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeCreateTunnelModal()">انصراف</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCreateTunnelModal()" data-i18n="modal_btn_cancel">انصراف</button>
                 <button type="button" class="btn btn-primary" id="btn-submit-tunnel" onclick="submitCreateTunnel()">
-                    <i data-lucide="check" class="btn-icon"></i> ایجاد و راه‌اندازی اینترفیس تونل
+                    <i data-lucide="check" class="btn-icon"></i> <span data-i18n="modal_item_6">ایجاد و راه‌اندازی اینترفیس تونل</span>
                 </button>
             </div>
         </div>
@@ -865,14 +862,14 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="shield-check" style="color: #10b981; width: 22px; height: 22px;"></i>
-                <span>راه‌اندازی تونل ضد فیلتر لینوکس (Anti-Censorship Tunnel)</span>
+                <span data-i18n="modal_setting_up_linux_anti_censorship">راه‌اندازی تونل ضد فیلتر لینوکس (Anti-Censorship Tunnel)</span>
             </h3>
             <button class="modal-close" onclick="closeCreateAdvTunnelModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
             <!-- Tool Selector -->
             <div style="margin-bottom: 16px;">
-                <label class="form-label" style="font-weight: 700; margin-bottom: 8px; display:block;">انتخاب پروژه و نرم‌افزار تونل:</label>
+                <label class="form-label" style="font-weight: 700; margin-bottom: 8px; display:block;" data-i18n="modal_selecting_tunnel_project_software">انتخاب پروژه و نرم‌افزار تونل:</label>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
                     <label style="border: 1px solid #10b981; background:#ecfdf5; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-gost">
                         <input type="radio" name="adv_tool" value="gost" checked onchange="onAdvToolChange()" style="display:none;">
@@ -887,12 +884,12 @@
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rtt">
                         <input type="radio" name="adv_tool" value="rtt" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#b45309;">RTT (ReverseTLS)</strong>
-                        <span style="font-size:10px; color:#64748b;">تونل معکوس TLS</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_tls">تونل معکوس TLS</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-udp2raw">
                         <input type="radio" name="adv_tool" value="udp2raw" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#dc2626;">UDP2Raw</strong>
-                        <span style="font-size:10px; color:#64748b;">Fake TCP فریب فیلتر</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_fake_tcp_deception_filter">Fake TCP فریب فیلتر</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-chisel">
                         <input type="radio" name="adv_tool" value="chisel" onchange="onAdvToolChange()" style="display:none;">
@@ -902,7 +899,7 @@
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-phantun">
                         <input type="radio" name="adv_tool" value="phantun" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#0284c7;">Phantun</strong>
-                        <span style="font-size:10px; color:#64748b;">UDP to TCP سبک</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_udp_tcp">UDP to TCP سبک</span>
                     </label>
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-rathole">
                         <input type="radio" name="adv_tool" value="rathole" onchange="onAdvToolChange()" style="display:none;">
@@ -917,22 +914,22 @@
                     <label style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;" id="adv-card-kcptun">
                         <input type="radio" name="adv_tool" value="kcptun" onchange="onAdvToolChange()" style="display:none;">
                         <strong style="display:block; font-size:13px; color:#059669;">Kcptun</strong>
-                        <span style="font-size:10px; color:#64748b;">UDP با FEC شتابدهنده</span>
+                        <span style="font-size:10px; color:#64748b;" data-i18n="modal_udp_fec">UDP با FEC شتابدهنده</span>
                     </label>
                 </div>
             </div>
 
             <!-- Role Selector: Server (خارج) vs Client (ایران) -->
             <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 14px;">
-                <label class="form-label" style="font-size:12px; font-weight:700; margin-bottom:6px;">نقش این سرور در این سناریو (Role):</label>
+                <label class="form-label" style="font-size:12px; font-weight:700; margin-bottom:6px;" data-i18n="modal_role_this_server_this_scenario">نقش این سرور در این سناریو (Role):</label>
                 <div style="display:flex; gap:16px;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                         <input type="radio" name="adv_role" value="server" checked onchange="onAdvRoleChange()">
-                        <strong>سرور مقصد / خارج (Server Mode - دریافت و روت ترافیک)</strong>
+                        <strong data-i18n="modal_destination_server_outside_server_mode">سرور مقصد / خارج (Server Mode - دریافت و روت ترافیک)</strong>
                     </label>
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
                         <input type="radio" name="adv_role" value="client" onchange="onAdvRoleChange()">
-                        <strong>سرور مبدا / ایران (Client Mode - ارسال ترافیک به خارج)</strong>
+                        <strong data-i18n="modal_origin_server_iran_client_mode">سرور مبدا / ایران (Client Mode - ارسال ترافیک به خارج)</strong>
                     </label>
                 </div>
             </div>
@@ -940,11 +937,11 @@
             <!-- Basic Info -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">نام شناسه تونل (Service Name):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_service_name">نام شناسه تونل (Service Name):</label>
                     <input type="text" class="form-input" id="adv-name" placeholder="gost_wss_443" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">پورت شنود تونل (Listen Port):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_tunnel_listening_port_listen_port">پورت شنود تونل (Listen Port):</label>
                     <input type="number" class="form-input" id="adv-listen-port" value="8443" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
@@ -953,11 +950,11 @@
             <div id="adv-client-fields" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; padding:12px; margin-bottom:12px;">
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11.5px; color:#166534;">آی‌پی سرور خارج (Remote Server IP):</label>
-                        <input type="text" class="form-input" id="adv-remote-ip" placeholder="مثلاً 1.2.3.4" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        <label class="form-label" style="font-size:11.5px; color:#166534;" data-i18n="modal_remote_server_ip">آی‌پی سرور خارج (Remote Server IP):</label>
+                        <input type="text" class="form-input" id="adv-remote-ip" placeholder="مثلاً 1.2.3.4" data-i18n-placeholder="modal_example_1_2_3_4" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="font-size:11.5px; color:#166534;">پورت سرور خارج:</label>
+                        <label class="form-label" style="font-size:11.5px; color:#166534;" data-i18n="modal_external_server_port">پورت سرور خارج:</label>
                         <input type="number" class="form-input" id="adv-remote-port" value="8443" style="font-family:'JetBrains Mono'; direction:ltr;">
                     </div>
                 </div>
@@ -966,17 +963,17 @@
             <!-- Target Forwarding Service -->
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 12px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آدرس سرویس مقصد در این سرور (Target Address):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_target_service_address_this_server">آدرس سرویس مقصد در این سرور (Target Address):</label>
                     <input type="text" class="form-input" id="adv-target-addr" value="127.0.0.1:443" placeholder="127.0.0.1:443" style="font-family:'JetBrains Mono'; direction:ltr;">
-                    <span style="font-size:10.5px; color:#64748b; margin-top:2px; display:block;">سرویسی که ترافیک به آن تحویل داده می‌شود (AnyConnect، SSTP، وایرگارد و...)</span>
+                    <span style="font-size:10.5px; color:#64748b; margin-top:2px; display:block;" data-i18n="modal_service_which_traffic_delivered_anyconn">سرویسی که ترافیک به آن تحویل داده می‌شود (AnyConnect، SSTP، وایرگارد و...)</span>
                 </div>
                 <div class="form-group" style="margin-bottom:0;" id="adv-transport-box">
-                    <label class="form-label" style="font-size:12px;">نوع مبهم‌سازی (Transport):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_obfuscation_type_transport">نوع مبهم‌سازی (Transport):</label>
                     <select class="form-input" id="adv-transport" style="font-size:12px;">
-                        <option value="wss">WSS (وب‌سوکت امن)</option>
-                        <option value="tls">TLS استاندارد</option>
+                        <option value="wss" data-i18n="modal_wss">WSS (وب‌سوکت امن)</option>
+                        <option value="tls" data-i18n="tunnels_tls">TLS استاندارد</option>
                         <option value="relay">Relay + TLS</option>
-                        <option value="kcp">KCP با FEC</option>
+                        <option value="kcp" data-i18n="modal_kcp_fec">KCP با FEC</option>
                         <option value="faketcp">Fake TCP</option>
                     </select>
                 </div>
@@ -985,20 +982,20 @@
             <!-- Secret & SNI -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">رمز عبور / توکن امنیتی (Password / Token):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_password_security_token_password_token">رمز عبور / توکن امنیتی (Password / Token):</label>
                     <input type="text" class="form-input" id="adv-secret" value="MHPanelTunSecret123!" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">دامنه جعلی SNI (اختیاری جهت فریب فیلتر):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_sni">دامنه جعلی SNI (اختیاری جهت فریب فیلتر):</label>
                     <input type="text" class="form-input" id="adv-sni" value="dl.google.com" placeholder="dl.google.com" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
             <!-- Actions -->
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeCreateAdvTunnelModal()">انصراف</button>
+                <button type="button" class="btn btn-secondary" onclick="closeCreateAdvTunnelModal()" data-i18n="modal_btn_cancel">انصراف</button>
                 <button type="button" class="btn btn-primary" id="btn-submit-adv-tunnel" onclick="submitCreateAdvTunnel()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                    <i data-lucide="check" class="btn-icon"></i> ساخت و استارت آنی سرویس در لینوکس
+                    <i data-lucide="check" class="btn-icon"></i> <span data-i18n="modal_build_start_instant_service_linux">ساخت و استارت آنی سرویس در لینوکس</span>
                 </button>
             </div>
         </div>
@@ -1011,28 +1008,28 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="terminal" style="color: #10b981; width: 22px; height: 22px;"></i>
-                <span>اسکریپت و دستورات اجرای سرور مقابل (Remote Server Command)</span>
+                <span data-i18n="modal_scripts_commands_run_opposite_server">اسکریپت و دستورات اجرای سرور مقابل (Remote Server Command)</span>
             </h3>
             <button class="modal-close" onclick="closeAdvTunnelScriptModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
-            <p style="font-size: 13px; color: #475569; margin-bottom: 14px; line-height: 1.7;">
+            <p style="font-size: 13px; color: #475569; margin-bottom: 14px; line-height: 1.7;" data-i18n="modal_item_15">
                 برای برقراری اتصال دوطرفه، کافیست دستورات زیر را در ترمینال سرور مقابل (سرور دیگر شما در ایران یا خارج) اجرا فرمایید:
             </p>
 
             <div style="position: relative; margin-bottom: 16px;">
                 <textarea id="adv-tunnel-script-code" readonly style="width: 100%; height: 280px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; background: #0f172a; color: #34d399; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
                 <button type="button" class="btn btn-primary btn-sm" onclick="copyAdvTunnelScriptCode()" style="position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 5px 12px; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399;">
-                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> کپی کامل دستورات
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span data-i18n="modal_full_copy_orders">کپی کامل دستورات</span>
                 </button>
             </div>
 
             <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #065f46; line-height: 1.6;">
-                <strong>💡 راهنمای راه‌اندازی:</strong> دستورات بالا شامل دانلود باینری رسمی، ساخت سرویس دائمی Systemd و راه‌اندازی خودکار پس از ریبوت سرور است.
+                <strong data-i18n="modal_item_25">💡 راهنمای راه‌اندازی:</strong> دستورات بالا شامل دانلود باینری رسمی، ساخت سرویس دائمی Systemd و راه‌اندازی خودکار پس از ریبوت سرور است.
             </div>
 
             <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
-                <button type="button" class="btn btn-secondary" onclick="closeAdvTunnelScriptModal()">بستن</button>
+                <button type="button" class="btn btn-secondary" onclick="closeAdvTunnelScriptModal()" data-i18n="modal_btn_close">بستن</button>
             </div>
         </div>
     </div>
@@ -1044,7 +1041,7 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="terminal" style="color: #0284c7; width: 22px; height: 22px;"></i>
-                <span>اسکریپت‌های راه‌اندازی میکروتیک و لینوکس (RouterOS & Linux)</span>
+                <span data-i18n="modal_mikrotik_linux_startup_scripts_routeros">اسکریپت‌های راه‌اندازی میکروتیک و لینوکس (RouterOS & Linux)</span>
             </h3>
             <button class="modal-close" onclick="closeTunnelScriptsModal()"><i data-lucide="x"></i></button>
         </header>
@@ -1072,17 +1069,17 @@
             <div style="position: relative; margin-bottom: 16px;">
                 <textarea id="tunnel-script-code" readonly style="width: 100%; height: 260px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; background: #0f172a; color: #38bdf8; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
                 <button type="button" class="btn btn-primary btn-sm" onclick="copyTunnelScriptCode()" style="position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 5px 12px; background: rgba(56, 189, 248, 0.2); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8;">
-                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> کپی کامل اسکریپت
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span data-i18n="modal_full_copy_script">کپی کامل اسکریپت</span>
                 </button>
             </div>
 
             <!-- MikroTik Tip Box -->
             <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #1e40af; line-height: 1.6;">
-                <strong>💡 نحوه استفاده در میکروتیک:</strong> کافیست نرم‌افزار WinBox را باز کرده، وارد منوی <strong>New Terminal</strong> شوید و کدهای بالا را Paste کنید تا اینترفیس، آی‌پی، فایروال و NAT روتربورد به صورت خودکار ایجاد شود.
+                <strong data-i18n="modal_item_27">💡 نحوه استفاده در میکروتیک:</strong> کافیست نرم‌افزار WinBox را باز کرده، وارد منوی <strong>New Terminal</strong> شوید و کدهای بالا را Paste کنید تا اینترفیس، آی‌پی، فایروال و NAT روتربورد به صورت خودکار ایجاد شود.
             </div>
 
             <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
-                <button type="button" class="btn btn-secondary" onclick="closeTunnelScriptsModal()">بستن</button>
+                <button type="button" class="btn btn-secondary" onclick="closeTunnelScriptsModal()" data-i18n="modal_btn_close">بستن</button>
             </div>
         </div>
     </div>
@@ -1094,58 +1091,58 @@
         <header class="modal-header">
             <h3 class="modal-title">
                 <i data-lucide="shuffle" style="color: #d97706; width: 22px; height: 22px;"></i>
-                <span>افزودن رله و فوروارد پورت (Port Forwarding Relay)</span>
+                <span data-i18n="modal_add_relay_port_forwarding_port">افزودن رله و فوروارد پورت (Port Forwarding Relay)</span>
             </h3>
             <button class="modal-close" onclick="closePortRelayModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px;">
-            <p style="font-size: 12.5px; color: #475569; margin-bottom: 16px;">
+            <p style="font-size: 12.5px; color: #475569; margin-bottom: 16px;" data-i18n="modal_defining_this_role_all_traffic">
                 با تعریف این رول، تمام ترافیکی که به پورت مشخص‌شده در این سرور ارسال می‌شود، از بستر تونل عبور کرده و به پورت سرور مقصد تحویل داده می‌شود.
             </p>
 
             <div class="form-group" style="margin-bottom: 14px;">
-                <label class="form-label" style="font-size:12px;">انتخاب اینترفیس تونل:</label>
+                <label class="form-label" style="font-size:12px;" data-i18n="modal_item_24">انتخاب اینترفیس تونل:</label>
                 <select class="form-input" id="relay-tunnel-select" onchange="onRelayTunnelSelectChange()" style="font-size:13px;">
-                    <option value="">-- انتخاب تونل مرتبط --</option>
+                    <option value="" data-i18n="modal_select_relevant_tunnel">-- انتخاب تونل مرتبط --</option>
                 </select>
             </div>
 
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">پورت ورودی این سرور (Listen Port):</label>
-                    <input type="number" class="form-input" id="relay-listen-port" placeholder="مثلاً 443" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_input_port_this_server_listen">پورت ورودی این سرور (Listen Port):</label>
+                    <input type="number" class="form-input" id="relay-listen-port" placeholder="مثلاً 443" data-i18n-placeholder="awg_example_443" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">پروتکل:</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="awg_item">پروتکل:</label>
                     <select class="form-input" id="relay-proto" style="font-family:'JetBrains Mono';">
                         <option value="both">TCP & UDP</option>
-                        <option value="tcp">TCP فقط</option>
-                        <option value="udp">UDP فقط</option>
+                        <option value="tcp" data-i18n="modal_tcp_only">TCP فقط</option>
+                        <option value="udp" data-i18n="modal_udp_only">UDP فقط</option>
                     </select>
                 </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px;">
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">آدرس آی‌پی مقصد در تونل (Target IP):</label>
+                    <label class="form-label" style="font-size:12px;" data-i18n="modal_destination_ip_address_tunnel_target">آدرس آی‌پی مقصد در تونل (Target IP):</label>
                     <input type="text" class="form-input" id="relay-target-ip" placeholder="10.10.10.2" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label class="form-label" style="font-size:12px;">پورت مقصد:</label>
-                    <input type="number" class="form-input" id="relay-target-port" placeholder="مثلاً 443" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    <label class="form-label" style="font-size:12px;" data-i18n="ovpn_addon_item_2">پورت مقصد:</label>
+                    <input type="number" class="form-input" id="relay-target-port" placeholder="مثلاً 443" data-i18n-placeholder="awg_example_443" style="font-family:'JetBrains Mono'; direction:ltr;">
                 </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 20px;">
-                <label class="form-label" style="font-size:12px;">توضیحات / نام سرویس (اختیاری):</label>
-                <input type="text" class="form-input" id="relay-desc" placeholder="مثلاً رله AnyConnect یا SSTP به خارج">
+                <label class="form-label" style="font-size:12px;" data-i18n="modal_item_4">توضیحات / نام سرویس (اختیاری):</label>
+                <input type="text" class="form-input" id="relay-desc" placeholder="مثلاً رله AnyConnect یا SSTP به خارج" data-i18n-placeholder="modal_example_anyconnect_sstp_relay_out">
             </div>
 
             <!-- Actions -->
             <div style="display: flex; gap: 12px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closePortRelayModal()">انصراف</button>
+                <button type="button" class="btn btn-secondary" onclick="closePortRelayModal()" data-i18n="modal_btn_cancel">انصراف</button>
                 <button type="button" class="btn btn-primary" onclick="submitCreatePortRelay()">
-                    <i data-lucide="check" class="btn-icon"></i> فعال‌سازی رله و اعمال رول IPTables
+                    <i data-lucide="check" class="btn-icon"></i> <span data-i18n="modal_enabling_relays_applying_iptables_rules">فعال‌سازی رله و اعمال رول IPTables</span>
                 </button>
             </div>
         </div>
@@ -1163,8 +1160,8 @@
                     <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 800;">درباره سامانه MH Panel</h3>
-                    <span style="font-size: 11.5px; color: var(--text-muted);">مرکز جامع مدیریت پروتکل‌های VPN، تانل‌های شبکه و میکروتیک</span>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 800;" data-i18n="about_title">درباره سامانه MH Panel</h3>
+                    <span style="font-size: 11.5px; color: var(--text-muted);" data-i18n="modal_comprehensive_management_center_vpn_pro">مرکز جامع مدیریت پروتکل‌های VPN، تانل‌های شبکه و میکروتیک</span>
                 </div>
             </div>
             <button type="button" class="modal-close" onclick="closeAboutModal()"><i data-lucide="x"></i></button>
@@ -1172,35 +1169,35 @@
         <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
             <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="font-size: 11.5px; color: var(--text-muted);">نسخه فعلی پنل (Version)</div>
+                    <div style="font-size: 11.5px; color: var(--text-muted);" data-i18n="modal_current_version_panel_version">نسخه فعلی پنل (Version)</div>
                     <div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace;">v1.0.0</div>
-                    <div style="font-size: 11.5px; color: #059669; margin-top: 2px;">پایدار (Stable Release)</div>
+                    <div style="font-size: 11.5px; color: #059669; margin-top: 2px;" data-i18n="modal_stable_release">پایدار (Stable Release)</div>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="checkPanelUpdate(true)">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> بررسی آخرین نسخه
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span data-i18n="modal_review_latest_version">بررسی آخرین نسخه</span>
                 </button>
             </div>
 
             <div style="font-size: 13px; line-height: 1.8; color: var(--text-main);">
-                <strong>MH Panel</strong> یک پروژه متن‌باز سازمانی است که برای راه‌اندازی، مدیریت و بهینه‌سازی انواع پروتکل‌های مدرن وی‌پی‌ان، تانل‌های ضد فیلترینگ دوطرفه لینوکس، مالتی‌پلکسر پورت ۴۴۳، سیستم احراز هویت FreeRADIUS و ایجاد خودکار کدهای کانفیگ روتربورد میکروتیک (v6 و v7) توسعه داده شده است.
+                <strong data-i18n="login_title">MH Panel</strong> یک پروژه متن‌باز سازمانی است که برای راه‌اندازی، مدیریت و بهینه‌سازی انواع پروتکل‌های مدرن وی‌پی‌ان، تانل‌های ضد فیلترینگ دوطرفه لینوکس، مالتی‌پلکسر پورت ۴۴۳، سیستم احراز هویت FreeRADIUS و ایجاد خودکار کدهای کانفیگ روتربورد میکروتیک (v6 و v7) توسعه داده شده است.
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
                 <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
-                    <span style="color: var(--text-muted);">توسعه‌دهنده:</span>
-                    <strong style="margin-right: 6px;">t-51 & جامعه کاربری</strong>
+                    <span style="color: var(--text-muted);" data-i18n="modal_developer">توسعه‌دهنده:</span>
+                    <strong style="margin-right: 6px;" data-i18n="modal_t_51_user_community">t-51 & جامعه کاربری</strong>
                 </div>
                 <div style="background: var(--bg-muted); padding: 10px 12px; border-radius: 8px;">
-                    <span style="color: var(--text-muted);">مجوز انتشار:</span>
+                    <span style="color: var(--text-muted);" data-i18n="modal_item_18">مجوز انتشار:</span>
                     <strong style="margin-right: 6px;">MIT Open Source</strong>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--border-color);">
                 <a href="https://github.com/t-51/MHPanel" target="_blank" class="btn btn-secondary btn-sm" style="display: flex; align-items: center; gap: 6px;">
-                    <i data-lucide="github" style="width: 14px; height: 14px;"></i> مشاهده مخزن در GitHub
+                    <i data-lucide="github" style="width: 14px; height: 14px;"></i> <span data-i18n="modal_github">مشاهده مخزن در GitHub</span>
                 </a>
-                <button type="button" class="btn btn-primary btn-sm" onclick="closeAboutModal()">بستن</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="closeAboutModal()" data-i18n="modal_btn_close">بستن</button>
             </div>
         </div>
     </div>
@@ -1214,16 +1211,16 @@
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="qr-code" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">لینک سابسکرایب کاربر</h3>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;" data-i18n="modal_subscriber_link">لینک سابسکرایب کاربر</h3>
             </div>
             <button type="button" class="modal-close" onclick="closeSubQrModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
-            <div style="font-size: 14px; font-weight: 700;" id="sub-modal-username">کاربر: -</div>
+            <div style="font-size: 14px; font-weight: 700;" id="sub-modal-username" data-i18n="modal_item_23">کاربر: -</div>
             <div id="sub-qrcode-container" style="background: #ffffff; padding: 14px; border-radius: 14px; border: 1px solid #e2e8f0;"></div>
             
             <div style="width: 100%;">
-                <label class="form-label" style="font-size: 11.5px;">لینک مستقیم صفحه اشتراک کاربر:</label>
+                <label class="form-label" style="font-size: 11.5px;" data-i18n="modal_item_13">لینک مستقیم صفحه اشتراک کاربر:</label>
                 <div style="display: flex; gap: 6px;">
                     <input type="text" id="sub-modal-url-input" class="form-input" readonly style="font-family:'JetBrains Mono'; font-size:11.5px; direction:ltr;">
                     <button type="button" class="btn btn-primary btn-sm" onclick="copyText(document.getElementById('sub-modal-url-input').value, 'لینک ساب کپی شد!')">
@@ -1234,9 +1231,9 @@
 
             <div style="display: flex; gap: 8px; width: 100%;">
                 <a id="sub-modal-open-link" href="#" target="_blank" class="btn btn-secondary" style="flex: 1; justify-content: center; font-size: 12px;">
-                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> باز کردن صفحه
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> <span data-i18n="modal_item_2">باز کردن صفحه</span>
                 </a>
-                <button type="button" class="btn btn-secondary" onclick="closeSubQrModal()" style="font-size: 12px;">بستن</button>
+                <button type="button" class="btn btn-secondary" onclick="closeSubQrModal()" style="font-size: 12px;" data-i18n="modal_btn_close">بستن</button>
             </div>
         </div>
     </div>
@@ -1250,28 +1247,28 @@
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="sliders" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">شخصی‌سازی صفحه اشتراک کاربران</h3>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;" data-i18n="modal_item_5">شخصی‌سازی صفحه اشتراک کاربران</h3>
             </div>
             <button type="button" class="modal-close" onclick="closeSubSettingsModal()"><i data-lucide="x"></i></button>
         </header>
         <form id="sub-settings-form" onsubmit="saveSubSettingsForm(event)" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
             <div class="form-group" style="margin: 0;">
-                <label class="form-label" style="font-size: 12px;">عنوان برند در بالای صفحه (Title):</label>
-                <input type="text" class="form-input" id="subset-title" placeholder="مثلاً: MH Panel VIP Service">
+                <label class="form-label" style="font-size: 12px;" data-i18n="modal_brand_title_top_page_title">عنوان برند در بالای صفحه (Title):</label>
+                <input type="text" class="form-input" id="subset-title" placeholder="مثلاً: MH Panel VIP Service" data-i18n-placeholder="modal_mh_panel_vip_service">
             </div>
 
             <div class="form-group" style="margin: 0;">
-                <label class="form-label" style="font-size: 12px;">پیام اطلاعیه و راهنمای عمومی (Announcement):</label>
-                <textarea class="form-input" id="subset-announcement" rows="3" placeholder="متن پیام اطلاعیه یا هشدار برای کاربران..."></textarea>
+                <label class="form-label" style="font-size: 12px;" data-i18n="modal_announcement">پیام اطلاعیه و راهنمای عمومی (Announcement):</label>
+                <textarea class="form-input" id="subset-announcement" rows="3" placeholder="متن پیام اطلاعیه یا هشدار برای کاربران..." data-i18n-placeholder="modal_text_notification_warning_message_users"></textarea>
             </div>
 
             <div class="form-group" style="margin: 0;">
-                <label class="form-label" style="font-size: 12px;">آیدی پشتیبانی تلگرام (Support Telegram):</label>
+                <label class="form-label" style="font-size: 12px;" data-i18n="modal_support_telegram_id">آیدی پشتیبانی تلگرام (Support Telegram):</label>
                 <input type="text" class="form-input" id="subset-support" placeholder="@YourSupportBot" style="direction: ltr;">
             </div>
 
             <div>
-                <label class="form-label" style="font-size: 12px; margin-bottom: 8px; display: block;">پروتکل‌های نمایش داده شده در صفحه کاربر:</label>
+                <label class="form-label" style="font-size: 12px; margin-bottom: 8px; display: block;" data-i18n="modal_protocols_displayed_user_page">پروتکل‌های نمایش داده شده در صفحه کاربر:</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12.5px;">
                     <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-ocserv" checked> Cisco AnyConnect</label>
                     <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" id="subset-proto-openvpn" checked> OpenVPN</label>
@@ -1285,8 +1282,8 @@
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
-                <button type="button" class="btn btn-secondary" onclick="closeSubSettingsModal()">انصراف</button>
-                <button type="submit" class="btn btn-primary"><i data-lucide="check" style="width:14px; height:14px;"></i> ذخیره تغییرات</button>
+                <button type="button" class="btn btn-secondary" onclick="closeSubSettingsModal()" data-i18n="modal_btn_cancel">انصراف</button>
+                <button type="submit" class="btn btn-primary"><i data-lucide="check" style="width:14px; height:14px;"></i> <span data-i18n="modal_save_changes">ذخیره تغییرات</span></button>
             </div>
         </form>
     </div>
@@ -1300,14 +1297,14 @@
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="shield-check" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">ورود دو مرحله‌ای (Google Authenticator)</h3>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;" data-i18n="sys_google_authenticator">ورود دو مرحله‌ای (Google Authenticator)</h3>
             </div>
             <button type="button" class="modal-close" onclick="closeTwoFactorModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
             <div id="twofa-status-banner" style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: center;">
-                <span>وضعیت فعلی: <strong id="twofa-current-status">در حال بررسی...</strong></span>
-                <button type="button" class="btn btn-sm btn-secondary" id="twofa-toggle-btn" onclick="toggleTwoFactorFlow()">تغییر وضعیت</button>
+                <span>وضعیت فعلی: <strong id="twofa-current-status" data-i18n="checking_status">در حال بررسی...</strong></span>
+                <button type="button" class="btn btn-sm btn-secondary" id="twofa-toggle-btn" onclick="toggleTwoFactorFlow()" data-i18n="wg_change_status">تغییر وضعیت</button>
             </div>
 
             <!-- Setup Container (Visible when enabling) -->
@@ -1318,7 +1315,7 @@
                 <div id="twofa-qr-container" style="background: #ffffff; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0;"></div>
                 
                 <div style="width: 100%;">
-                    <label class="form-label" style="font-size: 11px;">کلید مخفی پشتیبان (Secret Key):</label>
+                    <label class="form-label" style="font-size: 11px;" data-i18n="modal_secret_key">کلید مخفی پشتیبان (Secret Key):</label>
                     <div style="display: flex; gap: 6px;">
                         <input type="text" id="twofa-secret-display" class="form-input" readonly style="font-family:'JetBrains Mono'; font-size:12px; text-align:center; direction:ltr;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('twofa-secret-display').value, 'کلید کپی شد!')">
@@ -1328,22 +1325,22 @@
                 </div>
 
                 <div style="width: 100%;">
-                    <label class="form-label" style="font-size: 12px; font-weight:700;">کد ۶ رقمی جهت تایید و فعال‌سازی:</label>
+                    <label class="form-label" style="font-size: 12px; font-weight:700;" data-i18n="modal_6_digit_code_confirmation_activation">کد ۶ رقمی جهت تایید و فعال‌سازی:</label>
                     <input type="text" id="twofa-verify-code" class="form-input" placeholder="123456" maxlength="6" style="font-family:'JetBrains Mono'; font-size:18px; letter-spacing:4px; text-align:center;">
                 </div>
 
                 <button type="button" class="btn btn-primary" onclick="confirmEnableTwoFactor()" style="width: 100%;">
-                    <i data-lucide="check" style="width:14px; height:14px;"></i> تایید و فعال‌سازی قطعی 2FA
+                    <i data-lucide="check" style="width:14px; height:14px;"></i> <span data-i18n="modal_confirmation_activation_2fa">تایید و فعال‌سازی قطعی 2FA</span>
                 </button>
             </div>
 
             <!-- Disable Container (Visible when disabling) -->
             <div id="twofa-disable-box" style="display: none; flex-direction: column; gap: 12px;">
-                <p style="font-size: 12.5px; color: var(--color-danger); margin: 0;">
+                <p style="font-size: 12.5px; color: var(--color-danger); margin: 0;" data-i18n="modal_disable_two_step_login_enter">
                     برای غیرفعال‌سازی ورود دو مرحله‌ای، رمز عبور ادمین یا کد ۶ رقمی را وارد کنید:
                 </p>
-                <input type="password" id="twofa-disable-pw" class="form-input" placeholder="رمز عبور ادمین...">
-                <button type="button" class="btn btn-primary" onclick="confirmDisableTwoFactor()" style="background:#dc2626;">
+                <input type="password" id="twofa-disable-pw" class="form-input" placeholder="رمز عبور ادمین..." data-i18n-placeholder="modal_admin_password">
+                <button type="button" class="btn btn-primary" onclick="confirmDisableTwoFactor()" style="background:#dc2626;" data-i18n="modal_item_7">
                     غیرفعال‌سازی ورود ۲ مرحله‌ای
                 </button>
             </div>
@@ -1359,30 +1356,30 @@
         <header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
             <div style="display: flex; align-items: center; gap: 10px;">
                 <i data-lucide="refresh-cw" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                <h3 style="margin: 0; font-size: 16px; font-weight: 700;">بروزرسانی سامانه MH Panel</h3>
+                <h3 style="margin: 0; font-size: 16px; font-weight: 700;" data-i18n="modal_mh_panel_system_update">بروزرسانی سامانه MH Panel</h3>
             </div>
             <button type="button" class="modal-close" onclick="closeUpdateModal()"><i data-lucide="x"></i></button>
         </header>
         <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
-                    <div style="font-size: 11px; color: var(--text-muted);">نسخه نصب شده:</div>
+                    <div style="font-size: 11px; color: var(--text-muted);" data-i18n="modal_installed_version">نسخه نصب شده:</div>
                     <div style="font-size: 18px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono';" id="update-modal-curver">v1.0.0</div>
                 </div>
                 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
-                    <div style="font-size: 11px; color: var(--text-muted);">آخرین نسخه در گیت‌هاب:</div>
-                    <div style="font-size: 18px; font-weight: 800; color: #059669; font-family: 'JetBrains Mono';" id="update-modal-latver">در حال بررسی...</div>
+                    <div style="font-size: 11px; color: var(--text-muted);" data-i18n="modal_latest_version_github">آخرین نسخه در گیت‌هاب:</div>
+                    <div style="font-size: 18px; font-weight: 800; color: #059669; font-family: 'JetBrains Mono';" id="update-modal-latver" data-i18n="checking_status">در حال بررسی...</div>
                 </div>
             </div>
 
-            <div id="update-modal-status-text" style="font-size: 13px; line-height: 1.6; padding: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.06);">
+            <div id="update-modal-status-text" style="font-size: 13px; line-height: 1.6; padding: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.06);" data-i18n="modal_connecting_github_repository">
                 در حال برقراری ارتباط با مخزن GitHub...
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()">بستن</button>
+                <button type="button" class="btn btn-secondary" onclick="closeUpdateModal()" data-i18n="modal_btn_close">بستن</button>
                 <button type="button" class="btn btn-primary" id="update-modal-apply-btn" onclick="applySystemUpdateNow()" style="display: none;">
-                    <i data-lucide="download-cloud" style="width:14px; height:14px;"></i> بروزرسانی خودکار آنی
+                    <i data-lucide="download-cloud" style="width:14px; height:14px;"></i> <span data-i18n="modal_instant_auto_update">بروزرسانی خودکار آنی</span>
                 </button>
             </div>
         </div>

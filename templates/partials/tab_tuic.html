@@ -39,11 +39,11 @@
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_zero_rtt">اتصال فوری 0-RTT</div>
-                    <div style="font-weight: 700; color: #0284c7; margin-top: 3px;" id="tuic-stat-zero-rtt">فعال (Handshake 0-RTT)</div>
+                    <div style="font-weight: 700; color: #0284c7; margin-top: 3px;" id="tuic-stat-zero-rtt" data-i18n="tuic_active_handshake_0_rtt">فعال (Handshake 0-RTT)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="tuic_stat_connections">اتصالات آنلاین فعلی</div>
-                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tuic-stat-connections">0 آنلاین</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="tuic-stat-connections" data-i18n="tuic_0">0 آنلاین</div>
                 </div>
             </div>
 
@@ -79,8 +79,8 @@
                 <div>
                     <label class="form-label" data-i18n="tuic_congestion_label">الگوریتم کنترل ازدحام (Congestion Control)</label>
                     <select class="form-input" id="tuic-cfg-congestion">
-                        <option value="bbr">BBR (Google BBR - پیشنهادی برای مقابله با کاهش سرعت و پکت‌لاس)</option>
-                        <option value="cubic">Cubic (استاندارد لینوکس)</option>
+                        <option value="bbr" data-i18n="tuic_bbr_google_bbr">BBR (Google BBR - پیشنهادی برای مقابله با کاهش سرعت و پکت‌لاس)</option>
+                        <option value="cubic" data-i18n="tuic_cubic">Cubic (استاندارد لینوکس)</option>
                         <option value="new_reno">New Reno</option>
                     </select>
                 </div>
@@ -88,8 +88,8 @@
                 <div>
                     <label class="form-label" data-i18n="tuic_zerortt_label">اتصال صفر ثانیه (0-RTT Handshake)</label>
                     <select class="form-input" id="tuic-cfg-zero-rtt">
-                        <option value="true">فعال (اتصال بدون وقفه و بازگشت داده اولیه 0-RTT)</option>
-                        <option value="false">غیرفعال (۱-RTT استاندارد)</option>
+                        <option value="true" data-i18n="tuic_active_uninterrupted_connection_initial">فعال (اتصال بدون وقفه و بازگشت داده اولیه 0-RTT)</option>
+                        <option value="false" data-i18n="tuic_rtt">غیرفعال (۱-RTT استاندارد)</option>
                     </select>
                 </div>
 
@@ -141,7 +141,7 @@
                 </div>
 
                 <div>
-                    <label class="form-label">کانفیگ خروجی Sing-box (Outbound JSON):</label>
+                    <label class="form-label" data-i18n="tuic_sing_box_outbound_json">کانفیگ خروجی Sing-box (Outbound JSON):</label>
                     <textarea class="form-input" id="tuic-singbox-snippet" rows="8" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#38bdf8;"></textarea>
                 </div>
 

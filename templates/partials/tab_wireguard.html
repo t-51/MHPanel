@@ -4,8 +4,7 @@
         <div class="glass-card config-card" id="wireguard-panel" style="flex: 1;">
             <div class="config-header">
                 <h3 class="config-title">
-                    <i data-lucide="key-round" style="color: var(--color-secondary); width: 20px; height: 20px;"></i>
-                    WireGuard Client Manager
+                    <i data-lucide="key-round" style="color: var(--color-secondary); width: 20px; height: 20px;"></i> <span data-i18n="wg_wireguard_client_manager">WireGuard Client Manager</span>
                 </h3>
             </div>
             
@@ -14,14 +13,14 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span class="status-dot active"></span>
-                        <span style="font-weight:700; color:#0284c7; font-size:14px;">سرویس WireGuard استاندارد فعال است</span>
+                        <span style="font-weight:700; color:#0284c7; font-size:14px;" data-i18n="wg_standard_wireguard_service_enabled">سرویس WireGuard استاندارد فعال است</span>
                     </div>
                     <div style="display:flex; gap:12px; font-size:12px; font-family:'JetBrains Mono', monospace;">
                         <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">پورت: <strong>UDP 904</strong></span>
                         <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">ساب‌نت: <strong>10.66.66.1/24</strong></span>
                     </div>
                 </div>
-                <div style="font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
+                <div style="font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.6;" data-i18n="wg_wireguard_wireguard_latency">
                     ⚡ پروتکل فوق‌سریع WireGuard استاندارد برای اتصال در کلاینت‌های رسمی WireGuard با سرعت حداکثری و کمترین تاخیر (Latency).
                 </div>
             </div>
@@ -56,19 +55,19 @@
                 <!-- Quick Stats -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:12px;">
                     <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;">پورت وب‌سوکت سرور</div>
+                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="wg_websocket_port_server">پورت وب‌سوکت سرور</div>
                         <div style="font-weight:700; color:#b45309; font-family:'JetBrains Mono',monospace;" id="wg-cf-stat-port">2082 (HTTP/WS)</div>
                     </div>
                     <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;">مسیر وب‌سوکت (Path)</div>
+                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="wg_websocket_path">مسیر وب‌سوکت (Path)</div>
                         <div style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;" id="wg-cf-stat-path">wg-cf</div>
                     </div>
                     <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;">مقصد محلی (Target)</div>
+                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="wg_local_destination_target">مقصد محلی (Target)</div>
                         <div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">127.0.0.1:904</div>
                     </div>
                     <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-                        <div style="color:var(--text-muted); font-size:11px;">پورت عمومی کلادفلر</div>
+                        <div style="color:var(--text-muted); font-size:11px;" data-i18n="wg_cloudflare_public_port">پورت عمومی کلادفلر</div>
                         <div style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace;">443 (HTTPS/WSS)</div>
                     </div>
                 </div>
@@ -77,18 +76,18 @@
                 <form id="wg-cf-config-form" onsubmit="saveWgCloudflareConfig(event)" style="margin-bottom:16px;">
                     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-size:12px;">پورت سرور (از پورت‌های مجاز کلادفلر)</label>
+                            <label class="form-label" style="font-size:12px;" data-i18n="wg_item_3">پورت سرور (از پورت‌های مجاز کلادفلر)</label>
                             <select class="form-input" id="wg-cf-port-input">
-                                <option value="2082">2082 (کلادفلر HTTP/WS)</option>
-                                <option value="2086">2086 (کلادفلر HTTP/WS)</option>
-                                <option value="2052">2052 (کلادفلر HTTP/WS)</option>
-                                <option value="8080">8080 (کلادفلر HTTP/WS)</option>
-                                <option value="2083">2083 (کلادفلر HTTPS/WSS)</option>
-                                <option value="8443">8443 (کلادفلر HTTPS/WSS)</option>
+                                <option value="2082" data-i18n="wg_2082_cloudflare_http_ws">2082 (کلادفلر HTTP/WS)</option>
+                                <option value="2086" data-i18n="wg_2086_cloudflare_http_ws">2086 (کلادفلر HTTP/WS)</option>
+                                <option value="2052" data-i18n="wg_2052_cloudflare_http_ws">2052 (کلادفلر HTTP/WS)</option>
+                                <option value="8080" data-i18n="wg_8080_cloudflare_http_ws">8080 (کلادفلر HTTP/WS)</option>
+                                <option value="2083" data-i18n="wg_2083_cloudflare_https_wss">2083 (کلادفلر HTTPS/WSS)</option>
+                                <option value="8443" data-i18n="wg_8443_cloudflare_https_wss">8443 (کلادفلر HTTPS/WSS)</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin:0;">
-                            <label class="form-label" style="font-size:12px;">مسیر وب‌سوکت (WebSocket Path)</label>
+                            <label class="form-label" style="font-size:12px;" data-i18n="wg_websocket_path_2">مسیر وب‌سوکت (WebSocket Path)</label>
                             <input class="form-input" type="text" id="wg-cf-path-input" value="wg-cf" style="direction:ltr; font-family:'JetBrains Mono',monospace;" required>
                         </div>
                     </div>
@@ -101,22 +100,22 @@
                 <div style="background: var(--bg-surface); border:1px solid rgba(245, 158, 11, 0.2); border-radius:8px; padding:12px; font-size:12px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                         <strong style="color:#b45309; display:flex; align-items:center; gap:6px;">
-                            <i data-lucide="terminal" style="width:14px; height:14px;"></i> دستور کلاینت برای اتصال تونل wstunnel:
+                            <i data-lucide="terminal" style="width:14px; height:14px;"></i> <span data-i18n="wg_wstunnel">دستور کلاینت برای اتصال تونل wstunnel:</span>
                         </strong>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('wg-cf-cmd-box').textContent)" style="padding:2px 8px; font-size:11px;">
-                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> کپی دستور
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="wg_copy_order">کپی دستور</span>
                         </button>
                     </div>
                     <div id="wg-cf-cmd-box" class="code-box" style="margin:0; padding:8px 10px; font-size:11.5px; direction:ltr; text-align:left;">wstunnel client -L udp://127.0.0.1:51820:127.0.0.1:904 wss://vpn.kigaping.com:443/wg-cf --http-upgrade-path-prefix wg-cf</div>
                     <p style="font-size:11px; color:var(--text-muted); margin:8px 0 0 0; line-height:1.5;">
-                        💡 <strong>راهنما:</strong> پس از اجرای دستور فوق در سیستم یا گوشی کلاینت، کافیست در فایل کانفیگ وایرگارد خط <code>Endpoint = 127.0.0.1:51820</code> قرار دهید. تمام ترافیک وایرگارد از CDN کلودفلر به صورت امن عبور می‌کند.
+                        💡 <strong data-i18n="wg_help">راهنما:</strong> پس از اجرای دستور فوق در سیستم یا گوشی کلاینت، کافیست در فایل کانفیگ وایرگارد خط <code>Endpoint = 127.0.0.1:51820</code> قرار دهید. تمام ترافیک وایرگارد از CDN کلودفلر به صورت امن عبور می‌کند.
                     </p>
                 </div>
             </div>
             
             <div style="display: flex; flex-direction: column; gap: 16px;">
                 <div>
-                    <h4 class="form-label" style="margin-bottom: 10px;">کاربران فعال WireGuard (Peers)</h4>
+                    <h4 class="form-label" style="margin-bottom: 10px;" data-i18n="wg_wireguard_peers">کاربران فعال WireGuard (Peers)</h4>
                     <div class="wg-client-list" id="wg-clients"></div>
                 </div>
             </div>
@@ -128,26 +127,25 @@
             <div class="glass-card config-card">
                 <div class="config-header">
                     <h3 class="config-title">
-                        <i data-lucide="plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
-                        Create Client Profile
+                        <i data-lucide="plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span data-i18n="wg_create_client_profile">Create Client Profile</span>
                     </h3>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Client name</label>
-                        <input class="form-input" style="padding-left:16px;" type="text" id="wg-client-name" placeholder="Client name">
+                        <label class="form-label" data-i18n="wg_client_name">Client name</label>
+                        <input class="form-input" style="padding-left:16px;" type="text" id="wg-client-name" placeholder="Client name" data-i18n-placeholder="wg_client_name">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Volume Limit (GB) - Optional</label>
+                        <label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" id="wg-client-limit" placeholder="e.g. 50">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Expiration (Days) - Optional</label>
+                        <label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" min="1" id="wg-client-expire-days" placeholder="e.g. 30">
                     </div>
                     <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="wg-client-first-connect" style="width: 16px; height: 16px;">
-                        <label class="form-label" style="margin: 0;">Start after first connect</label>
+                        <label class="form-label" style="margin: 0;" data-i18n="wg_start_after_first_connect">Start after first connect</label>
                     </div>
                     <button type="button" class="btn" id="wg-add-btn">
                         <i data-lucide="plus" class="btn-icon"></i> Create
@@ -159,33 +157,32 @@
             <div class="glass-card config-card">
                 <div class="config-header">
                     <h3 class="config-title">
-                        <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-                        Bulk Create Clients
+                        <i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="wg_bulk_create_clients">Bulk Create Clients</span>
                     </h3>
                 </div>
                 <form id="wg-bulk-form" onsubmit="createWgBulk(event)" style="display: flex; flex-direction: column; gap: 12px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Client Name Prefix</label>
+                        <label class="form-label" data-i18n="wg_client_name_prefix">Client Name Prefix</label>
                         <input class="form-input" style="padding-left:16px;" type="text" id="wg-bulk-prefix" value="Client" placeholder="e.g. Client" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Number of Profiles (1-50)</label>
+                        <label class="form-label" data-i18n="wg_number_profiles_1_50">Number of Profiles (1-50)</label>
                         <input class="form-input" style="padding-left:16px;" type="number" id="wg-bulk-count" min="1" max="50" value="5" required>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Volume Limit (GB) - Optional</label>
+                        <label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" id="wg-bulk-limit" placeholder="e.g. 50">
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">Expiration (Days) - Optional</label>
+                        <label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
                         <input class="form-input" style="padding-left:16px;" type="number" min="1" id="wg-bulk-expire-days" placeholder="e.g. 30">
                     </div>
                     <div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
                         <input type="checkbox" id="wg-bulk-first-connect" style="width: 16px; height: 16px;">
-                        <label class="form-label" style="margin: 0;">Start after first connect</label>
+                        <label class="form-label" style="margin: 0;" data-i18n="wg_start_after_first_connect">Start after first connect</label>
                     </div>
                     <button type="submit" class="btn" id="wg-bulk-btn">
-                        <i data-lucide="users" class="btn-icon"></i> Create Bulk
+                        <i data-lucide="users" class="btn-icon"></i> <span data-i18n="wg_create_bulk">Create Bulk</span>
                     </button>
                 </form>
             </div>
