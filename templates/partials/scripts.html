@@ -513,6 +513,10 @@
                 if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
             }
 
+            if (typeof renderSSLStatus === "function" && typeof lastSSLData !== "undefined" && lastSSLData) {
+                renderSSLStatus(lastSSLData);
+            }
+
             if (lang !== "fa") {
                 translateDom(document.querySelector(".main-content") || document.body, lang);
                 document.querySelectorAll(".modal.active, .modal-box, .toast").forEach(el => translateDom(el, lang));
@@ -530,6 +534,7 @@
                 else if (activeTab === "sstp" && typeof fetchSstpClients === "function") fetchSstpClients();
                 else if (activeTab === "shadowsocks" && typeof fetchShadowsocksClients === "function") fetchShadowsocksClients();
                 else if (activeTab === "servers" && typeof fetchServers === "function") fetchServers();
+                else if (activeTab === "ssl" && typeof fetchSSLStatus === "function") fetchSSLStatus();
             }
 
             if (typeof lucide !== "undefined") {
@@ -911,6 +916,7 @@
 
         const coresEl = document.getElementById("spec-cores-val");
         if (coresEl) {
+            coresEl.removeAttribute("data-i18n");
             const phys = cpu.physical_cores || 1;
             const logi = cpu.logical_cores || phys;
             const cStr = (lang === "fa" ? `${logi} هسته پردازشی (${phys} هسته فیزیکی)` : (lang === "ru" ? `${logi} лог. ядер (${phys} физ. ядер)` : `${logi} Logical Cores (${phys} Physical)`));
@@ -934,6 +940,7 @@
 
         const ramStatusEl = document.getElementById("spec-ram-status-val");
         if (ramStatusEl) {
+            ramStatusEl.removeAttribute("data-i18n");
             const usedGb = (ram.used / (1024 ** 3)).toFixed(1);
             const availGb = (ram.available / (1024 ** 3)).toFixed(1);
             const rUsed = (lang === "fa" ? "مصرفی" : (lang === "ru" ? "Использовано" : "Used"));
@@ -942,10 +949,14 @@
         }
 
         const busEl = document.getElementById("spec-bus-val");
-        if (busEl && ram.bus_speed) busEl.innerText = ram.bus_speed;
+        if (busEl && ram.bus_speed) {
+            busEl.removeAttribute("data-i18n");
+            busEl.innerText = ram.bus_speed;
+        }
 
         const ramTypeEl = document.getElementById("spec-ram-type-val");
         if (ramTypeEl && ram.type) {
+            ramTypeEl.removeAttribute("data-i18n");
             const memStd = (lang === "fa" ? "استاندارد حافظه" : (lang === "ru" ? "Стандарт памяти" : "Memory Standard"));
             ramTypeEl.innerText = `${memStd}: ${ram.type} (High-Speed Bus)`;
         }
@@ -4081,8 +4092,14 @@
             
             const countBadge = document.getElementById("mtproto-instances-count");
             if (countBadge) {
+                countBadge.removeAttribute("data-i18n");
                 const activeCount = instances.filter(i => i.active).length;
-                countBadge.textContent = `${activeCount} فعال از ${instances.length} پروکسی`;
+                if (window.t) {
+                    const pattern = window.t("activecount_of_active_instances_len", "${activeCount} فعال از ${instances.length} پروکسی");
+                    countBadge.textContent = pattern.replace("${activeCount}", activeCount).replace("${instances.length}", instances.length);
+                } else {
+                    countBadge.textContent = `${activeCount} فعال از ${instances.length} پروکسی`;
+                }
             }
             
             container.innerHTML = "";
@@ -4712,53 +4729,90 @@
     }
 
     // --- SSL & Certificates Management ---
+    let lastSSLData = null;
+
+    function renderSSLStatus(data) {
+        if (!data) return;
+        const issuerSpan = document.getElementById("ssl-issuer");
+        const subjectSpan = document.getElementById("ssl-subject");
+        const expirySpan = document.getElementById("ssl-expiry");
+        const sanSpan = document.getElementById("ssl-san");
+        const certPathSpan = document.getElementById("ssl-cert-path");
+        const ipInput = document.getElementById("ssl-server-ip");
+        const badgeSpan = document.getElementById("ssl-badge");
+        
+        if (data.exists) {
+            if (issuerSpan) {
+                issuerSpan.removeAttribute("data-i18n");
+                issuerSpan.innerText = data.issuer || "Local CA";
+            }
+            if (subjectSpan) {
+                subjectSpan.removeAttribute("data-i18n");
+                subjectSpan.innerText = data.subject || "N/A";
+            }
+            if (expirySpan) {
+                expirySpan.removeAttribute("data-i18n");
+                expirySpan.innerText = data.expiry || "Active";
+            }
+            if (sanSpan) {
+                sanSpan.removeAttribute("data-i18n");
+                sanSpan.innerText = data.san || (data.subject || "N/A");
+            }
+            if (badgeSpan) {
+                badgeSpan.removeAttribute("data-i18n");
+                const isLE = data.issuer && data.issuer.includes("Let's Encrypt");
+                const leText = window.t ? window.t("let_s_encrypt_official_certificate_", "گواهی رسمی Let's Encrypt فعال است") : "گواهی رسمی Let's Encrypt فعال است";
+                const httpsText = window.t ? window.t("ssl_https", "HTTPS فعال است") : "HTTPS فعال است";
+                badgeSpan.innerText = isLE ? leText : httpsText;
+                badgeSpan.style.background = "rgba(16, 185, 129, 0.1)";
+                badgeSpan.style.color = "#059669";
+            }
+        } else {
+            if (issuerSpan) {
+                issuerSpan.removeAttribute("data-i18n");
+                issuerSpan.innerText = "Self-Signed (Local CA)";
+            }
+            if (subjectSpan) {
+                subjectSpan.removeAttribute("data-i18n");
+                subjectSpan.innerText = "Local";
+            }
+            if (expirySpan) {
+                expirySpan.removeAttribute("data-i18n");
+                expirySpan.innerText = "N/A";
+            }
+            if (badgeSpan) {
+                badgeSpan.removeAttribute("data-i18n");
+                badgeSpan.innerText = window.t ? window.t("self_signed_certificate", "گواهی خودامضا") : "گواهی خودامضا";
+                badgeSpan.style.background = "rgba(245, 158, 11, 0.1)";
+                badgeSpan.style.color = "#d97706";
+            }
+        }
+        
+        if (certPathSpan) {
+            let certText = data.cert_path || "/etc/vpnpanel/ssl/panel.crt";
+            if (data.real_cert_path && data.real_cert_path !== data.cert_path) {
+                certText += ` -> ${data.real_cert_path}`;
+            }
+            certPathSpan.innerText = certText;
+        }
+
+        // Pre-fill server IP field
+        if (ipInput && !ipInput.value) {
+            const host = window.location.hostname;
+            ipInput.value = host || "212.227.143.16";
+        }
+    }
+
     async function fetchSSLStatus() {
         try {
             const res = await fetch("/api/ssl/status");
+            if (!res.ok) {
+                console.error("fetchSSLStatus error:", res.status);
+                return;
+            }
             const data = await res.json();
-            
-            const issuerSpan = document.getElementById("ssl-issuer");
-            const subjectSpan = document.getElementById("ssl-subject");
-            const expirySpan = document.getElementById("ssl-expiry");
-            const sanSpan = document.getElementById("ssl-san");
-            const certPathSpan = document.getElementById("ssl-cert-path");
-            const ipInput = document.getElementById("ssl-server-ip");
-            const badgeSpan = document.getElementById("ssl-badge");
-            
-            if (data.exists) {
-                if (issuerSpan) issuerSpan.innerText = data.issuer || "Local CA";
-                if (subjectSpan) subjectSpan.innerText = data.subject || "N/A";
-                if (expirySpan) expirySpan.innerText = data.expiry || "Active";
-                if (sanSpan) sanSpan.innerText = data.san || (data.subject || "N/A");
-                if (badgeSpan) {
-                    badgeSpan.innerText = data.issuer && data.issuer.includes("Let's Encrypt") ? "گواهی رسمی Let's Encrypt فعال است" : "HTTPS فعال است";
-                    badgeSpan.style.background = "rgba(16, 185, 129, 0.1)";
-                    badgeSpan.style.color = "#059669";
-                }
-            } else {
-                if (issuerSpan) issuerSpan.innerText = "Self-Signed (Local CA)";
-                if (subjectSpan) subjectSpan.innerText = "Local";
-                if (expirySpan) expirySpan.innerText = "N/A";
-                if (badgeSpan) {
-                    badgeSpan.innerText = "گواهی خودامضا";
-                    badgeSpan.style.background = "rgba(245, 158, 11, 0.1)";
-                    badgeSpan.style.color = "#d97706";
-                }
-            }
-            
-            if (certPathSpan) {
-                let certText = data.cert_path || "/etc/vpnpanel/ssl/panel.crt";
-                if (data.real_cert_path && data.real_cert_path !== data.cert_path) {
-                    certText += ` -> ${data.real_cert_path}`;
-                }
-                certPathSpan.innerText = certText;
-            }
-
-            // Pre-fill server IP field
-            if (ipInput && !ipInput.value) {
-                const host = window.location.hostname;
-                ipInput.value = host || "212.227.143.16";
-            }
+            lastSSLData = data;
+            renderSSLStatus(data);
         } catch (e) {
             console.error(e);
         }

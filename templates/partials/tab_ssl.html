@@ -54,22 +54,22 @@
 <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0; display: flex; align-items: center; gap: 8px;">
 <i data-lucide="lock" style="color: #10b981; width: 18px; height: 18px;"></i> <span data-i18n="ssl_item_7">وضعیت فعلی گواهی امنیتی وب‌سرویس پنل</span>
 </h3>
-<span data-i18n="ssl_https" id="ssl-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+<span id="ssl-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
                     HTTPS فعال است
                 </span>
 </div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
 <span data-i18n="ssl_issuer" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">صادرکننده (Issuer):</span>
-<span data-i18n="mtproto_loading" id="ssl-issuer" style="font-size: 13px; font-weight: 700; color: var(--color-primary); word-break: break-all;">در حال بارگذاری...</span>
+<span id="ssl-issuer" style="font-size: 13px; font-weight: 700; color: var(--color-primary); word-break: break-all;">-</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
 <span data-i18n="ssl_subject_domain_ip_subject" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">موضوع / دامنه یا IP (Subject):</span>
-<span data-i18n="mtproto_loading" id="ssl-subject" style="font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">در حال بارگذاری...</span>
+<span id="ssl-subject" style="font-size: 13px; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; word-break: break-all;">-</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
 <span data-i18n="ssl_expiry_date" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">تاریخ انقضا (Expiry Date):</span>
-<span data-i18n="mtproto_loading" id="ssl-expiry" style="font-size: 13px; font-weight: 700; color: #059669;">در حال بارگذاری...</span>
+<span id="ssl-expiry" style="font-size: 13px; font-weight: 700; color: #059669;">-</span>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
 <span data-i18n="ssl_subject_substitution_san" style="font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 4px;">جایگزین موضوع (SAN):</span>
@@ -78,8 +78,8 @@
 </div>
 <!-- Path & CA Action bar -->
 <div style="margin-top: 16px; padding-top: 14px; border-top: 1px dashed #e2e8f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-<div data-i18n-html="elem_tab_ssl_57" style="font-size: 11px; color: var(--text-muted);">
-                    مسیر گواهی روی سرور: <code id="ssl-cert-path" style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono'; color:#334155;">/etc/vpnpanel/ssl/panel.crt</code>
+<div style="font-size: 11px; color: var(--text-muted);">
+    <span data-i18n="ssl_item_10">مسیر گواهی روی سرور:</span> <code id="ssl-cert-path" style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-family:'JetBrains Mono'; color:#334155;">/etc/vpnpanel/ssl/panel.crt</code>
 </div>
 <div style="display: flex; gap: 8px;">
 <a class="btn btn-secondary btn-sm" download="mhpanel-root-ca.crt" href="/api/ssl/ca.crt" id="ssl-download-ca-btn" style="text-decoration: none;">

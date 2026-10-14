@@ -1215,7 +1215,7 @@
 </header>
 <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
 <div id="twofa-status-banner" style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; font-size: 12.5px; display: flex; justify-content: space-between; align-items: center;">
-<span data-i18n-html="elem_modals_5">وضعیت فعلی: <strong data-i18n="checking_status" id="twofa-current-status">در حال بررسی...</strong></span>
+<span><span data-i18n="modal_item_14">وضعیت فعلی:</span> <strong id="twofa-current-status">-</strong></span>
 <button class="btn btn-sm btn-secondary" data-i18n="wg_change_status" id="twofa-toggle-btn" onclick="toggleTwoFactorFlow()" type="button">تغییر وضعیت</button>
 </div>
 <!-- Setup Container (Visible when enabling) -->
@@ -1266,7 +1266,7 @@
 </div>
 <button class="modal-close" onclick="closeUpdateModal()" type="button"><i data-lucide="x"></i></button>
 </header>
-<div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+<div style="padding: 24px; display: flex-direction: column; gap: 16px;">
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
 <div data-i18n="modal_installed_version" style="font-size: 11px; color: var(--text-muted);">نسخه نصب شده:</div>
@@ -1274,11 +1274,11 @@
 </div>
 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
 <div data-i18n="modal_latest_version_github" style="font-size: 11px; color: var(--text-muted);">آخرین نسخه در گیت‌هاب:</div>
-<div data-i18n="checking_status" id="update-modal-latver" style="font-size: 18px; font-weight: 800; color: #059669; font-family: 'JetBrains Mono';">در حال بررسی...</div>
+<div id="update-modal-latver" style="font-size: 18px; font-weight: 800; color: #059669; font-family: 'JetBrains Mono';">-</div>
 </div>
 </div>
-<div data-i18n="modal_connecting_github_repository" id="update-modal-status-text" style="font-size: 13px; line-height: 1.6; padding: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.06);">
-                در حال برقراری ارتباط با مخزن GitHub...
+<div id="update-modal-status-text" style="font-size: 13px; line-height: 1.6; padding: 12px; border-radius: 8px; background: rgba(99, 102, 241, 0.06);">
+                -
             </div>
 <div style="display: flex; gap: 10px; justify-content: flex-end;">
 <button class="btn btn-secondary" data-i18n="modal_btn_close" onclick="closeUpdateModal()" type="button">بستن</button>
