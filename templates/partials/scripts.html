@@ -7,6 +7,8 @@
     var latestStats = null;
     var prevRecv = 0;
     var prevSent = 0;
+    var lastSSLData = null;
+    var currentRadiusUsers = {};
 
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -513,8 +515,8 @@
                 if (typeof updateProtocolTraffic === "function" && latestStats.protocol_traffic) updateProtocolTraffic(latestStats.protocol_traffic);
             }
 
-            if (typeof renderSSLStatus === "function" && typeof lastSSLData !== "undefined" && lastSSLData) {
-                renderSSLStatus(lastSSLData);
+            if (typeof renderSSLStatus === "function" && window.lastSSLData) {
+                renderSSLStatus(window.lastSSLData);
             }
 
             if (lang !== "fa") {
@@ -2556,7 +2558,7 @@
     // =========================================================================
     // Comprehensive FreeRADIUS Hub & Mikrotik-Style User Manager Module
     // =========================================================================
-    let currentRadiusUsers = {};
+    currentRadiusUsers = {};
     let currentRadiusGroups = {};
     let currentOnlineSessions = [];
     let selectedRadiusUsers = new Set();
@@ -4729,8 +4731,6 @@
     }
 
     // --- SSL & Certificates Management ---
-    let lastSSLData = null;
-
     function renderSSLStatus(data) {
         if (!data) return;
         const issuerSpan = document.getElementById("ssl-issuer");
@@ -4811,6 +4811,7 @@
                 return;
             }
             const data = await res.json();
+            window.lastSSLData = data;
             lastSSLData = data;
             renderSSLStatus(data);
         } catch (e) {
