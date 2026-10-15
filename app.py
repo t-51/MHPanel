@@ -1442,11 +1442,36 @@ def api_system_check_update():
     zipball_url = f"https://github.com/{repo}/archive/refs/tags/v{current_ver}.zip"
     
     try:
-        import requests
-        headers = {"User-Agent": "MHPanel-UpdateChecker"}
-        rel_req = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers, timeout=5)
-        if rel_req.status_code == 200:
-            r_data = rel_req.json()
+        r_data = None
+        c_data = None
+        try:
+            import requests
+            headers = {"User-Agent": "MHPanel-UpdateChecker"}
+            rel_req = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers, timeout=5)
+            if rel_req.status_code == 200:
+                r_data = rel_req.json()
+            req = requests.get(f"https://api.github.com/repos/{repo}/commits/main", headers=headers, timeout=5)
+            if req.status_code == 200:
+                c_data = req.json()
+        except Exception:
+            import urllib.request, json
+            headers = {"User-Agent": "MHPanel-UpdateChecker"}
+            try:
+                u_req = urllib.request.Request(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers)
+                with urllib.request.urlopen(u_req, timeout=5) as u_res:
+                    if u_res.status == 200:
+                        r_data = json.loads(u_res.read().decode())
+            except Exception:
+                pass
+            try:
+                u_c_req = urllib.request.Request(f"https://api.github.com/repos/{repo}/commits/main", headers=headers)
+                with urllib.request.urlopen(u_c_req, timeout=5) as u_c_res:
+                    if u_c_res.status == 200:
+                        c_data = json.loads(u_c_res.read().decode())
+            except Exception:
+                pass
+
+        if r_data:
             tag_name = r_data.get("tag_name", "").lstrip("v").strip()
             if tag_name:
                 latest_ver = tag_name
@@ -1468,9 +1493,7 @@ def api_system_check_update():
             if parse_ver(latest_ver) > parse_ver(current_ver):
                 update_available = True
                 
-        req = requests.get(f"https://api.github.com/repos/{repo}/commits/main", headers=headers, timeout=5)
-        if req.status_code == 200:
-            c_data = req.json()
+        if c_data:
             commit_msg = c_data.get("commit", {}).get("message", "")[:100]
             commit_date = c_data.get("commit", {}).get("author", {}).get("date", "")
     except Exception as e:
