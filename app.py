@@ -186,30 +186,30 @@ PROTOCOL_DEFAULT_PORTS = {
     "tor": 9001,
 }
 PROTOCOL_SERVICE_MAP = {
-    "ssh": "aethervpn-ssh",
+    "ssh": "mhpanel-ssh",
     "openvpn": "openvpn@server",
     "ocserv": "ocserv",
     "ikev2": "strongswan-starter",
     "sstp": "sstpd",
-    "pptp": "aethervpn-pptp",
+    "pptp": "mhpanel-pptp",
     "l2tp": "xl2tpd",
     "wireguard": "wg-quick@wg0",
     "amneziawg": "awg-quick@awg0",
-    "http": "aethervpn-http-proxy",
-    "socks": "aethervpn-socks-proxy",
-    "shadowsocks": "aethervpn-shadowsocks",
-    "mtproto": "aethervpn-mtproto",
-    "tuic": "aethervpn-tuic",
-    "dnstt": "aethervpn-dnstt",
-    "vaydns": "aethervpn-vaydns",
-    "slipstream": "aethervpn-slipstream",
-    "hysteria2": "aethervpn-hysteria2",
-    "trojan": "aethervpn-trojan",
-    "naiveproxy": "aethervpn-naiveproxy",
-    "stuntls": "aethervpn-stuntls",
-    "noizdns": "aethervpn-noizdns",
-    "masterdnsvpn": "aethervpn-masterdnsvpn",
-    "tor": "aethervpn-tor",
+    "http": "mhpanel-http-proxy",
+    "socks": "mhpanel-socks-proxy",
+    "shadowsocks": "mhpanel-shadowsocks",
+    "mtproto": "mhpanel-mtproto",
+    "tuic": "mhpanel-tuic",
+    "dnstt": "mhpanel-dnstt",
+    "vaydns": "mhpanel-vaydns",
+    "slipstream": "mhpanel-slipstream",
+    "hysteria2": "mhpanel-hysteria2",
+    "trojan": "mhpanel-trojan",
+    "naiveproxy": "mhpanel-naiveproxy",
+    "stuntls": "mhpanel-stuntls",
+    "noizdns": "mhpanel-noizdns",
+    "masterdnsvpn": "mhpanel-masterdnsvpn",
+    "tor": "mhpanel-tor",
 }
 
 def get_session_secret():
@@ -363,7 +363,7 @@ def ensure_panel_certificate():
     subprocess.run([
         "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
         "-keyout", PANEL_KEY, "-out", PANEL_CERT,
-        "-subj", "/CN=AetherVPN Panel", "-days", "3650"
+        "-subj", "/CN=MHPanel Panel", "-days", "3650"
     ], check=True, capture_output=True, text=True, timeout=30)
     os.chmod(PANEL_KEY, 0o600)
     os.chmod(PANEL_CERT, 0o644)
@@ -484,21 +484,21 @@ def is_installed(protocol):
     elif protocol == "amneziawg":
         return os.path.exists("/etc/amnezia/amneziawg/awg0.conf")
     elif protocol == "http":
-        return os.path.exists("/etc/systemd/system/aethervpn-http-proxy.service")
+        return os.path.exists("/etc/systemd/system/mhpanel-http-proxy.service")
     elif protocol == "socks":
-        return os.path.exists("/etc/systemd/system/aethervpn-socks-proxy.service")
+        return os.path.exists("/etc/systemd/system/mhpanel-socks-proxy.service")
     elif protocol == "shadowsocks":
-        return os.path.exists("/etc/systemd/system/aethervpn-shadowsocks.service")
+        return os.path.exists("/etc/systemd/system/mhpanel-shadowsocks.service")
     elif protocol == "mtproto":
-        return os.path.exists("/etc/systemd/system/aethervpn-mtproto@.service")
+        return os.path.exists("/etc/systemd/system/mhpanel-mtproto@.service")
     elif protocol == "tuic":
-        return os.path.exists("/usr/local/bin/tuic-server") or os.path.exists("/etc/systemd/system/aethervpn-tuic.service")
+        return os.path.exists("/usr/local/bin/tuic-server") or os.path.exists("/etc/systemd/system/mhpanel-tuic.service")
     elif protocol == "dnstt":
-        return os.path.exists("/usr/local/bin/dnstt-server") or os.path.exists("/etc/systemd/system/aethervpn-dnstt.service") or os.path.exists("/etc/systemd/system/dnstt-server.service")
+        return os.path.exists("/usr/local/bin/dnstt-server") or os.path.exists("/etc/systemd/system/mhpanel-dnstt.service") or os.path.exists("/etc/systemd/system/dnstt-server.service")
     elif protocol == "vaydns":
-        return os.path.exists("/usr/local/bin/vaydns-server") or os.path.exists("/etc/systemd/system/aethervpn-vaydns.service")
+        return os.path.exists("/usr/local/bin/vaydns-server") or os.path.exists("/etc/systemd/system/mhpanel-vaydns.service")
     elif protocol == "slipstream":
-        return os.path.exists("/usr/local/bin/slipstream-server") or os.path.exists("/etc/systemd/system/aethervpn-slipstream.service")
+        return os.path.exists("/usr/local/bin/slipstream-server") or os.path.exists("/etc/systemd/system/mhpanel-slipstream.service")
     elif protocol == "hysteria2":
         return os.path.exists("/etc/vpnpanel/hysteria2.yaml") or os.path.exists("/usr/local/bin/hysteria")
     elif protocol == "trojan":
@@ -561,8 +561,8 @@ def get_active_port(protocol):
         elif protocol == "l2tp":
             return 1701
         elif protocol == "pptp":
-            if os.path.exists("/etc/systemd/system/aethervpn-pptp.service"):
-                with open("/etc/systemd/system/aethervpn-pptp.service", "r") as f:
+            if os.path.exists("/etc/systemd/system/mhpanel-pptp.service"):
+                with open("/etc/systemd/system/mhpanel-pptp.service", "r") as f:
                     content = f.read()
                 match = re.search(r"Port (\d+)", content)
                 if match:
@@ -585,10 +585,10 @@ def get_active_port(protocol):
                     return int(match.group(1))
             return 51820
         elif protocol == "http":
-            path = "/etc/systemd/system/aethervpn-http-proxy.service"
+            path = "/etc/systemd/system/mhpanel-http-proxy.service"
             default = 8080
         elif protocol == "socks":
-            path = "/etc/systemd/system/aethervpn-socks-proxy.service"
+            path = "/etc/systemd/system/mhpanel-socks-proxy.service"
             default = 1080
         elif protocol == "tuic":
             if os.path.exists("/etc/vpnpanel/tuic.toml"):
@@ -606,7 +606,7 @@ def get_active_port(protocol):
                         return int(json.load(f).get("server_port", 8388))
                 except Exception:
                     pass
-            path = "/etc/systemd/system/aethervpn-shadowsocks.service"
+            path = "/etc/systemd/system/mhpanel-shadowsocks.service"
             default = 8388
         elif protocol == "mtproto":
             import glob
@@ -1828,6 +1828,15 @@ def get_live_system_metrics():
     
     # RAM
     mem = psutil.virtual_memory()
+
+    # SWAP Memory & Swappiness
+    swap = psutil.swap_memory()
+    swappiness = 60
+    try:
+        with open("/proc/sys/vm/swappiness", "r") as f:
+            swappiness = int(f.read().strip())
+    except Exception:
+        pass
     
     return {
         "os": {
@@ -1854,6 +1863,13 @@ def get_live_system_metrics():
             "percent": mem.percent,
             "bus_speed": specs["ram_bus_speed"],
             "type": specs["ram_type"]
+        },
+        "swap": {
+            "total": swap.total,
+            "used": swap.used,
+            "free": swap.free,
+            "percent": swap.percent,
+            "swappiness": swappiness
         }
     }
 
@@ -2127,6 +2143,7 @@ def api_stats():
     
     cpu_percent = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory()
+    swap = psutil.swap_memory()
     disk = psutil.disk_usage('/')
     net_io = psutil.net_io_counters()
     
@@ -2140,6 +2157,12 @@ def api_stats():
             "percent": mem.percent,
             "used": mem.used,
             "total": mem.total
+        },
+        "swap": {
+            "percent": swap.percent,
+            "used": swap.used,
+            "free": swap.free,
+            "total": swap.total
         },
         "disk": {
             "percent": disk.percent,
@@ -2161,6 +2184,199 @@ def api_security_refresh():
         return jsonify({"error": "Unauthorized"}), 401
     sec_data = get_security_alerts_data(force_refresh=True)
     return jsonify({"success": True, "security": sec_data})
+
+# --- SWAP Memory Management & Control API ---
+@app.route("/api/system/swap", methods=["GET", "POST"])
+def api_system_swap():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if request.method == "POST":
+        data = request.json or {}
+        action = data.get("action", "").strip().lower()
+        
+        if action == "flush":
+            try:
+                subprocess.run("swapoff -a && swapon -a", shell=True, check=True)
+                subprocess.run("sync; echo 3 > /proc/sys/vm/drop_caches", shell=True, check=False)
+                return jsonify({"success": True, "message": "حافظه اسواپ و کش موقت لینوکس با موفقیت تخلیه شد."})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"خطا در تخلیه اسواپ: {str(e)}"}), 500
+
+        elif action == "swappiness":
+            try:
+                val = int(data.get("swappiness") if data.get("swappiness") is not None else data.get("value", 60))
+                val = max(0, min(100, val))
+                subprocess.run(f"sysctl vm.swappiness={val}", shell=True, check=True)
+                os.makedirs("/etc/sysctl.d", exist_ok=True)
+                with open("/etc/sysctl.d/99-swap.conf", "w") as f:
+                    f.write(f"vm.swappiness = {val}\n")
+                return jsonify({"success": True, "value": val, "message": f"شاخص Swappiness به {val} تغییر یافت."})
+            except Exception as e:
+                return jsonify({"success": False, "error": str(e)}), 500
+
+        elif action == "resize":
+            try:
+                size_gb = int(data.get("size_gb", 2))
+                if size_gb not in [1, 2, 4, 8, 16]:
+                    return jsonify({"success": False, "error": "اندازه نامعتبر است (1، 2، 4، 8 یا 16 گیگابایت)"}), 400
+                swapfile = "/swapfile"
+                subprocess.run(f"swapoff {swapfile}", shell=True, capture_output=True)
+                res = subprocess.run(f"fallocate -l {size_gb}G {swapfile}", shell=True, capture_output=True)
+                if res.returncode != 0:
+                    subprocess.run(f"dd if=/dev/zero of={swapfile} bs=1M count={size_gb * 1024} status=none", shell=True, check=True)
+                subprocess.run(f"chmod 600 {swapfile}", shell=True, check=True)
+                subprocess.run(f"mkswap {swapfile}", shell=True, check=True)
+                subprocess.run(f"swapon {swapfile}", shell=True, check=True)
+                
+                try:
+                    with open("/etc/fstab", "r") as f:
+                        fstab = f.read()
+                    if "/swapfile" not in fstab:
+                        with open("/etc/fstab", "a") as f:
+                            f.write("\n/swapfile none swap sw 0 0\n")
+                except Exception:
+                    pass
+
+                return jsonify({"success": True, "size_gb": size_gb, "message": f"حجم حافظه اسواپ با موفقیت به {size_gb} گیگابایت تغییر یافت."})
+            except Exception as e:
+                return jsonify({"success": False, "error": f"خطا در تغییر حجم اسواپ: {str(e)}"}), 500
+
+        return jsonify({"success": False, "error": "عملیات نامعتبر است."}), 400
+
+    # GET
+    swap = psutil.swap_memory()
+    swappiness = 60
+    try:
+        with open("/proc/sys/vm/swappiness", "r") as f:
+            swappiness = int(f.read().strip())
+    except Exception:
+        pass
+
+    swaps_list = []
+    try:
+        with open("/proc/swaps", "r") as f:
+            lines = f.readlines()[1:]
+            for line in lines:
+                parts = line.split()
+                if len(parts) >= 3:
+                    swaps_list.append({
+                        "filename": parts[0],
+                        "type": parts[1],
+                        "size_kb": int(parts[2]),
+                        "used_kb": int(parts[3]) if len(parts) > 3 else 0
+                    })
+    except Exception:
+        pass
+
+    return jsonify({
+        "total": swap.total,
+        "used": swap.used,
+        "free": swap.free,
+        "percent": swap.percent,
+        "swappiness": swappiness,
+        "swaps": swaps_list
+    })
+
+# --- Protocol Multi-User & FreeRADIUS Accounting APIs ---
+import protocol_accounting
+
+@app.route("/api/protocol-accounting/<proto>/users", methods=["GET", "POST", "DELETE"])
+def api_protocol_accounting_users(proto):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if proto not in protocol_accounting.SUPPORTED_PROTOCOLS:
+        return jsonify({"error": "پروتکل نامعتبر است."}), 400
+
+    if request.method == "GET":
+        users = protocol_accounting.get_protocol_users(proto)
+        auth_mode = protocol_accounting.get_auth_mode(proto)
+        return jsonify({
+            "success": True,
+            "protocol": proto,
+            "auth_mode": auth_mode,
+            "users": users,
+            "total_users": len(users)
+        })
+
+    elif request.method == "POST":
+        data = request.json or {}
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+        traffic_limit_gb = float(data.get("traffic_limit_gb") or 0)
+        upload_limit_gb = float(data.get("upload_limit_gb") or 0)
+        download_limit_gb = float(data.get("download_limit_gb") or 0)
+        expire_date = data.get("expire_date") or None
+        active = int(data.get("active", 1))
+        auth_mode = data.get("auth_mode", "dual")
+
+        ok, msg = protocol_accounting.add_protocol_user(
+            proto, username, password, auth_mode,
+            traffic_limit_gb, upload_limit_gb, download_limit_gb,
+            expire_date, active
+        )
+        if not ok:
+            return jsonify({"success": False, "error": msg}), 400
+        return jsonify({"success": True, "message": msg})
+
+    elif request.method == "DELETE":
+        data = request.json or {}
+        username = data.get("username", "").strip()
+        if not username:
+            return jsonify({"success": False, "error": "نام کاربری الزامی است."}), 400
+        ok, msg = protocol_accounting.delete_protocol_user(proto, username)
+        return jsonify({"success": ok, "message": msg})
+
+@app.route("/api/protocol-accounting/<proto>/user/<action>", methods=["POST"])
+def api_protocol_accounting_user_action(proto, action):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if proto not in protocol_accounting.SUPPORTED_PROTOCOLS:
+        return jsonify({"error": "پروتکل نامعتبر است."}), 400
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    if not username:
+        return jsonify({"success": False, "error": "نام کاربری الزامی است."}), 400
+
+    if action == "toggle":
+        ok, msg = protocol_accounting.toggle_protocol_user(proto, username)
+        return jsonify({"success": ok, "message": msg})
+    elif action == "reset":
+        ok, msg = protocol_accounting.reset_protocol_user_traffic(proto, username)
+        return jsonify({"success": ok, "message": msg})
+    return jsonify({"success": False, "error": "عملیات نامعتبر است."}), 400
+
+@app.route("/api/protocol-accounting/<proto>/auth-mode", methods=["GET", "POST"])
+def api_protocol_accounting_auth_mode(proto):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if proto not in protocol_accounting.SUPPORTED_PROTOCOLS:
+        return jsonify({"error": "پروتکل نامعتبر است."}), 400
+
+    if request.method == "POST":
+        data = request.json or {}
+        mode = data.get("auth_mode", "dual").strip().lower()
+        new_mode = protocol_accounting.set_auth_mode(proto, mode)
+        return jsonify({"success": True, "auth_mode": new_mode})
+
+    return jsonify({"protocol": proto, "auth_mode": protocol_accounting.get_auth_mode(proto)})
+
+@app.route("/api/protocol-accounting/<proto>/sync", methods=["POST"])
+def api_protocol_accounting_sync(proto):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    protocol_accounting.sync_daemon_users(proto)
+    return jsonify({"success": True, "message": f"همگام‌سازی کاربران و سرویس {proto} با موفقیت انجام شد."})
+
+@app.route("/api/auth/hysteria2", methods=["POST"])
+def api_auth_hysteria2():
+    data = request.json or {}
+    addr = data.get("addr", "")
+    auth_str = data.get("auth", "")
+    ok, user_or_err = protocol_accounting.authenticate_hysteria_webhook(addr, auth_str)
+    if ok:
+        return jsonify({"ok": True, "id": user_or_err}), 200
+    return jsonify({"ok": False, "msg": user_or_err}), 401
 
 @app.route("/api/protocols", methods=["GET"])
 def api_protocols():
@@ -2258,7 +2474,7 @@ def api_mtproto_ad_tag():
                 f.write(content)
             port_m = re.search(r"mtproto_config_(\d+)\.py", fpath)
             if port_m:
-                subprocess.run(["systemctl", "restart", f"aethervpn-mtproto@{port_m.group(1)}"], check=False)
+                subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port_m.group(1)}"], check=False)
         except Exception:
             pass
     run_helper("set-ad-tag", "mtproto", ad_tag)
@@ -2272,12 +2488,12 @@ def get_service_names(protocol):
         for f in files:
             match = re.search(r"mtproto_config_(\d+)\.py", f)
             if match:
-                services.append(f"aethervpn-mtproto@{match.group(1)}")
+                services.append(f"mhpanel-mtproto@{match.group(1)}")
         if not services:
-            services = ["aethervpn-mtproto@4433"]
+            services = ["mhpanel-mtproto@4433"]
         return services
     elif protocol == "ssh":
-        for s in ["ssh", "sshd", "aethervpn-ssh"]:
+        for s in ["ssh", "sshd", "mhpanel-ssh"]:
             res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
             if res.stdout.strip() in ["active", "inactive"]: return [s]
         return ["ssh"]
@@ -2296,7 +2512,7 @@ def get_service_names(protocol):
     elif protocol == "sstp":
         return ["sstpd"]
     elif protocol == "pptp":
-        return ["aethervpn-pptp"]
+        return ["mhpanel-pptp"]
     elif protocol == "l2tp":
         ikev2_svc = "strongswan-swanctl"
         for s in ["strongswan-swanctl", "strongswan-starter", "strongswan"]:
@@ -2305,35 +2521,35 @@ def get_service_names(protocol):
                 break
         return ["xl2tpd", ikev2_svc]
     elif protocol == "wireguard":
-        return ["wg-quick@wg0", "aethervpn-wg-radius"]
+        return ["wg-quick@wg0", "mhpanel-wg-radius"]
     elif protocol == "http":
-        return ["aethervpn-http-proxy"]
+        return ["mhpanel-http-proxy"]
     elif protocol == "socks":
-        return ["aethervpn-socks-proxy"]
+        return ["mhpanel-socks-proxy"]
     elif protocol == "shadowsocks":
-        return ["aethervpn-shadowsocks"]
+        return ["mhpanel-shadowsocks"]
     elif protocol == "tuic":
-        return ["aethervpn-tuic"]
+        return ["mhpanel-tuic"]
     elif protocol == "dnstt":
-        return ["aethervpn-dnstt"]
+        return ["mhpanel-dnstt"]
     elif protocol == "vaydns":
-        return ["aethervpn-vaydns"]
+        return ["mhpanel-vaydns"]
     elif protocol == "slipstream":
-        return ["aethervpn-slipstream"]
+        return ["mhpanel-slipstream"]
     elif protocol == "hysteria2":
-        return ["aethervpn-hysteria2"]
+        return ["mhpanel-hysteria2"]
     elif protocol == "trojan":
-        return ["aethervpn-trojan"]
+        return ["mhpanel-trojan"]
     elif protocol == "naiveproxy":
-        return ["aethervpn-naiveproxy"]
+        return ["mhpanel-naiveproxy"]
     elif protocol == "stuntls":
-        return ["aethervpn-stuntls"]
+        return ["mhpanel-stuntls"]
     elif protocol == "noizdns":
-        return ["aethervpn-noizdns"]
+        return ["mhpanel-noizdns"]
     elif protocol == "masterdnsvpn":
-        return ["aethervpn-masterdnsvpn"]
+        return ["mhpanel-masterdnsvpn"]
     elif protocol == "tor":
-        return ["aethervpn-tor", "tor@default", "tor"]
+        return ["mhpanel-tor", "tor@default", "tor"]
     return []
 
 @app.route("/api/protocols/control", methods=["POST"])
@@ -2381,16 +2597,16 @@ def api_protocols_advanced_logs(protocol):
         return jsonify({"error": "Unauthorized"}), 401
     
     services = []
-    if protocol == "ssh": services = ["aethervpn-ssh"]
+    if protocol == "ssh": services = ["mhpanel-ssh"]
     elif protocol == "openvpn": services = ["openvpn@server"]
     elif protocol == "ocserv": services = ["ocserv"]
     elif protocol == "ikev2": services = ["strongswan-swanctl", "strongswan-starter", "strongswan"]
     elif protocol == "sstp": services = ["sstpd", "vpnserver"]
     elif protocol == "l2tp": services = ["xl2tpd"]
-    elif protocol == "pptp": services = ["aethervpn-pptp"]
+    elif protocol == "pptp": services = ["mhpanel-pptp"]
     elif protocol == "wireguard": services = ["wg-quick@wg0"]
     elif protocol == "amneziawg": services = ["awg-quick@awg0"]
-    elif protocol == "mtproto": services = ["aethervpn-mtproto*"]
+    elif protocol == "mtproto": services = ["mhpanel-mtproto*"]
     else: return jsonify({"error": "Unknown protocol"}), 400
     
     cmd = ["journalctl"]
@@ -5221,7 +5437,7 @@ def api_amneziawg_set_port():
 def api_amneziawg_warp_status():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    is_active = subprocess.run(["systemctl", "is-active", "aethervpn-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+    is_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
     warp_svc_active = subprocess.run(["systemctl", "is-active", "warp-svc"], capture_output=True, text=True).stdout.strip() == "active"
     warp_ip = "-"
     if is_active:
@@ -5250,15 +5466,15 @@ def api_amneziawg_warp_toggle():
             subprocess.run(["systemctl", "start", "warp-svc"], check=False)
             subprocess.run(["warp-cli", "--accept-tos", "mode", "proxy"], check=False)
             subprocess.run(["warp-cli", "--accept-tos", "connect"], check=False)
-            subprocess.run(["systemctl", "enable", "--now", "aethervpn-amnezia-warp"], check=False)
-            subprocess.run(["systemctl", "restart", "aethervpn-amnezia-warp"], check=False)
+            subprocess.run(["systemctl", "enable", "--now", "mhpanel-amnezia-warp"], check=False)
+            subprocess.run(["systemctl", "restart", "mhpanel-amnezia-warp"], check=False)
         else:
-            subprocess.run(["systemctl", "disable", "--now", "aethervpn-amnezia-warp"], check=False)
+            subprocess.run(["systemctl", "disable", "--now", "mhpanel-amnezia-warp"], check=False)
             subprocess.run(["ip", "rule", "del", "from", "10.77.77.0/24", "table", "51821", "priority", "51821"], check=False)
             subprocess.run(["ip", "route", "flush", "table", "51821"], check=False)
             subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.77.77.0/24", "-o", "awg-warp", "-j", "MASQUERADE"], check=False)
         time.sleep(1)
-        is_active = subprocess.run(["systemctl", "is-active", "aethervpn-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+        is_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
         return jsonify({"success": True, "active": is_active})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5296,7 +5512,7 @@ def get_server_domain():
     for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
         if os.path.exists(cert_path):
             d = extract_cert_domain(cert_path)
-            if d and d not in ["AetherVPN Panel", "localhost", "127.0.0.1"] and "." in d:
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d:
                 return d
     # 3. Check /etc/letsencrypt/live/
     le_dir = "/etc/letsencrypt/live"
@@ -5339,7 +5555,7 @@ def get_detected_domains():
     for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
         if os.path.exists(cert_path):
             d = extract_cert_domain(cert_path)
-            if d and d not in ["AetherVPN Panel", "localhost", "127.0.0.1"] and "." in d:
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d:
                 domains.add(d)
     return list(domains)
 
@@ -5380,7 +5596,7 @@ def api_system_domain_set():
             content = re.sub(r'hostname\s*=\s*"[^"]*"', f'hostname = "{domain}"', content)
             with open(tuic_cfg, "w") as f:
                 f.write(content)
-            subprocess.run(["systemctl", "restart", "aethervpn-tuic"], check=False)
+            subprocess.run(["systemctl", "restart", "mhpanel-tuic"], check=False)
         except: pass
     return jsonify({"success": True, "domain": domain})
 
@@ -5400,7 +5616,7 @@ def api_mtproto_instances():
                         content = f.read()
                     
                     port_match = re.search(r"PORT\s*=\s*(\d+)", content)
-                    secret_match = re.search(r"\"aethervpn\"\s*:\s*\"([a-fA-F0-9]+)\"", content)
+                    secret_match = re.search(r"\"mhpanel\"\s*:\s*\"([a-fA-F0-9]+)\"", content)
                     ad_tag_match = re.search(r"AD_TAG\s*=\s*\"([^\"]*)\"", content)
                     
                     if port_match:
@@ -5414,7 +5630,7 @@ def api_mtproto_instances():
                         tls_secret = f"ee{secret}{tls_hex}" if secret else ""
                         standard_secret = f"dd{secret}" if secret else ""
                         
-                        status_res = subprocess.run(["systemctl", "is-active", f"aethervpn-mtproto@{port}"], capture_output=True, text=True)
+                        status_res = subprocess.run(["systemctl", "is-active", f"mhpanel-mtproto@{port}"], capture_output=True, text=True)
                         active = (status_res.stdout.strip() == "active")
                         
                         connections = 0
@@ -5461,7 +5677,7 @@ def api_mtproto_instance_set_ad_tag(port):
             content += f'\nAD_TAG = "{ad_tag}"\n'
         with open(config_file, "w") as f:
             f.write(content)
-        subprocess.run(["systemctl", "restart", f"aethervpn-mtproto@{port}"], check=False)
+        subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
         return jsonify({"success": True, "ad_tag": ad_tag, "has_sponsor": bool(ad_tag and len(ad_tag) >= 16)})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5494,7 +5710,7 @@ def api_mtproto_instances_create():
         with open(config_file, "w") as f:
             f.write(f"""PORT = {port}
 USERS = {{
-    "aethervpn": "{secret}",
+    "mhpanel": "{secret}",
 }}
 MODES = {{"classic": True, "secure": True, "tls": True}}
 TLS_DOMAIN = "www.cloudflare.com"
@@ -5503,8 +5719,8 @@ AD_TAG = "{ad_tag}"
         subprocess.run(["ufw", "allow", f"{port}/tcp"], check=False)
         
         subprocess.run(["systemctl", "daemon-reload"], check=True)
-        subprocess.run(["systemctl", "enable", f"aethervpn-mtproto@{port}"], check=True)
-        subprocess.run(["systemctl", "start", f"aethervpn-mtproto@{port}"], check=True)
+        subprocess.run(["systemctl", "enable", f"mhpanel-mtproto@{port}"], check=True)
+        subprocess.run(["systemctl", "start", f"mhpanel-mtproto@{port}"], check=True)
         
         return jsonify({"success": True, "port": port, "secret": secret})
     except Exception as e:
@@ -5517,8 +5733,8 @@ def api_mtproto_instances_delete(port):
         
     config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
     try:
-        subprocess.run(["systemctl", "stop", f"aethervpn-mtproto@{port}"], check=False)
-        subprocess.run(["systemctl", "disable", f"aethervpn-mtproto@{port}"], check=False)
+        subprocess.run(["systemctl", "stop", f"mhpanel-mtproto@{port}"], check=False)
+        subprocess.run(["systemctl", "disable", f"mhpanel-mtproto@{port}"], check=False)
         
         subprocess.run(["ufw", "delete", "allow", f"{port}/tcp"], check=False)
         
@@ -5539,7 +5755,7 @@ def api_mtproto_instances_control(port):
         return jsonify({"success": False, "error": "Invalid action"}), 400
         
     try:
-        subprocess.run(["systemctl", action, f"aethervpn-mtproto@{port}"], check=True)
+        subprocess.run(["systemctl", action, f"mhpanel-mtproto@{port}"], check=True)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5582,7 +5798,7 @@ def api_tuic_config_get():
         except Exception as e:
             print("Error parsing tuic.toml:", e)
 
-    res = subprocess.run(["systemctl", "is-active", "aethervpn-tuic"], capture_output=True, text=True)
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-tuic"], capture_output=True, text=True)
     active = (res.stdout.strip() == "active")
 
     connections = 0
@@ -5652,7 +5868,7 @@ def api_tuic_config_set():
         content = re.sub(r'hostname\s*=\s*"[^"]*"', f'hostname = "{domain}"', content)
         with open(TUIC_CONFIG_FILE, "w") as f:
             f.write(content)
-        subprocess.run(["systemctl", "restart", "aethervpn-tuic"], check=False)
+        subprocess.run(["systemctl", "restart", "mhpanel-tuic"], check=False)
         return jsonify({"success": True, "port": port, "congestion_control": congestion, "zero_rtt_handshake": zero_rtt})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5688,7 +5904,7 @@ def api_tuic_users():
 
         with open(TUIC_CONFIG_FILE, "w") as f:
             f.write(content)
-        subprocess.run(["systemctl", "restart", "aethervpn-tuic"], check=False)
+        subprocess.run(["systemctl", "restart", "mhpanel-tuic"], check=False)
         return jsonify({"success": True, "uuid": target_uuid, "password": target_password})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5719,7 +5935,7 @@ def api_shadowsocks_config_get():
         except Exception as e:
             print("Error loading shadowsocks.json:", e)
 
-    res = subprocess.run(["systemctl", "is-active", "aethervpn-shadowsocks"], capture_output=True, text=True)
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-shadowsocks"], capture_output=True, text=True)
     active = (res.stdout.strip() == "active")
 
     connections = 0
@@ -5779,7 +5995,7 @@ def api_shadowsocks_config_set():
         os.makedirs("/etc/vpnpanel", exist_ok=True)
         with open(SHADOWSOCKS_CONFIG_FILE, "w") as f:
             json.dump(cfg, f, indent=4)
-        subprocess.run(["systemctl", "restart", "aethervpn-shadowsocks"], check=False)
+        subprocess.run(["systemctl", "restart", "mhpanel-shadowsocks"], check=False)
         return jsonify({"success": True, "port": port, "method": method, "password": password})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -5824,7 +6040,7 @@ def save_shadowsocks_clients(clients):
                 cfg["users"] = [{"name": c["username"], "password": c["password"]} for c in clients]
                 with open(SHADOWSOCKS_CONFIG_FILE, "w") as f:
                     json.dump(cfg, f, indent=4)
-                subprocess.run(["systemctl", "restart", "aethervpn-shadowsocks"], capture_output=True)
+                subprocess.run(["systemctl", "restart", "mhpanel-shadowsocks"], capture_output=True)
         except Exception as e:
             print("Failed to sync shadowsocks clients:", e)
 
@@ -6025,7 +6241,7 @@ def api_wireguard_cloudflare_get():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     cfg = get_wg_cf_config()
-    res = subprocess.run(["systemctl", "is-active", "aethervpn-wireguard-ws"], capture_output=True, text=True)
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-wireguard-ws"], capture_output=True, text=True)
     active = (res.stdout.strip() == "active")
     domain = get_server_domain()
     port = cfg.get("port", 2082)
@@ -6060,7 +6276,7 @@ def api_wireguard_cloudflare_config():
         json.dump(cfg, f, indent=2)
         
     svc_content = f"""[Unit]
-Description=AetherVPN - WireGuard over Cloudflare WebSocket (wstunnel)
+Description=MHPanel - WireGuard over Cloudflare WebSocket (wstunnel)
 After=network-online.target wg-quick@wg0.service
 Wants=network-online.target
 
@@ -6075,21 +6291,21 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 """
-    with open("/etc/systemd/system/aethervpn-wireguard-ws.service", "w") as f:
+    with open("/etc/systemd/system/mhpanel-wireguard-ws.service", "w") as f:
         f.write(svc_content)
     subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
     subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-    subprocess.run(["systemctl", "restart", "aethervpn-wireguard-ws"], capture_output=True)
+    subprocess.run(["systemctl", "restart", "mhpanel-wireguard-ws"], capture_output=True)
     return jsonify({"success": True, "port": port, "path": path})
 
 @app.route("/api/wireguard/cloudflare/toggle", methods=["POST"])
 def api_wireguard_cloudflare_toggle():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    res = subprocess.run(["systemctl", "is-active", "aethervpn-wireguard-ws"], capture_output=True, text=True)
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-wireguard-ws"], capture_output=True, text=True)
     active = (res.stdout.strip() == "active")
     action = "stop" if active else "start"
-    subprocess.run(["systemctl", action, "aethervpn-wireguard-ws"], capture_output=True)
+    subprocess.run(["systemctl", action, "mhpanel-wireguard-ws"], capture_output=True)
     return jsonify({"success": True, "action": action, "active": not active})
 
 # --- Panel Access & URL Configuration API ---
@@ -6191,7 +6407,7 @@ def api_dnstt_config():
             json.dump(cfg, f, indent=2)
             
         svc_content = f"""[Unit]
-Description=AetherVPN - DNSTT SlowDNS Tunnel Server
+Description=MHPanel - DNSTT SlowDNS Tunnel Server
 After=network-online.target
 Wants=network-online.target
 
@@ -6206,11 +6422,11 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 """
-        with open("/etc/systemd/system/aethervpn-dnstt.service", "w") as f:
+        with open("/etc/systemd/system/mhpanel-dnstt.service", "w") as f:
             f.write(svc_content)
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-dnstt"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-dnstt"], capture_output=True)
         return jsonify({"success": True})
         
     cfg = {"port": 5300, "domain": f"t.{get_server_domain()}", "upstream": "127.0.0.1:22", "mtu": 1232, "pubkey": pubkey}
@@ -6258,7 +6474,7 @@ def api_vaydns_config():
             
         compat_flag = " -dnstt-compat" if compat else ""
         svc_content = f"""[Unit]
-Description=AetherVPN - VayDNS Iran Anti-Censorship DNS Tunnel
+Description=MHPanel - VayDNS Iran Anti-Censorship DNS Tunnel
 After=network-online.target
 Wants=network-online.target
 
@@ -6273,11 +6489,11 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 """
-        with open("/etc/systemd/system/aethervpn-vaydns.service", "w") as f:
+        with open("/etc/systemd/system/mhpanel-vaydns.service", "w") as f:
             f.write(svc_content)
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-vaydns"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-vaydns"], capture_output=True)
         return jsonify({"success": True})
         
     cfg = {"port": 5353, "domain": f"v.{get_server_domain()}", "upstream": "127.0.0.1:22", "mtu": 1232, "compat": True, "pubkey": pubkey}
@@ -6314,7 +6530,7 @@ def api_slipstream_config():
             json.dump(cfg, f, indent=2)
             
         svc_content = f"""[Unit]
-Description=AetherVPN - Slipstream QUIC Covert DNS Tunnel
+Description=MHPanel - Slipstream QUIC Covert DNS Tunnel
 After=network-online.target
 Wants=network-online.target
 
@@ -6329,11 +6545,11 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 """
-        with open("/etc/systemd/system/aethervpn-slipstream.service", "w") as f:
+        with open("/etc/systemd/system/mhpanel-slipstream.service", "w") as f:
             f.write(svc_content)
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-slipstream"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-slipstream"], capture_output=True)
         return jsonify({"success": True})
         
     cfg = {"port": 5354, "domain": f"s.{get_server_domain()}", "upstream": "127.0.0.1:22"}
@@ -6374,6 +6590,9 @@ def api_hysteria2_config():
         down_mbps = int(data.get("down_mbps") or 100)
         sni = (data.get("sni") or domain).strip()
         quic_preset = (data.get("quic_preset") or "balanced").strip()
+        port_hop = (data.get("port_hop") or "20000:50000").strip()
+        masq_url = (data.get("masq_url") or "https://bing.com").strip()
+        disable_pmtu = bool(data.get("disable_pmtu", False))
 
         quic_windows = {
             "turbo": (16777216, 16777216, 33554432, 33554432),
@@ -6392,6 +6611,16 @@ obfs:
     password: {obfs_pass}
 """
 
+        masq_block = ""
+        if masq_url:
+            masq_block = f"""
+masquerade:
+  type: proxy
+  proxy:
+    url: {masq_url}
+    rewriteHost: true
+"""
+
         yaml_content = f"""listen: :{port}
 
 tls:
@@ -6402,6 +6631,7 @@ auth:
   type: password
   password: {password}
 {obfs_block}
+{masq_block}
 quic:
   initStreamReceiveWindow: {w_is}
   maxStreamReceiveWindow: {w_ms}
@@ -6409,6 +6639,7 @@ quic:
   maxConnReceiveWindow: {w_mc}
   maxIdleTimeout: 30s
   keepAlivePeriod: 10s
+  disablePathMTUDiscovery: {str(disable_pmtu).lower()}
 
 bandwidth:
   up: {up_mbps} mbps
@@ -6422,7 +6653,14 @@ outbounds:
             f.write(yaml_content)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-hysteria2"], capture_output=True)
+        
+        # Sync multi-users if configured
+        try:
+            from protocol_accounting import sync_daemon_users
+            sync_daemon_users("hysteria2")
+        except Exception:
+            subprocess.run(["systemctl", "restart", "mhpanel-hysteria2"], capture_output=True)
+
         return jsonify({"success": True})
 
     # GET
@@ -6433,6 +6671,9 @@ outbounds:
     up_mbps, down_mbps = 100, 100
     quic_preset = "balanced"
     sni = domain
+    port_hop = "20000:50000"
+    masq_url = "https://bing.com"
+    disable_pmtu = True
 
     if os.path.exists(cfg_file):
         try:
@@ -6454,6 +6695,12 @@ outbounds:
             if m: up_mbps = int(m.group(1))
             m = re.search(r"down:\s*(\d+)", c)
             if m: down_mbps = int(m.group(1))
+            m = re.search(r"url:\s*([^\s\n]+)", c)
+            if m: masq_url = m.group(1).strip()
+            if "disablePathMTUDiscovery: true" in c:
+                disable_pmtu = True
+            elif "disablePathMTUDiscovery: false" in c:
+                disable_pmtu = False
             if "33554432" in c: quic_preset = "turbo"
             elif "4194304" in c: quic_preset = "low"
             else: quic_preset = "balanced"
@@ -6507,6 +6754,9 @@ outbounds:
         "quic_preset": quic_preset,
         "sni": sni,
         "domain": domain,
+        "port_hop": port_hop,
+        "masq_url": masq_url,
+        "disable_pmtu": disable_pmtu,
         "client_link": client_link,
         "clash_snippet": clash_hy2,
         "singbox_snippet": json.dumps(singbox_hy2, indent=2),
@@ -6599,7 +6849,7 @@ def api_trojan_config():
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-trojan"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-trojan"], capture_output=True)
         return jsonify({"success": True})
 
     # GET
@@ -6799,7 +7049,7 @@ def api_naiveproxy_config():
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-naiveproxy"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-naiveproxy"], capture_output=True)
         return jsonify({"success": True})
 
     port = 13443
@@ -6852,16 +7102,26 @@ def api_stuntls_config():
         secret = (data.get("secret") or "mhpanel_stuntls_key").strip()
         upstream = (data.get("upstream") or "127.0.0.1:22").strip()
 
-        cfg = {"port": port, "secret": secret, "upstream": upstream, "mode": "webrtc_stun"}
+        mode = (data.get("mode") or "webrtc_stun").strip()
+        jitter = bool(data.get("jitter", False))
+
+        cfg = {"port": port, "secret": secret, "upstream": upstream, "mode": mode, "jitter": jitter}
         os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
         with open(cfg_file, "w") as f:
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-stuntls"], capture_output=True)
+        
+        # Sync multi-users for stuntls
+        try:
+            from protocol_accounting import sync_daemon_users
+            sync_daemon_users("stuntls")
+        except Exception:
+            subprocess.run(["systemctl", "restart", "mhpanel-stuntls"], capture_output=True)
+
         return jsonify({"success": True})
 
-    cfg = {"port": 3478, "secret": "mhpanel_stuntls_key", "upstream": "127.0.0.1:22", "mode": "webrtc_stun"}
+    cfg = {"port": 3478, "secret": "mhpanel_stuntls_key", "upstream": "127.0.0.1:22", "mode": "webrtc_stun", "jitter": False}
     if os.path.exists(cfg_file):
         try:
             with open(cfg_file, "r") as f:
@@ -6901,7 +7161,7 @@ def api_noizdns_config():
         with open(cfg_file, "w") as f:
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-noizdns"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-noizdns"], capture_output=True)
         return jsonify({"success": True})
 
     cfg = {"port": 5355, "upstream_dns": "1.1.1.1:53", "padding_min": 16, "padding_max": 64}
@@ -6937,7 +7197,7 @@ def api_masterdnsvpn_config():
         with open(cfg_file, "w") as f:
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-masterdnsvpn"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-masterdnsvpn"], capture_output=True)
         return jsonify({"success": True})
 
     cfg = {"port": 5356, "domain": f"t.{get_server_domain()}", "auth_key": "master-secret-key-mhpanel", "upstream": "127.0.0.1:1080", "mtu": 1280}
@@ -6997,7 +7257,7 @@ DataDirectory /var/lib/tor
             f.write(torrc_content)
         subprocess.run(["ufw", "allow", f"{or_port}/tcp"], capture_output=True)
         subprocess.run(["ufw", "allow", f"{bridge_port}/tcp"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "aethervpn-tor"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-tor"], capture_output=True)
         return jsonify({"success": True})
 
     cfg = {
@@ -7285,7 +7545,7 @@ def api_dns_protocol_routing():
                                 pj["dns"] = {"servers": [{"tag": "remote", "type": "udp", "server": target_dns}]}
                                 with open(t_cfg, "w") as f:
                                     json.dump(pj, f, indent=2)
-                                subprocess.run(["systemctl", "restart", f"aethervpn-{proto_name}"], capture_output=True)
+                                subprocess.run(["systemctl", "restart", f"mhpanel-{proto_name}"], capture_output=True)
                                 applied_rules.append(f"{proto_name} (proxy config -> {target_dns})")
                             except Exception:
                                 pass
@@ -7298,7 +7558,7 @@ def api_dns_protocol_routing():
                                 nj["upstream_dns"] = f"{target_dns}:53"
                                 with open(nz_cfg, "w") as f:
                                     json.dump(nj, f, indent=2)
-                                subprocess.run(["systemctl", "restart", "aethervpn-noizdns"], capture_output=True)
+                                subprocess.run(["systemctl", "restart", "mhpanel-noizdns"], capture_output=True)
                                 applied_rules.append(f"noizdns -> {target_dns}")
                             except Exception:
                                 pass
@@ -7803,13 +8063,13 @@ def load_imported_certs():
                     cainfo = parse_cert_info(f.read())
                 defaults.append({
                     "id": "sys_internal_ca",
-                    "name": "گواهی ریشه و سرور داخلی AetherVPN (Root CA)",
+                    "name": "گواهی ریشه و سرور داخلی MHPanel (Root CA)",
                     "type": "mikrotik",
                     "type_label": "گواهی داخلی سیستم و کاربران (Root CA)",
                     "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
                     "common_name": sinfo.get("common_name", "vpn-server"),
                     "subject": sinfo.get("subject", ""),
-                    "issuer": cainfo.get("common_name", "AetherVPN Root CA"),
+                    "issuer": cainfo.get("common_name", "MHPanel Root CA"),
                     "ca_subject": cainfo.get("subject", ""),
                     "valid_from": sinfo.get("valid_from", ""),
                     "valid_until": sinfo.get("valid_until", ""),

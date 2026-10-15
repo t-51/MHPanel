@@ -41,6 +41,16 @@
                 <i data-lucide="activity" style="width: 24px; height: 24px;"></i>
             </div>
         </div>
+        <div class="glass-card stat-card">
+            <div class="stat-info">
+                <span class="stat-label" data-i18n="stat_swap">مصرف حافظه اسواپ (SWAP)</span>
+                <span class="stat-value" id="swap-val">- %</span>
+                <span class="stat-meta" id="swap-meta">- GB / - GB</span>
+            </div>
+            <div class="stat-icon-box stat-icon-swap" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
+                <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
     </section>
 
     <!-- 2. Hardware Specifications & Per-Core Workload Capacity -->
@@ -99,10 +109,20 @@
                         <div class="spec-item-sub" id="spec-ram-status-val">در دسترس: - | مصرف: -</div>
                     </div>
 
-                    <!-- Item 5: RAM Bus Speed & Type -->
+                    <!-- Item 5: SWAP Memory & Swappiness -->
+                    <div class="spec-item-box">
+                        <div class="spec-item-head">
+                            <i data-lucide="layers" style="color: #a855f7; width: 15px; height: 15px;"></i>
+                            <span data-i18n="spec_swap_title">حافظه مجازی و اسواپ (SWAP)</span>
+                        </div>
+                        <div class="spec-item-value" id="spec-swap-total-val">- GB</div>
+                        <div class="spec-item-sub" id="spec-swap-sub-val">Swappiness: 60 | آزاد: -</div>
+                    </div>
+
+                    <!-- Item 6: RAM Bus Speed & Type -->
                     <div class="spec-item-box" style="grid-column: 1 / -1;">
                         <div class="spec-item-head">
-                            <i data-lucide="layers" style="color: #8b5cf6; width: 15px; height: 15px;"></i>
+                            <i data-lucide="cpu" style="color: #8b5cf6; width: 15px; height: 15px;"></i>
                             <span data-i18n="spec_bus_title">قدرت باس و استاندارد رم</span>
                         </div>
                         <div class="spec-item-value" id="spec-bus-val" data-i18n="overview_qemu_kvm_host_bus">باس پرسرعت مجازی (QEMU/KVM Host Bus)</div>

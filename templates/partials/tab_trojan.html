@@ -387,6 +387,75 @@
             </div>
         </div>
 
+        <!-- Trojan Multi-User Management & FreeRADIUS Hub Card -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(14, 165, 233, 0.25);">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(14, 165, 233, 0.12); color:#0ea5e9; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="users" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="trojan_users_hub_title">
+                            مدیریت کاربران و احراز هویت با FreeRADIUS (Trojan TLS)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="proto_users_hub_desc">
+                            تعریف کاربران محلی یا اتصال به یوزر منیجر FreeRADIUS (میکروتیک)، تفکیک مصرف آپلود و دانلود و سقف انقضا
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="syncProtocolAccounting('trojan')" style="padding:7px 14px; font-size:12px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sync_freeradius">همگام‌سازی FreeRADIUS</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddProtocolUserModal('trojan')" style="padding:7px 16px; font-size:12px; font-weight:700;">
+                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="add_user">کاربر جدید</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auth Mode Switcher -->
+            <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow); margin-bottom:16px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:15px; height:15px; color:#0ea5e9;"></i>
+                    <span data-i18n="auth_mode_selector_title">حالت احراز هویت و مدیریت اکانت‌ها:</span>
+                </div>
+                <div class="proto-card-selector" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+                    <div class="proto-card-option" id="trojan-authmode-dual" onclick="setProtocolAuthMode('trojan', 'dual')">
+                        <div style="font-weight:700; font-size:12.5px; color:#38bdf8;">حالت دوگانه (Dual Mode)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">بررسی کاربران محلی + FreeRADIUS (پیشنهادی)</div>
+                    </div>
+                    <div class="proto-card-option" id="trojan-authmode-radius" onclick="setProtocolAuthMode('trojan', 'radius')">
+                        <div style="font-weight:700; font-size:12.5px; color:#10b981;">فقط FreeRADIUS</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">مدیریت متمرکز یوزر منیجر میکروتیک</div>
+                    </div>
+                    <div class="proto-card-option" id="trojan-authmode-local" onclick="setProtocolAuthMode('trojan', 'local')">
+                        <div style="font-weight:700; font-size:12.5px; color:#f59e0b;">فقط کاربران محلی (Local)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">دیتابیس مستقل بدون اتصال به ردیوس</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border-glow);">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
+                    <thead>
+                        <tr style="background:var(--bg-muted); border-bottom:1px solid var(--border-glow); color:var(--text-main); font-weight:700;">
+                            <th style="padding:10px 12px;" data-i18n="col_user">نام کاربری</th>
+                            <th style="padding:10px 12px;" data-i18n="col_password">رمز عبور</th>
+                            <th style="padding:10px 12px;" data-i18n="col_source">منبع</th>
+                            <th style="padding:10px 12px;" data-i18n="col_traffic_usage">میزان مصرف (آپلود / دانلود)</th>
+                            <th style="padding:10px 12px;" data-i18n="col_expire">تاریخ انقضا</th>
+                            <th style="padding:10px 12px;" data-i18n="col_status">وضعیت</th>
+                            <th style="padding:10px 12px; text-align:center;" data-i18n="col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trojan-users-table-body">
+                        <!-- User rows inject here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- 6. Client Export & Integration Studio -->
         <div class="glass-card config-card">
             <div class="config-header">

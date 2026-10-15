@@ -157,11 +157,11 @@ protocol_is_installed() {
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
-        http) [ -f "/etc/systemd/system/aethervpn-http-proxy.service" ] ;;
-        socks) [ -f "/etc/systemd/system/aethervpn-socks-proxy.service" ] ;;
-        shadowsocks) [ -f "/etc/systemd/system/aethervpn-shadowsocks.service" ] || command -v ssserver >/dev/null 2>&1 ;;
+        http) [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ] ;;
+        socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
+        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] || command -v ssserver >/dev/null 2>&1 ;;
         tuic) [ -f "/etc/systemd/system/tuic-server.service" ] || [ -x /usr/local/bin/tuic-server ] ;;
-        mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/aethervpn-mtproto.service" ] ;;
+        mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/mhpanel-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && command -v badvpn-udpgw >/dev/null 2>&1 ;;
         hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
@@ -186,20 +186,20 @@ protocol_service_status() {
         l2tp) svc="xl2tpd" ;;
         wireguard) svc="wg-quick@wg0" ;;
         amneziawg) svc="awg-quick@awg0" ;;
-        http) svc="aethervpn-http-proxy" ;;
-        socks) svc="aethervpn-socks-proxy" ;;
-        shadowsocks) svc="aethervpn-shadowsocks" ;;
+        http) svc="mhpanel-http-proxy" ;;
+        socks) svc="mhpanel-socks-proxy" ;;
+        shadowsocks) svc="mhpanel-shadowsocks" ;;
         tuic) svc="tuic-server" ;;
-        mtproto) svc="aethervpn-mtproto" ;;
+        mtproto) svc="mhpanel-mtproto" ;;
         pptp) svc="pptpd" ;;
         badvpn) svc="badvpn" ;;
-        hysteria2) svc="aethervpn-hysteria2" ;;
-        trojan) svc="aethervpn-trojan" ;;
-        naiveproxy) svc="aethervpn-naiveproxy" ;;
-        stuntls) svc="aethervpn-stuntls" ;;
-        noizdns) svc="aethervpn-noizdns" ;;
-        masterdnsvpn) svc="aethervpn-masterdnsvpn" ;;
-        tor) svc="aethervpn-tor" ;;
+        hysteria2) svc="mhpanel-hysteria2" ;;
+        trojan) svc="mhpanel-trojan" ;;
+        naiveproxy) svc="mhpanel-naiveproxy" ;;
+        stuntls) svc="mhpanel-stuntls" ;;
+        noizdns) svc="mhpanel-noizdns" ;;
+        masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
+        tor) svc="mhpanel-tor" ;;
     esac
 
     if [ -n "$svc" ] && systemctl is-active --quiet "$svc" 2>/dev/null; then
@@ -221,9 +221,9 @@ protocol_current_port() {
         l2tp) echo "1701 (UDP)" ;;
         wireguard) grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "904" ;;
         amneziawg) grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "443" ;;
-        http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "3128" ;;
-        socks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080" ;;
-        shadowsocks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8388" ;;
+        http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "3128" ;;
+        socks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080" ;;
+        shadowsocks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8388" ;;
         tuic) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/tuic-server.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "7443" ;;
         mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $3}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;

@@ -239,6 +239,114 @@
 </div>
 </div>
 </section>
+
+<!-- SWAP Memory Management & Virtual Cache Studio -->
+<section class="bottom-section" style="margin-top: 24px;">
+<div class="glass-card config-card" style="border: 1px solid rgba(168, 85, 247, 0.25);">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <div style="width:40px; height:40px; border-radius:10px; background:rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
+            <i data-lucide="layers" style="width:22px; height:22px;"></i>
+        </div>
+        <div>
+            <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="sys_swap_title">
+                مدیریت حافظه مجازی و اسواپ سرور (SWAP Memory Studio)
+            </h3>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="sys_swap_subtitle">
+                افزایش حافظه رم مجازی جهت پایداری پردازش‌ها، جلوگیری از خطای OOM-Killer، بهینه‌سازی Swappiness و پاکسازی حافظه کش موقت
+            </p>
+        </div>
+    </div>
+    <div style="display:flex; gap:10px; align-items:center;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSwapStatus()" style="padding:6px 14px;">
+            <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+        </button>
+    </div>
+</div>
+
+<!-- SWAP Stats Bar -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:18px;">
+    <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swap_total">ظرفیت کل اسواپ (Total SWAP)</div>
+        <div style="font-weight:700; color:#a855f7; font-family:'JetBrains Mono',monospace; margin-top:3px; font-size:15px;" id="swap-mgr-total">- GB</div>
+    </div>
+    <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swap_used">مصرف فعلی (Used)</div>
+        <div style="font-weight:700; color:#ef4444; font-family:'JetBrains Mono',monospace; margin-top:3px; font-size:15px;" id="swap-mgr-used">- GB (- %)</div>
+    </div>
+    <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swap_free">فضای آزاد اسواپ (Free)</div>
+        <div style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:3px; font-size:15px;" id="swap-mgr-free">- GB</div>
+    </div>
+    <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swappiness_label">شاخص حساسیت اسواپ (Swappiness)</div>
+        <div style="font-weight:700; color:#0ea5e9; font-family:'JetBrains Mono',monospace; margin-top:3px; font-size:15px;" id="swap-mgr-swappiness">60</div>
+    </div>
+</div>
+
+<!-- Progress Meter -->
+<div style="margin-bottom:18px; background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow);">
+    <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:6px;">
+        <span style="font-weight:600; color:var(--text-main);" data-i18n="sys_swap_utilization">درصد اشغال اسواپ:</span>
+        <span id="swap-mgr-percent-label" style="font-weight:700; color:#a855f7;">0%</span>
+    </div>
+    <div style="background:rgba(255,255,255,0.08); height:10px; border-radius:6px; overflow:hidden;">
+        <div id="swap-mgr-progress" style="width:0%; height:100%; background:linear-gradient(90deg, #a855f7, #ec4899); border-radius:6px; transition:width 0.4s ease;"></div>
+    </div>
+</div>
+
+<!-- Action Grid: Resize & Swappiness & Flush -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+    <!-- 1. Resize Swapfile -->
+    <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <label class="form-label" style="font-weight:600; font-size:12.5px; margin-bottom:8px;" data-i18n="sys_swap_resize_title">
+            تغییر سریع حجم حافظه اسواپ (Resize SWAP)
+        </label>
+        <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;" data-i18n="sys_swap_resize_desc">
+            انتخاب اندازه مناسب باعث پایداری دائمی سرور در هنگام ترافیک سنگین کلاینت‌ها می‌شود:
+        </p>
+        <div class="quick-chip-group" style="margin-bottom:12px;">
+            <button type="button" class="quick-chip" onclick="resizeSwap(1)">1 GB</button>
+            <button type="button" class="quick-chip" onclick="resizeSwap(2)">2 GB</button>
+            <button type="button" class="quick-chip active" onclick="resizeSwap(4)">4 GB (پیشنهادی)</button>
+            <button type="button" class="quick-chip" onclick="resizeSwap(8)">8 GB</button>
+        </div>
+    </div>
+
+    <!-- 2. Swappiness Tuning -->
+    <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow);">
+        <label class="form-label" style="font-weight:600; font-size:12.5px; margin-bottom:8px;" data-i18n="sys_swappiness_title">
+            تنظیم ضریب تمایل به اسواپ (vm.swappiness)
+        </label>
+        <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;" data-i18n="sys_swappiness_desc">
+            مقدار ۱۰ برای سرورهای VPS با دیسک NVMe پرسرعت جهت حداکثر نگهداری داده در رم فیزیکی ایده‌آل است:
+        </p>
+        <div class="quick-chip-group" style="margin-bottom:12px;">
+            <button type="button" class="quick-chip" onclick="setSwappiness(10)">10 (بهینه سرور)</button>
+            <button type="button" class="quick-chip active" onclick="setSwappiness(60)">60 (پیش‌فرض)</button>
+            <button type="button" class="quick-chip" onclick="setSwappiness(100)">100 (حداکثر)</button>
+        </div>
+    </div>
+
+    <!-- 3. Flush Cache & Purge -->
+    <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; justify-content:space-between;">
+        <div>
+            <label class="form-label" style="font-weight:600; font-size:12.5px; margin-bottom:8px;" data-i18n="sys_swap_flush_title">
+                پاکسازی و تخلیه حافظه اسواپ و کش (Purge SWAP)
+            </label>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.6;" data-i18n="sys_swap_flush_desc">
+                تخلیه کامل کش‌های بدون استفاده و بازگردانی داده‌های فعال به رم برای افزایش بازدهی:
+            </p>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="flushSwapCache()" style="width:100%; padding:10px; font-size:12.5px; font-weight:700;">
+            <i data-lucide="trash-2" style="width:14px; height:14px; margin-left:6px; color:#ef4444;"></i>
+            <span data-i18n="sys_swap_flush_btn">تخلیه بلادرنگ کش و بازنشانی اسواپ</span>
+        </button>
+    </div>
+</div>
+</div>
+</section>
+
 <!-- Panel Access URL, Custom Port & Language Settings -->
 <section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
 <!-- Panel Access URL & Port Settings Card -->

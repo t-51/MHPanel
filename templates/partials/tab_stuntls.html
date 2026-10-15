@@ -47,6 +47,59 @@
                 </div>
             </div>
 
+            <!-- Visual Architecture & Connection Pipeline -->
+            <div style="margin-bottom: 18px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="git-commit" style="width:14px; height:14px; color:#a855f7;"></i>
+                    <span data-i18n="stuntls_pipeline_title">پایپ‌لاین معماری و استتار پکت‌های StunTLS:</span>
+                </div>
+                <div class="proto-pipeline-container">
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(168,85,247,0.15); color:#c084fc;">
+                            <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="stuntls_pipe_client">کلاینت استتار</div>
+                        <div class="proto-pipeline-subtitle">StunTLS Client</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(14,165,233,0.15); color:#38bdf8;">
+                            <i data-lucide="radio-tower" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="stuntls_pipe_header">پوشش RFC 5389</div>
+                        <div class="proto-pipeline-subtitle">WebRTC STUN Frame</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                            <i data-lucide="activity" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="stuntls_pipe_jitter">شبیه‌سازی تاخیر (Jitter)</div>
+                        <div class="proto-pipeline-subtitle" id="stuntls-arch-jitter-label">VoIP Jitter Simulator</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(139,92,246,0.15); color:#a78bfa;">
+                            <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="stuntls_pipe_auth">احراز هویت و ردیوس</div>
+                        <div class="proto-pipeline-subtitle" id="stuntls-arch-auth-label">Local / FreeRADIUS</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                            <i data-lucide="arrow-right-circle" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="stuntls_pipe_upstream">هدایت به مقصد</div>
+                        <div class="proto-pipeline-subtitle" id="stuntls-arch-upstream-label">127.0.0.1:22 (SSH)</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Service Control Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('stuntls', 'restart')" style="width:auto; padding: 8px 16px;">
@@ -63,43 +116,138 @@
             <div class="config-header">
                 <h3 class="config-title">
                     <i data-lucide="sliders" style="color: #a855f7; width: 20px; height: 20px;"></i>
-                    <span data-i18n="stuntls_config_title">تنظیمات اصلی و رمزنگاری StunTLS</span>
+                    <span data-i18n="stuntls_config_title">تنظیمات اصلی، درگاه و استتار StunTLS</span>
                 </h3>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div style="display:flex; flex-direction:column; gap:16px;">
                 <div>
-                    <label class="form-label" data-i18n="port">پورت سرور (STUN Port)</label>
+                    <label class="form-label" data-i18n="port">پورت شنود سرور (STUN Port)</label>
                     <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="stuntls-cfg-port" placeholder="3478" min="1" max="65535">
-                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="stuntls_port_hint">
-                        پورت استاندارد ۳۴۷۸ یا ۵۳۴۹ مربوط به سرورهای WebRTC/STUN بین‌المللی است.
-                    </span>
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="stuntls_secret_key">کلید امنیتی اشتراکی (Pre-Shared Secret)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="stuntls-cfg-secret" placeholder="mhpanel_stuntls_key">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('stuntls-cfg-secret', 24)" title="تولید کلید رندوم">
-                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
-                        </button>
+                    <div class="quick-chip-group">
+                        <span style="font-size:11px; color:var(--text-muted); align-self:center; margin-left:4px;" data-i18n="quick_select">انتخاب سریع:</span>
+                        <button type="button" class="quick-chip active" onclick="document.getElementById('stuntls-cfg-port').value=3478">3478 (WebRTC STUN)</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('stuntls-cfg-port').value=5349">5349 (STUN TLS)</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('stuntls-cfg-port').value=8443">8443</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('stuntls-cfg-port').value=443">443</button>
                     </div>
                 </div>
 
-                <div>
-                    <label class="form-label" data-i18n="upstream">مقصد فوروارد ترافیک استخراج‌شده (Target)</label>
-                    <select class="form-input" id="stuntls-cfg-upstream">
-                        <option value="127.0.0.1:22">127.0.0.1:22 (SSH لینوکس)</option>
-                        <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس اختصاصی SSH)</option>
-                        <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div>
+                        <label class="form-label" data-i18n="stuntls_secret_key">کلید امنیتی اشتراکی پیش‌فرض (Secret Key)</label>
+                        <div style="display:flex; gap:8px;">
+                            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="stuntls-cfg-secret" placeholder="mhpanel_stuntls_key">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('stuntls-cfg-secret', 24)" title="تولید کلید رندوم">
+                                <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="upstream">مقصد فوروارد ترافیک استخراج‌شده (Target)</label>
+                        <select class="form-input" id="stuntls-cfg-upstream">
+                            <option value="127.0.0.1:22">127.0.0.1:22 (SSH لینوکس)</option>
+                            <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس اختصاصی SSH)</option>
+                            <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="stuntls_profile">پروفایل هدر استتار (STUN Header Profile)</label>
+                        <select class="form-input" id="stuntls-cfg-mode">
+                            <option value="webrtc_stun" selected>RFC 5389 WebRTC STUN (استاندارد مرورگرها)</option>
+                            <option value="voip_stun">VoIP SIP STUN (شبیه‌سازی مکالمات تلفنی)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Jitter Simulation Switch -->
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+                    <div>
+                        <div style="font-weight:700; font-size:12.5px;">شبیه‌سازی تاخیر و نوسان پکت‌ها (Jitter Simulation)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">تزریق تاخیرهای تصادفی چند میلی‌ثانیه‌ای برای شکستن الگوهای یادگیری ماشین سامانه‌های فیلترینگ</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="stuntls-cfg-jitter">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="margin-top: 6px; display:flex; justify-content:flex-end;">
+                    <button type="button" class="btn btn-primary" onclick="saveStunTlsConfig()" style="width:auto; padding: 10px 28px; font-weight:700;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال بلادرنگ تنظیمات StunTLS</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- StunTLS Multi-User & FreeRADIUS Hub Card -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(168, 85, 247, 0.25);">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="users" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="stuntls_users_hub_title">
+                            مدیریت کاربران و احراز هویت با FreeRADIUS (StunTLS)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="proto_users_hub_desc">
+                            تعریف کاربران محلی یا اتصال به یوزر منیجر FreeRADIUS (میکروتیک)، تفکیک مصرف آپلود و دانلود و سقف انقضا
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="syncProtocolAccounting('stuntls')" style="padding:7px 14px; font-size:12px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sync_freeradius">همگام‌سازی FreeRADIUS</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddProtocolUserModal('stuntls')" style="padding:7px 16px; font-size:12px; font-weight:700;">
+                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="add_user">کاربر جدید</span>
+                    </button>
                 </div>
             </div>
 
-            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn btn-primary" onclick="saveStunTlsConfig()" style="width:auto; padding: 9px 24px;">
-                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات StunTLS</span>
-                </button>
+            <!-- Auth Mode Switcher -->
+            <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow); margin-bottom:16px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:15px; height:15px; color:#a855f7;"></i>
+                    <span data-i18n="auth_mode_selector_title">حالت احراز هویت و مدیریت اکانت‌ها:</span>
+                </div>
+                <div class="proto-card-selector" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+                    <div class="proto-card-option" id="stuntls-authmode-dual" onclick="setProtocolAuthMode('stuntls', 'dual')">
+                        <div style="font-weight:700; font-size:12.5px; color:#38bdf8;">حالت دوگانه (Dual Mode)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">بررسی کاربران محلی + FreeRADIUS (پیشنهادی)</div>
+                    </div>
+                    <div class="proto-card-option" id="stuntls-authmode-radius" onclick="setProtocolAuthMode('stuntls', 'radius')">
+                        <div style="font-weight:700; font-size:12.5px; color:#10b981;">فقط FreeRADIUS</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">مدیریت متمرکز یوزر منیجر میکروتیک</div>
+                    </div>
+                    <div class="proto-card-option" id="stuntls-authmode-local" onclick="setProtocolAuthMode('stuntls', 'local')">
+                        <div style="font-weight:700; font-size:12.5px; color:#f59e0b;">فقط کاربران محلی (Local)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">دیتابیس مستقل بدون اتصال به ردیوس</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border-glow);">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
+                    <thead>
+                        <tr style="background:var(--bg-muted); border-bottom:1px solid var(--border-glow); color:var(--text-main); font-weight:700;">
+                            <th style="padding:10px 12px;" data-i18n="col_user">نام کاربری</th>
+                            <th style="padding:10px 12px;" data-i18n="col_password">کلید اختصاصی</th>
+                            <th style="padding:10px 12px;" data-i18n="col_source">منبع</th>
+                            <th style="padding:10px 12px;" data-i18n="col_traffic_usage">میزان مصرف (آپلود / دانلود)</th>
+                            <th style="padding:10px 12px;" data-i18n="col_expire">تاریخ انقضا</th>
+                            <th style="padding:10px 12px;" data-i18n="col_status">وضعیت</th>
+                            <th style="padding:10px 12px; text-align:center;" data-i18n="col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stuntls-users-table-body">
+                        <!-- User rows inject here -->
+                    </tbody>
+                </table>
             </div>
         </div>
 

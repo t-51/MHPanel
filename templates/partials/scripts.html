@@ -1268,6 +1268,46 @@
             document.getElementById("disk-val").innerText = data.disk.percent + " %";
             document.getElementById("disk-meta").innerText = `${diskUsedGb} GB / ${diskTotalGb} GB`;
             
+            // Update SWAP stats
+            if (data.swap) {
+                const swapUsedGb = (data.swap.used / (1024 ** 3)).toFixed(1);
+                const swapTotalGb = (data.swap.total / (1024 ** 3)).toFixed(1);
+                const swapFreeGb = (data.swap.free / (1024 ** 3)).toFixed(1);
+                const swapPercent = data.swap.percent || 0;
+                const swappiness = data.swap.swappiness !== undefined ? data.swap.swappiness : 60;
+                
+                // Overview card
+                const swapValEl = document.getElementById("swap-val");
+                if (swapValEl) swapValEl.innerText = swapPercent + " %";
+                const swapMetaEl = document.getElementById("swap-meta");
+                if (swapMetaEl) swapMetaEl.innerText = `${swapUsedGb} GB / ${swapTotalGb} GB`;
+
+                // Overview hardware specs item 5
+                const specSwapTotalEl = document.getElementById("spec-swap-total-val");
+                if (specSwapTotalEl) specSwapTotalEl.innerText = `${swapTotalGb} GB (${swapPercent}%)`;
+                const specSwapSubEl = document.getElementById("spec-swap-sub-val");
+                if (specSwapSubEl) {
+                    const lang = localStorage.getItem("panel_language") || "fa";
+                    const fWord = (lang === "fa" ? "آزاد" : (lang === "ru" ? "Свободно" : "Free"));
+                    const uWord = (lang === "fa" ? "مصرفی" : (lang === "ru" ? "Использовано" : "Used"));
+                    specSwapSubEl.innerText = `Swappiness: ${swappiness} | ${uWord}: ${swapUsedGb} GB | ${fWord}: ${swapFreeGb} GB`;
+                }
+
+                // System tab SWAP manager elements if visible
+                const mgrTotalEl = document.getElementById("swap-mgr-total");
+                if (mgrTotalEl) mgrTotalEl.innerText = `${swapTotalGb} GB`;
+                const mgrUsedEl = document.getElementById("swap-mgr-used");
+                if (mgrUsedEl) mgrUsedEl.innerText = `${swapUsedGb} GB (${swapPercent}%)`;
+                const mgrFreeEl = document.getElementById("swap-mgr-free");
+                if (mgrFreeEl) mgrFreeEl.innerText = `${swapFreeGb} GB`;
+                const mgrSwappinessEl = document.getElementById("swap-mgr-swappiness");
+                if (mgrSwappinessEl) mgrSwappinessEl.innerText = swappiness;
+                const mgrPercentLabelEl = document.getElementById("swap-mgr-percent-label");
+                if (mgrPercentLabelEl) mgrPercentLabelEl.innerText = `${swapPercent}%`;
+                const mgrProgressEl = document.getElementById("swap-mgr-progress");
+                if (mgrProgressEl) mgrProgressEl.style.width = `${swapPercent}%`;
+            }
+            
             const currentRecv = data.network.bytes_recv;
             const currentSent = data.network.bytes_sent;
             
@@ -4824,6 +4864,7 @@
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+            fetchProtocolUsers('tuic');
         } catch (e) {
             console.error("fetchTuicConfig error:", e);
         }
@@ -4955,6 +4996,7 @@
             if (document.getElementById("ss-link-domain-name")) document.getElementById("ss-link-domain-name").textContent = data.domain;
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+            fetchProtocolUsers('shadowsocks');
         } catch (e) {
             console.error("fetchShadowsocksConfig error:", e);
         }
@@ -5337,9 +5379,11 @@
             fetchServers();
         } else if (tabId === "tuic") {
             fetchTuicConfig();
+            fetchProtocolUsers('tuic');
         } else if (tabId === "shadowsocks") {
             fetchShadowsocksConfig();
             fetchShadowsocksClients();
+            fetchProtocolUsers('shadowsocks');
         } else if (tabId === "mtproto") {
             fetchMtprotoInstances();
             fetchProxyClients();
@@ -5369,6 +5413,7 @@
             fetchBbrStatus();
             fetchSystemDomain();
             fetchPanelAccess();
+            fetchSwapStatus();
         } else if (tabId === "multiplexer") {
             fetchMultiplexerConfig();
         } else if (tabId === "openvpn") {
@@ -5382,12 +5427,15 @@
             fetchRadiusData();
         } else if (tabId === "hysteria2") {
             fetchHysteria2Config();
+            fetchProtocolUsers('hysteria2');
         } else if (tabId === "trojan") {
             fetchTrojanConfig();
+            fetchProtocolUsers('trojan');
         } else if (tabId === "naiveproxy") {
             fetchNaiveProxyConfig();
         } else if (tabId === "stuntls") {
             fetchStunTlsConfig();
+            fetchProtocolUsers('stuntls');
         } else if (tabId === "tor") {
             fetchTorConfig();
         } else if (tabId === "dns-management") {
@@ -13327,6 +13375,12 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("hysteria2-clash-snippet")) {
                 document.getElementById("hysteria2-clash-snippet").value = data.clash_snippet || "";
             }
+
+            if (document.getElementById("hysteria2-cfg-port-hop")) document.getElementById("hysteria2-cfg-port-hop").value = data.port_hop || "20000:50000";
+            if (document.getElementById("hysteria2-cfg-masq-url")) document.getElementById("hysteria2-cfg-masq-url").value = data.masq_url || "https://bing.com";
+            if (document.getElementById("hysteria2-cfg-disable-pmtu")) document.getElementById("hysteria2-cfg-disable-pmtu").checked = (data.disable_pmtu !== false);
+
+            fetchProtocolUsers('hysteria2');
         } catch (e) {
             console.error("fetchHysteria2Config error:", e);
         }
@@ -13380,13 +13434,16 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const down_mbps = parseInt(document.getElementById("hysteria2-cfg-down").value) || 100;
         const sni = document.getElementById("hysteria2-cfg-domain") ? document.getElementById("hysteria2-cfg-domain").value.trim() : "";
         const quic_preset = document.getElementById("hysteria2-cfg-quic-preset") ? document.getElementById("hysteria2-cfg-quic-preset").value : "balanced";
+        const port_hop = document.getElementById("hysteria2-cfg-port-hop") ? document.getElementById("hysteria2-cfg-port-hop").value.trim() : "20000:50000";
+        const masq_url = document.getElementById("hysteria2-cfg-masq-url") ? document.getElementById("hysteria2-cfg-masq-url").value.trim() : "https://bing.com";
+        const disable_pmtu = document.getElementById("hysteria2-cfg-disable-pmtu") ? document.getElementById("hysteria2-cfg-disable-pmtu").checked : true;
 
         toggleLoading(true, "ذخیره و اعمال تنظیمات Hysteria 2...");
         try {
             const res = await fetch("/api/hysteria2/config", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ port, password, obfs_enabled, obfs_password, up_mbps, down_mbps, sni, quic_preset })
+                body: JSON.stringify({ port, password, obfs_enabled, obfs_password, up_mbps, down_mbps, sni, quic_preset, port_hop, masq_url, disable_pmtu })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -13482,6 +13539,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("trojan-singbox-snippet")) {
                 document.getElementById("trojan-singbox-snippet").value = data.singbox_snippet || "";
             }
+
+            fetchProtocolUsers('trojan');
         } catch (e) {
             console.error("fetchTrojanConfig error:", e);
         }
@@ -13683,6 +13742,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("stuntls-cfg-secret")) document.getElementById("stuntls-cfg-secret").value = data.secret;
             if (document.getElementById("stuntls-cfg-upstream")) document.getElementById("stuntls-cfg-upstream").value = data.upstream;
             if (document.getElementById("stuntls-client-cmd")) document.getElementById("stuntls-client-cmd").value = data.client_cmd || "";
+            if (document.getElementById("stuntls-cfg-mode")) document.getElementById("stuntls-cfg-mode").value = data.mode || "webrtc_stun";
+            if (document.getElementById("stuntls-cfg-jitter")) document.getElementById("stuntls-cfg-jitter").checked = Boolean(data.jitter);
+
+            fetchProtocolUsers('stuntls');
         } catch (e) {
             console.error("fetchStunTlsConfig error:", e);
         }
@@ -13692,13 +13755,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const port = parseInt(document.getElementById("stuntls-cfg-port").value) || 3478;
         const secret = document.getElementById("stuntls-cfg-secret").value.trim();
         const upstream = document.getElementById("stuntls-cfg-upstream").value.trim();
+        const mode = document.getElementById("stuntls-cfg-mode") ? document.getElementById("stuntls-cfg-mode").value : "webrtc_stun";
+        const jitter = document.getElementById("stuntls-cfg-jitter") ? document.getElementById("stuntls-cfg-jitter").checked : false;
 
         toggleLoading(true, "ذخیره تنظیمات StunTLS...");
         try {
             const res = await fetch("/api/stuntls/config", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ port, secret, upstream })
+                body: JSON.stringify({ port, secret, upstream, mode, jitter })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -14157,6 +14222,414 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         fetchSystemDns();
         fetchProtocolDnsRouting();
         showToast("اطلاعات DNS Hub بروزرسانی شد", "info");
+    }
+
+    // ==========================================
+    // SWAP Memory Studio & Management Functions
+    // ==========================================
+    async function fetchSwapStatus() {
+        try {
+            const res = await fetch("/api/system/swap");
+            if (!res.ok) return;
+            const d = await res.json();
+            if (d.success && d.swap) {
+                const swap = d.swap;
+                const swapUsedGb = (swap.used / (1024 ** 3)).toFixed(1);
+                const swapTotalGb = (swap.total / (1024 ** 3)).toFixed(1);
+                const swapFreeGb = (swap.free / (1024 ** 3)).toFixed(1);
+                const swapPercent = swap.percent || 0;
+                const swappiness = swap.swappiness !== undefined ? swap.swappiness : 60;
+
+                const mgrTotalEl = document.getElementById("swap-mgr-total");
+                if (mgrTotalEl) mgrTotalEl.innerText = `${swapTotalGb} GB`;
+                const mgrUsedEl = document.getElementById("swap-mgr-used");
+                if (mgrUsedEl) mgrUsedEl.innerText = `${swapUsedGb} GB (${swapPercent}%)`;
+                const mgrFreeEl = document.getElementById("swap-mgr-free");
+                if (mgrFreeEl) mgrFreeEl.innerText = `${swapFreeGb} GB`;
+                const mgrSwappinessEl = document.getElementById("swap-mgr-swappiness");
+                if (mgrSwappinessEl) mgrSwappinessEl.innerText = swappiness;
+                const mgrPercentLabelEl = document.getElementById("swap-mgr-percent-label");
+                if (mgrPercentLabelEl) mgrPercentLabelEl.innerText = `${swapPercent}%`;
+                const mgrProgressEl = document.getElementById("swap-mgr-progress");
+                if (mgrProgressEl) mgrProgressEl.style.width = `${swapPercent}%`;
+            }
+        } catch (e) {
+            console.error("fetchSwapStatus error:", e);
+        }
+    }
+
+    async function resizeSwap(sizeGb) {
+        if (!confirm(`آیا از تغییر حجم حافظه اسواپ به ${sizeGb} گیگابایت اطمینان دارید؟`)) return;
+        toggleLoading(true, `در حال ایجاد و تغییر اندازه فایل اسواپ به ${sizeGb} GB...`);
+        try {
+            const res = await fetch("/api/system/swap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "resize", size_gb: sizeGb })
+            });
+            const d = await res.json();
+            toggleLoading(false);
+            if (d.success) {
+                showToast(d.message || "حجم اسواپ با موفقیت تغییر یافت", "success");
+                fetchStats();
+                fetchSwapStatus();
+            } else {
+                showToast(d.error || "خطا در تغییر حجم اسواپ", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه: " + e.message, "error");
+        }
+    }
+
+    async function setSwappiness(val) {
+        toggleLoading(true, `در حال تنظیم شاخص Swappiness به ${val}...`);
+        try {
+            const res = await fetch("/api/system/swap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "swappiness", swappiness: val })
+            });
+            const d = await res.json();
+            toggleLoading(false);
+            if (d.success) {
+                showToast(d.message || "شاخص Swappiness با موفقیت ذخیره شد", "success");
+                fetchStats();
+                fetchSwapStatus();
+            } else {
+                showToast(d.error || "خطا در تنظیم Swappiness", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه: " + e.message, "error");
+        }
+    }
+
+    async function flushSwapCache() {
+        if (!confirm("آیا از تخلیه کامل کش‌های حافظه و بازنشانی اسواپ اطمینان دارید؟")) return;
+        toggleLoading(true, "در حال پاکسازی کش‌های کرنل و تخلیه اسواپ...");
+        try {
+            const res = await fetch("/api/system/swap", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "flush" })
+            });
+            const d = await res.json();
+            toggleLoading(false);
+            if (d.success) {
+                showToast(d.message || "حافظه اسواپ با موفقیت تخلیه و پاکسازی شد", "success");
+                fetchStats();
+                fetchSwapStatus();
+            } else {
+                showToast(d.error || "خطا در تخلیه حافظه اسواپ", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه: " + e.message, "error");
+        }
+    }
+
+    // ==========================================
+    // Multi-User Management & FreeRADIUS Accounting
+    // ==========================================
+    function openAddProtocolUserModal(proto) {
+        const modal = document.getElementById("protocolUserModal");
+        if (!modal) return;
+        document.getElementById("proto-user-modal-protocol").value = proto;
+        const protoTitles = {
+            hysteria2: "Hysteria 2",
+            tuic: "TUIC v5",
+            shadowsocks: "Shadowsocks-rust",
+            stuntls: "StunTLS",
+            trojan: "Trojan-GFW"
+        };
+        const titleEl = document.getElementById("proto-user-modal-title");
+        if (titleEl) {
+            titleEl.textContent = `افزودن کاربر جدید (${protoTitles[proto] || proto})`;
+        }
+        document.getElementById("proto-user-input-username").value = "";
+        document.getElementById("proto-user-input-password").value = "";
+        document.getElementById("proto-user-input-upload-limit").value = "";
+        document.getElementById("proto-user-input-download-limit").value = "";
+        document.getElementById("proto-user-input-traffic-limit").value = "";
+        document.getElementById("proto-user-input-expire").value = "";
+        document.getElementById("proto-user-input-active").checked = true;
+
+        generateRandomToInput("proto-user-input-password", 14);
+
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeProtocolUserModal() {
+        const modal = document.getElementById("protocolUserModal");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function submitProtocolUser() {
+        const proto = document.getElementById("proto-user-modal-protocol").value;
+        const username = document.getElementById("proto-user-input-username").value.trim();
+        const password = document.getElementById("proto-user-input-password").value.trim();
+        const auth_mode = document.getElementById("proto-user-input-authmode").value;
+        const upload_limit_gb = parseFloat(document.getElementById("proto-user-input-upload-limit").value) || 0;
+        const download_limit_gb = parseFloat(document.getElementById("proto-user-input-download-limit").value) || 0;
+        const traffic_limit_gb = parseFloat(document.getElementById("proto-user-input-traffic-limit").value) || 0;
+        const expire_date = document.getElementById("proto-user-input-expire").value.trim() || null;
+        const is_active = document.getElementById("proto-user-input-active").checked ? 1 : 0;
+
+        if (!username || !password) {
+            showToast("لطفاً نام کاربری و رمز عبور را وارد کنید", "error");
+            return;
+        }
+
+        toggleLoading(true, "در حال ایجاد کاربر و همگام‌سازی...");
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/users`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    password,
+                    auth_mode,
+                    upload_limit_gb,
+                    download_limit_gb,
+                    traffic_limit_gb,
+                    expire_date,
+                    active: is_active
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(data.message || "کاربر با موفقیت ذخیره شد", "success");
+                closeProtocolUserModal();
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در ثبت کاربر", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه: " + e.message, "error");
+        }
+    }
+
+    function updateAuthModeUI(proto, mode) {
+        ['dual', 'radius', 'local'].forEach(m => {
+            const el = document.getElementById(`${proto}-authmode-${m}`);
+            if (el) {
+                if (m === mode) {
+                    el.classList.add("active");
+                    el.style.borderColor = "var(--color-primary)";
+                    el.style.background = "rgba(99, 102, 241, 0.12)";
+                } else {
+                    el.classList.remove("active");
+                    el.style.borderColor = "var(--border-glow)";
+                    el.style.background = "var(--bg-base)";
+                }
+            }
+        });
+    }
+
+    async function setProtocolAuthMode(proto, mode) {
+        updateAuthModeUI(proto, mode);
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/auth-mode`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || `حالت احراز هویت به ${mode} تغییر یافت`, "success");
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در تغییر حالت احراز هویت", "error");
+            }
+        } catch (e) {
+            showToast("خطای شبکه: " + e.message, "error");
+        }
+    }
+
+    async function fetchProtocolUsers(proto) {
+        const tbody = document.getElementById(`${proto}-users-table-body`);
+        if (!tbody) return;
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/users`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success && data.users === undefined) return;
+
+            if (data.auth_mode) {
+                updateAuthModeUI(proto, data.auth_mode);
+            }
+
+            const users = data.users || [];
+            tbody.innerHTML = "";
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:18px; color:var(--text-muted); font-size:12.5px;">هیچ کاربری یافت نشد. کاربر جدید ثبت کنید.</td></tr>`;
+                return;
+            }
+
+            users.forEach(u => {
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid var(--border-glow)";
+
+                let sourceBadge = `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(99,102,241,0.15); color:#818cf8; font-weight:600;">محلی (Local)</span>`;
+                if (u.source === "radius") {
+                    sourceBadge = `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(168,85,247,0.15); color:#c084fc; font-weight:600;"><i data-lucide="radio" style="width:11px; height:11px;"></i> FreeRADIUS</span>`;
+                } else if (u.source === "dual") {
+                    sourceBadge = `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(16,185,129,0.15); color:#34d399; font-weight:600;"><i data-lucide="link-2" style="width:11px; height:11px;"></i> دوگانه (Dual)</span>`;
+                }
+
+                const upStr = (u.used_upload_gb !== undefined) ? `${u.used_upload_gb} GB` : formatBytes(u.upload_bytes || 0);
+                const downStr = (u.used_download_gb !== undefined) ? `${u.used_download_gb} GB` : formatBytes(u.download_bytes || 0);
+                const totUsedStr = (u.total_used_gb !== undefined) ? `${u.total_used_gb} GB` : formatBytes((u.upload_bytes || 0) + (u.download_bytes || 0));
+                
+                let limitStr = "";
+                if (u.traffic_limit_gb && u.traffic_limit_gb > 0) {
+                    limitStr = ` / سقف: ${u.traffic_limit_gb} GB`;
+                }
+
+                const expStr = u.expire_date ? u.expire_date : "دائمی (نامحدود)";
+
+                const isActive = (u.active === 1 || u.active === true);
+                let statusBadge = isActive
+                    ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(16,185,129,0.15); color:#10b981; font-weight:700;"><span class="status-dot active"></span> فعال</span>`
+                    : `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(239,68,68,0.15); color:#ef4444; font-weight:700;"><span class="status-dot inactive"></span> غیرفعال</span>`;
+
+                if (u.status === "expired") {
+                    statusBadge = `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(245,158,11,0.15); color:#f59e0b; font-weight:700;">منقضی</span>`;
+                } else if (u.status === "quota_exceeded") {
+                    statusBadge = `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:12px; font-size:11px; background:rgba(239,68,68,0.15); color:#ef4444; font-weight:700;">اتمام حجم</span>`;
+                }
+
+                const maskedPass = u.password ? (u.password.length > 14 ? u.password.substring(0, 12) + "..." : u.password) : "-";
+
+                tr.innerHTML = `
+                    <td style="padding:10px 12px; font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">
+                        ${escapeHtml(u.username)}
+                    </td>
+                    <td style="padding:10px 12px; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-muted);">
+                        <span title="${escapeHtml(u.password)}">${escapeHtml(maskedPass)}</span>
+                        <button type="button" class="btn-icon" style="background:none; border:none; cursor:pointer; color:var(--color-primary); padding:2px 4px; margin-inline-start:4px;" onclick="navigator.clipboard.writeText('${escapeHtml(u.password)}'); showToast('رمز عبور کپی شد', 'success');" title="کپی رمز">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                        </button>
+                    </td>
+                    <td style="padding:10px 12px;">${sourceBadge}</td>
+                    <td style="padding:10px 12px; font-size:11.5px; color:var(--text-main);">
+                        <div style="font-weight:600; color:#38bdf8;">کل: ${totUsedStr} ${limitStr}</div>
+                        <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">
+                            <span>↑ ${upStr}</span> | <span>↓ ${downStr}</span>
+                        </div>
+                    </td>
+                    <td style="padding:10px 12px; font-size:11.5px; color:var(--text-main); font-family:'JetBrains Mono',monospace;">
+                        ${escapeHtml(expStr)}
+                    </td>
+                    <td style="padding:10px 12px;">${statusBadge}</td>
+                    <td style="padding:10px 12px; text-align:center;">
+                        <div style="display:inline-flex; gap:6px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleProtocolUser('${proto}', '${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:11px;" title="${isActive ? 'غیرفعال‌سازی' : 'فعال‌سازی'}">
+                                <i data-lucide="${isActive ? 'pause' : 'play'}" style="width:12px; height:12px; color:${isActive ? '#f59e0b' : '#10b981'};"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="resetProtocolUserTraffic('${proto}', '${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:11px;" title="صفر کردن مصرف حجم">
+                                <i data-lucide="rotate-ccw" style="width:12px; height:12px; color:#38bdf8;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="deleteProtocolUser('${proto}', '${escapeHtml(u.username)}')" style="padding:4px 8px; font-size:11px;" title="حذف کاربر">
+                                <i data-lucide="trash-2" style="width:12px; height:12px; color:#ef4444;"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (e) {
+            console.error(`fetchProtocolUsers(${proto}) error:`, e);
+        }
+    }
+
+    async function toggleProtocolUser(proto, username) {
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/user/toggle`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || "وضعیت کاربر تغییر یافت", "success");
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در تغییر وضعیت", "error");
+            }
+        } catch (e) {
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+    }
+
+    async function resetProtocolUserTraffic(proto, username) {
+        if (!confirm(`آیا از بازنشانی و صفر کردن ترافیک کاربر ${username} اطمینان دارید؟`)) return;
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/user/reset`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || "حجم مصرفی کاربر صفر شد", "success");
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در بازنشانی حجم", "error");
+            }
+        } catch (e) {
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+    }
+
+    async function deleteProtocolUser(proto, username) {
+        if (!confirm(`آیا از حذف کاربر ${username} اطمینان دارید؟`)) return;
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/users`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.message || "کاربر با موفقیت حذف شد", "success");
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در حذف کاربر", "error");
+            }
+        } catch (e) {
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+    }
+
+    async function syncProtocolAccounting(proto) {
+        toggleLoading(true, `در حال همگام‌سازی احراز هویت و اکانتینگ ${proto}...`);
+        try {
+            const res = await fetch(`/api/protocol-accounting/${proto}/sync`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(data.message || "همگام‌سازی با موفقیت انجام شد", "success");
+                fetchProtocolUsers(proto);
+            } else {
+                showToast(data.error || "خطا در همگام‌سازی", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در همگام‌سازی", "error");
+        }
     }
 
     // Check updates quietly in background on page load

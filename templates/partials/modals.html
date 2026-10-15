@@ -384,7 +384,7 @@
 </div>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 20px;">
-<div data-i18n="modal_limitation_hours_days_access_login" style="font-size: 12.5px; font-weight: 700; color: #334155; margin-bottom: 8px;">محدودیت ساعت و روزهای دسترسی (Login-Time)</div>
+<div data-i18n="modal_limitation_hours_days_access_login" style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">محدودیت ساعت و روزهای دسترسی (Login-Time)</div>
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
 <div>
 <label data-i18n="rad_allowed_days" style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
@@ -506,7 +506,7 @@
 </div>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-<div data-i18n="modal_setting_allowed_connection_times_freera" style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
+<div data-i18n="modal_setting_allowed_connection_times_freera" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
 <div>
 <label data-i18n="modal_active_days" style="font-size: 11px; color: #64748b;">روزهای فعال:</label>
@@ -554,9 +554,9 @@
 <input id="assign-cert-id" type="hidden"/>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px; margin-bottom: 16px;">
 <span data-i18n="modal_item_16" style="font-size: 11px; color: var(--text-muted); display: block;">گواهی انتخاب‌شده:</span>
-<strong id="assign-cert-title" style="font-size: 13.5px; color: #1e293b; display: block; margin-top: 2px;">--</strong>
+<strong id="assign-cert-title" style="font-size: 13.5px; color: var(--text-main); display: block; margin-top: 2px;">--</strong>
 </div>
-<p data-i18n="modal_item_11" style="font-size: 12.5px; color: #475569; margin-bottom: 14px;">
+<p data-i18n="modal_item_11" style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
                 پروتکل‌هایی که می‌خواهید از این گواهی برای رمزنگاری و اتصال کاربران استفاده کنند را علامت بزنید:
             </p>
 <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px;">
@@ -591,7 +591,7 @@
 <label style="display:flex; align-items:center; justify-content:space-between; background: var(--bg-base); border: 1px solid var(--border-glow); padding:10px 14px; border-radius:10px; cursor:pointer;">
 <div style="display:flex; align-items:center; gap:8px;">
 <input name="assign-proto-chk" type="checkbox" value="panel"/>
-<strong data-i18n="modal_management_web_panel_https_web" style="font-size:13px; color:#334155;">پنل وب مدیریت (HTTPS Web)</strong>
+<strong data-i18n="modal_management_web_panel_https_web" style="font-size:13px; color:var(--text-main);">پنل وب مدیریت (HTTPS Web)</strong>
 </div>
 <span data-i18n="modal_dashboard_panel" style="font-size:11px; color:#475569; background:#e2e8f0; padding:2px 8px; border-radius:6px;">داشبورد پنل</span>
 </label>
@@ -821,11 +821,11 @@
 </div>
 <!-- Checkbox Options -->
 <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 12px 14px;">
-<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#1e293b;">
+<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--text-main);">
 <input checked="" id="tun-opt-nat" type="checkbox"/>
 <strong data-i18n="modal_automatic_activation_nat_masquerade_pos">فعال‌سازی خودکار NAT Masquerade (امکان روت و انتقال اینترنت)</strong>
 </label>
-<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:#1e293b;">
+<label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px; color:var(--text-main);">
 <input checked="" id="tun-opt-mss" type="checkbox"/>
 <span data-i18n="modal_optimizing_packets_tcp_mss_clamping">بهینه‌سازی پکت‌ها با TCP MSS Clamping (جلوگیری از دراپ شدن پکت‌های بزرگ)</span>
 </label>
@@ -892,7 +892,7 @@
 </label>
 <label id="adv-card-frp" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="frp"/>
-<strong style="display:block; font-size:13px; color:#334155;">FRP</strong>
+<strong style="display:block; font-size:13px; color:var(--text-main);">FRP</strong>
 <span style="font-size:10px; color:#64748b;">Fast Reverse Proxy</span>
 </label>
 <label id="adv-card-kcptun" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
@@ -1021,7 +1021,7 @@
 <div style="padding: 24px;">
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
 <div data-i18n-html="elem_modals_2" style="font-size: 13px; color: var(--text-muted);">
-                    تونل انتخابی: <strong id="scripts-modal-tun-name" style="color:#0f172a; font-family:'JetBrains Mono';">--</strong>
+                    تونل انتخابی: <strong id="scripts-modal-tun-name" style="color:var(--text-main); font-family:'JetBrains Mono';">--</strong>
                     (<span id="scripts-modal-tun-type" style="color:#4f46e5; font-weight:700;">--</span>)
                 </div>
 <!-- Script Tabs -->
@@ -1328,3 +1328,88 @@
 </div>
 </div>
 </div>
+
+<!-- ========================================== -->
+<!-- MODAL: PROTOCOL MULTI-USER & FREERADIUS -->
+<!-- ========================================== -->
+<div class="modal" id="protocolUserModal" style="display: none;">
+<div class="modal-content glass-card" style="max-width: 520px; width: 100%;">
+<header class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<i data-lucide="user-plus" style="color: #6366f1; width: 22px; height: 22px;"></i>
+<h3 id="proto-user-modal-title" style="margin: 0; font-size: 16px; font-weight: 700;">افزودن کاربر جدید</h3>
+</div>
+<button class="modal-close" onclick="closeProtocolUserModal()" type="button"><i data-lucide="x"></i></button>
+</header>
+<div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+    <input type="hidden" id="proto-user-modal-protocol" value="hysteria2">
+    
+    <div>
+        <label class="form-label" data-i18n="username" style="font-weight:600; font-size:12px;">نام کاربری (Username / UUID)</label>
+        <div style="display:flex; gap:8px;">
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="proto-user-input-username" placeholder="مثلا user1 یا UUID">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('proto-user-input-username', 10)" title="تولید نام رندوم">
+                <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <label class="form-label" data-i18n="password" style="font-weight:600; font-size:12px;">رمز عبور / کلید احراز هویت (Password / Key)</label>
+        <div style="display:flex; gap:8px;">
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="proto-user-input-password" placeholder="کلمه عبور اختصاصی">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('proto-user-input-password', 16)" title="تولید رمز ایمن">
+                <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+            </button>
+        </div>
+    </div>
+
+    <div>
+        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="auth_mode">حالت اتصال و همگام‌سازی احراز هویت</label>
+        <select class="form-input" id="proto-user-input-authmode">
+            <option value="dual" selected>حالت دوگانه: ثبت در دیتابیس پروتکل و FreeRADIUS (پیشنهادی)</option>
+            <option value="radius">فقط FreeRADIUS (یوزر منیجر میکروتیک)</option>
+            <option value="local">فقط محلی (Local Standalone)</option>
+        </select>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+            <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="upload_limit">سقف آپلود (گیگابایت)</label>
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono';" type="number" id="proto-user-input-upload-limit" placeholder="0 = نامحدود" min="0" step="0.5">
+        </div>
+        <div>
+            <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="download_limit">سقف دانلود (گیگابایت)</label>
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono';" type="number" id="proto-user-input-download-limit" placeholder="0 = نامحدود" min="0" step="0.5">
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div>
+            <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="total_limit">سقف کل ترافیک (گیگابایت)</label>
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono';" type="number" id="proto-user-input-traffic-limit" placeholder="0 = نامحدود" min="0" step="0.5">
+        </div>
+        <div>
+            <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="expire_date">تاریخ انقضا (YYYY-MM-DD)</label>
+            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono';" type="date" id="proto-user-input-expire">
+        </div>
+    </div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
+        <span style="font-size:12.5px; font-weight:600;" data-i18n="active_status">وضعیت کاربر فعال باشد</span>
+        <label class="switch">
+            <input type="checkbox" id="proto-user-input-active" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;">
+        <button class="btn btn-secondary" onclick="closeProtocolUserModal()" type="button" data-i18n="cancel">انصراف</button>
+        <button class="btn btn-primary" onclick="submitProtocolUser()" type="button">
+            <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="save_user">ثبت و ذخیره کاربر</span>
+        </button>
+    </div>
+</div>
+</div>
+</div>
+

@@ -73,7 +73,7 @@ generate_certs() {
     # Generate a private VPN CA for OpenVPN client profiles and default VPN certs.
     if [ ! -f "${CA_DIR}/ca.key" ] || [ ! -f "${CA_CERT}" ]; then
         openssl genrsa -out "${CA_DIR}/ca.key" 2048
-        openssl req -x509 -new -nodes -key "${CA_DIR}/ca.key" -subj "/CN=AetherVPN Root CA" -days 3650 -out "${CA_CERT}"
+        openssl req -x509 -new -nodes -key "${CA_DIR}/ca.key" -subj "/CN=MHPanel Root CA" -days 3650 -out "${CA_CERT}"
         chmod 600 "${CA_DIR}/ca.key"
         chmod 644 "${CA_CERT}"
     fi
@@ -91,7 +91,7 @@ generate_certs() {
     ln -sf "${SERVER_KEY}" /root/vpn-server.key
 
     if [ ! -f "${PANEL_CERT}" ] || [ ! -f "${PANEL_KEY}" ]; then
-        openssl req -x509 -newkey rsa:2048 -nodes -keyout "${PANEL_KEY}" -out "${PANEL_CERT}" -subj "/CN=AetherVPN Panel" -days 3650
+        openssl req -x509 -newkey rsa:2048 -nodes -keyout "${PANEL_KEY}" -out "${PANEL_CERT}" -subj "/CN=MHPanel Panel" -days 3650
         chmod 600 "${PANEL_KEY}"
         chmod 644 "${PANEL_CERT}"
     fi
@@ -129,13 +129,13 @@ is_protocol_installed() {
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
-        http) [ -f "/etc/systemd/system/aethervpn-http-proxy.service" ] ;;
-        socks) [ -f "/etc/systemd/system/aethervpn-socks-proxy.service" ] ;;
-        shadowsocks) [ -f "/etc/systemd/system/aethervpn-shadowsocks.service" ] ;;
-        tuic) [ -f "/etc/systemd/system/aethervpn-tuic.service" ] ;;
-        dnstt) [ -f "/etc/systemd/system/aethervpn-dnstt.service" ] ;;
-        vaydns) [ -f "/etc/systemd/system/aethervpn-vaydns.service" ] ;;
-        slipstream) [ -f "/etc/systemd/system/aethervpn-slipstream.service" ] ;;
+        http) [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ] ;;
+        socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
+        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] ;;
+        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] ;;
+        dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] ;;
+        vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] ;;
+        slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         l2tpv3) [ -f "/etc/vpnpanel/l2tpv3_config.json" ] ;;
@@ -181,7 +181,7 @@ install_ssh() {
     # ── SSH VPN-dedicated configuration (COMPLETELY SEPARATE from /etc/ssh/sshd_config) ──
     cat > /etc/ssh/sshd_config_vpn <<EOF
 # ============================================================
-# AetherVPN — Dedicated SSH Tunnel Daemon
+# MHPanel — Dedicated SSH Tunnel Daemon
 # Port: ${port}   System SSH remains on: 22
 # ============================================================
 Port ${port}
@@ -230,21 +230,21 @@ LogLevel INFO
 Subsystem sftp /usr/lib/openssh/sftp-server
 
 # ── Banner ──
-Banner /etc/ssh/aethervpn_banner
+Banner /etc/ssh/mhpanel_banner
 EOF
     chmod 600 /etc/ssh/sshd_config_vpn
 
     # ── Login Banner ──
-    cat > /etc/ssh/aethervpn_banner <<'BANNER'
+    cat > /etc/ssh/mhpanel_banner <<'BANNER'
 ╔═══════════════════════════════════════════════╗
-║          AetherVPN — SSH Tunnel Server        ║
+║          MHPanel — SSH Tunnel Server        ║
 ║     Unauthorized access is strictly banned    ║
 ╚═══════════════════════════════════════════════╝
 BANNER
 
     # ── PAM config (isolated — standard unix auth by default) ──
     cat > /etc/pam.d/sshd-vpn <<'EOF'
-# PAM for AetherVPN SSH Tunnel
+# PAM for MHPanel SSH Tunnel
 @include common-auth
 @include common-account
 @include common-session
@@ -252,10 +252,10 @@ BANNER
 EOF
 
     # ── systemd service ──
-    cat > /etc/systemd/system/aethervpn-ssh.service <<EOF
+    cat > /etc/systemd/system/mhpanel-ssh.service <<EOF
 [Unit]
-Description=AetherVPN SSH Tunnel Daemon (Port ${port})
-Documentation=https://github.com/aethervpn
+Description=MHPanel SSH Tunnel Daemon (Port ${port})
+Documentation=https://github.com/mhpanel
 After=network.target
 Wants=network.target
 
@@ -276,21 +276,21 @@ EOF
 
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-ssh
-    systemctl restart aethervpn-ssh
+    systemctl enable mhpanel-ssh
+    systemctl restart mhpanel-ssh
 
-    echo "✓ AetherVPN SSH installed on port ${port}"
+    echo "✓ MHPanel SSH installed on port ${port}"
     echo "✓ System SSH on port 22 is UNCHANGED"
 }
 
 uninstall_ssh() {
-    systemctl stop aethervpn-ssh || true
-    systemctl disable aethervpn-ssh || true
+    systemctl stop mhpanel-ssh || true
+    systemctl disable mhpanel-ssh || true
     
     port=$(grep -Ei '^Port ' /etc/ssh/sshd_config_vpn | awk '{print $2}' 2>/dev/null || echo "2222")
     [ -n "${port}" ] && deny_port "${port}" "tcp"
     
-    rm -f /etc/ssh/sshd_config_vpn /etc/pam.d/sshd-vpn /etc/systemd/system/aethervpn-ssh.service /usr/sbin/sshd-vpn
+    rm -f /etc/ssh/sshd_config_vpn /etc/pam.d/sshd-vpn /etc/systemd/system/mhpanel-ssh.service /usr/sbin/sshd-vpn
     systemctl daemon-reload
 }
 
@@ -302,7 +302,7 @@ set_port_ssh() {
     fi
     sed -i "s/^Port .*/Port ${port}/g" /etc/ssh/sshd_config_vpn
     allow_port "${port}" "tcp"
-    systemctl restart aethervpn-ssh
+    systemctl restart mhpanel-ssh
 }
 
 # ----------------- OPENVPN PROTOCOL -----------------
@@ -501,7 +501,7 @@ EOF
     # Create IKEv2 Logging Script
     cat > /etc/swanctl/ikev2-logging.sh <<'EOF'
 #!/usr/bin/env bash
-LOG_FILE="/var/log/aethervpn-connections.log"
+LOG_FILE="/var/log/mhpanel-connections.log"
 touch $LOG_FILE && chmod 666 $LOG_FILE
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
@@ -644,8 +644,8 @@ mtu=1400
 mru=1400
 ipv4=require
 ipv6=deny
-ip-up=/etc/ppp/ip-up.d/aethervpn-sstp
-ip-down=/etc/ppp/ip-down.d/aethervpn-sstp
+ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
+ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 
 [sstp]
 bind=0.0.0.0
@@ -678,7 +678,7 @@ EOF
         chmod 600 /etc/ppp/chap-secrets
     fi
 
-    cat > /etc/ppp/ip-up.d/aethervpn-sstp <<'EOF'
+    cat > /etc/ppp/ip-up.d/mhpanel-sstp <<'EOF'
 #!/usr/bin/env bash
 EXT_IF=$(ip route show default | awk '/default/ {print $5}' | head -n1)
 if [ -n "$EXT_IF" ]; then
@@ -686,11 +686,11 @@ if [ -n "$EXT_IF" ]; then
         iptables -t nat -A POSTROUTING -s 10.11.0.0/16 -o "$EXT_IF" -j MASQUERADE
 fi
 EOF
-    cat > /etc/ppp/ip-down.d/aethervpn-sstp <<'EOF'
+    cat > /etc/ppp/ip-down.d/mhpanel-sstp <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-    chmod +x /etc/ppp/ip-up.d/aethervpn-sstp /etc/ppp/ip-down.d/aethervpn-sstp
+    chmod +x /etc/ppp/ip-up.d/mhpanel-sstp /etc/ppp/ip-down.d/mhpanel-sstp
 
     local accel_bin="/usr/sbin/accel-pppd"
     if [ ! -x "${accel_bin}" ] && [ -x "/usr/local/sbin/accel-pppd" ]; then
@@ -699,7 +699,7 @@ EOF
 
     cat > /etc/systemd/system/sstpd.service <<EOF
 [Unit]
-Description=AetherVPN SSTP Server (accel-ppp)
+Description=MHPanel SSTP Server (accel-ppp)
 Wants=network-online.target
 After=network-online.target
 
@@ -793,7 +793,7 @@ EOF
 
     # PAM config for pptpd (standard unix auth by default)
     cat > /etc/pam.d/pptpd <<'EOF'
-# PAM for AetherVPN PPTP
+# PAM for MHPanel PPTP
 @include common-auth
 @include common-account
 @include common-session
@@ -801,9 +801,9 @@ EOF
 EOF
 
     # systemd service
-    cat > /etc/systemd/system/aethervpn-pptp.service <<EOF
+    cat > /etc/systemd/system/mhpanel-pptp.service <<EOF
 [Unit]
-Description=AetherVPN PPTP VPN Server (Port ${port})
+Description=MHPanel PPTP VPN Server (Port ${port})
 After=network.target
 Wants=network.target
 
@@ -830,13 +830,13 @@ EOF
         iptables-save > /etc/iptables/rules.v4
     fi
     systemctl daemon-reload
-    systemctl enable aethervpn-pptp
-    systemctl restart aethervpn-pptp
+    systemctl enable mhpanel-pptp
+    systemctl restart mhpanel-pptp
 
     # Install Global PPP Logging Scripts (covers PPTP, L2TP, SSTP)
-    cat > /etc/ppp/ip-up.d/aethervpn-logging <<'EOF'
+    cat > /etc/ppp/ip-up.d/mhpanel-logging <<'EOF'
 #!/usr/bin/env bash
-LOG_FILE="/var/log/aethervpn-connections.log"
+LOG_FILE="/var/log/mhpanel-connections.log"
 touch $LOG_FILE && chmod 666 $LOG_FILE
 USERNAME=${PEERNAME:-"unknown"}
 VPN_IP=$5
@@ -856,9 +856,9 @@ CLIENT_IP=${CALLER_ID:-${PPP_REMOTE:-"unknown"}}
 echo "[$TIMESTAMP] CONNECT    | PROTO: $PROTO | USER: $USERNAME | CLIENT_IP: $CLIENT_IP | VPN_IP: $VPN_IP | IFACE: $IFACE" >> $LOG_FILE
 EOF
 
-    cat > /etc/ppp/ip-down.d/aethervpn-logging <<'EOF'
+    cat > /etc/ppp/ip-down.d/mhpanel-logging <<'EOF'
 #!/usr/bin/env bash
-LOG_FILE="/var/log/aethervpn-connections.log"
+LOG_FILE="/var/log/mhpanel-connections.log"
 USERNAME=${PEERNAME:-"unknown"}
 VPN_IP=$5
 IFACE=$1
@@ -874,28 +874,28 @@ CLIENT_IP=${CALLER_ID:-${PPP_REMOTE:-"unknown"}}
 
 echo "[$TIMESTAMP] DISCONNECT | PROTO: $PROTO | USER: $USERNAME | CLIENT_IP: $CLIENT_IP | VPN_IP: $VPN_IP | IFACE: $IFACE | BYTES_TX: $BYTES_SENT | BYTES_RX: $BYTES_RCVD" >> $LOG_FILE
 EOF
-    chmod +x /etc/ppp/ip-up.d/aethervpn-logging /etc/ppp/ip-down.d/aethervpn-logging
+    chmod +x /etc/ppp/ip-up.d/mhpanel-logging /etc/ppp/ip-down.d/mhpanel-logging
 
-    echo "✓ AetherVPN PPTP installed on port ${port}"
+    echo "✓ MHPanel PPTP installed on port ${port}"
 }
 
 uninstall_pptp() {
-    systemctl stop aethervpn-pptp || true
-    systemctl disable aethervpn-pptp || true
-    local port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/aethervpn-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+    systemctl stop mhpanel-pptp || true
+    systemctl disable mhpanel-pptp || true
+    local port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
     deny_port "${port}" "tcp"
-    rm -f /etc/pptpd.conf /etc/ppp/options.pptpd /etc/pam.d/pptpd /etc/systemd/system/aethervpn-pptp.service
+    rm -f /etc/pptpd.conf /etc/ppp/options.pptpd /etc/pam.d/pptpd /etc/systemd/system/mhpanel-pptp.service
     systemctl daemon-reload
 }
 
 set_port_pptp() {
     local port=$1
-    local old_port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/aethervpn-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+    local old_port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
     [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ] && deny_port "${old_port}" "tcp"
-    sed -i "s/Port [0-9]*/Port ${port}/g" /etc/systemd/system/aethervpn-pptp.service
+    sed -i "s/Port [0-9]*/Port ${port}/g" /etc/systemd/system/mhpanel-pptp.service
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl restart aethervpn-pptp
+    systemctl restart mhpanel-pptp
 }
 
 # ----------------- L2TP PROTOCOL -----------------
@@ -1001,9 +1001,9 @@ install_l2tpv3() {
 }
 EOF
 
-    cat > /etc/systemd/system/aethervpn-l2tpv3.service <<EOF
+    cat > /etc/systemd/system/mhpanel-l2tpv3.service <<EOF
 [Unit]
-Description=AetherVPN L2TPv3 Ethernet Tunnel
+Description=MHPanel L2TPv3 Ethernet Tunnel
 After=network.target
 
 [Service]
@@ -1025,18 +1025,18 @@ EOF
 
     [ "${encap}" = "udp" ] && allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-l2tpv3
-    systemctl start aethervpn-l2tpv3
+    systemctl enable mhpanel-l2tpv3
+    systemctl start mhpanel-l2tpv3
     echo "✓ L2TPv3 tunnel configured: ${local_ip} <-> ${remote_ip}"
 }
 
 uninstall_l2tpv3() {
-    systemctl stop aethervpn-l2tpv3 || true
-    systemctl disable aethervpn-l2tpv3 || true
+    systemctl stop mhpanel-l2tpv3 || true
+    systemctl disable mhpanel-l2tpv3 || true
     local port=$(python3 -c "import json; d=json.load(open('/etc/vpnpanel/l2tpv3_config.json')); print(d.get('port',5555))" 2>/dev/null || echo 5555)
     local encap=$(python3 -c "import json; d=json.load(open('/etc/vpnpanel/l2tpv3_config.json')); print(d.get('encap','udp'))" 2>/dev/null || echo udp)
     [ "${encap}" = "udp" ] && deny_port "${port}" "udp"
-    rm -f /etc/systemd/system/aethervpn-l2tpv3.service /etc/vpnpanel/l2tpv3_config.json /etc/modules-load.d/l2tpv3.conf
+    rm -f /etc/systemd/system/mhpanel-l2tpv3.service /etc/vpnpanel/l2tpv3_config.json /etc/modules-load.d/l2tpv3.conf
     systemctl daemon-reload
 }
 
@@ -1070,16 +1070,16 @@ EOF
     systemctl restart wg-quick@wg0
     
     # Enable and start WireGuard RADIUS daemon
-    if [ -f "/etc/systemd/system/aethervpn-wg-radius.service" ]; then
+    if [ -f "/etc/systemd/system/mhpanel-wg-radius.service" ]; then
         systemctl daemon-reload
-        systemctl enable aethervpn-wg-radius || true
-        systemctl restart aethervpn-wg-radius || true
+        systemctl enable mhpanel-wg-radius || true
+        systemctl restart mhpanel-wg-radius || true
     fi
 }
 
 uninstall_wireguard() {
-    systemctl stop aethervpn-wg-radius || true
-    systemctl disable aethervpn-wg-radius || true
+    systemctl stop mhpanel-wg-radius || true
+    systemctl disable mhpanel-wg-radius || true
     systemctl stop wg-quick@wg0 || true
     systemctl disable wg-quick@wg0 || true
     port=$(grep -Ei '^ListenPort' /etc/wireguard/wg0.conf | awk '{print $3}' 2>/dev/null || echo "51820")
@@ -1141,7 +1141,7 @@ ensure_proxy_python_tools() {
 install_http() {
     local port=${1:-8080}
     ensure_proxy_python_tools
-    cat > /etc/systemd/system/aethervpn-http-proxy.service <<EOF
+    cat > /etc/systemd/system/mhpanel-http-proxy.service <<EOF
 [Unit]
 Description=KIGA-SM HTTP Proxy
 After=network-online.target
@@ -1157,33 +1157,33 @@ WantedBy=multi-user.target
 EOF
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-http-proxy
-    systemctl restart aethervpn-http-proxy
+    systemctl enable mhpanel-http-proxy
+    systemctl restart mhpanel-http-proxy
 }
 
 uninstall_http() {
-    systemctl stop aethervpn-http-proxy || true
-    systemctl disable aethervpn-http-proxy || true
-    local port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080")
+    systemctl stop mhpanel-http-proxy || true
+    systemctl disable mhpanel-http-proxy || true
+    local port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080")
     deny_port "${port}" "tcp"
-    rm -f /etc/systemd/system/aethervpn-http-proxy.service
+    rm -f /etc/systemd/system/mhpanel-http-proxy.service
     systemctl daemon-reload
 }
 
 set_port_http() {
     local port=$1
-    local old_port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080")
+    local old_port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080")
     [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ] && deny_port "${old_port}" "tcp"
-    sed -i "s#http://0.0.0.0:[0-9]*#http://0.0.0.0:${port}#g" /etc/systemd/system/aethervpn-http-proxy.service
+    sed -i "s#http://0.0.0.0:[0-9]*#http://0.0.0.0:${port}#g" /etc/systemd/system/mhpanel-http-proxy.service
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl restart aethervpn-http-proxy
+    systemctl restart mhpanel-http-proxy
 }
 
 install_socks() {
     local port=${1:-1080}
     ensure_proxy_python_tools
-    cat > /etc/systemd/system/aethervpn-socks-proxy.service <<EOF
+    cat > /etc/systemd/system/mhpanel-socks-proxy.service <<EOF
 [Unit]
 Description=KIGA-SM SOCKS5 Proxy
 After=network-online.target
@@ -1199,27 +1199,27 @@ WantedBy=multi-user.target
 EOF
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-socks-proxy
-    systemctl restart aethervpn-socks-proxy
+    systemctl enable mhpanel-socks-proxy
+    systemctl restart mhpanel-socks-proxy
 }
 
 uninstall_socks() {
-    systemctl stop aethervpn-socks-proxy || true
-    systemctl disable aethervpn-socks-proxy || true
-    local port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080")
+    systemctl stop mhpanel-socks-proxy || true
+    systemctl disable mhpanel-socks-proxy || true
+    local port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080")
     deny_port "${port}" "tcp"
-    rm -f /etc/systemd/system/aethervpn-socks-proxy.service
+    rm -f /etc/systemd/system/mhpanel-socks-proxy.service
     systemctl daemon-reload
 }
 
 set_port_socks() {
     local port=$1
-    local old_port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080")
+    local old_port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080")
     [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ] && deny_port "${old_port}" "tcp"
-    sed -i "s#socks5://0.0.0.0:[0-9]*#socks5://0.0.0.0:${port}#g" /etc/systemd/system/aethervpn-socks-proxy.service
+    sed -i "s#socks5://0.0.0.0:[0-9]*#socks5://0.0.0.0:${port}#g" /etc/systemd/system/mhpanel-socks-proxy.service
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl restart aethervpn-socks-proxy
+    systemctl restart mhpanel-socks-proxy
 }
 
 install_shadowsocks() {
@@ -1244,7 +1244,7 @@ EOF
         sed -i -E "s/\"server_port\":\s*[0-9]+/\"server_port\": ${port}/g" "${config}"
     fi
 
-    cat > /etc/systemd/system/aethervpn-shadowsocks.service <<EOF
+    cat > /etc/systemd/system/mhpanel-shadowsocks.service <<EOF
 [Unit]
 Description=Shadowsocks-rust 2022 High-Performance Proxy
 After=network-online.target
@@ -1264,17 +1264,17 @@ EOF
     allow_port "${port}" "tcp"
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-shadowsocks
-    systemctl restart aethervpn-shadowsocks
+    systemctl enable mhpanel-shadowsocks
+    systemctl restart mhpanel-shadowsocks
 }
 
 uninstall_shadowsocks() {
-    systemctl stop aethervpn-shadowsocks || true
-    systemctl disable aethervpn-shadowsocks || true
+    systemctl stop mhpanel-shadowsocks || true
+    systemctl disable mhpanel-shadowsocks || true
     local port=$(grep -oE '"server_port":\s*[0-9]+' /etc/vpnpanel/shadowsocks.json 2>/dev/null | awk '{print $2}' || echo "8388")
     deny_port "${port}" "tcp"
     deny_port "${port}" "udp"
-    rm -f /etc/systemd/system/aethervpn-shadowsocks.service
+    rm -f /etc/systemd/system/mhpanel-shadowsocks.service
     systemctl daemon-reload
 }
 
@@ -1286,7 +1286,7 @@ set_port_shadowsocks() {
     allow_port "${port}" "tcp"
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl restart aethervpn-shadowsocks
+    systemctl restart mhpanel-shadowsocks
 }
 
 install_tuic() {
@@ -1314,7 +1314,7 @@ EOF
         sed -i -E "s/server = \"0\.0\.0\.0:[0-9]+\"/server = \"0.0.0.0:${port}\"/g" "${config}"
     fi
 
-    cat > /etc/systemd/system/aethervpn-tuic.service <<EOF
+    cat > /etc/systemd/system/mhpanel-tuic.service <<EOF
 [Unit]
 Description=TUIC v5 QUIC Anti-Censorship Proxy Server
 After=network-online.target
@@ -1333,16 +1333,16 @@ WantedBy=multi-user.target
 EOF
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-tuic
-    systemctl restart aethervpn-tuic
+    systemctl enable mhpanel-tuic
+    systemctl restart mhpanel-tuic
 }
 
 uninstall_tuic() {
-    systemctl stop aethervpn-tuic || true
-    systemctl disable aethervpn-tuic || true
+    systemctl stop mhpanel-tuic || true
+    systemctl disable mhpanel-tuic || true
     local port=$(grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
     deny_port "${port}" "udp"
-    rm -f /etc/systemd/system/aethervpn-tuic.service
+    rm -f /etc/systemd/system/mhpanel-tuic.service
     systemctl daemon-reload
 }
 
@@ -1353,7 +1353,7 @@ set_port_tuic() {
     sed -i -E "s/server = \"0\.0\.0\.0:[0-9]+\"/server = \"0.0.0.0:${port}\"/g" /etc/vpnpanel/tuic.toml
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl restart aethervpn-tuic
+    systemctl restart mhpanel-tuic
 }
 
 
@@ -1371,7 +1371,7 @@ install_mtproto() {
     cat > "${config}" <<EOF
 PORT = ${port}
 USERS = {
-    "aethervpn": "${secret}",
+    "mhpanel": "${secret}",
 }
 MODES = {"classic": True, "secure": True, "tls": True}
 AD_TAG = "${ad_tag}"
@@ -1380,8 +1380,8 @@ EOF
     
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-mtproto@${port}
-    systemctl restart aethervpn-mtproto@${port}
+    systemctl enable mhpanel-mtproto@${port}
+    systemctl restart mhpanel-mtproto@${port}
     echo "MTProto secret: ${secret}"
     if [ -n "${ad_tag}" ]; then
         echo "MTProto advertising tag configured."
@@ -1395,8 +1395,8 @@ uninstall_mtproto() {
             if [ -f "$f" ]; then
                 local port=$(basename "$f" | grep -oE '[0-9]+')
                 if [ -n "$port" ]; then
-                    systemctl stop aethervpn-mtproto@${port} || true
-                    systemctl disable aethervpn-mtproto@${port} || true
+                    systemctl stop mhpanel-mtproto@${port} || true
+                    systemctl disable mhpanel-mtproto@${port} || true
                     deny_port "${port}" "tcp"
                     rm -f "$f"
                 fi
@@ -1412,8 +1412,8 @@ set_port_mtproto() {
     if [ -n "${first_config}" ]; then
         local old_port=$(basename "${first_config}" | grep -oE '[0-9]+')
         if [ "${old_port}" != "${port}" ]; then
-            systemctl stop aethervpn-mtproto@${old_port} || true
-            systemctl disable aethervpn-mtproto@${old_port} || true
+            systemctl stop mhpanel-mtproto@${old_port} || true
+            systemctl disable mhpanel-mtproto@${old_port} || true
             deny_port "${old_port}" "tcp"
             
             local new_config="/etc/vpnpanel/mtproto_config_${port}.py"
@@ -1422,8 +1422,8 @@ set_port_mtproto() {
             
             allow_port "${port}" "tcp"
             systemctl daemon-reload
-            systemctl enable aethervpn-mtproto@${port}
-            systemctl restart aethervpn-mtproto@${port}
+            systemctl enable mhpanel-mtproto@${port}
+            systemctl restart mhpanel-mtproto@${port}
         fi
     fi
 }
@@ -1442,7 +1442,7 @@ set_mtproto_ad_tag() {
                     else
                         echo "AD_TAG = \"${ad_tag}\"" >> "$f"
                     fi
-                    systemctl restart aethervpn-mtproto@${port}
+                    systemctl restart mhpanel-mtproto@${port}
                 fi
             fi
         done
@@ -1492,14 +1492,14 @@ EOF
     fi
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-hysteria2
-    systemctl restart aethervpn-hysteria2
+    systemctl enable mhpanel-hysteria2
+    systemctl restart mhpanel-hysteria2
     echo "Hysteria 2 installed on UDP port ${port}."
 }
 
 uninstall_hysteria2() {
-    systemctl stop aethervpn-hysteria2 || true
-    systemctl disable aethervpn-hysteria2 || true
+    systemctl stop mhpanel-hysteria2 || true
+    systemctl disable mhpanel-hysteria2 || true
     local port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443")
     deny_port "${port}" "udp"
     rm -f /etc/vpnpanel/hysteria2.yaml
@@ -1513,7 +1513,7 @@ set_port_hysteria2() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/listen: :[0-9]+/listen: :${port}/g" /etc/vpnpanel/hysteria2.yaml
         allow_port "${port}" "udp"
-        systemctl restart aethervpn-hysteria2
+        systemctl restart mhpanel-hysteria2
     fi
 }
 
@@ -1550,14 +1550,14 @@ EOF
     fi
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-trojan
-    systemctl restart aethervpn-trojan
+    systemctl enable mhpanel-trojan
+    systemctl restart mhpanel-trojan
     echo "Trojan installed on TCP port ${port}."
 }
 
 uninstall_trojan() {
-    systemctl stop aethervpn-trojan || true
-    systemctl disable aethervpn-trojan || true
+    systemctl stop mhpanel-trojan || true
+    systemctl disable mhpanel-trojan || true
     local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443")
     deny_port "${port}" "tcp"
     rm -f /etc/vpnpanel/trojan.json
@@ -1571,7 +1571,7 @@ set_port_trojan() {
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/trojan.json
         allow_port "${port}" "tcp"
-        systemctl restart aethervpn-trojan
+        systemctl restart mhpanel-trojan
     fi
 }
 
@@ -1607,14 +1607,14 @@ EOF
     fi
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-naiveproxy
-    systemctl restart aethervpn-naiveproxy
+    systemctl enable mhpanel-naiveproxy
+    systemctl restart mhpanel-naiveproxy
     echo "NaiveProxy installed on TCP port ${port}."
 }
 
 uninstall_naiveproxy() {
-    systemctl stop aethervpn-naiveproxy || true
-    systemctl disable aethervpn-naiveproxy || true
+    systemctl stop mhpanel-naiveproxy || true
+    systemctl disable mhpanel-naiveproxy || true
     local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444")
     deny_port "${port}" "tcp"
     rm -f /etc/vpnpanel/naiveproxy.json
@@ -1628,7 +1628,7 @@ set_port_naiveproxy() {
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/naiveproxy.json
         allow_port "${port}" "tcp"
-        systemctl restart aethervpn-naiveproxy
+        systemctl restart mhpanel-naiveproxy
     fi
 }
 
@@ -1649,14 +1649,14 @@ EOF
     allow_port "${port}" "tcp"
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-stuntls
-    systemctl restart aethervpn-stuntls
+    systemctl enable mhpanel-stuntls
+    systemctl restart mhpanel-stuntls
     echo "StunTLS installed on port ${port}."
 }
 
 uninstall_stuntls() {
-    systemctl stop aethervpn-stuntls || true
-    systemctl disable aethervpn-stuntls || true
+    systemctl stop mhpanel-stuntls || true
+    systemctl disable mhpanel-stuntls || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478")
     deny_port "${port}" "tcp"
     deny_port "${port}" "udp"
@@ -1673,7 +1673,7 @@ set_port_stuntls() {
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/stuntls.json
         allow_port "${port}" "tcp"
         allow_port "${port}" "udp"
-        systemctl restart aethervpn-stuntls
+        systemctl restart mhpanel-stuntls
     fi
 }
 
@@ -1695,14 +1695,14 @@ EOF
     fi
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-noizdns
-    systemctl restart aethervpn-noizdns
+    systemctl enable mhpanel-noizdns
+    systemctl restart mhpanel-noizdns
     echo "NoizDNS installed on UDP port ${port}."
 }
 
 uninstall_noizdns() {
-    systemctl stop aethervpn-noizdns || true
-    systemctl disable aethervpn-noizdns || true
+    systemctl stop mhpanel-noizdns || true
+    systemctl disable mhpanel-noizdns || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355")
     deny_port "${port}" "udp"
     rm -f /etc/vpnpanel/noizdns.json
@@ -1716,7 +1716,7 @@ set_port_noizdns() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/noizdns.json
         allow_port "${port}" "udp"
-        systemctl restart aethervpn-noizdns
+        systemctl restart mhpanel-noizdns
     fi
 }
 
@@ -1737,14 +1737,14 @@ EOF
     fi
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable aethervpn-masterdnsvpn
-    systemctl restart aethervpn-masterdnsvpn
+    systemctl enable mhpanel-masterdnsvpn
+    systemctl restart mhpanel-masterdnsvpn
     echo "MasterdnsVPN installed on UDP port ${port}."
 }
 
 uninstall_masterdnsvpn() {
-    systemctl stop aethervpn-masterdnsvpn || true
-    systemctl disable aethervpn-masterdnsvpn || true
+    systemctl stop mhpanel-masterdnsvpn || true
+    systemctl disable mhpanel-masterdnsvpn || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356")
     deny_port "${port}" "udp"
     rm -f /etc/vpnpanel/masterdnsvpn.json
@@ -1758,7 +1758,7 @@ set_port_masterdnsvpn() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/masterdnsvpn.json
         allow_port "${port}" "udp"
-        systemctl restart aethervpn-masterdnsvpn
+        systemctl restart mhpanel-masterdnsvpn
     fi
 }
 
@@ -1783,14 +1783,14 @@ EOF
     allow_port "${or_port}" "tcp"
     allow_port "${bridge_port}" "tcp"
     systemctl daemon-reload
-    systemctl enable aethervpn-tor
-    systemctl restart aethervpn-tor
+    systemctl enable mhpanel-tor
+    systemctl restart mhpanel-tor
     echo "Tor Bridge installed with obfs4 on ports ${or_port}/${bridge_port}."
 }
 
 uninstall_tor() {
-    systemctl stop aethervpn-tor || true
-    systemctl disable aethervpn-tor || true
+    systemctl stop mhpanel-tor || true
+    systemctl disable mhpanel-tor || true
     deny_port "9001" "tcp"
     deny_port "9002" "tcp"
     echo "Tor uninstalled."
@@ -1801,7 +1801,7 @@ set_port_tor() {
     if [ -f /etc/tor/torrc ]; then
         sed -i -E "s/^ORPort [0-9]+/ORPort ${port}/g" /etc/tor/torrc
         allow_port "${port}" "tcp"
-        systemctl restart aethervpn-tor
+        systemctl restart mhpanel-tor
     fi
 }
 
@@ -1938,7 +1938,7 @@ print_status_report() {
                     inst="No"
                     port="-"
                 fi
-                if systemctl is-active aethervpn-ssh >/dev/null 2>&1; then
+                if systemctl is-active mhpanel-ssh >/dev/null 2>&1; then
                     act="Active"
                     conn=$(get_connections_count "ssh" "$port")
                 fi
@@ -1985,13 +1985,13 @@ print_status_report() {
                 ;;
             pptp)
                 if [ -f "/etc/pptpd.conf" ]; then
-                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/aethervpn-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
                     inst="Yes"
                 else
                     inst="No"
                     port="-"
                 fi
-                if systemctl is-active aethervpn-pptp >/dev/null 2>&1; then
+                if systemctl is-active mhpanel-pptp >/dev/null 2>&1; then
                     act="Active"
                     conn=$(get_connections_count "pptp" "$port")
                 fi
@@ -2027,47 +2027,47 @@ print_status_report() {
                 fi
                 ;;
             http)
-                if [ -f "/etc/systemd/system/aethervpn-http-proxy.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-http-proxy.service | awk -F: '{print $2}' | tail -n1 || echo "8080")
-                    if systemctl is-active aethervpn-http-proxy >/dev/null 2>&1; then
+                    port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service | awk -F: '{print $2}' | tail -n1 || echo "8080")
+                    if systemctl is-active mhpanel-http-proxy >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "http" "$port")
                     fi
                 fi
                 ;;
             socks)
-                if [ -f "/etc/systemd/system/aethervpn-socks-proxy.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/aethervpn-socks-proxy.service | awk -F: '{print $2}' | tail -n1 || echo "1080")
-                    if systemctl is-active aethervpn-socks-proxy >/dev/null 2>&1; then
+                    port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service | awk -F: '{print $2}' | tail -n1 || echo "1080")
+                    if systemctl is-active mhpanel-socks-proxy >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "socks" "$port")
                     fi
                 fi
                 ;;
             shadowsocks)
-                if [ -f "/etc/vpnpanel/shadowsocks.json" ] || [ -f "/etc/systemd/system/aethervpn-shadowsocks.service" ]; then
+                if [ -f "/etc/vpnpanel/shadowsocks.json" ] || [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ]; then
                     inst="Yes"
                     port=$(grep -oE '"server_port":\s*[0-9]+' /etc/vpnpanel/shadowsocks.json 2>/dev/null | awk '{print $2}' || echo "8388")
-                    if systemctl is-active aethervpn-shadowsocks >/dev/null 2>&1; then
+                    if systemctl is-active mhpanel-shadowsocks >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "shadowsocks" "$port")
                     fi
                 fi
                 ;;
             tuic)
-                if [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/aethervpn-tuic.service" ]; then
+                if [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/mhpanel-tuic.service" ]; then
                     inst="Yes"
                     port=$(grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
-                    if systemctl is-active aethervpn-tuic >/dev/null 2>&1; then
+                    if systemctl is-active mhpanel-tuic >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tuic" "$port")
                     fi
                 fi
                 ;;
             mtproto)
-                if [ -f "/etc/systemd/system/aethervpn-mtproto@.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-mtproto@.service" ]; then
                     inst="Yes"
                     first_conf=$(ls /etc/vpnpanel/mtproto_config_*.py 2>/dev/null | head -n1 || true)
                     if [ -n "${first_conf}" ]; then
@@ -2075,37 +2075,37 @@ print_status_report() {
                     else
                         port="4433"
                     fi
-                    if systemctl is-active aethervpn-mtproto@${port} >/dev/null 2>&1; then
+                    if systemctl is-active mhpanel-mtproto@${port} >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "mtproto" "$port")
                     fi
                 fi
                 ;;
             dnstt)
-                if [ -f "/etc/systemd/system/aethervpn-dnstt.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-dnstt.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '\-udp [0-9.:]+' /etc/systemd/system/aethervpn-dnstt.service 2>/dev/null | awk -F: '{print $2}' || echo "5300")
-                    if systemctl is-active aethervpn-dnstt >/dev/null 2>&1; then
+                    port=$(grep -oE '\-udp [0-9.:]+' /etc/systemd/system/mhpanel-dnstt.service 2>/dev/null | awk -F: '{print $2}' || echo "5300")
+                    if systemctl is-active mhpanel-dnstt >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "dnstt" "$port")
                     fi
                 fi
                 ;;
             vaydns)
-                if [ -f "/etc/systemd/system/aethervpn-vaydns.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-vaydns.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '\-udp [0-9.:]+' /etc/systemd/system/aethervpn-vaydns.service 2>/dev/null | awk -F: '{print $2}' || echo "5353")
-                    if systemctl is-active aethervpn-vaydns >/dev/null 2>&1; then
+                    port=$(grep -oE '\-udp [0-9.:]+' /etc/systemd/system/mhpanel-vaydns.service 2>/dev/null | awk -F: '{print $2}' || echo "5353")
+                    if systemctl is-active mhpanel-vaydns >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "vaydns" "$port")
                     fi
                 fi
                 ;;
             slipstream)
-                if [ -f "/etc/systemd/system/aethervpn-slipstream.service" ]; then
+                if [ -f "/etc/systemd/system/mhpanel-slipstream.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '\-l [0-9]+' /etc/systemd/system/aethervpn-slipstream.service 2>/dev/null | awk '{print $2}' || echo "5354")
-                    if systemctl is-active aethervpn-slipstream >/dev/null 2>&1; then
+                    port=$(grep -oE '\-l [0-9]+' /etc/systemd/system/mhpanel-slipstream.service 2>/dev/null | awk '{print $2}' || echo "5354")
+                    if systemctl is-active mhpanel-slipstream >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "slipstream" "$port")
                     fi
@@ -2288,7 +2288,7 @@ case "${ACTION}" in
                 ;;
             pptp)
                 if [ -f "/etc/pptpd.conf" ]; then
-                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/aethervpn-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
                     deny_port "${port}" "tcp"
                     install_pptp "${port}"
                 fi
@@ -2345,7 +2345,7 @@ case "${ACTION}" in
                 ;;
             pptp)
                 if [ -f "/etc/pptpd.conf" ]; then
-                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/aethervpn-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
                     deny_port "${port}" "tcp"
                     install_pptp "${port}"
                 fi
@@ -2395,32 +2395,32 @@ case "${ACTION}" in
         ;;
     status)
         case "${PROTOCOL}" in
-            ssh) service_status aethervpn-ssh ;;
+            ssh) service_status mhpanel-ssh ;;
             openvpn) service_status openvpn@server ;;
             ocserv) service_status ocserv ;;
             ikev2) service_status strongswan-starter strongswan strongswan-swanctl ;;
             sstp) service_status sstpd ;;
             l2tp) service_status xl2tpd ;;
-            l2tpv3) service_status aethervpn-l2tpv3 ;;
+            l2tpv3) service_status mhpanel-l2tpv3 ;;
             wireguard) service_status wg-quick@wg0 ;;
             amneziawg) service_status awg-quick@awg0 ;;
-            http) service_status aethervpn-http-proxy ;;
-            socks) service_status aethervpn-socks-proxy ;;
-            shadowsocks) service_status aethervpn-shadowsocks ;;
-            tuic) service_status aethervpn-tuic ;;
-            dnstt) service_status aethervpn-dnstt ;;
-            vaydns) service_status aethervpn-vaydns ;;
-            slipstream) service_status aethervpn-slipstream ;;
+            http) service_status mhpanel-http-proxy ;;
+            socks) service_status mhpanel-socks-proxy ;;
+            shadowsocks) service_status mhpanel-shadowsocks ;;
+            tuic) service_status mhpanel-tuic ;;
+            dnstt) service_status mhpanel-dnstt ;;
+            vaydns) service_status mhpanel-vaydns ;;
+            slipstream) service_status mhpanel-slipstream ;;
             mtproto)
                 first_conf=$(ls /etc/vpnpanel/mtproto_config_*.py 2>/dev/null | head -n1 || true)
                 if [ -n "${first_conf}" ]; then
                     port=$(grep -E '^PORT = ' "${first_conf}" | awk '{print $3}')
-                    service_status "aethervpn-mtproto@${port}"
+                    service_status "mhpanel-mtproto@${port}"
                 else
                     echo "inactive"
                 fi
                 ;;
-            pptp) service_status aethervpn-pptp ;;
+            pptp) service_status mhpanel-pptp ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -2429,24 +2429,24 @@ case "${ACTION}" in
         ;;
     logs)
         case "${PROTOCOL}" in
-            ssh) journalctl -u aethervpn-ssh -n 100 --no-pager ;;
+            ssh) journalctl -u mhpanel-ssh -n 100 --no-pager ;;
             openvpn) journalctl -u openvpn@server -n 100 --no-pager ;;
             ocserv) journalctl -u ocserv -n 100 --no-pager ;;
             ikev2) journalctl -u strongswan-swanctl -u strongswan-starter -u strongswan -n 100 --no-pager ;;
             sstp) journalctl -u sstpd -n 100 --no-pager ;;
             l2tp) journalctl -u xl2tpd -n 100 --no-pager ;;
-            l2tpv3) journalctl -u aethervpn-l2tpv3 -n 100 --no-pager ;;
+            l2tpv3) journalctl -u mhpanel-l2tpv3 -n 100 --no-pager ;;
             wireguard) journalctl -u wg-quick@wg0 -n 100 --no-pager ;;
             amneziawg) journalctl -u awg-quick@awg0 -n 100 --no-pager ;;
-            http) journalctl -u aethervpn-http-proxy -n 100 --no-pager ;;
-            socks) journalctl -u aethervpn-socks-proxy -n 100 --no-pager ;;
-            shadowsocks) journalctl -u aethervpn-shadowsocks -n 100 --no-pager ;;
-            tuic) journalctl -u aethervpn-tuic -n 100 --no-pager ;;
-            dnstt) journalctl -u aethervpn-dnstt -n 100 --no-pager ;;
-            vaydns) journalctl -u aethervpn-vaydns -n 100 --no-pager ;;
-            slipstream) journalctl -u aethervpn-slipstream -n 100 --no-pager ;;
-            mtproto) journalctl -u aethervpn-mtproto -n 100 --no-pager ;;
-            pptp) journalctl -u aethervpn-pptp -n 100 --no-pager ;;
+            http) journalctl -u mhpanel-http-proxy -n 100 --no-pager ;;
+            socks) journalctl -u mhpanel-socks-proxy -n 100 --no-pager ;;
+            shadowsocks) journalctl -u mhpanel-shadowsocks -n 100 --no-pager ;;
+            tuic) journalctl -u mhpanel-tuic -n 100 --no-pager ;;
+            dnstt) journalctl -u mhpanel-dnstt -n 100 --no-pager ;;
+            vaydns) journalctl -u mhpanel-vaydns -n 100 --no-pager ;;
+            slipstream) journalctl -u mhpanel-slipstream -n 100 --no-pager ;;
+            mtproto) journalctl -u mhpanel-mtproto -n 100 --no-pager ;;
+            pptp) journalctl -u mhpanel-pptp -n 100 --no-pager ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
