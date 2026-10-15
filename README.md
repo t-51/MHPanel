@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.1.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.2.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
@@ -52,7 +52,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.1.0)
+     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.2.0)
   ======================================================================
   [1]  Run Full Automated Installation (Setup All Missing Components)
   [2]  Run Step-by-Step Custom Installation Wizard

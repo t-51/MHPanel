@@ -31,7 +31,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -87,7 +87,7 @@ show_banner() {
 EOF
     echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (${VERSION})${NC}"
     echo -e "${DIM}   Anti-Censorship VPN Protocols, Network Tunnels & MikroTik RouterOS Hub${NC}"
-    echo -e "${YELLOW}   [v1.1.0] ردیابی پکت‌های خراب و دراپ - مانیتور ترافیک - رادار چندکشوره - شخصی‌سازی ساب${NC}" 
+    echo -e "${YELLOW}   [v1.2.0] استودیوی گرافیکی پروتکل‌ها (Trojan / Hysteria 2 / NaiveProxy) - هاب کانفیگ و بروزرسانی خودکار${NC}" 
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }
 

@@ -7,12 +7,23 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.1.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.2.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/مجوز-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/زبان‌ها-فارسی%20%7C%20انگلیسی%20%7C%20روسی-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 امکانات جدید در نسخه ۱.۲.۰ (New in v1.2.0)
+- 🎛️ **استودیوی تنظیمات گرافیکی پروتکل‌ها (Graphical Protocol Studio):** رابط کاربری تماماً بصری، هوشمند و تعاملی برای پروتکل‌های پیشرفته ضد فیلترینگ (Trojan, Hysteria 2, NaiveProxy, TUIC, StunTLS).
+- 🛡️ **پایپ‌لاین جریان داده و معماری بصری (Traffic Flow Pipeline):** نمایش گرافیکی گام‌به‌گام اتصال از کلاینت تا هسته و اینترنت همراه با برچسب‌های وضعیت زنده ALPN، ترنسپورت و استتار.
+- ⚡ **ترنسپورت‌های چندگانه تروجان (Trojan Multi-Transport):** پشتیبانی گرافیکی و انتخاب آنی میان حالت‌های **TCP Direct**، **WebSocket (WS)** با تنظیم مسیر/هاست CDN و **gRPC** پرسرعت.
+- 🎭 **سرور فریب و استتار ضد کاوشگر (Decoy Fallback Server):** هدایت خودکار بسته‌های اسکنرهای فیلترینگ (Active Probers) به وب‌سایت فریب بدون افشای هویت سرور.
+- 🚀 **تنظیمات شتاب‌دهنده Hysteria 2 و NaiveProxy:** بهینه‌سازی گرافیکی بافرهای جریان QUIC، کنترل ازدحام Brutal با پروفایل‌های سرعت تا ۱ گیگابیت، و استتار پشته کرومیوم.
+- 📦 **هاب یکپارچه صدور کانفیگ برای کلاینت‌ها (Multi-Format Config Hub):** تب‌های تفکیک‌شده برای دریافت لینک‌های URI، بارکد اسکن سریع QR، کانفیگ Clash Meta (Mihomo)، کانفیگ Sing-Box Outbound JSON و راهنمای برنامه‌ها.
+- 🔄 **همگام‌سازی ریلیزهای گیت‌هاب و بررسی بروزرسانی آنی:** تشخیص بلادرنگ انتشار نسخه‌های رسمی در گیت‌هاب همراه با نمایش لاگ تغییرات، لینک‌های دانلود مستقیم ZIP و بروزرسانی خودکار.
 
 ---
 

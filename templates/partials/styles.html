@@ -3180,4 +3180,173 @@
         color: #94a3b8;
     }
 
+    /* ==========================================================================
+       GRAPHICAL PROTOCOL STUDIO & PIPELINE ENHANCEMENTS (v1.2.0)
+       ========================================================================== */
+    .proto-pipeline-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.4);
+        border: 1px solid var(--border-glow);
+        border-radius: 12px;
+        padding: 16px 20px;
+        overflow-x: auto;
+    }
+    .proto-pipeline-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        min-width: 110px;
+        position: relative;
+    }
+    .proto-pipeline-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.25s ease;
+    }
+    .proto-pipeline-arrow {
+        color: var(--text-muted);
+        opacity: 0.6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .proto-pipeline-title {
+        font-size: 11.5px;
+        font-weight: 700;
+        color: var(--text-main);
+    }
+    .proto-pipeline-subtitle {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* Graphical Radio Cards */
+    .proto-card-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+        margin-top: 8px;
+    }
+    .proto-card-option {
+        border: 1.5px solid var(--border-glow);
+        border-radius: 10px;
+        padding: 14px;
+        cursor: pointer;
+        background: var(--bg-base);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        user-select: none;
+    }
+    .proto-card-option:hover {
+        border-color: rgba(99, 102, 241, 0.5);
+        transform: translateY(-1px);
+    }
+    .proto-card-option.active {
+        border-color: #0ea5e9;
+        background: rgba(14, 165, 233, 0.08);
+        box-shadow: 0 0 15px rgba(14, 165, 233, 0.15);
+    }
+    .proto-card-option.active-rose {
+        border-color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+        box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+    }
+    .proto-card-option.active-purple {
+        border-color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.08);
+        box-shadow: 0 0 15px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Quick Chips */
+    .quick-chip-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 6px;
+    }
+    .quick-chip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--border-glow);
+        background: var(--bg-muted);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .quick-chip:hover {
+        color: var(--text-main);
+        border-color: var(--color-primary);
+        background: rgba(99, 102, 241, 0.1);
+    }
+    .quick-chip.active {
+        background: #0ea5e9;
+        border-color: #0ea5e9;
+        color: #ffffff !important;
+        font-weight: 700;
+    }
+    .quick-chip.active-rose {
+        background: #ef4444;
+        border-color: #ef4444;
+        color: #ffffff !important;
+        font-weight: 700;
+    }
+
+    /* Client snippet tab switcher */
+    .client-tab-nav {
+        display: flex;
+        gap: 6px;
+        border-bottom: 1px solid var(--border-glow);
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+        overflow-x: auto;
+    }
+    .client-tab-btn {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+    }
+    .client-tab-btn:hover {
+        color: var(--text-main);
+        background: var(--bg-muted);
+    }
+    .client-tab-btn.active {
+        color: #fff;
+        background: #0ea5e9;
+        border-color: #0ea5e9;
+    }
+    .client-tab-btn.active-rose {
+        color: #fff;
+        background: #ef4444;
+        border-color: #ef4444;
+    }
+
 </style>

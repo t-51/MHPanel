@@ -147,7 +147,7 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
-PANEL_VERSION = "1.1.0"
+PANEL_VERSION = "1.2.0"
 GITHUB_REPO = "t-51/MHPanel"
 TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
 SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
@@ -177,7 +177,7 @@ PROTOCOL_DEFAULT_PORTS = {
     "dnstt": 5300,
     "vaydns": 5353,
     "slipstream": 5354,
-    "hysteria2": 7443,
+    "hysteria2": 11443,
     "trojan": 12443,
     "naiveproxy": 13443,
     "stuntls": 3478,
@@ -661,7 +661,7 @@ def get_active_port(protocol):
                         m = re.search(r"listen:\s*:(\d+)", f.read())
                         if m: return int(m.group(1))
                 except Exception: pass
-            return 7443
+            return 11443
         elif protocol == "trojan":
             if os.path.exists("/etc/vpnpanel/trojan.json"):
                 try:
@@ -1435,22 +1435,44 @@ def api_system_check_update():
     update_available = False
     commit_msg = ""
     commit_date = ""
+    release_name = ""
+    release_body = ""
+    html_url = f"https://github.com/{repo}/releases"
+    tarball_url = f"https://github.com/{repo}/archive/refs/tags/v{current_ver}.tar.gz"
+    zipball_url = f"https://github.com/{repo}/archive/refs/tags/v{current_ver}.zip"
     
     try:
         import requests
         headers = {"User-Agent": "MHPanel-UpdateChecker"}
+        rel_req = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers, timeout=5)
+        if rel_req.status_code == 200:
+            r_data = rel_req.json()
+            tag_name = r_data.get("tag_name", "").lstrip("v").strip()
+            if tag_name:
+                latest_ver = tag_name
+            release_name = r_data.get("name", "") or f"MH Panel v{latest_ver}"
+            release_body = r_data.get("body", "")
+            html_url = r_data.get("html_url", html_url)
+            tarball_url = r_data.get("tarball_url", tarball_url)
+            zipball_url = r_data.get("zipball_url", zipball_url)
+            
+            def parse_ver(v):
+                p = []
+                for x in str(v).split("."):
+                    try:
+                        p.append(int(x))
+                    except:
+                        p.append(0)
+                return p
+            
+            if parse_ver(latest_ver) > parse_ver(current_ver):
+                update_available = True
+                
         req = requests.get(f"https://api.github.com/repos/{repo}/commits/main", headers=headers, timeout=5)
         if req.status_code == 200:
             c_data = req.json()
-            commit_msg = c_data.get("commit", {}).get("message", "")[:80]
+            commit_msg = c_data.get("commit", {}).get("message", "")[:100]
             commit_date = c_data.get("commit", {}).get("author", {}).get("date", "")
-            
-        rel_req = requests.get(f"https://api.github.com/repos/{repo}/releases/latest", headers=headers, timeout=4)
-        if rel_req.status_code == 200:
-            r_data = rel_req.json()
-            latest_ver = r_data.get("tag_name", "").lstrip("v") or current_ver
-            if latest_ver != current_ver:
-                update_available = True
     except Exception as e:
         pass
         
@@ -1460,8 +1482,13 @@ def api_system_check_update():
         "latest_version": latest_ver,
         "update_available": update_available,
         "has_update": update_available,
+        "release_name": release_name,
+        "release_body": release_body,
         "commit_message": commit_msg,
         "commit_date": commit_date,
+        "release_url": html_url,
+        "tarball_url": tarball_url,
+        "zipball_url": zipball_url,
         "repo_url": f"https://github.com/{repo}"
     })
 
@@ -6316,15 +6343,33 @@ def api_hysteria2_config():
 
     if request.method == "POST":
         data = request.json or {}
-        port = int(data.get("port") or 7443)
+        port = int(data.get("port") or 11443)
         password = (data.get("password") or "mhpanel_hysteria_secret").strip()
+        obfs_enabled = bool(data.get("obfs_enabled", True))
         obfs_pass = (data.get("obfs_password") or "mhpanel_salamander_key").strip()
         up_mbps = int(data.get("up_mbps") or 100)
         down_mbps = int(data.get("down_mbps") or 100)
+        sni = (data.get("sni") or domain).strip()
+        quic_preset = (data.get("quic_preset") or "balanced").strip()
+
+        quic_windows = {
+            "turbo": (16777216, 16777216, 33554432, 33554432),
+            "balanced": (8388608, 8388608, 20971520, 20971520),
+            "low": (4194304, 4194304, 8388608, 8388608)
+        }
+        w_is, w_ms, w_ic, w_mc = quic_windows.get(quic_preset, quic_windows["balanced"])
 
         os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
-        yaml_content = f"""server:
-  listen: :{port}
+        obfs_block = ""
+        if obfs_enabled and obfs_pass:
+            obfs_block = f"""
+obfs:
+  type: salamander
+  salamander:
+    password: {obfs_pass}
+"""
+
+        yaml_content = f"""listen: :{port}
 
 tls:
   cert: /etc/vpnpanel/ssl/panel.crt
@@ -6333,17 +6378,12 @@ tls:
 auth:
   type: password
   password: {password}
-
-obfs:
-  type: salamander
-  salamander:
-    password: {obfs_pass}
-
+{obfs_block}
 quic:
-  initStreamReceiveWindow: 8388608
-  maxStreamReceiveWindow: 8388608
-  initConnReceiveWindow: 20971520
-  maxConnReceiveWindow: 20971520
+  initStreamReceiveWindow: {w_is}
+  maxStreamReceiveWindow: {w_ms}
+  initConnReceiveWindow: {w_ic}
+  maxConnReceiveWindow: {w_mc}
   maxIdleTimeout: 30s
   keepAlivePeriod: 10s
 
@@ -6363,36 +6403,90 @@ outbounds:
         return jsonify({"success": True})
 
     # GET
-    port = 7443
+    port = 11443
     password = "mhpanel_hysteria_secret"
+    obfs_enabled = True
     obfs_pass = "mhpanel_salamander_key"
     up_mbps, down_mbps = 100, 100
+    quic_preset = "balanced"
+    sni = domain
+
     if os.path.exists(cfg_file):
         try:
             with open(cfg_file, "r") as f:
                 c = f.read()
             m = re.search(r"listen:\s*:(\d+)", c)
             if m: port = int(m.group(1))
-            m = re.search(r"password:\s*([^\s\n]+)", c)
+            m = re.search(r"auth:\s*\n\s*type:\s*password\s*\n\s*password:\s*([^\s\n]+)", c)
+            if not m:
+                m = re.search(r"password:\s*([^\s\n]+)", c)
             if m: password = m.group(1).strip()
-            m = re.search(r"salamander:\s*\n\s*password:\s*([^\s\n]+)", c)
-            if m: obfs_pass = m.group(1).strip()
+            if "obfs:" in c and "salamander:" in c:
+                obfs_enabled = True
+                m = re.search(r"salamander:\s*\n\s*password:\s*([^\s\n]+)", c)
+                if m: obfs_pass = m.group(1).strip()
+            else:
+                obfs_enabled = False
             m = re.search(r"up:\s*(\d+)", c)
             if m: up_mbps = int(m.group(1))
             m = re.search(r"down:\s*(\d+)", c)
             if m: down_mbps = int(m.group(1))
+            if "33554432" in c: quic_preset = "turbo"
+            elif "4194304" in c: quic_preset = "low"
+            else: quic_preset = "balanced"
         except Exception:
             pass
 
-    client_link = f"hysteria2://{password}@{domain}:{port}/?insecure=1&obfs=salamander&obfs-password={obfs_pass}&sni={domain}#MHPanel-Hysteria2"
+    obfs_param = f"&obfs=salamander&obfs-password={obfs_pass}" if obfs_enabled and obfs_pass else ""
+    client_link = f"hysteria2://{password}@{domain}:{port}/?insecure=1{obfs_param}&sni={sni}#MHPanel-Hysteria2"
+
+    clash_hy2 = f"""  - name: "Hysteria2-MHPanel"
+    type: hysteria2
+    server: {domain}
+    port: {port}
+    password: "{password}"
+    sni: {sni}
+    skip-cert-verify: true
+    up: {up_mbps}
+    down: {down_mbps}"""
+    if obfs_enabled and obfs_pass:
+        clash_hy2 += f"""
+    obfs: salamander
+    obfs-password: "{obfs_pass}\""""
+
+    singbox_hy2 = {
+        "type": "hysteria2",
+        "tag": "hysteria2-out",
+        "server": domain,
+        "server_port": port,
+        "up_mbps": up_mbps,
+        "down_mbps": down_mbps,
+        "password": password,
+        "tls": {
+            "enabled": True,
+            "server_name": sni,
+            "insecure": True
+        }
+    }
+    if obfs_enabled and obfs_pass:
+        singbox_hy2["obfs"] = {
+            "type": "salamander",
+            "password": obfs_pass
+        }
+
     return jsonify({
         "port": port,
         "password": password,
+        "obfs_enabled": obfs_enabled,
         "obfs_password": obfs_pass,
         "up_mbps": up_mbps,
         "down_mbps": down_mbps,
+        "quic_preset": quic_preset,
+        "sni": sni,
         "domain": domain,
         "client_link": client_link,
+        "clash_snippet": clash_hy2,
+        "singbox_snippet": json.dumps(singbox_hy2, indent=2),
         "installed": is_installed("hysteria2"),
         "active": get_protocol_active("hysteria2"),
         "connections": get_connection_count("hysteria2")
@@ -6412,26 +6506,69 @@ def api_trojan_config():
         port = int(data.get("port") or 12443)
         password = (data.get("password") or "mhpanel_trojan_secret").strip()
         sni = (data.get("sni") or domain).strip()
+        transport = (data.get("transport") or "tcp").strip().lower()
+        ws_path = (data.get("ws_path") or "/trojan-ws").strip()
+        ws_host = (data.get("ws_host") or sni).strip()
+        grpc_service_name = (data.get("grpc_service_name") or "trojan-grpc").strip()
+        alpn = data.get("alpn") or ["h2", "http/1.1"]
+        if isinstance(alpn, str):
+            alpn = [x.strip() for x in alpn.split(",") if x.strip()]
+        allow_insecure = bool(data.get("allow_insecure", True))
+        mux_enabled = bool(data.get("mux_enabled", True))
+        mux_protocol = (data.get("mux_protocol") or "smux").strip()
+        mux_concurrency = int(data.get("mux_concurrency") or 8)
+        padding = bool(data.get("padding", True))
+        tcp_fast_open = bool(data.get("tcp_fast_open", False))
+        fallback_enabled = bool(data.get("fallback_enabled", False))
+        fallback_addr = (data.get("fallback_addr") or "127.0.0.1:80").strip()
+
+        inbound_cfg = {
+            "type": "trojan",
+            "tag": "trojan-in",
+            "listen": "::",
+            "listen_port": port,
+            "tcp_fast_open": tcp_fast_open,
+            "users": [{"name": "default_user", "password": password}],
+            "tls": {
+                "enabled": True,
+                "server_name": sni,
+                "alpn": alpn,
+                "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
+                "key_path": "/etc/vpnpanel/ssl/panel.key"
+            }
+        }
+
+        if mux_enabled:
+            inbound_cfg["multiplex"] = {
+                "enabled": True,
+                "padding": padding
+            }
+
+        if transport == "ws":
+            inbound_cfg["transport"] = {
+                "type": "ws",
+                "path": ws_path,
+                "headers": {"Host": ws_host} if ws_host else {}
+            }
+        elif transport == "grpc":
+            inbound_cfg["transport"] = {
+                "type": "grpc",
+                "service_name": grpc_service_name
+            }
+
+        if fallback_enabled and fallback_addr:
+            fb_parts = fallback_addr.split(":")
+            fb_host = fb_parts[0]
+            fb_port = int(fb_parts[1]) if len(fb_parts) > 1 else 80
+            inbound_cfg["fallback"] = {
+                "server": fb_host,
+                "server_port": fb_port
+            }
 
         cfg = {
             "log": {"level": "warn", "timestamp": True},
             "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
-            "inbounds": [
-                {
-                    "type": "trojan",
-                    "tag": "trojan-in",
-                    "listen": "::",
-                    "listen_port": port,
-                    "users": [{"name": "default_user", "password": password}],
-                    "tls": {
-                        "enabled": True,
-                        "server_name": sni,
-                        "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
-                        "key_path": "/etc/vpnpanel/ssl/panel.key"
-                    },
-                    "multiplex": {"enabled": True}
-                }
-            ],
+            "inbounds": [inbound_cfg],
             "outbounds": [{"type": "direct", "tag": "direct"}]
         }
         os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
@@ -6442,9 +6579,24 @@ def api_trojan_config():
         subprocess.run(["systemctl", "restart", "aethervpn-trojan"], capture_output=True)
         return jsonify({"success": True})
 
+    # GET
     port = 12443
     password = "mhpanel_trojan_secret"
     sni = domain
+    transport = "tcp"
+    ws_path = "/trojan-ws"
+    ws_host = domain
+    grpc_service_name = "trojan-grpc"
+    alpn = ["h2", "http/1.1"]
+    allow_insecure = True
+    mux_enabled = True
+    mux_protocol = "smux"
+    mux_concurrency = 8
+    padding = True
+    tcp_fast_open = False
+    fallback_enabled = False
+    fallback_addr = "127.0.0.1:80"
+
     if os.path.exists(cfg_file):
         try:
             with open(cfg_file, "r") as f:
@@ -6454,17 +6606,130 @@ def api_trojan_config():
             users = inb.get("users", [{}])
             if users:
                 password = users[0].get("password", password)
-            sni = inb.get("tls", {}).get("server_name", domain)
+            tls_cfg = inb.get("tls", {})
+            sni = tls_cfg.get("server_name", domain)
+            alpn = tls_cfg.get("alpn", alpn)
+            tcp_fast_open = bool(inb.get("tcp_fast_open", False))
+            mux_cfg = inb.get("multiplex", {})
+            mux_enabled = bool(mux_cfg.get("enabled", True))
+            padding = bool(mux_cfg.get("padding", True))
+            tr_cfg = inb.get("transport", {})
+            if tr_cfg:
+                transport = tr_cfg.get("type", "tcp")
+                if transport == "ws":
+                    ws_path = tr_cfg.get("path", "/trojan-ws")
+                    ws_host = tr_cfg.get("headers", {}).get("Host", sni)
+                elif transport == "grpc":
+                    grpc_service_name = tr_cfg.get("service_name", "trojan-grpc")
+            fb_cfg = inb.get("fallback", {})
+            if fb_cfg:
+                fallback_enabled = True
+                fallback_addr = f"{fb_cfg.get('server', '127.0.0.1')}:{fb_cfg.get('server_port', 80)}"
         except Exception:
             pass
 
-    client_link = f"trojan://{password}@{domain}:{port}?security=tls&sni={sni}&allowInsecure=1#MHPanel-Trojan"
+    # Build client links
+    params = [
+        "security=tls",
+        f"sni={sni}",
+        f"alpn={','.join(alpn) if isinstance(alpn, list) else alpn}",
+        f"allowInsecure={'1' if allow_insecure else '0'}"
+    ]
+    if transport == "ws":
+        params.append("type=ws")
+        params.append(f"path={ws_path}")
+        if ws_host:
+            params.append(f"host={ws_host}")
+    elif transport == "grpc":
+        params.append("type=grpc")
+        params.append(f"serviceName={grpc_service_name}")
+    else:
+        params.append("type=tcp")
+
+    client_link = f"trojan://{password}@{domain}:{port}?{'&'.join(params)}#MHPanel-Trojan"
+
+    clash_trojan = f"""  - name: "Trojan-MHPanel"
+    type: trojan
+    server: {domain}
+    port: {port}
+    password: "{password}"
+    sni: {sni}
+    skip-cert-verify: {str(allow_insecure).lower()}
+    alpn:
+      - {alpn[0] if alpn else 'h2'}
+    udp: true"""
+    if transport == "ws":
+        clash_trojan += f"""
+    network: ws
+    ws-opts:
+      path: "{ws_path}"
+      headers:
+        Host: "{ws_host}\""""
+    elif transport == "grpc":
+        clash_trojan += f"""
+    network: grpc
+    grpc-opts:
+      grpc-service-name: "{grpc_service_name}\""""
+    if mux_enabled:
+        clash_trojan += f"""
+    smux:
+      enabled: true
+      protocol: {mux_protocol}
+      max-connections: {mux_concurrency}"""
+
+    singbox_trojan = {
+        "type": "trojan",
+        "tag": "trojan-out",
+        "server": domain,
+        "server_port": port,
+        "password": password,
+        "tls": {
+            "enabled": True,
+            "server_name": sni,
+            "alpn": alpn,
+            "insecure": allow_insecure
+        }
+    }
+    if transport == "ws":
+        singbox_trojan["transport"] = {
+            "type": "ws",
+            "path": ws_path,
+            "headers": {"Host": ws_host} if ws_host else {}
+        }
+    elif transport == "grpc":
+        singbox_trojan["transport"] = {
+            "type": "grpc",
+            "service_name": grpc_service_name
+        }
+    if mux_enabled:
+        singbox_trojan["multiplex"] = {
+            "enabled": True,
+            "protocol": mux_protocol,
+            "max_connections": mux_concurrency,
+            "padding": padding
+        }
+
     return jsonify({
         "port": port,
         "password": password,
         "sni": sni,
         "domain": domain,
+        "transport": transport,
+        "ws_path": ws_path,
+        "ws_host": ws_host,
+        "grpc_service_name": grpc_service_name,
+        "alpn": alpn,
+        "allow_insecure": allow_insecure,
+        "mux_enabled": mux_enabled,
+        "mux_protocol": mux_protocol,
+        "mux_concurrency": mux_concurrency,
+        "padding": padding,
+        "tcp_fast_open": tcp_fast_open,
+        "fallback_enabled": fallback_enabled,
+        "fallback_addr": fallback_addr,
         "client_link": client_link,
+        "clash_snippet": clash_trojan,
+        "singbox_snippet": json.dumps(singbox_trojan, indent=2),
         "installed": is_installed("trojan"),
         "active": get_protocol_active("trojan"),
         "connections": get_connection_count("trojan")
@@ -6533,6 +6798,10 @@ def api_naiveproxy_config():
             pass
 
     client_link = f"naive+https://{username}:{password}@{domain}:{port}"
+    naive_client_config = {
+        "listen": "socks://127.0.0.1:1080",
+        "proxy": f"https://{username}:{password}@{sni}:{port}"
+    }
     return jsonify({
         "port": port,
         "username": username,
@@ -6540,6 +6809,7 @@ def api_naiveproxy_config():
         "sni": sni,
         "domain": domain,
         "client_link": client_link,
+        "client_config_json": json.dumps(naive_client_config, indent=2),
         "installed": is_installed("naiveproxy"),
         "active": get_protocol_active("naiveproxy"),
         "connections": get_connection_count("naiveproxy")

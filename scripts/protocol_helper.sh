@@ -1451,15 +1451,14 @@ set_mtproto_ad_tag() {
 
 # ----------------- HYSTERIA 2 -----------------
 install_hysteria2() {
-    local port=${1:-7443}
+    local port=${1:-11443}
     mkdir -p /etc/vpnpanel
     generate_certs
     if [ ! -f /etc/vpnpanel/hysteria2.yaml ]; then
         local secret=$(openssl rand -hex 16)
         local obfs_sec=$(openssl rand -hex 16)
         cat > /etc/vpnpanel/hysteria2.yaml <<EOF
-server:
-  listen: :${port}
+listen: :${port}
 
 tls:
   cert: /etc/vpnpanel/ssl/panel.crt

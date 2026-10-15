@@ -12766,15 +12766,30 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const res = await fetch("/api/system/check_update");
             const data = await res.json();
             if (res.ok && data.success) {
-                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.0.0");
-                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.0.0");
+                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.2.0");
+                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.2.0");
 
                 if (data.has_update) {
                     if (badge) badge.style.display = "inline-flex";
                     if (applyBtn) applyBtn.style.display = "inline-flex";
                     if (statusEl) {
-                        statusEl.innerText = `نسخه جدید (${data.latest_version}) در گیت‌هاب منتشر شده است! برای نصب و بروزرسانی خودکار روی دکمه زیر بزنید.`;
-                        statusEl.style.color = "#059669";
+                        statusEl.innerHTML = `
+                            <div style="font-weight:700; color:#059669; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="sparkles" style="width:16px; height:16px;"></i>
+                                <span>نسخه جدید (${data.latest_version}) در گیت‌هاب منتشر گردید!</span>
+                            </div>
+                            ${data.release_name ? `<div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:4px;">${data.release_name}</div>` : ''}
+                            ${data.release_body ? `<div style="font-size:11.5px; opacity:0.9; max-height:130px; overflow-y:auto; background:rgba(0,0,0,0.12); padding:10px; border-radius:8px; margin:8px 0; white-space:pre-wrap; line-height:1.7;">${data.release_body}</div>` : ''}
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">می‌توانید پنل را با دکمه زیر خودکار بروزرسانی کرده یا سورس ریلیز را مستقیماً از گیت‌هاب دانلود نمایید.</div>
+                            <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                                <a href="${data.release_url || 'https://github.com/t-51/MHPanel/releases'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
+                                    <i data-lucide="external-link" style="width:13px; height:13px;"></i> <span>مشاهده در گیت‌هاب</span>
+                                </a>
+                                <a href="${data.zipball_url || '#'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
+                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود فایل ZIP</span>
+                                </a>
+                            </div>
+                        `;
                     }
                     if (silent) {
                         showToast("نسخه جدیدی از پنل در گیت‌هاب موجود است! (v" + data.latest_version + ")", "info");
@@ -12783,10 +12798,25 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     if (badge) badge.style.display = "none";
                     if (applyBtn) applyBtn.style.display = "none";
                     if (statusEl) {
-                        statusEl.innerText = "شما در حال حاضر از جدیدترین نسخه پایدار MH Panel استفاده می‌فرمایید.";
-                        statusEl.style.color = "var(--text-muted)";
+                        statusEl.innerHTML = `
+                            <div style="color:var(--text-main); font-weight:600; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="check-circle" style="width:16px; height:16px; color:#10b981;"></i>
+                                <span>شما در حال حاضر از جدیدترین نسخه پایدار MH Panel (نسخه ${data.current_version || '1.2.0'}) استفاده می‌فرمایید.</span>
+                            </div>
+                            ${data.release_name ? `<div style="font-size:12px; color:#6366f1; margin-top:8px; font-weight:700;">آخرین ریلیز گیت‌هاب: ${data.release_name}</div>` : ''}
+                            ${data.commit_message ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">آخرین کامیت: <code>${data.commit_message}</code></div>` : ''}
+                            <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                                <a href="${data.release_url || 'https://github.com/t-51/MHPanel/releases'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
+                                    <i data-lucide="external-link" style="width:13px; height:13px;"></i> <span>مشاهده صفحه Release در گیت‌هاب</span>
+                                </a>
+                                <a href="${data.zipball_url || '#'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
+                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود مستقیم پکیج v${data.current_version || '1.2.0'}</span>
+                                </a>
+                            </div>
+                        `;
                     }
                 }
+                if (window.lucide) lucide.createIcons();
             } else {
                 if (!silent && statusEl) {
                     statusEl.innerText = "خطا در بررسی بروزرسانی: " + (data.error || "عدم ارتباط");
@@ -13275,53 +13305,88 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("hysteria2-stat-connections")) document.getElementById("hysteria2-stat-connections").textContent = `${data.connections || 0}`;
             if (document.getElementById("hysteria2-cfg-port")) document.getElementById("hysteria2-cfg-port").value = data.port;
             if (document.getElementById("hysteria2-cfg-password")) document.getElementById("hysteria2-cfg-password").value = data.password;
-            if (document.getElementById("hysteria2-cfg-obfs-pass")) document.getElementById("hysteria2-cfg-obfs-pass").value = data.obfs_password;
-            if (document.getElementById("hysteria2-cfg-domain")) document.getElementById("hysteria2-cfg-domain").value = data.domain;
+            if (document.getElementById("hysteria2-cfg-obfs-pass")) document.getElementById("hysteria2-cfg-obfs-pass").value = data.obfs_password || "";
+            if (document.getElementById("hysteria2-cfg-domain")) document.getElementById("hysteria2-cfg-domain").value = data.sni || data.domain;
             if (document.getElementById("hysteria2-cfg-up")) document.getElementById("hysteria2-cfg-up").value = data.up_mbps || 100;
             if (document.getElementById("hysteria2-cfg-down")) document.getElementById("hysteria2-cfg-down").value = data.down_mbps || 100;
             if (document.getElementById("hysteria2-client-uri")) document.getElementById("hysteria2-client-uri").value = data.client_link || "";
             
+            if (document.getElementById("hysteria2-cfg-obfs-toggle")) {
+                document.getElementById("hysteria2-cfg-obfs-toggle").checked = Boolean(data.obfs_enabled);
+                toggleHysteria2ObfsInput();
+            }
+            if (data.quic_preset) {
+                selectHysteria2Quic(data.quic_preset);
+            }
+
             renderQrCodeHelper("hysteria2-qrcode-container", data.client_link || "");
 
-            const singboxOutbound = {
-                "type": "hysteria2",
-                "tag": "hysteria2-out",
-                "server": data.domain,
-                "server_port": data.port,
-                "up_mbps": data.up_mbps || 100,
-                "down_mbps": data.down_mbps || 100,
-                "password": data.password,
-                "obfs": {
-                    "type": "salamander",
-                    "password": data.obfs_password
-                },
-                "tls": {
-                    "enabled": true,
-                    "server_name": data.domain,
-                    "insecure": true
-                }
-            };
             if (document.getElementById("hysteria2-singbox-snippet")) {
-                document.getElementById("hysteria2-singbox-snippet").value = JSON.stringify(singboxOutbound, null, 2);
+                document.getElementById("hysteria2-singbox-snippet").value = data.singbox_snippet || "";
+            }
+            if (document.getElementById("hysteria2-clash-snippet")) {
+                document.getElementById("hysteria2-clash-snippet").value = data.clash_snippet || "";
             }
         } catch (e) {
             console.error("fetchHysteria2Config error:", e);
         }
     }
 
+    function selectHysteria2Port(p) {
+        const el = document.getElementById("hysteria2-cfg-port");
+        if (el) el.value = p;
+    }
+
+    function selectHysteria2Speed(s) {
+        if (document.getElementById("hysteria2-cfg-up")) document.getElementById("hysteria2-cfg-up").value = s;
+        if (document.getElementById("hysteria2-cfg-down")) document.getElementById("hysteria2-cfg-down").value = s;
+    }
+
+    function selectHysteria2Quic(mode) {
+        const inp = document.getElementById("hysteria2-cfg-quic-preset");
+        if (inp) inp.value = mode;
+        ['balanced', 'turbo', 'low'].forEach(m => {
+            const card = document.getElementById("hy2-card-" + m);
+            if (card) {
+                if (m === mode) card.classList.add("active-rose");
+                else card.classList.remove("active-rose");
+            }
+        });
+    }
+
+    function toggleHysteria2ObfsInput() {
+        const toggle = document.getElementById("hysteria2-cfg-obfs-toggle");
+        const box = document.getElementById("hysteria2-obfs-input-box");
+        if (box && toggle) {
+            box.style.display = toggle.checked ? "block" : "none";
+        }
+    }
+
+    function switchHysteria2ClientTab(tab) {
+        ['uri', 'singbox', 'clash', 'apps'].forEach(t => {
+            const btn = document.getElementById("hy2-tabbtn-" + t);
+            const pane = document.getElementById("hy2-clientpane-" + t);
+            if (btn) btn.classList.toggle("active-rose", t === tab);
+            if (pane) pane.style.display = (t === tab) ? "flex" : "none";
+        });
+    }
+
     async function saveHysteria2Config() {
-        const port = parseInt(document.getElementById("hysteria2-cfg-port").value) || 7443;
+        const port = parseInt(document.getElementById("hysteria2-cfg-port").value) || 11443;
         const password = document.getElementById("hysteria2-cfg-password").value.trim();
+        const obfs_enabled = document.getElementById("hysteria2-cfg-obfs-toggle") ? document.getElementById("hysteria2-cfg-obfs-toggle").checked : true;
         const obfs_password = document.getElementById("hysteria2-cfg-obfs-pass").value.trim();
         const up_mbps = parseInt(document.getElementById("hysteria2-cfg-up").value) || 100;
         const down_mbps = parseInt(document.getElementById("hysteria2-cfg-down").value) || 100;
+        const sni = document.getElementById("hysteria2-cfg-domain") ? document.getElementById("hysteria2-cfg-domain").value.trim() : "";
+        const quic_preset = document.getElementById("hysteria2-cfg-quic-preset") ? document.getElementById("hysteria2-cfg-quic-preset").value : "balanced";
 
         toggleLoading(true, "ذخیره و اعمال تنظیمات Hysteria 2...");
         try {
             const res = await fetch("/api/hysteria2/config", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ port, password, obfs_password, up_mbps, down_mbps })
+                body: JSON.stringify({ port, password, obfs_enabled, obfs_password, up_mbps, down_mbps, sni, quic_preset })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -13352,47 +13417,171 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("trojan-stat-port")) document.getElementById("trojan-stat-port").textContent = data.port;
             if (document.getElementById("trojan-stat-sni")) document.getElementById("trojan-stat-sni").textContent = data.sni || data.domain;
             if (document.getElementById("trojan-stat-connections")) document.getElementById("trojan-stat-connections").textContent = `${data.connections || 0}`;
+            
+            const transportLabels = { 'tcp': 'TCP Direct', 'ws': 'WebSocket (WS)', 'grpc': 'gRPC (HTTP/2)' };
+            if (document.getElementById("trojan-stat-transport")) {
+                document.getElementById("trojan-stat-transport").textContent = transportLabels[data.transport] || (data.transport || "TCP Direct").toUpperCase();
+            }
+            if (document.getElementById("trojan-arch-transport-label")) {
+                document.getElementById("trojan-arch-transport-label").textContent = transportLabels[data.transport] || "TCP Direct";
+            }
+            if (document.getElementById("trojan-arch-alpn-label")) {
+                document.getElementById("trojan-arch-alpn-label").textContent = Array.isArray(data.alpn) ? data.alpn.join(',') : (data.alpn || "h2,http/1.1");
+            }
+            if (document.getElementById("trojan-arch-fallback-label")) {
+                document.getElementById("trojan-arch-fallback-label").textContent = data.fallback_enabled ? `Decoy: ${data.fallback_addr || 'Active'}` : "Direct Internet";
+            }
+            if (document.getElementById("trojan-stat-mux")) {
+                document.getElementById("trojan-stat-mux").textContent = data.mux_enabled ? `${data.mux_protocol || 'Smux'} (${data.mux_concurrency || 8} Streams)` : "غیرفعال (Disabled)";
+            }
+
             if (document.getElementById("trojan-cfg-port")) document.getElementById("trojan-cfg-port").value = data.port;
             if (document.getElementById("trojan-cfg-password")) document.getElementById("trojan-cfg-password").value = data.password;
             if (document.getElementById("trojan-cfg-sni")) document.getElementById("trojan-cfg-sni").value = data.sni || data.domain;
-            if (document.getElementById("trojan-client-uri")) document.getElementById("trojan-client-uri").value = data.client_link || "";
 
+            selectTrojanTransport(data.transport || 'tcp');
+
+            if (document.getElementById("trojan-cfg-ws-path")) document.getElementById("trojan-cfg-ws-path").value = data.ws_path || "/trojan-ws";
+            if (document.getElementById("trojan-cfg-ws-host")) document.getElementById("trojan-cfg-ws-host").value = data.ws_host || data.sni || data.domain;
+            if (document.getElementById("trojan-cfg-grpc-service")) document.getElementById("trojan-cfg-grpc-service").value = data.grpc_service_name || "trojan-grpc";
+            if (document.getElementById("trojan-cfg-alpn")) {
+                document.getElementById("trojan-cfg-alpn").value = Array.isArray(data.alpn) ? data.alpn.join(',') : (data.alpn || "h2,http/1.1");
+            }
+            if (document.getElementById("trojan-cfg-allow-insecure")) {
+                document.getElementById("trojan-cfg-allow-insecure").checked = Boolean(data.allow_insecure);
+            }
+            if (document.getElementById("trojan-cfg-mux")) {
+                document.getElementById("trojan-cfg-mux").checked = Boolean(data.mux_enabled);
+            }
+            if (document.getElementById("trojan-cfg-mux-proto")) {
+                document.getElementById("trojan-cfg-mux-proto").value = data.mux_protocol || "smux";
+            }
+            if (document.getElementById("trojan-cfg-mux-concurrency")) {
+                document.getElementById("trojan-cfg-mux-concurrency").value = data.mux_concurrency || 8;
+            }
+            if (document.getElementById("trojan-cfg-padding")) {
+                document.getElementById("trojan-cfg-padding").checked = Boolean(data.padding !== false);
+            }
+            if (document.getElementById("trojan-cfg-tfo")) {
+                document.getElementById("trojan-cfg-tfo").checked = Boolean(data.tcp_fast_open);
+            }
+            if (document.getElementById("trojan-cfg-fallback-enable")) {
+                document.getElementById("trojan-cfg-fallback-enable").checked = Boolean(data.fallback_enabled);
+                toggleTrojanFallbackInput();
+            }
+            if (document.getElementById("trojan-cfg-fallback-addr")) {
+                document.getElementById("trojan-cfg-fallback-addr").value = data.fallback_addr || "127.0.0.1:80";
+            }
+
+            if (document.getElementById("trojan-client-uri")) document.getElementById("trojan-client-uri").value = data.client_link || "";
             renderQrCodeHelper("trojan-qrcode-container", data.client_link || "");
 
-            const clashTrojan = `  - name: "Trojan-MHPanel"
-    type: trojan
-    server: ${data.domain}
-    port: ${data.port}
-    password: "${data.password}"
-    sni: ${data.sni || data.domain}
-    skip-cert-verify: true
-    udp: true
-    smux:
-      enabled: true`;
             if (document.getElementById("trojan-clash-snippet")) {
-                document.getElementById("trojan-clash-snippet").value = clashTrojan;
+                document.getElementById("trojan-clash-snippet").value = data.clash_snippet || "";
+            }
+            if (document.getElementById("trojan-singbox-snippet")) {
+                document.getElementById("trojan-singbox-snippet").value = data.singbox_snippet || "";
             }
         } catch (e) {
             console.error("fetchTrojanConfig error:", e);
         }
     }
 
+    function selectTrojanTransport(mode) {
+        const inp = document.getElementById("trojan-cfg-transport");
+        if (inp) inp.value = mode;
+
+        ['tcp', 'ws', 'grpc'].forEach(m => {
+            const card = document.getElementById("trojan-card-" + m);
+            if (card) {
+                if (m === mode) card.classList.add("active");
+                else card.classList.remove("active");
+            }
+        });
+
+        const wsFields = document.getElementById("trojan-ws-fields");
+        const grpcFields = document.getElementById("trojan-grpc-fields");
+        if (wsFields) wsFields.style.display = (mode === 'ws') ? "grid" : "none";
+        if (grpcFields) grpcFields.style.display = (mode === 'grpc') ? "block" : "none";
+    }
+
+    function selectTrojanPort(p) {
+        const el = document.getElementById("trojan-cfg-port");
+        if (el) el.value = p;
+    }
+
+    function selectTrojanAlpn(val) {
+        const el = document.getElementById("trojan-cfg-alpn");
+        if (el) el.value = val;
+    }
+
+    function selectTrojanDecoy(addr) {
+        const el = document.getElementById("trojan-cfg-fallback-addr");
+        if (el) el.value = addr;
+    }
+
+    function toggleTrojanFallbackInput() {
+        const toggle = document.getElementById("trojan-cfg-fallback-enable");
+        const box = document.getElementById("trojan-fallback-box");
+        if (box && toggle) {
+            box.style.display = toggle.checked ? "block" : "none";
+        }
+    }
+
+    function setTrojanCurrentDomain() {
+        fetch("/api/server_domain")
+            .then(r => r.json())
+            .then(d => {
+                if (d.domain && document.getElementById("trojan-cfg-sni")) {
+                    document.getElementById("trojan-cfg-sni").value = d.domain;
+                    showToast("دامنه سرور درج گردید: " + d.domain, "info");
+                }
+            }).catch(() => {});
+    }
+
+    function switchTrojanClientTab(tab) {
+        ['uri', 'clash', 'singbox', 'apps'].forEach(t => {
+            const btn = document.getElementById("trojan-tabbtn-" + t);
+            const pane = document.getElementById("trojan-clientpane-" + t);
+            if (btn) btn.classList.toggle("active", t === tab);
+            if (pane) pane.style.display = (t === tab) ? "flex" : "none";
+        });
+    }
+
     async function saveTrojanConfig() {
-        const port = parseInt(document.getElementById("trojan-cfg-port").value) || 8443;
+        const port = parseInt(document.getElementById("trojan-cfg-port").value) || 12443;
         const password = document.getElementById("trojan-cfg-password").value.trim();
         const sni = document.getElementById("trojan-cfg-sni").value.trim();
+        const transport = document.getElementById("trojan-cfg-transport") ? document.getElementById("trojan-cfg-transport").value : "tcp";
+        const ws_path = document.getElementById("trojan-cfg-ws-path") ? document.getElementById("trojan-cfg-ws-path").value.trim() : "/trojan-ws";
+        const ws_host = document.getElementById("trojan-cfg-ws-host") ? document.getElementById("trojan-cfg-ws-host").value.trim() : "";
+        const grpc_service_name = document.getElementById("trojan-cfg-grpc-service") ? document.getElementById("trojan-cfg-grpc-service").value.trim() : "trojan-grpc";
+        const alpn = document.getElementById("trojan-cfg-alpn") ? document.getElementById("trojan-cfg-alpn").value.trim() : "h2,http/1.1";
+        const allow_insecure = document.getElementById("trojan-cfg-allow-insecure") ? document.getElementById("trojan-cfg-allow-insecure").checked : true;
+        const mux_enabled = document.getElementById("trojan-cfg-mux") ? document.getElementById("trojan-cfg-mux").checked : true;
+        const mux_protocol = document.getElementById("trojan-cfg-mux-proto") ? document.getElementById("trojan-cfg-mux-proto").value : "smux";
+        const mux_concurrency = parseInt(document.getElementById("trojan-cfg-mux-concurrency") ? document.getElementById("trojan-cfg-mux-concurrency").value : 8) || 8;
+        const padding = document.getElementById("trojan-cfg-padding") ? document.getElementById("trojan-cfg-padding").checked : true;
+        const tcp_fast_open = document.getElementById("trojan-cfg-tfo") ? document.getElementById("trojan-cfg-tfo").checked : false;
+        const fallback_enabled = document.getElementById("trojan-cfg-fallback-enable") ? document.getElementById("trojan-cfg-fallback-enable").checked : false;
+        const fallback_addr = document.getElementById("trojan-cfg-fallback-addr") ? document.getElementById("trojan-cfg-fallback-addr").value.trim() : "127.0.0.1:80";
 
         toggleLoading(true, "ذخیره و اعمال تنظیمات Trojan...");
         try {
             const res = await fetch("/api/trojan/config", {
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({ port, password, sni })
+                body: JSON.stringify({
+                    port, password, sni, transport, ws_path, ws_host,
+                    grpc_service_name, alpn, allow_insecure, mux_enabled,
+                    mux_protocol, mux_concurrency, padding, tcp_fast_open,
+                    fallback_enabled, fallback_addr
+                })
             });
             const data = await res.json();
             toggleLoading(false);
             if (data.success) {
-                showToast("تنظیمات Trojan با موفقیت اعمال شد", "success");
+                showToast("تنظیمات Trojan با موفقیت ذخیره و سرویس راه‌اندازی شد", "success");
                 fetchTrojanConfig();
             } else {
                 showToast(data.error || "خطا در اعمال تنظیمات", "error");
