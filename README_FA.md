@@ -7,12 +7,22 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.2.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/مجوز-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/زبان‌ها-فارسی%20%7C%20انگلیسی%20%7C%20روسی-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 امکانات جدید در نسخه ۱.۳.۰ (New in v1.3.0)
+- 🔐 **اکانتینگ و احراز هویت متمرکز پروتکل‌ها با FreeRADIUS و SQLite:** پیاده‌سازی سیستم احراز هویت هیبریدی دوطرفه برای ۵ پروتکل کلیدی (**Shadowsocks**, **TUIC v5**, **Hysteria 2**, **Trojan-GFW**, **StunTLS**). قابلیت ایجاد کاربران محلی با سهمیه حجم و انقضا اختصاصی، همگام‌سازی لحظه‌ای نشست‌ها و داده‌های مصرفی با ردیوس و سازگاری کامل با میکروتیک و User Manager.
+- 💾 **استودیوی مدیریت و مانیتورینگ زنده حافظه اسواپ (SWAP Studio):** اضافه شدن وضعیت گرافیکی مصرف حافظه SWAP در داشبورد سخت‌افزار، امکان تغییر حجم فایل اسواپ با یک کلیک (۱، ۲، ۴ یا ۸ گیگابایت)، تنظیم میزان فعال‌سازی Swappiness لینوکس (۰ تا ۱۰۰٪) و دکمه تخلیه فوری کش رم و اسواپ.
+- 🎨 **پایپ‌لاین بصری اتصال برای تک‌تک پروتکل‌ها (Visual Traffic Pipelines):** پیاده‌سازی پایپ‌لاین گرافیکی و پویای جریان اتصال مانند تروجان برای تمامی پروتکل‌های پیشرفته ضد فیلترینگ با نمایش لایه‌های ترنسپورت، گواهی امنیتی، رمزنگاری AEAD 2022 و مسیر خروج اینترنت.
+- 🛡️ **استودیوی پیشرفته تنظیمات ضد فیلترینگ و مانور DPI:** دکمه‌ها و گزینه‌های گرافیکی جهت تنظیم پورت‌هاست، پورت هاپینگ بازه‌ای، شبیه‌سازی هدر و جیتر بسته در StunTLS، کنترل خودکار اندازه‌ی MTU، سرور فریب (Decoy Fallback) و پشتیبانی گسترده از NoizDNS، NaiveProxy، MasterdnsVPN و پل‌های Tor (Snowflake / obfs4 / WebTunnel).
+- 🏷️ **تثبیت جامع برند MH Panel:** حذف کامل و ریشه‌ای تمامی ارجاعات نام‌های متفرقه از سرویس‌های systemd، اسکریپت‌های لینوکس، سورس پنل و محیط کاربری.
+- 🌓 **بهینه‌سازی عمیق کنتراست دارک‌مود و تقارن ترجمه‌ها:** بهبود چشمگیر خوانایی المان‌ها و کارت‌های پنل در تم تاریک و پوشش هماهنگ عبارات در زبان‌های فارسی، انگلیسی و روسی.
 
 ---
 
@@ -74,7 +84,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 مرکز مدیریت خط فرمان پنل جامع MH PANEL (نسخه ۱.۰.۰)
+     🚀 مرکز مدیریت خط فرمان پنل جامع MH PANEL (نسخه ۱.۳.۰)
   ======================================================================
   [1]  اجرای نصب خودکار و کامل (نصب تمام پروتکل‌ها و وابستگی‌ها)
   [2]  ویزارد نصب مرحله‌به‌مرحله و سفارشی

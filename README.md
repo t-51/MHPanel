@@ -7,12 +7,22 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.2.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Languages-EN%20%7C%20FA%20%7C%20RU-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 What's New in Version 1.3.0
+- 🔐 **Centralized Protocol Authentication & Accounting (FreeRADIUS + SQLite):** Unified hybrid accounting engine for 5 core protocols (**Shadowsocks**, **TUIC v5**, **Hysteria 2**, **Trojan-GFW**, **StunTLS**). Allows creating local users with per-protocol quotas and expiration dates while seamlessly synchronizing with FreeRADIUS `radcheck`/`radreply` and MikroTik User Manager.
+- 💾 **SWAP Memory Studio & Real-time Telemetry:** Dynamic hardware monitoring with live SWAP usage gauge, 1-click swap allocation resize (1GB, 2GB, 4GB, 8GB), real-time Linux swappiness slider (0–100%), and instant memory/swap cache flush.
+- 🎨 **Visual Traffic Flow Pipelines for All Protocols:** Interactive visual pipeline displaying traffic flow from client to server for every protocol, detailing ALPN, TLS 1.3, AEAD 2022 ciphers, port hopping, and decoy masquerading.
+- 🛡️ **Anti-Censorship & DPI Evasion Studio:** Graphical tuning for port hopping ranges, STUN header jitter simulation, PMTU discovery clamping, active-prober decoy fallbacks, alongside full support for NoizDNS, NaiveProxy, MasterdnsVPN, and Tor Snowflake / obfs4 / WebTunnel bridges.
+- 🏷️ **Complete Brand Unification to MH Panel:** Cleaned up all legacy name references across all systemd units, shell scripts, API endpoints, and web views.
+- 🌓 **High-Contrast Dark Mode & Full Trilingual Parity:** Optimized typography, contrast ratios, and complete parity across Persian, English, and Russian locales.
 
 ---
 
@@ -52,7 +62,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.2.0)
+     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.3.0)
   ======================================================================
   [1]  Run Full Automated Installation (Setup All Missing Components)
   [2]  Run Step-by-Step Custom Installation Wizard

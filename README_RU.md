@@ -7,12 +7,22 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.2.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
   <img src="https://img.shields.io/badge/Платформа-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Платформа">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Лицензия-MIT-emerald.svg?style=for-the-badge" alt="Лицензия">
   <img src="https://img.shields.io/badge/Языки-Русский%20%7C%20English%20%7C%20فارسی-purple.svg?style=for-the-badge" alt="Языки">
 </p>
+
+---
+
+### 🌟 Новое в версии 1.3.0
+- 🔐 **Централизованная аутентификация и аккаунтинг с FreeRADIUS и локальной SQLite:** Единая гибридная система аккаунтинга для 5 ключевых протоколов (**Shadowsocks**, **TUIC v5**, **Hysteria 2**, **Trojan-GFW**, **StunTLS**). Создание локальных пользователей с лимитами трафика и сроками действия, автоматическая синхронизация сессий с FreeRADIUS (`radcheck`/`radreply`) и полная совместимость с MikroTik User Manager.
+- 💾 **Студия управления памятью SWAP (SWAP Studio) и мониторинг в реальном времени:** Графический индикатор использования файла подкачки (SWAP) в разделе статуса оборудования, изменение размера SWAP в один клик (1 ГБ, 2 ГБ, 4 ГБ, 8 ГБ), ползунок настройки Linux Swappiness (0–100%) и мгновенная очистка системного кэша.
+- 🎨 **Визуальные пайплайны соединений для всех протоколов (Visual Pipelines):** Интерактивные схемы потока трафика от клиента к серверу для каждого протокола с отображением ALPN, TLS 1.3, шифров AEAD 2022, скачкообразной смены портов и маскировки под веб-сайты (Decoy).
+- 🛡️ **Студия обхода DPI и блокировок:** Тонкая настройка диапазона смены портов (Port Hopping), симуляция джиттера заголовков STUN, регулировка MTU Discovery, перенаправление зондов активного сканирования (Active Prober Decoy) и поддержка NoizDNS, NaiveProxy, MasterdnsVPN и мостов Tor (Snowflake / obfs4 / WebTunnel).
+- 🏷️ **Полный ребрендинг и унификация MH Panel:** Полное устранение устаревших наименований из всех systemd-сервисов, bash-скриптов, шаблонов и интерфейса.
+- 🌓 **Высококонтрастная темная тема и синхронизация переводов:** Улучшенная читаемость шрифтов и карточек в Dark Mode, стопроцентное покрытие интерфейса на трех языках (русский, английский, фарси).
 
 ---
 
@@ -52,7 +62,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.2.0)
+     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.3.0)
   ======================================================================
   [1]  Полная автоматическая установка (все протоколы и компоненты)
   [2]  Пошаговый мастер выборочной установки
