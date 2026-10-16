@@ -1526,6 +1526,77 @@ def api_system_update_panel():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/system/uninstall", methods=["POST"])
+def api_system_uninstall():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    purge_config = bool(data.get("purge_config", False))
+    uninstall_protocols = bool(data.get("uninstall_protocols", False))
+    confirm_text = str(data.get("confirm_text", "")).strip().upper()
+
+    if confirm_text not in ("UNINSTALL", "DELETE"):
+        return jsonify({"success": False, "error": "لطفاً جهت تایید کلمه UNINSTALL را وارد نمایید."}), 400
+
+    sh_content = """#!/usr/bin/env bash
+sleep 2
+
+# Stop & disable mhpanel services
+systemctl stop mhpanel.service vpnpanel.service 2>/dev/null || true
+systemctl disable mhpanel.service vpnpanel.service 2>/dev/null || true
+rm -f /etc/systemd/system/mhpanel.service /etc/systemd/system/vpnpanel.service
+systemctl daemon-reload
+systemctl reset-failed 2>/dev/null || true
+
+# Remove CLI shortcuts
+rm -f /usr/local/bin/mhpanel /usr/local/bin/hmpanel /usr/local/bin/kigapanel /usr/bin/mhpanel /usr/bin/hmpanel 2>/dev/null || true
+"""
+
+    if uninstall_protocols:
+        sh_content += """
+# Uninstall all active VPN protocols and stop proxy services
+if [ -f "/www/wwwroot/mhpanel/scripts/protocol_helper.sh" ]; then
+    for p in ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor; do
+        /www/wwwroot/mhpanel/scripts/protocol_helper.sh uninstall "$p" 2>/dev/null || true
+    done
+fi
+systemctl stop mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
+systemctl disable mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
+rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service 2>/dev/null || true
+systemctl daemon-reload
+"""
+
+    if purge_config:
+        sh_content += """
+# Purge configuration directories and logs
+rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups 2>/dev/null || true
+"""
+
+    sh_content += """
+# Remove panel installation directory
+rm -rf /www/wwwroot/mhpanel 2>/dev/null || true
+rm -f /tmp/mhpanel_uninstaller.sh
+"""
+
+    script_path = "/tmp/mhpanel_uninstaller.sh"
+    try:
+        with open(script_path, "w") as f:
+            f.write(sh_content)
+        os.chmod(script_path, 0o755)
+
+        try:
+            subprocess.run(["systemd-run", "bash", script_path], check=True)
+        except Exception:
+            subprocess.Popen(["bash", script_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+        return jsonify({
+            "success": True,
+            "message": "فرآیند حذف کامل سامانه MH Panel آغاز شد. کلیه سرویس‌ها ظرف چند ثانیه آینده پاکسازی خواهند شد."
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 # --- Credentials Update Endpoint ---
 @app.route("/api/credentials/update", methods=["POST"])
 def api_credentials_update():

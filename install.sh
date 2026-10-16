@@ -1087,9 +1087,10 @@ menu_web_ui_settings() {
         echo -e "  [4] Change Admin Username & Password"
         echo -e "  [5] Change Web Dashboard Port"
         echo -e "  [6] Regenerate Public API Key"
+        echo -e "  ${RED}${BOLD}[7] Uninstall MH Panel from Server (حذف کامل پنل)${NC}"
         echo -e "  [0] Back"
         echo ""
-        read -p "Select option [0-6]: " ui_act
+        read -p "Select option [0-7]: " ui_act
         case "$ui_act" in
             1) show_panel_access_info ;;
             2)
@@ -1133,6 +1134,9 @@ menu_web_ui_settings() {
                 systemctl restart mhpanel
                 echo -e "${GREEN}New API Key generated: ${CYAN}${nkey}${NC}"
                 read -p "Press Enter to continue..."
+                ;;
+            7)
+                uninstall_mhpanel
                 ;;
             0) break ;;
         esac
@@ -1258,6 +1262,82 @@ update_panel_repo() {
     read -p "Press Enter to return to main menu..."
 }
 
+uninstall_mhpanel() {
+    clear 2>/dev/null || true
+    echo -e "${RED}${BOLD}"
+    cat <<'EOF'
+  _    _ _   _ _____ _   _  _____ _______       _      _      
+ | |  | | \ | |_   _| \ | |/ ____|__   __|/\   | |    | |     
+ | |  | |  \| | | | |  \| | (___    | |  /  \  | |    | |     
+ | |  | | . ` | | | | . ` |\___ \   | | / /\ \ | |    | |     
+ | |__| | |\  |_| |_| |\  |____) |  | |/ ____ \| |____| |____ 
+  \____/|_| \_|_____|_| \_|_____/   |_/_/    \_\______|______|
+EOF
+    echo -e "${NC}"
+    echo -e "${RED}${BOLD}========================================================================${NC}"
+    echo -e "${RED}${BOLD}        MH PANEL UNINSTALLATION WIZARD (حذف کامل پنل از سرور)          ${NC}"
+    echo -e "${RED}${BOLD}========================================================================${NC}"
+    echo -e "${YELLOW}WARNING: This operation will completely uninstall MH Panel from this server.${NC}"
+    echo -e "${YELLOW}هشدار: این عملیات سرویس و سامانه MH Panel را از روی سرور حذف خواهد کرد.${NC}\n"
+
+    read -p "Are you sure you want to proceed with uninstallation? (yes/no) [no]: " confirm_un
+    if [ "$confirm_un" != "yes" ] && [ "$confirm_un" != "y" ] && [ "$confirm_un" != "YES" ]; then
+        echo -e "${GREEN}Uninstallation cancelled.${NC}"
+        read -p "Press Enter to return to main menu..."
+        return 0
+    fi
+
+    echo ""
+    echo -e "${CYAN}--- Configuration & Protocols Removal Options ---${NC}"
+    read -p "Do you want to stop and uninstall ALL active VPN protocols & tunnels? [y/N]: " rm_protos
+    read -p "Do you want to purge configuration files & SSL certs (/etc/vpnpanel, /etc/mhpanel)? [y/N]: " purge_conf
+
+    echo -e "\n${YELLOW}>>> [1/5] Stopping and removing MH Panel systemd service...${NC}"
+    systemctl stop mhpanel.service vpnpanel.service 2>/dev/null || true
+    systemctl disable mhpanel.service vpnpanel.service 2>/dev/null || true
+    rm -f /etc/systemd/system/mhpanel.service /etc/systemd/system/vpnpanel.service
+    systemctl daemon-reload
+    systemctl reset-failed 2>/dev/null || true
+
+    if [[ "$rm_protos" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}>>> [2/5] Stopping and uninstalling VPN protocols & tunnels...${NC}"
+        if [ -f "$HELPER" ]; then
+            for p in "${PROTOCOLS[@]}"; do
+                echo -e "    - Removing protocol: ${p}..."
+                "$HELPER" uninstall "$p" 2>/dev/null || true
+            done
+        fi
+        systemctl stop mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
+        systemctl disable mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service
+        systemctl daemon-reload
+    else
+        echo -e "${GREEN}>>> [2/5] Keeping VPN protocols intact as requested.${NC}"
+    fi
+
+    echo -e "${YELLOW}>>> [3/5] Removing CLI shortcuts...${NC}"
+    rm -f /usr/local/bin/mhpanel /usr/local/bin/hmpanel /usr/local/bin/kigapanel /usr/bin/mhpanel /usr/bin/hmpanel 2>/dev/null || true
+
+    if [[ "$purge_conf" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}>>> [4/5] Purging configuration directories and logs...${NC}"
+        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups 2>/dev/null || true
+    else
+        echo -e "${GREEN}>>> [4/5] Preserving /etc/vpnpanel configurations for future reinstallation.${NC}"
+    fi
+
+    echo -e "${YELLOW}>>> [5/5] Removing panel files...${NC}"
+    if [ -d "${PANEL_DIR}" ]; then
+        rm -rf "${PANEL_DIR}" 2>/dev/null || true
+    fi
+
+    echo ""
+    echo -e "${GREEN}${BOLD}========================================================================${NC}"
+    echo -e "${GREEN}${BOLD} ✓ MH Panel has been successfully uninstalled from this server.${NC}"
+    echo -e "${GREEN}${BOLD} ✓ سامانه MH Panel با موفقیت از روی سرور شما حذف گردید.${NC}"
+    echo -e "${GREEN}${BOLD}========================================================================${NC}\n"
+    exit 0
+}
+
 # ==============================================================================
 # MAIN MENU CONTROLLER
 # ==============================================================================
@@ -1287,9 +1367,10 @@ main_menu() {
         echo -e "  [10] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
         echo -e "  [11] Backup & Restore Panel Configurations"
         echo -e "  [12] Update Script & Panel"
+        echo -e "  ${RED}${BOLD}[13] Uninstall MH Panel from Server (حذف کامل پنل)${NC}"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
-        read -p "Please select an option [0-12]: " opt
+        read -p "Please select an option [0-13]: " opt
 
         case "$opt" in
             1) wizard_full_automated ;;
@@ -1304,6 +1385,7 @@ main_menu() {
             10) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
             11) backup_restore ;;
             12) update_panel_repo ;;
+            13) uninstall_mhpanel ;;
             0)
                 echo -e "\n${GREEN}Exiting MH Panel CLI. Have a great day!${NC}"
                 echo -e "Reminder: You can return to this menu at any time by typing ${CYAN}mhpanel${NC}\n"
@@ -1328,6 +1410,8 @@ elif [ "$1" = "--status" ]; then
     menu_diagnostic_status
 elif [ "$1" = "--info" ] || [ "$1" = "info" ] || [ "$1" = "--access" ]; then
     show_panel_access_info
+elif [ "$1" = "--uninstall" ] || [ "$1" = "uninstall" ] || [ "$1" = "-u" ]; then
+    uninstall_mhpanel
 else
     if [ ! -f "${PANEL_DIR}/app.py" ] && [ ! -f "/etc/systemd/system/mhpanel.service" ]; then
         show_banner
@@ -1336,14 +1420,16 @@ else
         echo -e "  [2] Step-by-Step Custom Wizard"
         echo -e "  [3] Lightweight Web UI Only"
         echo -e "  [4] View Panel Access & Login Info (مشاهده اطلاعات ورود)"
+        echo -e "  ${RED}[5] Uninstall Panel & Purge Leftovers (حذف باقیمانده‌ها)${NC}"
         echo -e "  [0] Exit"
         echo ""
-        read -p "Select installation mode [0-4]: " init_choice
+        read -p "Select installation mode [0-5]: " init_choice
         case "$init_choice" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;
             3) wizard_web_ui_only ;;
             4) show_panel_access_info ;;
+            5) uninstall_mhpanel ;;
             *) exit 0 ;;
         esac
     else

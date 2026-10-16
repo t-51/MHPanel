@@ -1765,4 +1765,65 @@
     </div>
 </div>
 
+<!-- Modal: Uninstall MH Panel -->
+<div class="modal" id="modal-uninstall-panel" style="display: none;">
+    <div class="modal-card" style="max-width: 540px; border-radius: 16px; border: 1px solid rgba(239, 68, 68, 0.4); box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+        <header class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.08);">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(239, 68, 68, 0.15); color:#ef4444; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="alert-triangle" style="width:22px; height:22px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #ef4444;" data-i18n="modal_uninstall_title">حذف کامل سامانه MH Panel</h3>
+                    <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted);" data-i18n="modal_uninstall_subtitle">عملیات غیرقابل بازگشت پاکسازی پنل از روی سرور</p>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeUninstallPanelModal()" type="button"><i data-lucide="x"></i></button>
+        </header>
+        <div class="modal-body" style="padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 10px; padding: 14px; font-size: 12.5px; line-height: 1.6; color: var(--text-main);">
+                <strong style="color:#ef4444;">⚠️ هشدار بسیار مهم:</strong> این عملیات سرویس وب <code>mhpanel.service</code> را متوقف و حذف نموده، دستورات ترمینال <code>mhpanel</code> را حذف کرده و فایل‌های سامانه را پاکسازی می‌نماید.
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px; background:var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    <input type="checkbox" id="uninstall-purge-config" style="margin-top: 3px; accent-color: #ef4444; width: 16px; height: 16px;">
+                    <span>
+                        حذف کامل فایل‌های تنظیمات، گواهی‌های SSL و دیتابیس
+                        <small style="display: block; font-size: 11px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                            مسیرهای <code>/etc/vpnpanel</code> و <code>/etc/mhpanel</code> کاملاً پاک می‌شوند. (اگر قصد نصب مجدد دارید، این گزینه را غیرفعال بگذارید).
+                        </small>
+                    </span>
+                </label>
+
+                <div style="border-top: 1px solid var(--border-glow); padding-top: 4px;"></div>
+
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 13px; font-weight: 600;">
+                    <input type="checkbox" id="uninstall-remove-protocols" style="margin-top: 3px; accent-color: #ef4444; width: 16px; height: 16px;">
+                    <span>
+                        متوقف‌سازی و حذف تمامی پروتکل‌های VPN و تونل‌های فعال
+                        <small style="display: block; font-size: 11px; color: var(--text-muted); font-weight: normal; margin-top: 2px;">
+                            تمامی سرویس‌های WireGuard، AmneziaWG، OpenVPN، Hysteria2، VayDNS، SlowDNS و ... متوقف و پاکسازی خواهند شد.
+                        </small>
+                    </span>
+                </label>
+            </div>
+
+            <div>
+                <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: block;">
+                    جهت تایید قطعی حذف، کلمه <code style="color:#ef4444; font-size:13px; font-weight:bold;">UNINSTALL</code> را وارد کنید:
+                </label>
+                <input type="text" id="uninstall-confirm-text" class="form-input" placeholder="UNINSTALL" autocomplete="off" style="direction: ltr; font-family: 'JetBrains Mono', monospace; text-align: center; font-weight: 700; letter-spacing: 2px; font-size: 14px; border-color: rgba(239, 68, 68, 0.4);">
+            </div>
+        </div>
+        <footer class="modal-footer" style="padding: 16px 22px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--border-glow);">
+            <button class="btn btn-secondary" onclick="closeUninstallPanelModal()" type="button" id="uninstall-cancel-btn">انصراف</button>
+            <button class="btn" onclick="submitUninstallPanel()" type="button" id="uninstall-submit-btn" style="background:#ef4444; color:#fff; border:1px solid #dc2626; font-weight:700;">
+                <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                <span>تایید و حذف کامل پنل</span>
+            </button>
+        </footer>
+    </div>
+</div>
+
 
