@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""
+NoizDNS - Noise-Padded Anti-DPI DNS Proxy & Tunnel Daemon
+Part of MHPanel Anti-Censorship Suite
+"""
+import sys
+import os
+import socket
+import select
+import random
+import time
+import json
+import struct
+import signal
+import argparse
+
+CONFIG_FILE = "/etc/vpnpanel/noizdns.json"
+
+DEFAULT_CONFIG = {
+    "port": 5355,
+    "upstream_dns": "1.1.1.1:53",
+    "noise_seed": "mhpanel-noiz-salt",
+    "padding_min": 16,
+    "padding_max": 64,
+    "jitter_ms": 2,
+    "allow_doh": False
+}
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                cfg = json.load(f)
+                res = DEFAULT_CONFIG.copy()
+                res.update(cfg)
+                return res
+        except Exception:
+            pass
+    return DEFAULT_CONFIG.copy()
+
+def strip_or_add_noise(data, is_outgoing=False, padding_min=16, padding_max=64):
+    """
+    Strips noise header on incoming requests or adds noise padding on outgoing responses
+    to confuse DPI pattern matchers and prevent query fingerprinting.
+    """
+    if not is_outgoing:
+        # If client prepended noise header (Magic 0x4E5A = 'NZ' + 2 byte len)
+        if len(data) > 4 and data[:2] == b"NZ":
+            noise_len = struct.unpack(">H", data[2:4])[0]
+            if len(data) >= 4 + noise_len:
+                return data[4 + noise_len:]
+        return data
+    else:
+        # Add random noise padding bytes at end or via EDNS0 OPT RR
+        pad_size = random.randint(padding_min, padding_max)
+        noise_bytes = os.urandom(pad_size)
+        return data + noise_bytes
+
+def run_server():
+    cfg = load_config()
+    port = int(cfg.get("port", 5355))
+    upstream = cfg.get("upstream_dns", "1.1.1.1:53")
+    if ":" in upstream:
+        u_host, u_port = upstream.split(":", 1)
+        u_port = int(u_port)
+    else:
+        u_host, u_port = upstream, 53
+
+    p_min = int(cfg.get("padding_min", 16))
+    p_max = int(cfg.get("padding_max", 64))
+
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    udp_sock.bind(("0.0.0.0", port))
+
+    print(f"[NoizDNS] Listening on UDP 0.0.0.0:{port}, forwarding to {u_host}:{u_port} with noise padding")
+
+    def handle_exit(sig, frame):
+        print("\n[NoizDNS] Shutting down...")
+        udp_sock.close()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_exit)
+    signal.signal(signal.SIGTERM, handle_exit)
+
+    client_map = {} # query_id -> (client_addr, orig_id, timestamp)
+
+    up_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    up_sock.setblocking(False)
+
+    inputs = [udp_sock, up_sock]
+
+    while True:
+        try:
+            readable, _, _ = select.select(inputs, [], [], 1.0)
+            now = time.time()
+            
+            # Cleanup stale queries
+            stale = [qid for qid, (_, _, ts) in client_map.items() if now - ts > 10]
+            for qid in stale:
+                del client_map[qid]
+
+            for s in readable:
+                if s is udp_sock:
+                    data, client_addr = udp_sock.recvfrom(4096)
+                    clean_dns = strip_or_add_noise(data, is_outgoing=False)
+                    if len(clean_dns) >= 12:
+                        orig_id = struct.unpack(">H", clean_dns[:2])[0]
+                        # Remap query ID
+                        proxy_id = random.randint(1, 65534)
+                        while proxy_id in client_map:
+                            proxy_id = random.randint(1, 65534)
+                        client_map[proxy_id] = (client_addr, orig_id, now)
+                        fwd_packet = struct.pack(">H", proxy_id) + clean_dns[2:]
+                        up_sock.sendto(fwd_packet, (u_host, u_port))
+
+                elif s is up_sock:
+                    resp_data, _ = up_sock.recvfrom(4096)
+                    if len(resp_data) >= 12:
+                        proxy_id = struct.unpack(">H", resp_data[:2])[0]
+                        if proxy_id in client_map:
+                            client_addr, orig_id, _ = client_map.pop(proxy_id)
+                            restored_packet = struct.pack(">H", orig_id) + resp_data[2:]
+                            padded_resp = strip_or_add_noise(restored_packet, is_outgoing=True, padding_min=p_min, padding_max=p_max)
+                            udp_sock.sendto(padded_resp, client_addr)
+        except Exception as e:
+            time.sleep(0.01)
+
+if __name__ == "__main__":
+    run_server()

@@ -74,7 +74,7 @@ ensure_cli_shortcuts() {
 ensure_cli_shortcuts
 
 # Supported Protocols List
-PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor)
+PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn dnstt vaydns slipstream hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor)
 
 # Banner Display
 show_banner() {
@@ -132,6 +132,9 @@ protocol_label() {
         mtproto) echo "MTProto Proxy (Telegram Fast Proxy)" ;;
         pptp) echo "PPTP VPN (Classic Protocol)" ;;
         badvpn) echo "BadVPN UDP-GW (Port 7300 Forwarding)" ;;
+        dnstt) echo "DNSTT (SlowDNS Crypto Tunnel)" ;;
+        vaydns) echo "VayDNS (High-Speed DNS Tunnel)" ;;
+        slipstream) echo "Slipstream (Covert DNS Channel)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -153,6 +156,9 @@ protocol_default_port() {
         mtproto) echo "4433" ;;
         pptp) echo "1723" ;;
         badvpn) echo "7300" ;;
+        dnstt) echo "5300" ;;
+        vaydns) echo "5353" ;;
+        slipstream) echo "5354" ;;
         hysteria2) echo "11443" ;;
         trojan) echo "12443" ;;
         naiveproxy) echo "13443" ;;
@@ -278,6 +284,9 @@ protocol_is_installed() {
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/mhpanel-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
+        dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] && [ -x /usr/local/bin/dnstt-server ] ;;
+        vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] && [ -x /usr/local/bin/vaydns-server ] ;;
+        slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] && [ -x /usr/local/bin/slipstream-server ] ;;
         hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
         trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
         naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
@@ -295,7 +304,15 @@ protocol_service_status() {
         ssh) svc="sshd_vpn" ;;
         openvpn) svc="openvpn@server" ;;
         ocserv) svc="ocserv" ;;
-        ikev2) svc="strongswan-starter" ;;
+        ikev2)
+            for s in strongswan strongswan-swanctl strongswan-starter; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="strongswan"
+            ;;
         sstp) svc="sstpd" ;;
         l2tp) svc="xl2tpd" ;;
         wireguard) svc="wg-quick@wg0" ;;
@@ -307,6 +324,9 @@ protocol_service_status() {
         mtproto) svc="mhpanel-mtproto" ;;
         pptp) svc="pptpd" ;;
         badvpn) svc="badvpn" ;;
+        dnstt) svc="mhpanel-dnstt" ;;
+        vaydns) svc="mhpanel-vaydns" ;;
+        slipstream) svc="mhpanel-slipstream" ;;
         hysteria2) svc="mhpanel-hysteria2" ;;
         trojan) svc="mhpanel-trojan" ;;
         naiveproxy) svc="mhpanel-naiveproxy" ;;
@@ -342,6 +362,9 @@ protocol_current_port() {
         mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config_*.py /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $NF}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;
         badvpn) echo "7300 (UDP)" ;;
+        dnstt) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "5300" ;;
+        vaydns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' || echo "5353" ;;
+        slipstream) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' || echo "5354" ;;
         hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443" ;;
         trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443" ;;
         naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443" ;;
@@ -484,6 +507,13 @@ install_panel_web_ui() {
         if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null; then
             git reset --hard origin/main 2>/dev/null || true
         fi
+    fi
+
+    # Install repository bundled binaries
+    if [ -d "${PANEL_DIR}/bin" ]; then
+        echo "    Installing bundled binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
+        cp -f "${PANEL_DIR}/bin/"* /usr/local/bin/ 2>/dev/null || true
+        chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
     fi
 
     if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ]; then
@@ -644,15 +674,84 @@ EOF
 }
 
 install_tunnel_tools() {
-    echo -e "\n${YELLOW}>>> [4/6] Checking and downloading Anti-Censorship Tunnel Binaries...${NC}"
+    echo -e "\n${YELLOW}>>> [4/6] Checking and verifying Anti-Censorship Tunnel Binaries...${NC}"
     local count_downloaded=0
+
+    # First: install repository bundled binaries if available
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -d "$bdir" ]; then
+            echo "    Installing bundled binaries from ${bdir} to /usr/local/bin/..."
+            cp -f "$bdir"/* /usr/local/bin/ 2>/dev/null || true
+            chmod +x /usr/local/bin/* 2>/dev/null || true
+            break
+        fi
+    done
+
+    # DNSTT
+    if [ ! -x /usr/local/bin/dnstt-server ]; then
+        echo "    Downloading DNSTT (dnstt-server & dnstt-client)..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-server -o /usr/local/bin/dnstt-server 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-client -o /usr/local/bin/dnstt-client 2>/dev/null || true
+        chmod +x /usr/local/bin/dnstt-* 2>/dev/null || true
+        if [ -x /usr/local/bin/dnstt-server ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download dnstt-server. Check server internet access.${NC}"
+        fi
+    fi
+
+    # VayDNS
+    if [ ! -x /usr/local/bin/vaydns-server ]; then
+        echo "    Downloading VayDNS (vaydns-server & vaydns-client)..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/vaydns-server -o /usr/local/bin/vaydns-server 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/vaydns-client -o /usr/local/bin/vaydns-client 2>/dev/null || true
+        chmod +x /usr/local/bin/vaydns-* 2>/dev/null || true
+        if [ -x /usr/local/bin/vaydns-server ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download vaydns-server. Check server internet access.${NC}"
+        fi
+    fi
+
+    # Slipstream
+    if [ ! -x /usr/local/bin/slipstream-server ]; then
+        echo "    Downloading Slipstream (slipstream-server & slipstream-client)..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/slipstream-server -o /usr/local/bin/slipstream-server 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/slipstream-client -o /usr/local/bin/slipstream-client 2>/dev/null || true
+        chmod +x /usr/local/bin/slipstream-* 2>/dev/null || true
+        if [ -x /usr/local/bin/slipstream-server ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download slipstream-server. Check server internet access.${NC}"
+        fi
+    fi
+
+    # TUIC
+    if [ ! -x /usr/local/bin/tuic-server ]; then
+        echo "    Downloading TUIC Server..."
+        local arch="$(uname -m)"
+        local tuic_arch="x86_64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && tuic_arch="aarch64"
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/tuic-server -o /usr/local/bin/tuic-server 2>/dev/null || \
+        curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl" -o /usr/local/bin/tuic-server 2>/dev/null || true
+        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
+        if [ -x /usr/local/bin/tuic-server ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download tuic-server. Check server internet access.${NC}"
+        fi
+    fi
 
     # GOST v3
     if [ ! -x /usr/local/bin/gost ]; then
         echo "    Downloading GOST v3..."
         curl -fsSL https://github.com/go-gost/gost/releases/download/v3.0.0-rc10/gost_3.0.0-rc10_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ gost 2>/dev/null || true
         chmod +x /usr/local/bin/gost 2>/dev/null || true
-        count_downloaded=$((count_downloaded + 1))
+        if [ -x /usr/local/bin/gost ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download GOST. Check server internet access.${NC}"
+        fi
     fi
 
     # WSTunnel
@@ -660,7 +759,11 @@ install_tunnel_tools() {
         echo "    Downloading WSTunnel..."
         curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
         chmod +x /usr/local/bin/wstunnel 2>/dev/null || true
-        count_downloaded=$((count_downloaded + 1))
+        if [ -x /usr/local/bin/wstunnel ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download WSTunnel. Check server internet access.${NC}"
+        fi
     fi
 
     # RTT
@@ -672,6 +775,8 @@ install_tunnel_tools() {
             chmod +x /usr/local/bin/rtt 2>/dev/null || true
             rm -f /tmp/rtt.zip
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download RTT. Check server internet access.${NC}"
         fi
     fi
 
@@ -680,7 +785,11 @@ install_tunnel_tools() {
         echo "    Downloading Chisel..."
         curl -fsSL https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz 2>/dev/null | gzip -d > /usr/local/bin/chisel 2>/dev/null || true
         chmod +x /usr/local/bin/chisel 2>/dev/null || true
-        count_downloaded=$((count_downloaded + 1))
+        if [ -x /usr/local/bin/chisel ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download Chisel. Check server internet access.${NC}"
+        fi
     fi
 
     # FRP
@@ -693,6 +802,8 @@ install_tunnel_tools() {
             chmod +x /usr/local/bin/frps /usr/local/bin/frpc 2>/dev/null || true
             rm -rf /tmp/frp*
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download FRP. Check server internet access.${NC}"
         fi
     fi
 
@@ -705,6 +816,8 @@ install_tunnel_tools() {
             chmod +x /usr/local/bin/udp2raw 2>/dev/null || true
             rm -rf /tmp/udp2raw*
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download UDP2Raw. Check server internet access.${NC}"
         fi
     fi
 
@@ -717,6 +830,8 @@ install_tunnel_tools() {
             chmod +x /usr/local/bin/phantun* 2>/dev/null || true
             rm -f /tmp/phantun.zip
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download Phantun. Check server internet access.${NC}"
         fi
     fi
 
@@ -730,6 +845,8 @@ install_tunnel_tools() {
             chmod +x /usr/local/bin/rathole 2>/dev/null || true
             rm -f /tmp/rathole*
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download Rathole. Check server internet access.${NC}"
         fi
     fi
 
@@ -742,6 +859,8 @@ install_tunnel_tools() {
             mv /usr/local/bin/client_linux_amd64 /usr/local/bin/kcptun-client 2>/dev/null || true
             chmod +x /usr/local/bin/kcptun-* 2>/dev/null || true
             count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download Kcptun. Check server internet access.${NC}"
         fi
     fi
 

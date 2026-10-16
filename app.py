@@ -189,7 +189,7 @@ PROTOCOL_SERVICE_MAP = {
     "ssh": "mhpanel-ssh",
     "openvpn": "openvpn@server",
     "ocserv": "ocserv",
-    "ikev2": "strongswan-starter",
+    "ikev2": "strongswan",
     "sstp": "sstpd",
     "pptp": "mhpanel-pptp",
     "l2tp": "xl2tpd",
@@ -2543,7 +2543,16 @@ def api_protocols_install():
         }
         port = safe_defaults.get(protocol, 10000 + int(port))
     
+    os.makedirs("/var/log/mhpanel", exist_ok=True)
     success, stdout, stderr = run_helper("install", protocol, port, ad_tag if protocol == "mtproto" else "")
+    try:
+        from datetime import datetime
+        with open(f"/var/log/mhpanel/install_{protocol}.log", "a") as f:
+            f.write(f"\n--- Install {protocol} at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+            if stdout: f.write(stdout + "\n")
+            if stderr: f.write(stderr + "\n")
+    except Exception:
+        pass
     if success:
         return jsonify({"success": True, "output": stdout})
     err_msg = (stderr.strip() + "\n" + stdout.strip()).strip() or "Installation failed"
@@ -2615,6 +2624,37 @@ def api_mtproto_ad_tag():
     run_helper("set-ad-tag", "mtproto", ad_tag)
     return jsonify({"success": True, "ad_tag": ad_tag})
 
+def get_ikev2_service_name():
+    for s in ["strongswan", "strongswan-swanctl", "strongswan-starter"]:
+        res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+        if res.returncode == 0:
+            return s
+    for s in ["strongswan", "strongswan-swanctl", "strongswan-starter"]:
+        for prefix in ["/usr/lib/systemd/system", "/lib/systemd/system", "/etc/systemd/system"]:
+            if os.path.exists(f"{prefix}/{s}.service"):
+                return s
+    return "strongswan"
+
+def restart_ikev2_service():
+    svc = get_ikev2_service_name()
+    res = subprocess.run(["systemctl", "restart", svc], capture_output=True, text=True)
+    if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
+        subprocess.run(["swanctl", "--load-all"], capture_output=True)
+    if subprocess.run(["which", "ipsec"], capture_output=True).returncode == 0:
+        subprocess.run(["ipsec", "update"], capture_output=True)
+    return res
+
+def unit_file_exists(service):
+    for prefix in ["/etc/systemd/system", "/lib/systemd/system", "/usr/lib/systemd/system"]:
+        if os.path.exists(f"{prefix}/{service}.service"):
+            return True
+    base_svc = service.split("@")[0]
+    for prefix in ["/etc/systemd/system", "/lib/systemd/system", "/usr/lib/systemd/system"]:
+        if os.path.exists(f"{prefix}/{base_svc}@.service"):
+            return True
+    res = subprocess.run(["systemctl", "list-unit-files", f"{service}.service"], capture_output=True, text=True)
+    return res.returncode == 0 and service in res.stdout
+
 def get_service_names(protocol):
     if protocol == "mtproto":
         import glob
@@ -2640,21 +2680,13 @@ def get_service_names(protocol):
     elif protocol == "ocserv":
         return ["ocserv"]
     elif protocol == "ikev2":
-        for s in ["strongswan-starter", "strongswan-swanctl", "strongswan"]:
-            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
-            if res.stdout.strip() in ["active", "inactive"]: return [s]
-        return ["strongswan-starter"]
+        return [get_ikev2_service_name()]
     elif protocol == "sstp":
         return ["sstpd"]
     elif protocol == "pptp":
         return ["mhpanel-pptp"]
     elif protocol == "l2tp":
-        ikev2_svc = "strongswan-swanctl"
-        for s in ["strongswan-swanctl", "strongswan-starter", "strongswan"]:
-            if os.path.exists(f"/etc/systemd/system/{s}.service") or os.path.exists(f"/lib/systemd/system/{s}.service"):
-                ikev2_svc = s
-                break
-        return ["xl2tpd", ikev2_svc]
+        return ["xl2tpd", get_ikev2_service_name()]
     elif protocol == "wireguard":
         return ["wg-quick@wg0", "mhpanel-wg-radius"]
     elif protocol == "http":
@@ -2707,8 +2739,7 @@ def api_protocols_control():
         errors = []
         for service in services:
             # Self-healing check: if unit file does not exist, initialize via protocol_helper
-            unit_file = f"/etc/systemd/system/{service}.service"
-            if action in ["start", "restart"] and not os.path.exists(unit_file):
+            if action in ["start", "restart"] and not unit_file_exists(service):
                 run_helper("install", protocol)
                 subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
 
@@ -2722,6 +2753,9 @@ def api_protocols_control():
 
                 if res.returncode != 0:
                     errors.append(f"Failed to {action} {service}: {res.stderr.strip()}")
+            elif protocol == "ikev2" and action in ["start", "restart"]:
+                if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
+                    subprocess.run(["swanctl", "--load-all"], capture_output=True)
         if errors:
             return jsonify({"success": False, "error": "; ".join(errors)}), 500
         return jsonify({"success": True})
@@ -2762,7 +2796,7 @@ def api_protocols_advanced_logs(protocol):
     if protocol == "ssh": services = ["mhpanel-ssh"]
     elif protocol == "openvpn": services = ["openvpn@server"]
     elif protocol == "ocserv": services = ["ocserv"]
-    elif protocol == "ikev2": services = ["strongswan-swanctl", "strongswan-starter", "strongswan"]
+    elif protocol == "ikev2": services = [get_ikev2_service_name()]
     elif protocol == "sstp": services = ["sstpd", "vpnserver"]
     elif protocol == "l2tp": services = ["xl2tpd"]
     elif protocol == "pptp": services = ["mhpanel-pptp"]
@@ -3355,7 +3389,7 @@ nologin /etc/nologin
             c = c.replace("rightauth=eap-radius", "rightauth=eap-mschapv2")
         with open(ipsec_conf, "w") as f:
             f.write(c)
-        subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
+        restart_ikev2_service()
 
     # 6. L2TP / SSTP ppp options
     l2tp_opt = "/etc/ppp/options.xl2tpd"
@@ -8378,8 +8412,7 @@ def apply_certificate_to_protocols(cert_entry, protocols):
             shutil.copyfile(key_path, "/etc/ipsec.d/private/server-key.pem")
             if ca_path and os.path.exists(ca_path):
                 shutil.copyfile(ca_path, "/etc/ipsec.d/cacerts/ca-cert.pem")
-            subprocess.run(["systemctl", "restart", "ipsec"], capture_output=True)
-            subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
+            restart_ikev2_service()
             results["ikev2"] = True
         except Exception as e:
             results["ikev2"] = str(e)
@@ -11859,7 +11892,7 @@ def get_l2tp_config_data():
     pub_ip = get_server_public_ip()
     conf = {
         "active": get_protocol_active("l2tp") or is_service_active("xl2tpd"),
-        "ipsec_active": is_service_active("strongswan-starter"),
+        "ipsec_active": is_service_active(get_ikev2_service_name()),
         "radius_active": is_service_active("freeradius"),
         "server_ip": pub_ip,
         "psk": "VpnSecret123",
@@ -12220,8 +12253,7 @@ mppe-stateful
 
     # 7. Restart and apply
     subprocess.run(["systemctl", "restart", "xl2tpd"], capture_output=True)
-    subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
-    subprocess.run(["ipsec", "update"], capture_output=True)
+    restart_ikev2_service()
 
 def get_live_l2tp_sessions():
     sessions = []
@@ -12336,10 +12368,13 @@ def api_l2tp_service_action(action):
 
     if action == "restart":
         subprocess.run(["systemctl", "restart", "xl2tpd"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
+        restart_ikev2_service()
         return jsonify({"success": True, "message": "سرویس‌های L2TP و IPsec با موفقیت راه‌اندازی مجدد شدند."})
     elif action == "reload":
-        subprocess.run(["ipsec", "update"], capture_output=True)
+        if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
+            subprocess.run(["swanctl", "--load-all"], capture_output=True)
+        if subprocess.run(["which", "ipsec"], capture_output=True).returncode == 0:
+            subprocess.run(["ipsec", "update"], capture_output=True)
         subprocess.run(["systemctl", "reload-or-restart", "xl2tpd"], capture_output=True)
         return jsonify({"success": True, "message": "کانفیگ L2TP و IPsec با موفقیت بازخوانی شد."})
     elif action == "stop":
@@ -12347,7 +12382,7 @@ def api_l2tp_service_action(action):
         return jsonify({"success": True, "message": "سرویس L2TP متوقف شد."})
     elif action == "start":
         subprocess.run(["systemctl", "start", "xl2tpd"], capture_output=True)
-        subprocess.run(["systemctl", "start", "strongswan-starter"], capture_output=True)
+        subprocess.run(["systemctl", "start", get_ikev2_service_name()], capture_output=True)
         return jsonify({"success": True, "message": "سرویس L2TP راه‌اندازی شد."})
     return jsonify({"error": "Invalid action"}), 400
 
@@ -13040,8 +13075,7 @@ conn ikev2-vpn
 }
 """)
 
-        subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
-        subprocess.run(["ipsec", "update"], capture_output=True)
+        restart_ikev2_service()
         return jsonify({"success": True, "message": "IKEv2 configuration successfully saved and applied to strongSwan!"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -13084,8 +13118,7 @@ def api_ikev2_cert_renew():
             with open("/etc/ipsec.conf", "w") as f:
                 f.write(c)
 
-        subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
-        subprocess.run(["ipsec", "update"], capture_output=True)
+        restart_ikev2_service()
 
         return jsonify({"success": True, "message": f"Certificate for {domain_or_ip} generated and applied successfully!", "cert": get_ikev2_cert_details()})
     except Exception as e:
@@ -13096,7 +13129,7 @@ def api_ikev2_service_restart():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     try:
-        res = subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True, text=True)
+        res = restart_ikev2_service()
         if res.returncode == 0:
             return jsonify({"success": True, "message": "IKEv2 (StrongSwan) service restarted successfully"})
         else:
@@ -13109,12 +13142,16 @@ def api_ikev2_service_reload():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     try:
-        res = subprocess.run(["ipsec", "update"], capture_output=True, text=True)
-        if res.returncode == 0:
-            return jsonify({"success": True, "message": "IKEv2 configuration reloaded (ipsec update)"})
+        if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
+            res = subprocess.run(["swanctl", "--load-all"], capture_output=True, text=True)
+        elif subprocess.run(["which", "ipsec"], capture_output=True).returncode == 0:
+            res = subprocess.run(["ipsec", "update"], capture_output=True, text=True)
         else:
-            subprocess.run(["systemctl", "restart", "strongswan-starter"], capture_output=True)
-            return jsonify({"success": True, "message": "IKEv2 configuration reloaded"})
+            res = restart_ikev2_service()
+        if res.returncode == 0:
+            return jsonify({"success": True, "message": "IKEv2 configuration reloaded successfully"})
+        else:
+            return jsonify({"success": False, "error": res.stderr}), 500
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

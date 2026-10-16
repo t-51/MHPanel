@@ -77,6 +77,46 @@ deny_port() {
     fi
 }
 
+ensure_binary() {
+    local bin_name="$1"
+    local fallback_url="$2"
+
+    if [ -x "/usr/local/bin/${bin_name}" ]; then
+        return 0
+    fi
+
+    # Check panel repo bin/ directories
+    for dir in "${PANEL_DIR}/bin" "/root/mhpanel-repo/bin" "/www/wwwroot/mhpanel/bin"; do
+        if [ -x "${dir}/${bin_name}" ]; then
+            cp -f "${dir}/${bin_name}" "/usr/local/bin/${bin_name}" 2>/dev/null || true
+            chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+            return 0
+        fi
+    done
+
+    # Check scripts/daemons
+    if [ -f "${PANEL_DIR}/scripts/daemons/${bin_name}" ]; then
+        cp -f "${PANEL_DIR}/scripts/daemons/${bin_name}" "/usr/local/bin/${bin_name}" 2>/dev/null || true
+        chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+        return 0
+    fi
+
+    # Attempt download from fallback_url
+    if [ -n "${fallback_url}" ]; then
+        echo "Binary ${bin_name} not found locally. Downloading from: ${fallback_url} ..."
+        if curl -fsSL --connect-timeout 10 --max-time 60 "${fallback_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
+            chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+            return 0
+        else
+            echo "ERROR: Network connectivity failed. Unable to download ${bin_name} from ${fallback_url}. Please check your server internet access or GitHub access." >&2
+            return 1
+        fi
+    fi
+
+    echo "ERROR: Binary ${bin_name} not found and no download URL available." >&2
+    return 1
+}
+
 # Helper: Find public interface for NAT
 get_public_interface() {
     ip route show default | awk '/default/ {print $5}' | head -n1
@@ -156,9 +196,9 @@ is_protocol_installed() {
         socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
         shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] && [ -x /usr/local/bin/ssserver ] ;;
         tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] && [ -x /usr/local/bin/tuic-server ] ;;
-        dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] ;;
-        vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] ;;
-        slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] ;;
+        dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] && [ -x /usr/local/bin/dnstt-server ] ;;
+        vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] && [ -x /usr/local/bin/vaydns-server ] ;;
+        slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] && [ -x /usr/local/bin/slipstream-server ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
         pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
@@ -551,33 +591,38 @@ EOF
     allow_port "500" "udp"
     allow_port "4500" "udp"
     
-    # Try enabling and restarting strongswan-swanctl, strongswan-starter or strongswan service depending on what's installed
+    # Determine the active or primary strongswan service
     local svc_name="strongswan"
-    if systemctl list-unit-files | grep -q strongswan-swanctl.service; then
-        svc_name="strongswan-swanctl"
-    elif systemctl list-unit-files | grep -q strongswan-starter.service; then
-        svc_name="strongswan-starter"
-    elif systemctl list-unit-files | grep -q strongswan.service; then
+    if systemctl is-active --quiet strongswan 2>/dev/null || [ -f /usr/lib/systemd/system/strongswan.service ] || [ -f /lib/systemd/system/strongswan.service ] || [ -f /etc/systemd/system/strongswan.service ]; then
         svc_name="strongswan"
+    elif [ -f /usr/lib/systemd/system/strongswan-swanctl.service ] || [ -f /lib/systemd/system/strongswan-swanctl.service ] || [ -f /etc/systemd/system/strongswan-swanctl.service ]; then
+        svc_name="strongswan-swanctl"
+    elif [ -f /usr/lib/systemd/system/strongswan-starter.service ] || [ -f /lib/systemd/system/strongswan-starter.service ] || [ -f /etc/systemd/system/strongswan-starter.service ]; then
+        svc_name="strongswan-starter"
     fi
 
     echo "Enabling and starting strongSwan service: ${svc_name}"
     systemctl daemon-reload
-    systemctl enable "${svc_name}" || true
-    systemctl restart "${svc_name}" || true
+    systemctl enable "${svc_name}" 2>/dev/null || true
+    systemctl restart "${svc_name}" 2>/dev/null || true
     
     # Wait a few seconds to let charon initialize and create the vici socket
-    sleep 3
-    swanctl --load-all || true
+    sleep 2
+    if command -v swanctl >/dev/null 2>&1; then
+        swanctl --load-all 2>/dev/null || true
+    fi
+    if command -v ipsec >/dev/null 2>&1; then
+        ipsec update 2>/dev/null || true
+    fi
 }
 
 uninstall_ikev2() {
-    systemctl stop strongswan-swanctl || true
-    systemctl disable strongswan-swanctl || true
-    systemctl stop strongswan-starter || true
-    systemctl disable strongswan-starter || true
-    systemctl stop strongswan || true
-    systemctl disable strongswan || true
+    systemctl stop strongswan 2>/dev/null || true
+    systemctl disable strongswan 2>/dev/null || true
+    systemctl stop strongswan-swanctl 2>/dev/null || true
+    systemctl disable strongswan-swanctl 2>/dev/null || true
+    systemctl stop strongswan-starter 2>/dev/null || true
+    systemctl disable strongswan-starter 2>/dev/null || true
     deny_port "500" "udp"
     deny_port "4500" "udp"
     rm -f /etc/swanctl/conf.d/ikev2.conf
@@ -1393,21 +1438,14 @@ EOF
         sed -i -E "s/\"server\":\s*\"0\.0\.0\.0:[0-9]+\"/\"server\": \"0.0.0.0:${port}\"/g" "${config}"
     fi
 
-    if [ ! -x /usr/local/bin/tuic-server ]; then
-        local arch="$(uname -m)"
-        local tuic_arch="x86_64"
-        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then tuic_arch="aarch64"; fi
-        curl -fsSL "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl" -o /usr/local/bin/tuic-server 2>/dev/null || true
-        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
-    fi
-
-    if [ ! -x /usr/local/bin/tuic-server ]; then
-        echo "    [!] TUIC server binary (/usr/local/bin/tuic-server) could not be installed. Skipping service."
-        systemctl stop mhpanel-tuic 2>/dev/null || true
-        systemctl disable mhpanel-tuic 2>/dev/null || true
-        rm -f /etc/systemd/system/mhpanel-tuic.service
-        systemctl daemon-reload
-        return 0
+    local arch="$(uname -m)"
+    local tuic_arch="x86_64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then tuic_arch="aarch64"; fi
+    if ! ensure_binary "tuic-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/tuic-server"; then
+        if ! ensure_binary "tuic-server" "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl"; then
+            echo "ERROR: Failed to download tuic-server binary. Check internet connectivity." >&2
+            return 1
+        fi
     fi
 
     cat > /etc/systemd/system/mhpanel-tuic.service <<EOF
@@ -2080,6 +2118,250 @@ set_port_masterdnsvpn() {
     fi
 }
 
+# ----------------- DNSTT PROTOCOL -----------------
+install_dnstt() {
+    local port=${1:-5300}
+    mkdir -p /etc/vpnpanel /etc/dnstt
+
+    if ! ensure_binary "dnstt-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-server"; then
+        echo "ERROR: Failed to obtain dnstt-server binary. Please check server internet access." >&2
+        return 1
+    fi
+    ensure_binary "dnstt-client" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-client" || true
+
+    if [ ! -f /etc/dnstt/server.key ] || [ ! -f /etc/dnstt/server.pub ]; then
+        /usr/local/bin/dnstt-server -gen-key -privkey-file /etc/dnstt/server.key -pubkey-file /etc/dnstt/server.pub || true
+    fi
+
+    local domain="t.kigaping.com"
+    local upstream="127.0.0.1:1080"
+    local mtu=1232
+
+    if [ -f /etc/vpnpanel/dnstt.json ]; then
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
+        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
+        mtu=$(grep -oE '"mtu":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "1232")
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/dnstt.json
+    else
+        cat > /etc/vpnpanel/dnstt.json <<EOF
+{
+  "port": ${port},
+  "domain": "${domain}",
+  "upstream": "${upstream}",
+  "mtu": ${mtu}
+}
+EOF
+    fi
+
+    cat > /etc/systemd/system/mhpanel-dnstt.service <<EOF
+[Unit]
+Description=MHPanel - DNSTT DNS Tunnel Server
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/dnstt-server -udp 0.0.0.0:${port} -privkey-file /etc/dnstt/server.key -mtu ${mtu} ${domain} ${upstream}
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable mhpanel-dnstt 2>/dev/null || true
+    systemctl restart mhpanel-dnstt 2>/dev/null || true
+    echo "DNSTT installed on UDP port ${port}."
+}
+
+uninstall_dnstt() {
+    systemctl stop mhpanel-dnstt 2>/dev/null || true
+    systemctl disable mhpanel-dnstt 2>/dev/null || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "5300")
+    deny_port "${port}" "udp"
+    rm -f /etc/systemd/system/mhpanel-dnstt.service /etc/vpnpanel/dnstt.json
+    systemctl daemon-reload
+    echo "DNSTT uninstalled."
+}
+
+set_port_dnstt() {
+    local port=$1
+    if [ -f /etc/vpnpanel/dnstt.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "5300")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/dnstt.json
+        sed -i -E "s/-udp 0\.0\.0\.0:[0-9]+/-udp 0.0.0.0:${port}/g" /etc/systemd/system/mhpanel-dnstt.service 2>/dev/null || true
+        allow_port "${port}" "udp"
+        systemctl daemon-reload
+        systemctl restart mhpanel-dnstt 2>/dev/null || true
+    fi
+}
+
+# ----------------- VAYDNS PROTOCOL -----------------
+install_vaydns() {
+    local port=${1:-5353}
+    mkdir -p /etc/vpnpanel /etc/vaydns
+
+    if ! ensure_binary "vaydns-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/vaydns-server"; then
+        echo "ERROR: Failed to obtain vaydns-server binary. Please check server internet access." >&2
+        return 1
+    fi
+    ensure_binary "vaydns-client" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/vaydns-client" || true
+
+    if [ ! -f /etc/vaydns/server.key ] || [ ! -f /etc/vaydns/server.pub ]; then
+        /usr/local/bin/vaydns-server -gen-key -privkey-file /etc/vaydns/server.key -pubkey-file /etc/vaydns/server.pub || true
+    fi
+
+    local domain="t.kigaping.com"
+    local upstream="127.0.0.1:1080"
+
+    if [ -f /etc/vpnpanel/vaydns.json ]; then
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
+        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/vaydns.json
+    else
+        cat > /etc/vpnpanel/vaydns.json <<EOF
+{
+  "port": ${port},
+  "domain": "${domain}",
+  "upstream": "${upstream}",
+  "dnstt_compat": true
+}
+EOF
+    fi
+
+    cat > /etc/systemd/system/mhpanel-vaydns.service <<EOF
+[Unit]
+Description=MHPanel - VayDNS High-Performance DNS Tunnel Server
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/vaydns-server -udp 0.0.0.0:${port} -privkey-file /etc/vaydns/server.key -domain ${domain} -upstream ${upstream} -dnstt-compat
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable mhpanel-vaydns 2>/dev/null || true
+    systemctl restart mhpanel-vaydns 2>/dev/null || true
+    echo "VayDNS installed on UDP port ${port}."
+}
+
+uninstall_vaydns() {
+    systemctl stop mhpanel-vaydns 2>/dev/null || true
+    systemctl disable mhpanel-vaydns 2>/dev/null || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' || echo "5353")
+    deny_port "${port}" "udp"
+    rm -f /etc/systemd/system/mhpanel-vaydns.service /etc/vpnpanel/vaydns.json
+    systemctl daemon-reload
+    echo "VayDNS uninstalled."
+}
+
+set_port_vaydns() {
+    local port=$1
+    if [ -f /etc/vpnpanel/vaydns.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' || echo "5353")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/vaydns.json
+        sed -i -E "s/-udp 0\.0\.0\.0:[0-9]+/-udp 0.0.0.0:${port}/g" /etc/systemd/system/mhpanel-vaydns.service 2>/dev/null || true
+        allow_port "${port}" "udp"
+        systemctl daemon-reload
+        systemctl restart mhpanel-vaydns 2>/dev/null || true
+    fi
+}
+
+# ----------------- SLIPSTREAM PROTOCOL -----------------
+install_slipstream() {
+    local port=${1:-5354}
+    mkdir -p /etc/vpnpanel /etc/slipstream
+
+    if ! ensure_binary "slipstream-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/slipstream-server"; then
+        echo "ERROR: Failed to obtain slipstream-server binary. Please check server internet access." >&2
+        return 1
+    fi
+    ensure_binary "slipstream-client" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/slipstream-client" || true
+
+    if [ ! -f /etc/slipstream/cert.pem ] || [ ! -f /etc/slipstream/key.pem ]; then
+        openssl req -x509 -newkey rsa:2048 -nodes -keyout /etc/slipstream/key.pem -out /etc/slipstream/cert.pem -days 3650 -subj "/CN=dns-tunnel" 2>/dev/null || true
+    fi
+
+    local domain="t.kigaping.com"
+    local upstream="127.0.0.1:1080"
+
+    if [ -f /etc/vpnpanel/slipstream.json ]; then
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/slipstream.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
+        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/slipstream.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/slipstream.json
+    else
+        cat > /etc/vpnpanel/slipstream.json <<EOF
+{
+  "port": ${port},
+  "domain": "${domain}",
+  "upstream": "${upstream}"
+}
+EOF
+    fi
+
+    cat > /etc/systemd/system/mhpanel-slipstream.service <<EOF
+[Unit]
+Description=MHPanel - Slipstream Covert DNS Tunnel Server
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/slipstream-server -l ${port} -d ${domain} -a ${upstream} -c /etc/slipstream/cert.pem -k /etc/slipstream/key.pem
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    allow_port "${port}" "udp"
+    systemctl daemon-reload
+    systemctl enable mhpanel-slipstream 2>/dev/null || true
+    systemctl restart mhpanel-slipstream 2>/dev/null || true
+    echo "Slipstream installed on UDP port ${port}."
+}
+
+uninstall_slipstream() {
+    systemctl stop mhpanel-slipstream 2>/dev/null || true
+    systemctl disable mhpanel-slipstream 2>/dev/null || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' || echo "5354")
+    deny_port "${port}" "udp"
+    rm -f /etc/systemd/system/mhpanel-slipstream.service /etc/vpnpanel/slipstream.json
+    systemctl daemon-reload
+    echo "Slipstream uninstalled."
+}
+
+set_port_slipstream() {
+    local port=$1
+    if [ -f /etc/vpnpanel/slipstream.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' || echo "5354")
+        deny_port "${old_port}" "udp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/slipstream.json
+        sed -i -E "s/-l [0-9]+/-l ${port}/g" /etc/systemd/system/mhpanel-slipstream.service 2>/dev/null || true
+        allow_port "${port}" "udp"
+        systemctl daemon-reload
+        systemctl restart mhpanel-slipstream 2>/dev/null || true
+    fi
+}
+
 # ----------------- TOR BRIDGES -----------------
 install_tor() {
     local or_port=${1:-9001}
@@ -2404,7 +2686,11 @@ print_status_report() {
             tuic)
                 if [ -f "/etc/vpnpanel/tuic.json" ] || [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/mhpanel-tuic.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || echo "7443")
+                    port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $NF}' | tr -d '"')
+                    if [ -z "$port" ]; then
+                        port=$(grep -oE 'server\s*=\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $NF}' | tr -d '"')
+                    fi
+                    port=${port:-7443}
                     if systemctl is-active mhpanel-tuic >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tuic" "$port")
@@ -2521,6 +2807,9 @@ case "${ACTION}" in
                 mtproto) ARG3=4433 ;;
                 pptp) ARG3=1723 ;;
                 badvpn) ARG3=7300 ;;
+                dnstt) ARG3=5300 ;;
+                vaydns) ARG3=5353 ;;
+                slipstream) ARG3=5354 ;;
                 hysteria2) ARG3=11443 ;;
                 trojan) ARG3=12443 ;;
                 naiveproxy) ARG3=13443 ;;
@@ -2557,6 +2846,9 @@ case "${ACTION}" in
             socks) install_socks "$ARG3" ;;
             shadowsocks) install_shadowsocks "$ARG3" ;;
             tuic) install_tuic "$ARG3" ;;
+            dnstt) install_dnstt "$ARG3" ;;
+            vaydns) install_vaydns "$ARG3" ;;
+            slipstream) install_slipstream "$ARG3" ;;
             mtproto) install_mtproto "$ARG3" "$ARG4" ;;
             pptp) install_pptp "$ARG3" ;;
             hysteria2) install_hysteria2 "$ARG3" ;;
@@ -2584,6 +2876,9 @@ case "${ACTION}" in
             socks) uninstall_socks ;;
             shadowsocks) uninstall_shadowsocks ;;
             tuic) uninstall_tuic ;;
+            dnstt) uninstall_dnstt ;;
+            vaydns) uninstall_vaydns ;;
+            slipstream) uninstall_slipstream ;;
             mtproto) uninstall_mtproto ;;
             pptp) uninstall_pptp ;;
             hysteria2) uninstall_hysteria2 ;;
@@ -2610,6 +2905,9 @@ case "${ACTION}" in
             socks) set_port_socks "$ARG3" ;;
             shadowsocks) set_port_shadowsocks "$ARG3" ;;
             tuic) set_port_tuic "$ARG3" ;;
+            dnstt) set_port_dnstt "$ARG3" ;;
+            vaydns) set_port_vaydns "$ARG3" ;;
+            slipstream) set_port_slipstream "$ARG3" ;;
             mtproto) set_port_mtproto "$ARG3" ;;
             pptp) set_port_pptp "$ARG3" ;;
             hysteria2) set_port_hysteria2 "$ARG3" ;;
@@ -2670,61 +2968,22 @@ case "${ACTION}" in
                     install_wireguard "${port}"
                 fi
                 ;;
-            pptp)
-                if [ -f "/etc/pptpd.conf" ]; then
-                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
-                    deny_port "${port}" "tcp"
-                    install_pptp "${port}"
+            dnstt)
+                if [ -f "/etc/vpnpanel/dnstt.json" ]; then
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "5300")
+                    install_dnstt "${port}"
                 fi
                 ;;
-        esac
-        ;;
-    reconfigure)
-        case "${PROTOCOL}" in
-            ssh)
-                if [ -f "/etc/ssh/sshd_config_vpn" ]; then
-                    port=$(grep -Ei '^Port ' /etc/ssh/sshd_config_vpn 2>/dev/null | awk '{print $2}' || echo "2222")
-                    install_ssh "${port}"
+            vaydns)
+                if [ -f "/etc/vpnpanel/vaydns.json" ]; then
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' || echo "5353")
+                    install_vaydns "${port}"
                 fi
                 ;;
-            openvpn)
-                if [ -f "/etc/openvpn/server.conf" ]; then
-                    port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "1194")
-                    proto=$(grep -Ei '^proto ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "udp")
-                    deny_port "${port}" "${proto}"
-                    install_openvpn "${port}"
-                fi
-                ;;
-            ocserv)
-                if [ -f "/etc/ocserv/ocserv.conf" ]; then
-                    port=$(grep -Ei '^tcp-port' /etc/ocserv/ocserv.conf 2>/dev/null | awk '{print $3}' || echo "443")
-                    deny_port "${port}" "tcp"
-                    deny_port "${port}" "udp"
-                    install_ocserv "${port}"
-                fi
-                ;;
-            ikev2)
-                if [ -f "/etc/swanctl/conf.d/ikev2.conf" ]; then
-                    install_ikev2
-                fi
-                ;;
-            sstp)
-                if [ -f "/etc/systemd/system/sstpd.service" ]; then
-                    port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || true); port=${port:-$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' || true)}; port=${port:-4443}
-                    deny_port "${port}" "tcp"
-                    install_sstp "${port}"
-                fi
-                ;;
-            l2tp)
-                if [ -f "/etc/xl2tpd/xl2tpd.conf" ]; then
-                    install_l2tp
-                fi
-                ;;
-            wireguard)
-                if [ -f "/etc/wireguard/wg0.conf" ]; then
-                    port=$(grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' || echo "51820")
-                    deny_port "${port}" "udp"
-                    install_wireguard "${port}"
+            slipstream)
+                if [ -f "/etc/vpnpanel/slipstream.json" ]; then
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' || echo "5354")
+                    install_slipstream "${port}"
                 fi
                 ;;
             pptp)
@@ -2782,7 +3041,7 @@ case "${ACTION}" in
             ssh) service_status mhpanel-ssh ;;
             openvpn) service_status openvpn@server ;;
             ocserv) service_status ocserv ;;
-            ikev2) service_status strongswan-starter strongswan strongswan-swanctl ;;
+            ikev2) service_status strongswan strongswan-swanctl strongswan-starter ;;
             sstp) service_status sstpd ;;
             l2tp) service_status xl2tpd ;;
             l2tpv3) service_status mhpanel-l2tpv3 ;;
@@ -2816,7 +3075,7 @@ case "${ACTION}" in
             ssh) journalctl -u mhpanel-ssh -n 100 --no-pager ;;
             openvpn) journalctl -u openvpn@server -n 100 --no-pager ;;
             ocserv) journalctl -u ocserv -n 100 --no-pager ;;
-            ikev2) journalctl -u strongswan-swanctl -u strongswan-starter -u strongswan -n 100 --no-pager ;;
+            ikev2) journalctl -u strongswan -u strongswan-swanctl -u strongswan-starter -n 100 --no-pager ;;
             sstp) journalctl -u sstpd -n 100 --no-pager ;;
             l2tp) journalctl -u xl2tpd -n 100 --no-pager ;;
             l2tpv3) journalctl -u mhpanel-l2tpv3 -n 100 --no-pager ;;
@@ -2835,7 +3094,7 @@ case "${ACTION}" in
         esac
         ;;
     *)
-        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|http|socks|shadowsocks|tuic|mtproto} [port/ad-tag]"
+        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto} [port/ad-tag]"
         exit 1
         ;;
 esac

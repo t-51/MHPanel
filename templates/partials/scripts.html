@@ -593,9 +593,26 @@
             lucide.createIcons();
         }
 
-        setTimeout(() => {
+        if (toast._timer) clearTimeout(toast._timer);
+        toast.style.cursor = type === "error" ? "pointer" : "default";
+        toast.title = type === "error" ? "Click to copy message" : "";
+        toast.onclick = () => {
+            if (type === "error" && navigator.clipboard) {
+                navigator.clipboard.writeText(message).then(() => {
+                    text.innerText = (typeof window.t === "function") ? window.t("error_copied", "پیام خطا کپی شد!") : "Error copied!";
+                    setTimeout(() => { toast.classList.remove("active"); }, 1500);
+                }).catch(() => {
+                    toast.classList.remove("active");
+                });
+            } else {
+                toast.classList.remove("active");
+            }
+        };
+
+        const duration = (type === "error") ? 10000 : 4000;
+        toast._timer = setTimeout(() => {
             toast.classList.remove("active");
-        }, 4000);
+        }, duration);
     }
 
     // Loader Helper
