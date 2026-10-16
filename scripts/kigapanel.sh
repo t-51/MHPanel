@@ -265,17 +265,17 @@ protocol_is_installed() {
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
         http) [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ] ;;
         socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
-        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] || command -v ssserver >/dev/null 2>&1 ;;
-        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] || [ -f "/etc/systemd/system/tuic-server.service" ] || [ -x /usr/local/bin/tuic-server ] ;;
+        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] && [ -x /usr/local/bin/ssserver ] ;;
+        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] && [ -x /usr/local/bin/tuic-server ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/mhpanel-mtproto.service" ] ;;
-        pptp) [ -f "/etc/pptpd.conf" ] ;;
-        badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && command -v badvpn-udpgw >/dev/null 2>&1 ;;
+        pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
+        badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
         hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
         trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
         naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
-        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] ;;
-        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] ;;
-        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] && [ -x /usr/local/bin/stuntls-server ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
         *) return 1 ;;
     esac
@@ -404,6 +404,11 @@ EOF
             "${pkgs_needed[@]}" 2>/dev/null || apt-get install -y "${pkgs_needed[@]}" 2>/dev/null || true
         echo -e "    ${GREEN}[✓] Base system dependencies successfully installed.${NC}"
     fi
+
+    # Fix Ubuntu PAM radius auth sample issue (failed bind to vrf-blue)
+    if [ -f /etc/pam_radius_auth.conf ]; then
+        sed -i -E 's/\s+vrf=[^\s]+//g' /etc/pam_radius_auth.conf 2>/dev/null || true
+    fi
 }
 
 enable_bbr_and_sysctl() {
@@ -526,7 +531,7 @@ install_panel_web_ui() {
     # Install daemon microservices scripts
     if [ -d "${PANEL_DIR}/scripts/daemons" ]; then
         cp -f "${PANEL_DIR}/scripts/daemons/"* /usr/local/bin/ 2>/dev/null || true
-        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
+        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py /usr/local/bin/badvpn-udpgw 2>/dev/null || true
     fi
 
     local srv_ip=$(get_public_ipv4)
@@ -585,14 +590,28 @@ EOF
 install_badvpn() {
     echo -e "    ${CYAN}--> Setting up BadVPN UDP-GW (Port 7300 for UDP gaming/voice forwarding)...${NC}"
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
-        mkdir -p /tmp/badvpn-build
-        cd /tmp/badvpn-build
-        if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
-            mkdir -p build && cd build
-            cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
-            make install >/dev/null 2>&1
+        if [ -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" ]; then
+            cp -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" /usr/local/bin/badvpn-udpgw
+            chmod +x /usr/local/bin/badvpn-udpgw
+        else
+            mkdir -p /tmp/badvpn-build
+            cd /tmp/badvpn-build
+            if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
+                mkdir -p build && cd build
+                cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
+                make install >/dev/null 2>&1
+            fi
+            cd /root && rm -rf /tmp/badvpn-build
         fi
-        cd /root && rm -rf /tmp/badvpn-build
+    fi
+
+    if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
+        echo -e "    ${YELLOW}[!] BadVPN UDPGW binary could not be prepared. Skipping badvpn service.${NC}"
+        systemctl stop badvpn.service 2>/dev/null || true
+        systemctl disable badvpn.service 2>/dev/null || true
+        rm -f /etc/systemd/system/badvpn.service
+        systemctl daemon-reload
+        return 0
     fi
 
     cat > /etc/systemd/system/badvpn.service <<EOF
@@ -1324,6 +1343,7 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/noizdns-server" -o "${PANEL_DIR}/scripts/daemons/noizdns-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/stuntls-server" -o "${PANEL_DIR}/scripts/daemons/stuntls-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/ssh-ws-proxy.py" -o "${PANEL_DIR}/scripts/daemons/ssh-ws-proxy.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
@@ -1333,7 +1353,42 @@ update_panel_repo() {
     chmod +x "${PANEL_DIR}/install.sh" "${PANEL_DIR}/scripts/"*.sh 2>/dev/null || true
     if [ -d "${PANEL_DIR}/scripts/daemons" ]; then
         cp -f "${PANEL_DIR}/scripts/daemons/"* /usr/local/bin/ 2>/dev/null || true
-        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
+        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+    fi
+
+    # Auto-repair services and binaries if needed
+    if ! command -v pptpd >/dev/null 2>&1 && [ ! -x /usr/sbin/pptpd ]; then
+        systemctl stop mhpanel-pptp 2>/dev/null || true
+        systemctl disable mhpanel-pptp 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-pptp.service
+    fi
+    if [ -f /etc/pam_radius_auth.conf ]; then
+        sed -i -E 's/\s+vrf=[^\s]+//g' /etc/pam_radius_auth.conf 2>/dev/null || true
+    fi
+    if [ -f /etc/systemd/system/mhpanel-shadowsocks.service ] && [ ! -x /usr/local/bin/ssserver ]; then
+        echo -e "${CYAN}    Fixing missing Shadowsocks-rust binary...${NC}"
+        local arch="$(uname -m)"
+        local ss_arch="x86_64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then ss_arch="aarch64"; fi
+        curl -fsSL "https://github.com/shadowsocks/shadowsocks-rust/releases/download/v1.22.0/shadowsocks-v1.22.0.${ss_arch}-unknown-linux-gnu.tar.xz" 2>/dev/null | tar -xJ -C /usr/local/bin/ ssserver 2>/dev/null || true
+        chmod +x /usr/local/bin/ssserver 2>/dev/null || true
+        systemctl restart mhpanel-shadowsocks 2>/dev/null || true
+    fi
+    if [ -f /etc/systemd/system/mhpanel-tuic.service ] && [ ! -x /usr/local/bin/tuic-server ]; then
+        echo -e "${CYAN}    Fixing missing TUIC server binary...${NC}"
+        local arch="$(uname -m)"
+        local tuic_arch="x86_64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then tuic_arch="aarch64"; fi
+        curl -fsSL "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl" -o /usr/local/bin/tuic-server 2>/dev/null || true
+        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
+        systemctl restart mhpanel-tuic 2>/dev/null || true
+    fi
+    if [ -f /etc/systemd/system/badvpn.service ]; then
+        if [ -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" ]; then
+            cp -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" /usr/local/bin/badvpn-udpgw
+            chmod +x /usr/local/bin/badvpn-udpgw
+            systemctl restart badvpn.service 2>/dev/null || true
+        fi
     fi
 
     echo -e "${YELLOW}>>> [2/4] Updating global CLI shortcuts and local copies...${NC}"

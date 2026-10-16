@@ -140,20 +140,21 @@ is_protocol_installed() {
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
         http) [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ] ;;
         socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
-        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] ;;
-        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] ;;
+        shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] && [ -x /usr/local/bin/ssserver ] ;;
+        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] && [ -x /usr/local/bin/tuic-server ] ;;
         dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] ;;
         vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] ;;
         slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
-        pptp) [ -f "/etc/pptpd.conf" ] ;;
+        pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
+        badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
         l2tpv3) [ -f "/etc/vpnpanel/l2tpv3_config.json" ] ;;
         hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
         trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
         naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
-        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] ;;
-        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] ;;
-        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] && [ -x /usr/local/bin/stuntls-server ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
         *) return 1 ;;
     esac
@@ -359,6 +360,10 @@ plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so open
 username-as-common-name
 verify-client-cert none
 EOF
+
+    if [ -f /etc/pam_radius_auth.conf ]; then
+        sed -i -E 's/\s+vrf=[^\s]+//g' /etc/pam_radius_auth.conf 2>/dev/null || true
+    fi
 
     cat > /etc/pam.d/openvpn <<EOF
 auth sufficient pam_radius_auth.so
@@ -771,7 +776,21 @@ install_pptp() {
     local remotestart="${subnet%.*}.10"
     local remoteend="${subnet%.*}.254"
 
-    apt-get update -y && apt-get install -y pptpd ppp libpam-radius-auth
+    apt-get update -y >/dev/null 2>&1
+    apt-get install -y pptpd ppp libpam-radius-auth >/dev/null 2>&1 || true
+
+    if [ -f /etc/pam_radius_auth.conf ]; then
+        sed -i -E 's/\s+vrf=[^\s]+//g' /etc/pam_radius_auth.conf 2>/dev/null || true
+    fi
+
+    if ! command -v pptpd >/dev/null 2>&1 && [ ! -x /usr/sbin/pptpd ]; then
+        echo "    [!] PPTP daemon (pptpd) is not supported or not available in this OS release (Ubuntu 24.04+ dropped pptpd). Skipping PPTP service."
+        systemctl stop mhpanel-pptp 2>/dev/null || true
+        systemctl disable mhpanel-pptp 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-pptp.service /etc/pptpd.conf
+        systemctl daemon-reload
+        return 0
+    fi
 
     # Configure pptpd
     cat > /etc/pptpd.conf <<EOF
@@ -1259,6 +1278,24 @@ EOF
         sed -i -E "s/\"server_port\":\s*[0-9]+/\"server_port\": ${port}/g" "${config}"
     fi
 
+    if [ ! -x /usr/local/bin/ssserver ]; then
+        echo "    Downloading Shadowsocks-rust server (ssserver)..."
+        local arch="$(uname -m)"
+        local ss_arch="x86_64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then ss_arch="aarch64"; fi
+        curl -fsSL "https://github.com/shadowsocks/shadowsocks-rust/releases/download/v1.22.0/shadowsocks-v1.22.0.${ss_arch}-unknown-linux-gnu.tar.xz" 2>/dev/null | tar -xJ -C /usr/local/bin/ ssserver 2>/dev/null || true
+        chmod +x /usr/local/bin/ssserver 2>/dev/null || true
+    fi
+
+    if [ ! -x /usr/local/bin/ssserver ]; then
+        echo "    [!] Shadowsocks-rust binary (/usr/local/bin/ssserver) could not be installed. Skipping service."
+        systemctl stop mhpanel-shadowsocks 2>/dev/null || true
+        systemctl disable mhpanel-shadowsocks 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-shadowsocks.service
+        systemctl daemon-reload
+        return 0
+    fi
+
     cat > /etc/systemd/system/mhpanel-shadowsocks.service <<EOF
 [Unit]
 Description=Shadowsocks-rust 2022 High-Performance Proxy
@@ -1335,6 +1372,15 @@ EOF
         if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then tuic_arch="aarch64"; fi
         curl -fsSL "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl" -o /usr/local/bin/tuic-server 2>/dev/null || true
         chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
+    fi
+
+    if [ ! -x /usr/local/bin/tuic-server ]; then
+        echo "    [!] TUIC server binary (/usr/local/bin/tuic-server) could not be installed. Skipping service."
+        systemctl stop mhpanel-tuic 2>/dev/null || true
+        systemctl disable mhpanel-tuic 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-tuic.service
+        systemctl daemon-reload
+        return 0
     fi
 
     cat > /etc/systemd/system/mhpanel-tuic.service <<EOF
