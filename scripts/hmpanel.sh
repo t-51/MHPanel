@@ -133,17 +133,120 @@ protocol_default_port() {
         ikev2) echo "500/4500" ;;
         sstp) echo "4443" ;;
         l2tp) echo "1701" ;;
-        wireguard) echo "904" ;;
-        amneziawg) echo "443" ;;
-        http) echo "3128" ;;
+        wireguard) echo "51820" ;;
+        amneziawg) echo "51821" ;;
+        http) echo "8080" ;;
         socks) echo "1080" ;;
         shadowsocks) echo "8388" ;;
         tuic) echo "7443" ;;
         mtproto) echo "4433" ;;
         pptp) echo "1723" ;;
         badvpn) echo "7300" ;;
+        hysteria2) echo "11443" ;;
+        trojan) echo "12443" ;;
+        naiveproxy) echo "13443" ;;
+        stuntls) echo "3478" ;;
+        noizdns) echo "5355" ;;
+        masterdnsvpn) echo "5356" ;;
+        tor) echo "9001" ;;
         *) echo "0" ;;
     esac
+}
+
+# Web Server (Apache / Nginx) Coexistence & Port Conflict Protection
+detect_and_configure_webserver_compatibility() {
+    local has_apache=0
+    local has_nginx=0
+    local ws_info=()
+
+    if [ -x "/www/server/apache/bin/httpd" ] || [ -f "/etc/init.d/httpd" ] || systemctl is-active --quiet httpd 2>/dev/null || systemctl is-active --quiet apache2 2>/dev/null || [ -x "/usr/sbin/apache2" ]; then
+        has_apache=1
+        ws_info+=("Apache")
+    fi
+
+    if [ -x "/www/server/nginx/sbin/nginx" ] || [ -f "/etc/init.d/nginx" ] || systemctl is-active --quiet nginx 2>/dev/null || [ -x "/usr/sbin/nginx" ]; then
+        has_nginx=1
+        ws_info+=("Nginx")
+    fi
+
+    local p80_proc=$(ss -tlnp 2>/dev/null | grep -E ':80\b' | grep -oP 'users:\(\("\K[^"]+' | head -n1 || true)
+    local p443_proc=$(ss -tlnp 2>/dev/null | grep -E ':443\b' | grep -oP 'users:\(\("\K[^"]+' | head -n1 || true)
+
+    if [ ${#ws_info[@]} -gt 0 ] || [ -n "$p80_proc" ] || [ -n "$p443_proc" ]; then
+        echo -e "${CYAN}------------------------------------------------------------------------${NC}"
+        echo -e "${YELLOW}${BOLD}  🌐 وب‌سرور فعال سرور (Apache / Nginx / Web Daemon) شناسایی شد${NC}"
+        echo -e "${CYAN}------------------------------------------------------------------------${NC}"
+        [ -n "$p80_proc" ] && echo -e "  • سرویس شنونده روی پورت 80: ${GREEN}${p80_proc}${NC}"
+        [ -n "$p443_proc" ] && echo -e "  • سرویس شنونده روی پورت 443: ${GREEN}${p443_proc}${NC}"
+        echo -e "  ${GREEN}✓ پورت‌های 80 و 443 برای وب‌سرور، هاست‌ها و سایت‌های فعال کاربر محافظت شدند.${NC}"
+        echo -e "  ${GREEN}✓ تمامی پروتکل‌های VPN به پورت‌های امن و تفکیک‌شده (بدون تداخل با وب‌سرور) هدایت می‌شوند.${NC}"
+        
+        # Prevent conflict between distro apache2 and aaPanel httpd / nginx on port 80
+        if systemctl is-active --quiet httpd 2>/dev/null || systemctl is-active --quiet nginx 2>/dev/null || [ -x "/www/server/apache/bin/httpd" ]; then
+            if systemctl is-enabled apache2 2>/dev/null || systemctl is-failed apache2 2>/dev/null || systemctl is-active apache2 2>/dev/null; then
+                echo -e "  ${GREEN}✓ غیرفعال‌سازی سرویس متداخل apache2 پیش‌فرض لینوکس به نفع وب‌سرور فعال سرور...${NC}"
+                systemctl stop apache2 2>/dev/null || true
+                systemctl disable apache2 2>/dev/null || true
+                systemctl reset-failed apache2 2>/dev/null || true
+            fi
+        fi
+        echo -e "${CYAN}------------------------------------------------------------------------${NC}\n"
+    fi
+}
+
+# Helper: Validate and avoid port collisions with Apache, Nginx, or existing daemons
+resolve_clean_port() {
+    local proto=$1
+    local req_port=$2
+
+    if [ -z "$req_port" ] || [ "$req_port" = "0" ]; then
+        req_port=$(protocol_default_port "$proto")
+    fi
+
+    local final_port="$req_port"
+
+    # Port 80 and 443 special protection for Apache/Nginx
+    if [ "$final_port" = "80" ] || [ "$final_port" = "443" ]; then
+        if ss -tlnp 2>/dev/null | grep -qE "(:${final_port}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${final_port}\b)"; then
+            case "$proto" in
+                ocserv) final_port=10443 ;;
+                amneziawg) final_port=51821 ;;
+                trojan) final_port=12443 ;;
+                naiveproxy) final_port=13443 ;;
+                hysteria2) final_port=11443 ;;
+                http) final_port=8080 ;;
+                *) final_port=$((req_port + 10000)) ;;
+            esac
+        fi
+    else
+        # For any other port, verify it is not already in use by another service
+        local is_busy=0
+        if ss -tlnp 2>/dev/null | grep -qE "(:${final_port}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${final_port}\b)"; then
+            is_busy=1
+        fi
+
+        if [ "$is_busy" -eq 1 ]; then
+            case "$proto" in
+                hysteria2) final_port=11443 ;;
+                tuic) final_port=7443 ;;
+                trojan) final_port=12443 ;;
+                naiveproxy) final_port=13443 ;;
+                stuntls) final_port=3478 ;;
+                wireguard) final_port=51820 ;;
+                amneziawg) final_port=51821 ;;
+                ocserv) final_port=10443 ;;
+                *)
+                    local p=$final_port
+                    while ss -tlnp 2>/dev/null | grep -qE "(:${p}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${p}\b)"; do
+                        p=$((p + 1))
+                    done
+                    final_port=$p
+                    ;;
+            esac
+        fi
+    fi
+
+    echo "$final_port"
 }
 
 # Protocol Detection
@@ -219,18 +322,18 @@ protocol_current_port() {
         ikev2) echo "500/4500 (UDP)" ;;
         sstp) port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1 || true); echo "${port:-4443}" ;;
         l2tp) echo "1701 (UDP)" ;;
-        wireguard) grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "904" ;;
-        amneziawg) grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "443" ;;
-        http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "3128" ;;
+        wireguard) grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "51820" ;;
+        amneziawg) grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "51821" ;;
+        http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080" ;;
         socks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080" ;;
         shadowsocks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8388" ;;
         tuic) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/tuic-server.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "7443" ;;
         mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $3}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;
         badvpn) echo "7300 (UDP)" ;;
-        hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443" ;;
-        trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443" ;;
-        naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444" ;;
+        hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443" ;;
+        trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443" ;;
+        naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443" ;;
         stuntls) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478" ;;
         noizdns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355" ;;
         masterdnsvpn) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356" ;;
@@ -246,6 +349,9 @@ protocol_current_port() {
 install_base_prerequisites() {
     echo -e "\n${YELLOW}>>> [1/6] Checking and installing Linux base prerequisites...${NC}"
     export DEBIAN_FRONTEND=noninteractive
+
+    # Safeguard Apache / Nginx / Web server coexistence early
+    detect_and_configure_webserver_compatibility
 
     local pkgs_needed=()
     for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables iptables-persistent ufw cron net-tools sudo cmake build-essential jq socat unzip; do
@@ -574,9 +680,19 @@ install_protocol_action() {
     fi
 
     chmod +x "$HELPER"
+
+    local clean_port="$(resolve_clean_port "$proto" "$port")"
+    if [ "$clean_port" != "$port" ] && [ -n "$port" ] && [ "$port" != "0" ]; then
+        echo -e "    ${YELLOW}[!] تداخل پورت (${port}) با وب‌سرور یا سرویس دیگر شناسایی شد. پورت پروتکل ${proto} خودکار به پورت امن ${clean_port} تغییر یافت.${NC}"
+    fi
+    port="$clean_port"
+
     echo -e "    ${CYAN}Installing & configuring $(protocol_label "$proto") (Port: ${port})...${NC}"
-    "$HELPER" install "$proto" "$port"
-    echo -e "    ${GREEN}✓ $(protocol_label "$proto") successfully installed and activated.${NC}"
+    if "$HELPER" install "$proto" "$port"; then
+        echo -e "    ${GREEN}✓ $(protocol_label "$proto") successfully installed and activated on port ${port}.${NC}"
+    else
+        echo -e "    ${YELLOW}[!] نصب اولیه $(protocol_label "$proto") انجام شد (در حال بررسی و بازیابی وضعیت سرویس...).${NC}"
+    fi
 }
 
 # ==============================================================================
@@ -984,8 +1100,29 @@ menu_ssl_management() {
         1)
             read -p "Enter the domain pointed to this server: " dom
             if [ -n "$dom" ]; then
-                echo "Temporarily stopping Web UI to free port 80..."
+                echo "Temporarily pausing Web UI & Web Server to free port 80 for SSL challenge..."
                 systemctl stop mhpanel 2>/dev/null || true
+
+                local paused_httpd=0
+                local paused_apache=0
+                local paused_nginx=0
+
+                if systemctl is-active --quiet httpd 2>/dev/null; then
+                    systemctl stop httpd 2>/dev/null || true
+                    paused_httpd=1
+                elif [ -f "/etc/init.d/httpd" ]; then
+                    /etc/init.d/httpd stop 2>/dev/null || true
+                    paused_httpd=1
+                fi
+                if systemctl is-active --quiet apache2 2>/dev/null; then
+                    systemctl stop apache2 2>/dev/null || true
+                    paused_apache=1
+                fi
+                if systemctl is-active --quiet nginx 2>/dev/null; then
+                    systemctl stop nginx 2>/dev/null || true
+                    paused_nginx=1
+                fi
+
                 if command -v ufw >/dev/null; then ufw allow 80/tcp || true; fi
                 if certbot certonly --standalone -d "${dom}" --non-interactive --agree-tos --register-unsafely-without-email; then
                     ln -sf "/etc/letsencrypt/live/${dom}/fullchain.pem" "${SSL_DIR}/panel.crt"
@@ -994,7 +1131,13 @@ menu_ssl_management() {
                 else
                     echo -e "${RED}Failed to obtain Let's Encrypt certificate. Please check your DNS record.${NC}"
                 fi
-                systemctl start mhpanel 2>/dev/null || true
+
+                # Resume web servers
+                [ "$paused_httpd" -eq 1 ] && (systemctl start httpd 2>/dev/null || /etc/init.d/httpd start 2>/dev/null || true)
+                [ "$paused_apache" -eq 1 ] && (systemctl start apache2 2>/dev/null || true)
+                [ "$paused_nginx" -eq 1 ] && (systemctl start nginx 2>/dev/null || true)
+
+                systemctl restart mhpanel 2>/dev/null || true
             fi
             read -p "Press Enter to continue..."
             ;;

@@ -388,7 +388,10 @@ set_port_openvpn() {
 
 # ----------------- OCSERV PROTOCOL -----------------
 install_ocserv() {
-    local port=${1:-443}
+    local port=${1:-10443}
+    if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
+        port=10443
+    fi
     local subnet=$(get_setting "ocserv_subnet" "10.9.0.0")
     local dns1=$(get_setting "ocserv_dns1" "8.8.8.8")
     local dns2=$(get_setting "ocserv_dns2" "8.8.4.4")
@@ -1100,7 +1103,10 @@ set_port_wireguard() {
 
 # ----------------- AMNEZIAWG PROTOCOL (ANTI-DPI) -----------------
 install_amneziawg() {
-    local port=${1:-51820}
+    local port=${1:-51821}
+    if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
+        port=51821
+    fi
     /www/wwwroot/mhpanel/scripts/install_amneziawg.sh "${port}"
 }
 
@@ -1452,6 +1458,9 @@ set_mtproto_ad_tag() {
 # ----------------- HYSTERIA 2 -----------------
 install_hysteria2() {
     local port=${1:-11443}
+    if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "7443" ]; then
+        port=11443
+    fi
     mkdir -p /etc/vpnpanel
     generate_certs
     if [ ! -f /etc/vpnpanel/hysteria2.yaml ]; then
@@ -1500,7 +1509,7 @@ EOF
 uninstall_hysteria2() {
     systemctl stop mhpanel-hysteria2 || true
     systemctl disable mhpanel-hysteria2 || true
-    local port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443")
+    local port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443")
     deny_port "${port}" "udp"
     rm -f /etc/vpnpanel/hysteria2.yaml
     echo "Hysteria 2 uninstalled."
@@ -1509,7 +1518,7 @@ uninstall_hysteria2() {
 set_port_hysteria2() {
     local port=$1
     if [ -f /etc/vpnpanel/hysteria2.yaml ]; then
-        local old_port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "7443")
+        local old_port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443")
         deny_port "${old_port}" "udp"
         sed -i -E "s/listen: :[0-9]+/listen: :${port}/g" /etc/vpnpanel/hysteria2.yaml
         allow_port "${port}" "udp"
@@ -1519,7 +1528,10 @@ set_port_hysteria2() {
 
 # ----------------- TROJAN -----------------
 install_trojan() {
-    local port=${1:-8443}
+    local port=${1:-12443}
+    if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
+        port=12443
+    fi
     mkdir -p /etc/vpnpanel
     generate_certs
     if [ ! -f /etc/vpnpanel/trojan.json ]; then
@@ -1558,7 +1570,7 @@ EOF
 uninstall_trojan() {
     systemctl stop mhpanel-trojan || true
     systemctl disable mhpanel-trojan || true
-    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443")
+    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443")
     deny_port "${port}" "tcp"
     rm -f /etc/vpnpanel/trojan.json
     echo "Trojan uninstalled."
@@ -1567,7 +1579,7 @@ uninstall_trojan() {
 set_port_trojan() {
     local port=$1
     if [ -f /etc/vpnpanel/trojan.json ]; then
-        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "8443")
+        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443")
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/trojan.json
         allow_port "${port}" "tcp"
@@ -1577,7 +1589,10 @@ set_port_trojan() {
 
 # ----------------- NAIVEPROXY -----------------
 install_naiveproxy() {
-    local port=${1:-8444}
+    local port=${1:-13443}
+    if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
+        port=13443
+    fi
     mkdir -p /etc/vpnpanel
     generate_certs
     if [ ! -f /etc/vpnpanel/naiveproxy.json ]; then
@@ -1615,7 +1630,7 @@ EOF
 uninstall_naiveproxy() {
     systemctl stop mhpanel-naiveproxy || true
     systemctl disable mhpanel-naiveproxy || true
-    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444")
+    local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443")
     deny_port "${port}" "tcp"
     rm -f /etc/vpnpanel/naiveproxy.json
     echo "NaiveProxy uninstalled."
@@ -1624,7 +1639,7 @@ uninstall_naiveproxy() {
 set_port_naiveproxy() {
     local port=$1
     if [ -f /etc/vpnpanel/naiveproxy.json ]; then
-        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "8444")
+        local old_port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443")
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/naiveproxy.json
         allow_port "${port}" "tcp"
@@ -2159,6 +2174,45 @@ case "${ACTION}" in
             echo "${PROTOCOL} is already installed; skipping reinstall."
             exit 0
         fi
+
+        # Port conflict resolution & web server (Apache/Nginx) protection
+        if [ "$ARG3" = "0" ] || [ -z "$ARG3" ] || [ "$ARG3" = "null" ]; then
+            case "${PROTOCOL}" in
+                ssh) ARG3=2222 ;;
+                openvpn) ARG3=1194 ;;
+                ocserv) ARG3=10443 ;;
+                sstp) ARG3=4443 ;;
+                wireguard) ARG3=51820 ;;
+                amneziawg) ARG3=51821 ;;
+                http) ARG3=8080 ;;
+                socks) ARG3=1080 ;;
+                shadowsocks) ARG3=8388 ;;
+                tuic) ARG3=7443 ;;
+                mtproto) ARG3=4433 ;;
+                pptp) ARG3=1723 ;;
+                badvpn) ARG3=7300 ;;
+                hysteria2) ARG3=11443 ;;
+                trojan) ARG3=12443 ;;
+                naiveproxy) ARG3=13443 ;;
+                stuntls) ARG3=3478 ;;
+                noizdns) ARG3=5355 ;;
+                masterdnsvpn) ARG3=5356 ;;
+                tor) ARG3=9001 ;;
+            esac
+        fi
+
+        # Safeguard port 80 and 443 against web server conflict
+        if [ "$ARG3" = "80" ] || [ "$ARG3" = "443" ]; then
+            case "${PROTOCOL}" in
+                ocserv) ARG3=10443 ;;
+                amneziawg) ARG3=51821 ;;
+                trojan) ARG3=12443 ;;
+                naiveproxy) ARG3=13443 ;;
+                hysteria2) ARG3=11443 ;;
+                http) ARG3=8080 ;;
+            esac
+        fi
+
         case "${PROTOCOL}" in
             ssh) install_ssh "$ARG3" ;;
             openvpn) install_openvpn "$ARG3" ;;

@@ -162,13 +162,13 @@ PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "
 PROTOCOL_DEFAULT_PORTS = {
     "ssh": 2222,
     "openvpn": 1194,
-    "ocserv": 443,
+    "ocserv": 10443,
     "ikev2": "500/4500",
     "sstp": 4443,
     "pptp": 1723,
     "l2tp": 1701,
     "wireguard": 51820,
-    "amneziawg": 51820,
+    "amneziawg": 51821,
     "http": 8080,
     "socks": 1080,
     "shadowsocks": 8388,
@@ -2414,10 +2414,27 @@ def api_protocols_install():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
-    data = request.json
+    data = request.json or {}
     protocol = data.get("protocol")
     port = data.get("port")
     ad_tag = data.get("ad_tag", "")
+    
+    # Auto-resolve port if empty or 0
+    if not port or str(port) == "0":
+        port = PROTOCOL_DEFAULT_PORTS.get(protocol)
+
+    # Protect port 80 and 443 against web server (Apache / Nginx) conflict
+    if str(port) in ["80", "443"]:
+        safe_defaults = {
+            "ocserv": 10443,
+            "amneziawg": 51821,
+            "trojan": 12443,
+            "naiveproxy": 13443,
+            "hysteria2": 11443,
+            "http": 8080,
+            "sstp": 4443
+        }
+        port = safe_defaults.get(protocol, 10000 + int(port))
     
     success, stdout, stderr = run_helper("install", protocol, port, ad_tag if protocol == "mtproto" else "")
     if success:
@@ -2440,15 +2457,24 @@ def api_protocols_set_port():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
-    data = request.json
+    data = request.json or {}
     protocol = data.get("protocol")
     port = data.get("port")
+
+    # Prevent setting to port 80 or 443 if Apache or Nginx is running
+    apache_or_nginx = (os.path.exists("/www/server/apache/bin/httpd") or 
+                       os.path.exists("/etc/init.d/httpd") or 
+                       get_service_is_active("httpd") or 
+                       get_service_is_active("nginx") or 
+                       get_service_is_active("apache2"))
+    if apache_or_nginx and str(port) in ["80", "443"]:
+        return jsonify({"success": False, "error": f"پورت {port} توسط وب‌سرور فعال سرور (Apache/Nginx) رزرو شده است و امکان تخصیص مستقیم به این پروتکل وجود ندارد."}), 400
     
-    # Check port collision
-    for proto in ["ssh", "openvpn", "ocserv", "sstp", "pptp", "wireguard", "http", "socks", "shadowsocks", "mtproto"]:
+    # Check port collision across all protocols
+    for proto in PROTOCOLS_LIST:
         if is_installed(proto) and proto != protocol:
             if str(get_active_port(proto)) == str(port):
-                return jsonify({"success": False, "error": f"Port {port} is already used by {proto}"}), 400
+                return jsonify({"success": False, "error": f"پورت {port} در حال حاضر توسط پروتکل {proto} در حال استفاده است."}), 400
 
     success, stdout, stderr = run_helper("set-port", protocol, port)
     if success:
@@ -8609,6 +8635,23 @@ def api_protocols_batch_install():
         p_name = proto.get("name") if isinstance(proto, dict) else str(proto)
         p_port = proto.get("port") if isinstance(proto, dict) else None
         if not p_name: continue
+
+        # Auto-resolve port to safe default if not specified or 0
+        if not p_port or str(p_port) == "0":
+            p_port = PROTOCOL_DEFAULT_PORTS.get(p_name)
+
+        if str(p_port) in ["80", "443"]:
+            safe_defaults = {
+                "ocserv": 10443,
+                "amneziawg": 51821,
+                "trojan": 12443,
+                "naiveproxy": 13443,
+                "hysteria2": 11443,
+                "http": 8080,
+                "sstp": 4443
+            }
+            p_port = safe_defaults.get(p_name, 10000 + int(p_port))
+
         success, stdout, stderr = run_helper("install", p_name, p_port, "")
         results.append({
             "protocol": p_name,
