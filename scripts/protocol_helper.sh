@@ -100,8 +100,15 @@ generate_certs() {
 # Helper: Setup Firewall & NAT Routing globally
 setup_global_nat() {
     # 1. Enable IP Forwarding
-    sysctl -w net.ipv4.ip_forward=1
-    sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf
+    touch /etc/sysctl.conf
+    sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1 || true
+    sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf 2>/dev/null || true
+    grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+    grep -qxF 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
+    mkdir -p /etc/sysctl.d
+    echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-ipforward.conf
+    echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-ipforward.conf
     
     # 2. Add masquerade rules for our VPN subnets (10.8.0.0/12 covers 10.8.x.x through 10.13.x.x)
     local ext_if=$(get_public_interface)

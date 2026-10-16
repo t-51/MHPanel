@@ -85,9 +85,9 @@ show_banner() {
  | |  | | |  | | | |  | (_| | | | |  __/ |
  |_|  |_|_|  |_| |_|   \__,_|_| |_|\___|_|
 EOF
-    echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (${VERSION})${NC}"
+    echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (v${VERSION})${NC}"
     echo -e "${DIM}   Anti-Censorship VPN Protocols, Network Tunnels & MikroTik RouterOS Hub${NC}"
-    echo -e "${YELLOW}   [v1.2.0] استودیوی گرافیکی پروتکل‌ها (Trojan / Hysteria 2 / NaiveProxy) - هاب کانفیگ و بروزرسانی خودکار${NC}" 
+    echo -e "${GREEN}   [v${VERSION}] بهینه‌سازی نسخه موبایل | تانل‌های Dual-Stack IPv6 | رفع مشکل AmneziaWG | استودیوی SlowDNS${NC}" 
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }
 
@@ -405,6 +405,9 @@ net.ipv4.tcp_fin_timeout=15
 net.ipv4.tcp_tw_reuse=1
 net.ipv4.ip_local_port_range=1024 65535
 EOF
+    touch /etc/sysctl.conf 2>/dev/null || true
+    grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf 2>/dev/null || true
+    grep -qxF 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf 2>/dev/null || true
     sysctl --system >/dev/null 2>&1 || sysctl -p /etc/sysctl.d/99-mhpanel.conf >/dev/null 2>&1 || true
     echo -e "    ${GREEN}[✓] TCP BBR, Kernel limits, IPv4 and IPv6 forwarding successfully configured.${NC}"
 }
@@ -810,6 +813,53 @@ wizard_web_ui_only() {
     show_final_summary
 }
 
+show_panel_access_info() {
+    clear 2>/dev/null || true
+    local srv_ip=$(get_public_ipv4)
+    local srv_ipv6=$(get_public_ipv6)
+    local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || echo "9090")
+    local domain=""
+    if [ -f "${PANEL_DIR}/system_domain.txt" ]; then
+        domain=$(cat "${PANEL_DIR}/system_domain.txt" 2>/dev/null | tr -d '[:space:]')
+    fi
+    local user="admin"
+    local pass="admin"
+    if [ -f "${PANEL_DIR}/admin_credentials.txt" ]; then
+        user=$(grep -Ei '^username=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+        pass=$(grep -Ei '^password=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+    fi
+    local api_key=$(cat "${PANEL_DIR}/api_key.txt" 2>/dev/null || echo "N/A")
+    local is_active=""
+    if systemctl is-active --quiet mhpanel 2>/dev/null; then
+        is_active="${GREEN}Active / Running (سرویس در حال اجرا است)${NC}"
+    else
+        is_active="${RED}Stopped / Inactive (سرویس متوقف است)${NC}"
+    fi
+
+    echo -e "${CYAN}${BOLD}========================================================================${NC}"
+    echo -e "${WHITE}${BOLD}       MH Panel - اطلاعات و آدرس ورود به وب پنل (Panel Access Info)     ${NC}"
+    echo -e "${CYAN}${BOLD}========================================================================${NC}"
+    echo -e "  ⚡ ${BOLD}وضعیت سرویس (Service):${NC}         ${is_active}"
+    echo -e "  🌐 ${BOLD}آدرس پنل (IPv4 URL):${NC}           ${CYAN}${BOLD}https://${srv_ip}:${panel_port}/${NC}"
+    if [ -n "$srv_ipv6" ]; then
+        echo -e "  🌐 ${BOLD}آدرس پنل (IPv6 URL):${NC}           ${CYAN}${BOLD}https://[${srv_ipv6}]:${panel_port}/${NC}"
+    fi
+    if [ -n "$domain" ]; then
+        echo -e "  🌐 ${BOLD}آدرس دامنه اختصاصی (Domain):${NC}    ${CYAN}${BOLD}https://${domain}:${panel_port}/${NC}"
+    fi
+    echo -e "  🔌 ${BOLD}پورت وب پنل (Port):${NC}            ${YELLOW}${BOLD}${panel_port}${NC}"
+    echo -e "  👤 ${BOLD}نام کاربری ورود (Username):${NC}    ${GREEN}${BOLD}${user}${NC}"
+    echo -e "  🔑 ${BOLD}رمز عبور مدیر (Password):${NC}      ${GREEN}${BOLD}${pass}${NC}"
+    echo -e "  🛡️  ${BOLD}کلید عمومی API Key:${NC}             ${DIM}${api_key}${NC}"
+    echo -e "${CYAN}${BOLD}========================================================================${NC}"
+    echo -e "  💡 ${YELLOW}${BOLD}نکته اتصال:${NC} گواهی امنیتی پیش‌فرض پنل Self-Signed (IP SAN) است."
+    echo -e "     هنگام باز کردن لینک در مرورگر، در صورت مشاهده اخطار امنیتی SSL:"
+    echo -e "     روی گزینه ${BOLD}Advanced${NC} کلیک کرده و سپس ${BOLD}Proceed to ... (unsafe)${NC} را بزنید."
+    echo -e "     جهت تنظیم دامنه رسمی و گواهی Let's Encrypt رایگان، از منوی پنل استفاده فرمایید."
+    echo -e "${CYAN}${BOLD}========================================================================${NC}\n"
+    read -p "جهت بازگشت به منوی اصلی کلید Enter را فشار دهید..."
+}
+
 show_final_summary() {
     local srv_ip=$(get_public_ipv4)
     local srv_ipv6=$(get_public_ipv6)
@@ -1031,26 +1081,28 @@ menu_web_ui_settings() {
         echo -e "  Dashboard Port: ${CYAN}${panel_port}${NC}"
         echo -e "  Dashboard URL:  ${CYAN}https://${srv_ip}:${panel_port}/${NC}\n"
 
-        echo -e "  [1] Restart Web Panel Service (Restart mhpanel)"
-        echo -e "  [2] View Live Web Panel Logs"
-        echo -e "  [3] Change Admin Username & Password"
-        echo -e "  [4] Change Web Dashboard Port"
-        echo -e "  [5] Regenerate Public API Key"
+        echo -e "  [1] View Panel Access & Login Info (مشاهده اطلاعات کامل ورود)"
+        echo -e "  [2] Restart Web Panel Service (Restart mhpanel)"
+        echo -e "  [3] View Live Web Panel Logs"
+        echo -e "  [4] Change Admin Username & Password"
+        echo -e "  [5] Change Web Dashboard Port"
+        echo -e "  [6] Regenerate Public API Key"
         echo -e "  [0] Back"
         echo ""
-        read -p "Select option [0-5]: " ui_act
+        read -p "Select option [0-6]: " ui_act
         case "$ui_act" in
-            1)
+            1) show_panel_access_info ;;
+            2)
                 systemctl restart mhpanel
                 echo -e "${GREEN}Web panel service restarted.${NC}"
                 read -p "Press Enter to continue..."
                 ;;
-            2)
+            3)
                 echo -e "${YELLOW}Showing last 50 log lines:${NC}"
                 journalctl -u mhpanel -n 50 --no-pager
                 read -p "Press Enter to continue..."
                 ;;
-            3)
+            4)
                 read -p "Enter new username [Default: ${user}]: " nu
                 nu=${nu:-$user}
                 read -p "Enter new password: " np
@@ -1062,7 +1114,7 @@ menu_web_ui_settings() {
                 fi
                 read -p "Press Enter to continue..."
                 ;;
-            4)
+            5)
                 read -p "Enter new port [Current: ${panel_port}]: " nport
                 if [[ "$nport" =~ ^[0-9]+$ ]] && [ "$nport" -ge 1 ] && [ "$nport" -le 65535 ]; then
                     echo "$nport" > "${PANEL_DIR}/panel_port.txt"
@@ -1074,7 +1126,7 @@ menu_web_ui_settings() {
                 fi
                 read -p "Press Enter to continue..."
                 ;;
-            5)
+            6)
                 local nkey=$(openssl rand -hex 16)
                 echo "$nkey" > "${PANEL_DIR}/api_key.txt"
                 chmod 600 "${PANEL_DIR}/api_key.txt"
@@ -1226,30 +1278,32 @@ main_menu() {
         echo -e "  ${WHITE}${BOLD}[2]  Run Step-by-Step Custom Installation Wizard${NC}"
         echo -e "  ${WHITE}${BOLD}[3]  Install Lightweight Web UI Only${NC}"
         echo -e "${DIM}  ----------------------------------------------------------------------${NC}"
-        echo -e "  [4]  Live System & Service Diagnostic Report"
-        echo -e "  [5]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
-        echo -e "  [6]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
-        echo -e "  [7]  Web Dashboard Settings (Credentials, Port, Logs & Restart)"
-        echo -e "  [8]  SSL Certificate Management (Let's Encrypt & IP SAN)"
-        echo -e "  [9]  Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
-        echo -e "  [10] Backup & Restore Panel Configurations"
-        echo -e "  [11] Update Script & Panel"
+        echo -e "  ${GREEN}${BOLD}[4]  View Panel Access URL & Login Info (مشاهده اطلاعات و آدرس پنل)${NC}"
+        echo -e "  [5]  Live System & Service Diagnostic Report"
+        echo -e "  [6]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
+        echo -e "  [7]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
+        echo -e "  [8]  Web Dashboard Settings (Credentials, Port, Logs & Restart)"
+        echo -e "  [9]  SSL Certificate Management (Let's Encrypt & IP SAN)"
+        echo -e "  [10] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
+        echo -e "  [11] Backup & Restore Panel Configurations"
+        echo -e "  [12] Update Script & Panel"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
-        read -p "Please select an option [0-11]: " opt
+        read -p "Please select an option [0-12]: " opt
 
         case "$opt" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;
             3) wizard_web_ui_only ;;
-            4) menu_diagnostic_status ;;
-            5) menu_vpn_protocols ;;
-            6) menu_tunnel_tools ;;
-            7) menu_web_ui_settings ;;
-            8) menu_ssl_management ;;
-            9) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
-            10) backup_restore ;;
-            11) update_panel_repo ;;
+            4) show_panel_access_info ;;
+            5) menu_diagnostic_status ;;
+            6) menu_vpn_protocols ;;
+            7) menu_tunnel_tools ;;
+            8) menu_web_ui_settings ;;
+            9) menu_ssl_management ;;
+            10) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
+            11) backup_restore ;;
+            12) update_panel_repo ;;
             0)
                 echo -e "\n${GREEN}Exiting MH Panel CLI. Have a great day!${NC}"
                 echo -e "Reminder: You can return to this menu at any time by typing ${CYAN}mhpanel${NC}\n"
@@ -1272,6 +1326,8 @@ elif [ "$1" = "--ui" ]; then
     wizard_web_ui_only
 elif [ "$1" = "--status" ]; then
     menu_diagnostic_status
+elif [ "$1" = "--info" ] || [ "$1" = "info" ] || [ "$1" = "--access" ]; then
+    show_panel_access_info
 else
     if [ ! -f "${PANEL_DIR}/app.py" ] && [ ! -f "/etc/systemd/system/mhpanel.service" ]; then
         show_banner
@@ -1279,13 +1335,15 @@ else
         echo -e "  [1] Full Automated Setup (Recommended)"
         echo -e "  [2] Step-by-Step Custom Wizard"
         echo -e "  [3] Lightweight Web UI Only"
+        echo -e "  [4] View Panel Access & Login Info (مشاهده اطلاعات ورود)"
         echo -e "  [0] Exit"
         echo ""
-        read -p "Select installation mode [1-3]: " init_choice
+        read -p "Select installation mode [0-4]: " init_choice
         case "$init_choice" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;
             3) wizard_web_ui_only ;;
+            4) show_panel_access_info ;;
             *) exit 0 ;;
         esac
     else
