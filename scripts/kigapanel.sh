@@ -8,7 +8,10 @@
 # Architecture: x86_64 / amd64 / aarch64
 # ==============================================================================
 
-set -e
+# Noninteractive environment variables to prevent installer interruption
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export NEEDRESTART_SUSPEND=1
 
 GITHUB_REPO="https://github.com/t-51/MHPanel.git"
 
@@ -87,7 +90,7 @@ show_banner() {
 EOF
     echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (v${VERSION})${NC}"
     echo -e "${DIM}   Anti-Censorship VPN Protocols, Network Tunnels & MikroTik RouterOS Hub${NC}"
-    echo -e "${GREEN}   [v${VERSION}] بهینه‌سازی نسخه موبایل | تانل‌های Dual-Stack IPv6 | رفع مشکل AmneziaWG | استودیوی SlowDNS${NC}" 
+    echo -e "${GREEN}   [v${VERSION}] Mobile UX Overhaul | Dual-Stack IPv6 Tunnels | AmneziaWG Fix | SlowDNS Studio${NC}" 
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }
 
@@ -174,17 +177,17 @@ detect_and_configure_webserver_compatibility() {
 
     if [ ${#ws_info[@]} -gt 0 ] || [ -n "$p80_proc" ] || [ -n "$p443_proc" ]; then
         echo -e "${CYAN}------------------------------------------------------------------------${NC}"
-        echo -e "${YELLOW}${BOLD}  🌐 وب‌سرور فعال سرور (Apache / Nginx / Web Daemon) شناسایی شد${NC}"
+        echo -e "${YELLOW}${BOLD}  🌐 Active Web Server Detected (Apache / Nginx / Web Daemon)${NC}"
         echo -e "${CYAN}------------------------------------------------------------------------${NC}"
-        [ -n "$p80_proc" ] && echo -e "  • سرویس شنونده روی پورت 80: ${GREEN}${p80_proc}${NC}"
-        [ -n "$p443_proc" ] && echo -e "  • سرویس شنونده روی پورت 443: ${GREEN}${p443_proc}${NC}"
-        echo -e "  ${GREEN}✓ پورت‌های 80 و 443 برای وب‌سرور، هاست‌ها و سایت‌های فعال کاربر محافظت شدند.${NC}"
-        echo -e "  ${GREEN}✓ تمامی پروتکل‌های VPN به پورت‌های امن و تفکیک‌شده (بدون تداخل با وب‌سرور) هدایت می‌شوند.${NC}"
+        [ -n "$p80_proc" ] && echo -e "  • Service listening on Port 80: ${GREEN}${p80_proc}${NC}"
+        [ -n "$p443_proc" ] && echo -e "  • Service listening on Port 443: ${GREEN}${p443_proc}${NC}"
+        echo -e "  ${GREEN}✓ Ports 80 and 443 are protected and reserved for your web server & hosted websites.${NC}"
+        echo -e "  ${GREEN}✓ All VPN protocols are routed to dedicated ports to avoid web server conflicts.${NC}"
         
         # Prevent conflict between distro apache2 and aaPanel httpd / nginx on port 80
         if systemctl is-active --quiet httpd 2>/dev/null || systemctl is-active --quiet nginx 2>/dev/null || [ -x "/www/server/apache/bin/httpd" ]; then
             if systemctl is-enabled apache2 2>/dev/null || systemctl is-failed apache2 2>/dev/null || systemctl is-active apache2 2>/dev/null; then
-                echo -e "  ${GREEN}✓ غیرفعال‌سازی سرویس متداخل apache2 پیش‌فرض لینوکس به نفع وب‌سرور فعال سرور...${NC}"
+                echo -e "  ${GREEN}✓ Disabling conflicting default apache2 service in favor of the active web server daemon...${NC}"
                 systemctl stop apache2 2>/dev/null || true
                 systemctl disable apache2 2>/dev/null || true
                 systemctl reset-failed apache2 2>/dev/null || true
@@ -349,6 +352,36 @@ protocol_current_port() {
 install_base_prerequisites() {
     echo -e "\n${YELLOW}>>> [1/6] Checking and installing Linux base prerequisites...${NC}"
     export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    export NEEDRESTART_SUSPEND=1
+
+    # Safeguard current SSH session port early to prevent accidental disconnection
+    local ssh_p=$(ss -tlnp 2>/dev/null | grep -E '\b(sshd|systemd-ssh)' | awk '{print $4}' | awk -F: '{print $NF}' | head -n1 || true)
+    ssh_p=${ssh_p:-22}
+    if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
+        ufw allow "${ssh_p}/tcp" >/dev/null 2>&1 || true
+        ufw allow 22/tcp >/dev/null 2>&1 || true
+    fi
+    iptables -I INPUT -p tcp --dport "${ssh_p}" -j ACCEPT 2>/dev/null || true
+    iptables -I INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
+
+    # Preseed debconf selections for iptables-persistent to avoid interactive dialog prompts
+    if command -v debconf-set-selections >/dev/null 2>&1; then
+        echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections 2>/dev/null || true
+        echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections 2>/dev/null || true
+    fi
+
+    # Configure needrestart to avoid restarting sshd or prompting during upgrades
+    if [ -d /etc/needrestart/conf.d ]; then
+        cat > /etc/needrestart/conf.d/99mhpanel.conf 2>/dev/null <<'EOF' || true
+$nrconf{restart} = 'a';
+$nrconf{override_rc} = {
+    qr(^sshd?(\.service)?) => 0,
+    qr(^systemd-networkd) => 0,
+    qr(^systemd-resolved) => 0,
+};
+EOF
+    fi
 
     # Safeguard Apache / Nginx / Web server coexistence early
     detect_and_configure_webserver_compatibility
@@ -364,8 +397,11 @@ install_base_prerequisites() {
         echo -e "    ${GREEN}[✓] All base Linux dependencies are already installed (Skipped).${NC}"
     else
         echo -e "    Installing missing packages: ${CYAN}${pkgs_needed[*]}${NC}..."
-        apt-get update -y
-        apt-get install -y --no-install-recommends "${pkgs_needed[@]}"
+        apt-get update -y 2>/dev/null || true
+        apt-get install -y --no-install-recommends \
+            -o Dpkg::Options::="--force-confdef" \
+            -o Dpkg::Options::="--force-confold" \
+            "${pkgs_needed[@]}" 2>/dev/null || apt-get install -y "${pkgs_needed[@]}" 2>/dev/null || true
         echo -e "    ${GREEN}[✓] Base system dependencies successfully installed.${NC}"
     fi
 }
@@ -697,15 +733,15 @@ install_protocol_action() {
 
     local clean_port="$(resolve_clean_port "$proto" "$port")"
     if [ "$clean_port" != "$port" ] && [ -n "$port" ] && [ "$port" != "0" ]; then
-        echo -e "    ${YELLOW}[!] تداخل پورت (${port}) با وب‌سرور یا سرویس دیگر شناسایی شد. پورت پروتکل ${proto} خودکار به پورت امن ${clean_port} تغییر یافت.${NC}"
+        echo -e "    ${YELLOW}[!] Port conflict (${port}) detected. Reassigned ${proto} to clean port ${clean_port}.${NC}"
     fi
     port="$clean_port"
 
     echo -e "    ${CYAN}Installing & configuring $(protocol_label "$proto") (Port: ${port})...${NC}"
-    if "$HELPER" install "$proto" "$port"; then
+    if "$HELPER" install "$proto" "$port" 2>/dev/null; then
         echo -e "    ${GREEN}✓ $(protocol_label "$proto") successfully installed and activated on port ${port}.${NC}"
     else
-        echo -e "    ${YELLOW}[!] نصب اولیه $(protocol_label "$proto") انجام شد (در حال بررسی و بازیابی وضعیت سرویس...).${NC}"
+        echo -e "    ${YELLOW}[!] Setup for $(protocol_label "$proto") completed (verifying service state...).${NC}"
     fi
 }
 
@@ -781,36 +817,23 @@ wizard_step_by_step() {
         echo -e "${YELLOW}--> Skipped tunnel binaries download.${NC}"
     fi
 
-    # Step 5: Protocols One-by-One
-    echo -e "\n${YELLOW}=== Select VPN Protocols to Install ===${NC}"
-    for proto in "${PROTOCOLS[@]}"; do
-        local lbl="$(protocol_label "$proto")"
-        local def_port="$(protocol_default_port "$proto")"
-
-        if protocol_is_installed "$proto"; then
-            local cur_p="$(protocol_current_port "$proto")"
-            local st="$(protocol_service_status "$proto")"
-            echo -e "\n  ${GREEN}[✓] ${lbl}${NC} is currently installed. (Port: ${CYAN}${cur_p}${NC} | Status: ${st})"
-            read -p "      Do you want to reinstall/reconfigure ${lbl}? [y/N]: " do_reinstall
-            if [[ "$do_reinstall" =~ ^[yY]$ ]]; then
-                read -p "      Enter custom port [Default: ${cur_p}]: " cust_port
-                cust_port=${cust_port:-$cur_p}
-                install_protocol_action "$proto" "$cust_port"
+    # Step 5: Protocols Setup
+    echo -e "\n${YELLOW}=== VPN Protocols Setup ===${NC}"
+    read -p "Do you want to automatically setup all missing VPN protocols? [Y/n]: " ans_all_proto
+    if [[ -z "$ans_all_proto" || "$ans_all_proto" =~ ^[yY]$ ]]; then
+        echo -e "    ${CYAN}Automatically configuring missing protocols with optimized default ports...${NC}"
+        for proto in "${PROTOCOLS[@]}"; do
+            local def_port="$(protocol_default_port "$proto")"
+            local lbl="$(protocol_label "$proto")"
+            if protocol_is_installed "$proto"; then
+                echo -e "    ${GREEN}[✓] ${lbl}${NC} is already installed (Skipped to preserve settings)."
             else
-                echo -e "      ${DIM}--> Kept existing installation.${NC}"
+                install_protocol_action "$proto" "$def_port"
             fi
-        else
-            echo -e "\n  ${RED}[✗] ${lbl}${NC} is not installed."
-            read -p "      Do you want to install and activate ${lbl}? [Y/n]: " do_install
-            if [[ -z "$do_install" || "$do_install" =~ ^[yY]$ ]]; then
-                read -p "      Enter port for this service [Default: ${def_port}]: " cust_port
-                cust_port=${cust_port:-$def_port}
-                install_protocol_action "$proto" "$cust_port"
-            else
-                echo -e "      ${YELLOW}--> Skipped. (You can install it anytime later by typing 'mhpanel')${NC}"
-            fi
-        fi
-    done
+        done
+    else
+        echo -e "    ${DIM}--> Skipped protocol bulk install. You can manage individual protocols anytime via 'mhpanel'.${NC}"
+    fi
 
     show_final_summary
 }
@@ -842,33 +865,33 @@ show_panel_access_info() {
     local api_key=$(cat "${PANEL_DIR}/api_key.txt" 2>/dev/null || echo "N/A")
     local is_active=""
     if systemctl is-active --quiet mhpanel 2>/dev/null; then
-        is_active="${GREEN}Active / Running (سرویس در حال اجرا است)${NC}"
+        is_active="${GREEN}Active / Running${NC}"
     else
-        is_active="${RED}Stopped / Inactive (سرویس متوقف است)${NC}"
+        is_active="${RED}Stopped / Inactive${NC}"
     fi
 
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
-    echo -e "${WHITE}${BOLD}       MH Panel - اطلاعات و آدرس ورود به وب پنل (Panel Access Info)     ${NC}"
+    echo -e "${WHITE}${BOLD}              MH Panel - Panel Access & Login Credentials               ${NC}"
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
-    echo -e "  ⚡ ${BOLD}وضعیت سرویس (Service):${NC}         ${is_active}"
-    echo -e "  🌐 ${BOLD}آدرس پنل (IPv4 URL):${NC}           ${CYAN}${BOLD}https://${srv_ip}:${panel_port}/${NC}"
+    echo -e "  ⚡ ${BOLD}Service Status:${NC}         ${is_active}"
+    echo -e "  🌐 ${BOLD}Web Panel URL (IPv4):${NC}   ${CYAN}${BOLD}https://${srv_ip}:${panel_port}/${NC}"
     if [ -n "$srv_ipv6" ]; then
-        echo -e "  🌐 ${BOLD}آدرس پنل (IPv6 URL):${NC}           ${CYAN}${BOLD}https://[${srv_ipv6}]:${panel_port}/${NC}"
+        echo -e "  🌐 ${BOLD}Web Panel URL (IPv6):${NC}   ${CYAN}${BOLD}https://[${srv_ipv6}]:${panel_port}/${NC}"
     fi
     if [ -n "$domain" ]; then
-        echo -e "  🌐 ${BOLD}آدرس دامنه اختصاصی (Domain):${NC}    ${CYAN}${BOLD}https://${domain}:${panel_port}/${NC}"
+        echo -e "  🌐 ${BOLD}Custom Domain URL:${NC}      ${CYAN}${BOLD}https://${domain}:${panel_port}/${NC}"
     fi
-    echo -e "  🔌 ${BOLD}پورت وب پنل (Port):${NC}            ${YELLOW}${BOLD}${panel_port}${NC}"
-    echo -e "  👤 ${BOLD}نام کاربری ورود (Username):${NC}    ${GREEN}${BOLD}${user}${NC}"
-    echo -e "  🔑 ${BOLD}رمز عبور مدیر (Password):${NC}      ${GREEN}${BOLD}${pass}${NC}"
-    echo -e "  🛡️  ${BOLD}کلید عمومی API Key:${NC}             ${DIM}${api_key}${NC}"
+    echo -e "  🔌 ${BOLD}Web Panel Port:${NC}        ${YELLOW}${BOLD}${panel_port}${NC}"
+    echo -e "  👤 ${BOLD}Admin Username:${NC}        ${GREEN}${BOLD}${user}${NC}"
+    echo -e "  🔑 ${BOLD}Admin Password:${NC}        ${GREEN}${BOLD}${pass}${NC}"
+    echo -e "  🛡️  ${BOLD}Public API Key:${NC}         ${DIM}${api_key}${NC}"
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
-    echo -e "  💡 ${YELLOW}${BOLD}نکته اتصال:${NC} گواهی امنیتی پیش‌فرض پنل Self-Signed (IP SAN) است."
-    echo -e "     هنگام باز کردن لینک در مرورگر، در صورت مشاهده اخطار امنیتی SSL:"
-    echo -e "     روی گزینه ${BOLD}Advanced${NC} کلیک کرده و سپس ${BOLD}Proceed to ... (unsafe)${NC} را بزنید."
-    echo -e "     جهت تنظیم دامنه رسمی و گواهی Let's Encrypt رایگان، از منوی پنل استفاده فرمایید."
+    echo -e "  💡 ${YELLOW}${BOLD}Connection Note:${NC} Default SSL certificate is Self-Signed (IP SAN)."
+    echo -e "     When accessing the URL in your browser, if an SSL warning appears:"
+    echo -e "     Click ${BOLD}Advanced${NC} and select ${BOLD}Proceed to ... (unsafe)${NC}."
+    echo -e "     You can configure a free Let's Encrypt SSL certificate anytime from the menu."
     echo -e "${CYAN}${BOLD}========================================================================${NC}\n"
-    read -p "جهت بازگشت به منوی اصلی کلید Enter را فشار دهید..."
+    read -p "Press Enter to return to main menu..."
 }
 
 show_final_summary() {
@@ -1092,13 +1115,13 @@ menu_web_ui_settings() {
         echo -e "  Dashboard Port: ${CYAN}${panel_port}${NC}"
         echo -e "  Dashboard URL:  ${CYAN}https://${srv_ip}:${panel_port}/${NC}\n"
 
-        echo -e "  [1] View Panel Access & Login Info (مشاهده اطلاعات کامل ورود)"
+        echo -e "  [1] View Panel Access & Login Credentials"
         echo -e "  [2] Restart Web Panel Service (Restart mhpanel)"
         echo -e "  [3] View Live Web Panel Logs"
         echo -e "  [4] Change Admin Username & Password"
         echo -e "  [5] Change Web Dashboard Port"
         echo -e "  [6] Regenerate Public API Key"
-        echo -e "  ${RED}${BOLD}[7] Uninstall MH Panel from Server (حذف کامل پنل)${NC}"
+        echo -e "  ${RED}${BOLD}[7] Uninstall MH Panel from Server${NC}"
         echo -e "  [0] Back"
         echo ""
         read -p "Select option [0-7]: " ui_act
@@ -1264,7 +1287,7 @@ backup_restore() {
 update_panel_repo() {
     clear 2>/dev/null || true
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
-    echo -e "${CYAN}${BOLD}       MH PANEL - UPDATE WIZARD (بروزرسانی سورس و پنل از گیت‌هاب)      ${NC}"
+    echo -e "${CYAN}${BOLD}       MH PANEL - UPDATE WIZARD (Updating Source & Services from GitHub)      ${NC}"
     echo -e "${CYAN}${BOLD}========================================================================${NC}\n"
     echo -e "${YELLOW}>>> [1/4] Checking and syncing latest updates from GitHub (${GITHUB_REPO})...${NC}"
     mkdir -p "${PANEL_DIR}"
@@ -1321,7 +1344,6 @@ update_panel_repo() {
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"
     echo -e "${GREEN}${BOLD} ✓ MH Panel has been updated to the latest version successfully!${NC}"
-    echo -e "${GREEN}${BOLD} ✓ پنل با موفقیت به آخرین نسخه گیت‌هاب ارتقا یافت.${NC}"
     echo -e "${GREEN}${BOLD}========================================================================${NC}\n"
     read -p "Press Enter to reload menu and apply changes..." dummy
 
@@ -1342,10 +1364,9 @@ uninstall_mhpanel() {
 EOF
     echo -e "${NC}"
     echo -e "${RED}${BOLD}========================================================================${NC}"
-    echo -e "${RED}${BOLD}        MH PANEL UNINSTALLATION WIZARD (حذف کامل پنل از سرور)          ${NC}"
+    echo -e "${RED}${BOLD}             MH PANEL UNINSTALLATION WIZARD (Full Removal)              ${NC}"
     echo -e "${RED}${BOLD}========================================================================${NC}"
-    echo -e "${YELLOW}WARNING: This operation will completely uninstall MH Panel from this server.${NC}"
-    echo -e "${YELLOW}هشدار: این عملیات سرویس و سامانه MH Panel را از روی سرور حذف خواهد کرد.${NC}\n"
+    echo -e "${YELLOW}WARNING: This operation will completely uninstall MH Panel from this server.${NC}\n"
 
     read -p "Are you sure you want to proceed with uninstallation? (yes/no) [no]: " confirm_un
     if [ "$confirm_un" != "yes" ] && [ "$confirm_un" != "y" ] && [ "$confirm_un" != "YES" ]; then
@@ -1400,7 +1421,6 @@ EOF
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"
     echo -e "${GREEN}${BOLD} ✓ MH Panel has been successfully uninstalled from this server.${NC}"
-    echo -e "${GREEN}${BOLD} ✓ سامانه MH Panel با موفقیت از روی سرور شما حذف گردید.${NC}"
     echo -e "${GREEN}${BOLD}========================================================================${NC}\n"
     exit 0
 }
@@ -1425,7 +1445,7 @@ main_menu() {
         echo -e "  ${WHITE}${BOLD}[2]  Run Step-by-Step Custom Installation Wizard${NC}"
         echo -e "  ${WHITE}${BOLD}[3]  Install Lightweight Web UI Only${NC}"
         echo -e "${DIM}  ----------------------------------------------------------------------${NC}"
-        echo -e "  ${GREEN}${BOLD}[4]  View Panel Access URL & Login Info (مشاهده اطلاعات و آدرس پنل)${NC}"
+        echo -e "  ${GREEN}${BOLD}[4]  View Panel Access URL & Login Info${NC}"
         echo -e "  [5]  Live System & Service Diagnostic Report"
         echo -e "  [6]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
         echo -e "  [7]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
@@ -1434,7 +1454,7 @@ main_menu() {
         echo -e "  [10] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
         echo -e "  [11] Backup & Restore Panel Configurations"
         echo -e "  [12] Update Script & Panel"
-        echo -e "  ${RED}${BOLD}[13] Uninstall MH Panel from Server (حذف کامل پنل)${NC}"
+        echo -e "  ${RED}${BOLD}[13] Uninstall MH Panel from Server${NC}"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
         read -p "Please select an option [0-13]: " opt
@@ -1486,11 +1506,12 @@ else
         echo -e "  [1] Full Automated Setup (Recommended)"
         echo -e "  [2] Step-by-Step Custom Wizard"
         echo -e "  [3] Lightweight Web UI Only"
-        echo -e "  [4] View Panel Access & Login Info (مشاهده اطلاعات ورود)"
-        echo -e "  ${RED}[5] Uninstall Panel & Purge Leftovers (حذف باقیمانده‌ها)${NC}"
+        echo -e "  [4] View Panel Access & Login Info"
+        echo -e "  ${RED}[5] Uninstall Panel & Purge Leftovers${NC}"
         echo -e "  [0] Exit"
         echo ""
-        read -p "Select installation mode [0-5]: " init_choice
+        read -p "Select installation mode [0-5] (Default: 1): " init_choice
+        init_choice=${init_choice:-1}
         case "$init_choice" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;

@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Antigravity VPN Dashboard Protocol Helper Script
+# MH Panel Protocol Helper Script
 # Must be executed as root.
 
-set -e
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export NEEDRESTART_SUSPEND=1
 
 ACTION=$1
 PROTOCOL=$2
