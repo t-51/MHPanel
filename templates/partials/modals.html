@@ -607,73 +607,145 @@
 </div>
 <!-- Modal 1: Create New Tunnel (MikroTik & Standard Routing) -->
 <div class="modal" id="modal-create-tunnel">
-<div class="modal-card" style="max-width: 680px; border-radius: 16px;">
+<div class="modal-card" style="max-width: 720px; border-radius: 16px;">
 <header class="modal-header">
 <h3 class="modal-title">
 <i data-lucide="router" style="color: #6366f1; width: 22px; height: 22px;"></i>
-<span data-i18n="modal_mikrotik_routing">ایجاد تونل استاندارد میکروتیک و شبکه (MikroTik &amp; Routing)</span>
+<span id="modal-tunnel-title-text" data-i18n="modal_mikrotik_routing">ایجاد تونل استاندارد میکروتیک و شبکه (MikroTik &amp; Routing)</span>
 </h3>
 <button class="modal-close" onclick="closeCreateTunnelModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
+<input id="tun-edit-id" type="hidden" value=""/>
 <!-- Tunnel Type Selector -->
 <div style="margin-bottom: 18px;">
-<label class="form-label" data-i18n="modal_tunnel_protocol" style="font-weight: 700; margin-bottom: 8px; display:block;">نوع پروتکل تونل (Tunnel Protocol):</label>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
-<label id="type-card-gre" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+<label class="form-label" data-i18n="modal_tunnel_protocol" style="font-weight: 700; margin-bottom: 0;">نوع پروتکل تونل (MikroTik 22 Protocols &amp; Routing):</label>
+<span style="font-size:11px; color:#6366f1; font-weight:700; background:rgba(99,102,241,0.1); padding:2px 8px; border-radius:6px;">۲۲ پروتکل کامل میکروتیک و لینوکس</span>
+</div>
+
+<!-- Category: L3 Routing -->
+<div style="margin-bottom: 6px; font-size:11px; font-weight:700; color:#475569;">لایه ۳ و مسیریابی IP (L3 Routing):</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 6px; margin-bottom: 12px;">
+<label id="type-card-gre" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input checked="" name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gre"/>
-<strong style="display:block; font-size:12.5px; color:#4338ca;">GRE</strong>
-<span data-i18n="modal_microtic_layer_3" style="font-size:10px; color:#64748b;">لایه ۳ میکروتیک</span>
+<strong style="display:block; font-size:12px; color:#4338ca;">GRE</strong>
+<span style="font-size:9.5px; color:#64748b;">لایه ۳ میکروتیک</span>
 </label>
-<label id="type-card-ipip" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="type-card-ipip" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ipip"/>
-<strong style="display:block; font-size:12.5px; color:#0369a1;">IPIP</strong>
-<span data-i18n="modal_light_low_consumption" style="font-size:10px; color:#64748b;">سبک و کم‌مصرف</span>
+<strong style="display:block; font-size:12px; color:#0369a1;">IPIP</strong>
+<span style="font-size:9.5px; color:#64748b;">سبک و کم‌مصرف</span>
 </label>
-<label id="type-card-vxlan" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="vxlan"/>
-<strong style="display:block; font-size:12.5px; color:#047857;">VXLAN / EoIP</strong>
-<span data-i18n="modal_layer_2_over_udp" style="font-size:10px; color:#64748b;">لایه ۲ روی UDP</span>
-</label>
-<label id="type-card-wireguard" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="wireguard"/>
-<strong style="display:block; font-size:12.5px; color:#b45309;">WireGuard</strong>
-<span data-i18n="modal_peer_peer_p2p" style="font-size:10px; color:#64748b;">همتابه‌همتا P2P</span>
-</label>
-<label id="type-card-l2tp" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="l2tp"/>
-<strong style="display:block; font-size:12.5px; color:#dc2626;">L2TP/IPsec</strong>
-<span style="font-size:10px; color:#64748b;">Site-to-Site</span>
-</label>
-<label id="type-card-openvpn" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="openvpn"/>
-<strong style="display:block; font-size:12.5px; color:#d97706;">OpenVPN</strong>
-<span data-i18n="modal_fixed_p2p_tunnel" style="font-size:10px; color:#64748b;">تونل P2P ثابت</span>
-</label>
-<label id="type-card-sstp" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
-<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="sstp"/>
-<strong style="display:block; font-size:12.5px; color:#0284c7;">SSTP</strong>
-<span data-i18n="modal_ssl_vpn" style="font-size:10px; color:#64748b;">SSL VPN میکروتیک</span>
-</label>
-<label id="type-card-ip6gre" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="type-card-ip6gre" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ip6gre"/>
-<strong style="display:block; font-size:12.5px; color:#6366f1;">IP6GRE</strong>
-<span data-i18n="modal_gre_ipv6" style="font-size:10px; color:#64748b;">GRE روی IPv6</span>
+<strong style="display:block; font-size:12px; color:#6366f1;">IP6GRE</strong>
+<span style="font-size:9.5px; color:#64748b;">GRE روی IPv6</span>
 </label>
-<label id="type-card-ip6tnl" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="type-card-ip6tnl" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ip6tnl"/>
-<strong style="display:block; font-size:12.5px; color:#0891b2;">IP6TNL</strong>
-<span data-i18n="modal_ipip_over_ipv6" style="font-size:10px; color:#64748b;">IPIP روی IPv6</span>
+<strong style="display:block; font-size:12px; color:#0891b2;">IP6TNL</strong>
+<span style="font-size:9.5px; color:#64748b;">IPIP روی IPv6</span>
 </label>
-<label id="type-card-sit" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="type-card-sit" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="sit"/>
-<strong style="display:block; font-size:12.5px; color:#7e22ce;">6in4 SIT</strong>
-<span data-i18n="modal_ipv6_ipv4" style="font-size:10px; color:#64748b;">IPv6 روی IPv4</span>
+<strong style="display:block; font-size:12px; color:#7e22ce;">6in4 SIT</strong>
+<span style="font-size:9.5px; color:#64748b;">IPv6 روی IPv4</span>
 </label>
-<label id="type-card-pptp" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="type-card-vti" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="vti"/>
+<strong style="display:block; font-size:12px; color:#2563eb;">IPsec VTI</strong>
+<span style="font-size:9.5px; color:#64748b;">Route-based IPsec</span>
+</label>
+</div>
+
+<!-- Category: L2 Bridge -->
+<div style="margin-bottom: 6px; font-size:11px; font-weight:700; color:#475569;">لایه ۲ و بریج اترنت (L2 Bridging &amp; UDP Encap):</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 6px; margin-bottom: 12px;">
+<label id="type-card-eoip" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="eoip"/>
+<strong style="display:block; font-size:12px; color:#047857;">EoIP</strong>
+<span style="font-size:9.5px; color:#64748b;">اترنت میکروتیک</span>
+</label>
+<label id="type-card-eoipv6" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="eoipv6"/>
+<strong style="display:block; font-size:12px; color:#059669;">EoIPv6</strong>
+<span style="font-size:9.5px; color:#64748b;">EoIP روی IPv6</span>
+</label>
+<label id="type-card-vxlan" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="vxlan"/>
+<strong style="display:block; font-size:12px; color:#0f766e;">VXLAN</strong>
+<span style="font-size:9.5px; color:#64748b;">UDP لایه ۲ استاندارد</span>
+</label>
+<label id="type-card-geneve" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="geneve"/>
+<strong style="display:block; font-size:12px; color:#0d9488;">GENEVE</strong>
+<span style="font-size:9.5px; color:#64748b;">UDP مدرن ROS v7</span>
+</label>
+<label id="type-card-l2tpv3" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="l2tpv3"/>
+<strong style="display:block; font-size:12px; color:#b91c1c;">L2TPv3</strong>
+<span style="font-size:9.5px; color:#64748b;">اترنت شبه‌سیم</span>
+</label>
+<label id="type-card-openvpn_tap" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="openvpn_tap"/>
+<strong style="display:block; font-size:12px; color:#b45309;">OpenVPN TAP</strong>
+<span style="font-size:9.5px; color:#64748b;">بریج لایه ۲</span>
+</label>
+</div>
+
+<!-- Category: Modern & Encapsulated & VPN -->
+<div style="margin-bottom: 6px; font-size:11px; font-weight:700; color:#475569;">کپسوله‌سازی، ضد فیلتر و VPN امنیتی:</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 6px;">
+<label id="type-card-wireguard" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="wireguard"/>
+<strong style="display:block; font-size:12px; color:#b45309;">WireGuard</strong>
+<span style="font-size:9.5px; color:#64748b;">P2P پرسرعت</span>
+</label>
+<label id="type-card-fou" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="fou"/>
+<strong style="display:block; font-size:12px; color:#15803d;">FOU</strong>
+<span style="font-size:9.5px; color:#64748b;">IPIP روی UDP</span>
+</label>
+<label id="type-card-gue" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gue"/>
+<strong style="display:block; font-size:12px; color:#166534;">GUE</strong>
+<span style="font-size:9.5px; color:#64748b;">GRE روی UDP</span>
+</label>
+<label id="type-card-gre_ipsec" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gre_ipsec"/>
+<strong style="display:block; font-size:12px; color:#4338ca;">GRE + IPsec</strong>
+<span style="font-size:9.5px; color:#64748b;">رمزنگاری سخت‌افزاری</span>
+</label>
+<label id="type-card-ipip_ipsec" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ipip_ipsec"/>
+<strong style="display:block; font-size:12px; color:#0284c7;">IPIP + IPsec</strong>
+<span style="font-size:9.5px; color:#64748b;">امن و بهینه</span>
+</label>
+<label id="type-card-l2tp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="l2tp"/>
+<strong style="display:block; font-size:12px; color:#dc2626;">L2TP/IPsec</strong>
+<span style="font-size:9.5px; color:#64748b;">Site-to-Site</span>
+</label>
+<label id="type-card-openvpn" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="openvpn"/>
+<strong style="display:block; font-size:12px; color:#d97706;">OpenVPN TUN</strong>
+<span style="font-size:9.5px; color:#64748b;">کلید Static P2P</span>
+</label>
+<label id="type-card-sstp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="sstp"/>
+<strong style="display:block; font-size:12px; color:#0284c7;">SSTP</strong>
+<span style="font-size:9.5px; color:#64748b;">SSL VPN پورت ۴۴۳</span>
+</label>
+<label id="type-card-pptp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="pptp"/>
-<strong style="display:block; font-size:12.5px; color:#64748b;">PPTP</strong>
-<span data-i18n="ss_classic" style="font-size:10px; color:#64748b;">کلاسیک</span>
+<strong style="display:block; font-size:12px; color:#64748b;">PPTP</strong>
+<span style="font-size:9.5px; color:#64748b;">سبک کلاسیک</span>
+</label>
+<label id="type-card-zerotier" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="zerotier"/>
+<strong style="display:block; font-size:12px; color:#e11d48;">ZeroTier</strong>
+<span style="font-size:9.5px; color:#64748b;">SDN ابری P2P</span>
 </label>
 </div>
 </div>
@@ -707,6 +779,96 @@
 <div class="form-group" style="margin-bottom:0;">
 <label class="form-label" data-i18n="modal_remote_tunnel_ip" style="font-size:12px;">آی‌پی داخلی طرف مقابل (Remote Tunnel IP):</label>
 <input class="form-input" id="tun-inner-remote" placeholder="10.10.10.2" style="font-family:'JetBrains Mono'; direction:ltr;" type="text" value="10.10.10.2"/>
+</div>
+</div>
+<!-- EoIP specific fields -->
+<div id="tun-eoip-fields" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#166534; font-weight:700;">شناسه تونل EoIP (Tunnel ID / EoIP ID):</label>
+<input class="form-input" id="tun-eoip-id" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1"/>
+<span style="font-size:10.5px; color:#166534; margin-top:2px; display:block;">شناسه عددی بین 1 تا 65535 که باید در هر دو طرف یکسان باشد.</span>
+</div>
+</div>
+<!-- GENEVE specific fields -->
+<div id="tun-geneve-fields" style="display: none; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#0f766e; font-weight:700;">شناسه VNI پروتکل GENEVE (Virtual Network Identifier):</label>
+<input class="form-input" id="tun-geneve-vni" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="100"/>
+<span style="font-size:10.5px; color:#0f766e; margin-top:2px; display:block;">پورت پیش‌فرض UDP بر روی 6081 است.</span>
+</div>
+</div>
+<!-- FOU / GUE specific fields -->
+<div id="tun-fou-fields" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#15803d; font-weight:700;">پورت شنود UDP برای FOU (Foo-over-UDP Port):</label>
+<input class="form-input" id="tun-fou-port" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="5554"/>
+<span style="font-size:10.5px; color:#15803d; margin-top:2px; display:block;">بسته‌های IPIP درون این پورت UDP کپسوله می‌شوند تا فیلتر پروتکل‌های لایه ۳ دور زده شود.</span>
+</div>
+</div>
+<div id="tun-gue-fields" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#166534; font-weight:700;">پورت شنود UDP برای GUE (Generic UDP Encap Port):</label>
+<input class="form-input" id="tun-gue-port" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="5555"/>
+<span style="font-size:10.5px; color:#166534; margin-top:2px; display:block;">بسته‌های GRE درون این پورت UDP کپسوله می‌شوند.</span>
+</div>
+</div>
+<!-- ZeroTier specific fields -->
+<div id="tun-zerotier-fields" style="display: none; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#9f1239; font-weight:700;">شناسه شبکه ۱۶ رقمی ZeroTier (Network ID):</label>
+<input class="form-input" id="tun-zerotier-net" placeholder="e.g. 8056c2e21c000001" style="font-family:'JetBrains Mono'; direction:ltr;" type="text"/>
+<span style="font-size:10.5px; color:#9f1239; margin-top:2px; display:block;">شناسه شبکه از پنل my.zerotier.com که روتر و سرور به آن متصل می‌شوند.</span>
+</div>
+</div>
+<!-- VTI specific fields -->
+<div id="tun-vti-fields" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#1e40af; font-weight:700;">شناسه VTI Key / Mark:</label>
+<input class="form-input" id="tun-vti-key" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="10"/>
+<span style="font-size:10.5px; color:#1e40af; margin-top:2px; display:block;">کلید عددی جهت علامت‌گذاری روت‌های IPsec در هسته لینوکس و میکروتیک.</span>
+</div>
+</div>
+<!-- L2TPv3 specific fields -->
+<div id="tun-l2tpv3-fields" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<span style="font-size:12px; font-weight:700; color:#991b1b; display:block; margin-bottom:8px;">تنظیمات اترنت شبه‌سیم L2TPv3:</span>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom:8px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">Local Tunnel ID:</label>
+<input class="form-input" id="tun-l2tpv3-tunnel-id" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1000"/>
+</div>
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">Peer Tunnel ID:</label>
+<input class="form-input" id="tun-l2tpv3-peer-tunnel-id" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1000"/>
+</div>
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">پورت UDP:</label>
+<input class="form-input" id="tun-l2tpv3-port" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1701"/>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">Session ID:</label>
+<input class="form-input" id="tun-l2tpv3-session-id" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1"/>
+</div>
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">Peer Session ID:</label>
+<input class="form-input" id="tun-l2tpv3-peer-session-id" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1"/>
+</div>
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11px; color:#991b1b;">Encap:</label>
+<select class="form-input" id="tun-l2tpv3-encap" style="font-family:'JetBrains Mono'; font-size:12px;">
+<option value="udp">UDP</option>
+<option value="ip">IP</option>
+</select>
+</div>
+</div>
+</div>
+<!-- IPsec PSK fields for GRE+IPsec / IPIP+IPsec -->
+<div id="tun-ipsec-fields" style="display: none; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" style="font-size:11.5px; color:#3730a3; font-weight:700;">کلید امنیتی اشتراکی IPsec Pre-Shared Key (PSK):</label>
+<input class="form-input" id="tun-ipsec-psk" style="font-family:'JetBrains Mono'; direction:ltr;" type="text" value="vpnSecret123"/>
+<span style="font-size:10.5px; color:#3730a3; margin-top:2px; display:block;">این رمز عبور جهت رمزنگاری بسته‌های IPsec بین میکروتیک و سرور استفاده می‌شود.</span>
 </div>
 </div>
 <!-- L2TP specific fields -->
@@ -834,7 +996,7 @@
 <div style="display: flex; gap: 12px; justify-content: flex-end;">
 <button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closeCreateTunnelModal()" type="button">انصراف</button>
 <button class="btn btn-primary" id="btn-submit-tunnel" onclick="submitCreateTunnel()" type="button">
-<i class="btn-icon" data-lucide="check"></i> <span data-i18n="modal_item_6">ایجاد و راه‌اندازی اینترفیس تونل</span>
+<i class="btn-icon" data-lucide="check"></i> <span id="btn-submit-tunnel-text" data-i18n="modal_item_6">ایجاد و راه‌اندازی اینترفیس تونل</span>
 </button>
 </div>
 </div>
@@ -842,63 +1004,107 @@
 </div>
 <!-- Modal 2: Create Advanced Anti-Censorship Tunnel -->
 <div class="modal" id="modal-create-adv-tunnel">
-<div class="modal-card" style="max-width: 650px; border-radius: 16px;">
+<div class="modal-card" style="max-width: 720px; border-radius: 16px;">
 <header class="modal-header">
 <h3 class="modal-title">
 <i data-lucide="shield-check" style="color: #10b981; width: 22px; height: 22px;"></i>
-<span data-i18n="modal_setting_up_linux_anti_censorship">راه‌اندازی تونل ضد فیلتر لینوکس (Anti-Censorship Tunnel)</span>
+<span id="modal-adv-title-text" data-i18n="modal_setting_up_linux_anti_censorship">راه‌اندازی تونل ضد فیلتر لینوکس (Anti-Censorship Tunnel)</span>
 </h3>
 <button class="modal-close" onclick="closeCreateAdvTunnelModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
+<input id="adv-edit-id" type="hidden" value=""/>
 <!-- Tool Selector -->
 <div style="margin-bottom: 16px;">
-<label class="form-label" data-i18n="modal_selecting_tunnel_project_software" style="font-weight: 700; margin-bottom: 8px; display:block;">انتخاب پروژه و نرم‌افزار تونل:</label>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;">
-<label id="adv-card-gost" style="border: 1px solid #10b981; background:#ecfdf5; border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+<label class="form-label" data-i18n="modal_selecting_tunnel_project_software" style="font-weight: 700; margin-bottom: 0;">انتخاب پروژه و پروتکل تونل سرور به سرور (۱۷ ابزار پیشرفته):</label>
+<span style="font-size:11px; color:#059669; font-weight:700; background:rgba(16,185,129,0.1); padding:2px 8px; border-radius:6px;">17 Linux Transit Engines</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(115px, 1fr)); gap: 6px;">
+<label id="adv-card-gost" style="border: 1px solid #10b981; background:#ecfdf5; border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input checked="" name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="gost"/>
-<strong style="display:block; font-size:13px; color:#065f46;">GOST v3</strong>
-<span style="font-size:10px; color:#64748b;">WSS, TLS, Relay</span>
+<strong style="display:block; font-size:12px; color:#065f46;">GOST v3</strong>
+<span style="font-size:9.5px; color:#64748b;">WSS, TLS, Relay</span>
 </label>
-<label id="adv-card-wstunnel" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-wstunnel" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="wstunnel"/>
-<strong style="display:block; font-size:13px; color:#0369a1;">WSTunnel</strong>
-<span style="font-size:10px; color:#64748b;">WebSocket v11</span>
+<strong style="display:block; font-size:12px; color:#0369a1;">WSTunnel</strong>
+<span style="font-size:9.5px; color:#64748b;">WebSocket v11</span>
 </label>
-<label id="adv-card-rtt" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-rtt" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="rtt"/>
-<strong style="display:block; font-size:13px; color:#b45309;">RTT (ReverseTLS)</strong>
-<span data-i18n="modal_tls" style="font-size:10px; color:#64748b;">تونل معکوس TLS</span>
+<strong style="display:block; font-size:12px; color:#b45309;">RTT (ReverseTLS)</strong>
+<span style="font-size:9.5px; color:#64748b;">تونل معکوس TLS</span>
 </label>
-<label id="adv-card-udp2raw" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-udp2raw" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="udp2raw"/>
-<strong style="display:block; font-size:13px; color:#dc2626;">UDP2Raw</strong>
-<span data-i18n="modal_fake_tcp_deception_filter" style="font-size:10px; color:#64748b;">Fake TCP فریب فیلتر</span>
+<strong style="display:block; font-size:12px; color:#dc2626;">UDP2Raw</strong>
+<span style="font-size:9.5px; color:#64748b;">Fake TCP فریب فیلتر</span>
 </label>
-<label id="adv-card-chisel" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-chisel" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="chisel"/>
-<strong style="display:block; font-size:13px; color:#4f46e5;">Chisel</strong>
-<span style="font-size:10px; color:#64748b;">HTTP/WS over SSH</span>
+<strong style="display:block; font-size:12px; color:#4f46e5;">Chisel</strong>
+<span style="font-size:9.5px; color:#64748b;">HTTP/WS over SSH</span>
 </label>
-<label id="adv-card-phantun" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-phantun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="phantun"/>
-<strong style="display:block; font-size:13px; color:#0284c7;">Phantun</strong>
-<span data-i18n="modal_udp_tcp" style="font-size:10px; color:#64748b;">UDP to TCP سبک</span>
+<strong style="display:block; font-size:12px; color:#0284c7;">Phantun</strong>
+<span style="font-size:9.5px; color:#64748b;">UDP to TCP سبک</span>
 </label>
-<label id="adv-card-rathole" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-rathole" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="rathole"/>
-<strong style="display:block; font-size:13px; color:#7e22ce;">Rathole</strong>
-<span style="font-size:10px; color:#64748b;">Rust Reverse Proxy</span>
+<strong style="display:block; font-size:12px; color:#7e22ce;">Rathole</strong>
+<span style="font-size:9.5px; color:#64748b;">Rust Reverse Proxy</span>
 </label>
-<label id="adv-card-frp" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-frp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="frp"/>
-<strong style="display:block; font-size:13px; color:var(--text-main);">FRP</strong>
-<span style="font-size:10px; color:#64748b;">Fast Reverse Proxy</span>
+<strong style="display:block; font-size:12px; color:var(--text-main);">FRP</strong>
+<span style="font-size:9.5px; color:#64748b;">Fast Reverse Proxy</span>
 </label>
-<label id="adv-card-kcptun" style="border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 8px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<label id="adv-card-kcptun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="kcptun"/>
-<strong style="display:block; font-size:13px; color:#059669;">Kcptun</strong>
-<span data-i18n="modal_udp_fec" style="font-size:10px; color:#64748b;">UDP با FEC شتابدهنده</span>
+<strong style="display:block; font-size:12px; color:#059669;">Kcptun</strong>
+<span style="font-size:9.5px; color:#64748b;">UDP با FEC</span>
+</label>
+<label id="adv-card-hysteria" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="hysteria"/>
+<strong style="display:block; font-size:12px; color:#f59e0b;">Hysteria 2</strong>
+<span style="font-size:9.5px; color:#64748b;">Salamander UDP</span>
+</label>
+<label id="adv-card-tuic" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="tuic"/>
+<strong style="display:block; font-size:12px; color:#06b6d4;">TUIC v5</strong>
+<span style="font-size:9.5px; color:#64748b;">QUIC Anti-DPI</span>
+</label>
+<label id="adv-card-awg" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="awg"/>
+<strong style="display:block; font-size:12px; color:#e11d48;">AmneziaWG</strong>
+<span style="font-size:9.5px; color:#64748b;">Junk Packets</span>
+</label>
+<label id="adv-card-ssh_tun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="ssh_tun"/>
+<strong style="display:block; font-size:12px; color:#475569;">SSH Tunnel</strong>
+<span style="font-size:9.5px; color:#64748b;">L2/L3 امن سیستم</span>
+</label>
+<label id="adv-card-singbox" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="singbox"/>
+<strong style="display:block; font-size:12px; color:#10b981;">Sing-box</strong>
+<span style="font-size:9.5px; color:#64748b;">Multiplex S2S</span>
+</label>
+<label id="adv-card-ss2022" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="ss2022"/>
+<strong style="display:block; font-size:12px; color:#6366f1;">SS-2022</strong>
+<span style="font-size:9.5px; color:#64748b;">AEAD پرسرعت</span>
+</label>
+<label id="adv-card-tun2socks" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="tun2socks"/>
+<strong style="display:block; font-size:12px; color:#8b5cf6;">Tun2Socks</strong>
+<span style="font-size:9.5px; color:#64748b;">Virtual TUN Device</span>
+</label>
+<label id="adv-card-dnstt" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
+<input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="dnstt"/>
+<strong style="display:block; font-size:12px; color:#14b8a6;">DNSTT</strong>
+<span style="font-size:9.5px; color:#64748b;">SlowDNS / DoH</span>
 </label>
 </div>
 </div>
@@ -973,7 +1179,7 @@
 <div style="display: flex; gap: 12px; justify-content: flex-end;">
 <button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closeCreateAdvTunnelModal()" type="button">انصراف</button>
 <button class="btn btn-primary" id="btn-submit-adv-tunnel" onclick="submitCreateAdvTunnel()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" type="button">
-<i class="btn-icon" data-lucide="check"></i> <span data-i18n="modal_build_start_instant_service_linux">ساخت و استارت آنی سرویس در لینوکس</span>
+<i class="btn-icon" data-lucide="check"></i> <span id="btn-submit-adv-tunnel-text" data-i18n="modal_build_start_instant_service_linux">ساخت و استارت آنی سرویس در لینوکس</span>
 </button>
 </div>
 </div>
@@ -1060,11 +1266,12 @@
 <header class="modal-header">
 <h3 class="modal-title">
 <i data-lucide="shuffle" style="color: #d97706; width: 22px; height: 22px;"></i>
-<span data-i18n="modal_add_relay_port_forwarding_port">افزودن رله و فوروارد پورت (Port Forwarding Relay)</span>
+<span id="modal-relay-title-text" data-i18n="modal_add_relay_port_forwarding_port">افزودن رله و فوروارد پورت (Port Forwarding Relay)</span>
 </h3>
 <button class="modal-close" onclick="closePortRelayModal()"><i data-lucide="x"></i></button>
 </header>
 <div style="padding: 24px;">
+<input id="relay-edit-id" type="hidden" value=""/>
 <p data-i18n="modal_defining_this_role_all_traffic" style="font-size: 12.5px; color: #475569; margin-bottom: 16px;">
                 با تعریف این رول، تمام ترافیکی که به پورت مشخص‌شده در این سرور ارسال می‌شود، از بستر تونل عبور کرده و به پورت سرور مقصد تحویل داده می‌شود.
             </p>
@@ -1105,9 +1312,12 @@
 <!-- Actions -->
 <div style="display: flex; gap: 12px; justify-content: flex-end;">
 <button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closePortRelayModal()" type="button">انصراف</button>
-<button class="btn btn-primary" onclick="submitCreatePortRelay()" type="button">
-<i class="btn-icon" data-lucide="check"></i> <span data-i18n="modal_enabling_relays_applying_iptables_rules">فعال‌سازی رله و اعمال رول IPTables</span>
+<button class="btn btn-primary" id="btn-submit-relay" onclick="submitCreatePortRelay()" type="button">
+<i class="btn-icon" data-lucide="check"></i> <span id="btn-submit-relay-text" data-i18n="modal_enabling_relays_applying_iptables_rules">فعال‌سازی رله و اعمال رول IPTables</span>
 </button>
+</div>
+</div>
+</div>
 </div>
 </div>
 </div>

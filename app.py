@@ -14168,6 +14168,7 @@ def apply_tunnel_interface(tun):
     subprocess.run(["ip", "link", "del", name], capture_output=True)
     subprocess.run(["ip", "tunnel", "del", name], capture_output=True)
     subprocess.run(["ip", "-6", "tunnel", "del", name], capture_output=True)
+    subprocess.run(["ip", "l2tp", "del", "session", "name", name], capture_output=True)
 
     # Clean previous iptables rules (IPv4 & IPv6)
     subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-o", name, "-j", "MASQUERADE"], capture_output=True)
@@ -14186,7 +14187,7 @@ def apply_tunnel_interface(tun):
                         f.writelines(lines)
                 except Exception:
                     pass
-        elif ttype == "openvpn":
+        elif ttype in ["openvpn", "openvpn_tap"]:
             subprocess.run(["systemctl", "stop", f"openvpn@{name}"], capture_output=True)
             subprocess.run(["systemctl", "disable", f"openvpn@{name}"], capture_output=True)
         return True, "Disabled"
@@ -14211,6 +14212,20 @@ def apply_tunnel_interface(tun):
             r2 = subprocess.run(cmd2, capture_output=True, text=True)
             if r2.returncode != 0 and "File exists" not in r2.stderr:
                 return False, r.stderr.strip() or r2.stderr.strip()
+    elif ttype == "eoip":
+        subprocess.run(["modprobe", "ip_gre"], capture_output=True)
+        eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
+        cmd = ["ip", "link", "add", name, "type", "gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "eoipv6":
+        subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
+        eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
+        cmd = ["ip", "link", "add", name, "type", "ip6gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
     elif ttype in ["ip6tnl", "ipip6"]:
         subprocess.run(["modprobe", "ip6_tunnel"], capture_output=True)
         cmd = ["ip", "-6", "tunnel", "add", name, "mode", "any", "remote", remote_ip, "local", local_ip]
@@ -14231,6 +14246,29 @@ def apply_tunnel_interface(tun):
         vni = str(tun.get("vni", 100))
         vx_port = str(tun.get("vxlan_port", 4789))
         cmd = ["ip", "link", "add", name, "type", "vxlan", "id", vni, "remote", remote_ip, "local", local_ip, "dstport", vx_port]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "geneve":
+        subprocess.run(["modprobe", "geneve"], capture_output=True)
+        vni = str(tun.get("geneve_vni") or tun.get("vni") or 100)
+        cmd = ["ip", "link", "add", name, "type", "geneve", "id", vni, "remote", remote_ip, "dstport", "6081"]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "fou":
+        subprocess.run(["modprobe", "fou"], capture_output=True)
+        fou_port = str(tun.get("fou_port", 5554))
+        subprocess.run(["ip", "fou", "add", "port", fou_port, "ipproto", "4"], capture_output=True)
+        cmd = ["ip", "tunnel", "add", name, "mode", "ipip", "remote", remote_ip, "local", local_ip, "encap", "fou", "encap-sport", fou_port, "encap-dport", fou_port, "ttl", "255"]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "gue":
+        subprocess.run(["modprobe", "fou"], capture_output=True)
+        gue_port = str(tun.get("gue_port", 5555))
+        subprocess.run(["ip", "fou", "add", "port", gue_port, "gue"], capture_output=True)
+        cmd = ["ip", "tunnel", "add", name, "mode", "gre", "remote", remote_ip, "local", local_ip, "encap", "gue", "encap-sport", gue_port, "encap-dport", gue_port, "ttl", "255"]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0 and "File exists" not in r.stderr:
             return False, r.stderr.strip()
@@ -14277,7 +14315,20 @@ def apply_tunnel_interface(tun):
                     f.writelines(lines)
             except Exception as e:
                 print(f"Error updating chap-secrets for {name}: {e}")
-    elif ttype == "openvpn":
+    elif ttype == "l2tpv3":
+        subprocess.run(["modprobe", "l2tp_netlink"], capture_output=True)
+        subprocess.run(["modprobe", "l2tp_eth"], capture_output=True)
+        tun_id = str(tun.get("tunnel_id") or 100)
+        peer_tun_id = str(tun.get("peer_tunnel_id") or tun_id)
+        session_id = str(tun.get("session_id") or 1)
+        peer_session_id = str(tun.get("peer_session_id") or session_id)
+        encap = tun.get("encap", "udp")
+        l2tp_port = str(tun.get("l2tp_port", 1701))
+        subprocess.run(["ip", "l2tp", "del", "session", "tunnel_id", tun_id, "session_id", session_id], capture_output=True)
+        subprocess.run(["ip", "l2tp", "del", "tunnel", "tunnel_id", tun_id], capture_output=True)
+        subprocess.run(["ip", "l2tp", "add", "tunnel", "tunnel_id", tun_id, "peer_tunnel_id", peer_tun_id, "encap", encap, "local", local_ip, "remote", remote_ip, "udp_sport", l2tp_port, "udp_dport", l2tp_port], capture_output=True)
+        subprocess.run(["ip", "l2tp", "add", "session", "tunnel_id", tun_id, "session_id", session_id, "peer_session_id", peer_session_id, "name", name], capture_output=True)
+    elif ttype in ["openvpn", "openvpn_tap"]:
         ovpn_secret = tun.get("ovpn_secret", "").strip()
         ovpn_port = int(tun.get("ovpn_port", 1195))
         ovpn_proto = tun.get("ovpn_proto", "udp")
@@ -14289,16 +14340,17 @@ def apply_tunnel_interface(tun):
                 f.write(ovpn_secret + "\n")
             os.chmod(key_path, 0o600)
         ovpn_conf = f"/etc/openvpn/{name}.conf"
+        dev_type = "tap" if ttype == "openvpn_tap" else "tun"
         conf_lines = [
             f"dev {name}",
-            "dev-type tun",
+            f"dev-type {dev_type}",
             f"port {ovpn_port}",
             f"proto {ovpn_proto}",
             f"ifconfig {inner_local.split('/')[0]} {inner_remote.split('/')[0]}",
             f"secret {key_path}",
             f"cipher {ovpn_cipher}",
             "keepalive 10 60",
-            "persist-tun",
+            f"persist-{dev_type}",
             "persist-key",
             f"status /var/log/openvpn_{name}.log"
         ]
@@ -14306,14 +14358,35 @@ def apply_tunnel_interface(tun):
             f.write("\n".join(conf_lines) + "\n")
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["systemctl", "enable", "--now", f"openvpn@{name}"], capture_output=True)
+    elif ttype in ["gre_ipsec", "ipip_ipsec"]:
+        base_mode = "gre" if "gre" in ttype else "ipip"
+        mod_name = "ip_gre" if base_mode == "gre" else "ipip"
+        subprocess.run(["modprobe", mod_name], capture_output=True)
+        cmd = ["ip", "tunnel", "add", name, "mode", base_mode, "remote", remote_ip, "local", local_ip, "ttl", "255"]
+        if tun.get("gre_key"):
+            cmd += ["key", str(tun["gre_key"])]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "vti":
+        subprocess.run(["modprobe", "ip_vti"], capture_output=True)
+        vti_key = str(tun.get("vti_key", 10))
+        cmd = ["ip", "tunnel", "add", name, "mode", "vti", "remote", remote_ip, "local", local_ip, "key", vti_key]
+        r = subprocess.run(cmd, capture_output=True, text=True)
+        if r.returncode != 0 and "File exists" not in r.stderr:
+            return False, r.stderr.strip()
+    elif ttype == "zerotier":
+        zt_net = tun.get("zerotier_net", "").strip()
+        if zt_net:
+            subprocess.run(["zerotier-cli", "join", zt_net], capture_output=True)
 
     # Assign IP and set MTU
-    if inner_local and ttype not in ["openvpn", "l2tp", "sstp", "pptp"]:
+    if inner_local and ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
         if ":" in inner_local:
             subprocess.run(["ip", "-6", "addr", "add", inner_local, "dev", name], capture_output=True)
         else:
             subprocess.run(["ip", "addr", "add", inner_local, "dev", name], capture_output=True)
-    if ttype not in ["openvpn", "l2tp", "sstp", "pptp"]:
+    if ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
         subprocess.run(["ip", "link", "set", name, "mtu", str(mtu), "up"], capture_output=True)
 
     # Enable IPv4 & IPv6 Forwarding
@@ -14351,18 +14424,49 @@ def remove_tunnel_interface(tun):
                     f.writelines(lines)
             except Exception:
                 pass
-    elif ttype == "openvpn":
+    elif ttype in ["openvpn", "openvpn_tap"]:
         subprocess.run(["systemctl", "stop", f"openvpn@{name}"], capture_output=True)
         subprocess.run(["systemctl", "disable", f"openvpn@{name}"], capture_output=True)
         for p in [f"/etc/openvpn/{name}.conf", f"/etc/openvpn/{name}.key"]:
             if os.path.exists(p):
                 try: os.remove(p)
                 except Exception: pass
+    elif ttype == "l2tpv3":
+        tun_id = str(tun.get("tunnel_id") or 100)
+        session_id = str(tun.get("session_id") or 1)
+        subprocess.run(["ip", "l2tp", "del", "session", "tunnel_id", tun_id, "session_id", session_id], capture_output=True)
+        subprocess.run(["ip", "l2tp", "del", "tunnel", "tunnel_id", tun_id], capture_output=True)
+    elif ttype == "fou":
+        fou_port = str(tun.get("fou_port", 5554))
+        subprocess.run(["ip", "fou", "del", "port", fou_port], capture_output=True)
+    elif ttype == "gue":
+        gue_port = str(tun.get("gue_port", 5555))
+        subprocess.run(["ip", "fou", "del", "port", gue_port], capture_output=True)
+    elif ttype == "zerotier":
+        zt_net = tun.get("zerotier_net", "").strip()
+        if zt_net:
+            subprocess.run(["zerotier-cli", "leave", zt_net], capture_output=True)
 
     subprocess.run(["ip", "link", "set", name, "down"], capture_output=True)
     subprocess.run(["ip", "link", "del", name], capture_output=True)
     subprocess.run(["ip", "tunnel", "del", name], capture_output=True)
     subprocess.run(["ip", "-6", "tunnel", "del", name], capture_output=True)
+    subprocess.run(["ip", "l2tp", "del", "session", "name", name], capture_output=True)
+
+
+def ensure_selfsigned_cert():
+    crt = "/etc/mhpanel/selfsigned.crt"
+    key = "/etc/mhpanel/selfsigned.key"
+    if not (os.path.exists(crt) and os.path.exists(key)):
+        os.makedirs("/etc/mhpanel", exist_ok=True)
+        subprocess.run([
+            "openssl", "req", "-x509", "-nodes", "-days", "3650",
+            "-newkey", "rsa:2048",
+            "-keyout", key,
+            "-out", crt,
+            "-subj", "/CN=MHPanel-Tunnel/O=Network/C=US"
+        ], capture_output=True)
+    return crt, key
 
 def apply_adv_tunnel(adv):
     adv_id = adv["id"]
@@ -14494,6 +14598,142 @@ remotePort = {listen_port}
         else:
             exec_cmd = f"/usr/local/bin/kcptun-client -l \":{listen_port}\" -r \"{remote_ip}:{remote_port}\" --key \"{secret}\" --crypt aes --mode fast2"
 
+    elif tool == "hysteria":
+        crt, key = ensure_selfsigned_cert()
+        cfg_file = f"/etc/mhpanel/hysteria_{adv_id}.yaml"
+        if role == "server":
+            cfg_content = f"""listen: :{listen_port}
+obfs:
+  type: salamander
+  salamander:
+    password: {secret}
+tls:
+  cert: {crt}
+  key: {key}
+auth:
+  type: password
+  password: {secret}
+tcpProxy:
+  listen: :{listen_port}
+  to: {target_addr}
+udpProxy:
+  listen: :{listen_port}
+  to: {target_addr}
+masquerade:
+  type: proxy
+  proxy:
+    url: https://{sni}/
+    rewriteHost: true
+"""
+            exec_cmd = f"/usr/local/bin/hysteria server -c {cfg_file}"
+        else:
+            cfg_content = f"""server: {remote_ip}:{remote_port}
+auth: {secret}
+obfs:
+  type: salamander
+  salamander:
+    password: {secret}
+tls:
+  sni: {sni}
+  insecure: true
+tcpTunnels:
+  - listen: 0.0.0.0:{listen_port}
+    to: {target_addr}
+udpTunnels:
+  - listen: 0.0.0.0:{listen_port}
+    to: {target_addr}
+bandwidth:
+  up: 100 mbps
+  down: 500 mbps
+"""
+            exec_cmd = f"/usr/local/bin/hysteria client -c {cfg_file}"
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            f.write(cfg_content)
+
+    elif tool == "tuic":
+        crt, key = ensure_selfsigned_cert()
+        cfg_file = f"/etc/mhpanel/tuic_{adv_id}.json"
+        if role == "server":
+            cfg_dict = {
+                "server": f"0.0.0.0:{listen_port}",
+                "users": {secret: secret},
+                "certificate": crt,
+                "private_key": key,
+                "congestion_controller": "bbr",
+                "max_idle_time": 15000,
+                "authentication_timeout": 1000,
+                "alpn": ["h3"]
+            }
+            with open(cfg_file, "w", encoding="utf-8") as f:
+                json.dump(cfg_dict, f, indent=2)
+            exec_cmd = f"/usr/local/bin/tuic-server -c {cfg_file}"
+        else:
+            exec_cmd = f"/usr/local/bin/wstunnel client -L udp://0.0.0.0:{listen_port}:{target_addr} ws://{remote_ip}:{remote_port}"
+
+    elif tool == "awg":
+        if role == "server":
+            exec_cmd = f"/usr/local/bin/udp2raw -s -l 0.0.0.0:{listen_port} -r {target_addr} -k \"{secret}\" --raw-mode faketcp -a"
+        else:
+            exec_cmd = f"/usr/local/bin/udp2raw -c -l 0.0.0.0:{listen_port} -r {remote_ip}:{remote_port} -k \"{secret}\" --raw-mode faketcp -a"
+
+    elif tool == "ssh_tun":
+        if role == "server":
+            exec_cmd = f"/usr/sbin/sshd -D -p {listen_port}"
+        else:
+            exec_cmd = f"/usr/bin/autossh -M 0 -N -o \"ServerAliveInterval 20\" -o \"ServerAliveCountMax 3\" -o \"StrictHostKeyChecking=no\" -L 0.0.0.0:{listen_port}:{target_addr} root@{remote_ip} -p {remote_port}"
+
+    elif tool == "singbox":
+        crt, key = ensure_selfsigned_cert()
+        cfg_file = f"/etc/mhpanel/singbox_{adv_id}.json"
+        if role == "server":
+            cfg_dict = {
+                "inbounds": [{
+                    "type": "vless",
+                    "tag": "vless-in",
+                    "listen": "::",
+                    "listen_port": listen_port,
+                    "users": [{"uuid": "a7b3c4d5-e6f7-48a9-b0c1-d2e3f4a5b6c7", "flow": ""}],
+                    "tls": {"enabled": True, "server_name": sni, "certificate_path": crt, "key_path": key}
+                }],
+                "outbounds": [{"type": "direct", "tag": "direct"}]
+            }
+        else:
+            cfg_dict = {
+                "inbounds": [{"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": listen_port}],
+                "outbounds": [{
+                    "type": "vless",
+                    "tag": "vless-out",
+                    "server": remote_ip,
+                    "server_port": remote_port,
+                    "uuid": "a7b3c4d5-e6f7-48a9-b0c1-d2e3f4a5b6c7",
+                    "tls": {"enabled": True, "server_name": sni, "insecure": True}
+                }]
+            }
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            json.dump(cfg_dict, f, indent=2)
+        exec_cmd = f"/usr/local/bin/sing-box run -c {cfg_file}"
+
+    elif tool == "ss2022":
+        if role == "server":
+            exec_cmd = f"/usr/local/bin/ssserver -s 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
+        else:
+            exec_cmd = f"/usr/local/bin/sslocal -s {remote_ip}:{remote_port} -l 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
+
+    elif tool == "tun2socks":
+        exec_cmd = f"/usr/local/bin/tun2socks -device {safe_name} -proxy socks5://{target_addr}"
+
+    elif tool == "dnstt":
+        priv_k = f"/etc/mhpanel/dnstt_{adv_id}.key"
+        if not os.path.exists(priv_k):
+            try:
+                subprocess.run(["/usr/local/bin/dnstt-server", "-gen-key", "-privkey-file", priv_k], capture_output=True)
+            except Exception:
+                pass
+        if role == "server":
+            exec_cmd = f"/usr/local/bin/dnstt-server -udp :{listen_port} -privkey-file {priv_k} {sni} {target_addr}"
+        else:
+            exec_cmd = f"/usr/local/bin/dnstt-client -udp {remote_ip}:{remote_port} -pubkey-file {priv_k} {sni} 127.0.0.1:{listen_port}"
+
     unit_content = f"""[Unit]
 Description=MH Panel Anti-Censorship Tunnel ({name} - {tool.upper()})
 After=network.target
@@ -14525,15 +14765,12 @@ def remove_adv_tunnel(adv):
     if os.path.exists(unit_path):
         try: os.remove(unit_path)
         except Exception: pass
-    for ext in [".toml", ".conf"]:
-        cf = f"/etc/mhpanel/rathole_{adv_id}{ext}"
-        if os.path.exists(cf):
-            try: os.remove(cf)
-            except Exception: pass
-        cf2 = f"/etc/mhpanel/frp_{adv_id}{ext}"
-        if os.path.exists(cf2):
-            try: os.remove(cf2)
-            except Exception: pass
+    for ext in [".toml", ".conf", ".yaml", ".json", ".key", ".crt"]:
+        for prefix in ["rathole", "frp", "hysteria", "tuic", "singbox", "dnstt"]:
+            cf = f"/etc/mhpanel/{prefix}_{adv_id}{ext}"
+            if os.path.exists(cf):
+                try: os.remove(cf)
+                except Exception: pass
     subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
 
 def generate_adv_tunnel_script(adv):
@@ -14648,16 +14885,66 @@ def generate_adv_tunnel_script(adv):
         else:
             exec_cmd = f"/usr/local/bin/chisel server -p {listen_port} --auth \"{secret}\" --reverse"
 
-    elif tool == "kcptun":
+    elif tool == "phantun":
         script_lines += [
-            "# 1. نصب Kcptun",
-            "apt-get update && apt-get install -y kcptun || true",
+            "# 1. دانلود و نصب Phantun",
+            "if ! command -v phantun-client &>/dev/null; then",
+            "  echo '--> Installing Phantun...'",
+            "  curl -fsSL https://github.com/dndx/phantun/releases/download/v0.6.0/phantun-x86_64-unknown-linux-musl.tar.gz | tar -xz -C /usr/local/bin/",
+            "fi",
             ""
         ]
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/phantun-client --local {listen_port} --remote {endpoint_ip}:{endpoint_port}"
+        else:
+            exec_cmd = f"/usr/local/bin/phantun-server --local {listen_port} --remote {target_addr}"
+
+    elif tool == "rathole":
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/rathole -c /etc/mhpanel/rathole_{safe_name}.toml"
+        else:
+            exec_cmd = f"/usr/local/bin/rathole -s /etc/mhpanel/rathole_{safe_name}.toml"
+
+    elif tool == "frp":
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/frpc -c /etc/mhpanel/frp_{safe_name}.toml"
+        else:
+            exec_cmd = f"/usr/local/bin/frps -p {listen_port} --auth.token \"{secret}\""
+
+    elif tool == "kcptun":
         if remote_role == "client":
             exec_cmd = f"/usr/local/bin/kcptun-client -l \":{listen_port}\" -r \"{endpoint_ip}:{endpoint_port}\" --key \"{secret}\" --crypt aes --mode fast2"
         else:
             exec_cmd = f"/usr/local/bin/kcptun-server -l \":{listen_port}\" -t \"{target_addr}\" --key \"{secret}\" --crypt aes --mode fast2"
+
+    elif tool == "hysteria":
+        script_lines += [
+            "# 1. دانلود و نصب Hysteria 2",
+            "if ! command -v hysteria &>/dev/null; then",
+            "  bash <(curl -fsSL https://get.hy2.sh/)",
+            "fi",
+            ""
+        ]
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/hysteria client -c /etc/mhpanel/hysteria_{safe_name}.yaml"
+        else:
+            exec_cmd = f"/usr/local/bin/hysteria server -c /etc/mhpanel/hysteria_{safe_name}.yaml"
+
+    elif tool == "singbox":
+        script_lines += [
+            "# 1. دانلود و نصب Sing-Box",
+            "if ! command -v sing-box &>/dev/null; then",
+            "  bash <(curl -fsSL https://sing-box.app/deb-install.sh) || true",
+            "fi",
+            ""
+        ]
+        exec_cmd = f"/usr/local/bin/sing-box run -c /etc/mhpanel/singbox_{safe_name}.json"
+
+    elif tool == "ss2022":
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/sslocal -s {endpoint_ip}:{endpoint_port} -l 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
+        else:
+            exec_cmd = f"/usr/local/bin/ssserver -s 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
 
     else:
         exec_cmd = f"# Execute tunnel tool: {tool}"
@@ -14688,6 +14975,7 @@ systemctl status mhtun_{safe_name}.service --no-pager
 """
     script_lines.append(unit_script)
     return "\n".join(script_lines)
+
 
 def apply_port_relay(relay):
     listen_port = str(relay["listen_port"])
@@ -14743,6 +15031,14 @@ def update_boot_tunnels_script(data):
                 lines.append(f"modprobe ip6_gre")
                 k_opt = f" key {tun['gre_key']}" if tun.get("gre_key") else ""
                 lines.append(f"ip -6 tunnel add {name} mode ip6gre remote {rem} local {loc} ttl 255{k_opt} 2>/dev/null")
+            elif ttype == "eoip":
+                lines.append(f"modprobe ip_gre")
+                eo_id = tun.get("eoip_id") or tun.get("vni") or 10
+                lines.append(f"ip link add {name} type gretap remote {rem} local {loc} key {eo_id} 2>/dev/null")
+            elif ttype == "eoipv6":
+                lines.append(f"modprobe ip6_gre")
+                eo_id = tun.get("eoip_id") or tun.get("vni") or 10
+                lines.append(f"ip link add {name} type ip6gretap remote {rem} local {loc} key {eo_id} 2>/dev/null")
             elif ttype in ["ip6tnl", "ipip6"]:
                 lines.append(f"modprobe ip6_tunnel")
                 lines.append(f"ip -6 tunnel add {name} mode any remote {rem} local {loc} 2>/dev/null")
@@ -14754,19 +15050,49 @@ def update_boot_tunnels_script(data):
                 vni = tun.get("vni", 100)
                 vxp = tun.get("vxlan_port", 4789)
                 lines.append(f"ip link add {name} type vxlan id {vni} remote {rem} local {loc} dstport {vxp} 2>/dev/null")
+            elif ttype == "geneve":
+                lines.append(f"modprobe geneve")
+                vni = tun.get("geneve_vni") or tun.get("vni") or 100
+                lines.append(f"ip link add {name} type geneve id {vni} remote {rem} dstport 6081 2>/dev/null")
+            elif ttype == "fou":
+                lines.append(f"modprobe fou")
+                fp = tun.get("fou_port", 5554)
+                lines.append(f"ip fou add port {fp} ipproto 4 2>/dev/null")
+                lines.append(f"ip tunnel add {name} mode ipip remote {rem} local {loc} encap fou encap-sport {fp} encap-dport {fp} ttl 255 2>/dev/null")
+            elif ttype == "gue":
+                lines.append(f"modprobe fou")
+                gp = tun.get("gue_port", 5555)
+                lines.append(f"ip fou add port {gp} gue 2>/dev/null")
+                lines.append(f"ip tunnel add {name} mode gre remote {rem} local {loc} encap gue encap-sport {gp} encap-dport {gp} ttl 255 2>/dev/null")
             elif ttype == "wireguard":
                 lines.append(f"modprobe wireguard")
                 lines.append(f"ip link add {name} type wireguard 2>/dev/null")
             elif ttype == "sit":
                 lines.append(f"modprobe sit")
                 lines.append(f"ip tunnel add {name} mode sit remote {rem} local {loc} ttl 255 2>/dev/null")
+            elif ttype in ["gre_ipsec", "ipip_ipsec"]:
+                b_mode = "gre" if "gre" in ttype else "ipip"
+                lines.append(f"modprobe ip_{b_mode}")
+                lines.append(f"ip tunnel add {name} mode {b_mode} remote {rem} local {loc} ttl 255 2>/dev/null")
+            elif ttype == "vti":
+                lines.append(f"modprobe ip_vti")
+                lines.append(f"ip tunnel add {name} mode vti remote {rem} local {loc} key {tun.get('vti_key', 10)} 2>/dev/null")
+            elif ttype == "l2tpv3":
+                lines.append(f"modprobe l2tp_netlink && modprobe l2tp_eth")
+                tid = tun.get("tunnel_id", 100)
+                ptid = tun.get("peer_tunnel_id", tid)
+                sid = tun.get("session_id", 1)
+                psid = tun.get("peer_session_id", sid)
+                lp = tun.get("l2tp_port", 1701)
+                lines.append(f"ip l2tp add tunnel tunnel_id {tid} peer_tunnel_id {ptid} encap {tun.get('encap', 'udp')} local {loc} remote {rem} udp_sport {lp} udp_dport {lp} 2>/dev/null")
+                lines.append(f"ip l2tp add session tunnel_id {tid} session_id {sid} peer_session_id {psid} name {name} 2>/dev/null")
             
-            if in_loc and ttype not in ["openvpn", "l2tp", "sstp", "pptp"]:
+            if in_loc and ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
                 if ":" in in_loc:
                     lines.append(f"ip -6 addr add {in_loc} dev {name} 2>/dev/null")
                 else:
                     lines.append(f"ip addr add {in_loc} dev {name} 2>/dev/null")
-            if ttype not in ["openvpn", "l2tp", "sstp", "pptp"]:
+            if ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
                 lines.append(f"ip link set {name} mtu {mtu} up 2>/dev/null")
             if tun.get("opt_nat", True):
                 lines.append(f"iptables -t nat -A POSTROUTING -o {name} -j MASQUERADE 2>/dev/null")
@@ -14906,6 +15232,54 @@ iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -o {name} -j TC
 ping -c 4 {in_loc.split('/')[0]}
 """
 
+    elif ttype == "eoip":
+        eo_id = tun.get("eoip_id") or tun.get("vni") or 10
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - EoIP (Ethernet over IP) L2 Tunnel
+# Remote Server: {srv_ip} | Tunnel ID: {eo_id}
+# ====================================================================
+
+# 1. Create EoIP Interface (Layer 2 Bridgeable)
+/interface eoip add name="{name}" tunnel-id={eo_id} remote-address={srv_ip} local-address=0.0.0.0 mtu={mtu} disabled=no
+
+# 2. Assign IP Address (Or add {name} to bridge for L2 transit)
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+
+# 3. MSS Clamp & NAT
+/ip firewall mangle add chain=forward action=change-mss new-mss=clamp-to-pmtu passthrough=yes protocol=tcp tcp-flags=syn out-interface="{name}" comment="EoIP MSS Clamp"
+/ip firewall nat add chain=srcnat action=masquerade out-interface="{name}"
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = ros7.replace("RouterOS v7", "RouterOS v6")
+        linux = f"""# ====================================================================
+# Linux Server Configuration (EoIP / GRETAP Layer 2)
+# ====================================================================
+modprobe ip_gre
+ip link add {name} type gretap remote {srv_ip} local 0.0.0.0 key {eo_id}
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+ping -c 4 {in_loc.split('/')[0]}
+"""
+
+    elif ttype == "eoipv6":
+        eo_id = tun.get("eoip_id") or tun.get("vni") or 10
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - EoIPv6 (EoIP over IPv6) L2 Tunnel
+# Remote Server: {srv_ip} | Tunnel ID: {eo_id}
+# ====================================================================
+
+/interface eoip6 add name="{name}" tunnel-id={eo_id} remote-address={srv_ip} local-address=:: mtu={mtu} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = f"""/interface eoip6 add name="{name}" tunnel-id={eo_id} remote-address={srv_ip}"""
+        linux = f"""# Linux EoIPv6 (IP6GRETAP)
+modprobe ip6_gre
+ip link add {name} type ip6gretap remote {srv_ip} local :: key {eo_id}
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
     elif ttype == "vxlan":
         vni = tun.get("vni", 100)
         vxp = tun.get("vxlan_port", 4789)
@@ -14927,7 +15301,7 @@ ping -c 4 {in_loc.split('/')[0]}
 /ping {in_loc.split('/')[0]} count=4
 """
         ros6 = f"""# توجه: پروتکل استاندارد VXLAN از نسخه RouterOS v7 به میکروتیک افزوده شده است.
-# برای نسخه‌های قدیمی RouterOS v6 پیشنهاد می‌شود از تب GRE یا IPIP استفاده نمایید.
+# برای نسخه‌های قدیمی RouterOS v6 پیشنهاد می‌شود از تب GRE یا IPIP یا EoIP استفاده نمایید.
 """
         linux = f"""# ====================================================================
 # Linux Server Configuration (VXLAN)
@@ -14994,24 +15368,49 @@ ping -c 4 {in_loc.split('/')[0]}
 # Use xl2tpd / strongswan or PPP connection to {srv_ip} with user '{user}'
 """
 
-    elif ttype == "openvpn":
+    elif ttype == "l2tpv3":
+        tid = tun.get("tunnel_id", 100)
+        ptid = tun.get("peer_tunnel_id", tid)
+        sid = tun.get("session_id", 1)
+        psid = tun.get("peer_session_id", sid)
+        lp = tun.get("l2tp_port", 1701)
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - L2TPv3 Raw Ethernet Tunnel
+# Remote Server: {srv_ip} | Tunnel ID: {tid} | Session: {sid}
+# ====================================================================
+
+/interface l2tp-ether add name="{name}" remote-address={srv_ip} tunnel-id={ptid} session-id={psid} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = f"""# توجه: پروتکل L2TPv3 Raw در RouterOS v7 در دسترس است."""
+        linux = f"""# Linux L2TPv3 Client:
+modprobe l2tp_netlink && modprobe l2tp_eth
+ip l2tp add tunnel tunnel_id {ptid} peer_tunnel_id {tid} encap udp local 0.0.0.0 remote {srv_ip} udp_sport {lp} udp_dport {lp}
+ip l2tp add session tunnel_id {ptid} session_id {psid} peer_session_id {sid} name {name}
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
+    elif ttype in ["openvpn", "openvpn_tap"]:
         user = tun.get("user", f"ovpn_{name}")
         pwd = tun.get("pass", "Pass1234Global")
         ovpn_port = tun.get("ovpn_port", 1195)
         ovpn_proto = tun.get("ovpn_proto", "udp")
         ovpn_cipher = tun.get("ovpn_cipher", "AES-256-GCM")
+        ovpn_mode = "ethernet" if ttype == "openvpn_tap" else "ip"
         ros7 = f"""# ====================================================================
-# MikroTik RouterOS v7 - OpenVPN Client Tunnel
+# MikroTik RouterOS v7 - OpenVPN Client Tunnel ({ovpn_mode.upper()})
 # Server: {srv_ip}:{ovpn_port} ({ovpn_proto.upper()})
 # ====================================================================
 
-/interface ovpn-client add name="{name}" connect-to={srv_ip} port={ovpn_port} mode=ip protocol={ovpn_proto} user="{user}" password="{pwd}" cipher={ovpn_cipher} disabled=no
+/interface ovpn-client add name="{name}" connect-to={srv_ip} port={ovpn_port} mode={ovpn_mode} protocol={ovpn_proto} user="{user}" password="{pwd}" cipher={ovpn_cipher} disabled=no
 /ip address add address={in_rem_cidr} interface="{name}" network={network}
 /ping {in_loc.split('/')[0]} count=4
 """
         ros6 = ros7.replace("RouterOS v7", "RouterOS v6")
         linux = f"""# Linux OpenVPN P2P Client Config:
-# Run openvpn --remote {srv_ip} {ovpn_port} --dev {name} --ifconfig {in_rem.split('/')[0]} {in_loc.split('/')[0]} --secret /etc/openvpn/{name}.key
+openvpn --remote {srv_ip} {ovpn_port} --dev {name} --dev-type {"tap" if ttype == "openvpn_tap" else "tun"} --ifconfig {in_rem.split('/')[0]} {in_loc.split('/')[0]} --secret /etc/openvpn/{name}.key
 """
 
     elif ttype == "sstp":
@@ -15028,7 +15427,7 @@ ping -c 4 {in_loc.split('/')[0]}
 """
         ros6 = ros7.replace("RouterOS v7", "RouterOS v6")
         linux = f"""# Linux SSTP Client:
-# sstp-client --host {srv_ip} --user {user} --password {pwd}
+sstp-client --host {srv_ip} --user {user} --password {pwd}
 """
 
     elif ttype == "pptp":
@@ -15045,7 +15444,120 @@ ping -c 4 {in_loc.split('/')[0]}
 """
         ros6 = ros7.replace("RouterOS v7", "RouterOS v6")
         linux = f"""# Linux PPTP Client:
-# pptp {srv_ip} user {user} password {pwd}
+pptp {srv_ip} user {user} password {pwd}
+"""
+
+    elif ttype in ["gre_ipsec", "ipip_ipsec"]:
+        proto_name = "gre" if "gre" in ttype else "ipip"
+        psk = tun.get("psk", "vpnSecret123")
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - {proto_name.upper()} over IPsec Tunnel
+# Remote Server: {srv_ip} | IPsec PSK Secret Protected
+# ====================================================================
+
+/interface {proto_name} add name="{name}" remote-address={srv_ip} local-address=0.0.0.0 ipsec-secret="{psk}" mtu={mtu} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ip firewall mangle add chain=forward action=change-mss new-mss=clamp-to-pmtu passthrough=yes protocol=tcp tcp-flags=syn out-interface="{name}"
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = ros7.replace("RouterOS v7", "RouterOS v6")
+        linux = f"""# Linux {proto_name.upper()} over IPsec:
+ip tunnel add {name} mode {proto_name} remote {srv_ip} local 0.0.0.0 ttl 255
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
+    elif ttype == "geneve":
+        vni = tun.get("geneve_vni") or tun.get("vni") or 100
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - GENEVE UDP Tunnel (Port 6081)
+# Remote Server: {srv_ip} | VNI: {vni}
+# ====================================================================
+
+/interface geneve add name="{name}" vni={vni} remote-address={srv_ip} port=6081 mtu={mtu} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = f"""# توجه: پروتکل GENEVE در RouterOS v7 قرار دارد."""
+        linux = f"""# Linux GENEVE Tunnel:
+ip link add {name} type geneve id {vni} remote {srv_ip} dstport 6081
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
+    elif ttype == "fou":
+        fp = tun.get("fou_port", 5554)
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - Foo over UDP (FOU) Tunnel
+# Encapsulating IPIP inside UDP Port {fp} for Anti-DPI bypass
+# ====================================================================
+
+/interface ipip add name="{name}" remote-address={srv_ip} local-address=0.0.0.0 mtu={mtu} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = ros7
+        linux = f"""# Linux FOU (Foo over UDP):
+modprobe fou
+ip fou add port {fp} ipproto 4
+ip tunnel add {name} mode ipip remote {srv_ip} local 0.0.0.0 encap fou encap-sport {fp} encap-dport {fp} ttl 255
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
+    elif ttype == "gue":
+        gp = tun.get("gue_port", 5555)
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - Generic UDP Encapsulation (GUE)
+# Encapsulating GRE inside UDP Port {gp}
+# ====================================================================
+
+/interface gre add name="{name}" remote-address={srv_ip} local-address=0.0.0.0 mtu={mtu} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = ros7
+        linux = f"""# Linux GUE (Generic UDP Encapsulation):
+modprobe fou
+ip fou add port {gp} gue
+ip tunnel add {name} mode gre remote {srv_ip} local 0.0.0.0 encap gue encap-sport {gp} encap-dport {gp} ttl 255
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
+"""
+
+    elif ttype == "zerotier":
+        zt_net = tun.get("zerotier_net", "[ZEROTIER_16_DIGIT_NETWORK_ID]")
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - ZeroTier SDN Tunnel
+# Network ID: {zt_net}
+# ====================================================================
+
+/zerotier enable zt1
+/zerotier interface add network={zt_net} instance=zt1 name="{name}"
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = f"""# ZeroTier فقط در RouterOS v7 معماری‌های ARM / x86 در دسترس است."""
+        linux = f"""# Linux ZeroTier:
+zerotier-cli join {zt_net}
+"""
+
+    elif ttype == "vti":
+        vk = tun.get("vti_key", 10)
+        ros7 = f"""# ====================================================================
+# MikroTik RouterOS v7 - Route-based IPsec VTI Tunnel
+# Remote Server: {srv_ip} | Key/Mark: {vk}
+# ====================================================================
+
+/interface ipsec-vti add name="{name}" remote-address={srv_ip} disabled=no
+/ip address add address={in_rem_cidr} interface="{name}" network={network}
+/ping {in_loc.split('/')[0]} count=4
+"""
+        ros6 = f"""# Route-based VTI Tunneling"""
+        linux = f"""# Linux VTI Tunnel:
+modprobe ip_vti
+ip tunnel add {name} mode vti remote {srv_ip} local 0.0.0.0 key {vk}
+ip addr add {in_rem_cidr} dev {name}
+ip link set {name} mtu {mtu} up
 """
 
     elif ttype == "sit":
@@ -15235,7 +15747,12 @@ def api_create_tunnel():
     inner_local = (req.get("tunnel_local_ip") or "10.10.10.1/30").strip()
     inner_remote = (req.get("tunnel_remote_ip") or "10.10.10.2").strip()
 
-    mtu_map = {"gre": 1476, "ip6gre": 1456, "ipip": 1480, "ip6tnl": 1460, "ipip6": 1460, "vxlan": 1450, "wireguard": 1420, "sit": 1480, "l2tp": 1400, "openvpn": 1500, "sstp": 1450, "pptp": 1400}
+    mtu_map = {
+        "gre": 1476, "ip6gre": 1456, "eoip": 1450, "eoipv6": 1430, "ipip": 1480, "ip6tnl": 1460, "ipip6": 1460,
+        "vxlan": 1450, "geneve": 1450, "fou": 1480, "gue": 1476, "wireguard": 1420, "sit": 1480,
+        "l2tp": 1400, "l2tpv3": 1460, "openvpn": 1500, "openvpn_tap": 1500, "sstp": 1450, "pptp": 1400,
+        "gre_ipsec": 1436, "ipip_ipsec": 1440, "vti": 1440, "zerotier": 2800
+    }
     try:
         mtu = int(req.get("mtu") or mtu_map.get(ttype, 1476))
     except Exception:
@@ -15267,6 +15784,18 @@ def api_create_tunnel():
         "ovpn_proto": req.get("ovpn_proto") or "udp",
         "ovpn_cipher": req.get("ovpn_cipher") or "AES-256-GCM",
         "ovpn_secret": req.get("ovpn_secret") or "",
+        "eoip_id": int(req.get("eoip_id") or 1),
+        "geneve_vni": int(req.get("geneve_vni") or req.get("vni") or 100),
+        "fou_port": int(req.get("fou_port") or 5554),
+        "gue_port": int(req.get("gue_port") or 5555),
+        "zerotier_net": req.get("zerotier_net") or "",
+        "vti_key": int(req.get("vti_key") or 10),
+        "l2tp_port": int(req.get("l2tp_port") or 1701),
+        "l2tp_tunnel_id": int(req.get("l2tp_tunnel_id") or req.get("tunnel_id") or 1000),
+        "l2tp_peer_tunnel_id": int(req.get("l2tp_peer_tunnel_id") or req.get("peer_tunnel_id") or 1000),
+        "l2tp_session_id": int(req.get("l2tp_session_id") or req.get("session_id") or 1),
+        "l2tp_peer_session_id": int(req.get("l2tp_peer_session_id") or req.get("peer_session_id") or 1),
+        "l2tp_encap": req.get("l2tp_encap") or req.get("encap") or "udp",
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
 
@@ -15321,6 +15850,70 @@ def api_delete_tunnel(tun_id):
 
     save_tunnels_data(data)
     return jsonify({"success": True, "message": "تونل با موفقیت حذف شد."})
+
+@app.route("/api/tunnels/<tun_id>/edit", methods=["POST", "PUT"])
+def api_edit_tunnel(tun_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    tun = next((t for t in data.get("tunnels", []) if t["id"] == tun_id), None)
+    if not tun:
+        return jsonify({"error": "تونل یافت نشد."}), 404
+
+    req = request.get_json() or {}
+
+    # Tear down old interface first
+    remove_tunnel_interface(tun)
+
+    # Update basic network configurations
+    if req.get("local_ip"):
+        tun["local_ip"] = req.get("local_ip").strip()
+    if req.get("remote_ip") is not None:
+        tun["remote_ip"] = req.get("remote_ip").strip()
+    if req.get("tunnel_local_ip"):
+        tun["tunnel_local_ip"] = req.get("tunnel_local_ip").strip()
+    if req.get("tunnel_remote_ip"):
+        tun["tunnel_remote_ip"] = req.get("tunnel_remote_ip").strip()
+    if req.get("mtu"):
+        try:
+            tun["mtu"] = int(req.get("mtu"))
+        except Exception:
+            pass
+    if "opt_nat" in req:
+        tun["opt_nat"] = bool(req.get("opt_nat"))
+    if "opt_mss" in req:
+        tun["opt_mss"] = bool(req.get("opt_mss"))
+
+    # Update protocol specific fields
+    for str_key in ["gre_key", "user", "pass", "psk", "ovpn_proto", "ovpn_cipher", "ovpn_secret",
+                    "wg_privkey", "wg_pubkey", "wg_remote_pubkey", "zerotier_net", "l2tp_encap"]:
+        if str_key in req:
+            tun[str_key] = req.get(str_key) or ""
+
+    for int_key in ["vni", "geneve_vni", "vxlan_port", "wg_port", "ovpn_port", "eoip_id",
+                    "fou_port", "gue_port", "vti_key", "l2tp_port", "l2tp_tunnel_id",
+                    "l2tp_peer_tunnel_id", "l2tp_session_id", "l2tp_peer_session_id"]:
+        if int_key in req and req[int_key] != "":
+            try:
+                tun[int_key] = int(req[int_key])
+            except Exception:
+                pass
+
+    if tun.get("type") == "wireguard" and not tun.get("wg_privkey"):
+        try:
+            priv = subprocess.run(["wg", "genkey"], capture_output=True, text=True).stdout.strip()
+            pub = subprocess.run(["wg", "pubkey"], input=priv, capture_output=True, text=True).stdout.strip()
+            tun["wg_privkey"] = priv
+            tun["wg_pubkey"] = pub
+        except Exception:
+            pass
+
+    ok, msg = apply_tunnel_interface(tun)
+    save_tunnels_data(data)
+    if not ok:
+        return jsonify({"error": f"خطا در اعمال تغییرات تونل: {msg}"}), 500
+
+    return jsonify({"success": True, "tunnel": tun, "message": "تنظیمات تونل با موفقیت ویرایش و مجدداً اعمال شد."})
 
 @app.route("/api/tunnels/<tun_id>/ping", methods=["POST"])
 def api_ping_tunnel(tun_id):
@@ -15505,6 +16098,50 @@ def api_adv_tunnel_script(adv_id):
         "script": script
     })
 
+@app.route("/api/tunnels/adv/<adv_id>/edit", methods=["POST", "PUT"])
+def api_edit_adv_tunnel(adv_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    adv = next((a for a in data.get("adv_tunnels", []) if a["id"] == adv_id), None)
+    if not adv:
+        return jsonify({"error": "تونل ضد فیلتر یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    remove_adv_tunnel(adv)
+
+    if req.get("tool"):
+        adv["tool"] = req.get("tool").strip().lower()
+    if req.get("role"):
+        adv["role"] = req.get("role").strip().lower()
+    if req.get("listen_port"):
+        try:
+            adv["listen_port"] = int(req.get("listen_port"))
+        except Exception:
+            pass
+    if req.get("remote_ip") is not None:
+        adv["remote_ip"] = req.get("remote_ip").strip()
+    if req.get("remote_port"):
+        try:
+            adv["remote_port"] = int(req.get("remote_port"))
+        except Exception:
+            pass
+    if req.get("target_addr"):
+        adv["target_addr"] = req.get("target_addr").strip()
+    if req.get("transport"):
+        adv["transport"] = req.get("transport").strip()
+    if req.get("secret"):
+        adv["secret"] = req.get("secret").strip()
+    if req.get("sni"):
+        adv["sni"] = req.get("sni").strip()
+
+    ok, msg = apply_adv_tunnel(adv)
+    save_tunnels_data(data)
+    if not ok:
+        return jsonify({"error": f"خطا در اعمال تنظیمات جدید تونل ضد فیلتر: {msg}"}), 500
+
+    return jsonify({"success": True, "tunnel": adv, "message": "تنظیمات تونل ضد فیلتر با موفقیت ویرایش و سرویس بازنشانی شد."})
+
 # ----------------- Relays API -----------------
 
 @app.route("/api/tunnels/relays/create", methods=["POST"])
@@ -15553,6 +16190,41 @@ def api_delete_port_relay(relay_id):
     data["relays"] = [r for r in data["relays"] if r["id"] != relay_id]
     save_tunnels_data(data)
     return jsonify({"success": True, "message": "رله پورت حذف شد."})
+
+@app.route("/api/tunnels/relays/<relay_id>/edit", methods=["POST", "PUT"])
+def api_edit_port_relay(relay_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    relay = next((r for r in data.get("relays", []) if r["id"] == relay_id), None)
+    if not relay:
+        return jsonify({"error": "رله پورت یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    remove_port_relay(relay)
+
+    if req.get("tunnel_name") is not None:
+        relay["tunnel_name"] = req.get("tunnel_name").strip()
+    if req.get("listen_port"):
+        try:
+            relay["listen_port"] = int(req.get("listen_port"))
+        except Exception:
+            pass
+    if req.get("target_ip"):
+        relay["target_ip"] = req.get("target_ip").strip()
+    if req.get("target_port"):
+        try:
+            relay["target_port"] = int(req.get("target_port"))
+        except Exception:
+            pass
+    if req.get("proto"):
+        relay["proto"] = req.get("proto").strip()
+    if req.get("desc") is not None:
+        relay["desc"] = req.get("desc").strip()
+
+    apply_port_relay(relay)
+    save_tunnels_data(data)
+    return jsonify({"success": True, "relay": relay, "message": "رله پورت با موفقیت ویرایش و رول‌ها اعمال شد."})
 
 # =========================================================================
 # TUNNEL COMPATIBILITY & CONNECTIVITY ANALYZER ENGINE (REQUIREMENT 2)

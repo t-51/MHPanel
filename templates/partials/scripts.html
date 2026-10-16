@@ -11925,13 +11925,26 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const typeColors = {
                 gre: { bg: "#e0e7ff", text: "#4338ca", label: "GRE" },
                 ipip: { bg: "#e0f2fe", text: "#0369a1", label: "IPIP" },
-                vxlan: { bg: "#dcfce7", text: "#15803d", label: "VXLAN" },
-                wireguard: { bg: "#fef3c7", text: "#b45309", label: "WireGuard" },
-                l2tp: { bg: "#fee2e2", text: "#b91c1c", label: "L2TP/IPsec" },
-                openvpn: { bg: "#fef3c7", text: "#92400e", label: "OpenVPN" },
-                sstp: { bg: "#e0f2fe", text: "#0284c7", label: "SSTP" },
+                ip6gre: { bg: "#e0e7ff", text: "#6366f1", label: "IP6GRE" },
+                ip6tnl: { bg: "#cffafe", text: "#0891b2", label: "IP6TNL" },
                 sit: { bg: "#f3e8ff", text: "#7e22ce", label: "6in4 SIT" },
-                pptp: { bg: "#f1f5f9", text: "#475569", label: "PPTP" }
+                vti: { bg: "#dbeafe", text: "#2563eb", label: "VTI IPsec" },
+                eoip: { bg: "#dcfce7", text: "#047857", label: "EoIP" },
+                eoipv6: { bg: "#dcfce7", text: "#059669", label: "EoIPv6" },
+                vxlan: { bg: "#ccfbf1", text: "#0f766e", label: "VXLAN" },
+                geneve: { bg: "#ccfbf1", text: "#0d9488", label: "GENEVE" },
+                l2tpv3: { bg: "#fee2e2", text: "#b91c1c", label: "L2TPv3" },
+                openvpn_tap: { bg: "#fef3c7", text: "#b45309", label: "OpenVPN TAP" },
+                wireguard: { bg: "#fef3c7", text: "#b45309", label: "WireGuard" },
+                fou: { bg: "#dcfce7", text: "#15803d", label: "FOU (UDP)" },
+                gue: { bg: "#dcfce7", text: "#166534", label: "GUE (UDP)" },
+                gre_ipsec: { bg: "#e0e7ff", text: "#4338ca", label: "GRE+IPsec" },
+                ipip_ipsec: { bg: "#e0f2fe", text: "#0284c7", label: "IPIP+IPsec" },
+                l2tp: { bg: "#fee2e2", text: "#dc2626", label: "L2TP/IPsec" },
+                openvpn: { bg: "#fef3c7", text: "#d97706", label: "OpenVPN TUN" },
+                sstp: { bg: "#e0f2fe", text: "#0284c7", label: "SSTP" },
+                pptp: { bg: "#f1f5f9", text: "#64748b", label: "PPTP" },
+                zerotier: { bg: "#ffe4e6", text: "#e11d48", label: "ZeroTier" }
             };
             const tColor = typeColors[tun.type] || { bg: "#f1f5f9", text: "#475569", label: tun.type.toUpperCase() };
 
@@ -11982,7 +11995,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <div style="display:flex; gap:6px; justify-content:flex-end;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="openTunnelScriptsModal('${tun.id}')" style="padding:5px 9px;" title="دریافت کدهای کانفیگ میکروتیک و لینوکس">
                             <i data-lucide="terminal" style="width:13px; height:13px; color:#0284c7;"></i>
-                            <span style="font-size:11.5px;">اسکریپت میکروتیک</span>
+                            <span style="font-size:11.5px;">اسکریپت</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditTunnelModal('${tun.id}')" style="padding:5px 9px;" title="ویرایش تنظیمات تونل">
+                            <i data-lucide="edit-3" style="width:13px; height:13px; color:#4f46e5;"></i>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleTunnel('${tun.id}')" style="padding:5px 9px;" title="${tun.enabled ? 'غیرفعال‌سازی موقت' : 'فعال‌سازی مجدد'}">
                             <i data-lucide="${tun.enabled ? 'pause' : 'play'}" style="width:13px; height:13px; color:${tun.enabled ? '#d97706' : '#059669'};"></i>
@@ -12027,7 +12043,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             phantun: { bg: "#e0f2fe", text: "#0284c7", label: "Phantun" },
             rathole: { bg: "#f3e8ff", text: "#7e22ce", label: "Rathole" },
             frp: { bg: "#f1f5f9", text: "#334155", label: "FRP" },
-            kcptun: { bg: "#dcfce7", text: "#059669", label: "Kcptun" }
+            kcptun: { bg: "#dcfce7", text: "#059669", label: "Kcptun" },
+            hysteria: { bg: "#fef3c7", text: "#d97706", label: "Hysteria 2" },
+            tuic: { bg: "#e0f2fe", text: "#0284c7", label: "TUIC v5" },
+            awg: { bg: "#ffe4e6", text: "#e11d48", label: "AmneziaWG" },
+            ssh_tun: { bg: "#f1f5f9", text: "#334155", label: "SSH Tunnel" },
+            singbox: { bg: "#dcfce7", text: "#059669", label: "Sing-box" },
+            ss2022: { bg: "#e0e7ff", text: "#4338ca", label: "SS-2022" },
+            tun2socks: { bg: "#ede9fe", text: "#6d28d9", label: "Tun2Socks" },
+            dnstt: { bg: "#ccfbf1", text: "#0f766e", label: "DNSTT SlowDNS" }
         };
 
         let html = "";
@@ -12083,7 +12107,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <div style="display:flex; gap:6px; justify-content:flex-end;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="openAdvTunnelScriptModal('${adv.id}')" style="padding:5px 9px;" title="دریافت اسکریپت راه‌اندازی سرور مقابل">
                             <i data-lucide="terminal" style="width:13px; height:13px; color:#10b981;"></i>
-                            <span style="font-size:11.5px;">دستور سرور مقابل</span>
+                            <span style="font-size:11.5px;">اسکریپت</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditAdvTunnelModal('${adv.id}')" style="padding:5px 9px;" title="ویرایش تنظیمات تونل ضد فیلتر">
+                            <i data-lucide="edit-3" style="width:13px; height:13px; color:#059669;"></i>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAdvTunnel('${adv.id}')" style="padding:5px 9px;" title="${adv.enabled ? 'توقف موقت سرویس' : 'شروع مجدد سرویس'}">
                             <i data-lucide="${adv.enabled ? 'pause' : 'play'}" style="width:13px; height:13px; color:${adv.enabled ? '#d97706' : '#059669'};"></i>
@@ -12138,9 +12165,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <span class="sidebar-badge sidebar-badge-green" style="font-size:11px; padding:2px 8px;">DNAT + Masquerade فعال</span>
                 </td>
                 <td style="padding: 12px 14px; text-align:left;">
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deletePortRelay('${r.id}')" style="padding:4px 8px;" title="حذف رله پورت">
-                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
-                    </button>
+                    <div style="display:flex; gap:6px; justify-content:flex-end;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditPortRelayModal('${r.id}')" style="padding:5px 9px;" title="ویرایش رله پورت">
+                            <i data-lucide="edit-3" style="width:13px; height:13px; color:#d97706;"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deletePortRelay('${r.id}')" style="padding:5px 9px;" title="حذف رله پورت">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>`;
         });
@@ -12172,6 +12204,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     }
 
     function openCreateTunnelModal() {
+        const editIdEl = document.getElementById("tun-edit-id");
+        if (editIdEl) editIdEl.value = "";
+        const titleEl = document.getElementById("modal-tunnel-title-text");
+        if (titleEl) titleEl.innerText = "ایجاد تونل استاندارد میکروتیک و شبکه (MikroTik & Routing)";
+        const btnTextEl = document.getElementById("btn-submit-tunnel-text");
+        if (btnTextEl) btnTextEl.innerText = "ایجاد و راه‌اندازی اینترفیس تونل";
+        const nameInput = document.getElementById("tun-name");
+        if (nameInput) {
+            nameInput.readOnly = false;
+            nameInput.style.backgroundColor = "";
+        }
         if (currentTunnelsData && currentTunnelsData.server_ip) {
             const locEl = document.getElementById("tun-local-ip");
             if (locEl) locEl.value = currentTunnelsData.server_ip;
@@ -12181,12 +12224,90 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (modal) modal.classList.add("active");
     }
 
+    function openEditTunnelModal(tunId) {
+        const tun = (currentTunnelsData?.tunnels || []).find(t => t.id === tunId);
+        if (!tun) {
+            showToast("اطلاعات تونل یافت نشد.", "error");
+            return;
+        }
+        const editIdEl = document.getElementById("tun-edit-id");
+        if (editIdEl) editIdEl.value = tun.id;
+
+        const titleEl = document.getElementById("modal-tunnel-title-text");
+        if (titleEl) titleEl.innerText = `ویرایش تنظیمات تونل: ${tun.name} (${tun.type.toUpperCase()})`;
+
+        const btnTextEl = document.getElementById("btn-submit-tunnel-text");
+        if (btnTextEl) btnTextEl.innerText = "ذخیره تغییرات و اعمال مجدد";
+
+        const nameInput = document.getElementById("tun-name");
+        if (nameInput) {
+            nameInput.value = tun.name;
+            nameInput.readOnly = true;
+            nameInput.style.backgroundColor = "var(--bg-base)";
+        }
+
+        const typeRadios = document.getElementsByName("tunnel_type");
+        for (const r of typeRadios) {
+            r.checked = (r.value === tun.type);
+        }
+        onTunnelTypeChange(true);
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined && val !== null) el.value = val;
+        };
+
+        setVal("tun-local-ip", tun.local_ip || currentTunnelsData?.server_ip || "");
+        setVal("tun-remote-ip", tun.remote_ip || "");
+        setVal("tun-inner-local", tun.tunnel_local_ip || "");
+        setVal("tun-inner-remote", tun.tunnel_remote_ip || "");
+        setVal("tun-mtu", tun.mtu || 1476);
+        
+        const natEl = document.getElementById("tun-opt-nat");
+        if (natEl) natEl.checked = tun.opt_nat !== false;
+        const mssEl = document.getElementById("tun-opt-mss");
+        if (mssEl) mssEl.checked = tun.opt_mss !== false;
+
+        setVal("tun-gre-key", tun.gre_key || "");
+        setVal("tun-vxlan-vni", tun.vni || 100);
+        setVal("tun-vxlan-port", tun.vxlan_port || 4789);
+        setVal("tun-eoip-id", tun.eoip_id || 1);
+        setVal("tun-geneve-vni", tun.geneve_vni || tun.vni || 100);
+        setVal("tun-fou-port", tun.fou_port || 5554);
+        setVal("tun-gue-port", tun.gue_port || 5555);
+        setVal("tun-zerotier-net", tun.zerotier_net || "");
+        setVal("tun-vti-key", tun.vti_key || 10);
+        setVal("tun-l2tpv3-tunnel-id", tun.l2tp_tunnel_id || 1000);
+        setVal("tun-l2tpv3-peer-tunnel-id", tun.l2tp_peer_tunnel_id || 1000);
+        setVal("tun-l2tpv3-port", tun.l2tp_port || 1701);
+        setVal("tun-l2tpv3-session-id", tun.l2tp_session_id || 1);
+        setVal("tun-l2tpv3-peer-session-id", tun.l2tp_peer_session_id || 1);
+        setVal("tun-l2tpv3-encap", tun.l2tp_encap || "udp");
+        setVal("tun-ipsec-psk", tun.psk || "vpnSecret123");
+        setVal("tun-l2tp-user", tun.user || "");
+        setVal("tun-l2tp-pass", tun.pass || "");
+        setVal("tun-l2tp-psk", tun.psk || "");
+        setVal("tun-ovpn-port", tun.ovpn_port || 1195);
+        setVal("tun-ovpn-proto", tun.ovpn_proto || "udp");
+        setVal("tun-ovpn-cipher", tun.ovpn_cipher || "AES-256-GCM");
+        setVal("tun-ovpn-secret", tun.ovpn_secret || "");
+        setVal("tun-sstp-user", tun.user || "");
+        setVal("tun-sstp-pass", tun.pass || "");
+        setVal("tun-wg-port", tun.wg_port || 51830);
+        setVal("tun-wg-remote-pubkey", tun.wg_remote_pubkey || "");
+        setVal("tun-wg-privkey", tun.wg_privkey || "");
+        setVal("tun-wg-pubkey", tun.wg_pubkey || "");
+
+        const modal = document.getElementById("modal-create-tunnel");
+        if (modal) modal.classList.add("active");
+    }
+
     function closeCreateTunnelModal() {
         const modal = document.getElementById("modal-create-tunnel");
         if (modal) modal.classList.remove("active");
     }
 
-    function onTunnelTypeChange() {
+    function onTunnelTypeChange(isEdit = false) {
         const typeRadios = document.getElementsByName("tunnel_type");
         let selectedType = "gre";
         for (const r of typeRadios) {
@@ -12216,51 +12337,71 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             ip6gre: { name: `ip6gre${count}`, mtu: 1456, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2` },
             ipip: { name: `ipip${count}`, mtu: 1480, local: `10.20.${count}.1/30`, remote: `10.20.${count}.2` },
             ip6tnl: { name: `ip6tnl${count}`, mtu: 1460, local: `2001:db8:${count + 10}::1/64`, remote: `2001:db8:${count + 10}::2` },
+            sit: { name: `sit${count}`, mtu: 1480, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2` },
+            vti: { name: `vti${count}`, mtu: 1440, local: `10.25.${count}.1/30`, remote: `10.25.${count}.2` },
+            eoip: { name: `eoip${count}`, mtu: 1450, local: `10.35.${count}.1/24`, remote: `10.35.${count}.2` },
+            eoipv6: { name: `eoipv6_${count}`, mtu: 1430, local: `10.36.${count}.1/24`, remote: `10.36.${count}.2` },
             vxlan: { name: `vxlan${count}`, mtu: 1450, local: `10.30.${count}.1/24`, remote: `10.30.${count}.2` },
+            geneve: { name: `gnv${count}`, mtu: 1450, local: `10.32.${count}.1/24`, remote: `10.32.${count}.2` },
+            l2tpv3: { name: `l2tpv3_${count}`, mtu: 1460, local: `10.38.${count}.1/24`, remote: `10.38.${count}.2` },
+            openvpn_tap: { name: `ovpn_tap${count}`, mtu: 1500, local: `10.72.${count}.1/24`, remote: `10.72.${count}.2` },
             wireguard: { name: `wg_tun${count}`, mtu: 1420, local: `10.50.${count}.1/30`, remote: `10.50.${count}.2` },
+            fou: { name: `fou${count}`, mtu: 1480, local: `10.40.${count}.1/30`, remote: `10.40.${count}.2` },
+            gue: { name: `gue${count}`, mtu: 1476, local: `10.45.${count}.1/30`, remote: `10.45.${count}.2` },
+            gre_ipsec: { name: `gre_ipsec${count}`, mtu: 1436, local: `10.15.${count}.1/30`, remote: `10.15.${count}.2` },
+            ipip_ipsec: { name: `ipip_ipsec${count}`, mtu: 1440, local: `10.22.${count}.1/30`, remote: `10.22.${count}.2` },
             l2tp: { name: `l2tp${count}`, mtu: 1400, local: `10.60.${count}.1/30`, remote: `10.60.${count}.2` },
             openvpn: { name: `ovpn${count}`, mtu: 1500, local: `10.70.${count}.1/30`, remote: `10.70.${count}.2` },
             sstp: { name: `sstp${count}`, mtu: 1450, local: `10.80.${count}.1/30`, remote: `10.80.${count}.2` },
-            sit: { name: `sit${count}`, mtu: 1480, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2` },
-            pptp: { name: `pptp${count}`, mtu: 1400, local: `10.90.${count}.1/30`, remote: `10.90.${count}.2` }
+            pptp: { name: `pptp${count}`, mtu: 1400, local: `10.90.${count}.1/30`, remote: `10.90.${count}.2` },
+            zerotier: { name: `zt_${count}`, mtu: 2800, local: `10.99.${count}.1/24`, remote: `10.99.${count}.2` }
         };
 
         const conf = defaults[selectedType] || defaults.gre;
-        if (nameInput) nameInput.value = conf.name;
-        if (mtuInput) mtuInput.value = conf.mtu;
-        if (innerLocalInput) innerLocalInput.value = conf.local;
-        if (innerRemoteInput) innerRemoteInput.value = conf.remote;
+        if (!isEdit) {
+            if (nameInput) nameInput.value = conf.name;
+            if (mtuInput) mtuInput.value = conf.mtu;
+            if (innerLocalInput) innerLocalInput.value = conf.local;
+            if (innerRemoteInput) innerRemoteInput.value = conf.remote;
 
-        const locEl = document.getElementById("tun-local-ip");
-        if (locEl && currentTunnelsData) {
-            if ((selectedType === "ip6gre" || selectedType === "ip6tnl") && currentTunnelsData.server_ipv6) {
-                locEl.value = currentTunnelsData.server_ipv6;
-            } else if (currentTunnelsData.server_ip) {
-                locEl.value = currentTunnelsData.server_ip;
+            const locEl = document.getElementById("tun-local-ip");
+            if (locEl && currentTunnelsData) {
+                if ((selectedType === "ip6gre" || selectedType === "ip6tnl" || selectedType === "eoipv6") && currentTunnelsData.server_ipv6) {
+                    locEl.value = currentTunnelsData.server_ipv6;
+                } else if (currentTunnelsData.server_ip) {
+                    locEl.value = currentTunnelsData.server_ip;
+                }
             }
         }
 
-        const vxlanBox = document.getElementById("tun-vxlan-fields");
-        const wgBox = document.getElementById("tun-wireguard-fields");
-        const greBox = document.getElementById("tun-gre-fields");
-        const l2tpBox = document.getElementById("tun-l2tp-fields");
-        const ovpnBox = document.getElementById("tun-openvpn-fields");
-        const sstpBox = document.getElementById("tun-sstp-fields");
+        // Field toggles
+        const setDisp = (id, show) => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = show ? "block" : "none";
+        };
 
-        if (vxlanBox) vxlanBox.style.display = selectedType === "vxlan" ? "block" : "none";
-        if (wgBox) wgBox.style.display = selectedType === "wireguard" ? "block" : "none";
-        if (greBox) greBox.style.display = (selectedType === "gre" || selectedType === "ip6gre") ? "block" : "none";
-        if (l2tpBox) l2tpBox.style.display = selectedType === "l2tp" ? "block" : "none";
-        if (ovpnBox) ovpnBox.style.display = selectedType === "openvpn" ? "block" : "none";
-        if (sstpBox) sstpBox.style.display = (selectedType === "sstp" || selectedType === "pptp") ? "block" : "none";
+        setDisp("tun-vxlan-fields", selectedType === "vxlan");
+        setDisp("tun-eoip-fields", selectedType === "eoip" || selectedType === "eoipv6");
+        setDisp("tun-geneve-fields", selectedType === "geneve");
+        setDisp("tun-fou-fields", selectedType === "fou");
+        setDisp("tun-gue-fields", selectedType === "gue");
+        setDisp("tun-zerotier-fields", selectedType === "zerotier");
+        setDisp("tun-vti-fields", selectedType === "vti");
+        setDisp("tun-l2tpv3-fields", selectedType === "l2tpv3");
+        setDisp("tun-ipsec-fields", selectedType === "gre_ipsec" || selectedType === "ipip_ipsec");
+        setDisp("tun-wireguard-fields", selectedType === "wireguard");
+        setDisp("tun-gre-fields", selectedType === "gre" || selectedType === "ip6gre");
+        setDisp("tun-l2tp-fields", selectedType === "l2tp");
+        setDisp("tun-openvpn-fields", selectedType === "openvpn" || selectedType === "openvpn_tap");
+        setDisp("tun-sstp-fields", selectedType === "sstp" || selectedType === "pptp");
 
-        if (selectedType === "wireguard") {
+        if (selectedType === "wireguard" && !isEdit) {
             const privInput = document.getElementById("tun-wg-privkey");
             if (privInput && !privInput.value) {
                 generateWgTunnelKeys();
             }
         }
-        if (selectedType === "openvpn") {
+        if ((selectedType === "openvpn" || selectedType === "openvpn_tap") && !isEdit) {
             const ovpnSec = document.getElementById("tun-ovpn-secret");
             if (ovpnSec && !ovpnSec.value) {
                 generateOpenVpnP2pKey();
@@ -12305,6 +12446,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (r.checked) selectedType = r.value;
         }
 
+        const editId = document.getElementById("tun-edit-id")?.value;
         const name = (document.getElementById("tun-name")?.value || "").trim().toLowerCase();
         const localIp = (document.getElementById("tun-local-ip")?.value || "").trim();
         const remoteIp = (document.getElementById("tun-remote-ip")?.value || "").trim();
@@ -12331,6 +12473,18 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             opt_mss: optMss,
             vni: document.getElementById("tun-vxlan-vni")?.value,
             vxlan_port: document.getElementById("tun-vxlan-port")?.value,
+            eoip_id: document.getElementById("tun-eoip-id")?.value,
+            geneve_vni: document.getElementById("tun-geneve-vni")?.value,
+            fou_port: document.getElementById("tun-fou-port")?.value,
+            gue_port: document.getElementById("tun-gue-port")?.value,
+            zerotier_net: document.getElementById("tun-zerotier-net")?.value,
+            vti_key: document.getElementById("tun-vti-key")?.value,
+            l2tp_tunnel_id: document.getElementById("tun-l2tpv3-tunnel-id")?.value,
+            l2tp_peer_tunnel_id: document.getElementById("tun-l2tpv3-peer-tunnel-id")?.value,
+            l2tp_port: document.getElementById("tun-l2tpv3-port")?.value,
+            l2tp_session_id: document.getElementById("tun-l2tpv3-session-id")?.value,
+            l2tp_peer_session_id: document.getElementById("tun-l2tpv3-peer-session-id")?.value,
+            l2tp_encap: document.getElementById("tun-l2tpv3-encap")?.value,
             gre_key: document.getElementById("tun-gre-key")?.value,
             wg_port: document.getElementById("tun-wg-port")?.value,
             wg_privkey: document.getElementById("tun-wg-privkey")?.value,
@@ -12338,7 +12492,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             wg_remote_pubkey: document.getElementById("tun-wg-remote-pubkey")?.value,
             user: document.getElementById("tun-l2tp-user")?.value || document.getElementById("tun-sstp-user")?.value,
             pass: document.getElementById("tun-l2tp-pass")?.value || document.getElementById("tun-sstp-pass")?.value,
-            psk: document.getElementById("tun-l2tp-psk")?.value,
+            psk: document.getElementById("tun-ipsec-psk")?.value || document.getElementById("tun-l2tp-psk")?.value,
             ovpn_port: document.getElementById("tun-ovpn-port")?.value,
             ovpn_proto: document.getElementById("tun-ovpn-proto")?.value,
             ovpn_cipher: document.getElementById("tun-ovpn-cipher")?.value,
@@ -12348,19 +12502,21 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const submitBtn = document.getElementById("btn-submit-tunnel");
         if (submitBtn) submitBtn.disabled = true;
 
+        const endpoint = editId ? `/api/tunnels/${editId}/edit` : "/api/tunnels/create";
+
         try {
-            const res = await fetch("/api/tunnels/create", {
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast("اینترفیس تونل با موفقیت ایجاد و فعال شد.", "success");
+                showToast(editId ? "تنظیمات تونل با موفقیت ویرایش و اعمال شد." : "اینترفیس تونل با موفقیت ایجاد و فعال شد.", "success");
                 closeCreateTunnelModal();
                 fetchTunnels();
             } else {
-                showToast(`خطا: ${data.error || 'عدم موفقیت در ساخت تونل'}`, "error");
+                showToast(`خطا: ${data.error || 'عدم موفقیت در عملیات'}`, "error");
             }
         } catch (err) {
             showToast("خطای ارتباط با سرور: " + err.message, "error");
@@ -12507,8 +12663,70 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // ----------------- Advanced Anti-Censorship Tunnels JS -----------------
 
     function openCreateAdvTunnelModal() {
+        const editIdEl = document.getElementById("adv-edit-id");
+        if (editIdEl) editIdEl.value = "";
+        const titleEl = document.getElementById("modal-adv-title-text");
+        if (titleEl) titleEl.innerText = "راه‌اندازی تونل ضد فیلتر لینوکس (Anti-Censorship Tunnel)";
+        const btnTextEl = document.getElementById("btn-submit-adv-tunnel-text");
+        if (btnTextEl) btnTextEl.innerText = "ساخت و استارت آنی سرویس در لینوکس";
+        const nameInput = document.getElementById("adv-name");
+        if (nameInput) {
+            nameInput.readOnly = false;
+            nameInput.style.backgroundColor = "";
+        }
         onAdvToolChange();
         onAdvRoleChange();
+        const modal = document.getElementById("modal-create-adv-tunnel");
+        if (modal) modal.classList.add("active");
+    }
+
+    function openEditAdvTunnelModal(advId) {
+        const adv = (currentTunnelsData?.adv_tunnels || []).find(a => a.id === advId);
+        if (!adv) {
+            showToast("اطلاعات تونل ضد فیلتر یافت نشد.", "error");
+            return;
+        }
+        const editIdEl = document.getElementById("adv-edit-id");
+        if (editIdEl) editIdEl.value = adv.id;
+
+        const titleEl = document.getElementById("modal-adv-title-text");
+        if (titleEl) titleEl.innerText = `ویرایش تنظیمات تونل ضد فیلتر: ${adv.name} (${adv.tool.toUpperCase()})`;
+
+        const btnTextEl = document.getElementById("btn-submit-adv-tunnel-text");
+        if (btnTextEl) btnTextEl.innerText = "ذخیره تغییرات و بازنشانی سرویس";
+
+        const nameInput = document.getElementById("adv-name");
+        if (nameInput) {
+            nameInput.value = adv.name;
+            nameInput.readOnly = true;
+            nameInput.style.backgroundColor = "var(--bg-base)";
+        }
+
+        const toolRadios = document.getElementsByName("adv_tool");
+        for (const r of toolRadios) {
+            r.checked = (r.value === adv.tool);
+        }
+        onAdvToolChange(true);
+
+        const roleRadios = document.getElementsByName("adv_role");
+        for (const r of roleRadios) {
+            r.checked = (r.value === (adv.role || "server"));
+        }
+        onAdvRoleChange();
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined && val !== null) el.value = val;
+        };
+
+        setVal("adv-listen-port", adv.listen_port);
+        setVal("adv-remote-ip", adv.remote_ip || "");
+        setVal("adv-remote-port", adv.remote_port || adv.listen_port);
+        setVal("adv-target-addr", adv.target_addr || "127.0.0.1:443");
+        setVal("adv-transport", adv.transport || "wss");
+        setVal("adv-secret", adv.secret || "");
+        setVal("adv-sni", adv.sni || "dl.google.com");
+
         const modal = document.getElementById("modal-create-adv-tunnel");
         if (modal) modal.classList.add("active");
     }
@@ -12518,7 +12736,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (modal) modal.classList.remove("active");
     }
 
-    function onAdvToolChange() {
+    function onAdvToolChange(isEdit = false) {
         const toolRadios = document.getElementsByName("adv_tool");
         let selectedTool = "gost";
         for (const r of toolRadios) {
@@ -12551,13 +12769,23 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             phantun: { name: `phantun_${count}`, port: 4567, transport: "faketcp" },
             rathole: { name: `rathole_${count}`, port: 2333, transport: "tls" },
             frp: { name: `frp_${count}`, port: 7000, transport: "tls" },
-            kcptun: { name: `kcptun_${count}`, port: 29900, transport: "kcp" }
+            kcptun: { name: `kcptun_${count}`, port: 29900, transport: "kcp" },
+            hysteria: { name: `hy2_tun_${count}`, port: 8443, transport: "quic" },
+            tuic: { name: `tuic_tun_${count}`, port: 8444, transport: "quic" },
+            awg: { name: `awg_tun_${count}`, port: 51825, transport: "udp" },
+            ssh_tun: { name: `ssh_tun_${count}`, port: 2222, transport: "tcp" },
+            singbox: { name: `sb_s2s_${count}`, port: 9000, transport: "tls" },
+            ss2022: { name: `ss2022_${count}`, port: 8388, transport: "tcp" },
+            tun2socks: { name: `tun2s_${count}`, port: 10808, transport: "tcp" },
+            dnstt: { name: `dnstt_${count}`, port: 53, transport: "dns" }
         };
 
         const def = toolDefaults[selectedTool] || toolDefaults.gost;
-        if (nameInput) nameInput.value = def.name;
-        if (portInput) portInput.value = def.port;
-        if (transportSelect) transportSelect.value = def.transport;
+        if (!isEdit) {
+            if (nameInput) nameInput.value = def.name;
+            if (portInput) portInput.value = def.port;
+            if (transportSelect) transportSelect.value = def.transport;
+        }
     }
 
     function onAdvRoleChange() {
@@ -12586,6 +12814,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (r.checked) selectedRole = r.value;
         }
 
+        const editId = document.getElementById("adv-edit-id")?.value;
         const name = (document.getElementById("adv-name")?.value || "").trim().toLowerCase();
         const listenPort = document.getElementById("adv-listen-port")?.value;
         const remoteIp = (document.getElementById("adv-remote-ip")?.value || "").trim();
@@ -12624,19 +12853,21 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const submitBtn = document.getElementById("btn-submit-adv-tunnel");
         if (submitBtn) submitBtn.disabled = true;
 
+        const endpoint = editId ? `/api/tunnels/adv/${editId}/edit` : "/api/tunnels/adv/create";
+
         try {
-            const res = await fetch("/api/tunnels/adv/create", {
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast("سرویس تونل ضد فیلتر با موفقیت ایجاد و راه‌اندازی شد.", "success");
+                showToast(editId ? "تنظیمات تونل ضد فیلتر با موفقیت ویرایش و اعمال شد." : "سرویس تونل ضد فیلتر با موفقیت ایجاد و راه‌اندازی شد.", "success");
                 closeCreateAdvTunnelModal();
                 fetchTunnels();
             } else {
-                showToast(`خطا: ${data.error || 'عدم موفقیت در راه‌اندازی تونل'}`, "error");
+                showToast(`خطا: ${data.error || 'عدم موفقیت در عملیات تونل'}`, "error");
             }
         } catch (err) {
             showToast("خطای ارتباط با سرور: " + err.message, "error");
@@ -12719,6 +12950,53 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // ----------------- Relays JS -----------------
 
     function openPortRelayModal() {
+        const editIdEl = document.getElementById("relay-edit-id");
+        if (editIdEl) editIdEl.value = "";
+        const titleEl = document.getElementById("modal-relay-title-text");
+        if (titleEl) titleEl.innerText = "افزودن رله و فوروارد پورت (Port Forwarding Relay)";
+        const btnTextEl = document.getElementById("btn-submit-relay-text");
+        if (btnTextEl) btnTextEl.innerText = "فعال‌سازی رله و اعمال رول IPTables";
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        };
+        setVal("relay-listen-port", "");
+        setVal("relay-target-ip", "");
+        setVal("relay-target-port", "");
+        setVal("relay-proto", "both");
+        setVal("relay-desc", "");
+
+        const modal = document.getElementById("modal-add-port-relay");
+        if (modal) modal.classList.add("active");
+    }
+
+    function openEditPortRelayModal(relayId) {
+        const relay = (currentTunnelsData?.relays || []).find(r => r.id === relayId);
+        if (!relay) {
+            showToast("اطلاعات رله پورت یافت نشد.", "error");
+            return;
+        }
+        const editIdEl = document.getElementById("relay-edit-id");
+        if (editIdEl) editIdEl.value = relay.id;
+
+        const titleEl = document.getElementById("modal-relay-title-text");
+        if (titleEl) titleEl.innerText = `ویرایش رله پورت: Port ${relay.listen_port}`;
+
+        const btnTextEl = document.getElementById("btn-submit-relay-text");
+        if (btnTextEl) btnTextEl.innerText = "ذخیره تغییرات و اعمال رول فایروال";
+
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el && val !== undefined && val !== null) el.value = val;
+        };
+        setVal("relay-tunnel-select", relay.tunnel_name || "");
+        setVal("relay-listen-port", relay.listen_port);
+        setVal("relay-target-ip", relay.target_ip);
+        setVal("relay-target-port", relay.target_port);
+        setVal("relay-proto", relay.proto || "both");
+        setVal("relay-desc", relay.desc || "");
+
         const modal = document.getElementById("modal-add-port-relay");
         if (modal) modal.classList.add("active");
     }
@@ -12729,6 +13007,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     }
 
     async function submitCreatePortRelay() {
+        const editId = document.getElementById("relay-edit-id")?.value;
         const listenPort = document.getElementById("relay-listen-port")?.value;
         const targetIp = (document.getElementById("relay-target-ip")?.value || "").trim();
         const targetPort = document.getElementById("relay-target-port")?.value || listenPort;
@@ -12750,15 +13029,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             desc: desc
         };
 
+        const endpoint = editId ? `/api/tunnels/relays/${editId}/edit` : "/api/tunnels/relays/create";
+
         try {
-            const res = await fetch("/api/tunnels/relays/create", {
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                showToast("رول رله پورت با موفقیت ایجاد و در IPTables فعال شد.", "success");
+                showToast(editId ? "رول رله پورت با موفقیت ویرایش و در IPTables اعمال شد." : "رول رله پورت با موفقیت ایجاد و در IPTables فعال شد.", "success");
                 closePortRelayModal();
                 fetchTunnels();
             } else {
