@@ -135,6 +135,13 @@ protocol_label() {
         dnstt) echo "DNSTT (SlowDNS Crypto Tunnel)" ;;
         vaydns) echo "VayDNS (High-Speed DNS Tunnel)" ;;
         slipstream) echo "Slipstream (Covert DNS Channel)" ;;
+        hysteria2) echo "Hysteria 2 (High-Speed QUIC & Salamander)" ;;
+        trojan) echo "Trojan TLS (HTTPS Camouflage Proxy)" ;;
+        naiveproxy) echo "NaiveProxy (Chromium Network Stack)" ;;
+        stuntls) echo "StunTLS (WebRTC STUN Obfuscation)" ;;
+        noizdns) echo "NoizDNS (Noise-Padded Anti-DPI DNS)" ;;
+        masterdnsvpn) echo "MasterdnsVPN (High-Speed Chunked DNS)" ;;
+        tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -346,34 +353,39 @@ protocol_service_status() {
 }
 
 protocol_current_port() {
+    local port=""
     case "$1" in
-        ssh) grep -Ei '^Port ' /etc/ssh/sshd_config_vpn 2>/dev/null | awk '{print $2}' | tail -n1 || echo "2222" ;;
-        openvpn) grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' | tail -n1 || echo "1194" ;;
-        ocserv) grep -Ei '^tcp-port' /etc/ocserv/ocserv.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "10443" ;;
-        ikev2) echo "500/4500 (UDP)" ;;
-        sstp) port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1 || true); echo "${port:-4443}" ;;
-        l2tp) echo "1701 (UDP)" ;;
-        wireguard) grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "51820" ;;
-        amneziawg) grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1 || echo "51821" ;;
-        http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080" ;;
-        socks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080" ;;
-        shadowsocks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8388" ;;
-        tuic) grep -oE '0\.0\.0\.0:[0-9]+' /etc/vpnpanel/tuic.json /etc/systemd/system/mhpanel-tuic.service 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' | tail -n1 || echo "7443" ;;
-        mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config_*.py /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $NF}' | tail -n1 || echo "4433" ;;
-        pptp) echo "1723 (TCP)" ;;
-        badvpn) echo "7300 (UDP)" ;;
-        dnstt) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "5300" ;;
-        vaydns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' || echo "5353" ;;
-        slipstream) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' || echo "5354" ;;
-        hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443" ;;
-        trojan) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443" ;;
-        naiveproxy) grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443" ;;
-        stuntls) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478" ;;
-        noizdns) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355" ;;
-        masterdnsvpn) grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356" ;;
-        tor) grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' || echo "9001" ;;
-        *) echo "-" ;;
+        ssh) port=$(grep -Ei '^Port ' /etc/ssh/sshd_config_vpn 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        openvpn) port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        ocserv) port=$(grep -Ei '^tcp-port' /etc/ocserv/ocserv.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
+        ikev2) echo "500/4500 (UDP)"; return ;;
+        sstp) port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        l2tp) echo "1701 (UDP)"; return ;;
+        wireguard) port=$(grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
+        amneziawg) port=$(grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
+        http) port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1) ;;
+        socks) port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1) ;;
+        shadowsocks) port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1) ;;
+        tuic) port=$(grep -oE '0\.0\.0\.0:[0-9]+' /etc/vpnpanel/tuic.json /etc/systemd/system/mhpanel-tuic.service 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' | tail -n1) ;;
+        mtproto) port=$(grep -E '^PORT = ' /etc/vpnpanel/mtproto_config_*.py /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $NF}' | tail -n1) ;;
+        pptp) echo "1723 (TCP)"; return ;;
+        badvpn) echo "7300 (UDP)"; return ;;
+        dnstt) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        vaydns) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/vaydns.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        slipstream) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/slipstream.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        hysteria2) port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' | tail -n1) ;;
+        trojan) port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        naiveproxy) port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        stuntls) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        noizdns) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        masterdnsvpn) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        tor) port=$(grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' | tail -n1) ;;
     esac
+    if [ -n "$port" ]; then
+        echo "$port"
+    else
+        protocol_default_port "$1"
+    fi
 }
 
 # ==============================================================================
@@ -740,6 +752,68 @@ install_tunnel_tools() {
         else
             echo -e "    ${RED}[!] Warning: Failed to download tuic-server. Check server internet access.${NC}"
         fi
+    fi
+
+    # Hysteria 2
+    if [ ! -x /usr/local/bin/hysteria ]; then
+        echo "    Downloading Hysteria 2..."
+        local arch="$(uname -m)"
+        local hy_arch="amd64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && hy_arch="arm64"
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/hysteria -o /usr/local/bin/hysteria 2>/dev/null || \
+        curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/apernet/hysteria/releases/download/app%2Fv2.5.2/hysteria-linux-${hy_arch}" -o /usr/local/bin/hysteria 2>/dev/null || true
+        chmod +x /usr/local/bin/hysteria 2>/dev/null || true
+        if [ -x /usr/local/bin/hysteria ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download hysteria. Check server internet access.${NC}"
+        fi
+    fi
+
+    # Sing-box (Trojan & NaiveProxy)
+    if [ ! -x /usr/local/bin/sing-box ]; then
+        echo "    Downloading Sing-box (Trojan & NaiveProxy)..."
+        local arch="$(uname -m)"
+        local sb_arch="amd64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
+        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+        chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+        if [ -x /usr/local/bin/sing-box ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download sing-box. Check server internet access.${NC}"
+        fi
+    fi
+
+    # StunTLS Server
+    if [ ! -x /usr/local/bin/stuntls-server ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/stuntls-server -o /usr/local/bin/stuntls-server 2>/dev/null || true
+        chmod +x /usr/local/bin/stuntls-server 2>/dev/null || true
+        [ -x /usr/local/bin/stuntls-server ] && count_downloaded=$((count_downloaded + 1))
+    fi
+
+    # NoizDNS Server
+    if [ ! -x /usr/local/bin/noizdns-server ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/noizdns-server -o /usr/local/bin/noizdns-server 2>/dev/null || true
+        chmod +x /usr/local/bin/noizdns-server 2>/dev/null || true
+        [ -x /usr/local/bin/noizdns-server ] && count_downloaded=$((count_downloaded + 1))
+    fi
+
+    # MasterdnsVPN Server
+    if [ ! -x /usr/local/bin/masterdnsvpn-server ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/masterdnsvpn-server -o /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
+        chmod +x /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
+        [ -x /usr/local/bin/masterdnsvpn-server ] && count_downloaded=$((count_downloaded + 1))
+    fi
+
+    # Tor & Pluggable Transports
+    if ! command -v tor >/dev/null 2>&1; then
+        echo "    Installing Tor & obfs4proxy/lyrebird..."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get install -y --no-install-recommends tor obfs4proxy >/dev/null 2>&1 || apt-get install -y --no-install-recommends tor lyrebird >/dev/null 2>&1 || true
+        systemctl stop tor tor@default 2>/dev/null || true
+        systemctl disable tor tor@default 2>/dev/null || true
     fi
 
     # GOST v3
@@ -1196,44 +1270,82 @@ menu_vpn_protocols() {
                     ;;
                 4)
                     local svc="openvpn@server"
-                    if [ "$sel_proto" = "ssh" ]; then svc="mhpanel-ssh"; fi
-                    if [ "$sel_proto" = "wireguard" ]; then svc="wg-quick@wg0"; fi
-                    if [ "$sel_proto" = "amneziawg" ]; then svc="awg-quick@awg0"; fi
-                    if [ "$sel_proto" = "ocserv" ]; then svc="ocserv"; fi
-                    if [ "$sel_proto" = "ikev2" ]; then svc="strongswan"; fi
-                    if [ "$sel_proto" = "sstp" ]; then svc="sstpd"; fi
-                    if [ "$sel_proto" = "l2tp" ]; then svc="xl2tpd"; fi
-                    if [ "$sel_proto" = "shadowsocks" ]; then svc="mhpanel-shadowsocks"; fi
-                    if [ "$sel_proto" = "tuic" ]; then svc="mhpanel-tuic"; fi
-                    if [ "$sel_proto" = "badvpn" ]; then svc="badvpn"; fi
-                    if [ "$sel_proto" = "http" ]; then svc="mhpanel-http-proxy"; fi
-                    if [ "$sel_proto" = "socks" ]; then svc="mhpanel-socks-proxy"; fi
-                    if [ "$sel_proto" = "mtproto" ]; then
-                        local p="$(protocol_current_port "$sel_proto")"
-                        svc="mhpanel-mtproto@${p}"
-                    fi
+                    case "$sel_proto" in
+                        ssh) svc="mhpanel-ssh" ;;
+                        openvpn) svc="openvpn@server" ;;
+                        wireguard) svc="wg-quick@wg0" ;;
+                        amneziawg) svc="awg-quick@awg0" ;;
+                        ocserv) svc="ocserv" ;;
+                        ikev2)
+                            for s in strongswan strongswan-swanctl strongswan-starter; do
+                                if systemctl is-active --quiet "$s" 2>/dev/null; then svc="$s"; break; fi
+                            done
+                            [ -z "$svc" ] && svc="strongswan"
+                            ;;
+                        sstp) svc="sstpd" ;;
+                        l2tp) svc="xl2tpd" ;;
+                        shadowsocks) svc="mhpanel-shadowsocks" ;;
+                        tuic) svc="mhpanel-tuic" ;;
+                        badvpn) svc="badvpn" ;;
+                        http) svc="mhpanel-http-proxy" ;;
+                        socks) svc="mhpanel-socks-proxy" ;;
+                        mtproto)
+                            local p="$(protocol_current_port "$sel_proto")"
+                            svc="mhpanel-mtproto@${p}"
+                            ;;
+                        pptp) svc="mhpanel-pptp"; systemctl is-active --quiet "$svc" 2>/dev/null || svc="pptpd" ;;
+                        dnstt) svc="mhpanel-dnstt" ;;
+                        vaydns) svc="mhpanel-vaydns" ;;
+                        slipstream) svc="mhpanel-slipstream" ;;
+                        hysteria2) svc="mhpanel-hysteria2" ;;
+                        trojan) svc="mhpanel-trojan" ;;
+                        naiveproxy) svc="mhpanel-naiveproxy" ;;
+                        stuntls) svc="mhpanel-stuntls" ;;
+                        noizdns) svc="mhpanel-noizdns" ;;
+                        masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
+                        tor) svc="mhpanel-tor" ;;
+                    esac
                     systemctl restart "$svc" 2>/dev/null || true
                     echo -e "${GREEN}Service ${svc} restarted.${NC}"
                     read -p "Press Enter to continue..."
                     ;;
                 5)
                     local svc="openvpn@server"
-                    if [ "$sel_proto" = "ssh" ]; then svc="mhpanel-ssh"; fi
-                    if [ "$sel_proto" = "wireguard" ]; then svc="wg-quick@wg0"; fi
-                    if [ "$sel_proto" = "amneziawg" ]; then svc="awg-quick@awg0"; fi
-                    if [ "$sel_proto" = "ocserv" ]; then svc="ocserv"; fi
-                    if [ "$sel_proto" = "ikev2" ]; then svc="strongswan"; fi
-                    if [ "$sel_proto" = "sstp" ]; then svc="sstpd"; fi
-                    if [ "$sel_proto" = "l2tp" ]; then svc="xl2tpd"; fi
-                    if [ "$sel_proto" = "shadowsocks" ]; then svc="mhpanel-shadowsocks"; fi
-                    if [ "$sel_proto" = "tuic" ]; then svc="mhpanel-tuic"; fi
-                    if [ "$sel_proto" = "badvpn" ]; then svc="badvpn"; fi
-                    if [ "$sel_proto" = "http" ]; then svc="mhpanel-http-proxy"; fi
-                    if [ "$sel_proto" = "socks" ]; then svc="mhpanel-socks-proxy"; fi
-                    if [ "$sel_proto" = "mtproto" ]; then
-                        local p="$(protocol_current_port "$sel_proto")"
-                        svc="mhpanel-mtproto@${p}"
-                    fi
+                    case "$sel_proto" in
+                        ssh) svc="mhpanel-ssh" ;;
+                        openvpn) svc="openvpn@server" ;;
+                        wireguard) svc="wg-quick@wg0" ;;
+                        amneziawg) svc="awg-quick@awg0" ;;
+                        ocserv) svc="ocserv" ;;
+                        ikev2)
+                            for s in strongswan strongswan-swanctl strongswan-starter; do
+                                if systemctl is-active --quiet "$s" 2>/dev/null; then svc="$s"; break; fi
+                            done
+                            [ -z "$svc" ] && svc="strongswan"
+                            ;;
+                        sstp) svc="sstpd" ;;
+                        l2tp) svc="xl2tpd" ;;
+                        shadowsocks) svc="mhpanel-shadowsocks" ;;
+                        tuic) svc="mhpanel-tuic" ;;
+                        badvpn) svc="badvpn" ;;
+                        http) svc="mhpanel-http-proxy" ;;
+                        socks) svc="mhpanel-socks-proxy" ;;
+                        mtproto)
+                            local p="$(protocol_current_port "$sel_proto")"
+                            svc="mhpanel-mtproto@${p}"
+                            ;;
+                        pptp) svc="mhpanel-pptp"; systemctl is-active --quiet "$svc" 2>/dev/null || svc="pptpd" ;;
+                        dnstt) svc="mhpanel-dnstt" ;;
+                        vaydns) svc="mhpanel-vaydns" ;;
+                        slipstream) svc="mhpanel-slipstream" ;;
+                        hysteria2) svc="mhpanel-hysteria2" ;;
+                        trojan) svc="mhpanel-trojan" ;;
+                        naiveproxy) svc="mhpanel-naiveproxy" ;;
+                        stuntls) svc="mhpanel-stuntls" ;;
+                        noizdns) svc="mhpanel-noizdns" ;;
+                        masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
+                        tor) svc="mhpanel-tor" ;;
+                    esac
                     journalctl -u "$svc" -n 50 --no-pager 2>/dev/null || journalctl -n 50 --no-pager 2>/dev/null || true
                     read -p "Press Enter to continue..."
                     ;;

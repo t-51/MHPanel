@@ -669,7 +669,7 @@ def get_active_port(protocol):
                         m = re.search(r'"listen_port":\s*(\d+)', f.read())
                         if m: return int(m.group(1))
                 except Exception: pass
-            return 8443
+            return 12443
         elif protocol == "naiveproxy":
             if os.path.exists("/etc/vpnpanel/naiveproxy.json"):
                 try:
@@ -677,7 +677,7 @@ def get_active_port(protocol):
                         m = re.search(r'"listen_port":\s*(\d+)', f.read())
                         if m: return int(m.group(1))
                 except Exception: pass
-            return 8444
+            return 13443
         elif protocol == "stuntls":
             if os.path.exists("/etc/vpnpanel/stuntls.json"):
                 try:
@@ -2716,7 +2716,7 @@ def get_service_names(protocol):
     elif protocol == "masterdnsvpn":
         return ["mhpanel-masterdnsvpn"]
     elif protocol == "tor":
-        return ["mhpanel-tor", "tor@default", "tor"]
+        return ["mhpanel-tor"]
     return []
 
 @app.route("/api/protocols/control", methods=["POST"])
@@ -7037,7 +7037,7 @@ def api_trojan_config():
 
         cfg = {
             "log": {"level": "warn", "timestamp": True},
-            "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+            "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
             "inbounds": [inbound_cfg],
             "outbounds": [{"type": "direct", "tag": "direct"}]
         }
@@ -7223,7 +7223,7 @@ def api_naiveproxy_config():
 
         cfg = {
             "log": {"level": "warn"},
-            "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+            "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
             "inbounds": [
                 {
                     "type": "naive",

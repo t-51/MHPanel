@@ -79,27 +79,21 @@ deny_port() {
 
 ensure_binary() {
     local bin_name="$1"
-    local fallback_url="$2"
+    local fallback_url="${2:-}"
+    local alt_url="${3:-}"
 
     if [ -x "/usr/local/bin/${bin_name}" ]; then
         return 0
     fi
 
-    # Check panel repo bin/ directories
-    for dir in "${PANEL_DIR}/bin" "/root/mhpanel-repo/bin" "/www/wwwroot/mhpanel/bin"; do
-        if [ -x "${dir}/${bin_name}" ]; then
+    # Check panel repo bin/ and daemons directories
+    for dir in "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/../bin" "${SCRIPT_DIR}/daemons" "/root/mhpanel-repo/bin" "/root/mhpanel-repo/scripts/daemons" "/www/wwwroot/mhpanel/bin" "/www/wwwroot/mhpanel/scripts/daemons"; do
+        if [ -f "${dir}/${bin_name}" ]; then
             cp -f "${dir}/${bin_name}" "/usr/local/bin/${bin_name}" 2>/dev/null || true
             chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
             return 0
         fi
     done
-
-    # Check scripts/daemons
-    if [ -f "${PANEL_DIR}/scripts/daemons/${bin_name}" ]; then
-        cp -f "${PANEL_DIR}/scripts/daemons/${bin_name}" "/usr/local/bin/${bin_name}" 2>/dev/null || true
-        chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
-        return 0
-    fi
 
     # Attempt download from fallback_url
     if [ -n "${fallback_url}" ]; then
@@ -107,13 +101,19 @@ ensure_binary() {
         if curl -fsSL --connect-timeout 10 --max-time 60 "${fallback_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
             chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
             return 0
-        else
-            echo "ERROR: Network connectivity failed. Unable to download ${bin_name} from ${fallback_url}. Please check your server internet access or GitHub access." >&2
-            return 1
         fi
     fi
 
-    echo "ERROR: Binary ${bin_name} not found and no download URL available." >&2
+    # Attempt download from alt_url if provided
+    if [ -n "${alt_url}" ]; then
+        echo "Retrying download of ${bin_name} from: ${alt_url} ..."
+        if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
+            chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+            return 0
+        fi
+    fi
+
+    echo "ERROR: Network connectivity failed. Unable to obtain ${bin_name}. Please check internet/GitHub access." >&2
     return 1
 }
 
@@ -1665,13 +1665,10 @@ outbounds:
 EOF
     fi
 
-    if [ ! -x /usr/local/bin/hysteria ]; then
-        local arch="$(uname -m)"
-        local hy_arch="amd64"
-        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then hy_arch="arm64"; fi
-        curl -fsSL "https://github.com/apernet/hysteria/releases/download/app%2Fv2.5.2/hysteria-linux-${hy_arch}" -o /usr/local/bin/hysteria 2>/dev/null || true
-        chmod +x /usr/local/bin/hysteria 2>/dev/null || true
-    fi
+    local arch="$(uname -m)"
+    local hy_arch="amd64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then hy_arch="arm64"; fi
+    ensure_binary "hysteria" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/hysteria" "https://github.com/apernet/hysteria/releases/download/app%2Fv2.5.2/hysteria-linux-${hy_arch}"
 
     cat > /etc/systemd/system/mhpanel-hysteria2.service <<EOF
 [Unit]
@@ -1733,7 +1730,7 @@ install_trojan() {
         cat > /etc/vpnpanel/trojan.json <<EOF
 {
   "log": {"level": "warn"},
-  "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+  "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
   "inbounds": [
     {
       "type": "trojan",
@@ -1755,17 +1752,10 @@ install_trojan() {
 EOF
     fi
 
-    if [ ! -x /usr/local/bin/sing-box ]; then
-        local arch="$(uname -m)"
-        local sb_arch="amd64"
-        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-        curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-        if [ -f /tmp/sing-box-*/sing-box ]; then
-            mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null || true
-            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
-            rm -rf /tmp/sing-box*
-        fi
-    fi
+    local arch="$(uname -m)"
+    local sb_arch="amd64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
 
     cat > /etc/systemd/system/mhpanel-trojan.service <<EOF
 [Unit]
@@ -1827,7 +1817,7 @@ install_naiveproxy() {
         cat > /etc/vpnpanel/naiveproxy.json <<EOF
 {
   "log": {"level": "warn"},
-  "dns": {"servers": [{"tag": "remote", "type": "udp", "server": "8.8.8.8"}]},
+  "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
   "inbounds": [
     {
       "type": "naive",
@@ -1848,17 +1838,10 @@ install_naiveproxy() {
 EOF
     fi
 
-    if [ ! -x /usr/local/bin/sing-box ]; then
-        local arch="$(uname -m)"
-        local sb_arch="amd64"
-        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-        curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-        if [ -f /tmp/sing-box-*/sing-box ]; then
-            mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null || true
-            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
-            rm -rf /tmp/sing-box*
-        fi
-    fi
+    local arch="$(uname -m)"
+    local sb_arch="amd64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
 
     cat > /etc/systemd/system/mhpanel-naiveproxy.service <<EOF
 [Unit]
@@ -1922,12 +1905,7 @@ install_stuntls() {
 EOF
     fi
 
-    if [ ! -f /usr/local/bin/stuntls-server ]; then
-        if [ -f "${PANEL_DIR}/scripts/daemons/stuntls-server" ]; then
-            cp -f "${PANEL_DIR}/scripts/daemons/stuntls-server" /usr/local/bin/stuntls-server
-        fi
-        chmod +x /usr/local/bin/stuntls-server 2>/dev/null || true
-    fi
+    ensure_binary "stuntls-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/stuntls-server"
 
     cat > /etc/systemd/system/mhpanel-stuntls.service <<EOF
 [Unit]
@@ -1996,12 +1974,7 @@ install_noizdns() {
 EOF
     fi
 
-    if [ ! -f /usr/local/bin/noizdns-server ]; then
-        if [ -f "${PANEL_DIR}/scripts/daemons/noizdns-server" ]; then
-            cp -f "${PANEL_DIR}/scripts/daemons/noizdns-server" /usr/local/bin/noizdns-server
-        fi
-        chmod +x /usr/local/bin/noizdns-server 2>/dev/null || true
-    fi
+    ensure_binary "noizdns-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/noizdns-server"
 
     cat > /etc/systemd/system/mhpanel-noizdns.service <<EOF
 [Unit]
@@ -2065,12 +2038,7 @@ install_masterdnsvpn() {
 EOF
     fi
 
-    if [ ! -f /usr/local/bin/masterdnsvpn-server ]; then
-        if [ -f "${PANEL_DIR}/scripts/daemons/masterdnsvpn-server" ]; then
-            cp -f "${PANEL_DIR}/scripts/daemons/masterdnsvpn-server" /usr/local/bin/masterdnsvpn-server
-        fi
-        chmod +x /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
-    fi
+    ensure_binary "masterdnsvpn-server" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/masterdnsvpn-server"
 
     cat > /etc/systemd/system/mhpanel-masterdnsvpn.service <<EOF
 [Unit]
@@ -2366,16 +2334,26 @@ set_port_slipstream() {
 install_tor() {
     local or_port=${1:-9001}
     local bridge_port=${2:-9002}
-    apt-get update -y >/dev/null 2>&1
-    apt-get install -y tor obfs4proxy >/dev/null 2>&1 || true
-    mkdir -p /etc/vpnpanel /var/lib/tor
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y >/dev/null 2>&1 || true
+    apt-get install -y tor obfs4proxy >/dev/null 2>&1 || apt-get install -y tor lyrebird >/dev/null 2>&1 || true
+
+    # Stop default distro tor service to prevent conflict on port 9050
+    systemctl stop tor tor@default 2>/dev/null || true
+    systemctl disable tor tor@default 2>/dev/null || true
+
+    local obfs_bin="$(command -v obfs4proxy || command -v lyrebird || echo '/usr/bin/obfs4proxy')"
+    local tor_bin="$(command -v tor || echo '/usr/bin/tor')"
+
+    mkdir -p /etc/tor /etc/vpnpanel /var/lib/tor
     chown -R debian-tor:debian-tor /var/lib/tor 2>/dev/null || true
+    chmod 700 /var/lib/tor 2>/dev/null || true
     cat > /etc/tor/torrc <<EOF
 SocksPort 127.0.0.1:9050
 RunAsDaemon 0
 ORPort ${or_port}
 BridgeRelay 1
-ServerTransportPlugin obfs4 exec /usr/bin/obfs4proxy
+ServerTransportPlugin obfs4 exec ${obfs_bin}
 ServerTransportListenAddr obfs4 0.0.0.0:${bridge_port}
 PublishServerDescriptor 0
 ContactInfo admin@kigaping.com
@@ -2393,7 +2371,7 @@ Wants=network-online.target
 Type=simple
 User=debian-tor
 Group=debian-tor
-ExecStart=/usr/bin/tor -f /etc/tor/torrc
+ExecStart=${tor_bin} -f /etc/tor/torrc
 ExecReload=/bin/kill -HUP \$MAINPID
 KillSignal=SIGINT
 TimeoutSec=60
@@ -2501,14 +2479,25 @@ get_connections_count() {
         pptp)
             count=$(ss -t -a | grep ":${port:-1723} " | grep -i estab | wc -l)
             ;;
-        http|socks|shadowsocks|mtproto)
+        amneziawg)
+            if command -v awg >/dev/null 2>&1; then
+                local now=$(date +%s)
+                local handshakes=$(awg show awg0 latest-handshakes 2>/dev/null | awk '{print $2}')
+                for hs in $handshakes; do
+                    if [[ "$hs" =~ ^[0-9]+$ ]] && [ "$hs" -gt 0 ] && [ "$((now - hs))" -lt 120 ]; then
+                        count=$((count + 1))
+                    fi
+                done
+            fi
+            ;;
+        http|socks|shadowsocks|mtproto|trojan|naiveproxy|stuntls|tor)
             if [ -n "${port}" ] && [ "${port}" != "-" ]; then
                 count=$(ss -t -a | grep ":${port} " | grep -i estab | wc -l)
             else
                 count=0
             fi
             ;;
-        tuic)
+        tuic|hysteria2|dnstt|vaydns|slipstream|noizdns|masterdnsvpn)
             if [ -n "${port}" ] && [ "${port}" != "-" ]; then
                 count=$(ss -u -a | grep ":${port} " | grep -i -E 'estab|unconn' | wc -l)
             else
@@ -2549,7 +2538,7 @@ print_status_report() {
 
     # 2. Protocols Status
     echo -e "VPN Protocols Status:"
-    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "dnstt" "vaydns" "slipstream")
+    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor")
     for proto in "${protocols[@]}"; do
         local inst="No"
         local act="Inactive"
@@ -2739,6 +2728,76 @@ print_status_report() {
                     if systemctl is-active mhpanel-slipstream >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "slipstream" "$port")
+                    fi
+                fi
+                ;;
+            hysteria2)
+                if [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443")
+                    if systemctl is-active mhpanel-hysteria2 >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "hysteria2" "$port")
+                    fi
+                fi
+                ;;
+            trojan)
+                if [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443")
+                    if systemctl is-active mhpanel-trojan >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "trojan" "$port")
+                    fi
+                fi
+                ;;
+            naiveproxy)
+                if [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443")
+                    if systemctl is-active mhpanel-naiveproxy >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "naiveproxy" "$port")
+                    fi
+                fi
+                ;;
+            stuntls)
+                if [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478")
+                    if systemctl is-active mhpanel-stuntls >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "stuntls" "$port")
+                    fi
+                fi
+                ;;
+            noizdns)
+                if [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355")
+                    if systemctl is-active mhpanel-noizdns >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "noizdns" "$port")
+                    fi
+                fi
+                ;;
+            masterdnsvpn)
+                if [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356")
+                    if systemctl is-active mhpanel-masterdnsvpn >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "masterdnsvpn" "$port")
+                    fi
+                fi
+                ;;
+            tor)
+                if [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ]; then
+                    inst="Yes"
+                    port=$(grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' || echo "9001")
+                    if systemctl is-active mhpanel-tor >/dev/null 2>&1; then
+                        act="Active"
+                        conn=$(get_connections_count "tor" "$port")
                     fi
                 fi
                 ;;
@@ -3064,6 +3123,13 @@ case "${ACTION}" in
                 fi
                 ;;
             pptp) service_status mhpanel-pptp ;;
+            hysteria2) service_status mhpanel-hysteria2 ;;
+            trojan) service_status mhpanel-trojan ;;
+            naiveproxy) service_status mhpanel-naiveproxy ;;
+            stuntls) service_status mhpanel-stuntls ;;
+            noizdns) service_status mhpanel-noizdns ;;
+            masterdnsvpn) service_status mhpanel-masterdnsvpn ;;
+            tor) service_status mhpanel-tor ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -3090,11 +3156,18 @@ case "${ACTION}" in
             slipstream) journalctl -u mhpanel-slipstream -n 100 --no-pager ;;
             mtproto) journalctl -u mhpanel-mtproto -n 100 --no-pager ;;
             pptp) journalctl -u mhpanel-pptp -n 100 --no-pager ;;
+            hysteria2) journalctl -u mhpanel-hysteria2 -n 100 --no-pager ;;
+            trojan) journalctl -u mhpanel-trojan -n 100 --no-pager ;;
+            naiveproxy) journalctl -u mhpanel-naiveproxy -n 100 --no-pager ;;
+            stuntls) journalctl -u mhpanel-stuntls -n 100 --no-pager ;;
+            noizdns) journalctl -u mhpanel-noizdns -n 100 --no-pager ;;
+            masterdnsvpn) journalctl -u mhpanel-masterdnsvpn -n 100 --no-pager ;;
+            tor) journalctl -u mhpanel-tor -n 100 --no-pager ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
     *)
-        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto} [port/ad-tag]"
+        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|amneziawg|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto|hysteria2|trojan|naiveproxy|stuntls|noizdns|masterdnsvpn|tor} [port/ad-tag]"
         exit 1
         ;;
 esac
