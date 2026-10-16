@@ -338,8 +338,8 @@ protocol_current_port() {
         http) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-http-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8080" ;;
         socks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-socks-proxy.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "1080" ;;
         shadowsocks) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/mhpanel-shadowsocks.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "8388" ;;
-        tuic) grep -oE '0\.0\.0\.0:[0-9]+' /etc/systemd/system/tuic-server.service 2>/dev/null | awk -F: '{print $2}' | tail -n1 || echo "7443" ;;
-        mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $3}' | tail -n1 || echo "4433" ;;
+        tuic) grep -oE '0\.0\.0\.0:[0-9]+' /etc/vpnpanel/tuic.json /etc/systemd/system/mhpanel-tuic.service 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' | tail -n1 || echo "7443" ;;
+        mtproto) grep -E '^PORT = ' /etc/vpnpanel/mtproto_config_*.py /etc/vpnpanel/mtproto_config.py 2>/dev/null | awk '{print $NF}' | tail -n1 || echo "4433" ;;
         pptp) echo "1723 (TCP)" ;;
         badvpn) echo "7300 (UDP)" ;;
         hysteria2) grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443" ;;

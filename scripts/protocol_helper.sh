@@ -1436,7 +1436,7 @@ EOF
 uninstall_tuic() {
     systemctl stop mhpanel-tuic || true
     systemctl disable mhpanel-tuic || true
-    local port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+    local port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || echo "7443")
     deny_port "${port}" "udp"
     rm -f /etc/systemd/system/mhpanel-tuic.service
     systemctl daemon-reload
@@ -1444,7 +1444,7 @@ uninstall_tuic() {
 
 set_port_tuic() {
     local port=$1
-    local old_port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+    local old_port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || echo "7443")
     [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ] && deny_port "${old_port}" "udp"
     sed -i -E "s/\"server\":\s*\"0\.0\.0\.0:[0-9]+\"/\"server\": \"0.0.0.0:${port}\"/g" /etc/vpnpanel/tuic.json
     allow_port "${port}" "udp"
@@ -2404,7 +2404,7 @@ print_status_report() {
             tuic)
                 if [ -f "/etc/vpnpanel/tuic.json" ] || [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/mhpanel-tuic.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+                    port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $NF}' | tr -d '"' || echo "7443")
                     if systemctl is-active mhpanel-tuic >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tuic" "$port")
