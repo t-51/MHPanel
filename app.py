@@ -1520,9 +1520,45 @@ def api_system_update_panel():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     try:
-        cmd = "cd /www/wwwroot/mhpanel && git pull origin main && ./venv/bin/pip install -r requirements.txt --quiet && systemctl restart mhpanel"
-        threading.Thread(target=lambda: subprocess.run(cmd, shell=True)).start()
-        return jsonify({"success": True, "message": "Update initiated. Panel will restart in a few moments."})
+        sh_script = """#!/usr/bin/env bash
+sleep 1
+cd /www/wwwroot/mhpanel || exit 1
+if [ ! -d .git ]; then
+    git init -b main 2>/dev/null || git init 2>/dev/null || true
+    git remote add origin https://github.com/t-51/MHPanel.git 2>/dev/null || git remote set-url origin https://github.com/t-51/MHPanel.git 2>/dev/null || true
+fi
+git remote set-url origin https://github.com/t-51/MHPanel.git 2>/dev/null || true
+if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null; then
+    git reset --hard origin/main 2>/dev/null || true
+fi
+
+chmod +x install.sh scripts/*.sh 2>/dev/null || true
+ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/mhpanel 2>/dev/null || true
+ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/hmpanel 2>/dev/null || true
+ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/kigapanel 2>/dev/null || true
+if [ -f /root/install.sh ]; then
+    cp /www/wwwroot/mhpanel/install.sh /root/install.sh 2>/dev/null || true
+fi
+
+if [ -x ./venv/bin/pip ] && [ -f requirements.txt ]; then
+    ./venv/bin/pip install -r requirements.txt --quiet 2>/dev/null || true
+fi
+
+systemctl daemon-reload
+systemctl restart mhpanel
+rm -f /tmp/mhpanel_web_update.sh
+"""
+        script_file = "/tmp/mhpanel_web_update.sh"
+        with open(script_file, "w") as f:
+            f.write(sh_script)
+        os.chmod(script_file, 0o755)
+
+        try:
+            subprocess.run(["systemd-run", "bash", script_file], check=True)
+        except Exception:
+            subprocess.Popen(["bash", script_file], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+        return jsonify({"success": True, "message": "فرآیند بروزرسانی با موفقیت آغاز شد. پنل ظرف چند ثانیه با آخرین تغییرات گیت‌هاب مجدداً راه‌اندازی می‌شود."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

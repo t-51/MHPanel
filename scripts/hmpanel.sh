@@ -424,6 +424,17 @@ install_panel_web_ui() {
     elif [ ! -f "${PANEL_DIR}/app.py" ]; then
         echo -e "${CYAN}    Fetching latest MH Panel source files from GitHub (${GITHUB_REPO})...${NC}"
         git clone "${GITHUB_REPO}" "${PANEL_DIR}" 2>/dev/null || true
+    else
+        echo -e "${CYAN}    Syncing and updating existing MH Panel files to latest GitHub version...${NC}"
+        cd "${PANEL_DIR}"
+        if [ ! -d .git ]; then
+            git init -b main 2>/dev/null || git init 2>/dev/null || true
+            git remote add origin "${GITHUB_REPO}" 2>/dev/null || git remote set-url origin "${GITHUB_REPO}" 2>/dev/null || true
+        fi
+        git remote set-url origin "${GITHUB_REPO}" 2>/dev/null || true
+        if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null; then
+            git reset --hard origin/main 2>/dev/null || true
+        fi
     fi
 
     if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ]; then
@@ -1252,14 +1263,70 @@ backup_restore() {
 
 update_panel_repo() {
     clear 2>/dev/null || true
-    echo -e "${YELLOW}>>> Checking and pulling latest updates from repository...${NC}"
-    if [ -d "${PANEL_DIR}/.git" ]; then
-        cd "${PANEL_DIR}" && git pull || true
+    echo -e "${CYAN}${BOLD}========================================================================${NC}"
+    echo -e "${CYAN}${BOLD}       MH PANEL - UPDATE WIZARD (بروزرسانی سورس و پنل از گیت‌هاب)      ${NC}"
+    echo -e "${CYAN}${BOLD}========================================================================${NC}\n"
+    echo -e "${YELLOW}>>> [1/4] Checking and syncing latest updates from GitHub (${GITHUB_REPO})...${NC}"
+    mkdir -p "${PANEL_DIR}"
+    cd "${PANEL_DIR}"
+
+    local pull_ok=false
+    if [ ! -d "${PANEL_DIR}/.git" ]; then
+        echo -e "${CYAN}    Initializing Git configuration in ${PANEL_DIR}...${NC}"
+        git init -b main 2>/dev/null || git init 2>/dev/null || true
+        git remote add origin "${GITHUB_REPO}" 2>/dev/null || git remote set-url origin "${GITHUB_REPO}" 2>/dev/null || true
     fi
+
+    git remote set-url origin "${GITHUB_REPO}" 2>/dev/null || true
+    if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null; then
+        echo -e "${CYAN}    Resetting and applying latest release files...${NC}"
+        git reset --hard origin/main 2>/dev/null && pull_ok=true
+    fi
+
+    if [ "$pull_ok" != "true" ]; then
+        echo -e "${YELLOW}    Git pull encountered a network issue. Falling back to direct GitHub raw sync...${NC}"
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh" -o "${PANEL_DIR}/install.sh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/app.py" -o "${PANEL_DIR}/app.py" 2>/dev/null || true
+        mkdir -p "${PANEL_DIR}/scripts" "${PANEL_DIR}/templates/partials"
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/protocol_helper.sh" -o "${PANEL_DIR}/scripts/protocol_helper.sh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/hmpanel.sh" -o "${PANEL_DIR}/scripts/hmpanel.sh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/kigapanel.sh" -o "${PANEL_DIR}/scripts/kigapanel.sh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/translations.html" -o "${PANEL_DIR}/templates/partials/translations.html" 2>/dev/null || true
+    fi
+
+    chmod +x "${PANEL_DIR}/install.sh" "${PANEL_DIR}/scripts/"*.sh 2>/dev/null || true
+
+    echo -e "${YELLOW}>>> [2/4] Updating global CLI shortcuts and local copies...${NC}"
+    ln -sf "${PANEL_DIR}/install.sh" /usr/local/bin/mhpanel
+    ln -sf "${PANEL_DIR}/install.sh" /usr/local/bin/hmpanel
+    ln -sf "${PANEL_DIR}/install.sh" /usr/local/bin/kigapanel
+    ln -sf "${PANEL_DIR}/install.sh" /usr/bin/mhpanel 2>/dev/null || true
+    ln -sf "${PANEL_DIR}/install.sh" /usr/bin/hmpanel 2>/dev/null || true
+    if [ -f "/root/install.sh" ]; then
+        cp "${PANEL_DIR}/install.sh" /root/install.sh 2>/dev/null || true
+    fi
+
+    echo -e "${YELLOW}>>> [3/4] Updating Python dependencies...${NC}"
+    if [ -x "${PANEL_DIR}/venv/bin/pip" ] && [ -f "${PANEL_DIR}/requirements.txt" ]; then
+        "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || true
+    fi
+
+    echo -e "${YELLOW}>>> [4/4] Reloading systemd and restarting MH Panel Web UI...${NC}"
     systemctl daemon-reload
     systemctl restart mhpanel 2>/dev/null || true
-    echo -e "${GREEN}✓ Update process completed.${NC}"
-    read -p "Press Enter to return to main menu..."
+
+    echo ""
+    echo -e "${GREEN}${BOLD}========================================================================${NC}"
+    echo -e "${GREEN}${BOLD} ✓ MH Panel has been updated to the latest version successfully!${NC}"
+    echo -e "${GREEN}${BOLD} ✓ پنل با موفقیت به آخرین نسخه گیت‌هاب ارتقا یافت.${NC}"
+    echo -e "${GREEN}${BOLD}========================================================================${NC}\n"
+    read -p "Press Enter to reload menu and apply changes..." dummy
+
+    # Relaunch process image with the newly updated script
+    exec bash "${PANEL_DIR}/install.sh"
 }
 
 uninstall_mhpanel() {
