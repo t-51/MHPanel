@@ -40,6 +40,20 @@ get_setting() {
     fi
 }
 
+get_public_ipv4() {
+    local ip=""
+    for url in "https://api.ipify.org" "https://ipv4.icanhazip.com" "https://ifconfig.me/ip" "https://checkip.amazonaws.com"; do
+        ip=$(curl -fsSL --max-time 2 "$url" 2>/dev/null | tr -d '[:space:]')
+        if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+    ip=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K[\d.]+' | head -n1)
+    if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+    hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1"
+}
+
 # Helper: UFW Port Management
 allow_port() {
     local port=$1
@@ -477,11 +491,13 @@ install_ikev2() {
     apt-get update -y && apt-get install -y strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins strongswan-swanctl
     generate_certs
     
-    # Symlink Certs for strongSwan swanctl
+    # Copy Certs for strongSwan swanctl (avoid symlinks due to AppArmor policy)
     mkdir -p /etc/swanctl/x509ca /etc/swanctl/x509 /etc/swanctl/private /etc/swanctl/conf.d
-    ln -sf "${CA_CERT}" /etc/swanctl/x509ca/ca.crt
-    ln -sf "${SERVER_CERT}" /etc/swanctl/x509/vpn-server.crt
-    ln -sf "${SERVER_KEY}" /etc/swanctl/private/vpn-server.key
+    cp -f "${CA_CERT}" /etc/swanctl/x509ca/ca.crt
+    cp -f "${SERVER_CERT}" /etc/swanctl/x509/vpn-server.crt
+    cp -f "${SERVER_KEY}" /etc/swanctl/private/vpn-server.key
+    chmod 644 /etc/swanctl/x509ca/ca.crt /etc/swanctl/x509/vpn-server.crt
+    chmod 600 /etc/swanctl/private/vpn-server.key
     
     # Create IKEv2 Config
     cat > /etc/swanctl/conf.d/ikev2.conf <<EOF
@@ -935,9 +951,12 @@ install_l2tp() {
     local psk=$(get_setting "l2tp_psk" "VpnSecret123")
     local dns1=$(get_setting "l2tp_dns1" "8.8.8.8")
     local dns2=$(get_setting "l2tp_dns2" "1.1.1.1")
-    local auth_mode=$(get_setting "l2tp_auth_mode" "mschapv2")
-
-    apt-get update -y && apt-get install -y xl2tpd ppp strongswan libpam-radius-auth iproute2 iptables-persistent linux-modules-extra-$(uname -r) || true
+    DEBIAN_FRONTEND=noninteractive apt-get update -y >/dev/null 2>&1
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        -o Dpkg::Options::="--force-confdef" \
+        -o Dpkg::Options::="--force-confold" \
+        xl2tpd ppp strongswan libpam-radius-auth iproute2 iptables-persistent >/dev/null 2>&1 || true
+    apt-get install -y linux-modules-extra-$(uname -r) >/dev/null 2>&1 || true
     modprobe ppp_mppe || true
     modprobe l2tp_core || true
     modprobe l2tp_netlink || true
@@ -1344,26 +1363,34 @@ set_port_shadowsocks() {
 install_tuic() {
     local port=${1:-7443}
     mkdir -p /etc/vpnpanel
-    local config="/etc/vpnpanel/tuic.toml"
+    local config="/etc/vpnpanel/tuic.json"
+    generate_certs
+    local cert="/etc/vpn-ca/vpn-server.crt"
+    local key="/etc/vpn-ca/vpn-server.key"
+    [ -f "$cert" ] || cert="/etc/vpnpanel/certs/server.crt"
+    [ -f "$key" ] || key="/etc/vpnpanel/certs/server.key"
+    [ -f "$cert" ] || cert="/etc/vpnpanel/server.crt"
+    [ -f "$key" ] || key="/etc/vpnpanel/server.key"
+
     if [ ! -f "${config}" ]; then
         local uuid=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || openssl rand -hex 16)
-        local cert="/etc/vpnpanel/certs/server.crt"
-        local key="/etc/vpnpanel/certs/server.key"
-        [ -f "$cert" ] || cert="/etc/vpnpanel/server.crt"
-        [ -f "$key" ] || key="/etc/vpnpanel/server.key"
         cat > "${config}" <<EOF
-server = "0.0.0.0:${port}"
-users = { "${uuid}" = "tuicpassword" }
-certificate = "${cert}"
-private_key = "${key}"
-congestion_control = "bbr"
-alpn = [ "h3" ]
-zero_rtt_handshake = true
-log_level = "info"
+{
+  "server": "0.0.0.0:${port}",
+  "users": {
+    "${uuid}": "tuicpassword"
+  },
+  "certificate": "${cert}",
+  "private_key": "${key}",
+  "congestion_control": "bbr",
+  "alpn": [ "h3" ],
+  "zero_rtt_handshake": true,
+  "log_level": "info"
+}
 EOF
         chmod 600 "${config}"
     else
-        sed -i -E "s/server = \"0\.0\.0\.0:[0-9]+\"/server = \"0.0.0.0:${port}\"/g" "${config}"
+        sed -i -E "s/\"server\":\s*\"0\.0\.0\.0:[0-9]+\"/\"server\": \"0.0.0.0:${port}\"/g" "${config}"
     fi
 
     if [ ! -x /usr/local/bin/tuic-server ]; then
@@ -1392,7 +1419,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/tuic-server -c /etc/vpnpanel/tuic.toml
+ExecStart=/usr/local/bin/tuic-server -c /etc/vpnpanel/tuic.json
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -1409,7 +1436,7 @@ EOF
 uninstall_tuic() {
     systemctl stop mhpanel-tuic || true
     systemctl disable mhpanel-tuic || true
-    local port=$(grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+    local port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
     deny_port "${port}" "udp"
     rm -f /etc/systemd/system/mhpanel-tuic.service
     systemctl daemon-reload
@@ -1417,9 +1444,9 @@ uninstall_tuic() {
 
 set_port_tuic() {
     local port=$1
-    local old_port=$(grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+    local old_port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
     [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ] && deny_port "${old_port}" "udp"
-    sed -i -E "s/server = \"0\.0\.0\.0:[0-9]+\"/server = \"0.0.0.0:${port}\"/g" /etc/vpnpanel/tuic.toml
+    sed -i -E "s/\"server\":\s*\"0\.0\.0\.0:[0-9]+\"/\"server\": \"0.0.0.0:${port}\"/g" /etc/vpnpanel/tuic.json
     allow_port "${port}" "udp"
     systemctl daemon-reload
     systemctl restart mhpanel-tuic
@@ -1431,10 +1458,27 @@ install_mtproto() {
     local ad_tag=${2:-}
     local config="/etc/vpnpanel/mtproto_config_${port}.py"
     ensure_proxy_python_tools
-    ${PANEL_PYTHON} -m pip install mtprotoproxy
-    # Patch Python 3.12 compatibility issue in mtprotoproxy library
-    local mtproto_py=$(${PANEL_PYTHON} -c "import site; print(site.getsitepackages()[0])" 2>/dev/null || echo "")/mtprotoproxy.py
-    [ -f "$mtproto_py" ] && sed -i 's/reuse_port=reuse_port, loop=loop/reuse_port=reuse_port/g' "$mtproto_py"
+    ${PANEL_PYTHON} -m pip install mtprotoproxy --quiet 2>/dev/null || true
+
+    # Patch Python 3.12/3.14 compatibility in mtprotoproxy script
+    for mtproto_py in "${PANEL_VENV}/bin/mtprotoproxy.py" "/usr/local/bin/mtprotoproxy.py" "$(${PANEL_PYTHON} -c "import site; print(site.getsitepackages()[0])" 2>/dev/null || echo "")/mtprotoproxy.py"; do
+        if [ -f "$mtproto_py" ]; then
+            python3 -c "
+with open('$mtproto_py', 'r') as f:
+    c = f.read()
+c = c.replace('loop = asyncio.get_event_loop()', '''try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)''')
+c = c.replace('reuse_port=reuse_port, loop=loop', 'reuse_port=reuse_port')
+c = c.replace('loop=loop', '')
+with open('$mtproto_py', 'w') as f:
+    f.write(c)
+" 2>/dev/null || true
+        fi
+    done
+
     mkdir -p /etc/vpnpanel
     local secret=$(openssl rand -hex 16)
     cat > "${config}" <<EOF
@@ -1446,7 +1490,27 @@ MODES = {"classic": True, "secure": True, "tls": True}
 AD_TAG = "${ad_tag}"
 EOF
     chmod 600 "${config}"
-    
+
+    local mtproto_script="${PANEL_VENV}/bin/mtprotoproxy.py"
+    [ -f "$mtproto_script" ] || mtproto_script="${PANEL_VENV}/bin/mtprotoproxy"
+
+    cat > /etc/systemd/system/mhpanel-mtproto@.service <<EOF
+[Unit]
+Description=Telegram MTProto Proxy (Port %I)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=${PANEL_PYTHON} ${mtproto_script} /etc/vpnpanel/mtproto_config_%i.py
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "tcp"
     systemctl daemon-reload
     systemctl enable mhpanel-mtproto@${port}
@@ -2192,7 +2256,7 @@ print_status_report() {
     
     echo -e "Web Panel Dashboard:"
     if [ "$panel_installed" = "Yes" ]; then
-        local ip=$(curl -s --max-time 3 ifconfig.me || echo "YOUR_SERVER_IP")
+        local ip=$(get_public_ipv4)
         echo -e "  - Installed: ${GREEN}Yes${NC}"
         echo -e "  - Status:    ${GREEN}${panel_active}${NC}"
         echo -e "  - Address:   ${CYAN}https://${ip}:${panel_port}/${NC}"
@@ -2338,9 +2402,9 @@ print_status_report() {
                 fi
                 ;;
             tuic)
-                if [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/mhpanel-tuic.service" ]; then
+                if [ -f "/etc/vpnpanel/tuic.json" ] || [ -f "/etc/vpnpanel/tuic.toml" ] || [ -f "/etc/systemd/system/mhpanel-tuic.service" ]; then
                     inst="Yes"
-                    port=$(grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
+                    port=$(grep -oE '"server":\s*"[^"]*:[0-9]+"' /etc/vpnpanel/tuic.json 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || grep -oE 'server = "[^"]*:[0-9]+"' /etc/vpnpanel/tuic.toml 2>/dev/null | awk -F: '{print $2}' | tr -d '"' || echo "7443")
                     if systemctl is-active mhpanel-tuic >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tuic" "$port")

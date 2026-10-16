@@ -96,9 +96,17 @@ EOF
 
 # Network IP Detection
 get_public_ipv4() {
-    curl -s --max-time 2 https://api.ipify.org 2>/dev/null || \
-    curl -s --max-time 2 https://ifconfig.me 2>/dev/null || \
-    ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K[\d.]+' || echo "127.0.0.1"
+    local ip=""
+    for url in "https://api.ipify.org" "https://ipv4.icanhazip.com" "https://ifconfig.me/ip" "https://checkip.amazonaws.com"; do
+        ip=$(curl -fsSL --max-time 2 "$url" 2>/dev/null | tr -d '[:space:]')
+        if [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "$ip"
+            return 0
+        fi
+    done
+    ip=$(ip -4 route get 1.1.1.1 2>/dev/null | grep -oP 'src \K[\d.]+' | head -n1)
+    if [ -n "$ip" ]; then echo "$ip"; return 0; fi
+    hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1"
 }
 
 get_public_ipv6() {
@@ -763,11 +771,15 @@ install_protocol_action() {
     port="$clean_port"
 
     echo -e "    ${CYAN}Installing & configuring $(protocol_label "$proto") (Port: ${port})...${NC}"
-    if "$HELPER" install "$proto" "$port" 2>/dev/null; then
+    mkdir -p /var/log/mhpanel
+    local log_file="/var/log/mhpanel/install_${proto}.log"
+    echo "=== Installation of ${proto} started at $(date) ===" > "$log_file"
+    if "$HELPER" install "$proto" "$port" >> "$log_file" 2>&1; then
         echo -e "    ${GREEN}✓ $(protocol_label "$proto") successfully installed and activated on port ${port}.${NC}"
     else
-        echo -e "    ${YELLOW}[!] Setup for $(protocol_label "$proto") completed (verifying service state...).${NC}"
+        echo -e "    ${YELLOW}[!] Setup for $(protocol_label "$proto") completed (Log: ${log_file}).${NC}"
     fi
+    cat "$log_file" >> /var/log/mhpanel_install.log 2>/dev/null || true
 }
 
 # ==============================================================================
@@ -1034,7 +1046,8 @@ menu_vpn_protocols() {
             echo -e "  [2] Uninstall Protocol Completely"
             echo -e "  [3] Change Protocol Port"
             echo -e "  [4] Restart Service"
-            echo -e "  [5] View Live Logs (journalctl)"
+            echo -e "  [5] View Live Logs (journalctl -u service)"
+            echo -e "  [6] View Installation & Setup Log (/var/log/mhpanel/...)"
             echo -e "  [0] Cancel"
             read -p "Select action: " act
 
@@ -1064,19 +1077,54 @@ menu_vpn_protocols() {
                     ;;
                 4)
                     local svc="openvpn@server"
+                    if [ "$sel_proto" = "ssh" ]; then svc="mhpanel-ssh"; fi
                     if [ "$sel_proto" = "wireguard" ]; then svc="wg-quick@wg0"; fi
                     if [ "$sel_proto" = "amneziawg" ]; then svc="awg-quick@awg0"; fi
                     if [ "$sel_proto" = "ocserv" ]; then svc="ocserv"; fi
+                    if [ "$sel_proto" = "ikev2" ]; then svc="strongswan"; fi
                     if [ "$sel_proto" = "sstp" ]; then svc="sstpd"; fi
                     if [ "$sel_proto" = "l2tp" ]; then svc="xl2tpd"; fi
-                    if [ "$sel_proto" = "tuic" ]; then svc="tuic-server"; fi
+                    if [ "$sel_proto" = "shadowsocks" ]; then svc="mhpanel-shadowsocks"; fi
+                    if [ "$sel_proto" = "tuic" ]; then svc="mhpanel-tuic"; fi
                     if [ "$sel_proto" = "badvpn" ]; then svc="badvpn"; fi
+                    if [ "$sel_proto" = "http" ]; then svc="mhpanel-http-proxy"; fi
+                    if [ "$sel_proto" = "socks" ]; then svc="mhpanel-socks-proxy"; fi
+                    if [ "$sel_proto" = "mtproto" ]; then
+                        local p="$(protocol_current_port "$sel_proto")"
+                        svc="mhpanel-mtproto@${p}"
+                    fi
                     systemctl restart "$svc" 2>/dev/null || true
-                    echo -e "${GREEN}Service restarted.${NC}"
+                    echo -e "${GREEN}Service ${svc} restarted.${NC}"
                     read -p "Press Enter to continue..."
                     ;;
                 5)
-                    journalctl -n 40 --no-pager 2>/dev/null || true
+                    local svc="openvpn@server"
+                    if [ "$sel_proto" = "ssh" ]; then svc="mhpanel-ssh"; fi
+                    if [ "$sel_proto" = "wireguard" ]; then svc="wg-quick@wg0"; fi
+                    if [ "$sel_proto" = "amneziawg" ]; then svc="awg-quick@awg0"; fi
+                    if [ "$sel_proto" = "ocserv" ]; then svc="ocserv"; fi
+                    if [ "$sel_proto" = "ikev2" ]; then svc="strongswan"; fi
+                    if [ "$sel_proto" = "sstp" ]; then svc="sstpd"; fi
+                    if [ "$sel_proto" = "l2tp" ]; then svc="xl2tpd"; fi
+                    if [ "$sel_proto" = "shadowsocks" ]; then svc="mhpanel-shadowsocks"; fi
+                    if [ "$sel_proto" = "tuic" ]; then svc="mhpanel-tuic"; fi
+                    if [ "$sel_proto" = "badvpn" ]; then svc="badvpn"; fi
+                    if [ "$sel_proto" = "http" ]; then svc="mhpanel-http-proxy"; fi
+                    if [ "$sel_proto" = "socks" ]; then svc="mhpanel-socks-proxy"; fi
+                    if [ "$sel_proto" = "mtproto" ]; then
+                        local p="$(protocol_current_port "$sel_proto")"
+                        svc="mhpanel-mtproto@${p}"
+                    fi
+                    journalctl -u "$svc" -n 50 --no-pager 2>/dev/null || journalctl -n 50 --no-pager 2>/dev/null || true
+                    read -p "Press Enter to continue..."
+                    ;;
+                6)
+                    echo -e "\n${YELLOW}--- Installation Log for ${lbl} ---${NC}"
+                    if [ -f "/var/log/mhpanel/install_${sel_proto}.log" ]; then
+                        tail -n 60 "/var/log/mhpanel/install_${sel_proto}.log"
+                    else
+                        echo "No installation log file found at /var/log/mhpanel/install_${sel_proto}.log"
+                    fi
                     read -p "Press Enter to continue..."
                     ;;
             esac

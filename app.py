@@ -2546,7 +2546,8 @@ def api_protocols_install():
     success, stdout, stderr = run_helper("install", protocol, port, ad_tag if protocol == "mtproto" else "")
     if success:
         return jsonify({"success": True, "output": stdout})
-    return jsonify({"success": False, "error": stderr}), 500
+    err_msg = (stderr.strip() + "\n" + stdout.strip()).strip() or "Installation failed"
+    return jsonify({"success": False, "error": err_msg}), 500
 
 @app.route("/api/protocols/uninstall", methods=["POST"])
 def api_protocols_uninstall():
@@ -2557,7 +2558,8 @@ def api_protocols_uninstall():
     success, stdout, stderr = run_helper("uninstall", protocol)
     if success:
         return jsonify({"success": True})
-    return jsonify({"success": False, "error": stderr}), 500
+    err_msg = (stderr.strip() + "\n" + stdout.strip()).strip() or "Uninstall failed"
+    return jsonify({"success": False, "error": err_msg}), 500
 
 @app.route("/api/protocols/set-port", methods=["POST"])
 def api_protocols_set_port():
@@ -2736,6 +2738,20 @@ def api_protocols_logs(protocol):
     if success:
         return jsonify({"logs": stdout})
     return jsonify({"error": stderr}), 500
+
+@app.route("/api/protocols/install_log/<protocol>", methods=["GET"])
+def api_protocols_install_log(protocol):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    log_file = f"/var/log/mhpanel/install_{protocol}.log"
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, "r") as f:
+                lines = f.readlines()
+                return jsonify({"success": True, "logs": "".join(lines[-150:])})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)}), 500
+    return jsonify({"success": True, "logs": "No specific installation log recorded for this protocol."})
 
 @app.route("/api/protocols/advanced_logs/<protocol>", methods=["GET"])
 def api_protocols_advanced_logs(protocol):

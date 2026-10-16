@@ -29,11 +29,36 @@ apt-get install -y "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools 
 
 # Ensure kernel module is loaded
 if ! lsmod | grep -q '^amneziawg '; then
-    modprobe amneziawg || {
+    if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi "enabled"; then
+        echo "[!] Warning: Secure Boot is enabled on this system. Third-party DKMS kernel modules cannot be inserted without MOK enrollment."
+        echo "[!] Please use standard WireGuard (which is signed by the kernel) or disable Secure Boot."
+        exit 0
+    fi
+
+    # Patch compat.h if on Linux kernel 7.0+
+    if [ -f /usr/src/amneziawg-1.0.0/compat/compat.h ]; then
+        python3 -c "
+with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'r') as f:
+    c = f.read()
+if 'KERNEL_VERSION(7, 0, 0)' not in c:
+    c = c.replace('#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 5)\n#include <net/udp_tunnel.h>\n#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)\n#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)\n#endif', '''#include <net/udp_tunnel.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)
+#endif
+#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)''')
+    with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'w') as f:
+        f.write(c)
+" 2>/dev/null || true
+    fi
+
+    modprobe amneziawg 2>/dev/null || {
         echo "[!] Rebuilding DKMS module for kernel ${KERNEL_VER}..."
-        dkms autoinstall -k "${KERNEL_VER}"
-        depmod -a
-        modprobe amneziawg
+        dkms autoinstall -k "${KERNEL_VER}" 2>/dev/null || true
+        depmod -a 2>/dev/null || true
+        modprobe amneziawg 2>/dev/null || {
+            echo "[!] Could not insert amneziawg kernel module. Skipping service activation."
+            exit 0
+        }
     }
 fi
 
