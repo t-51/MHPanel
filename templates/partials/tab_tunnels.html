@@ -276,44 +276,85 @@
 </div>
 <!-- SUB-PANE 4: DNS Tunnels (SlowDNS & Anti-Filter) -->
 <div class="tun-subpane" id="tun-pane-dns" style="display:none; flex-direction:column; gap:20px;">
-<div class="glass-card" style="padding: 22px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-<div>
-<h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="globe" style="color:#14b8a6; width:20px; height:20px;"></i>
-<span data-i18n="tunnels_dedicated_dns_tunnels_bypassing_sever">تونل‌های اختصاصی DNS و عبور از فیلترینگ شدید (DNS Tunnels)</span>
-</h3>
-<p data-i18n="tunnels_tunneling_server_traffic_basis_dns" style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">
-                            تونل‌سازی ترافیک سرور در بستر پروتکل DNS (SlowDNS / DNSTT). این پروتکل حتی در زمان قطعی کامل اینترنت بین‌الملل نیز پکت‌ها را از مسیر پورت 53 UDP عبور می‌دهد.
-                        </p>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="switchTab('dns-tunnels')" type="button">
-<i data-lucide="external-link" style="width:14px; height:14px;"></i> <span data-i18n="tunnels_complete_dns_management_comprehensive">صفحه جامع مدیریت کامل DNS</span>
-</button>
-</div>
-</div>
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
-<div style="background:rgba(20,184,166,0.06); padding:14px; border-radius:10px; border:1px solid rgba(20,184,166,0.2);">
-<div data-i18n="tunnels_dnstt_protocol_slowdns" style="font-size:11px; color:#0d9488; font-weight:700;">پروتکل DNSTT (SlowDNS)</div>
-<div data-i18n="tunnels_noise_protocol" style="font-size:13px; font-weight:700; margin-top:4px;">رمزنگاری Noise Protocol</div>
-<div data-i18n="tunnels_default_port_5300_udp" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">پورت پیش‌فرض: 5300 UDP</div>
-</div>
-<div style="background:rgba(99,102,241,0.06); padding:14px; border-radius:10px; border:1px solid rgba(99,102,241,0.2);">
-<div data-i18n="tunnels_vaydns" style="font-size:11px; color:#4f46e5; font-weight:700;">پروتکل VayDNS</div>
-<div data-i18n="tunnels_transmission_kcp_platform" style="font-size:13px; font-weight:700; margin-top:4px;">انتقال بر بستر KCP</div>
-<div data-i18n="tunnels_suitable_disturbed_networks" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">مناسب شبکه‌های پر اختلال</div>
-</div>
-<div style="background:rgba(14,165,233,0.06); padding:14px; border-radius:10px; border:1px solid rgba(14,165,233,0.2);">
-<div data-i18n="tunnels_slipstream_protocol" style="font-size:11px; color:#0284c7; font-weight:700;">پروتکل Slipstream</div>
-<div data-i18n="tunnels_quic" style="font-size:13px; font-weight:700; margin-top:4px;">کپسوله‌سازی در کوئری QUIC</div>
-<div data-i18n="tunnels_high_speed_flexibility" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">سرعت و انعطاف بالا</div>
-</div>
-</div>
-<div data-i18n-html="elem_tab_tunnels_71" style="background:rgba(255,255,255,0.02); padding:14px 16px; border-radius:10px; border:1px solid var(--border-color); font-size:12px; line-height:1.7;">
-<strong data-i18n="tunnels_how_dns_tunnel_works">نحوه کارکرد تونل DNS:</strong> یک رکورد NS اختصاصی (مثلاً <code>t.example.com</code>) به آی‌پی این سرور اشاره می‌کند. کلاینت داده‌های خود را داخل ساب‌دامین‌های تصادفی کوئری‌های DNS استاندارد به سرور می‌فرستد و پاسخ‌ها در قالب TXT Record دریافت می‌شوند؛ در نتیجه فایروال هیچ اثری از ارتباط VPN یا پروکسی مشاهده نمی‌کند.
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(20, 184, 166, 0.12); color:#0d9488; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="globe" style="width:20px; height:20px;"></i>
                 </div>
-</div>
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px;" data-i18n="tunnels_dedicated_dns_tunnels_bypassing_sever">
+                        تونل‌های اختصاصی DNS و عبور از فیلترینگ شدید (DNS Tunnels / SlowDNS)
+                    </h3>
+                    <p style="font-size:12.5px; color:var(--text-muted); margin-top:3px;" data-i18n="tunnels_tunneling_server_traffic_basis_dns">
+                        تونل‌سازی ترافیک سرور بر بستر پروتکل DNS (DNSTT). پکت‌ها حتی در زمان قطعی کامل اینترنت بین‌الملل نیز از بستر DNS و پورت 53 UDP یا DoH عبور می‌کنند.
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openCreateDnsTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                    <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+                    <span data-i18n="tunnels_create_dns_tunnel_btn">ساخت تونل DNS جدید (SlowDNS)</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTunnels(true)" style="padding: 8px 12px;">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- DNS Protocol Info Cards -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+            <div style="background:rgba(20,184,166,0.06); padding:14px; border-radius:10px; border:1px solid rgba(20,184,166,0.2);">
+                <div style="font-size:11px; color:#0d9488; font-weight:700;" data-i18n="tunnels_dnstt_protocol_slowdns">پروتکل DNSTT (SlowDNS)</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;" data-i18n="tunnels_noise_protocol">رمزنگاری Noise Curve25519</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">پورت پیش‌فرض: 53 UDP / 5300</div>
+            </div>
+            <div style="background:rgba(99,102,241,0.06); padding:14px; border-radius:10px; border:1px solid rgba(99,102,241,0.2);">
+                <div style="font-size:11px; color:#4f46e5; font-weight:700;">بستر ارتباطی (Transport)</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;">DoH / DoT / Direct UDP 53</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">عبور از فایروال ملی و DPI</div>
+            </div>
+            <div style="background:rgba(14,165,233,0.06); padding:14px; border-radius:10px; border:1px solid rgba(14,165,233,0.2);">
+                <div style="font-size:11px; color:#0284c7; font-weight:700;">پشتیبانی IPv4 و IPv6</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;">Dual-Stack DNS Queries</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">بدون افشای آی‌پی واقعی سرور</div>
+            </div>
+        </div>
+
+        <!-- DNS Tunnels Table -->
+        <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px; margin-bottom:18px;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                <thead>
+                    <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
+                        <th style="padding: 12px 14px; width: 60px; text-align:center;">وضعیت</th>
+                        <th style="padding: 12px 14px;">نام و نقش تونل</th>
+                        <th style="padding: 12px 14px;">دامنه اختصاصی NS</th>
+                        <th style="padding: 12px 14px;">کلید عمومی Noise</th>
+                        <th style="padding: 12px 14px;">پورت محلی</th>
+                        <th style="padding: 12px 14px;">مقصد هدایت / ریزالور</th>
+                        <th style="padding: 12px 14px; text-align:left;">عملیات و اسکریپت</th>
+                    </tr>
+                </thead>
+                <tbody id="dns-tunnels-table-body">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                            در حال دریافت لیست تونل‌های DNS...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- How it works guide -->
+        <div style="background:rgba(255,255,255,0.02); padding:16px 18px; border-radius:12px; border:1px solid var(--border-color); font-size:12px; line-height:1.7;">
+            <strong style="color:var(--text-main); font-size:12.5px;">📋 راهنمای تنظیم رکورد DNS در کلودفلر یا پنل دامنه:</strong>
+            <div style="margin-top:6px; color:var(--text-muted);">
+                برای اتصال پایدار، دو رکورد زیر را در دامنه خود ایجاد کنید:<br>
+                1. رکورد <code style="color:#0d9488;">A</code> با نام <code style="color:#0d9488;">ns1.yourdomain.com</code> اشاره به آی‌پی این سرور (<strong id="dns-guide-server-ip">212.227.143.16</strong>). (پروکسی کلودفلر را حتماً خاکستری/خاموش کنید).<br>
+                2. رکورد <code style="color:#0d9488;">NS</code> با نام مثلاً <code style="color:#0d9488;">t.yourdomain.com</code> اشاره به <code style="color:#0d9488;">ns1.yourdomain.com</code>.
+            </div>
+        </div>
+    </div>
 </div>
 <!-- ========================================================================= -->
 <!-- SUB-TAB 5: TUNNEL COMPATIBILITY & CONNECTIVITY TESTER (REQUIREMENT 2) -->

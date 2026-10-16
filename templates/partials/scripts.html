@@ -72,7 +72,8 @@
     function toggleMobileSidebar(open) {
         const sidebar = document.getElementById("app-sidebar");
         const backdrop = document.getElementById("sidebar-backdrop");
-        if (open) {
+        const shouldOpen = (open !== undefined) ? open : !sidebar?.classList.contains("sidebar-open");
+        if (shouldOpen) {
             sidebar?.classList.add("sidebar-open");
             backdrop?.classList.add("active");
             document.body.classList.add("sidebar-is-open");
@@ -5372,6 +5373,16 @@
                 }
             }
         }
+
+        // Update active mobile bottom nav item
+        const mobNavItems = document.querySelectorAll(".mob-nav-item");
+        mobNavItems.forEach(item => {
+            if (item.dataset.tab === tabId) {
+                item.classList.add("active");
+            } else {
+                item.classList.remove("active");
+            }
+        });
 
         // Save active tab in localStorage
         localStorage.setItem("active_tab", tabId);
@@ -11643,6 +11654,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }, 300);
         } else if (deployType === "dns") {
             switchTunnelSubTab("dns");
+            openCreateDnsTunnelModal();
         } else {
             switchTunnelSubTab("mikrotik");
             openCreateTunnelModal();
@@ -11854,6 +11866,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 if (pillAdv) pillAdv.innerText = data.adv_total_count ?? 0;
                 const pillRelays = document.getElementById("pill-relays-count");
                 if (pillRelays) pillRelays.innerText = (data.relays || []).length;
+                const pillDns = document.getElementById("pill-dns-tunnels-count");
+                if (pillDns) pillDns.innerText = data.dns_total_count ?? (data.dns_tunnels || []).length;
+
+                const dnsGuideSrvIp = document.getElementById("dns-guide-server-ip");
+                if (dnsGuideSrvIp && data.server_ip) dnsGuideSrvIp.innerText = data.server_ip;
 
                 // Server Public IP & IPv6
                 const srvIpEl = document.getElementById("stat-server-public-ip");
@@ -11878,6 +11895,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 renderTunnelsTable(data.tunnels || [], data.server_ip);
                 renderAdvTunnelsTable(data.adv_tunnels || []);
                 renderRelaysTable(data.relays || []);
+                renderDnsTunnelsTable(data.dns_tunnels || []);
                 updateRelayTunnelDropdown(data.tunnels || []);
 
                 if (showToastMsg) showToast("وضعیت اینترفیس‌ها و ترافیک تونل‌ها بروزرسانی شد.", "success");
@@ -13066,6 +13084,382 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    // ----------------- DNS Tunnels (SlowDNS / DNSTT) JS -----------------
+
+    function renderDnsTunnelsTable(dnsTunnels) {
+        const tbody = document.getElementById("dns-tunnels-table-body");
+        if (!tbody) return;
+
+        if (!dnsTunnels || dnsTunnels.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
+                            <i data-lucide="globe" style="width:36px; height:36px; color:#14b8a6; opacity:0.8;"></i>
+                            <span style="font-size:14px; font-weight:600; color:#0f766e;">هنوز هیچ تونل DNS پیکربندی نشده است.</span>
+                            <span style="font-size:12px; color:var(--text-muted);">برای راه‌اندازی تونل SlowDNS (DNSTT) و عبور از فیلترینگ بر بستر DNS، روی دکمه «ساخت تونل DNS جدید» کلیک فرمایید.</span>
+                        </div>
+                    </td>
+                </tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        let html = "";
+        dnsTunnels.forEach(tun => {
+            const flag = tun.status_flag || (tun.enabled ? "R" : "X");
+            let flagBadge = "";
+            if (flag === "R") {
+                flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#dcfce7; color:#15803d; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Running / فعال و در حال سرویس‌دهی">R</span>`;
+            } else if (flag === "X") {
+                flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#f1f5f9; color:#94a3b8; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Disabled / غیرفعال">X</span>`;
+            } else {
+                flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#fef3c7; color:#b45309; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Inactive / خاموش">I</span>`;
+            }
+
+            const isServer = (tun.role || "server") === "server";
+            const roleBadge = isServer 
+                ? `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(20,184,166,0.12); color:#0d9488; font-weight:700;"><i data-lucide="server" style="width:11px; height:11px;"></i> سرور خارج</span>`
+                : `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(14,165,233,0.12); color:#0284c7; font-weight:700;"><i data-lucide="laptop" style="width:11px; height:11px;"></i> کلاینت ایران</span>`;
+
+            const pubkeyShort = tun.pubkey ? (tun.pubkey.length > 20 ? `${tun.pubkey.slice(0, 10)}...${tun.pubkey.slice(-8)}` : tun.pubkey) : "--";
+
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-glow); transition: background 0.15s;">
+                    <td style="padding: 12px 14px; text-align:center;">${flagBadge}</td>
+                    <td style="padding: 12px 14px;">
+                        <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono';">${escapeHtml(tun.name)}</div>
+                        <div style="margin-top: 3px;">${roleBadge}</div>
+                    </td>
+                    <td style="padding: 12px 14px;">
+                        <span style="font-family:'JetBrains Mono'; font-weight:600; color:#0d9488; font-size:12px;">${escapeHtml(tun.domain || '--')}</span>
+                    </td>
+                    <td style="padding: 12px 14px;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <code style="font-family:'JetBrains Mono'; font-size:11px; background:var(--bg-base); padding:3px 7px; border-radius:6px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border:1px solid var(--border-glow);" title="${escapeHtml(tun.pubkey || '')}">${escapeHtml(pubkeyShort)}</code>
+                            ${tun.pubkey ? `<button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${escapeHtml(tun.pubkey)}'); showToast('کلید عمومی کپی شد', 'success');" title="کپی کلید عمومی" style="padding:3px 7px; font-size:11px;"><i data-lucide="copy" style="width:12px; height:12px;"></i></button>` : ''}
+                        </div>
+                    </td>
+                    <td style="padding: 12px 14px;">
+                        <code style="font-family:'JetBrains Mono'; font-weight:700; color:var(--text-main); font-size:12.5px;">:${tun.listen_port || 5300}</code>
+                        <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">${isServer ? 'UDP 53/5300' : 'Local Listen'}</div>
+                    </td>
+                    <td style="padding: 12px 14px;">
+                        ${isServer 
+                            ? `<span style="font-family:'JetBrains Mono'; font-size:12px; color:#475569;">➜ ${escapeHtml(tun.target_addr || '127.0.0.1:443')}</span>`
+                            : `<span style="font-family:'JetBrains Mono'; font-size:12px; color:#0369a1;">➜ ${escapeHtml(tun.resolver || '1.1.1.1')}</span>`}
+                    </td>
+                    <td style="padding: 12px 14px; text-align:left;">
+                        <div style="display: inline-flex; gap: 6px; align-items: center;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openDnsTunnelScriptModal('${tun.id}')" title="مشاهده اسکریپت و راهنمای کلاینت" style="padding: 5px 9px; font-size:11px; display:inline-flex; align-items:center; gap:4px; color:#0d9488;">
+                                <i data-lucide="terminal" style="width: 13px; height: 13px;"></i> <span>اسکریپت</span>
+                            </button>
+                            <button type="button" class="btn ${tun.enabled ? 'btn-success' : 'btn-secondary'} btn-sm" onclick="toggleDnsTunnel('${tun.id}')" title="${tun.enabled ? 'غیرفعال‌سازی موقت' : 'فعال‌سازی سرویس'}" style="padding: 5px 8px;">
+                                <i data-lucide="${tun.enabled ? 'power' : 'play'}" style="width: 13px; height: 13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openEditDnsTunnelModal('${tun.id}')" title="ویرایش تونل DNS" style="padding: 5px 8px;">
+                                <i data-lucide="edit-2" style="width: 13px; height: 13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteDnsTunnel('${tun.id}', '${escapeHtml(tun.name)}')" title="حذف تونل DNS" style="padding: 5px 8px;">
+                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openCreateDnsTunnelModal() {
+        const editIdEl = document.getElementById("dns-tun-edit-id");
+        if (editIdEl) editIdEl.value = "";
+
+        const titleEl = document.getElementById("modal-dns-title-text");
+        if (titleEl) titleEl.innerText = "راه‌اندازی تونل DNS جدید (SlowDNS / DNSTT)";
+
+        const btnTextEl = document.getElementById("btn-submit-dns-text");
+        if (btnTextEl) btnTextEl.innerText = "راه‌اندازی و ذخیره تونل DNS";
+
+        const nameInput = document.getElementById("dns-tun-name");
+        if (nameInput) {
+            nameInput.value = "";
+            nameInput.readOnly = false;
+            nameInput.style.backgroundColor = "";
+        }
+
+        const domainInput = document.getElementById("dns-tun-domain");
+        if (domainInput) domainInput.value = "";
+
+        const privInput = document.getElementById("dns-tun-privkey");
+        if (privInput) privInput.value = "";
+
+        const pubInput = document.getElementById("dns-tun-pubkey");
+        if (pubInput) pubInput.value = "";
+
+        const portInput = document.getElementById("dns-tun-port");
+        if (portInput) portInput.value = "5300";
+
+        const targetInput = document.getElementById("dns-tun-target");
+        if (targetInput) targetInput.value = "127.0.0.1:443";
+
+        const resolverInput = document.getElementById("dns-tun-resolver");
+        if (resolverInput) resolverInput.value = "https://1.1.1.1/dns-query";
+
+        const modeRadios = document.getElementsByName("dns_tun_mode");
+        for (const r of modeRadios) {
+            r.checked = (r.value === "server");
+        }
+        onDnsTunnelModeChange();
+
+        // Auto-generate keys for convenience if empty
+        generateDnsTunnelKeys(true);
+
+        const modal = document.getElementById("modal-create-dns-tunnel");
+        if (modal) modal.classList.add("active");
+    }
+
+    function openEditDnsTunnelModal(tunId) {
+        const tun = (currentTunnelsData?.dns_tunnels || []).find(t => t.id === tunId);
+        if (!tun) {
+            showToast("اطلاعات تونل DNS یافت نشد.", "error");
+            return;
+        }
+
+        const editIdEl = document.getElementById("dns-tun-edit-id");
+        if (editIdEl) editIdEl.value = tun.id;
+
+        const titleEl = document.getElementById("modal-dns-title-text");
+        if (titleEl) titleEl.innerText = `ویرایش تونل DNS: ${tun.name}`;
+
+        const btnTextEl = document.getElementById("btn-submit-dns-text");
+        if (btnTextEl) btnTextEl.innerText = "ذخیره تغییرات و راه‌اندازی مجدد";
+
+        const nameInput = document.getElementById("dns-tun-name");
+        if (nameInput) {
+            nameInput.value = tun.name;
+            nameInput.readOnly = true;
+            nameInput.style.backgroundColor = "var(--bg-base)";
+        }
+
+        const domainInput = document.getElementById("dns-tun-domain");
+        if (domainInput) domainInput.value = tun.domain || "";
+
+        const privInput = document.getElementById("dns-tun-privkey");
+        if (privInput) privInput.value = tun.privkey || "";
+
+        const pubInput = document.getElementById("dns-tun-pubkey");
+        if (pubInput) pubInput.value = tun.pubkey || "";
+
+        const portInput = document.getElementById("dns-tun-port");
+        if (portInput) portInput.value = tun.listen_port || 5300;
+
+        const targetInput = document.getElementById("dns-tun-target");
+        if (targetInput) targetInput.value = tun.target_addr || "127.0.0.1:443";
+
+        const resolverInput = document.getElementById("dns-tun-resolver");
+        if (resolverInput) resolverInput.value = tun.resolver || "https://1.1.1.1/dns-query";
+
+        const modeRadios = document.getElementsByName("dns_tun_mode");
+        for (const r of modeRadios) {
+            r.checked = (r.value === (tun.role || "server"));
+        }
+        onDnsTunnelModeChange();
+
+        const modal = document.getElementById("modal-create-dns-tunnel");
+        if (modal) modal.classList.add("active");
+    }
+
+    function closeCreateDnsTunnelModal() {
+        const modal = document.getElementById("modal-create-dns-tunnel");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function onDnsTunnelModeChange() {
+        const modeRadios = document.getElementsByName("dns_tun_mode");
+        let selectedMode = "server";
+        for (const r of modeRadios) {
+            if (r.checked) selectedMode = r.value;
+        }
+
+        const privBox = document.getElementById("dns-tun-privkey-box");
+        const targetBox = document.getElementById("dns-tun-target-box");
+        const resolverBox = document.getElementById("dns-tun-resolver-box");
+        const portLabel = document.getElementById("dns-tun-port-label");
+        const portHelp = document.getElementById("dns-tun-port-help");
+        const portInput = document.getElementById("dns-tun-port");
+
+        if (selectedMode === "server") {
+            if (privBox) privBox.style.display = "block";
+            if (targetBox) targetBox.style.display = "block";
+            if (resolverBox) resolverBox.style.display = "none";
+            if (portLabel) portLabel.innerText = "پورت شنود سرور SlowDNS:";
+            if (portHelp) portHelp.innerText = "پیش‌فرض: 5300 UDP یا 53 UDP";
+            if (portInput && (portInput.value === "8443" || portInput.value === "1080")) portInput.value = "5300";
+        } else {
+            if (privBox) privBox.style.display = "none";
+            if (targetBox) targetBox.style.display = "none";
+            if (resolverBox) resolverBox.style.display = "block";
+            if (portLabel) portLabel.innerText = "پورت لوکال کلاینت (Local Listen):";
+            if (portHelp) portHelp.innerText = "پیش‌فرض: 8443 یا 1080 (ترافیک ورودی به این پورت از تونل عبور می‌کند)";
+            if (portInput && portInput.value === "5300") portInput.value = "8443";
+        }
+    }
+
+    async function generateDnsTunnelKeys(silent = false) {
+        try {
+            const res = await fetch("/api/tunnels/dns/genkeys");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                const privInput = document.getElementById("dns-tun-privkey");
+                const pubInput = document.getElementById("dns-tun-pubkey");
+                if (privInput && data.privkey) privInput.value = data.privkey;
+                if (pubInput && data.pubkey) pubInput.value = data.pubkey;
+                if (!silent) showToast("جفت کلید Curve25519 با موفقیت تولید شد.", "success");
+            } else if (!silent) {
+                showToast("خطا در تولید کلیدها: " + (data.error || 'ناشناخته'), "error");
+            }
+        } catch (err) {
+            if (!silent) showToast("خطا در ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    async function submitCreateDnsTunnel() {
+        const editId = document.getElementById("dns-tun-edit-id")?.value;
+        const name = (document.getElementById("dns-tun-name")?.value || "").trim().toLowerCase();
+        const domain = (document.getElementById("dns-tun-domain")?.value || "").trim().toLowerCase();
+        const privkey = (document.getElementById("dns-tun-privkey")?.value || "").trim();
+        const pubkey = (document.getElementById("dns-tun-pubkey")?.value || "").trim();
+        const listenPort = document.getElementById("dns-tun-port")?.value || 5300;
+        const targetAddr = (document.getElementById("dns-tun-target")?.value || "127.0.0.1:443").trim();
+        const resolver = (document.getElementById("dns-tun-resolver")?.value || "https://1.1.1.1/dns-query").trim();
+
+        const modeRadios = document.getElementsByName("dns_tun_mode");
+        let selectedMode = "server";
+        for (const r of modeRadios) {
+            if (r.checked) selectedMode = r.value;
+        }
+
+        if (!name) {
+            showToast("لطفاً نام شناسه تونل DNS را وارد فرمایید.", "warning");
+            return;
+        }
+        if (!domain) {
+            showToast("وارد کردن دامنه رکورد NS الزامی است (مثال: t.yourdomain.com).", "warning");
+            return;
+        }
+        if (selectedMode === "client" && !pubkey) {
+            showToast("در حالت کلاینت، وارد کردن کلید عمومی سرور (Public Key) الزامی است.", "warning");
+            return;
+        }
+
+        const payload = {
+            name: name,
+            role: selectedMode,
+            domain: domain,
+            privkey: privkey,
+            pubkey: pubkey,
+            listen_port: listenPort,
+            target_addr: targetAddr,
+            resolver: resolver
+        };
+
+        const submitBtn = document.getElementById("btn-submit-dns-tunnel");
+        if (submitBtn) submitBtn.disabled = true;
+
+        const endpoint = editId ? `/api/tunnels/dns/${editId}/edit` : "/api/tunnels/dns/create";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(editId ? "تنظیمات تونل DNS با موفقیت ذخیره و مجدداً راه‌اندازی شد." : "تونل DNS با موفقیت ایجاد و سرویس Systemd آن فعال گردید.", "success");
+                closeCreateDnsTunnelModal();
+                fetchTunnels();
+            } else {
+                showToast(`خطا: ${data.error || 'عدم موفقیت در ثبت تونل DNS'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    async function toggleDnsTunnel(id) {
+        try {
+            const res = await fetch(`/api/tunnels/dns/${id}/toggle`, { method: "POST" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.enabled ? "سرویس تونل DNS فعال شد." : "سرویس تونل DNS موقتاً غیرفعال شد.", "success");
+                fetchTunnels();
+            } else {
+                showToast(`خطا: ${data.error || 'عملیات ناموفق بود'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    async function deleteDnsTunnel(id, name) {
+        if (!confirm(`آیا از حذف تونل DNS «${name}» اطمینان دارید؟ پروسه Systemd متوقف و حذف خواهد شد.`)) return;
+        try {
+            const res = await fetch(`/api/tunnels/dns/${id}`, { method: "DELETE" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("تونل DNS با موفقیت حذف شد.", "success");
+                fetchTunnels();
+            } else {
+                showToast(`خطا: ${data.error || 'عدم موفقیت در حذف تونل'}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    async function openDnsTunnelScriptModal(id) {
+        try {
+            const res = await fetch(`/api/tunnels/dns/${id}/script`);
+            const data = await res.json();
+            if (res.ok && data.success) {
+                const nameEl = document.getElementById("dns-script-modal-name");
+                const codeArea = document.getElementById("dns-tunnel-script-code");
+
+                if (nameEl) nameEl.innerText = `${data.tunnel.name} (${data.tunnel.role === 'server' ? 'سرور خارج' : 'کلاینت ایران'})`;
+                if (codeArea) codeArea.value = data.script || "";
+
+                const modal = document.getElementById("modal-dns-tunnel-script");
+                if (modal) modal.classList.add("active");
+            } else {
+                showToast("خطا در ساخت اسکریپت تونل DNS", "error");
+            }
+        } catch (err) {
+            showToast("خطای ارتباط با سرور: " + err.message, "error");
+        }
+    }
+
+    function closeDnsTunnelScriptModal() {
+        const modal = document.getElementById("modal-dns-tunnel-script");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function copyDnsTunnelScriptCode() {
+        const codeArea = document.getElementById("dns-tunnel-script-code");
+        if (!codeArea || !codeArea.value) return;
+        navigator.clipboard.writeText(codeArea.value).then(() => {
+            showToast("اسکریپت تونل DNS در کلیپ‌بورد کپی شد.", "success");
+        }).catch(() => {
+            codeArea.select();
+            document.execCommand("copy");
+            showToast("اسکریپت در کلیپ‌بورد کپی شد.", "success");
+        });
+    }
+
     // ==========================================
     // ABOUT & UPDATE MODAL HANDLERS
     // ==========================================
@@ -13118,8 +13512,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const res = await fetch("/api/system/check_update");
             const data = await res.json();
             if (res.ok && data.success) {
-                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.3.0");
-                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.3.0");
+                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.4.0");
+                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.4.0");
 
                 if (data.has_update) {
                     if (badge) badge.style.display = "inline-flex";
@@ -13153,7 +13547,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         statusEl.innerHTML = `
                             <div style="color:var(--text-main); font-weight:600; display:flex; align-items:center; gap:6px;">
                                 <i data-lucide="check-circle" style="width:16px; height:16px; color:#10b981;"></i>
-                                <span>شما در حال حاضر از جدیدترین نسخه پایدار MH Panel (نسخه ${data.current_version || '1.3.0'}) استفاده می‌فرمایید.</span>
+                                <span>شما در حال حاضر از جدیدترین نسخه پایدار MH Panel (نسخه ${data.current_version || '1.4.0'}) استفاده می‌فرمایید.</span>
                             </div>
                             ${data.release_name ? `<div style="font-size:12px; color:#6366f1; margin-top:8px; font-weight:700;">آخرین ریلیز گیت‌هاب: ${data.release_name}</div>` : ''}
                             ${data.commit_message ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">آخرین کامیت: <code>${data.commit_message}</code></div>` : ''}
@@ -13162,7 +13556,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                                     <i data-lucide="external-link" style="width:13px; height:13px;"></i> <span>مشاهده صفحه Release در گیت‌هاب</span>
                                 </a>
                                 <a href="${data.zipball_url || '#'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
-                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود مستقیم پکیج v${data.current_version || '1.3.0'}</span>
+                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود مستقیم پکیج v${data.current_version || '1.4.0'}</span>
                                 </a>
                             </div>
                         `;

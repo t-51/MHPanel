@@ -59,6 +59,30 @@
             </div>
         </div>
 
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+            <button type="button" class="mob-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+                <i data-lucide="layout-dashboard"></i>
+                <span data-i18n="nav_dashboard">داشبورد</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="protocols" onclick="switchTab('protocols')">
+                <i data-lucide="shield"></i>
+                <span data-i18n="nav_protocols">پروتکل‌ها</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="tunnels" onclick="switchTab('tunnels')">
+                <i data-lucide="git-merge"></i>
+                <span data-i18n="nav_tunnels">تونل‌ها</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="servers" onclick="switchTab('servers')">
+                <i data-lucide="server"></i>
+                <span data-i18n="nav_servers">سرورها</span>
+            </button>
+            <button type="button" class="mob-nav-item" onclick="toggleMobileSidebar()">
+                <i data-lucide="menu"></i>
+                <span data-i18n="nav_menu">منو کامل</span>
+            </button>
+        </nav>
+
         {% include 'partials/modals.html' %}
     {% endif %}
 

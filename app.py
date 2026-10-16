@@ -147,7 +147,7 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
-PANEL_VERSION = "1.3.0"
+PANEL_VERSION = "1.4.0"
 GITHUB_REPO = "t-51/MHPanel"
 TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
 SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
@@ -4996,8 +4996,9 @@ def api_awg_client():
         except Exception:
             server_ip = "YOUR_SERVER_IP"
             
+    client_ipv6 = f"fd77:77::{next_ip_num}"
     with open("/etc/amnezia/amneziawg/awg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32, {client_ipv6}/128\n")
         
     subprocess.run(f"awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
     
@@ -5014,7 +5015,7 @@ def api_awg_client():
 
     client_config = f"""[Interface]
 PrivateKey = {privkey}
-Address = {client_ip}/32
+Address = {client_ip}/32, {client_ipv6}/128
 DNS = {dns_val}
 {obf_params}
 [Peer]
@@ -14065,21 +14066,23 @@ BOOT_TUNNELS_SCRIPT = "/etc/mhpanel/tunnels_boot.sh"
 
 def load_tunnels_data():
     if not os.path.exists(TUNNELS_CONFIG_FILE):
-        return {"tunnels": [], "adv_tunnels": [], "relays": []}
+        return {"tunnels": [], "adv_tunnels": [], "relays": [], "dns_tunnels": []}
     try:
         with open(TUNNELS_CONFIG_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             if not isinstance(data, dict):
-                data = {"tunnels": [], "adv_tunnels": [], "relays": []}
+                data = {"tunnels": [], "adv_tunnels": [], "relays": [], "dns_tunnels": []}
             if "tunnels" not in data:
                 data["tunnels"] = []
             if "adv_tunnels" not in data:
                 data["adv_tunnels"] = []
             if "relays" not in data:
                 data["relays"] = []
+            if "dns_tunnels" not in data:
+                data["dns_tunnels"] = []
             return data
     except Exception:
-        return {"tunnels": [], "adv_tunnels": [], "relays": []}
+        return {"tunnels": [], "adv_tunnels": [], "relays": [], "dns_tunnels": []}
 
 def save_tunnels_data(data):
     try:
@@ -14192,60 +14195,95 @@ def apply_tunnel_interface(tun):
             subprocess.run(["systemctl", "disable", f"openvpn@{name}"], capture_output=True)
         return True, "Disabled"
 
+    is_ipv6_remote = bool(remote_ip and ":" in remote_ip)
+    is_ipv6_local = bool(local_ip and ":" in local_ip)
+    if is_ipv6_remote and not is_ipv6_local:
+        server_ipv6 = get_server_public_ipv6()
+        local_ip = server_ipv6 if server_ipv6 else "::"
+
     # Ensure kernel modules & interface setup
     if ttype == "gre":
-        subprocess.run(["modprobe", "ip_gre"], capture_output=True)
-        cmd = ["ip", "tunnel", "add", name, "mode", "gre", "remote", remote_ip, "local", local_ip, "ttl", "255"]
-        if tun.get("gre_key"):
-            cmd += ["key", str(tun["gre_key"])]
-        r = subprocess.run(cmd, capture_output=True, text=True)
-        if r.returncode != 0 and "File exists" not in r.stderr:
-            return False, r.stderr.strip()
+        if is_ipv6_remote:
+            subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
+            cmd = ["ip", "-6", "tunnel", "add", name, "mode", "ip6gre", "remote", remote_ip, "local", local_ip or "::", "ttl", "255"]
+            if tun.get("gre_key"):
+                cmd += ["key", str(tun["gre_key"])]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                cmd2 = ["ip", "link", "add", name, "type", "ip6gre", "remote", remote_ip, "local", local_ip or "::", "ttl", "255"]
+                r2 = subprocess.run(cmd2, capture_output=True, text=True)
+                if r2.returncode != 0 and "File exists" not in r2.stderr:
+                    return False, r.stderr.strip() or r2.stderr.strip()
+        else:
+            subprocess.run(["modprobe", "ip_gre"], capture_output=True)
+            cmd = ["ip", "tunnel", "add", name, "mode", "gre", "remote", remote_ip, "local", local_ip, "ttl", "255"]
+            if tun.get("gre_key"):
+                cmd += ["key", str(tun["gre_key"])]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                return False, r.stderr.strip()
     elif ttype == "ip6gre":
         subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
-        cmd = ["ip", "-6", "tunnel", "add", name, "mode", "ip6gre", "remote", remote_ip, "local", local_ip, "ttl", "255"]
+        cmd = ["ip", "-6", "tunnel", "add", name, "mode", "ip6gre", "remote", remote_ip, "local", local_ip or "::", "ttl", "255"]
         if tun.get("gre_key"):
             cmd += ["key", str(tun["gre_key"])]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0 and "File exists" not in r.stderr:
-            cmd2 = ["ip", "link", "add", name, "type", "ip6gre", "remote", remote_ip, "local", local_ip, "ttl", "255"]
+            cmd2 = ["ip", "link", "add", name, "type", "ip6gre", "remote", remote_ip, "local", local_ip or "::", "ttl", "255"]
             r2 = subprocess.run(cmd2, capture_output=True, text=True)
             if r2.returncode != 0 and "File exists" not in r2.stderr:
                 return False, r.stderr.strip() or r2.stderr.strip()
     elif ttype == "eoip":
-        subprocess.run(["modprobe", "ip_gre"], capture_output=True)
-        eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
-        cmd = ["ip", "link", "add", name, "type", "gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
-        r = subprocess.run(cmd, capture_output=True, text=True)
-        if r.returncode != 0 and "File exists" not in r.stderr:
-            return False, r.stderr.strip()
+        if is_ipv6_remote:
+            subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
+            eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
+            cmd = ["ip", "link", "add", name, "type", "ip6gretap", "remote", remote_ip, "local", local_ip or "::", "key", eoip_id]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                return False, r.stderr.strip()
+        else:
+            subprocess.run(["modprobe", "ip_gre"], capture_output=True)
+            eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
+            cmd = ["ip", "link", "add", name, "type", "gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                return False, r.stderr.strip()
     elif ttype == "eoipv6":
         subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
         eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
-        cmd = ["ip", "link", "add", name, "type", "ip6gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
+        cmd = ["ip", "link", "add", name, "type", "ip6gretap", "remote", remote_ip, "local", local_ip or "::", "key", eoip_id]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0 and "File exists" not in r.stderr:
             return False, r.stderr.strip()
     elif ttype in ["ip6tnl", "ipip6"]:
         subprocess.run(["modprobe", "ip6_tunnel"], capture_output=True)
-        cmd = ["ip", "-6", "tunnel", "add", name, "mode", "any", "remote", remote_ip, "local", local_ip]
+        cmd = ["ip", "-6", "tunnel", "add", name, "mode", "any", "remote", remote_ip, "local", local_ip or "::"]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0 and "File exists" not in r.stderr:
-            cmd2 = ["ip", "link", "add", name, "type", "ip6tnl", "mode", "any", "remote", remote_ip, "local", local_ip]
+            cmd2 = ["ip", "link", "add", name, "type", "ip6tnl", "mode", "any", "remote", remote_ip, "local", local_ip or "::"]
             r2 = subprocess.run(cmd2, capture_output=True, text=True)
             if r2.returncode != 0 and "File exists" not in r2.stderr:
                 return False, r.stderr.strip() or r2.stderr.strip()
     elif ttype == "ipip":
-        subprocess.run(["modprobe", "ipip"], capture_output=True)
-        cmd = ["ip", "tunnel", "add", name, "mode", "ipip", "remote", remote_ip, "local", local_ip, "ttl", "255"]
-        r = subprocess.run(cmd, capture_output=True, text=True)
-        if r.returncode != 0 and "File exists" not in r.stderr:
-            return False, r.stderr.strip()
+        if is_ipv6_remote:
+            subprocess.run(["modprobe", "ip6_tunnel"], capture_output=True)
+            cmd = ["ip", "-6", "tunnel", "add", name, "mode", "any", "remote", remote_ip, "local", local_ip or "::"]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                return False, r.stderr.strip()
+        else:
+            subprocess.run(["modprobe", "ipip"], capture_output=True)
+            cmd = ["ip", "tunnel", "add", name, "mode", "ipip", "remote", remote_ip, "local", local_ip, "ttl", "255"]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "File exists" not in r.stderr:
+                return False, r.stderr.strip()
     elif ttype == "vxlan":
         subprocess.run(["modprobe", "vxlan"], capture_output=True)
         vni = str(tun.get("vni", 100))
         vx_port = str(tun.get("vxlan_port", 4789))
-        cmd = ["ip", "link", "add", name, "type", "vxlan", "id", vni, "remote", remote_ip, "local", local_ip, "dstport", vx_port]
+        cmd = ["ip", "link", "add", name, "type", "vxlan", "id", vni, "remote", remote_ip, "dstport", vx_port]
+        if local_ip and ((is_ipv6_remote and is_ipv6_local) or (not is_ipv6_remote and not is_ipv6_local)):
+            cmd += ["local", local_ip]
         r = subprocess.run(cmd, capture_output=True, text=True)
         if r.returncode != 0 and "File exists" not in r.stderr:
             return False, r.stderr.strip()
@@ -14671,10 +14709,75 @@ bandwidth:
             exec_cmd = f"/usr/local/bin/wstunnel client -L udp://0.0.0.0:{listen_port}:{target_addr} ws://{remote_ip}:{remote_port}"
 
     elif tool == "awg":
+        cfg_file = f"/etc/mhpanel/awg_{adv_id}.conf"
+        privkey = adv.get("secret", "").strip()
+        if not privkey or len(privkey) < 30:
+            try:
+                r_key = subprocess.run(["awg", "genkey"], capture_output=True, text=True, timeout=5)
+                privkey = r_key.stdout.strip() if r_key.returncode == 0 else "0MELzDGeJkMuksrPRBlV7rDYBxQNZradd3i3G9JCiH4="
+            except Exception:
+                privkey = "0MELzDGeJkMuksrPRBlV7rDYBxQNZradd3i3G9JCiH4="
+            adv["secret"] = privkey
+
+        pubkey = ""
+        try:
+            r_pub = subprocess.run(["awg", "pubkey"], input=privkey, capture_output=True, text=True, timeout=5)
+            if r_pub.returncode == 0:
+                pubkey = r_pub.stdout.strip()
+        except Exception:
+            pass
+        adv["pubkey"] = pubkey
+        remote_pub = adv.get("remote_pubkey") or pubkey
+
         if role == "server":
-            exec_cmd = f"/usr/local/bin/udp2raw -s -l 0.0.0.0:{listen_port} -r {target_addr} -k \"{secret}\" --raw-mode faketcp -a"
+            awg_cfg = f"""[Interface]
+Address = 10.88.88.1/30, fd88:88::1/64
+ListenPort = {listen_port}
+PrivateKey = {privkey}
+MTU = 1300
+Jc = 4
+Jmin = 50
+Jmax = 1000
+S1 = 56
+S2 = 56
+H1 = 12874921
+H2 = 48921734
+H3 = 91238472
+H4 = 64389201
+PostUp = iptables -t nat -A PREROUTING -p tcp -i %i -j DNAT --to-destination {target_addr} 2>/dev/null || true
+PostDown = iptables -t nat -D PREROUTING -p tcp -i %i -j DNAT --to-destination {target_addr} 2>/dev/null || true
+
+[Peer]
+PublicKey = {remote_pub}
+AllowedIPs = 10.88.88.2/32, fd88:88::2/128
+"""
         else:
-            exec_cmd = f"/usr/local/bin/udp2raw -c -l 0.0.0.0:{listen_port} -r {remote_ip}:{remote_port} -k \"{secret}\" --raw-mode faketcp -a"
+            awg_cfg = f"""[Interface]
+Address = 10.88.88.2/30, fd88:88::2/64
+PrivateKey = {privkey}
+MTU = 1300
+Jc = 4
+Jmin = 50
+Jmax = 1000
+S1 = 56
+S2 = 56
+H1 = 12874921
+H2 = 48921734
+H3 = 91238472
+H4 = 64389201
+PostUp = iptables -t nat -A PREROUTING -p tcp --dport {listen_port} -j DNAT --to-destination 10.88.88.1:443 2>/dev/null || true
+PostDown = iptables -t nat -D PREROUTING -p tcp --dport {listen_port} -j DNAT --to-destination 10.88.88.1:443 2>/dev/null || true
+
+[Peer]
+PublicKey = {remote_pub}
+Endpoint = {remote_ip}:{remote_port}
+AllowedIPs = 10.88.88.1/32, fd88:88::1/128
+PersistentKeepalive = 25
+"""
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            f.write(awg_cfg)
+        os.chmod(cfg_file, 0o600)
+        exec_cmd = f"/usr/bin/awg-quick up {cfg_file}"
 
     elif tool == "ssh_tun":
         if role == "server":
@@ -14940,6 +15043,40 @@ def generate_adv_tunnel_script(adv):
         ]
         exec_cmd = f"/usr/local/bin/sing-box run -c /etc/mhpanel/singbox_{safe_name}.json"
 
+    elif tool == "awg":
+        script_lines += [
+            "# 1. نصب و بارگذاری کرنل ماژول AmneziaWG",
+            "if ! command -v awg-quick &>/dev/null; then",
+            "  echo '--> Installing AmneziaWG Tools...'",
+            "  add-apt-repository -y ppa:amnezia/ppa && apt-get update -y && apt-get install -y amneziawg amneziawg-tools",
+            "fi",
+            f"mkdir -p /etc/mhpanel",
+            f"cat << 'AWG_EOF' > /etc/mhpanel/awg_{safe_name}.conf",
+            f"[Interface]",
+            f"Address = {'10.88.88.2/30, fd88:88::2/64' if remote_role == 'client' else '10.88.88.1/30, fd88:88::1/64'}",
+            f"ListenPort = {listen_port}",
+            f"PrivateKey = {secret}",
+            f"MTU = 1300",
+            f"Jc = 4",
+            f"Jmin = 50",
+            f"Jmax = 1000",
+            f"S1 = 56",
+            f"S2 = 56",
+            f"H1 = 12874921",
+            f"H2 = 48921734",
+            f"H3 = 91238472",
+            f"H4 = 64389201",
+            f"[Peer]",
+            f"PublicKey = {endpoint_ip}",
+            f"Endpoint = {endpoint_ip}:{endpoint_port}",
+            f"AllowedIPs = {'10.88.88.1/32, fd88:88::1/128' if remote_role == 'client' else '10.88.88.2/32, fd88:88::2/128'}",
+            f"PersistentKeepalive = 25",
+            "AWG_EOF",
+            f"chmod 600 /etc/mhpanel/awg_{safe_name}.conf",
+            ""
+        ]
+        exec_cmd = f"/usr/bin/awg-quick up /etc/mhpanel/awg_{safe_name}.conf"
+
     elif tool == "ss2022":
         if remote_role == "client":
             exec_cmd = f"/usr/local/bin/sslocal -s {endpoint_ip}:{endpoint_port} -l 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
@@ -15003,6 +15140,149 @@ def remove_port_relay(relay):
         subprocess.run(["iptables", "-t", "nat", "-D", "PREROUTING", "-p", p, "--dport", listen_port, "-j", "DNAT", "--to-destination", f"{target_ip}:{target_port}"], capture_output=True)
         subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-p", p, "-d", target_ip, "--dport", target_port, "-j", "MASQUERADE"], capture_output=True)
         subprocess.run(["iptables", "-D", "FORWARD", "-p", p, "-d", target_ip, "--dport", target_port, "-j", "ACCEPT"], capture_output=True)
+
+def apply_dns_tunnel(dns):
+    dns_id = dns["id"]
+    name = dns.get("name", "dnstt")
+    mode = dns.get("mode", "server")
+    domain = dns.get("domain", "").strip()
+    try:
+        listen_port = int(dns.get("listen_port") or (5300 if mode == "server" else 1080))
+    except Exception:
+        listen_port = 5300 if mode == "server" else 1080
+    target_addr = dns.get("target_addr", "127.0.0.1:443").strip()
+    resolver = dns.get("resolver", "https://1.1.1.1/dns-query").strip()
+    privkey = dns.get("privkey", "").strip()
+    pubkey = dns.get("pubkey", "").strip()
+    enabled = dns.get("enabled", True)
+
+    remove_dns_tunnel(dns)
+    if not enabled:
+        return True, "Disabled"
+
+    os.makedirs("/etc/mhpanel", exist_ok=True)
+    unit_name = f"mhdns_{dns_id}.service"
+    unit_path = f"/etc/systemd/system/{unit_name}"
+
+    if mode == "server":
+        key_file = f"/etc/mhpanel/dnstt_{dns_id}.key"
+        with open(key_file, "w", encoding="utf-8") as f:
+            f.write(privkey + "\n")
+        os.chmod(key_file, 0o600)
+
+        # Allow port in iptables
+        subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
+        subprocess.run(["ip6tables", "-I", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
+
+        exec_cmd = f"/usr/local/bin/dnstt-server -udp 0.0.0.0:{listen_port} -privkey-file {key_file} {domain} {target_addr}"
+    else:
+        res_flag = f"-doh {resolver}" if resolver.startswith("http") else (f"-dot {resolver}" if ":853" in resolver or resolver.endswith("853") else f"-udp {resolver}")
+        pub_flag = f"-pubkey {pubkey}" if pubkey else ""
+        exec_cmd = f"/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{listen_port}"
+
+    unit_content = f"""[Unit]
+Description=MH Panel DNS Tunnel ({name} - DNSTT {mode.upper()})
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart={exec_cmd}
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+"""
+    with open(unit_path, "w", encoding="utf-8") as f:
+        f.write(unit_content)
+
+    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+    subprocess.run(["systemctl", "enable", "--now", unit_name], capture_output=True)
+    return True, "OK"
+
+def remove_dns_tunnel(dns):
+    dns_id = dns["id"]
+    unit_name = f"mhdns_{dns_id}.service"
+    listen_port = dns.get("listen_port")
+    if listen_port and dns.get("mode") == "server":
+        subprocess.run(["iptables", "-D", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
+        subprocess.run(["ip6tables", "-D", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
+
+    subprocess.run(["systemctl", "stop", unit_name], capture_output=True)
+    subprocess.run(["systemctl", "disable", unit_name], capture_output=True)
+    unit_path = f"/etc/systemd/system/{unit_name}"
+    if os.path.exists(unit_path):
+        try: os.remove(unit_path)
+        except Exception: pass
+    key_file = f"/etc/mhpanel/dnstt_{dns_id}.key"
+    if os.path.exists(key_file):
+        try: os.remove(key_file)
+        except Exception: pass
+    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+
+def generate_dns_tunnel_script(dns):
+    name = dns.get("name", "dnstt_tun")
+    mode = dns.get("mode", "server")
+    domain = dns.get("domain", "")
+    pubkey = dns.get("pubkey", "")
+    listen_port = dns.get("listen_port", 1080)
+    target_addr = dns.get("target_addr", "127.0.0.1:443")
+    resolver = dns.get("resolver", "https://1.1.1.1/dns-query")
+    safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+
+    if mode == "server":
+        res_flag = f"-doh {resolver}" if resolver.startswith("http") else (f"-dot {resolver}" if "853" in resolver else f"-udp {resolver}")
+        pub_flag = f"-pubkey {pubkey}" if pubkey else ""
+        return f"""#!/bin/bash
+# ====================================================================
+# اسکریپت راه‌اندازی کلاینت SlowDNS (DNSTT) برای تونل {name}
+# دامنه اختصاصی NS: {domain}
+# ====================================================================
+set -e
+
+# 1. بررسی و کپی/دانلود dnstt-client
+if ! command -v dnstt-client &>/dev/null; then
+  echo "--> Installing dnstt-client..."
+  curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-client -o /usr/local/bin/dnstt-client 2>/dev/null || true
+  if [ ! -s /usr/local/bin/dnstt-client ]; then
+    curl -fsSL https://www.bamsoftware.com/git/dnstt.git/raw/main/dnstt-client/dnstt-client -o /usr/local/bin/dnstt-client 2>/dev/null || true
+  fi
+  chmod +x /usr/local/bin/dnstt-client 2>/dev/null || true
+fi
+
+# 2. ایجاد سرویس سیستمی Systemd دائمی
+cat << 'EOF' > /etc/systemd/system/mhdns_{safe_name}.service
+[Unit]
+Description=MH Panel DNSTT Client ({safe_name})
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{listen_port}
+Restart=always
+RestartSec=3
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+systemctl daemon-reload
+systemctl enable --now mhdns_{safe_name}.service
+echo "=== DNSTT Client is running locally on 127.0.0.1:{listen_port} ==="
+systemctl status mhdns_{safe_name}.service --no-pager
+"""
+    else:
+        return f"""#!/bin/bash
+# ====================================================================
+# راهنمای سرور SlowDNS برای تونل {name}
+# ====================================================================
+# در سرور خارج دستور زیر را اجرا کنید:
+# dnstt-server -udp :53 -privkey-file server.key {domain} {target_addr}
+"""
 
 def update_boot_tunnels_script(data):
     try:
@@ -15106,6 +15386,10 @@ def update_boot_tunnels_script(data):
             if adv.get("enabled", True):
                 lines.append(f"systemctl restart mhtun_{adv['id']}.service 2>/dev/null")
 
+        for dns in data.get("dns_tunnels", []):
+            if dns.get("enabled", True):
+                lines.append(f"systemctl restart mhdns_{dns['id']}.service 2>/dev/null")
+
         lines.append("")
         for r in data.get("relays", []):
             if not r.get("enabled", True):
@@ -15143,6 +15427,11 @@ def restore_all_tunnels():
             apply_port_relay(relay)
         except Exception as e:
             print(f"Error restoring relay {relay.get('id')}: {e}")
+    for dns in data.get("dns_tunnels", []):
+        try:
+            apply_dns_tunnel(dns)
+        except Exception as e:
+            print(f"Error restoring dns tunnel {dns.get('name')}: {e}")
 
 def generate_mikrotik_scripts(tun):
     ttype = tun.get("type", "gre")
@@ -15710,6 +15999,24 @@ def api_get_tunnels():
         a_copy["status_flag"] = status_flag
         adv_list.append(a_copy)
 
+    dns_list = []
+    dns_active_count = 0
+    for dns in data.get("dns_tunnels", []):
+        unit_name = f"mhdns_{dns['id']}.service"
+        r = subprocess.run(["systemctl", "is-active", unit_name], capture_output=True, text=True)
+        is_active = (r.stdout.strip() == "active")
+        if is_active and dns.get("enabled", True):
+            dns_active_count += 1
+            status_flag = "R"
+        elif not dns.get("enabled", True):
+            status_flag = "X"
+        else:
+            status_flag = "I"
+        d_copy = dict(dns)
+        d_copy["is_active"] = is_active
+        d_copy["status_flag"] = status_flag
+        dns_list.append(d_copy)
+
     return jsonify({
         "success": True,
         "server_ip": server_ip,
@@ -15718,10 +16025,13 @@ def api_get_tunnels():
         "total_count": len(tunnels_list),
         "adv_active_count": adv_active_count,
         "adv_total_count": len(adv_list),
+        "dns_active_count": dns_active_count,
+        "dns_total_count": len(dns_list),
         "total_rx_bytes": total_rx,
         "total_tx_bytes": total_tx,
         "tunnels": tunnels_list,
         "adv_tunnels": adv_list,
+        "dns_tunnels": dns_list,
         "relays": data.get("relays", [])
     })
 
@@ -15742,8 +16052,14 @@ def api_create_tunnel():
             return jsonify({"error": f"اینترفیسی با نام {name} از قبل وجود دارد."}), 400
 
     server_ip = get_server_public_ip()
-    local_ip = (req.get("local_ip") or server_ip).strip()
+    server_ipv6 = get_server_public_ipv6()
     remote_ip = (req.get("remote_ip") or "").strip()
+    local_ip = (req.get("local_ip") or "").strip()
+    if not local_ip:
+        if (remote_ip and ":" in remote_ip) or ttype in ["ip6gre", "eoipv6", "ip6tnl", "ipip6", "sit"]:
+            local_ip = server_ipv6 if server_ipv6 else "::"
+        else:
+            local_ip = server_ip
     inner_local = (req.get("tunnel_local_ip") or "10.10.10.1/30").strip()
     inner_remote = (req.get("tunnel_remote_ip") or "10.10.10.2").strip()
 
@@ -16225,6 +16541,164 @@ def api_edit_port_relay(relay_id):
     apply_port_relay(relay)
     save_tunnels_data(data)
     return jsonify({"success": True, "relay": relay, "message": "رله پورت با موفقیت ویرایش و رول‌ها اعمال شد."})
+
+# ----------------- DNS Tunnels (SlowDNS / DNSTT) API -----------------
+
+@app.route("/api/tunnels/dns/genkeys", methods=["GET"])
+def api_dns_tunnel_genkeys():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        t_priv = f"/tmp/dnstt_{uuid.uuid4().hex[:6]}.key"
+        t_pub = f"/tmp/dnstt_{uuid.uuid4().hex[:6]}.pub"
+        r = subprocess.run(["/usr/local/bin/dnstt-server", "-gen-key", "-privkey-file", t_priv, "-pubkey-file", t_pub], capture_output=True, text=True, timeout=10)
+        privkey = ""
+        pubkey = ""
+        if os.path.exists(t_priv):
+            with open(t_priv, "r") as f: privkey = f.read().strip()
+            os.remove(t_priv)
+        if os.path.exists(t_pub):
+            with open(t_pub, "r") as f: pubkey = f.read().strip()
+            os.remove(t_pub)
+        if not privkey or not pubkey:
+            import secrets
+            privkey = secrets.token_hex(32)
+            pubkey = secrets.token_hex(32)
+        return jsonify({"success": True, "privkey": privkey, "pubkey": pubkey})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/tunnels/dns/create", methods=["POST"])
+def api_create_dns_tunnel():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    name = (req.get("name") or "").strip()
+    mode = (req.get("mode") or "server").strip().lower()
+    domain = (req.get("domain") or "").strip().lower()
+
+    if not name:
+        return jsonify({"error": "نام تونل DNS الزامی است."}), 400
+    if not domain:
+        return jsonify({"error": "دامنه رکورد NS (مثال: t.domain.com) الزامی است."}), 400
+
+    try:
+        listen_port = int(req.get("listen_port") or (5300 if mode == "server" else 1080))
+    except Exception:
+        listen_port = 5300 if mode == "server" else 1080
+
+    target_addr = (req.get("target_addr") or "127.0.0.1:443").strip()
+    resolver = (req.get("resolver") or "https://1.1.1.1/dns-query").strip()
+    privkey = (req.get("privkey") or "").strip()
+    pubkey = (req.get("pubkey") or "").strip()
+
+    if mode == "server" and (not privkey or not pubkey):
+        try:
+            t_priv = f"/tmp/dnstt_{uuid.uuid4().hex[:6]}.key"
+            t_pub = f"/tmp/dnstt_{uuid.uuid4().hex[:6]}.pub"
+            subprocess.run(["/usr/local/bin/dnstt-server", "-gen-key", "-privkey-file", t_priv, "-pubkey-file", t_pub], capture_output=True, text=True, timeout=10)
+            if os.path.exists(t_priv):
+                with open(t_priv) as f: privkey = f.read().strip()
+                os.remove(t_priv)
+            if os.path.exists(t_pub):
+                with open(t_pub) as f: pubkey = f.read().strip()
+                os.remove(t_pub)
+        except Exception:
+            pass
+
+    dns_id = f"dns_{uuid.uuid4().hex[:8]}"
+    dns = {
+        "id": dns_id,
+        "name": name,
+        "mode": mode,
+        "domain": domain,
+        "listen_port": listen_port,
+        "target_addr": target_addr,
+        "resolver": resolver,
+        "privkey": privkey,
+        "pubkey": pubkey,
+        "enabled": True,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    ok, msg = apply_dns_tunnel(dns)
+    if not ok:
+        return jsonify({"error": f"خطا در فعال‌سازی سرویس تونل DNS: {msg}"}), 500
+
+    data = load_tunnels_data()
+    data.setdefault("dns_tunnels", []).append(dns)
+    save_tunnels_data(data)
+    return jsonify({"success": True, "tunnel": dns, "message": "تونل DNS (SlowDNS) با موفقیت راه‌اندازی و فعال شد."})
+
+@app.route("/api/tunnels/dns/<dns_id>/edit", methods=["POST", "PUT"])
+def api_edit_dns_tunnel(dns_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    dns = next((d for d in data.get("dns_tunnels", []) if d["id"] == dns_id), None)
+    if not dns:
+        return jsonify({"error": "تونل DNS یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    remove_dns_tunnel(dns)
+
+    if req.get("name"): dns["name"] = req.get("name").strip()
+    if req.get("mode"): dns["mode"] = req.get("mode").strip().lower()
+    if req.get("domain"): dns["domain"] = req.get("domain").strip().lower()
+    if req.get("listen_port"):
+        try: dns["listen_port"] = int(req.get("listen_port"))
+        except Exception: pass
+    if req.get("target_addr"): dns["target_addr"] = req.get("target_addr").strip()
+    if req.get("resolver"): dns["resolver"] = req.get("resolver").strip()
+    if req.get("privkey") is not None: dns["privkey"] = req.get("privkey").strip()
+    if req.get("pubkey") is not None: dns["pubkey"] = req.get("pubkey").strip()
+
+    ok, msg = apply_dns_tunnel(dns)
+    save_tunnels_data(data)
+    if not ok:
+        return jsonify({"error": f"خطا در ویرایش و راه‌اندازی مجدد تونل DNS: {msg}"}), 500
+    return jsonify({"success": True, "tunnel": dns, "message": "تونل DNS با موفقیت ویرایش و مجدداً بارگذاری شد."})
+
+@app.route("/api/tunnels/dns/<dns_id>/toggle", methods=["POST"])
+def api_toggle_dns_tunnel(dns_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    dns = next((d for d in data.get("dns_tunnels", []) if d["id"] == dns_id), None)
+    if not dns:
+        return jsonify({"error": "تونل DNS یافت نشد."}), 404
+
+    dns["enabled"] = not dns.get("enabled", True)
+    apply_dns_tunnel(dns)
+    save_tunnels_data(data)
+    return jsonify({"success": True, "enabled": dns["enabled"]})
+
+@app.route("/api/tunnels/dns/<dns_id>", methods=["DELETE"])
+@app.route("/api/tunnels/dns/<dns_id>/delete", methods=["POST", "DELETE"])
+def api_delete_dns_tunnel(dns_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    dns = next((d for d in data.get("dns_tunnels", []) if d["id"] == dns_id), None)
+    if not dns:
+        return jsonify({"error": "تونل DNS یافت نشد."}), 404
+
+    remove_dns_tunnel(dns)
+    data["dns_tunnels"] = [d for d in data["dns_tunnels"] if d["id"] != dns_id]
+    save_tunnels_data(data)
+    return jsonify({"success": True, "message": "تونل DNS با موفقیت حذف شد."})
+
+@app.route("/api/tunnels/dns/<dns_id>/script", methods=["GET"])
+def api_dns_tunnel_script(dns_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    dns = next((d for d in data.get("dns_tunnels", []) if d["id"] == dns_id), None)
+    if not dns:
+        return jsonify({"error": "تونل DNS یافت نشد."}), 404
+
+    script = generate_dns_tunnel_script(dns)
+    return jsonify({"success": True, "tunnel": dns, "script": script})
 
 # =========================================================================
 # TUNNEL COMPATIBILITY & CONNECTIVITY ANALYZER ENGINE (REQUIREMENT 2)

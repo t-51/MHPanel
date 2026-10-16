@@ -7,12 +7,20 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.4.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
   <img src="https://img.shields.io/badge/Платформа-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Платформа">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Лицензия-MIT-emerald.svg?style=for-the-badge" alt="Лицензия">
   <img src="https://img.shields.io/badge/Языки-Русский%20%7C%20English%20%7C%20فارسی-purple.svg?style=for-the-badge" alt="Языки">
 </p>
+
+---
+
+### 🌟 Новое в версии 1.4.0
+- 📱 **Полная оптимизация для мобильных устройств (Mobile UX Overhaul):** Плавающая нижняя панель навигации (Mobile Bottom Navigation Bar) для удобного управления одним пальцем (Дашборд, Протоколы, Туннели, Серверы, Боковое меню); адаптивные всплывающие окна в стиле Bottom Sheet с фиксированными заголовками и кнопками действий; оптимизированные области нажатия без нежелательного масштабирования на смартфонах.
+- 🌐 **Полная поддержка IPv6 Dual-Stack для всех туннелей:** Интеллектуальное автоопределение адресов IPv6 на конечных точках, использование модулей ядра Linux (`ip6gre`, `ip6gretap`, `ip6tnl`), генерация скриптов для MikroTik RouterOS (v7 и v6) и Linux с правилами MSS Clamping и файрвола.
+- 🛠️ **Исправление AmneziaWG и поддержка межсерверных S2S туннелей:** Устранение конфликта портов со стандартным WireGuard (выделен порт 51821), автоматическая очистка интерфейса `awg0` перед запуском для предотвращения ошибки `RTNETLINK answers: File exists`, раздача IPv6 адресов (`fd77:77::/64`) клиентам и полная поддержка обфусцированных туннелей AmneziaWG (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
+- ⚡ **Студия DNS-туннелей (SlowDNS / DNSTT Studio):** Полноценное управление туннелированием через DNS; поддержка режимов сервера и клиента; автоматическая генерация пар ключей Noise Curve25519; управление службами Systemd и готовые скрипты подключения.
 
 ---
 
@@ -62,7 +70,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.3.0)
+     🚀 MH PANEL - ГЛАВНЫЙ ИНТЕРАКТИВНЫЙ ЦЕНТР УПРАВЛЕНИЯ CLI (v1.4.0)
   ======================================================================
   [1]  Полная автоматическая установка (все протоколы и компоненты)
   [2]  Пошаговый мастер выборочной установки

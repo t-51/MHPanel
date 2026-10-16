@@ -7,12 +7,20 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.4.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Languages-EN%20%7C%20FA%20%7C%20RU-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 What's New in Version 1.4.0
+- 📱 **Comprehensive Mobile UX Overhaul:** Floating mobile bottom navigation bar providing instant one-thumb switching between Dashboard, Protocols, Tunnels, Servers, and Menu drawer. Responsive bottom-sheet modals with sticky headers/footers, touch-optimized hit areas, and zero unwanted iOS viewport zoom.
+- 🌐 **IPv6 Dual-Stack Support Across All Tunnels:** Smart IPv4/IPv6 auto-detection on tunnel endpoints with Linux kernel modules (`ip6gre`, `ip6gretap`, `ip6tnl`), dual-stack MikroTik RouterOS v7/v6 script generation, MSS clamping, and seamless routing.
+- 🛠️ **AmneziaWG Fix & Kernel S2S Tunneling:** WireGuard port collision resolved with dedicated port 51821, pre-startup link cleanup eliminating `RTNETLINK answers: File exists` errors, dual-stack IPv6 client assignment (`fd77:77::/64`), and real AmneziaWG obfuscated site-to-site tunnel support (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
+- ⚡ **SlowDNS / DNSTT Tunnels Studio:** Full-featured management studio for DNS tunneling. Create, monitor, edit, and toggle DNSTT tunnels in Server or Client mode with integrated Noise Curve25519 keypair generation, Systemd persistence, and automated client command generation.
 
 ---
 
@@ -62,7 +70,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.3.0)
+     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.4.0)
   ======================================================================
   [1]  Run Full Automated Installation (Setup All Missing Components)
   [2]  Run Step-by-Step Custom Installation Wizard

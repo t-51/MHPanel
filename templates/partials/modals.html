@@ -1343,7 +1343,7 @@
 <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center;">
 <div>
 <div data-i18n="modal_current_version_panel_version" style="font-size: 11.5px; color: var(--text-muted);">نسخه فعلی پنل (Version)</div>
-<div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace;">v{{ panel_version or '1.3.0' }}</div>
+<div style="font-size: 22px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono', monospace;">v{{ panel_version or '1.4.0' }}</div>
 <div data-i18n="modal_stable_release" style="font-size: 11.5px; color: #059669; margin-top: 2px;">پایدار (Stable Release)</div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="checkPanelUpdate(true)" type="button">
@@ -1519,7 +1519,7 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
 <div data-i18n="modal_installed_version" style="font-size: 11px; color: var(--text-muted);">نسخه نصب شده:</div>
-<div id="update-modal-curver" style="font-size: 18px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono';">v{{ panel_version or '1.3.0' }}</div>
+<div id="update-modal-curver" style="font-size: 18px; font-weight: 800; color: #4f46e5; font-family: 'JetBrains Mono';">v{{ panel_version or '1.4.0' }}</div>
 </div>
 <div style="background: var(--bg-muted); padding: 12px; border-radius: 10px;">
 <div data-i18n="modal_latest_version_github" style="font-size: 11px; color: var(--text-muted);">آخرین نسخه در گیت‌هاب:</div>
@@ -1622,4 +1622,147 @@
 </div>
 </div>
 </div>
+
+<!-- Modal: Create / Edit DNS Tunnel (SlowDNS / DNSTT) -->
+<div class="modal" id="modal-create-dns-tunnel">
+    <div class="modal-card" style="max-width: 640px; border-radius: 16px;">
+        <header class="modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(20, 184, 166, 0.12); color:#0d9488; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="globe" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 id="modal-dns-title-text" style="margin: 0; font-size: 16px; font-weight: 700;">راه‌اندازی تونل DNS جدید (SlowDNS / DNSTT)</h3>
+                    <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted);">انتقال بسته‌های سرور از مسیر پرس‌وجوهای رمزنگاری‌شده DNS</p>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeCreateDnsTunnelModal()" type="button"><i data-lucide="x"></i></button>
+        </header>
+
+        <div class="modal-body" style="padding: 22px; display: flex; flex-direction: column; gap: 16px; max-height: calc(85vh - 120px); overflow-y: auto;">
+            <input type="hidden" id="dns-tun-edit-id" value="">
+
+            <!-- Role Selector -->
+            <div>
+                <label class="form-label" style="font-weight:600; font-size:12px; margin-bottom:8px;">نقش سرور در این تونل DNS:</label>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <label style="border:1.5px solid rgba(20, 184, 166, 0.4); background:rgba(20, 184, 166, 0.05); padding:12px 14px; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                        <input type="radio" name="dns_tun_mode" value="server" checked onchange="onDnsTunnelModeChange()" style="accent-color:#0d9488;">
+                        <div>
+                            <div style="font-weight:700; font-size:13px; color:#0d9488;">سرور SlowDNS (مقیم خارج)</div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">پاسخ به کوئری‌ها روی پورت 53 UDP</div>
+                        </div>
+                    </label>
+                    <label style="border:1.5px solid var(--border-color); background:var(--bg-base); padding:12px 14px; border-radius:12px; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                        <input type="radio" name="dns_tun_mode" value="client" onchange="onDnsTunnelModeChange()" style="accent-color:#0d9488;">
+                        <div>
+                            <div style="font-weight:700; font-size:13px;">کلاینت SlowDNS (مقیم ایران)</div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">ارسال کوئری به ریزالور DoH/UDP</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tunnel Name -->
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-weight:600; font-size:12px;">نام شناسه تونل DNS:</label>
+                <input class="form-input" type="text" id="dns-tun-name" placeholder="مثال: dnstt1 یا slowdns_ir" style="direction:ltr; font-family:'JetBrains Mono';">
+            </div>
+
+            <!-- NS Domain -->
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" style="font-weight:600; font-size:12px;">دامنه رکورد NS (Nameserver Domain):</label>
+                <input class="form-input" type="text" id="dns-tun-domain" placeholder="مثال: t.yourdomain.com" style="direction:ltr; font-family:'JetBrains Mono';">
+                <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">ساب‌دامنه‌ای که رکورد NS آن در DNS به ns1 این سرور اشاره می‌کند.</span>
+            </div>
+
+            <!-- Keys Box -->
+            <div style="background:var(--bg-base); border:1px solid var(--border-glow); padding:14px; border-radius:12px; display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight:700; font-size:12.5px; color:#0d9488;">کلیدهای رمزنگاری Noise Curve25519</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="generateDnsTunnelKeys()" style="padding:4px 10px; font-size:11px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="key" style="width:13px; height:13px;"></i>
+                        <span>تولید جفت کلید جدید</span>
+                    </button>
+                </div>
+
+                <div id="dns-tun-privkey-box">
+                    <label class="form-label" style="font-size:11.5px;">کلید خصوصی سرور (Private Key - Hex 64):</label>
+                    <input class="form-input" type="text" id="dns-tun-privkey" placeholder="کلید خصوصی سرور (در صورت خالی بودن خودکار تولید می‌شود)" style="direction:ltr; font-family:'JetBrains Mono'; font-size:11.5px;">
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size:11.5px;">کلید عمومی سرور (Public Key - Hex 64):</label>
+                    <input class="form-input" type="text" id="dns-tun-pubkey" placeholder="کلید عمومی جهت درج در کلاینت مقابل" style="direction:ltr; font-family:'JetBrains Mono'; font-size:11.5px;">
+                </div>
+            </div>
+
+            <!-- Ports & Destinations Grid -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label" style="font-weight:600; font-size:12px;" id="dns-tun-port-label">پورت شنود محلی:</label>
+                    <input class="form-input" type="number" id="dns-tun-port" value="5300" style="direction:ltr; font-family:'JetBrains Mono';">
+                    <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;" id="dns-tun-port-help">پیش‌فرض: 53 یا 5300 UDP</span>
+                </div>
+
+                <div class="form-group" style="margin:0;" id="dns-tun-target-box">
+                    <label class="form-label" style="font-weight:600; font-size:12px;">آدرس مقصد فوروارد ترافیک:</label>
+                    <input class="form-input" type="text" id="dns-tun-target" value="127.0.0.1:443" style="direction:ltr; font-family:'JetBrains Mono';">
+                    <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;">پورت سرویس VPN یا SSH مقصد</span>
+                </div>
+
+                <div class="form-group" style="margin:0; display:none;" id="dns-tun-resolver-box">
+                    <label class="form-label" style="font-weight:600; font-size:12px;">آدرس ریزالور بالادستی DNS:</label>
+                    <input class="form-input" type="text" id="dns-tun-resolver" value="https://1.1.1.1/dns-query" style="direction:ltr; font-family:'JetBrains Mono';">
+                    <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;">آدرس DoH، DoT یا UDP (مثال: 8.8.8.8:53)</span>
+                </div>
+            </div>
+        </div>
+
+        <footer class="modal-footer" style="padding: 16px 22px; display:flex; justify-content:flex-end; gap:10px; border-top:1px solid var(--border-glow);">
+            <button type="button" class="btn btn-secondary" onclick="closeCreateDnsTunnelModal()">انصراف</button>
+            <button type="button" class="btn btn-primary" id="btn-submit-dns-tunnel" onclick="submitCreateDnsTunnel()" style="background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                <i data-lucide="check" style="width:15px; height:15px;"></i>
+                <span id="btn-submit-dns-text">راه‌اندازی و ذخیره تونل DNS</span>
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- Modal: DNS Tunnel Script & Client Config -->
+<div class="modal" id="modal-dns-tunnel-script">
+    <div class="modal-card" style="max-width: 680px; border-radius: 16px;">
+        <header class="modal-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:10px; background:rgba(20, 184, 166, 0.12); color:#0d9488; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="terminal" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700;">اسکریپت و راهنمای اتصال کلاینت DNS (DNSTT Client)</h3>
+                    <p style="margin:2px 0 0; font-size:11.5px; color:var(--text-muted);">تونل: <strong id="dns-script-modal-name" style="font-family:'JetBrains Mono'; color:#0d9488;">--</strong></p>
+                </div>
+            </div>
+            <button class="modal-close" onclick="closeDnsTunnelScriptModal()" type="button"><i data-lucide="x"></i></button>
+        </header>
+        <div class="modal-body" style="padding: 22px;">
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.6;">
+                دستورات زیر را می‌توانید در سرور کلاینت لینوکس یا نرم‌افزارهای کلاینت موبایل (مثل SlowDNS یا NapsternetV یا v2rayNG با DNSTT پلاگین) قرار دهید تا ترافیک را از بستر DNS عبور دهید:
+            </p>
+            <div style="position: relative; margin-bottom: 16px;">
+                <textarea id="dns-tunnel-script-code" readonly style="width: 100%; height: 260px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; background: #0f172a; color: #5eead4; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
+                <button type="button" class="btn btn-primary btn-sm" onclick="copyDnsTunnelScriptCode()" style="position: absolute; top: 12px; right: 12px; font-size: 11px; padding: 5px 12px; background: rgba(20, 184, 166, 0.2); border: 1px solid rgba(20, 184, 166, 0.4); color: #5eead4;">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                    <span>کپی دستورات</span>
+                </button>
+            </div>
+            <div style="background: rgba(20, 184, 166, 0.08); border: 1px solid rgba(20, 184, 166, 0.2); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #0f766e; line-height: 1.6;">
+                <strong>💡 نکته اتصال:</strong> در کلاینت‌های اندروید SlowDNS، تنها کافیست نام دامنه NS و کلید عمومی (Public Key) را وارد کنید و حالت را روی Direct UDP یا DoH تنظیم نمایید.
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+                <button class="btn btn-secondary" onclick="closeDnsTunnelScriptModal()" type="button">بستن</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 

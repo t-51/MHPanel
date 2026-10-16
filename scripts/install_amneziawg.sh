@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-PORT="${1:-51820}"
+PORT="${1:-51821}"
 SUBNET="${2:-10.77.77.0/24}"
 DNS="${3:-8.8.8.8, 1.1.1.1}"
 
@@ -96,7 +96,7 @@ fi
 
 cat > "${AMNEZIA_DIR}/awg0.conf" <<EOF
 [Interface]
-Address = ${SERVER_IP_BASE}/24
+Address = ${SERVER_IP_BASE}/24, fd77:77::1/64
 ListenPort = ${PORT}
 PrivateKey = ${SERVER_PRIVKEY}
 MTU = 1300
@@ -116,11 +116,15 @@ PostUp = iptables -I INPUT -p udp --dport ${PORT} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${IFACE} -o awg0 -j ACCEPT
 PostUp = iptables -I FORWARD -i awg0 -j ACCEPT
 PostUp = iptables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE
+PostUp = ip6tables -I FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostUp = ip6tables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 
-PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT
-PostDown = iptables -D FORWARD -i ${IFACE} -o awg0 -j ACCEPT
-PostDown = iptables -D FORWARD -i awg0 -j ACCEPT
-PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE
+PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i ${IFACE} -o awg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
+PostDown = ip6tables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostDown = ip6tables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 ${PEERS}
 EOF
 
@@ -128,6 +132,7 @@ chmod 600 "${AMNEZIA_DIR}/awg0.conf"
 
 systemctl daemon-reload
 systemctl enable awg-quick@awg0
+ip link del dev awg0 2>/dev/null || true
 systemctl restart awg-quick@awg0
 
 echo "[+] AmneziaWG installed and running on port UDP ${PORT} with Anti-DPI params:"

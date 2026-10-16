@@ -7,12 +7,20 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.3.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.4.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/مجوز-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/زبان‌ها-فارسی%20%7C%20انگلیسی%20%7C%20روسی-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 امکانات جدید در نسخه ۱.۴.۰ (New in v1.4.0)
+- 📱 **بهینه‌سازی کامل نسخه موبایل و تجربه کاربری لمسی (Mobile UX Overhaul):** نوار ناوبری اختصاصی و شناور پایین صفحه (Mobile Bottom Navigation Bar) برای دسترسی فوری با انگشت شست به داشبورد، پروتکل‌ها، استودیوی تونل‌ها، سرورها و دراور منوی کامل؛ مودال‌های پیشرفته واکنش‌گرا (Bottom Sheet) با هدر و فوتر چسبان (Sticky Header & Footer)؛ تنظیم اصولی تاچ تارگت‌ها و حذف زوم ناخواسته در گوشی‌های هوشمند و تبلت‌ها.
+- 🌐 **پشتیبانی کامل و دوطرفه از IPv6 در تمامی تونل‌ها (IPv6 Dual-Stack Tunnels):** تشخیص هوشمند آدرس‌های IPv6 در مبدا و مقصد اینترفیس‌ها، روتینگ خودکار با درایورهای کرنل لینوکس (`ip6gre`, `ip6gretap`, `ip6tnl`)، و صدور اسکریپت‌های دوگانه IPv4/IPv6 برای روترهای میکروتیک (RouterOS v7 و v6) با قوانین هوشمند فایروال و MSS Clamping.
+- 🛠️ **اصلاح اساسی و ارتقای AmneziaWG (AmneziaWG Fix & Obfuscation S2S):** رفع کامل تداخل پورت با وایرگارد و پاکسازی خودکار اینترفیس `awg0` هنگام استارت برای حل قطعی خطای `File exists`؛ فعال‌سازی ساب‌نت IPv6 دوگانه (`fd77:77::/64`) برای کلاینت‌ها؛ و پیاده‌سازی کامل تونل S2S کرنلی با پارامترهای استتار هدر و بسته‌های گمراه‌کننده (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
+- ⚡ **استودیوی کامل تونل‌های اختصاصی DNS (SlowDNS / DNSTT Studio):** راه‌اندازی و مدیریت گرافیکی تونل‌های DNS مبتنی بر DNSTT؛ قابلیت ایجاد تونل در هر دو حالت سرور خارج و کلاینت داخل؛ تولید خودکار جفت کلیدهای رمزنگاری مدرن Noise Curve25519؛ پایش وضعیت زنده سرویس‌ها در پس‌زمینه سیستم لینوکس با Systemd؛ و تولید خودکار دستورات اتصال برای سرورهای کلاینت و نرم‌افزارهای موبایل.
 
 ---
 
