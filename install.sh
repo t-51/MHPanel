@@ -276,11 +276,11 @@ resolve_clean_port() {
 # Protocol Detection
 protocol_is_installed() {
     case "$1" in
-        ssh) [ -f "/etc/ssh/sshd_config_vpn" ] ;;
-        openvpn) [ -f "/etc/openvpn/server.conf" ] ;;
+        ssh) [ -f "/etc/ssh/sshd_config_vpn" ] || [ -f "/etc/ssh/sshd_config" ] ;;
+        openvpn) [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ] ;;
         ocserv) [ -f "/etc/ocserv/ocserv.conf" ] ;;
-        ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] ;;
-        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] ;;
+        ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null) ;;
+        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] || [ -f "/etc/accel-ppp.conf" ] ;;
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
@@ -290,17 +290,17 @@ protocol_is_installed() {
         tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] && [ -x /usr/local/bin/tuic-server ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/mhpanel-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
-        badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
+        badvpn) [ -x /usr/local/bin/badvpn-udpgw ] || [ -x /usr/bin/badvpn-udpgw ] || [ -f "/etc/systemd/system/badvpn.service" ] || [ -f "/etc/systemd/system/videocall.service" ] ;;
         dnstt) [ -f "/etc/systemd/system/mhpanel-dnstt.service" ] && [ -x /usr/local/bin/dnstt-server ] ;;
         vaydns) [ -f "/etc/systemd/system/mhpanel-vaydns.service" ] && [ -x /usr/local/bin/vaydns-server ] ;;
         slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] && [ -x /usr/local/bin/slipstream-server ] ;;
-        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
-        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
-        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] && [ -x /usr/local/bin/hysteria ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] && [ -x /usr/local/bin/sing-box ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] && [ -x /usr/local/bin/sing-box ] ;;
         stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] && [ -x /usr/local/bin/stuntls-server ] ;;
         noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
         masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
-        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
         *) return 1 ;;
     esac
 }
@@ -308,19 +308,43 @@ protocol_is_installed() {
 protocol_service_status() {
     local svc=""
     case "$1" in
-        ssh) svc="sshd_vpn" ;;
-        openvpn) svc="openvpn@server" ;;
-        ocserv) svc="ocserv" ;;
-        ikev2)
-            for s in strongswan strongswan-swanctl strongswan-starter; do
+        ssh)
+            for s in mhpanel-ssh ssh-ws sshd_vpn sshd ssh; do
                 if systemctl is-active --quiet "$s" 2>/dev/null; then
                     svc="$s"
                     break
                 fi
             done
-            [ -z "$svc" ] && svc="strongswan"
+            [ -z "$svc" ] && svc="mhpanel-ssh"
             ;;
-        sstp) svc="sstpd" ;;
+        openvpn)
+            for s in openvpn-server@server openvpn-server@server-tcp openvpn@server openvpn; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="openvpn-server@server"
+            ;;
+        ocserv) svc="ocserv" ;;
+        ikev2)
+            for s in strongswan-starter strongswan strongswan-swanctl; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="strongswan-starter"
+            ;;
+        sstp)
+            for s in sstpd accel-ppp vpnserver; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="sstpd"
+            ;;
         l2tp) svc="xl2tpd" ;;
         wireguard) svc="wg-quick@wg0" ;;
         amneziawg) svc="awg-quick@awg0" ;;
@@ -329,8 +353,24 @@ protocol_service_status() {
         shadowsocks) svc="mhpanel-shadowsocks" ;;
         tuic) svc="mhpanel-tuic"; systemctl is-active --quiet "$svc" 2>/dev/null || svc="tuic-server" ;;
         mtproto) svc="mhpanel-mtproto" ;;
-        pptp) svc="pptpd" ;;
-        badvpn) svc="badvpn" ;;
+        pptp)
+            for s in pptpd mhpanel-pptp; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="pptpd"
+            ;;
+        badvpn)
+            for s in videocall badvpn; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="videocall"
+            ;;
         dnstt) svc="mhpanel-dnstt" ;;
         vaydns) svc="mhpanel-vaydns" ;;
         slipstream) svc="mhpanel-slipstream" ;;
@@ -639,20 +679,35 @@ EOF
 
 install_badvpn() {
     echo -e "    ${CYAN}--> Setting up BadVPN UDP-GW (Port 7300 for UDP gaming/voice forwarding)...${NC}"
+    if systemctl is-active --quiet videocall.service 2>/dev/null; then
+        echo -e "    ${GREEN}[✓] BadVPN UDPGW is already running via videocall.service on port 7300.${NC}"
+        return 0
+    fi
+
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
-        if [ -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" ]; then
-            cp -f "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" /usr/local/bin/badvpn-udpgw
-            chmod +x /usr/local/bin/badvpn-udpgw
-        else
-            mkdir -p /tmp/badvpn-build
-            cd /tmp/badvpn-build
-            if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
-                mkdir -p build && cd build
-                cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
-                make install >/dev/null 2>&1
+        for bdir in "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+            if [ -f "${bdir}/badvpn-udpgw" ]; then
+                cp -f "${bdir}/badvpn-udpgw" /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+                chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+                break
             fi
-            cd /root && rm -rf /tmp/badvpn-build
+        done
+    fi
+
+    if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/badvpn-udpgw -o /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+        chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+    fi
+
+    if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
+        mkdir -p /tmp/badvpn-build
+        cd /tmp/badvpn-build
+        if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
+            mkdir -p build && cd build
+            cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
+            make install >/dev/null 2>&1
         fi
+        cd /root && rm -rf /tmp/badvpn-build
     fi
 
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
@@ -690,12 +745,11 @@ install_tunnel_tools() {
     local count_downloaded=0
 
     # First: install repository bundled binaries if available
-    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+    for bdir in "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/bin" "${SCRIPT_DIR}/scripts/daemons" "/root/mhpanel-repo/bin"; do
         if [ -d "$bdir" ]; then
             echo "    Installing bundled binaries from ${bdir} to /usr/local/bin/..."
             cp -f "$bdir"/* /usr/local/bin/ 2>/dev/null || true
             chmod +x /usr/local/bin/* 2>/dev/null || true
-            break
         fi
     done
 
@@ -786,6 +840,22 @@ install_tunnel_tools() {
         fi
     fi
 
+    # Shadowsocks-rust (ssserver)
+    if [ ! -x /usr/local/bin/ssserver ]; then
+        echo "    Downloading Shadowsocks-rust (ssserver)..."
+        local arch="$(uname -m)"
+        local ss_arch="x86_64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && ss_arch="aarch64"
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/ssserver -o /usr/local/bin/ssserver 2>/dev/null || \
+        curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/shadowsocks/shadowsocks-rust/releases/download/v1.22.0/shadowsocks-v1.22.0.${ss_arch}-unknown-linux-gnu.tar.xz" 2>/dev/null | tar -xJ -C /usr/local/bin/ ssserver 2>/dev/null || true
+        chmod +x /usr/local/bin/ssserver 2>/dev/null || true
+        if [ -x /usr/local/bin/ssserver ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download ssserver. Check server internet access.${NC}"
+        fi
+    fi
+
     # StunTLS Server
     if [ ! -x /usr/local/bin/stuntls-server ]; then
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/stuntls-server -o /usr/local/bin/stuntls-server 2>/dev/null || true
@@ -805,6 +875,19 @@ install_tunnel_tools() {
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/masterdnsvpn-server -o /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
         chmod +x /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
         [ -x /usr/local/bin/masterdnsvpn-server ] && count_downloaded=$((count_downloaded + 1))
+    fi
+
+    # SSH-WS Proxy Daemon
+    if [ ! -f /usr/local/bin/ssh-ws-proxy.py ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/ssh-ws-proxy.py -o /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
+        chmod +x /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
+    fi
+
+    # BadVPN UDPGW
+    if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/badvpn-udpgw -o /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+        chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+        [ -x /usr/local/bin/badvpn-udpgw ] && count_downloaded=$((count_downloaded + 1))
     fi
 
     # Tor & Pluggable Transports
@@ -831,7 +914,8 @@ install_tunnel_tools() {
     # WSTunnel
     if [ ! -x /usr/local/bin/wstunnel ]; then
         echo "    Downloading WSTunnel..."
-        curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/wstunnel -o /usr/local/bin/wstunnel 2>/dev/null || \
+        (curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null || true)
         chmod +x /usr/local/bin/wstunnel 2>/dev/null || true
         if [ -x /usr/local/bin/wstunnel ]; then
             count_downloaded=$((count_downloaded + 1))
@@ -843,11 +927,15 @@ install_tunnel_tools() {
     # RTT
     if [ ! -x /usr/local/bin/rtt ]; then
         echo "    Downloading ReverseTlsTunnel (RTT)..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/rtt -o /usr/local/bin/rtt 2>/dev/null || \
         curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null || true
         if [ -f /tmp/rtt.zip ]; then
             unzip -o /tmp/rtt.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
             chmod +x /usr/local/bin/rtt 2>/dev/null || true
             rm -f /tmp/rtt.zip
+        fi
+        chmod +x /usr/local/bin/rtt 2>/dev/null || true
+        if [ -x /usr/local/bin/rtt ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download RTT. Check server internet access.${NC}"
@@ -857,7 +945,8 @@ install_tunnel_tools() {
     # Chisel
     if [ ! -x /usr/local/bin/chisel ]; then
         echo "    Downloading Chisel..."
-        curl -fsSL https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz 2>/dev/null | gzip -d > /usr/local/bin/chisel 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/chisel -o /usr/local/bin/chisel 2>/dev/null || \
+        (curl -fsSL https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz 2>/dev/null | gzip -d > /usr/local/bin/chisel 2>/dev/null || true)
         chmod +x /usr/local/bin/chisel 2>/dev/null || true
         if [ -x /usr/local/bin/chisel ]; then
             count_downloaded=$((count_downloaded + 1))
@@ -912,15 +1001,35 @@ install_tunnel_tools() {
     # Rathole
     if [ ! -x /usr/local/bin/rathole ]; then
         echo "    Downloading Rathole..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/rathole -o /usr/local/bin/rathole 2>/dev/null || \
         curl -fsSL https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-x86_64-unknown-linux-musl.zip -o /tmp/rathole.zip 2>/dev/null || true
         if [ -f /tmp/rathole.zip ]; then
             unzip -o /tmp/rathole.zip -d /tmp/ >/dev/null 2>&1 || true
             mv /tmp/rathole /usr/local/bin/ 2>/dev/null || true
             chmod +x /usr/local/bin/rathole 2>/dev/null || true
             rm -f /tmp/rathole*
+        fi
+        chmod +x /usr/local/bin/rathole 2>/dev/null || true
+        if [ -x /usr/local/bin/rathole ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download Rathole. Check server internet access.${NC}"
+        fi
+    fi
+
+    # Tun2Socks
+    if [ ! -x /usr/local/bin/tun2socks ]; then
+        echo "    Downloading Tun2Socks..."
+        local arch="$(uname -m)"
+        local t2s_arch="linux-amd64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && t2s_arch="linux-arm64"
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/tun2socks -o /usr/local/bin/tun2socks 2>/dev/null || \
+        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/xjasonlyu/tun2socks/releases/download/v2.5.2/tun2socks-${t2s_arch}.zip" -o /tmp/t2s.zip 2>/dev/null && unzip -o /tmp/t2s.zip -d /tmp/ >/dev/null 2>&1 && mv /tmp/tun2socks-* /usr/local/bin/tun2socks 2>/dev/null && rm -f /tmp/t2s.zip || true)
+        chmod +x /usr/local/bin/tun2socks 2>/dev/null || true
+        if [ -x /usr/local/bin/tun2socks ]; then
+            count_downloaded=$((count_downloaded + 1))
+        else
+            echo -e "    ${RED}[!] Warning: Failed to download Tun2Socks. Check server internet access.${NC}"
         fi
     fi
 
@@ -1630,6 +1739,10 @@ update_panel_repo() {
     fi
 
     chmod +x "${PANEL_DIR}/install.sh" "${PANEL_DIR}/scripts/"*.sh 2>/dev/null || true
+    if [ -d "${PANEL_DIR}/bin" ]; then
+        cp -f "${PANEL_DIR}/bin/"* /usr/local/bin/ 2>/dev/null || true
+        chmod +x /usr/local/bin/* 2>/dev/null || true
+    fi
     if [ -d "${PANEL_DIR}/scripts/daemons" ]; then
         cp -f "${PANEL_DIR}/scripts/daemons/"* /usr/local/bin/ 2>/dev/null || true
         chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py /usr/local/bin/badvpn-udpgw 2>/dev/null || true

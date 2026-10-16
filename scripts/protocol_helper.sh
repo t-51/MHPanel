@@ -184,11 +184,11 @@ setup_global_nat() {
 
 is_protocol_installed() {
     case "$1" in
-        ssh) [ -f "/etc/ssh/sshd_config_vpn" ] ;;
-        openvpn) [ -f "/etc/openvpn/server.conf" ] ;;
+        ssh) [ -f "/etc/ssh/sshd_config_vpn" ] || [ -f "/etc/ssh/sshd_config" ] ;;
+        openvpn) [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ] ;;
         ocserv) [ -f "/etc/ocserv/ocserv.conf" ] ;;
-        ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] ;;
-        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] ;;
+        ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null) ;;
+        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] || [ -f "/etc/accel-ppp.conf" ] ;;
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
@@ -201,15 +201,15 @@ is_protocol_installed() {
         slipstream) [ -f "/etc/systemd/system/mhpanel-slipstream.service" ] && [ -x /usr/local/bin/slipstream-server ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
         pptp) [ -f "/etc/pptpd.conf" ] && (command -v pptpd >/dev/null 2>&1 || [ -x /usr/sbin/pptpd ]) ;;
-        badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && (command -v badvpn-udpgw >/dev/null 2>&1 || [ -x /usr/local/bin/badvpn-udpgw ]) ;;
+        badvpn) [ -x /usr/local/bin/badvpn-udpgw ] || [ -x /usr/bin/badvpn-udpgw ] || [ -f "/etc/systemd/system/badvpn.service" ] || [ -f "/etc/systemd/system/videocall.service" ] ;;
         l2tpv3) [ -f "/etc/vpnpanel/l2tpv3_config.json" ] ;;
-        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
-        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
-        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] && [ -x /usr/local/bin/hysteria ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] && [ -x /usr/local/bin/sing-box ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] && [ -x /usr/local/bin/sing-box ] ;;
         stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] && [ -x /usr/local/bin/stuntls-server ] ;;
         noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
         masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
-        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
         *) return 1 ;;
     esac
 }
@@ -528,18 +528,118 @@ install_ikev2() {
     local dns1=$(get_setting "ikev2_dns1" "8.8.8.8")
     local dns2=$(get_setting "ikev2_dns2" "8.8.4.4")
 
-    apt-get update -y && apt-get install -y strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins strongswan-swanctl
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y >/dev/null 2>&1 || true
+    apt-get install -y strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins strongswan-swanctl >/dev/null 2>&1 || true
     generate_certs
     
-    # Copy Certs for strongSwan swanctl (avoid symlinks due to AppArmor policy)
-    mkdir -p /etc/swanctl/x509ca /etc/swanctl/x509 /etc/swanctl/private /etc/swanctl/conf.d
+    local server_ip=$(get_server_ip)
+
+    # Copy Certs for strongSwan ipsec.d (classical starter) and swanctl (VICI)
+    mkdir -p /etc/ipsec.d/cacerts /etc/ipsec.d/certs /etc/ipsec.d/private /etc/swanctl/x509ca /etc/swanctl/x509 /etc/swanctl/private /etc/swanctl/conf.d
+    cp -f "${CA_CERT}" /etc/ipsec.d/cacerts/ca-cert.pem
+    cp -f "${SERVER_CERT}" /etc/ipsec.d/certs/server-cert.pem
+    cp -f "${SERVER_KEY}" /etc/ipsec.d/private/server-key.pem
+    if [ -f "${CA_KEY}" ]; then cp -f "${CA_KEY}" /etc/ipsec.d/private/ca-key.pem; fi
+    chmod 644 /etc/ipsec.d/cacerts/ca-cert.pem /etc/ipsec.d/certs/server-cert.pem
+    chmod 600 /etc/ipsec.d/private/server-key.pem
+
     cp -f "${CA_CERT}" /etc/swanctl/x509ca/ca.crt
     cp -f "${SERVER_CERT}" /etc/swanctl/x509/vpn-server.crt
     cp -f "${SERVER_KEY}" /etc/swanctl/private/vpn-server.key
     chmod 644 /etc/swanctl/x509ca/ca.crt /etc/swanctl/x509/vpn-server.crt
     chmod 600 /etc/swanctl/private/vpn-server.key
     
-    # Create IKEv2 Config
+    # Preserve existing L2TP-PSK in /etc/ipsec.conf if present
+    local existing_l2tp=""
+    if [ -f /etc/ipsec.conf ] && grep -q "conn L2TP-PSK" /etc/ipsec.conf 2>/dev/null; then
+        existing_l2tp=$(sed -n '/conn L2TP-PSK/,$p' /etc/ipsec.conf)
+    else
+        existing_l2tp="conn L2TP-PSK
+    auto=add
+    keyexchange=ikev1
+    type=transport
+    authby=secret
+    left=%any
+    leftid=%any
+    leftprotoport=17/1701
+    right=%any
+    rightid=%any
+    rightprotoport=17/%any
+    rekey=no
+    dpdaction=clear
+    dpddelay=30s
+    ike=aes256-sha1-ecp384,aes128-sha1-ecp256,aes256-sha256-modp2048,aes256-sha256-modp1024,aes256-sha1-modp2048,aes256-sha1-modp1024,aes128-sha256-modp2048,aes128-sha1-modp1024,3des-sha256-modp2048,3des-sha1-modp1024!
+    esp=aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha256,3des-sha1!"
+    fi
+
+    cat > /etc/ipsec.conf <<EOF
+config setup
+    charondebug="ike 1, knl 1, cfg 0"
+    uniqueids=no
+
+conn %default
+    ikelifetime=60m
+    keylife=20m
+    rekeymargin=3m
+    keyingtries=1
+    authby=secret
+
+conn ikev2-vpn
+    auto=add
+    compress=no
+    type=tunnel
+    keyexchange=ikev2
+    fragmentation=yes
+    forceencaps=yes
+    dpdaction=clear
+    dpddelay=300s
+    rekey=no
+    left=%any
+    leftid=${server_ip}
+    leftcert=server-cert.pem
+    leftsendcert=always
+    leftsubnet=0.0.0.0/0
+    right=%any
+    rightid=%any
+    rightauth=eap-radius
+    rightsourceip=10.10.10.10-10.10.10.250
+    rightdns=${dns1},${dns2}
+    rightsendcert=never
+    eap_identity=%identity
+    ike=aes256-sha256-curve25519,aes128-sha256-curve25519,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!
+    esp=aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1!
+
+${existing_l2tp}
+EOF
+
+    # Configure /etc/ipsec.secrets for strongSwan
+    if [ ! -f /etc/ipsec.secrets ] || ! grep -q "RSA server-key.pem" /etc/ipsec.secrets 2>/dev/null; then
+        echo ": RSA server-key.pem" >> /etc/ipsec.secrets
+    fi
+    if ! grep -q "PSK " /etc/ipsec.secrets 2>/dev/null; then
+        echo ': PSK "123456789"' >> /etc/ipsec.secrets
+        echo '%any %any : PSK "123456789"' >> /etc/ipsec.secrets
+    fi
+    chmod 600 /etc/ipsec.secrets
+
+    # Configure FreeRADIUS EAP plugin for charon
+    mkdir -p /etc/strongswan.d/charon
+    cat > /etc/strongswan.d/charon/eap-radius.conf <<EOF
+eap-radius {
+    load = yes
+    servers {
+        primary {
+            address = 127.0.0.1
+            secret = testing123
+            auth_port = 1812
+            acct_port = 1813
+        }
+    }
+}
+EOF
+
+    # Create IKEv2 Config for swanctl (VICI)
     cat > /etc/swanctl/conf.d/ikev2.conf <<EOF
 connections {
     ikev2-vpn {
@@ -591,41 +691,56 @@ EOF
     allow_port "500" "udp"
     allow_port "4500" "udp"
     
-    # Determine the active or primary strongswan service
-    local svc_name="strongswan"
-    if systemctl is-active --quiet strongswan 2>/dev/null || [ -f /usr/lib/systemd/system/strongswan.service ] || [ -f /lib/systemd/system/strongswan.service ] || [ -f /etc/systemd/system/strongswan.service ]; then
-        svc_name="strongswan"
-    elif [ -f /usr/lib/systemd/system/strongswan-swanctl.service ] || [ -f /lib/systemd/system/strongswan-swanctl.service ] || [ -f /etc/systemd/system/strongswan-swanctl.service ]; then
-        svc_name="strongswan-swanctl"
-    elif [ -f /usr/lib/systemd/system/strongswan-starter.service ] || [ -f /lib/systemd/system/strongswan-starter.service ] || [ -f /etc/systemd/system/strongswan-starter.service ]; then
-        svc_name="strongswan-starter"
+    # Determine the actual strongswan service
+    local svc_name="strongswan-starter"
+    for s in strongswan-starter strongswan-swanctl strongswan; do
+        if [ -f "/usr/lib/systemd/system/${s}.service" ] || [ -f "/lib/systemd/system/${s}.service" ] || [ -f "/etc/systemd/system/${s}.service" ]; then
+            svc_name="$s"
+            break
+        fi
+    done
+
+    # Create systemd alias so systemctl restart strongswan works reliably
+    if [ "$svc_name" != "strongswan" ] && [ ! -f /etc/systemd/system/strongswan.service ]; then
+        local src_unit="/lib/systemd/system/${svc_name}.service"
+        [ -f "/usr/lib/systemd/system/${svc_name}.service" ] && src_unit="/usr/lib/systemd/system/${svc_name}.service"
+        ln -sf "${src_unit}" /etc/systemd/system/strongswan.service 2>/dev/null || true
     fi
 
     echo "Enabling and starting strongSwan service: ${svc_name}"
     systemctl daemon-reload
     systemctl enable "${svc_name}" 2>/dev/null || true
     systemctl restart "${svc_name}" 2>/dev/null || true
+    systemctl enable strongswan 2>/dev/null || true
+    systemctl restart strongswan 2>/dev/null || true
     
-    # Wait a few seconds to let charon initialize and create the vici socket
+    # Wait a few seconds to let charon initialize
     sleep 2
+    if command -v ipsec >/dev/null 2>&1; then
+        ipsec update 2>/dev/null || true
+        ipsec reload 2>/dev/null || true
+    fi
     if command -v swanctl >/dev/null 2>&1; then
         swanctl --load-all 2>/dev/null || true
+    fi
+    echo "IKEv2 successfully installed and activated."
+}
+
+uninstall_ikev2() {
+    for s in strongswan strongswan-swanctl strongswan-starter; do
+        systemctl stop "$s" 2>/dev/null || true
+        systemctl disable "$s" 2>/dev/null || true
+    done
+    deny_port "500" "udp"
+    deny_port "4500" "udp"
+    rm -f /etc/swanctl/conf.d/ikev2.conf
+    if [ -f /etc/ipsec.conf ]; then
+        sed -i '/conn ikev2-vpn/,/^conn / { /^conn ikev2-vpn/d; /^conn /!d; }' /etc/ipsec.conf 2>/dev/null || true
     fi
     if command -v ipsec >/dev/null 2>&1; then
         ipsec update 2>/dev/null || true
     fi
-}
-
-uninstall_ikev2() {
-    systemctl stop strongswan 2>/dev/null || true
-    systemctl disable strongswan 2>/dev/null || true
-    systemctl stop strongswan-swanctl 2>/dev/null || true
-    systemctl disable strongswan-swanctl 2>/dev/null || true
-    systemctl stop strongswan-starter 2>/dev/null || true
-    systemctl disable strongswan-starter 2>/dev/null || true
-    deny_port "500" "udp"
-    deny_port "4500" "udp"
-    rm -f /etc/swanctl/conf.d/ikev2.conf
+    echo "IKEv2 uninstalled."
 }
 
 # ----------------- SSTP PROTOCOL -----------------
@@ -639,33 +754,84 @@ install_sstp() {
     local remote_start="${subnet%.*}.10"
     local remote_end="${subnet%.*}.254"
 
-    apt-get update -y
-    apt-get install -y ppp curl git libpam-radius-auth iproute2
-    
-    # Try installing accel-ppp from repositories. If it fails, compile from source.
-    if ! apt-get install -y accel-ppp; then
-        echo "accel-ppp package not found in repositories. Compiling from source..."
-        
-        # Install build dependencies
-        apt-get install -y build-essential cmake gcc git libpcre2-dev libssl-dev liblua5.1-0-dev linux-headers-$(uname -r)
-        
-        # Clone, build, and package accel-ppp without IPOE/VLAN modules to avoid kernel source compilation requirements
-        rm -rf /usr/src/accel-ppp
-        git clone https://github.com/accel-ppp/accel-ppp.git /usr/src/accel-ppp
-        mkdir -p /usr/src/accel-ppp/build
-        cd /usr/src/accel-ppp/build
-        cmake -DBUILD_IPOE_DRIVER=FALSE -DBUILD_VLAN_MON_DRIVER=FALSE -DCMAKE_INSTALL_PREFIX=/usr -DKDIR=/usr/src/linux-headers-$(uname -r) -DLUA=TRUE ..
-        make -j$(nproc)
-        cpack -G DEB
-        dpkg -i accel-ppp*.deb || apt-get install -f -y
-        
-        # Cleanup
-        cd -
-        rm -rf /usr/src/accel-ppp
-    fi
+    apt-get update -y >/dev/null 2>&1 || true
+    apt-get install -y ppp curl git libpam-radius-auth iproute2 python3-pip >/dev/null 2>&1 || true
     generate_certs
 
     mkdir -p /etc/accel-ppp /var/log/accel-ppp /etc/ppp/ip-up.d /etc/ppp/ip-down.d
+
+    cat > /etc/ppp/options.sstpd <<EOF
+name sstpd
+debug
+dump
+logfd 2
+ipcp-accept-local
+ipcp-accept-remote
+idle 1800
+mtu 1400
+mru 1400
+proxyarp
+lcp-echo-failure 4
+lcp-echo-interval 30
+ms-dns ${dns1}
+ms-dns ${dns2}
+nodefaultroute
+require-mppe-128
+mppe-stateful
+require-mschap-v2
+refuse-mschap
+refuse-chap
+refuse-pap
+refuse-eap
+plugin radius.so
+radius-config-file /etc/radcli/radiusclient.conf
+EOF
+
+    # If sstpd Python binary is available or can be installed via pip, use it directly (super fast, robust)
+    if [ ! -x /usr/local/bin/sstpd ]; then
+        pip3 install sstp-server --break-system-packages >/dev/null 2>&1 || pip install sstp-server >/dev/null 2>&1 || true
+    fi
+
+    if [ -x /usr/local/bin/sstpd ]; then
+        cat > /etc/systemd/system/sstpd.service <<EOF
+[Unit]
+Description=SSTP Server Daemon (sstpd)
+After=network.target freeradius.service
+Wants=freeradius.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p ${port} -c ${SERVER_CERT} -k ${SERVER_KEY} --local ${local_ip} --remote ${subnet%.*}.0/24 --range ${remote_start}-${remote_end} --pppd-config /etc/ppp/options.sstpd --ciphers "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4"
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        allow_port "${port}" "tcp"
+        systemctl daemon-reload
+        systemctl enable sstpd >/dev/null 2>&1
+        systemctl restart sstpd
+        echo "SSTP (sstpd) installed on TCP port ${port}."
+        return 0
+    fi
+
+    # Fallback to accel-ppp if sstpd could not be installed
+    if ! apt-get install -y accel-ppp; then
+        echo "accel-ppp package not found in repositories. Compiling from source..."
+        apt-get install -y build-essential cmake gcc git libpcre2-dev libssl-dev liblua5.1-0-dev linux-headers-$(uname -r) >/dev/null 2>&1 || true
+        rm -rf /usr/src/accel-ppp
+        git clone https://github.com/accel-ppp/accel-ppp.git /usr/src/accel-ppp >/dev/null 2>&1 || true
+        mkdir -p /usr/src/accel-ppp/build
+        cd /usr/src/accel-ppp/build 2>/dev/null || true
+        cmake -DBUILD_IPOE_DRIVER=FALSE -DBUILD_VLAN_MON_DRIVER=FALSE -DCMAKE_INSTALL_PREFIX=/usr -DKDIR=/usr/src/linux-headers-$(uname -r) -DLUA=TRUE .. >/dev/null 2>&1 || true
+        make -j$(nproc) >/dev/null 2>&1 || true
+        cpack -G DEB >/dev/null 2>&1 || true
+        dpkg -i accel-ppp*.deb 2>/dev/null || apt-get install -f -y >/dev/null 2>&1 || true
+        cd - >/dev/null 2>&1 || true
+        rm -rf /usr/src/accel-ppp
+    fi
 
     local auth_line="mschap-v2"
     local auth_module="auth_mschap_v2"
@@ -1342,11 +1508,11 @@ EOF
         sed -i -E "s/\"server_port\":\s*[0-9]+/\"server_port\": ${port}/g" "${config}"
     fi
 
-    if [ ! -x /usr/local/bin/ssserver ]; then
+    local arch="$(uname -m)"
+    local ss_arch="x86_64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then ss_arch="aarch64"; fi
+    if ! ensure_binary "ssserver" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/ssserver"; then
         echo "    Downloading Shadowsocks-rust server (ssserver)..."
-        local arch="$(uname -m)"
-        local ss_arch="x86_64"
-        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then ss_arch="aarch64"; fi
         curl -fsSL "https://github.com/shadowsocks/shadowsocks-rust/releases/download/v1.22.0/shadowsocks-v1.22.0.${ss_arch}-unknown-linux-gnu.tar.xz" 2>/dev/null | tar -xJ -C /usr/local/bin/ ssserver 2>/dev/null || true
         chmod +x /usr/local/bin/ssserver 2>/dev/null || true
     fi
@@ -2101,13 +2267,18 @@ install_dnstt() {
         /usr/local/bin/dnstt-server -gen-key -privkey-file /etc/dnstt/server.key -pubkey-file /etc/dnstt/server.pub || true
     fi
 
-    local domain="t.kigaping.com"
-    local upstream="127.0.0.1:1080"
+    local pubkey=""
+    if [ -f /etc/dnstt/server.pub ]; then
+        pubkey=$(cat /etc/dnstt/server.pub | tr -d '\r\n ')
+    fi
+
+    local domain="t.vpn.kigaping.com"
+    local upstream="127.0.0.1:22"
     local mtu=1232
 
     if [ -f /etc/vpnpanel/dnstt.json ]; then
-        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
-        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.vpn.kigaping.com")
+        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:22")
         mtu=$(grep -oE '"mtu":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "1232")
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/dnstt.json
     else
@@ -2116,7 +2287,8 @@ install_dnstt() {
   "port": ${port},
   "domain": "${domain}",
   "upstream": "${upstream}",
-  "mtu": ${mtu}
+  "mtu": ${mtu},
+  "pubkey": "${pubkey}"
 }
 EOF
     fi
@@ -2184,12 +2356,17 @@ install_vaydns() {
         /usr/local/bin/vaydns-server -gen-key -privkey-file /etc/vaydns/server.key -pubkey-file /etc/vaydns/server.pub || true
     fi
 
-    local domain="t.kigaping.com"
-    local upstream="127.0.0.1:1080"
+    local pubkey_v=""
+    if [ -f /etc/vaydns/server.pub ]; then
+        pubkey_v=$(cat /etc/vaydns/server.pub | tr -d '\r\n ')
+    fi
+
+    local domain="v.vpn.kigaping.com"
+    local upstream="127.0.0.1:22"
 
     if [ -f /etc/vpnpanel/vaydns.json ]; then
-        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
-        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "v.vpn.kigaping.com")
+        upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:22")
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/vaydns.json
     else
         cat > /etc/vpnpanel/vaydns.json <<EOF
@@ -2197,7 +2374,8 @@ install_vaydns() {
   "port": ${port},
   "domain": "${domain}",
   "upstream": "${upstream}",
-  "dnstt_compat": true
+  "dnstt_compat": true,
+  "pubkey": "${pubkey_v}"
 }
 EOF
     fi
@@ -2538,7 +2716,7 @@ print_status_report() {
 
     # 2. Protocols Status
     echo -e "VPN Protocols Status:"
-    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor")
+    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "badvpn" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor")
     for proto in "${protocols[@]}"; do
         local inst="No"
         local act="Inactive"
@@ -2547,23 +2725,22 @@ print_status_report() {
         
         case "$proto" in
             ssh)
-                if [ -f "/etc/ssh/sshd_config_vpn" ]; then
-                    port=$(grep -Ei '^Port ' /etc/ssh/sshd_config_vpn | awk '{print $2}' || echo "2222")
+                if [ -f "/etc/ssh/sshd_config_vpn" ] || [ -f "/etc/ssh/sshd_config" ]; then
+                    port=$(grep -Ei '^Port ' /etc/ssh/sshd_config_vpn /etc/ssh/sshd_config 2>/dev/null | awk '{print $2}' | head -n1)
+                    port=${port:-22}
                     inst="Yes"
-                else
-                    inst="No"
-                    port="-"
-                fi
-                if systemctl is-active mhpanel-ssh >/dev/null 2>&1; then
-                    act="Active"
-                    conn=$(get_connections_count "ssh" "$port")
+                    if [ "$(service_status mhpanel-ssh ssh-ws sshd ssh)" = "active" ]; then
+                        act="Active"
+                        conn=$(get_connections_count "ssh" "$port")
+                    fi
                 fi
                 ;;
             openvpn)
-                if [ -f "/etc/openvpn/server.conf" ]; then
+                if [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ]; then
                     inst="Yes"
-                    port=$(grep -Ei '^port ' /etc/openvpn/server.conf | awk '{print $2}' || echo "1194")
-                    if systemctl is-active openvpn@server >/dev/null 2>&1; then
+                    port=$(grep -Ei '^port ' /etc/openvpn/server.conf /etc/openvpn/server/server.conf /etc/openvpn/server-tcp.conf 2>/dev/null | awk '{print $2}' | head -n1)
+                    port=${port:-1194}
+                    if [ "$(service_status openvpn-server@server openvpn-server@server-tcp openvpn@server openvpn)" = "active" ]; then
                         act="Active"
                         conn=$(get_connections_count "openvpn" "$port")
                     fi
@@ -2580,7 +2757,7 @@ print_status_report() {
                 fi
                 ;;
             ikev2)
-                if [ -f "/etc/swanctl/conf.d/ikev2.conf" ]; then
+                if [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null); then
                     inst="Yes"
                     port="500/4500 (UDP)"
                     if [ "$(service_status strongswan-starter strongswan strongswan-swanctl)" = "active" ]; then
@@ -2590,7 +2767,7 @@ print_status_report() {
                 fi
                 ;;
             sstp)
-                if [ -f "/etc/systemd/system/sstpd.service" ]; then
+                if [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/accel-ppp.conf" ]; then
                     inst="Yes"
                     port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || true); port=${port:-$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' || true)}; port=${port:-4443}
                     if systemctl is-active sstpd >/dev/null 2>&1; then
@@ -2601,15 +2778,23 @@ print_status_report() {
                 ;;
             pptp)
                 if [ -f "/etc/pptpd.conf" ]; then
-                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+                    port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1)
+                    port=${port:-1723}
                     inst="Yes"
-                else
-                    inst="No"
-                    port="-"
+                    if [ "$(service_status pptpd mhpanel-pptp)" = "active" ]; then
+                        act="Active"
+                        conn=$(get_connections_count "pptp" "$port")
+                    fi
                 fi
-                if systemctl is-active mhpanel-pptp >/dev/null 2>&1; then
-                    act="Active"
-                    conn=$(get_connections_count "pptp" "$port")
+                ;;
+            badvpn)
+                if [ -x /usr/local/bin/badvpn-udpgw ] || [ -x /usr/bin/badvpn-udpgw ] || [ -f "/etc/systemd/system/badvpn.service" ] || [ -f "/etc/systemd/system/videocall.service" ]; then
+                    inst="Yes"
+                    port="7300 (UDP)"
+                    if [ "$(service_status badvpn videocall)" = "active" ]; then
+                        act="Active"
+                        conn="0"
+                    fi
                 fi
                 ;;
             l2tp)
@@ -2794,7 +2979,8 @@ print_status_report() {
             tor)
                 if [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ]; then
                     inst="Yes"
-                    port=$(grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' || echo "9001")
+                    port=$(grep -E '^\s*ORPort\s+[0-9]+' /etc/tor/torrc 2>/dev/null | awk '{print $2}' | tail -n1)
+                    port=${port:-9001}
                     if systemctl is-active mhpanel-tor >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tor" "$port")
@@ -3097,10 +3283,10 @@ case "${ACTION}" in
         ;;
     status)
         case "${PROTOCOL}" in
-            ssh) service_status mhpanel-ssh ;;
-            openvpn) service_status openvpn@server ;;
+            ssh) service_status mhpanel-ssh ssh-ws sshd ssh ;;
+            openvpn) service_status openvpn-server@server openvpn-server@server-tcp openvpn@server openvpn ;;
             ocserv) service_status ocserv ;;
-            ikev2) service_status strongswan strongswan-swanctl strongswan-starter ;;
+            ikev2) service_status strongswan-starter strongswan strongswan-swanctl ;;
             sstp) service_status sstpd ;;
             l2tp) service_status xl2tpd ;;
             l2tpv3) service_status mhpanel-l2tpv3 ;;
@@ -3122,7 +3308,8 @@ case "${ACTION}" in
                     echo "inactive"
                 fi
                 ;;
-            pptp) service_status mhpanel-pptp ;;
+            pptp) service_status pptpd mhpanel-pptp ;;
+            badvpn) service_status badvpn videocall ;;
             hysteria2) service_status mhpanel-hysteria2 ;;
             trojan) service_status mhpanel-trojan ;;
             naiveproxy) service_status mhpanel-naiveproxy ;;
@@ -3138,10 +3325,10 @@ case "${ACTION}" in
         ;;
     logs)
         case "${PROTOCOL}" in
-            ssh) journalctl -u mhpanel-ssh -n 100 --no-pager ;;
-            openvpn) journalctl -u openvpn@server -n 100 --no-pager ;;
+            ssh) journalctl -u mhpanel-ssh -u ssh-ws -u ssh -n 100 --no-pager ;;
+            openvpn) journalctl -u openvpn-server@server -u openvpn-server@server-tcp -u openvpn@server -n 100 --no-pager ;;
             ocserv) journalctl -u ocserv -n 100 --no-pager ;;
-            ikev2) journalctl -u strongswan -u strongswan-swanctl -u strongswan-starter -n 100 --no-pager ;;
+            ikev2) journalctl -u strongswan-starter -u strongswan -u strongswan-swanctl -n 100 --no-pager ;;
             sstp) journalctl -u sstpd -n 100 --no-pager ;;
             l2tp) journalctl -u xl2tpd -n 100 --no-pager ;;
             l2tpv3) journalctl -u mhpanel-l2tpv3 -n 100 --no-pager ;;
@@ -3154,8 +3341,9 @@ case "${ACTION}" in
             dnstt) journalctl -u mhpanel-dnstt -n 100 --no-pager ;;
             vaydns) journalctl -u mhpanel-vaydns -n 100 --no-pager ;;
             slipstream) journalctl -u mhpanel-slipstream -n 100 --no-pager ;;
-            mtproto) journalctl -u mhpanel-mtproto -n 100 --no-pager ;;
-            pptp) journalctl -u mhpanel-pptp -n 100 --no-pager ;;
+            mtproto) journalctl -u 'mhpanel-mtproto@*' -n 100 --no-pager ;;
+            pptp) journalctl -u pptpd -u mhpanel-pptp -n 100 --no-pager ;;
+            badvpn) journalctl -u badvpn -u videocall -n 100 --no-pager ;;
             hysteria2) journalctl -u mhpanel-hysteria2 -n 100 --no-pager ;;
             trojan) journalctl -u mhpanel-trojan -n 100 --no-pager ;;
             naiveproxy) journalctl -u mhpanel-naiveproxy -n 100 --no-pager ;;

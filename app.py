@@ -468,15 +468,17 @@ def is_installed(protocol):
     if protocol == "ssh":
         return os.path.exists("/etc/ssh/sshd_config") or os.path.exists("/etc/ssh/sshd_config_vpn")
     elif protocol == "openvpn":
-        return os.path.exists("/etc/openvpn/server/server.conf") or os.path.exists("/etc/openvpn/server.conf")
+        return os.path.exists("/etc/openvpn/server/server.conf") or os.path.exists("/etc/openvpn/server.conf") or os.path.exists("/etc/openvpn/server-tcp.conf")
     elif protocol == "ocserv":
         return os.path.exists("/etc/ocserv/ocserv.conf")
     elif protocol == "ikev2":
         return os.path.exists("/etc/ipsec.conf") or os.path.exists("/etc/swanctl/conf.d/ikev2.conf")
     elif protocol == "sstp":
-        return os.path.exists("/etc/systemd/system/sstpd.service")
+        return os.path.exists("/etc/systemd/system/sstpd.service") or os.path.exists("/etc/systemd/system/vpnserver.service") or os.path.exists("/etc/accel-ppp.conf")
     elif protocol == "pptp":
         return os.path.exists("/etc/pptpd.conf")
+    elif protocol == "badvpn":
+        return os.path.exists("/usr/local/bin/badvpn-udpgw") or os.path.exists("/usr/bin/badvpn-udpgw") or os.path.exists("/etc/systemd/system/videocall.service") or os.path.exists("/etc/systemd/system/badvpn.service")
     elif protocol == "l2tp":
         return os.path.exists("/etc/xl2tpd/xl2tpd.conf")
     elif protocol == "wireguard":
@@ -490,7 +492,8 @@ def is_installed(protocol):
     elif protocol == "shadowsocks":
         return os.path.exists("/etc/systemd/system/mhpanel-shadowsocks.service")
     elif protocol == "mtproto":
-        return os.path.exists("/etc/systemd/system/mhpanel-mtproto@.service")
+        import glob
+        return bool(glob.glob("/etc/vpnpanel/mtproto_config_*.py")) or os.path.exists("/etc/systemd/system/mhpanel-mtproto@.service") or os.path.exists("/etc/systemd/system/mhpanel-mtproto.service")
     elif protocol == "tuic":
         return os.path.exists("/usr/local/bin/tuic-server") or os.path.exists("/etc/systemd/system/mhpanel-tuic.service")
     elif protocol == "dnstt":
@@ -506,11 +509,11 @@ def is_installed(protocol):
     elif protocol == "naiveproxy":
         return os.path.exists("/etc/vpnpanel/naiveproxy.json") and (os.path.exists("/usr/local/bin/sing-box") or os.path.exists("/etc/systemd/system/mhpanel-naiveproxy.service"))
     elif protocol == "stuntls":
-        return os.path.exists("/etc/vpnpanel/stuntls.json") and os.path.exists("/etc/systemd/system/mhpanel-stuntls.service")
+        return os.path.exists("/etc/vpnpanel/stuntls.json") and (os.path.exists("/usr/local/bin/stuntls-server") or os.path.exists("/etc/systemd/system/mhpanel-stuntls.service"))
     elif protocol == "noizdns":
-        return os.path.exists("/etc/vpnpanel/noizdns.json") and os.path.exists("/etc/systemd/system/mhpanel-noizdns.service")
+        return os.path.exists("/etc/vpnpanel/noizdns.json") and (os.path.exists("/usr/local/bin/noizdns-server") or os.path.exists("/etc/systemd/system/mhpanel-noizdns.service"))
     elif protocol == "masterdnsvpn":
-        return os.path.exists("/etc/vpnpanel/masterdnsvpn.json") and os.path.exists("/etc/systemd/system/mhpanel-masterdnsvpn.service")
+        return os.path.exists("/etc/vpnpanel/masterdnsvpn.json") and (os.path.exists("/usr/local/bin/masterdnsvpn-server") or os.path.exists("/etc/systemd/system/mhpanel-masterdnsvpn.service"))
     elif protocol == "tor":
         return os.path.exists("/etc/tor/torrc") and (os.path.exists("/etc/systemd/system/mhpanel-tor.service") or os.path.exists("/usr/bin/tor"))
     return False
@@ -2668,27 +2671,66 @@ def get_service_names(protocol):
             services = ["mhpanel-mtproto@4433"]
         return services
     elif protocol == "ssh":
-        for s in ["ssh", "sshd", "mhpanel-ssh"]:
+        for s in ["mhpanel-ssh", "ssh-ws", "sshd_vpn", "ssh", "sshd"]:
             res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
-            if res.stdout.strip() in ["active", "inactive"]: return [s]
+            if res.stdout.strip() == "active": return [s]
+        for s in ["mhpanel-ssh", "sshd_vpn", "ssh", "sshd"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "inactive": return [s]
         return ["ssh"]
     elif protocol == "openvpn":
-        for s in ["openvpn-server@server", "openvpn@server"]:
+        svcs = []
+        for s in ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]:
             res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
-            if res.stdout.strip() in ["active", "inactive"]: return [s]
-        return ["openvpn-server@server"]
+            if res.stdout.strip() == "active":
+                svcs.append(s)
+        if svcs:
+            return svcs
+        for s in ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "inactive":
+                svcs.append(s)
+        return svcs if svcs else ["openvpn-server@server"]
     elif protocol == "ocserv":
         return ["ocserv"]
     elif protocol == "ikev2":
         return [get_ikev2_service_name()]
     elif protocol == "sstp":
+        for s in ["sstpd", "accel-ppp", "vpnserver"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "active":
+                return [s]
+        for s in ["sstpd", "accel-ppp", "vpnserver"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "inactive":
+                return [s]
         return ["sstpd"]
     elif protocol == "pptp":
-        return ["mhpanel-pptp"]
+        for s in ["pptpd", "mhpanel-pptp"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "active":
+                return [s]
+        for s in ["pptpd", "mhpanel-pptp"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "inactive":
+                return [s]
+        return ["pptpd"]
+    elif protocol == "badvpn":
+        for s in ["videocall", "badvpn"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "active":
+                return [s]
+        for s in ["videocall", "badvpn"]:
+            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
+            if res.stdout.strip() == "inactive":
+                return [s]
+        return ["videocall"]
     elif protocol == "l2tp":
         return ["xl2tpd", get_ikev2_service_name()]
     elif protocol == "wireguard":
         return ["wg-quick@wg0", "mhpanel-wg-radius"]
+    elif protocol == "amneziawg":
+        return ["awg-quick@awg0"]
     elif protocol == "http":
         return ["mhpanel-http-proxy"]
     elif protocol == "socks":
@@ -2793,17 +2835,21 @@ def api_protocols_advanced_logs(protocol):
         return jsonify({"error": "Unauthorized"}), 401
     
     services = []
-    if protocol == "ssh": services = ["mhpanel-ssh"]
-    elif protocol == "openvpn": services = ["openvpn@server"]
+    if protocol == "ssh": services = ["mhpanel-ssh", "ssh-ws", "sshd_vpn", "ssh", "sshd"]
+    elif protocol == "openvpn": services = ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]
     elif protocol == "ocserv": services = ["ocserv"]
     elif protocol == "ikev2": services = [get_ikev2_service_name()]
-    elif protocol == "sstp": services = ["sstpd", "vpnserver"]
+    elif protocol == "sstp": services = ["sstpd", "accel-ppp", "vpnserver"]
     elif protocol == "l2tp": services = ["xl2tpd"]
-    elif protocol == "pptp": services = ["mhpanel-pptp"]
+    elif protocol == "pptp": services = ["pptpd", "mhpanel-pptp"]
+    elif protocol == "badvpn": services = ["videocall", "badvpn"]
     elif protocol == "wireguard": services = ["wg-quick@wg0"]
     elif protocol == "amneziawg": services = ["awg-quick@awg0"]
     elif protocol == "mtproto": services = ["mhpanel-mtproto*"]
-    else: return jsonify({"error": "Unknown protocol"}), 400
+    else:
+        services = get_service_names(protocol)
+        if not services:
+            return jsonify({"error": "Unknown protocol"}), 400
     
     cmd = ["journalctl"]
     for svc in services:
