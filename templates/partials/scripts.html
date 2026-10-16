@@ -75,11 +75,34 @@
         if (open) {
             sidebar?.classList.add("sidebar-open");
             backdrop?.classList.add("active");
+            document.body.classList.add("sidebar-is-open");
         } else {
             sidebar?.classList.remove("sidebar-open");
             backdrop?.classList.remove("active");
+            document.body.classList.remove("sidebar-is-open");
         }
     }
+
+    // Auto-close mobile sidebar when a nav item is clicked
+    document.addEventListener("DOMContentLoaded", function() {
+        const sidebar = document.getElementById("app-sidebar");
+        if (sidebar) {
+            sidebar.querySelectorAll(".sidebar-nav-item").forEach(function(item) {
+                item.addEventListener("click", function() {
+                    if (window.innerWidth <= 900) {
+                        toggleMobileSidebar(false);
+                    }
+                });
+            });
+        }
+        // Close sidebar on backdrop click (fallback)
+        const backdrop = document.getElementById("sidebar-backdrop");
+        if (backdrop) {
+            backdrop.addEventListener("click", function() {
+                toggleMobileSidebar(false);
+            });
+        }
+    });
 
     // --- Multi-Language (i18n) Engine (Loaded from translations.html) ---
     const I18N_TRANSLATIONS = window.I18N_TRANSLATIONS || {};
@@ -1819,7 +1842,7 @@
 
                         ${!isFixedPort ? `
                             <div class="port-input-group" style="margin-bottom:16px;">
-                                <input type="number" class="port-input" id="port-change-${proto.name}" value="${proto.port}">
+                                <input type="number" class="port-input" id="port-change-${proto.name}" value="${proto.port}" inputmode="numeric" pattern="[0-9]*">
                                 <button class="port-btn" onclick="changePort('${proto.name}')">${tChangePort}</button>
                             </div>
                         ` : ''}
@@ -1829,7 +1852,7 @@
                                 ${tReadyInstall}
                             </div>
                             <div style="display:flex; gap:8px; justify-content:center; align-items:center;">
-                                <input type="number" class="port-input" id="install-port-${proto.name}" value="${proto.default_port}" ${isFixedPort ? 'disabled' : ''} style="width:75px;">
+                                <input type="number" class="port-input" id="install-port-${proto.name}" value="${proto.default_port}" ${isFixedPort ? 'disabled' : ''} style="width:75px;" inputmode="numeric" pattern="[0-9]*">
                                 <button class="btn btn-sm" onclick="confirmInstallProtocol('${proto.name}', '${proto.display_name || proto.name}')" style="width:auto; padding:8px 16px;">
                                     <i data-lucide="download-cloud" style="width:14px; margin-right:4px;"></i> ${tInstallService}
                                 </button>
