@@ -266,17 +266,17 @@ protocol_is_installed() {
         http) [ -f "/etc/systemd/system/mhpanel-http-proxy.service" ] ;;
         socks) [ -f "/etc/systemd/system/mhpanel-socks-proxy.service" ] ;;
         shadowsocks) [ -f "/etc/systemd/system/mhpanel-shadowsocks.service" ] || command -v ssserver >/dev/null 2>&1 ;;
-        tuic) [ -f "/etc/systemd/system/tuic-server.service" ] || [ -x /usr/local/bin/tuic-server ] ;;
+        tuic) [ -f "/etc/systemd/system/mhpanel-tuic.service" ] || [ -f "/etc/systemd/system/tuic-server.service" ] || [ -x /usr/local/bin/tuic-server ] ;;
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 || [ -f "/etc/systemd/system/mhpanel-mtproto.service" ] ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         badvpn) [ -f "/etc/systemd/system/badvpn.service" ] && command -v badvpn-udpgw >/dev/null 2>&1 ;;
-        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
-        trojan) [ -f "/etc/vpnpanel/trojan.json" ] ;;
-        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] ;;
-        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] ;;
-        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] ;;
-        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] ;;
-        tor) [ -f "/etc/tor/torrc" ] ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -295,7 +295,7 @@ protocol_service_status() {
         http) svc="mhpanel-http-proxy" ;;
         socks) svc="mhpanel-socks-proxy" ;;
         shadowsocks) svc="mhpanel-shadowsocks" ;;
-        tuic) svc="tuic-server" ;;
+        tuic) svc="mhpanel-tuic"; systemctl is-active --quiet "$svc" 2>/dev/null || svc="tuic-server" ;;
         mtproto) svc="mhpanel-mtproto" ;;
         pptp) svc="pptpd" ;;
         badvpn) svc="badvpn" ;;
@@ -521,6 +521,12 @@ install_panel_web_ui() {
     fi
     if [ ! -f "${PANEL_DIR}/multiplexer_config.json" ]; then
         echo '{"enabled":false,"listen_ports":[443],"web_server_type":"internal","default_backend":"web","protocols":[],"custom_rules":[],"udp_multiports":[]}' > "${PANEL_DIR}/multiplexer_config.json"
+    fi
+
+    # Install daemon microservices scripts
+    if [ -d "${PANEL_DIR}/scripts/daemons" ]; then
+        cp -f "${PANEL_DIR}/scripts/daemons/"* /usr/local/bin/ 2>/dev/null || true
+        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
     fi
 
     local srv_ip=$(get_public_ipv4)
@@ -1310,10 +1316,14 @@ update_panel_repo() {
         echo -e "${YELLOW}    Git pull encountered a network issue. Falling back to direct GitHub raw sync...${NC}"
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh" -o "${PANEL_DIR}/install.sh" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/app.py" -o "${PANEL_DIR}/app.py" 2>/dev/null || true
-        mkdir -p "${PANEL_DIR}/scripts" "${PANEL_DIR}/templates/partials"
+        mkdir -p "${PANEL_DIR}/scripts/daemons" "${PANEL_DIR}/templates/partials"
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/protocol_helper.sh" -o "${PANEL_DIR}/scripts/protocol_helper.sh" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/hmpanel.sh" -o "${PANEL_DIR}/scripts/hmpanel.sh" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/kigapanel.sh" -o "${PANEL_DIR}/scripts/kigapanel.sh" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/masterdnsvpn-server" -o "${PANEL_DIR}/scripts/daemons/masterdnsvpn-server" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/noizdns-server" -o "${PANEL_DIR}/scripts/daemons/noizdns-server" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/stuntls-server" -o "${PANEL_DIR}/scripts/daemons/stuntls-server" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/ssh-ws-proxy.py" -o "${PANEL_DIR}/scripts/daemons/ssh-ws-proxy.py" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
@@ -1321,6 +1331,10 @@ update_panel_repo() {
     fi
 
     chmod +x "${PANEL_DIR}/install.sh" "${PANEL_DIR}/scripts/"*.sh 2>/dev/null || true
+    if [ -d "${PANEL_DIR}/scripts/daemons" ]; then
+        cp -f "${PANEL_DIR}/scripts/daemons/"* /usr/local/bin/ 2>/dev/null || true
+        chmod +x /usr/local/bin/masterdnsvpn-server /usr/local/bin/noizdns-server /usr/local/bin/stuntls-server /usr/local/bin/ssh-ws-proxy.py 2>/dev/null || true
+    fi
 
     echo -e "${YELLOW}>>> [2/4] Updating global CLI shortcuts and local copies...${NC}"
     ln -sf "${PANEL_DIR}/install.sh" /usr/local/bin/mhpanel
@@ -1395,8 +1409,8 @@ EOF
                 "$HELPER" uninstall "$p" 2>/dev/null || true
             done
         fi
-        systemctl stop mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
-        systemctl disable mhpanel-dnstt mhpanel-vaydns mhpanel-slipstream mhpanel-http-proxy mhpanel-socks-proxy mhpanel-shadowsocks mhpanel-tuic badvpn 2>/dev/null || true
+        systemctl stop mhpanel-* badvpn sstpd ocserv xl2tpd pptpd 2>/dev/null || true
+        systemctl disable mhpanel-* badvpn sstpd ocserv xl2tpd pptpd 2>/dev/null || true
         rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service
         systemctl daemon-reload
     else

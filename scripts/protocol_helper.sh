@@ -148,13 +148,13 @@ is_protocol_installed() {
         mtproto) ls /etc/vpnpanel/mtproto_config_*.py >/dev/null 2>&1 ;;
         pptp) [ -f "/etc/pptpd.conf" ] ;;
         l2tpv3) [ -f "/etc/vpnpanel/l2tpv3_config.json" ] ;;
-        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] ;;
-        trojan) [ -f "/etc/vpnpanel/trojan.json" ] ;;
-        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] ;;
-        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] ;;
-        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] ;;
-        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] ;;
-        tor) [ -f "/etc/tor/torrc" ] ;;
+        hysteria2) [ -f "/etc/vpnpanel/hysteria2.yaml" ] && [ -f "/etc/systemd/system/mhpanel-hysteria2.service" ] ;;
+        trojan) [ -f "/etc/vpnpanel/trojan.json" ] && [ -f "/etc/systemd/system/mhpanel-trojan.service" ] ;;
+        naiveproxy) [ -f "/etc/vpnpanel/naiveproxy.json" ] && [ -f "/etc/systemd/system/mhpanel-naiveproxy.service" ] ;;
+        stuntls) [ -f "/etc/vpnpanel/stuntls.json" ] && [ -f "/etc/systemd/system/mhpanel-stuntls.service" ] ;;
+        noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] ;;
+        masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] ;;
+        tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -1329,6 +1329,14 @@ EOF
         sed -i -E "s/server = \"0\.0\.0\.0:[0-9]+\"/server = \"0.0.0.0:${port}\"/g" "${config}"
     fi
 
+    if [ ! -x /usr/local/bin/tuic-server ]; then
+        local arch="$(uname -m)"
+        local tuic_arch="x86_64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then tuic_arch="aarch64"; fi
+        curl -fsSL "https://github.com/EAimTY/tuic/releases/download/tuic-server-1.0.0/tuic-server-1.0.0-${tuic_arch}-unknown-linux-musl" -o /usr/local/bin/tuic-server 2>/dev/null || true
+        chmod +x /usr/local/bin/tuic-server 2>/dev/null || true
+    fi
+
     cat > /etc/systemd/system/mhpanel-tuic.service <<EOF
 [Unit]
 Description=TUIC v5 QUIC Anti-Censorship Proxy Server
@@ -1508,19 +1516,48 @@ outbounds:
     type: direct
 EOF
     fi
+
+    if [ ! -x /usr/local/bin/hysteria ]; then
+        local arch="$(uname -m)"
+        local hy_arch="amd64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then hy_arch="arm64"; fi
+        curl -fsSL "https://github.com/apernet/hysteria/releases/download/app%2Fv2.5.2/hysteria-linux-${hy_arch}" -o /usr/local/bin/hysteria 2>/dev/null || true
+        chmod +x /usr/local/bin/hysteria 2>/dev/null || true
+    fi
+
+    cat > /etc/systemd/system/mhpanel-hysteria2.service <<EOF
+[Unit]
+Description=MHPanel - Hysteria 2 High-Speed QUIC Proxy
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/vpnpanel
+ExecStart=/usr/local/bin/hysteria server -c /etc/vpnpanel/hysteria2.yaml
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable mhpanel-hysteria2
-    systemctl restart mhpanel-hysteria2
+    systemctl enable mhpanel-hysteria2 2>/dev/null || true
+    systemctl restart mhpanel-hysteria2 2>/dev/null || true
     echo "Hysteria 2 installed on UDP port ${port}."
 }
 
 uninstall_hysteria2() {
-    systemctl stop mhpanel-hysteria2 || true
-    systemctl disable mhpanel-hysteria2 || true
+    systemctl stop mhpanel-hysteria2 2>/dev/null || true
+    systemctl disable mhpanel-hysteria2 2>/dev/null || true
     local port=$(grep -oE 'listen: :[0-9]+' /etc/vpnpanel/hysteria2.yaml 2>/dev/null | awk -F: '{print $3}' || echo "11443")
     deny_port "${port}" "udp"
-    rm -f /etc/vpnpanel/hysteria2.yaml
+    rm -f /etc/systemd/system/mhpanel-hysteria2.service /etc/vpnpanel/hysteria2.yaml
+    systemctl daemon-reload
     echo "Hysteria 2 uninstalled."
 }
 
@@ -1531,7 +1568,7 @@ set_port_hysteria2() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/listen: :[0-9]+/listen: :${port}/g" /etc/vpnpanel/hysteria2.yaml
         allow_port "${port}" "udp"
-        systemctl restart mhpanel-hysteria2
+        systemctl restart mhpanel-hysteria2 2>/dev/null || true
     fi
 }
 
@@ -1569,19 +1606,52 @@ install_trojan() {
 }
 EOF
     fi
+
+    if [ ! -x /usr/local/bin/sing-box ]; then
+        local arch="$(uname -m)"
+        local sb_arch="amd64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+        curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
+        if [ -f /tmp/sing-box-*/sing-box ]; then
+            mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null || true
+            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+            rm -rf /tmp/sing-box*
+        fi
+    fi
+
+    cat > /etc/systemd/system/mhpanel-trojan.service <<EOF
+[Unit]
+Description=MHPanel - Trojan TLS Censorship Bypass Proxy
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/vpnpanel
+ExecStart=/usr/local/bin/sing-box run -c /etc/vpnpanel/trojan.json
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable mhpanel-trojan
-    systemctl restart mhpanel-trojan
+    systemctl enable mhpanel-trojan 2>/dev/null || true
+    systemctl restart mhpanel-trojan 2>/dev/null || true
     echo "Trojan installed on TCP port ${port}."
 }
 
 uninstall_trojan() {
-    systemctl stop mhpanel-trojan || true
-    systemctl disable mhpanel-trojan || true
+    systemctl stop mhpanel-trojan 2>/dev/null || true
+    systemctl disable mhpanel-trojan 2>/dev/null || true
     local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/trojan.json 2>/dev/null | awk '{print $2}' || echo "12443")
     deny_port "${port}" "tcp"
-    rm -f /etc/vpnpanel/trojan.json
+    rm -f /etc/systemd/system/mhpanel-trojan.service /etc/vpnpanel/trojan.json
+    systemctl daemon-reload
     echo "Trojan uninstalled."
 }
 
@@ -1592,7 +1662,7 @@ set_port_trojan() {
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/trojan.json
         allow_port "${port}" "tcp"
-        systemctl restart mhpanel-trojan
+        systemctl restart mhpanel-trojan 2>/dev/null || true
     fi
 }
 
@@ -1629,19 +1699,52 @@ install_naiveproxy() {
 }
 EOF
     fi
+
+    if [ ! -x /usr/local/bin/sing-box ]; then
+        local arch="$(uname -m)"
+        local sb_arch="amd64"
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+        curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
+        if [ -f /tmp/sing-box-*/sing-box ]; then
+            mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null || true
+            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+            rm -rf /tmp/sing-box*
+        fi
+    fi
+
+    cat > /etc/systemd/system/mhpanel-naiveproxy.service <<EOF
+[Unit]
+Description=MHPanel - NaiveProxy Chromium Network Camouflage Proxy
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/etc/vpnpanel
+ExecStart=/usr/local/bin/sing-box run -c /etc/vpnpanel/naiveproxy.json
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "tcp"
     systemctl daemon-reload
-    systemctl enable mhpanel-naiveproxy
-    systemctl restart mhpanel-naiveproxy
+    systemctl enable mhpanel-naiveproxy 2>/dev/null || true
+    systemctl restart mhpanel-naiveproxy 2>/dev/null || true
     echo "NaiveProxy installed on TCP port ${port}."
 }
 
 uninstall_naiveproxy() {
-    systemctl stop mhpanel-naiveproxy || true
-    systemctl disable mhpanel-naiveproxy || true
+    systemctl stop mhpanel-naiveproxy 2>/dev/null || true
+    systemctl disable mhpanel-naiveproxy 2>/dev/null || true
     local port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/vpnpanel/naiveproxy.json 2>/dev/null | awk '{print $2}' || echo "13443")
     deny_port "${port}" "tcp"
-    rm -f /etc/vpnpanel/naiveproxy.json
+    rm -f /etc/systemd/system/mhpanel-naiveproxy.service /etc/vpnpanel/naiveproxy.json
+    systemctl daemon-reload
     echo "NaiveProxy uninstalled."
 }
 
@@ -1652,7 +1755,7 @@ set_port_naiveproxy() {
         deny_port "${old_port}" "tcp"
         sed -i -E "s/\"listen_port\":\s*[0-9]+/\"listen_port\": ${port}/g" /etc/vpnpanel/naiveproxy.json
         allow_port "${port}" "tcp"
-        systemctl restart mhpanel-naiveproxy
+        systemctl restart mhpanel-naiveproxy 2>/dev/null || true
     fi
 }
 
@@ -1670,21 +1773,48 @@ install_stuntls() {
 }
 EOF
     fi
+
+    if [ ! -f /usr/local/bin/stuntls-server ]; then
+        if [ -f "${PANEL_DIR}/scripts/daemons/stuntls-server" ]; then
+            cp -f "${PANEL_DIR}/scripts/daemons/stuntls-server" /usr/local/bin/stuntls-server
+        fi
+        chmod +x /usr/local/bin/stuntls-server 2>/dev/null || true
+    fi
+
+    cat > /etc/systemd/system/mhpanel-stuntls.service <<EOF
+[Unit]
+Description=MHPanel - StunTLS WebRTC STUN Obfuscated Tunnel
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/stuntls-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "tcp"
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable mhpanel-stuntls
-    systemctl restart mhpanel-stuntls
+    systemctl enable mhpanel-stuntls 2>/dev/null || true
+    systemctl restart mhpanel-stuntls 2>/dev/null || true
     echo "StunTLS installed on port ${port}."
 }
 
 uninstall_stuntls() {
-    systemctl stop mhpanel-stuntls || true
-    systemctl disable mhpanel-stuntls || true
+    systemctl stop mhpanel-stuntls 2>/dev/null || true
+    systemctl disable mhpanel-stuntls 2>/dev/null || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/stuntls.json 2>/dev/null | awk '{print $2}' || echo "3478")
     deny_port "${port}" "tcp"
     deny_port "${port}" "udp"
-    rm -f /etc/vpnpanel/stuntls.json
+    rm -f /etc/systemd/system/mhpanel-stuntls.service /etc/vpnpanel/stuntls.json
+    systemctl daemon-reload
     echo "StunTLS uninstalled."
 }
 
@@ -1697,7 +1827,7 @@ set_port_stuntls() {
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/stuntls.json
         allow_port "${port}" "tcp"
         allow_port "${port}" "udp"
-        systemctl restart mhpanel-stuntls
+        systemctl restart mhpanel-stuntls 2>/dev/null || true
     fi
 }
 
@@ -1717,19 +1847,46 @@ install_noizdns() {
 }
 EOF
     fi
+
+    if [ ! -f /usr/local/bin/noizdns-server ]; then
+        if [ -f "${PANEL_DIR}/scripts/daemons/noizdns-server" ]; then
+            cp -f "${PANEL_DIR}/scripts/daemons/noizdns-server" /usr/local/bin/noizdns-server
+        fi
+        chmod +x /usr/local/bin/noizdns-server 2>/dev/null || true
+    fi
+
+    cat > /etc/systemd/system/mhpanel-noizdns.service <<EOF
+[Unit]
+Description=MHPanel - NoizDNS Noise Anti-DPI DNS Proxy
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/noizdns-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable mhpanel-noizdns
-    systemctl restart mhpanel-noizdns
+    systemctl enable mhpanel-noizdns 2>/dev/null || true
+    systemctl restart mhpanel-noizdns 2>/dev/null || true
     echo "NoizDNS installed on UDP port ${port}."
 }
 
 uninstall_noizdns() {
-    systemctl stop mhpanel-noizdns || true
-    systemctl disable mhpanel-noizdns || true
+    systemctl stop mhpanel-noizdns 2>/dev/null || true
+    systemctl disable mhpanel-noizdns 2>/dev/null || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' || echo "5355")
     deny_port "${port}" "udp"
-    rm -f /etc/vpnpanel/noizdns.json
+    rm -f /etc/systemd/system/mhpanel-noizdns.service /etc/vpnpanel/noizdns.json
+    systemctl daemon-reload
     echo "NoizDNS uninstalled."
 }
 
@@ -1740,7 +1897,7 @@ set_port_noizdns() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/noizdns.json
         allow_port "${port}" "udp"
-        systemctl restart mhpanel-noizdns
+        systemctl restart mhpanel-noizdns 2>/dev/null || true
     fi
 }
 
@@ -1759,19 +1916,46 @@ install_masterdnsvpn() {
 }
 EOF
     fi
+
+    if [ ! -f /usr/local/bin/masterdnsvpn-server ]; then
+        if [ -f "${PANEL_DIR}/scripts/daemons/masterdnsvpn-server" ]; then
+            cp -f "${PANEL_DIR}/scripts/daemons/masterdnsvpn-server" /usr/local/bin/masterdnsvpn-server
+        fi
+        chmod +x /usr/local/bin/masterdnsvpn-server 2>/dev/null || true
+    fi
+
+    cat > /etc/systemd/system/mhpanel-masterdnsvpn.service <<EOF
+[Unit]
+Description=MHPanel - MasterdnsVPN High-Speed Chunked DNS Tunnel
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/masterdnsvpn-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${port}" "udp"
     systemctl daemon-reload
-    systemctl enable mhpanel-masterdnsvpn
-    systemctl restart mhpanel-masterdnsvpn
+    systemctl enable mhpanel-masterdnsvpn 2>/dev/null || true
+    systemctl restart mhpanel-masterdnsvpn 2>/dev/null || true
     echo "MasterdnsVPN installed on UDP port ${port}."
 }
 
 uninstall_masterdnsvpn() {
-    systemctl stop mhpanel-masterdnsvpn || true
-    systemctl disable mhpanel-masterdnsvpn || true
+    systemctl stop mhpanel-masterdnsvpn 2>/dev/null || true
+    systemctl disable mhpanel-masterdnsvpn 2>/dev/null || true
     local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' || echo "5356")
     deny_port "${port}" "udp"
-    rm -f /etc/vpnpanel/masterdnsvpn.json
+    rm -f /etc/systemd/system/mhpanel-masterdnsvpn.service /etc/vpnpanel/masterdnsvpn.json
+    systemctl daemon-reload
     echo "MasterdnsVPN uninstalled."
 }
 
@@ -1782,7 +1966,7 @@ set_port_masterdnsvpn() {
         deny_port "${old_port}" "udp"
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/masterdnsvpn.json
         allow_port "${port}" "udp"
-        systemctl restart mhpanel-masterdnsvpn
+        systemctl restart mhpanel-masterdnsvpn 2>/dev/null || true
     fi
 }
 
@@ -1790,6 +1974,8 @@ set_port_masterdnsvpn() {
 install_tor() {
     local or_port=${1:-9001}
     local bridge_port=${2:-9002}
+    apt-get update -y >/dev/null 2>&1
+    apt-get install -y tor obfs4proxy >/dev/null 2>&1 || true
     mkdir -p /etc/vpnpanel /var/lib/tor
     chown -R debian-tor:debian-tor /var/lib/tor 2>/dev/null || true
     cat > /etc/tor/torrc <<EOF
@@ -1804,19 +1990,44 @@ ContactInfo admin@kigaping.com
 Nickname MHPanelBridge
 DataDirectory /var/lib/tor
 EOF
+
+    cat > /etc/systemd/system/mhpanel-tor.service <<EOF
+[Unit]
+Description=MHPanel - Tor Anti-Censorship Bridge Hub (obfs4 / WebTunnel / Snowflake)
+After=network.target network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=debian-tor
+Group=debian-tor
+ExecStart=/usr/bin/tor -f /etc/tor/torrc
+ExecReload=/bin/kill -HUP \$MAINPID
+KillSignal=SIGINT
+TimeoutSec=60
+Restart=on-failure
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
     allow_port "${or_port}" "tcp"
     allow_port "${bridge_port}" "tcp"
     systemctl daemon-reload
-    systemctl enable mhpanel-tor
-    systemctl restart mhpanel-tor
+    systemctl enable mhpanel-tor 2>/dev/null || true
+    systemctl restart mhpanel-tor 2>/dev/null || true
     echo "Tor Bridge installed with obfs4 on ports ${or_port}/${bridge_port}."
 }
 
 uninstall_tor() {
-    systemctl stop mhpanel-tor || true
-    systemctl disable mhpanel-tor || true
+    systemctl stop mhpanel-tor 2>/dev/null || true
+    systemctl disable mhpanel-tor 2>/dev/null || true
     deny_port "9001" "tcp"
     deny_port "9002" "tcp"
+    rm -f /etc/systemd/system/mhpanel-tor.service
+    systemctl daemon-reload
     echo "Tor uninstalled."
 }
 
@@ -1825,7 +2036,7 @@ set_port_tor() {
     if [ -f /etc/tor/torrc ]; then
         sed -i -E "s/^ORPort [0-9]+/ORPort ${port}/g" /etc/tor/torrc
         allow_port "${port}" "tcp"
-        systemctl restart mhpanel-tor
+        systemctl restart mhpanel-tor 2>/dev/null || true
     fi
 }
 

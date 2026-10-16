@@ -500,19 +500,19 @@ def is_installed(protocol):
     elif protocol == "slipstream":
         return os.path.exists("/usr/local/bin/slipstream-server") or os.path.exists("/etc/systemd/system/mhpanel-slipstream.service")
     elif protocol == "hysteria2":
-        return os.path.exists("/etc/vpnpanel/hysteria2.yaml") or os.path.exists("/usr/local/bin/hysteria")
+        return os.path.exists("/etc/vpnpanel/hysteria2.yaml") and (os.path.exists("/usr/local/bin/hysteria") or os.path.exists("/etc/systemd/system/mhpanel-hysteria2.service"))
     elif protocol == "trojan":
-        return os.path.exists("/etc/vpnpanel/trojan.json")
+        return os.path.exists("/etc/vpnpanel/trojan.json") and (os.path.exists("/usr/local/bin/sing-box") or os.path.exists("/etc/systemd/system/mhpanel-trojan.service"))
     elif protocol == "naiveproxy":
-        return os.path.exists("/etc/vpnpanel/naiveproxy.json")
+        return os.path.exists("/etc/vpnpanel/naiveproxy.json") and (os.path.exists("/usr/local/bin/sing-box") or os.path.exists("/etc/systemd/system/mhpanel-naiveproxy.service"))
     elif protocol == "stuntls":
-        return os.path.exists("/etc/vpnpanel/stuntls.json") or os.path.exists("/usr/local/bin/stuntls-server")
+        return os.path.exists("/etc/vpnpanel/stuntls.json") and os.path.exists("/etc/systemd/system/mhpanel-stuntls.service")
     elif protocol == "noizdns":
-        return os.path.exists("/etc/vpnpanel/noizdns.json") or os.path.exists("/usr/local/bin/noizdns-server")
+        return os.path.exists("/etc/vpnpanel/noizdns.json") and os.path.exists("/etc/systemd/system/mhpanel-noizdns.service")
     elif protocol == "masterdnsvpn":
-        return os.path.exists("/etc/vpnpanel/masterdnsvpn.json") or os.path.exists("/usr/local/bin/masterdnsvpn-server")
+        return os.path.exists("/etc/vpnpanel/masterdnsvpn.json") and os.path.exists("/etc/systemd/system/mhpanel-masterdnsvpn.service")
     elif protocol == "tor":
-        return os.path.exists("/etc/tor/torrc") or os.path.exists("/usr/bin/tor")
+        return os.path.exists("/etc/tor/torrc") and (os.path.exists("/etc/systemd/system/mhpanel-tor.service") or os.path.exists("/usr/bin/tor"))
     return False
 
 
@@ -2704,9 +2704,22 @@ def api_protocols_control():
     try:
         errors = []
         for service in services:
+            # Self-healing check: if unit file does not exist, initialize via protocol_helper
+            unit_file = f"/etc/systemd/system/{service}.service"
+            if action in ["start", "restart"] and not os.path.exists(unit_file):
+                run_helper("install", protocol)
+                subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+
             res = subprocess.run(["systemctl", action, service], capture_output=True, text=True)
             if res.returncode != 0:
-                errors.append(f"Failed to {action} {service}: {res.stderr.strip()}")
+                # If error indicates unit not found or missing, attempt self-healing recovery once
+                if "not found" in res.stderr.lower() or "loaded: not-found" in res.stderr.lower():
+                    run_helper("install", protocol)
+                    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+                    res = subprocess.run(["systemctl", action, service], capture_output=True, text=True)
+
+                if res.returncode != 0:
+                    errors.append(f"Failed to {action} {service}: {res.stderr.strip()}")
         if errors:
             return jsonify({"success": False, "error": "; ".join(errors)}), 500
         return jsonify({"success": True})
@@ -7295,6 +7308,8 @@ def api_noizdns_config():
         with open(cfg_file, "w") as f:
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        if not os.path.exists("/etc/systemd/system/mhpanel-noizdns.service"):
+            run_helper("install", "noizdns", str(port))
         subprocess.run(["systemctl", "restart", "mhpanel-noizdns"], capture_output=True)
         return jsonify({"success": True})
 
@@ -7331,6 +7346,8 @@ def api_masterdnsvpn_config():
         with open(cfg_file, "w") as f:
             json.dump(cfg, f, indent=2)
         subprocess.run(["ufw", "allow", f"{port}/udp"], capture_output=True)
+        if not os.path.exists("/etc/systemd/system/mhpanel-masterdnsvpn.service"):
+            run_helper("install", "masterdnsvpn", str(port))
         subprocess.run(["systemctl", "restart", "mhpanel-masterdnsvpn"], capture_output=True)
         return jsonify({"success": True})
 
