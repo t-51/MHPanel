@@ -14609,7 +14609,8 @@ def apply_tunnel_interface(tun):
         ovpn_secret = tun.get("ovpn_secret", "").strip()
         ovpn_port = int(tun.get("ovpn_port", 1195))
         ovpn_proto = tun.get("ovpn_proto", "udp")
-        ovpn_cipher = tun.get("ovpn_cipher", "AES-256-GCM")
+        raw_cipher = tun.get("ovpn_cipher", "AES-256-CBC")
+        ovpn_cipher = "AES-256-CBC" if "GCM" in raw_cipher else raw_cipher
         os.makedirs("/etc/openvpn", exist_ok=True)
         key_path = f"/etc/openvpn/{name}.key"
         if ovpn_secret:
@@ -14626,6 +14627,8 @@ def apply_tunnel_interface(tun):
             f"ifconfig {inner_local.split('/')[0]} {inner_remote.split('/')[0]}",
             f"secret {key_path}",
             f"cipher {ovpn_cipher}",
+            f"data-ciphers {ovpn_cipher}",
+            "data-ciphers-fallback AES-256-CBC",
             "keepalive 10 60",
             f"persist-{dev_type}",
             "persist-key",
