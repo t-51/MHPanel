@@ -630,13 +630,7 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">الگوریتم Flow (مخصوص پروتکل VLESS Reality)</label>
-                        <select class="form-input" id="sb-user-input-flow">
-                            <option value="xtls-rprx-vision">xtls-rprx-vision (پیش‌فرض ضد فیلترینگ شدید)</option>
-                            <option value="">بدون Flow (None)</option>
-                        </select>
-                    </div>
+
 
                     <!-- Inbounds Selection Checklist -->
                     <div class="form-group" style="background: rgba(59, 130, 246, 0.05); padding: 14px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">
@@ -741,32 +735,60 @@
         </div>
     </div>
 
-    <!-- Modal 6: Share Link & QR Code (Single Inbound) -->
+    <!-- Modal 6: Inbound Settings & Connection QR (Single Inbound) -->
     <div class="modal" id="modal-singbox-qr">
-        <div class="modal-card" style="max-width: 460px; width: 95%; text-align: center;">
+        <div class="modal-card" style="max-width: 540px; width: 95%;">
             <header class="modal-header">
                 <h3 class="modal-title" id="sb-qr-title" style="display: flex; align-items: center; gap: 6px;">
-                    <i data-lucide="qr-code" style="color: #6366f1;"></i>
-                    <span data-i18n="singbox_qr_modal_title">بارکد اتصال و لینک اشتراک کلاینت</span>
+                    <i data-lucide="settings" style="color: #6366f1;"></i>
+                    <span>تنظیمات و مشخصات اینباند</span>
                 </h3>
                 <button type="button" class="modal-close" onclick="closeSingboxQrModal()">
                     <i data-lucide="x"></i>
                 </button>
             </header>
-            <div style="padding: 24px;">
-                <div id="sb-qr-canvas-container" style="background: white; padding: 16px; border-radius: 12px; display: inline-block; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div style="padding: 20px 24px;">
+                <!-- View Toggle Buttons -->
+                <div style="display: flex; gap: 6px; background: var(--bg-muted); padding: 4px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <button type="button" id="sb-inbound-view-btn-qr" class="btn btn-sm btn-primary" onclick="switchSingboxInboundDetailView('qr')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                        <i data-lucide="qr-code" style="width: 13px; height: 13px;"></i>
+                        <span>لینک و بارکد اتصال</span>
+                    </button>
+                    <button type="button" id="sb-inbound-view-btn-json" class="btn btn-sm btn-secondary" onclick="switchSingboxInboundDetailView('json')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                        <i data-lucide="code" style="width: 13px; height: 13px;"></i>
+                        <span>تنظیمات اینباند (JSON)</span>
+                    </button>
                 </div>
-                <div style="margin-top: 16px; text-align: right;">
-                    <label class="form-label" style="font-size: 11.5px;" data-i18n="singbox_share_uri_label">لینک استاندارد کلاینت (URI):</label>
-                    <div style="display: flex; gap: 6px;">
-                        <input type="text" class="form-input" id="sb-share-uri-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
-                        <button class="btn btn-secondary" onclick="copySingboxUri()" type="button" title="کپی کردن لینک">
-                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
-                        </button>
+
+                <!-- View 1: QR & Link -->
+                <div id="sb-inbound-qr-view" style="text-align: center;">
+                    <div id="sb-qr-canvas-container" style="background: white; padding: 16px; border-radius: 12px; display: inline-block; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    </div>
+                    <div style="margin-top: 14px; text-align: right;">
+                        <label class="form-label" style="font-size: 11.5px;">لینک استاندارد کلاینت اینباند:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" class="form-input" id="sb-share-uri-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                            <button class="btn btn-secondary" onclick="copySingboxUri()" type="button" title="کپی کردن لینک">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-                <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted);">
-                    سازگار با برنامه‌های v2rayN, v2rayNG, Sing-box, Mihomo (Clash Meta), Shadowrocket, Nekoray
+
+                <!-- View 2: JSON Settings Preview -->
+                <div id="sb-inbound-json-view" style="display: none; text-align: right;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="font-size: 11.5px; margin: 0;">ساختار کامل تنظیمات اینباند (JSON):</label>
+                        <button class="btn btn-secondary btn-sm" onclick="copySingboxInboundJson()" type="button" style="font-size: 11px; padding: 3px 8px;">
+                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                            <span>کپی تنظیمات JSON</span>
+                        </button>
+                    </div>
+                    <textarea id="sb-inbound-json-preview" readonly style="width: 100%; height: 220px; background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; border-radius: 8px; border: 1px solid #334155; padding: 10px; direction: ltr; resize: none;"></textarea>
+                </div>
+
+                <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-align: center;">
+                    تنظیمات پیش‌فرض هسته Sing-box • قابل استفاده و کپی برای کلاینت‌ها و نودهای واسط
                 </div>
             </div>
         </div>

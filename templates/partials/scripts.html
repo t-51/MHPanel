@@ -16288,19 +16288,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 </td>
                 <td style="padding: 12px 16px; text-align: center;">
                     <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxShareModal('${escapeHtml(ib.tag)}')" style="padding:4px 8px; background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);" title="دریافت کانفیگ و QR">
-                            <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
-                            <span style="font-size:11px;">لینک و QR</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxShareModal('${escapeHtml(ib.tag)}')" style="padding:6px 9px; background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);" title="تنظیمات، لینک و بارکد اتصال اینباند">
+                            <i data-lucide="qr-code" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditInboundModal('${escapeHtml(ib.tag)}')" style="padding:4px 8px;" title="ویرایش اینباند">
-                            <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
-                            <span style="font-size:11px;">ویرایش</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditInboundModal('${escapeHtml(ib.tag)}')" style="padding:6px 9px;" title="ویرایش اینباند">
+                            <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxInbound('${escapeHtml(ib.tag)}')" style="padding:4px 8px;" title="${isDisabled ? 'فعال‌سازی' : 'غیرفعال‌سازی'}">
-                            <i data-lucide="${isDisabled ? 'play' : 'pause'}" style="width:13px; height:13px;"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxInbound('${escapeHtml(ib.tag)}')" style="padding:6px 9px;" title="${isDisabled ? 'فعال‌سازی اینباند' : 'غیرفعال‌سازی اینباند'}">
+                            <i data-lucide="${isDisabled ? 'play' : 'pause'}" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxInbound('${escapeHtml(ib.tag)}')" style="padding:4px 8px;" title="حذف اینباند">
-                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxInbound('${escapeHtml(ib.tag)}')" style="padding:6px 9px;" title="حذف اینباند">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                     </div>
                 </td>
@@ -17168,19 +17166,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 </td>
                 <td style="padding: 12px 16px; text-align: center;">
                     <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:4px 8px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و QR کد اختصاصی">
-                            <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
-                            <span style="font-size:11px;">لینک‌ها</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:6px 9px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و بارکد اختصاصی کاربر">
+                            <i data-lucide="qr-code" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditUserModal('${escapeHtml(u.username)}')" style="padding:4px 8px;" title="ویرایش کاربر">
-                            <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
-                            <span style="font-size:11px;">ویرایش</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditUserModal('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="ویرایش کاربر">
+                            <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxUser('${escapeHtml(u.username)}')" style="padding:4px 8px;" title="${isEnabled ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}">
-                            <i data-lucide="${isEnabled ? 'pause' : 'play'}" style="width:13px; height:13px;"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxUser('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="${isEnabled ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}">
+                            <i data-lucide="${isEnabled ? 'pause' : 'play'}" style="width:14px; height:14px;"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxUser('${escapeHtml(u.username)}')" style="padding:4px 8px;" title="حذف کاربر">
-                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxUser('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="حذف کاربر">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
                         </button>
                     </div>
                 </td>
@@ -17211,9 +17207,6 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const uuidInput = document.getElementById("sb-user-input-uuid");
         if (uuidInput) uuidInput.value = crypto.randomUUID ? crypto.randomUUID() : '08205c7a-fb03-4206-9855-7d0fc8cb24ee';
-
-        const flowInput = document.getElementById("sb-user-input-flow");
-        if (flowInput) flowInput.value = "xtls-rprx-vision";
 
         const noteInput = document.getElementById("sb-user-input-note");
         if (noteInput) noteInput.value = "";
@@ -17250,9 +17243,6 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const uuidInput = document.getElementById("sb-user-input-uuid");
         if (uuidInput) uuidInput.value = user.uuid || "";
-
-        const flowInput = document.getElementById("sb-user-input-flow");
-        if (flowInput) flowInput.value = user.flow || "";
 
         const noteInput = document.getElementById("sb-user-input-note");
         if (noteInput) noteInput.value = user.note || "";
@@ -17320,7 +17310,6 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const username = document.getElementById("sb-user-input-username").value.trim();
         const password = document.getElementById("sb-user-input-password").value.trim();
         const uuid = document.getElementById("sb-user-input-uuid").value.trim();
-        const flow = document.getElementById("sb-user-input-flow").value;
         const note = document.getElementById("sb-user-input-note").value.trim();
 
         const checkedBoxes = document.querySelectorAll("#sb-user-inbounds-checklist input[type='checkbox']:checked");
@@ -17335,7 +17324,6 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             username: username,
             password: password,
             uuid: uuid,
-            flow: flow,
             note: note,
             inbounds: inbounds
         };
@@ -17618,26 +17606,71 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    let currentSingboxInboundShareData = null;
+
+    function switchSingboxInboundDetailView(view) {
+        const qrView = document.getElementById("sb-inbound-qr-view");
+        const jsonView = document.getElementById("sb-inbound-json-view");
+        const btnQr = document.getElementById("sb-inbound-view-btn-qr");
+        const btnJson = document.getElementById("sb-inbound-view-btn-json");
+
+        if (view === "json") {
+            if (qrView) qrView.style.display = "none";
+            if (jsonView) jsonView.style.display = "block";
+            if (btnQr) { btnQr.className = "btn btn-sm btn-secondary"; }
+            if (btnJson) { btnJson.className = "btn btn-sm btn-primary"; }
+        } else {
+            if (qrView) qrView.style.display = "block";
+            if (jsonView) jsonView.style.display = "none";
+            if (btnQr) { btnQr.className = "btn btn-sm btn-primary"; }
+            if (btnJson) { btnJson.className = "btn btn-sm btn-secondary"; }
+        }
+    }
+
+    function copySingboxInboundJson() {
+        const preview = document.getElementById("sb-inbound-json-preview");
+        if (!preview || !preview.value) {
+            showToast("تنظیماتی برای کپی وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(preview.value).then(() => {
+            showToast("تنظیمات کامل JSON اینباند در کلیپ‌بورد کپی شد.", "success");
+        }).catch(() => {
+            preview.select();
+            document.execCommand("copy");
+            showToast("تنظیمات کپی شد.", "success");
+        });
+    }
+
     async function openSingboxShareModal(tag) {
         const modal = document.getElementById("modal-singbox-qr");
         if (!modal) return;
         modal.classList.add("active");
         modal.style.display = "flex";
+        switchSingboxInboundDetailView("qr");
+
         const titleEl = document.getElementById("sb-qr-title");
-        if (titleEl) titleEl.innerHTML = `<i data-lucide="qr-code" style="color: #6366f1;"></i> <span>بارکد و لینک اشتراک اینباند ${tag}</span>`;
+        if (titleEl) titleEl.innerHTML = `<i data-lucide="settings" style="color: #6366f1;"></i> <span>مشخصات و تنظیمات اینباند ${escapeHtml(tag)}</span>`;
         const uriInput = document.getElementById("sb-share-uri-input");
-        if (uriInput) uriInput.value = "در حال ساخت لینک...";
+        if (uriInput) uriInput.value = "در حال دریافت لینک...";
+
+        const jsonPreview = document.getElementById("sb-inbound-json-preview");
+        if (jsonPreview) jsonPreview.value = "در حال بارگذاری تنظیمات اینباند...";
 
         try {
-            const res = await fetch(`/api/singbox/inbound/${tag}/share`);
+            const res = await fetch(`/api/singbox/inbound/${encodeURIComponent(tag)}/share`);
             const data = await res.json();
-            if (data.success && data.share_link) {
-                if (uriInput) uriInput.value = data.share_link;
-                renderQrCodeHelper("sb-qr-canvas-container", data.share_link);
+            if (data.success) {
+                currentSingboxInboundShareData = data;
+                if (uriInput) uriInput.value = data.share_link || "";
+                renderQrCodeHelper("sb-qr-canvas-container", data.share_link || "");
+                if (jsonPreview && data.inbound_json) {
+                    jsonPreview.value = JSON.stringify(data.inbound_json, null, 2);
+                }
             }
             if (window.lucide) lucide.createIcons();
         } catch (e) {
-            showToast("خطا در دریافت لینک اشتراک", "error");
+            showToast("خطا در دریافت اطلاعات و تنظیمات اینباند", "error");
         }
     }
 

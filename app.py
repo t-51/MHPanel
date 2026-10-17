@@ -18215,6 +18215,19 @@ WantedBy=multi-user.target
             f.write(unit_content)
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
 
+def get_reality_public_key(private_key_b64: str) -> str:
+    if not private_key_b64:
+        return ""
+    try:
+        import base64
+        from cryptography.hazmat.primitives.asymmetric import x25519
+        padding = "=" * ((4 - len(private_key_b64) % 4) % 4)
+        priv_bytes = base64.urlsafe_b64decode(private_key_b64 + padding)
+        pub_key = x25519.X25519PrivateKey.from_private_bytes(priv_bytes).public_key()
+        return base64.urlsafe_b64encode(pub_key.public_bytes_raw()).decode().rstrip("=")
+    except Exception:
+        return ""
+
 def build_default_singbox_full_suite():
     reality_priv = ""
     reality_pub = ""
@@ -18250,7 +18263,7 @@ def build_default_singbox_full_suite():
             "listen": "::",
             "listen_port": 20443,
             "sniff": True,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
             "tls": {
                 "enabled": True,
                 "server_name": "dl.google.com",
@@ -18258,8 +18271,7 @@ def build_default_singbox_full_suite():
                     "enabled": True,
                     "handshake": {"server": "dl.google.com", "server_port": 443},
                     "private_key": reality_priv,
-                    "short_id": ["86d7ec6343d000b6"],
-                    "public_key": reality_pub
+                    "short_id": ["86d7ec6343d000b6"]
                 }
             }
         },
@@ -18426,9 +18438,9 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     tag_name = f"{tag}-{u_name}" if target_user and u_name else tag
 
     if itype == "vless":
-        flow = (target_user.get("flow") if target_user else None) or user0.get("flow", "")
+        flow = user0.get("flow") or ("xtls-rprx-vision" if reality_enabled else "")
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
-        pbk = reality_obj.get("public_key") or ""
+        pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
         link = f"vless://{u_uuid}@{host_ip}:{port}?security={sec}&sni={sni}&type=tcp"
         if flow: link += f"&flow={flow}"
@@ -18534,10 +18546,11 @@ def sync_singbox_users_to_config():
 
         if itype in ["vless", "vmess"]:
             users_arr = []
+            default_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "xtls-rprx-vision" if ib.get("tls", {}).get("reality", {}).get("enabled") else "")
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
-                if itype == "vless" and u.get("flow"):
-                    u_entry["flow"] = u.get("flow")
+                if itype == "vless" and default_flow:
+                    u_entry["flow"] = default_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
                 users_arr.append(u_entry)
@@ -18764,11 +18777,9 @@ def build_inbound_from_request(req, existing_inbound=None):
                     "server_port": hs_port
                 },
                 "private_key": priv_k,
-                "short_id": [short_id]
+                "short_id": [short_id] if isinstance(short_id, str) else short_id
             }
         }
-        if pub_k:
-            inbound["tls"]["reality"]["public_key"] = pub_k
 
     elif tls_mode == "tls":
         cert_p = req.get("certificate_path") or existing.get("tls", {}).get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt"
@@ -18957,7 +18968,7 @@ def api_singbox_inbound_details(tag):
         "reality_dest": reality.get("handshake", {}).get("server", "dl.google.com"),
         "reality_dest_port": reality.get("handshake", {}).get("server_port", 443),
         "reality_privkey": reality.get("private_key", ""),
-        "reality_pubkey": reality.get("public_key", ""),
+        "reality_pubkey": reality.get("public_key") or get_reality_public_key(reality.get("private_key", "")),
         "reality_shortid": (reality.get("short_id", [""])[0] if reality.get("short_id") else ""),
         "tls_cert": tls.get("certificate_path", "/etc/vpnpanel/ssl/panel.crt"),
         "tls_key": tls.get("key_path", "/etc/vpnpanel/ssl/panel.key"),
