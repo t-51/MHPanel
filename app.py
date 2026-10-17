@@ -18406,7 +18406,7 @@ def validate_singbox_config(cfg_obj):
             os.remove(tmp_path)
         return False, str(e)
 
-def generate_singbox_share_link(inbound, host_ip):
+def generate_singbox_share_link(inbound, host_ip, target_user=None):
     itype = inbound.get("type", "vless")
     port = inbound.get("listen_port", 443)
     tag = inbound.get("tag", itype)
@@ -18420,28 +18420,31 @@ def generate_singbox_share_link(inbound, host_ip):
     users = inbound.get("users", [])
     user0 = users[0] if users else {}
 
+    u_uuid = (target_user.get("uuid") if target_user else None) or user0.get("uuid", "")
+    u_pass = (target_user.get("password") if target_user else None) or user0.get("password", "")
+    u_name = (target_user.get("username") if target_user else None) or user0.get("name") or user0.get("username", "")
+    tag_name = f"{tag}-{u_name}" if target_user and u_name else tag
+
     if itype == "vless":
-        uuid_str = user0.get("uuid", "")
-        flow = user0.get("flow", "")
+        flow = (target_user.get("flow") if target_user else None) or user0.get("flow", "")
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or ""
         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
-        link = f"vless://{uuid_str}@{host_ip}:{port}?security={sec}&sni={sni}&type=tcp"
+        link = f"vless://{u_uuid}@{host_ip}:{port}?security={sec}&sni={sni}&type=tcp"
         if flow: link += f"&flow={flow}"
         if pbk: link += f"&pbk={pbk}"
         if sid: link += f"&sid={sid}"
         if reality_enabled: link += "&fp=chrome"
-        link += f"#{tag}"
+        link += f"#{tag_name}"
         return link
 
     elif itype == "vmess":
-        uuid_str = user0.get("uuid", "")
         vmess_dict = {
             "v": "2",
-            "ps": tag,
+            "ps": tag_name,
             "add": host_ip,
             "port": str(port),
-            "id": uuid_str,
+            "id": u_uuid,
             "aid": "0",
             "scy": "auto",
             "net": inbound.get("transport", {}).get("type", "tcp"),
@@ -18454,47 +18457,351 @@ def generate_singbox_share_link(inbound, host_ip):
         return f"vmess://{b64_json}"
 
     elif itype == "trojan":
-        password = user0.get("password", "")
         sec = "tls" if tls_enabled else "none"
-        return f"trojan://{password}@{host_ip}:{port}?security={sec}&sni={sni}#{tag}"
+        return f"trojan://{u_pass}@{host_ip}:{port}?security={sec}&sni={sni}#{tag_name}"
 
     elif itype == "hysteria2":
-        password = user0.get("password", "")
         obfs_obj = inbound.get("obfs", {})
         obfs_type = obfs_obj.get("type", "")
         obfs_pass = obfs_obj.get("password", "")
-        link = f"hysteria2://{password}@{host_ip}:{port}?sni={sni}&insecure=1"
+        link = f"hysteria2://{u_pass}@{host_ip}:{port}?sni={sni}&insecure=1"
         if obfs_type and obfs_pass:
             link += f"&obfs={obfs_type}&obfs-password={obfs_pass}"
-        link += f"#{tag}"
+        link += f"#{tag_name}"
         return link
 
     elif itype == "tuic":
-        uuid_str = user0.get("uuid", "")
-        password = user0.get("password", "")
         cc = inbound.get("congestion_control", "bbr")
-        return f"tuic://{uuid_str}:{password}@{host_ip}:{port}?congestion_control={cc}&sni={sni}&alpn=h3&insecure=1#{tag}"
+        return f"tuic://{u_uuid}:{u_pass}@{host_ip}:{port}?congestion_control={cc}&sni={sni}&alpn=h3&insecure=1#{tag_name}"
 
     elif itype == "shadowsocks":
         method = inbound.get("method", "2022-blake3-aes-128-gcm")
         password = inbound.get("password", "")
         userinfo = base64.b64encode(f"{method}:{password}".encode()).decode()
-        return f"ss://{userinfo}@{host_ip}:{port}#{tag}"
+        return f"ss://{userinfo}@{host_ip}:{port}#{tag_name}"
 
     elif itype == "naive":
-        uname = user0.get("username") or user0.get("name") or "naiveuser"
-        upass = user0.get("password", "")
-        return f"naive+https://{uname}:{upass}@{host_ip}:{port}?insecure=1#{tag}"
+        uname = u_name or "naiveuser"
+        return f"naive+https://{uname}:{u_pass}@{host_ip}:{port}?insecure=1#{tag_name}"
 
     elif itype == "shadowtls":
         password = inbound.get("password", "")
         hs = inbound.get("handshake", {}).get("server", "dl.google.com")
-        return f"shadow-tls://{password}@{host_ip}:{port}/?sni={hs}#{tag}"
+        return f"shadow-tls://{password}@{host_ip}:{port}/?sni={hs}#{tag_name}"
 
     elif itype in ["mixed", "socks", "http"]:
-        return f"socks5://{host_ip}:{port}#{tag}"
+        if u_name and u_pass:
+            return f"socks5://{u_name}:{u_pass}@{host_ip}:{port}#{tag_name}"
+        return f"socks5://{host_ip}:{port}#{tag_name}"
 
-    return f"{itype}://{host_ip}:{port}#{tag}"
+    return f"{itype}://{host_ip}:{port}#{tag_name}"
+
+SINGBOX_USERS_FILE = "/etc/sing-box/local_users.json"
+
+def load_singbox_users():
+    if not os.path.exists(SINGBOX_USERS_FILE):
+        return []
+    try:
+        with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+def save_singbox_users(users_list):
+    os.makedirs(os.path.dirname(SINGBOX_USERS_FILE), exist_ok=True)
+    with open(SINGBOX_USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users_list, f, indent=2, ensure_ascii=False)
+
+def sync_singbox_users_to_config():
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return False, "فایل کانفیگ سینگ‌باکس یافت نشد."
+
+    try:
+        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+    except Exception as e:
+        return False, f"خطا در خواندن کانفیگ: {e}"
+
+    local_users = load_singbox_users()
+    active_users = [u for u in local_users if u.get("enabled", True)]
+    local_usernames = {u["username"] for u in local_users}
+
+    for ib in cfg.get("inbounds", []):
+        tag = ib.get("tag")
+        itype = ib.get("type", "")
+        assigned = [u for u in active_users if tag in u.get("inbounds", [])]
+
+        if itype in ["vless", "vmess"]:
+            users_arr = []
+            for u in assigned:
+                u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
+                if itype == "vless" and u.get("flow"):
+                    u_entry["flow"] = u.get("flow")
+                elif itype == "vmess":
+                    u_entry["alterId"] = 0
+                users_arr.append(u_entry)
+            if not users_arr:
+                existing = [x for x in ib.get("users", []) if x.get("name") not in local_usernames]
+                users_arr = existing if existing else [{"name": "default-user", "uuid": str(uuid.uuid4())}]
+            ib["users"] = users_arr
+
+        elif itype == "trojan":
+            users_arr = []
+            for u in assigned:
+                users_arr.append({"name": u["username"], "password": u.get("password") or secrets.token_urlsafe(16)})
+            if not users_arr:
+                existing = [x for x in ib.get("users", []) if x.get("name") not in local_usernames]
+                users_arr = existing if existing else [{"name": "trojan-user", "password": secrets.token_urlsafe(16)}]
+            ib["users"] = users_arr
+
+        elif itype == "hysteria2":
+            users_arr = []
+            for u in assigned:
+                users_arr.append({"name": u["username"], "password": u.get("password") or secrets.token_urlsafe(16)})
+            if not users_arr:
+                existing = [x for x in ib.get("users", []) if x.get("name") not in local_usernames]
+                users_arr = existing if existing else [{"name": "hy2-user", "password": secrets.token_urlsafe(16)}]
+            ib["users"] = users_arr
+
+        elif itype == "tuic":
+            users_arr = []
+            for u in assigned:
+                users_arr.append({
+                    "name": u["username"],
+                    "uuid": u.get("uuid") or str(uuid.uuid4()),
+                    "password": u.get("password") or secrets.token_urlsafe(16)
+                })
+            if not users_arr:
+                existing = [x for x in ib.get("users", []) if x.get("name") not in local_usernames]
+                users_arr = existing if existing else [{
+                    "name": "tuic-user",
+                    "uuid": str(uuid.uuid4()),
+                    "password": secrets.token_urlsafe(16)
+                }]
+            ib["users"] = users_arr
+
+        elif itype == "naive":
+            users_arr = []
+            for u in assigned:
+                users_arr.append({"username": u["username"], "password": u.get("password") or secrets.token_urlsafe(16)})
+            if not users_arr:
+                existing = [x for x in ib.get("users", []) if x.get("username") not in local_usernames]
+                users_arr = existing if existing else [{"username": "naiveuser", "password": secrets.token_urlsafe(16)}]
+            ib["users"] = users_arr
+
+        elif itype in ["mixed", "socks", "http"]:
+            users_arr = []
+            for u in assigned:
+                users_arr.append({"username": u["username"], "password": u.get("password") or secrets.token_urlsafe(16)})
+            if users_arr:
+                ib["users"] = users_arr
+            elif "users" in ib:
+                existing = [x for x in ib.get("users", []) if x.get("username") not in local_usernames]
+                if existing:
+                    ib["users"] = existing
+                else:
+                    ib.pop("users", None)
+
+    ok, err_msg = validate_singbox_config(cfg)
+    if not ok:
+        return False, err_msg
+
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return True, ""
+
+def build_inbound_from_request(req, existing_inbound=None):
+    existing = dict(existing_inbound) if existing_inbound else {}
+    itype = (req.get("type") or existing.get("type") or "vless").strip().lower()
+    tag = (req.get("tag") or existing.get("tag") or f"{itype}_{uuid.uuid4().hex[:6]}").strip()
+
+    try:
+        listen_port = int(req.get("listen_port") or existing.get("listen_port") or 20443)
+    except Exception:
+        return None, "شماره پورت نامعتبر است."
+
+    inbound = {
+        "type": itype,
+        "tag": tag,
+        "listen": req.get("listen") or existing.get("listen") or "::",
+        "listen_port": listen_port,
+        "sniff": bool(req.get("sniff", existing.get("sniff", True)))
+    }
+    if existing.get("disabled") is not None:
+        inbound["disabled"] = existing.get("disabled")
+
+    existing_users = existing.get("users", [])
+
+    if itype in ["vless", "vmess"]:
+        uuid_val = (req.get("uuid") or (existing_users[0].get("uuid") if existing_users else "") or str(uuid.uuid4())).strip()
+        user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or f"{itype}-user"
+        user_obj = {"name": user_name, "uuid": uuid_val}
+        if itype == "vless":
+            flow = req.get("flow", (existing_users[0].get("flow") if existing_users else "xtls-rprx-vision"))
+            if flow:
+                user_obj["flow"] = flow
+        elif itype == "vmess":
+            user_obj["alterId"] = 0
+
+        if len(existing_users) > 1:
+            inbound["users"] = [user_obj] + existing_users[1:]
+        else:
+            inbound["users"] = [user_obj]
+
+    elif itype == "trojan":
+        password = req.get("password") or (existing_users[0].get("password") if existing_users else "") or secrets.token_urlsafe(16)
+        user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or "trojan-user"
+        user_obj = {"name": user_name, "password": password}
+        if len(existing_users) > 1:
+            inbound["users"] = [user_obj] + existing_users[1:]
+        else:
+            inbound["users"] = [user_obj]
+
+    elif itype == "hysteria2":
+        password = req.get("password") or (existing_users[0].get("password") if existing_users else "") or secrets.token_urlsafe(16)
+        user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or "hy2-user"
+        user_obj = {"name": user_name, "password": password}
+        if len(existing_users) > 1:
+            inbound["users"] = [user_obj] + existing_users[1:]
+        else:
+            inbound["users"] = [user_obj]
+        inbound["up_mbps"] = int(req.get("up_mbps") or existing.get("up_mbps") or 100)
+        inbound["down_mbps"] = int(req.get("down_mbps") or existing.get("down_mbps") or 100)
+        obfs_pass = req.get("obfs_password") or (existing.get("obfs", {}).get("password") if existing.get("obfs") else "")
+        if obfs_pass:
+            inbound["obfs"] = {"type": "salamander", "password": obfs_pass}
+
+    elif itype == "tuic":
+        uuid_val = (req.get("uuid") or (existing_users[0].get("uuid") if existing_users else "") or str(uuid.uuid4())).strip()
+        password = req.get("password") or (existing_users[0].get("password") if existing_users else "") or secrets.token_urlsafe(16)
+        user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or "tuic-user"
+        user_obj = {"name": user_name, "uuid": uuid_val, "password": password}
+        if len(existing_users) > 1:
+            inbound["users"] = [user_obj] + existing_users[1:]
+        else:
+            inbound["users"] = [user_obj]
+        inbound["congestion_control"] = req.get("congestion_control") or existing.get("congestion_control") or "bbr"
+        inbound["zero_rtt_handshake"] = bool(req.get("zero_rtt", existing.get("zero_rtt_handshake", True)))
+
+    elif itype == "shadowsocks":
+        method = req.get("method") or existing.get("method") or "2022-blake3-aes-128-gcm"
+        password = (req.get("password") or existing.get("password") or "").strip()
+        if "2022" in method:
+            try:
+                raw_b = base64.b64decode(password)
+                if len(raw_b) not in [16, 32]:
+                    password = base64.b64encode(os.urandom(16)).decode()
+            except Exception:
+                password = base64.b64encode(os.urandom(16)).decode()
+        elif not password:
+            password = secrets.token_urlsafe(16)
+        inbound["method"] = method
+        inbound["password"] = password
+        if "users" in existing:
+            inbound["users"] = existing["users"]
+
+    elif itype == "naive":
+        uname = req.get("user_name") or (existing_users[0].get("username") if existing_users else "") or "naiveuser"
+        upass = req.get("password") or (existing_users[0].get("password") if existing_users else "") or secrets.token_urlsafe(16)
+        user_obj = {"username": uname, "password": upass}
+        if len(existing_users) > 1:
+            inbound["users"] = [user_obj] + existing_users[1:]
+        else:
+            inbound["users"] = [user_obj]
+
+    elif itype == "shadowtls":
+        password = req.get("password") or existing.get("password") or secrets.token_urlsafe(16)
+        inbound["version"] = int(req.get("version") or existing.get("version") or 3)
+        inbound["password"] = password
+        hs_server = req.get("handshake_server") or existing.get("handshake", {}).get("server") or "dl.google.com"
+        hs_port = int(req.get("handshake_port") or existing.get("handshake", {}).get("server_port") or 443)
+        inbound["handshake"] = {"server": hs_server, "server_port": hs_port}
+
+    elif itype in ["socks", "http", "mixed"]:
+        if req.get("user_name") and req.get("password"):
+            inbound["users"] = [{"username": req["user_name"], "password": req["password"]}]
+        elif "users" in existing:
+            inbound["users"] = existing["users"]
+
+    elif itype == "direct":
+        inbound["network"] = req.get("network") or existing.get("network") or "tcp"
+        if req.get("override_address"):
+            inbound["override_address"] = req["override_address"]
+            inbound["override_port"] = int(req.get("override_port") or listen_port)
+
+    elif itype == "tun":
+        inbound["interface_name"] = req.get("interface_name") or existing.get("interface_name") or f"tun_{tag[:6]}"
+        inbound["inet4_address"] = req.get("inet4_address") or existing.get("inet4_address") or "172.19.0.1/30"
+        inbound["auto_route"] = bool(req.get("auto_route", existing.get("auto_route", True)))
+        inbound["strict_route"] = bool(req.get("strict_route", existing.get("strict_route", False)))
+        inbound["stack"] = req.get("stack") or existing.get("stack") or "system"
+
+    # TLS / Reality settings
+    tls_mode = req.get("tls_mode")
+    if not tls_mode and existing.get("tls", {}).get("enabled"):
+        tls_mode = "reality" if existing.get("tls", {}).get("reality", {}).get("enabled") else "tls"
+    elif not tls_mode:
+        tls_mode = "none"
+
+    if tls_mode == "reality":
+        reality_obj = existing.get("tls", {}).get("reality", {})
+        priv_k = req.get("reality_private_key") or reality_obj.get("private_key") or ""
+        pub_k = req.get("reality_public_key") or reality_obj.get("public_key") or ""
+        short_id = req.get("reality_short_id") or (reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else "") or "86d7ec6343d000b6"
+        hs_srv = req.get("handshake_server") or req.get("sni") or reality_obj.get("handshake", {}).get("server") or "dl.google.com"
+        hs_port = int(req.get("handshake_port") or reality_obj.get("handshake", {}).get("server_port") or 443)
+
+        inbound["tls"] = {
+            "enabled": True,
+            "server_name": hs_srv,
+            "reality": {
+                "enabled": True,
+                "handshake": {
+                    "server": hs_srv,
+                    "server_port": hs_port
+                },
+                "private_key": priv_k,
+                "short_id": [short_id]
+            }
+        }
+        if pub_k:
+            inbound["tls"]["reality"]["public_key"] = pub_k
+
+    elif tls_mode == "tls":
+        cert_p = req.get("certificate_path") or existing.get("tls", {}).get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt"
+        key_p = req.get("key_path") or existing.get("tls", {}).get("key_path") or "/etc/vpnpanel/ssl/panel.key"
+        sni = req.get("sni") or existing.get("tls", {}).get("server_name") or "dl.google.com"
+        inbound["tls"] = {
+            "enabled": True,
+            "server_name": sni,
+            "certificate_path": cert_p,
+            "key_path": key_p
+        }
+        alpn = req.get("alpn") or existing.get("tls", {}).get("alpn")
+        if alpn:
+            inbound["tls"]["alpn"] = alpn if isinstance(alpn, list) else [alpn]
+    else:
+        inbound.pop("tls", None)
+
+    # Transport settings
+    transport_type = req.get("transport_type") or (existing.get("transport", {}).get("type") if existing.get("transport") else "tcp")
+    if transport_type == "ws":
+        ws_path = req.get("ws_path") or existing.get("transport", {}).get("path") or "/"
+        inbound["transport"] = {"type": "ws", "path": ws_path}
+    elif transport_type == "grpc":
+        svc = req.get("grpc_service_name") or existing.get("transport", {}).get("service_name") or "GunService"
+        inbound["transport"] = {"type": "grpc", "service_name": svc}
+    elif transport_type == "httpupgrade":
+        host = req.get("httpupgrade_host") or req.get("sni") or existing.get("transport", {}).get("host") or ""
+        path = req.get("httpupgrade_path") or existing.get("transport", {}).get("path") or "/"
+        inbound["transport"] = {"type": "httpupgrade", "host": host, "path": path}
+    else:
+        inbound.pop("transport", None)
+
+    return inbound, ""
 
 @app.route("/api/singbox/status", methods=["GET"])
 def api_singbox_status():
@@ -18517,12 +18824,14 @@ def api_singbox_status():
         except Exception: pass
 
     inbounds = cfg.get("inbounds", [])
+    users = load_singbox_users()
     return jsonify({
         "success": True,
         "is_active": is_active,
         "version": ver,
         "inbounds_count": len(inbounds),
         "inbounds": inbounds,
+        "users_count": len(users),
         "outbounds_count": len(cfg.get("outbounds", []))
     })
 
@@ -18592,164 +18901,18 @@ def api_singbox_inbound_add():
     ensure_singbox_default_config()
 
     req = request.get_json() or {}
-    itype = (req.get("type") or "vless").strip().lower()
-    tag = (req.get("tag") or f"{itype}_{uuid.uuid4().hex[:6]}").strip()
-
-    try:
-        listen_port = int(req.get("listen_port") or 20443)
-    except Exception:
-        return jsonify({"error": "شماره پورت نامعتبر است."}), 400
+    tag = (req.get("tag") or "").strip()
 
     with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
-    if any(ib.get("tag") == tag for ib in cfg.get("inbounds", [])):
+    if tag and any(ib.get("tag") == tag for ib in cfg.get("inbounds", [])):
         return jsonify({"error": f"اینباندی با نام تگ {tag} از قبل وجود دارد."}), 400
 
-    new_inbound = {
-        "type": itype,
-        "tag": tag,
-        "listen": req.get("listen") or "::",
-        "listen_port": listen_port
-    }
+    new_inbound, err = build_inbound_from_request(req)
+    if not new_inbound:
+        return jsonify({"error": err or "تنظیمات اینباند نامعتبر است."}), 400
 
-    # Protocol-specific options
-    if itype in ["vless", "vmess"]:
-        uuid_val = (req.get("uuid") or str(uuid.uuid4())).strip()
-        user_obj = {"name": req.get("user_name") or f"{itype}-user", "uuid": uuid_val}
-        if itype == "vless" and req.get("flow"):
-            user_obj["flow"] = req.get("flow")
-        new_inbound["users"] = [user_obj]
-
-    elif itype == "trojan":
-        password = req.get("password") or secrets.token_urlsafe(16)
-        new_inbound["users"] = [{"name": req.get("user_name") or "trojan-user", "password": password}]
-
-    elif itype == "hysteria2":
-        password = req.get("password") or secrets.token_urlsafe(16)
-        new_inbound["users"] = [{"name": req.get("user_name") or "hy2-user", "password": password}]
-        new_inbound["up_mbps"] = int(req.get("up_mbps") or 100)
-        new_inbound["down_mbps"] = int(req.get("down_mbps") or 100)
-        if req.get("obfs_password"):
-            new_inbound["obfs"] = {"type": "salamander", "password": req.get("obfs_password")}
-
-    elif itype == "tuic":
-        uuid_val = (req.get("uuid") or str(uuid.uuid4())).strip()
-        password = req.get("password") or secrets.token_urlsafe(16)
-        new_inbound["users"] = [{"name": req.get("user_name") or "tuic-user", "uuid": uuid_val, "password": password}]
-        new_inbound["congestion_control"] = req.get("congestion_control") or "bbr"
-        new_inbound["zero_rtt_handshake"] = bool(req.get("zero_rtt", True))
-
-    elif itype == "shadowsocks":
-        method = req.get("method") or "2022-blake3-aes-128-gcm"
-        password = (req.get("password") or "").strip()
-        if "2022" in method:
-            try:
-                raw_b = base64.b64decode(password)
-                if len(raw_b) not in [16, 32]:
-                    password = base64.b64encode(os.urandom(16)).decode()
-            except Exception:
-                password = base64.b64encode(os.urandom(16)).decode()
-        elif not password:
-            password = secrets.token_urlsafe(16)
-        new_inbound["method"] = method
-        new_inbound["password"] = password
-
-    elif itype == "naive":
-        uname = req.get("user_name") or "naiveuser"
-        upass = req.get("password") or secrets.token_urlsafe(16)
-        new_inbound["users"] = [{"username": uname, "password": upass}]
-        if "tls" not in new_inbound and req.get("tls_mode", "tls") != "none":
-            new_inbound["tls"] = {
-                "enabled": True,
-                "certificate_path": req.get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt",
-                "key_path": req.get("key_path") or "/etc/vpnpanel/ssl/panel.key"
-            }
-
-    elif itype == "shadowtls":
-        password = req.get("password") or secrets.token_urlsafe(16)
-        new_inbound["version"] = int(req.get("version") or 3)
-        new_inbound["password"] = password
-        new_inbound["handshake"] = {
-            "server": req.get("handshake_server") or "dl.google.com",
-            "server_port": int(req.get("handshake_port") or 443)
-        }
-
-    elif itype in ["socks", "http", "mixed"]:
-        if req.get("user_name") and req.get("password"):
-            new_inbound["users"] = [{"username": req["user_name"], "password": req["password"]}]
-
-    elif itype == "direct":
-        new_inbound["network"] = req.get("network") or "tcp"
-        if req.get("override_address"):
-            new_inbound["override_address"] = req["override_address"]
-            new_inbound["override_port"] = int(req.get("override_port") or listen_port)
-
-    elif itype == "tun":
-        new_inbound["interface_name"] = req.get("interface_name") or f"tun_{tag[:6]}"
-        new_inbound["inet4_address"] = req.get("inet4_address") or "172.19.0.1/30"
-        new_inbound["auto_route"] = bool(req.get("auto_route", True))
-        new_inbound["strict_route"] = bool(req.get("strict_route", False))
-        new_inbound["stack"] = req.get("stack") or "system"
-
-    # TLS & Reality settings
-    tls_mode = req.get("tls_mode") or "none"
-    if tls_mode == "reality":
-        new_inbound["tls"] = {
-            "enabled": True,
-            "server_name": req.get("sni") or "dl.google.com",
-            "reality": {
-                "enabled": True,
-                "handshake": {
-                    "server": req.get("handshake_server") or "dl.google.com",
-                    "server_port": int(req.get("handshake_port") or 443)
-                },
-                "private_key": req.get("reality_private_key") or "",
-                "short_id": [req.get("reality_short_id") or "86d7ec6343d000b6"]
-            }
-        }
-        if req.get("reality_public_key"):
-            new_inbound["tls"]["reality"]["public_key"] = req.get("reality_public_key")
-    elif tls_mode == "tls":
-        cert_p = req.get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt"
-        key_p = req.get("key_path") or "/etc/vpnpanel/ssl/panel.key"
-        new_inbound["tls"] = {
-            "enabled": True,
-            "server_name": req.get("sni") or "dl.google.com",
-            "certificate_path": cert_p,
-            "key_path": key_p
-        }
-        if req.get("alpn"):
-            new_inbound["tls"]["alpn"] = req.get("alpn") if isinstance(req.get("alpn"), list) else [req.get("alpn")]
-
-    # Transport settings
-    transport_type = req.get("transport_type") or "tcp"
-    if transport_type == "ws":
-        new_inbound["transport"] = {
-            "type": "ws",
-            "path": req.get("ws_path") or "/"
-        }
-    elif transport_type == "grpc":
-        new_inbound["transport"] = {
-            "type": "grpc",
-            "service_name": req.get("grpc_service_name") or "GunService"
-        }
-    elif transport_type == "httpupgrade":
-        new_inbound["transport"] = {
-            "type": "httpupgrade",
-            "host": req.get("httpupgrade_host") or req.get("sni") or "",
-            "path": req.get("httpupgrade_path") or "/"
-        }
-
-    # Multiplex settings
-    if req.get("multiplex_enabled"):
-        new_inbound["multiplex"] = {
-            "enabled": True,
-            "protocol": req.get("multiplex_protocol") or "smux",
-            "max_connections": int(req.get("multiplex_max_conn") or 4)
-        }
-
-    # Validate new config
     test_cfg = dict(cfg)
     test_cfg["inbounds"] = list(test_cfg.get("inbounds", [])) + [new_inbound]
     ok, err_msg = validate_singbox_config(test_cfg)
@@ -18761,7 +18924,115 @@ def api_singbox_inbound_add():
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
-    return jsonify({"success": True, "inbound": new_inbound, "message": f"اینباند {tag} ({itype}) با موفقیت ایجاد شد."})
+    return jsonify({"success": True, "inbound": new_inbound, "message": f"اینباند {new_inbound.get('tag')} با موفقیت ایجاد و فعال شد."})
+
+@app.route("/api/singbox/inbound/<tag>/details", methods=["GET"])
+def api_singbox_inbound_details(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    inbound = next((ib for ib in cfg.get("inbounds", []) if ib.get("tag") == tag), None)
+    if not inbound:
+        return jsonify({"error": f"اینباند با تگ {tag} یافت نشد."}), 404
+
+    tls = inbound.get("tls", {})
+    reality = tls.get("reality", {})
+    transport = inbound.get("transport", {})
+    users = inbound.get("users", [])
+    u0 = users[0] if users else {}
+
+    details = {
+        "tag": inbound.get("tag"),
+        "type": inbound.get("type"),
+        "listen": inbound.get("listen", "::"),
+        "listen_port": inbound.get("listen_port", 20443),
+        "disabled": inbound.get("disabled", False),
+        "tls_mode": "reality" if reality.get("enabled") else ("tls" if tls.get("enabled") else "none"),
+        "sni": tls.get("server_name") or reality.get("handshake", {}).get("server", ""),
+        "reality_dest": reality.get("handshake", {}).get("server", "dl.google.com"),
+        "reality_dest_port": reality.get("handshake", {}).get("server_port", 443),
+        "reality_privkey": reality.get("private_key", ""),
+        "reality_pubkey": reality.get("public_key", ""),
+        "reality_shortid": (reality.get("short_id", [""])[0] if reality.get("short_id") else ""),
+        "tls_cert": tls.get("certificate_path", "/etc/vpnpanel/ssl/panel.crt"),
+        "tls_key": tls.get("key_path", "/etc/vpnpanel/ssl/panel.key"),
+        "transport_type": transport.get("type", "tcp"),
+        "ws_path": transport.get("path", "/"),
+        "uuid": u0.get("uuid", ""),
+        "flow": u0.get("flow", ""),
+        "password": inbound.get("password") or u0.get("password", ""),
+        "method": inbound.get("method", "2022-blake3-aes-128-gcm"),
+        "user_name": u0.get("name") or u0.get("username", ""),
+        "up_mbps": inbound.get("up_mbps", 100),
+        "down_mbps": inbound.get("down_mbps", 100),
+        "obfs_password": inbound.get("obfs", {}).get("password", ""),
+        "congestion_control": inbound.get("congestion_control", "bbr")
+    }
+
+    return jsonify({"success": True, "inbound": details, "raw": inbound})
+
+@app.route("/api/singbox/inbound/<tag>/edit", methods=["POST"])
+def api_singbox_inbound_edit(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    target_idx = None
+    existing = None
+    for idx, ib in enumerate(cfg.get("inbounds", [])):
+        if ib.get("tag") == tag:
+            target_idx = idx
+            existing = ib
+            break
+
+    if existing is None:
+        return jsonify({"error": f"اینباند با تگ {tag} یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    new_tag = (req.get("tag") or tag).strip()
+
+    if new_tag != tag:
+        if any(ib.get("tag") == new_tag for ib in cfg.get("inbounds", [])):
+            return jsonify({"error": f"اینباندی با نام تگ {new_tag} از قبل وجود دارد."}), 400
+
+    updated_inbound, err = build_inbound_from_request(req, existing_inbound=existing)
+    if not updated_inbound:
+        return jsonify({"error": err or "تنظیمات اینباند نامعتبر است."}), 400
+
+    test_cfg = dict(cfg)
+    test_cfg["inbounds"] = list(cfg.get("inbounds", []))
+    test_cfg["inbounds"][target_idx] = updated_inbound
+
+    ok, err_msg = validate_singbox_config(test_cfg)
+    if not ok:
+        return jsonify({"error": f"تنظیمات اینباند با هسته سینگ‌باکس ناسازگار است: {err_msg}"}), 400
+
+    cfg["inbounds"][target_idx] = updated_inbound
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    if new_tag != tag:
+        local_users = load_singbox_users()
+        changed = False
+        for u in local_users:
+            if tag in u.get("inbounds", []):
+                u["inbounds"] = [new_tag if x == tag else x for x in u["inbounds"]]
+                changed = True
+        if changed:
+            save_singbox_users(local_users)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "message": f"اینباند {new_tag} با موفقیت ویرایش و بروزرسانی شد.", "inbound": updated_inbound})
 
 @app.route("/api/singbox/inbound/<tag>/delete", methods=["POST", "DELETE"])
 def api_singbox_inbound_delete(tag):
@@ -18783,6 +19054,15 @@ def api_singbox_inbound_delete(tag):
     cfg["inbounds"] = inbounds
     with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    local_users = load_singbox_users()
+    changed = False
+    for u in local_users:
+        if tag in u.get("inbounds", []):
+            u["inbounds"] = [x for x in u["inbounds"] if x != tag]
+            changed = True
+    if changed:
+        save_singbox_users(local_users)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
     return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت حذف گردید."})
@@ -18967,6 +19247,177 @@ def api_singbox_inbound_toggle(tag):
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
     state_str = "غیرفعال" if target["disabled"] else "فعال"
     return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت {state_str} شد.", "disabled": target["disabled"]})
+
+# --- Local Users Management Endpoints for Sing-box ---
+
+@app.route("/api/singbox/users", methods=["GET"])
+def api_singbox_users():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    return jsonify({
+        "success": True,
+        "users": users,
+        "count": len(users)
+    })
+
+@app.route("/api/singbox/user/add", methods=["POST"])
+def api_singbox_user_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    username = (req.get("username") or "").strip().lower()
+
+    if not username or not re.match(r"^[a-zA-Z0-9_\-\.]{3,32}$", username):
+        return jsonify({"error": "نام کاربری باید بین ۳ تا ۳۲ کاراکتر و فقط شامل حروف انگلیسی، اعداد، _ و - باشد."}), 400
+
+    users = load_singbox_users()
+    if any(u.get("username") == username for u in users):
+        return jsonify({"error": f"کاربر با نام {username} از قبل وجود دارد."}), 400
+
+    user_uuid = (req.get("uuid") or str(uuid.uuid4())).strip()
+    user_pass = (req.get("password") or secrets.token_urlsafe(14)).strip()
+    inbounds = req.get("inbounds")
+    if inbounds is None:
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+                inbounds = [ib.get("tag") for ib in c.get("inbounds", []) if ib.get("tag")]
+        except Exception:
+            inbounds = []
+    elif not isinstance(inbounds, list):
+        inbounds = []
+
+    new_user = {
+        "username": username,
+        "uuid": user_uuid,
+        "password": user_pass,
+        "enabled": True,
+        "inbounds": inbounds,
+        "flow": req.get("flow", "xtls-rprx-vision"),
+        "note": req.get("note", "").strip(),
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    users.append(new_user)
+    save_singbox_users(users)
+
+    ok, err = sync_singbox_users_to_config()
+    if not ok:
+        users = [u for u in users if u.get("username") != username]
+        save_singbox_users(users)
+        return jsonify({"error": f"خطا در همگام‌سازی با هسته: {err}"}), 400
+
+    return jsonify({"success": True, "message": f"کاربر محلی {username} با موفقیت ایجاد و به کانفیگ‌های انتخابی متصل شد.", "user": new_user})
+
+@app.route("/api/singbox/user/<username>/edit", methods=["POST"])
+def api_singbox_user_edit(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    target = next((u for u in users if u.get("username") == username), None)
+    if not target:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    if req.get("password"):
+        target["password"] = req["password"].strip()
+    if req.get("uuid"):
+        target["uuid"] = req["uuid"].strip()
+    if "inbounds" in req and isinstance(req["inbounds"], list):
+        target["inbounds"] = req["inbounds"]
+    if "flow" in req:
+        target["flow"] = req["flow"]
+    if "note" in req:
+        target["note"] = req["note"].strip()
+    if "enabled" in req:
+        target["enabled"] = bool(req["enabled"])
+
+    save_singbox_users(users)
+    ok, err = sync_singbox_users_to_config()
+    if not ok:
+        return jsonify({"error": f"خطا در همگام‌سازی کاربر با هسته: {err}"}), 400
+
+    return jsonify({"success": True, "message": f"تنظیمات کاربر {username} با موفقیت ویرایش و با هسته همگام شد.", "user": target})
+
+@app.route("/api/singbox/user/<username>/toggle", methods=["POST"])
+def api_singbox_user_toggle(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    target = next((u for u in users if u.get("username") == username), None)
+    if not target:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    curr = target.get("enabled", True)
+    target["enabled"] = not curr
+    save_singbox_users(users)
+
+    ok, err = sync_singbox_users_to_config()
+    if not ok:
+        target["enabled"] = curr
+        save_singbox_users(users)
+        return jsonify({"error": f"خطا در همگام‌سازی با هسته: {err}"}), 400
+
+    state_str = "فعال" if target["enabled"] else "غیرفعال"
+    return jsonify({"success": True, "message": f"کاربر {username} با موفقیت {state_str} شد.", "enabled": target["enabled"]})
+
+@app.route("/api/singbox/user/<username>/delete", methods=["POST", "DELETE"])
+def api_singbox_user_delete(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    before_len = len(users)
+    users = [u for u in users if u.get("username") != username]
+    if len(users) == before_len:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    save_singbox_users(users)
+    ok, err = sync_singbox_users_to_config()
+    if not ok:
+        return jsonify({"error": f"خطا در همگام‌سازی پس از حذف: {err}"}), 400
+
+    return jsonify({"success": True, "message": f"کاربر {username} با موفقیت از کلیه کانفیگ‌های هسته حذف گردید."})
+
+@app.route("/api/singbox/user/<username>/links", methods=["GET"])
+def api_singbox_user_links(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    target = next((u for u in users if u.get("username") == username), None)
+    if not target:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ هسته موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    server_ip = get_server_public_ip()
+    user_inbounds = target.get("inbounds", [])
+
+    configs = []
+    for ib in cfg.get("inbounds", []):
+        tag = ib.get("tag")
+        if not user_inbounds or tag in user_inbounds:
+            link = generate_singbox_share_link(ib, server_ip, target_user=target)
+            proto_type = ib.get("type", "")
+            configs.append({
+                "tag": tag,
+                "type": proto_type,
+                "port": ib.get("listen_port"),
+                "share_link": link
+            })
+
+    return jsonify({
+        "success": True,
+        "username": username,
+        "user": target,
+        "configs": configs,
+        "configs_count": len(configs)
+    })
+
 
 if __name__ == "__main__":
     if os.path.exists(HELPER_SCRIPT):
