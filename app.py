@@ -2800,6 +2800,22 @@ def api_protocols_control():
                     subprocess.run(["swanctl", "--load-all"], capture_output=True)
         if errors:
             return jsonify({"success": False, "error": "; ".join(errors)}), 500
+
+        if action in ["start", "restart"]:
+            import time
+            time.sleep(1)
+            if not get_protocol_active(protocol):
+                # Attempt self-healing repair once if trojan or naiveproxy config had issues
+                if protocol in ["trojan", "naiveproxy"]:
+                    run_helper("install", protocol)
+                    time.sleep(1)
+
+                if not get_protocol_active(protocol):
+                    svc = services[0]
+                    status_res = subprocess.run(["journalctl", "-u", svc, "-n", "15", "--no-pager"], capture_output=True, text=True)
+                    log_tail = status_res.stdout.strip() or status_res.stderr.strip()
+                    return jsonify({"success": False, "error": f"سرویس {protocol} اجرا شد اما بلافاصله متوقف گردید. آخرین لاگ:\n{log_tail}"}), 500
+
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -7789,7 +7805,7 @@ def api_dns_protocol_routing():
                             try:
                                 with open(t_cfg, "r") as f:
                                     pj = json.load(f)
-                                pj["dns"] = {"servers": [{"tag": "remote", "type": "udp", "server": target_dns}]}
+                                pj["dns"] = {"servers": [{"tag": "remote", "address": target_dns}]}
                                 with open(t_cfg, "w") as f:
                                     json.dump(pj, f, indent=2)
                                 subprocess.run(["systemctl", "restart", f"mhpanel-{proto_name}"], capture_output=True)

@@ -82,8 +82,12 @@ ensure_binary() {
     local fallback_url="${2:-}"
     local alt_url="${3:-}"
 
+    # Verify if binary exists and is a valid ELF executable (not an HTML error page or tar.gz)
     if [ -x "/usr/local/bin/${bin_name}" ]; then
-        return 0
+        if file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
+            return 0
+        fi
+        rm -f "/usr/local/bin/${bin_name}"
     fi
 
     # Check panel repo bin/ and daemons directories
@@ -91,7 +95,9 @@ ensure_binary() {
         if [ -f "${dir}/${bin_name}" ]; then
             cp -f "${dir}/${bin_name}" "/usr/local/bin/${bin_name}" 2>/dev/null || true
             chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
-            return 0
+            if file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
+                return 0
+            fi
         fi
     done
 
@@ -100,16 +106,65 @@ ensure_binary() {
         echo "Binary ${bin_name} not found locally. Downloading from: ${fallback_url} ..."
         if curl -fsSL --connect-timeout 10 --max-time 60 "${fallback_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
             chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
-            return 0
+            if file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
+                return 0
+            fi
+            rm -f "/usr/local/bin/${bin_name}"
         fi
     fi
 
     # Attempt download from alt_url if provided
     if [ -n "${alt_url}" ]; then
         echo "Retrying download of ${bin_name} from: ${alt_url} ..."
-        if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
-            chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
-            return 0
+        if [[ "${alt_url}" =~ \.tar\.gz$ ]]; then
+            local tmp_d="/tmp/bin_extract_$$"
+            mkdir -p "${tmp_d}"
+            if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" 2>/dev/null | tar -xz -C "${tmp_d}" 2>/dev/null; then
+                local found_bin="$(find "${tmp_d}" -type f -name "${bin_name}" | head -n1)"
+                if [ -n "${found_bin}" ] && [ -f "${found_bin}" ]; then
+                    mv -f "${found_bin}" "/usr/local/bin/${bin_name}"
+                    chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+                    rm -rf "${tmp_d}"
+                    return 0
+                fi
+            fi
+            rm -rf "${tmp_d}"
+        elif [[ "${alt_url}" =~ \.tar\.xz$ ]]; then
+            local tmp_d="/tmp/bin_extract_$$"
+            mkdir -p "${tmp_d}"
+            if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" 2>/dev/null | tar -xJ -C "${tmp_d}" 2>/dev/null; then
+                local found_bin="$(find "${tmp_d}" -type f -name "${bin_name}" | head -n1)"
+                if [ -n "${found_bin}" ] && [ -f "${found_bin}" ]; then
+                    mv -f "${found_bin}" "/usr/local/bin/${bin_name}"
+                    chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+                    rm -rf "${tmp_d}"
+                    return 0
+                fi
+            fi
+            rm -rf "${tmp_d}"
+        elif [[ "${alt_url}" =~ \.zip$ ]]; then
+            local tmp_z="/tmp/bin_extract_$$.zip"
+            local tmp_d="/tmp/bin_extract_$$"
+            mkdir -p "${tmp_d}"
+            if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" -o "${tmp_z}" 2>/dev/null; then
+                unzip -q -o "${tmp_z}" -d "${tmp_d}" 2>/dev/null || true
+                local found_bin="$(find "${tmp_d}" -type f -name "${bin_name}" | head -n1)"
+                if [ -n "${found_bin}" ] && [ -f "${found_bin}" ]; then
+                    mv -f "${found_bin}" "/usr/local/bin/${bin_name}"
+                    chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+                    rm -rf "${tmp_d}" "${tmp_z}"
+                    return 0
+                fi
+            fi
+            rm -rf "${tmp_d}" "${tmp_z}"
+        else
+            if curl -fsSL --connect-timeout 10 --max-time 60 "${alt_url}" -o "/usr/local/bin/${bin_name}" 2>/dev/null; then
+                chmod +x "/usr/local/bin/${bin_name}" 2>/dev/null || true
+                if file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
+                    return 0
+                fi
+                rm -f "/usr/local/bin/${bin_name}"
+            fi
         fi
     fi
 
@@ -1889,9 +1944,28 @@ install_trojan() {
     if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
         port=12443
     fi
-    mkdir -p /etc/vpnpanel
+    mkdir -p /etc/vpnpanel/ssl
     generate_certs
-    if [ ! -f /etc/vpnpanel/trojan.json ]; then
+    if [ ! -s /etc/vpnpanel/ssl/panel.crt ] || [ ! -s /etc/vpnpanel/ssl/panel.key ]; then
+        if [ -s /www/wwwroot/mhpanel/ssl/panel.crt ] && [ -s /www/wwwroot/mhpanel/ssl/panel.key ]; then
+            cp -f /www/wwwroot/mhpanel/ssl/panel.crt /etc/vpnpanel/ssl/panel.crt
+            cp -f /www/wwwroot/mhpanel/ssl/panel.key /etc/vpnpanel/ssl/panel.key
+        fi
+    fi
+
+    local arch="$(uname -m)"
+    local sb_arch="amd64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
+
+    # Fix any corrupted DNS fields in existing config
+    if [ -f /etc/vpnpanel/trojan.json ]; then
+        sed -i 's/"type": "udp",//g' /etc/vpnpanel/trojan.json 2>/dev/null || true
+        sed -i 's/"server":/"address":/g' /etc/vpnpanel/trojan.json 2>/dev/null || true
+    fi
+
+    # If missing or invalid sing-box config, regenerate fresh clean config
+    if [ ! -f /etc/vpnpanel/trojan.json ] || ! /usr/local/bin/sing-box check -c /etc/vpnpanel/trojan.json >/dev/null 2>&1; then
         local secret=$(openssl rand -hex 16)
         cat > /etc/vpnpanel/trojan.json <<EOF
 {
@@ -1918,11 +1992,6 @@ install_trojan() {
 EOF
     fi
 
-    local arch="$(uname -m)"
-    local sb_arch="amd64"
-    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
-
     cat > /etc/systemd/system/mhpanel-trojan.service <<EOF
 [Unit]
 Description=MHPanel - Trojan TLS Censorship Bypass Proxy
@@ -1946,7 +2015,15 @@ EOF
     systemctl daemon-reload
     systemctl enable mhpanel-trojan 2>/dev/null || true
     systemctl restart mhpanel-trojan 2>/dev/null || true
-    echo "Trojan installed on TCP port ${port}."
+    sleep 1
+
+    if systemctl is-active --quiet mhpanel-trojan; then
+        echo "Trojan successfully installed and activated on TCP port ${port}."
+    else
+        echo "ERROR: mhpanel-trojan failed to start. Service error details:" >&2
+        journalctl -u mhpanel-trojan -n 15 --no-pager >&2
+        return 1
+    fi
 }
 
 uninstall_trojan() {
@@ -1976,9 +2053,28 @@ install_naiveproxy() {
     if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
         port=13443
     fi
-    mkdir -p /etc/vpnpanel
+    mkdir -p /etc/vpnpanel/ssl
     generate_certs
-    if [ ! -f /etc/vpnpanel/naiveproxy.json ]; then
+    if [ ! -s /etc/vpnpanel/ssl/panel.crt ] || [ ! -s /etc/vpnpanel/ssl/panel.key ]; then
+        if [ -s /www/wwwroot/mhpanel/ssl/panel.crt ] && [ -s /www/wwwroot/mhpanel/ssl/panel.key ]; then
+            cp -f /www/wwwroot/mhpanel/ssl/panel.crt /etc/vpnpanel/ssl/panel.crt
+            cp -f /www/wwwroot/mhpanel/ssl/panel.key /etc/vpnpanel/ssl/panel.key
+        fi
+    fi
+
+    local arch="$(uname -m)"
+    local sb_arch="amd64"
+    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
+
+    # Fix any corrupted DNS fields in existing config
+    if [ -f /etc/vpnpanel/naiveproxy.json ]; then
+        sed -i 's/"type": "udp",//g' /etc/vpnpanel/naiveproxy.json 2>/dev/null || true
+        sed -i 's/"server":/"address":/g' /etc/vpnpanel/naiveproxy.json 2>/dev/null || true
+    fi
+
+    # If missing or invalid sing-box config, regenerate fresh clean config
+    if [ ! -f /etc/vpnpanel/naiveproxy.json ] || ! /usr/local/bin/sing-box check -c /etc/vpnpanel/naiveproxy.json >/dev/null 2>&1; then
         local secret=$(openssl rand -hex 16)
         cat > /etc/vpnpanel/naiveproxy.json <<EOF
 {
@@ -2004,11 +2100,6 @@ install_naiveproxy() {
 EOF
     fi
 
-    local arch="$(uname -m)"
-    local sb_arch="amd64"
-    if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
-
     cat > /etc/systemd/system/mhpanel-naiveproxy.service <<EOF
 [Unit]
 Description=MHPanel - NaiveProxy Chromium Network Camouflage Proxy
@@ -2032,7 +2123,15 @@ EOF
     systemctl daemon-reload
     systemctl enable mhpanel-naiveproxy 2>/dev/null || true
     systemctl restart mhpanel-naiveproxy 2>/dev/null || true
-    echo "NaiveProxy installed on TCP port ${port}."
+    sleep 1
+
+    if systemctl is-active --quiet mhpanel-naiveproxy; then
+        echo "NaiveProxy successfully installed and activated on TCP port ${port}."
+    else
+        echo "ERROR: mhpanel-naiveproxy failed to start. Service error details:" >&2
+        journalctl -u mhpanel-naiveproxy -n 15 --no-pager >&2
+        return 1
+    fi
 }
 
 uninstall_naiveproxy() {
@@ -3031,9 +3130,12 @@ service_status() {
 
 case "${ACTION}" in
     install)
-        if is_protocol_installed "${PROTOCOL}"; then
-            echo "${PROTOCOL} is already installed; skipping reinstall."
-            exit 0
+        # Only skip reinstall if already installed AND currently running active AND no specific port requested
+        if is_protocol_installed "${PROTOCOL}" && [ -z "$ARG3" ]; then
+            if systemctl is-active --quiet "mhpanel-${PROTOCOL}" 2>/dev/null || systemctl is-active --quiet "${PROTOCOL}" 2>/dev/null; then
+                echo "${PROTOCOL} is already installed and active."
+                exit 0
+            fi
         fi
 
         # Port conflict resolution & web server (Apache/Nginx) protection
