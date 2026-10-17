@@ -59,6 +59,7 @@ ensure_cli_shortcuts() {
         chmod +x "${PANEL_DIR}/install.sh" 2>/dev/null || true
     fi
 
+    rm -f /usr/local/bin/mhpanel /usr/bin/mhpanel 2>/dev/null || true
     cat > /usr/local/bin/mhpanel <<'EOF'
 #!/usr/bin/env bash
 PANEL_DIR="/www/wwwroot/mhpanel"
