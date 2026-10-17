@@ -45,31 +45,37 @@ fi
 
 # Ensure mhpanel & hmpanel CLI shortcuts exist globally
 ensure_cli_shortcuts() {
-    local target_script="${PANEL_DIR}/install.sh"
-    if [ ! -f "$target_script" ]; then
-        target_script="$0"
-        if [[ "$target_script" != /* ]]; then
-            target_script="$(pwd)/$target_script"
-        fi
-    fi
-    chmod +x "$target_script" 2>/dev/null || true
+    mkdir -p /usr/local/bin /usr/bin "${PANEL_DIR}"
 
-    mkdir -p /usr/local/bin /usr/bin
-    if [ "$target_script" != "/usr/local/bin/mhpanel" ]; then
-        ln -sf "$target_script" /usr/local/bin/mhpanel 2>/dev/null || true
+    local running_src=""
+    if [ -f "$0" ] && [[ "$0" != /dev/* ]]; then
+        running_src="$0"
+    elif [ -f "${BASH_SOURCE[0]}" ] && [[ "${BASH_SOURCE[0]}" != /dev/* ]]; then
+        running_src="${BASH_SOURCE[0]}"
     fi
-    if [ "$target_script" != "/usr/local/bin/hmpanel" ]; then
-        ln -sf "$target_script" /usr/local/bin/hmpanel 2>/dev/null || true
+
+    if [ -n "$running_src" ] && [ ! -f "${PANEL_DIR}/install.sh" ]; then
+        cp -f "$running_src" "${PANEL_DIR}/install.sh" 2>/dev/null || true
+        chmod +x "${PANEL_DIR}/install.sh" 2>/dev/null || true
     fi
-    if [ "$target_script" != "/usr/local/bin/kigapanel" ]; then
-        ln -sf "$target_script" /usr/local/bin/kigapanel 2>/dev/null || true
-    fi
-    if [ "$target_script" != "/usr/bin/mhpanel" ]; then
-        ln -sf "$target_script" /usr/bin/mhpanel 2>/dev/null || true
-    fi
-    if [ "$target_script" != "/usr/bin/hmpanel" ]; then
-        ln -sf "$target_script" /usr/bin/hmpanel 2>/dev/null || true
-    fi
+
+    cat > /usr/local/bin/mhpanel <<'EOF'
+#!/usr/bin/env bash
+PANEL_DIR="/www/wwwroot/mhpanel"
+if [ -f "${PANEL_DIR}/install.sh" ]; then
+    exec bash "${PANEL_DIR}/install.sh" "$@"
+elif [ -f /root/mhpanel-repo/install.sh ]; then
+    exec bash /root/mhpanel-repo/install.sh "$@"
+else
+    echo "MH Panel script not found. Fetching latest installer..."
+    bash <(curl -sSL https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh) "$@"
+fi
+EOF
+    chmod +x /usr/local/bin/mhpanel 2>/dev/null || true
+    ln -sf /usr/local/bin/mhpanel /usr/local/bin/hmpanel 2>/dev/null || true
+    ln -sf /usr/local/bin/mhpanel /usr/local/bin/kigapanel 2>/dev/null || true
+    ln -sf /usr/local/bin/mhpanel /usr/bin/mhpanel 2>/dev/null || true
+    ln -sf /usr/local/bin/mhpanel /usr/bin/hmpanel 2>/dev/null || true
 }
 ensure_cli_shortcuts
 
@@ -470,7 +476,12 @@ EOF
     detect_and_configure_webserver_compatibility
 
     local pkgs_needed=()
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables iptables-persistent ufw cron net-tools sudo cmake build-essential jq socat unzip; do
+    local firewall_pkg="ufw"
+    if dpkg -s iptables-persistent >/dev/null 2>&1; then
+        firewall_pkg="iptables-persistent"
+    fi
+
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -481,10 +492,18 @@ EOF
     else
         echo -e "    Installing missing packages: ${CYAN}${pkgs_needed[*]}${NC}..."
         apt-get update -y 2>/dev/null || true
-        apt-get install -y --no-install-recommends \
+        if ! apt-get install -y --no-install-recommends \
             -o Dpkg::Options::="--force-confdef" \
             -o Dpkg::Options::="--force-confold" \
-            "${pkgs_needed[@]}" 2>/dev/null || apt-get install -y "${pkgs_needed[@]}" 2>/dev/null || true
+            "${pkgs_needed[@]}" 2>/dev/null; then
+            echo -e "    ${YELLOW}Batch package installation encountered issues; installing required packages individually...${NC}"
+            for pkg in "${pkgs_needed[@]}"; do
+                apt-get install -y --no-install-recommends \
+                    -o Dpkg::Options::="--force-confdef" \
+                    -o Dpkg::Options::="--force-confold" \
+                    "$pkg" 2>/dev/null || apt-get install -y "$pkg" 2>/dev/null || true
+            done
+        fi
         echo -e "    ${GREEN}[✓] Base system dependencies successfully installed.${NC}"
     fi
 
@@ -542,12 +561,33 @@ install_panel_web_ui() {
     mkdir -p "${SSL_DIR}"
     chmod 700 "${SSL_DIR}"
 
+    # Ensure git is available
+    if ! command -v git >/dev/null 2>&1; then
+        apt-get update -y 2>/dev/null || true
+        apt-get install -y git 2>/dev/null || true
+    fi
+
     if [ "${SCRIPT_DIR}" != "${PANEL_DIR}" ] && [ -f "${SCRIPT_DIR}/app.py" ]; then
         echo "    Deploying MH Panel source files to ${PANEL_DIR}..."
         cp -r "${SCRIPT_DIR}"/* "${PANEL_DIR}/" 2>/dev/null || true
     elif [ ! -f "${PANEL_DIR}/app.py" ]; then
         echo -e "${CYAN}    Fetching latest MH Panel source files from GitHub (${GITHUB_REPO})...${NC}"
-        git clone "${GITHUB_REPO}" "${PANEL_DIR}" 2>/dev/null || true
+        rm -rf /tmp/mhpanel_clone
+        if git clone --depth=1 "${GITHUB_REPO}" /tmp/mhpanel_clone 2>/dev/null || git clone "${GITHUB_REPO}" /tmp/mhpanel_clone 2>/dev/null; then
+            cp -r /tmp/mhpanel_clone/* "${PANEL_DIR}/" 2>/dev/null || true
+            cp -r /tmp/mhpanel_clone/.* "${PANEL_DIR}/" 2>/dev/null || true
+            rm -rf /tmp/mhpanel_clone
+        else
+            echo -e "${YELLOW}    Git clone encountered issues; attempting direct archive download from GitHub...${NC}"
+            curl -sSL "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" -o /tmp/mhpanel.tar.gz 2>/dev/null || wget -qO /tmp/mhpanel.tar.gz "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" 2>/dev/null || true
+            if [ -f /tmp/mhpanel.tar.gz ]; then
+                tar -xzf /tmp/mhpanel.tar.gz -C /tmp/ 2>/dev/null || true
+                if [ -d /tmp/MHPanel-main ]; then
+                    cp -r /tmp/MHPanel-main/* "${PANEL_DIR}/" 2>/dev/null || true
+                    rm -rf /tmp/MHPanel-main /tmp/mhpanel.tar.gz
+                fi
+            fi
+        fi
     else
         echo -e "${CYAN}    Syncing and updating existing MH Panel files to latest GitHub version...${NC}"
         cd "${PANEL_DIR}"
@@ -561,6 +601,8 @@ install_panel_web_ui() {
         fi
     fi
 
+    chmod +x "${PANEL_DIR}/install.sh" 2>/dev/null || true
+
     # Install repository bundled binaries
     if [ -d "${PANEL_DIR}/bin" ]; then
         echo "    Installing bundled binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
@@ -568,10 +610,21 @@ install_panel_web_ui() {
         chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
     fi
 
-    if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ]; then
+    # Ensure python3-venv and python3-pip are installed
+    if ! dpkg -s python3-venv >/dev/null 2>&1 || ! dpkg -s python3-pip >/dev/null 2>&1; then
+        apt-get install -y python3-venv python3-pip 2>/dev/null || true
+    fi
+
+    if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ] || [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
         echo "    Creating Python virtual environment in ${PANEL_DIR}/venv..."
-        python3 -m venv "${PANEL_DIR}/venv"
-        "${PANEL_DIR}/venv/bin/pip" install --upgrade pip --quiet
+        rm -rf "${PANEL_DIR}/venv"
+        python3 -m venv "${PANEL_DIR}/venv" 2>/dev/null || true
+        if [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
+            apt-get install -y python3-venv python3-pip 2>/dev/null || true
+            rm -rf "${PANEL_DIR}/venv"
+            python3 -m venv "${PANEL_DIR}/venv"
+        fi
+        "${PANEL_DIR}/venv/bin/pip" install --upgrade pip --quiet 2>/dev/null || true
         echo "    Installing Python dependencies (Flask, Cryptography, PyOpenSSL, Requests, Psutil)..."
         "${PANEL_DIR}/venv/bin/pip" install \
             "Flask>=2.0.0" \

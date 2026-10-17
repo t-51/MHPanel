@@ -1221,7 +1221,10 @@ install_l2tp() {
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
         -o Dpkg::Options::="--force-confdef" \
         -o Dpkg::Options::="--force-confold" \
-        xl2tpd ppp strongswan libpam-radius-auth iproute2 iptables-persistent >/dev/null 2>&1 || true
+        xl2tpd ppp strongswan libpam-radius-auth iproute2 >/dev/null 2>&1 || true
+    if ! dpkg -s ufw >/dev/null 2>&1; then
+        DEBIAN_FRONTEND=noninteractive apt-get install -y iptables-persistent >/dev/null 2>&1 || true
+    fi
     apt-get install -y linux-modules-extra-$(uname -r) >/dev/null 2>&1 || true
     modprobe ppp_mppe || true
     modprobe l2tp_core || true
