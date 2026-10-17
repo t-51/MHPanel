@@ -42,20 +42,93 @@
 
         <div class="sidebar-divider"></div>
 
-        <!-- ۲. بخش پروتکل‌های اتصال و VPN -->
+        <!-- ۲. بخش هسته جامع سینگ‌باکس و پروتکل‌های زیرمجموعه آن -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="box" style="color: #6366f1;"></i>
+                <span data-i18n="nav_sec_singbox">هسته سینگ‌باکس (Sing-box Core Suite)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Universal</span>
+            </div>
+            
+            <!-- داشبورد و اینباندهای Sing-box -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('inbounds');">
+                <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
+                <span data-i18n="nav_singbox">داشبورد و اینباندهای Sing-box</span>
+            </button>
+
+            <!-- لاگ‌های زنده هسته (Live Logs) -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('logs');">
+                <i data-lucide="terminal" style="color: #10b981;"></i>
+                <span data-i18n="nav_singbox_logs">لاگ‌های زنده هسته (Live Logs)</span>
+                <span class="sidebar-badge sidebar-badge-green">Logs</span>
+            </button>
+
+            <!-- VLESS Reality زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');">
+                <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
+                <span data-i18n="nav_singbox_vless">پروتکل VLESS Reality</span>
+                <span class="sidebar-badge sidebar-badge-purple">Reality</span>
+            </button>
+
+            <!-- Trojan TLS زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
+                <i data-lucide="shield" style="color: #0ea5e9;"></i>
+                <span data-i18n="nav_trojan">پروتکل Trojan (تروجان)</span>
+                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
+            </button>
+
+            <!-- Hysteria 2 زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
+                <i data-lucide="flame" style="color: #ef4444;"></i>
+                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
+            </button>
+
+            <!-- TUIC Protocol زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
+                <i data-lucide="zap" style="color: #6366f1;"></i>
+                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
+                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
+            </button>
+
+            <!-- Shadowsocks زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
+                <i data-lucide="lock" style="color: #10b981;"></i>
+                <span data-i18n="nav_shadowsocks">شادوساکس (Shadowsocks 2022)</span>
+                <span class="sidebar-badge sidebar-badge-blue">2022</span>
+            </button>
+
+            <!-- NaiveProxy زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
+                <i data-lucide="compass" style="color: #f59e0b;"></i>
+                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
+                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
+            </button>
+
+            <!-- VMess زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');">
+                <i data-lucide="layers" style="color: #06b6d4;"></i>
+                <span data-i18n="nav_singbox_vmess">پروتکل VMess</span>
+                <span class="sidebar-badge sidebar-badge-blue">WS</span>
+            </button>
+
+            <!-- ShadowTLS زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');">
+                <i data-lucide="eye-off" style="color: #ec4899;"></i>
+                <span data-i18n="nav_singbox_shadowtls">پروتکل ShadowTLS v3</span>
+                <span class="sidebar-badge sidebar-badge-purple">Stealth</span>
+            </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ۳. سایر پروتکل‌های اتصال و VPN (کلاسیک و تونل) -->
         <div class="sidebar-section">
             <div class="sidebar-section-header">
                 <i data-lucide="shield"></i>
-                <span data-i18n="nav_sec_vpn">پروتکل‌های اتصال (VPN)</span>
+                <span data-i18n="nav_sec_vpn_classic">سایر پروتکل‌های VPN و تونل</span>
             </div>
             
-            <!-- Sing-box Universal Suite Core -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox')">
-                <i data-lucide="box" style="color: #6366f1;"></i>
-                <span data-i18n="nav_singbox">هسته سینگ‌باکس (Sing-box)</span>
-                <span class="sidebar-badge sidebar-badge-purple">Universal</span>
-            </button>
-
             <!-- Cisco AnyConnect (OCServ) -->
             <button class="sidebar-nav-item" onclick="switchTab('ocserv')">
                 <i data-lucide="radio" style="color: #0284c7;"></i>
@@ -63,46 +136,11 @@
                 <span class="sidebar-badge sidebar-badge-blue">Cisco</span>
             </button>
 
-            <!-- Hysteria 2 (QUIC / Brutal) -->
-            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
-                <i data-lucide="flame" style="color: #ef4444;"></i>
-                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
-                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
-            </button>
-
-            <!-- Trojan TLS -->
-            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
-                <i data-lucide="shield" style="color: #0ea5e9;"></i>
-                <span data-i18n="nav_trojan">پروتکل Trojan</span>
-                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
-            </button>
-
-            <!-- NaiveProxy -->
-            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
-                <i data-lucide="compass" style="color: #f59e0b;"></i>
-                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
-                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
-            </button>
-
-            <!-- TUIC Protocol (QUIC) -->
-            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
-                <i data-lucide="zap" style="color: #6366f1;"></i>
-                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
-                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
-            </button>
-
             <!-- StunTLS (WebRTC VoIP) -->
             <button class="sidebar-nav-item" onclick="switchTab('stuntls')">
                 <i data-lucide="radio-tower" style="color: #a855f7;"></i>
                 <span data-i18n="nav_stuntls">پروتکل StunTLS</span>
                 <span class="sidebar-badge sidebar-badge-purple">STUN</span>
-            </button>
-
-            <!-- Shadowsocks-rust -->
-            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
-                <i data-lucide="shield" style="color: #d97706;"></i>
-                <span data-i18n="nav_shadowsocks">شادوساکس (Rust)</span>
-                <span class="sidebar-badge sidebar-badge-blue">2022</span>
             </button>
 
             <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream / NoizDNS / MasterdnsVPN) -->

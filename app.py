@@ -18215,37 +18215,178 @@ WantedBy=multi-user.target
             f.write(unit_content)
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
 
+def build_default_singbox_full_suite():
+    reality_priv = ""
+    reality_pub = ""
+    try:
+        r = subprocess.run(["/usr/local/bin/sing-box", "generate", "reality-keypair"], capture_output=True, text=True)
+        for line in (r.stdout or "").splitlines():
+            if "PrivateKey:" in line: reality_priv = line.split("PrivateKey:")[1].strip()
+            elif "PublicKey:" in line: reality_pub = line.split("PublicKey:")[1].strip()
+    except Exception: pass
+    if not reality_priv:
+        reality_priv = "oJWFNihT4yj8sGXdj978eQjGajPK8N_It7EEPiPXD3s"
+        reality_pub = "XWIn-TXyo6b6qBZWKE12pZ3kA6P4NvJiTQV8syMVhB4"
+
+    psk16 = base64.b64encode(os.urandom(16)).decode()
+    vless_uuid = str(uuid.uuid4())
+    tuic_uuid = str(uuid.uuid4())
+    vmess_uuid = str(uuid.uuid4())
+
+    cert_path = "/etc/vpnpanel/ssl/panel.crt"
+    key_path = "/etc/vpnpanel/ssl/panel.key"
+    if not os.path.exists(cert_path) or not os.path.exists(key_path):
+        os.makedirs("/etc/vpnpanel/ssl", exist_ok=True)
+        if not os.path.exists(cert_path):
+            try:
+                subprocess.run(["openssl", "req", "-x509", "-nodes", "-days", "3650", "-newkey", "rsa:2048",
+                               "-keyout", key_path, "-out", cert_path, "-subj", "/CN=vpnpanel.local"], capture_output=True)
+            except Exception: pass
+
+    inbounds = [
+        {
+            "type": "vless",
+            "tag": "vless-reality-in",
+            "listen": "::",
+            "listen_port": 20443,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "tls": {
+                "enabled": True,
+                "server_name": "dl.google.com",
+                "reality": {
+                    "enabled": True,
+                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "private_key": reality_priv,
+                    "short_id": ["86d7ec6343d000b6"],
+                    "public_key": reality_pub
+                }
+            }
+        },
+        {
+            "type": "trojan",
+            "tag": "trojan-in",
+            "listen": "::",
+            "listen_port": 20444,
+            "sniff": True,
+            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+            "tls": {
+                "enabled": True,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        {
+            "type": "hysteria2",
+            "tag": "hysteria2-in",
+            "listen": "::",
+            "listen_port": 20445,
+            "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
+            "up_mbps": 100,
+            "down_mbps": 100,
+            "tls": {
+                "enabled": True,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        {
+            "type": "tuic",
+            "tag": "tuic-in",
+            "listen": "::",
+            "listen_port": 20446,
+            "users": [{"name": "default-user", "uuid": tuic_uuid, "password": "TuicPass_" + secrets.token_hex(4)}],
+            "congestion_control": "bbr",
+            "zero_rtt_handshake": True,
+            "tls": {
+                "enabled": True,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        {
+            "type": "shadowsocks",
+            "tag": "shadowsocks-in",
+            "listen": "::",
+            "listen_port": 20447,
+            "method": "2022-blake3-aes-128-gcm",
+            "password": psk16
+        },
+        {
+            "type": "vmess",
+            "tag": "vmess-in",
+            "listen": "::",
+            "listen_port": 20448,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vmess_uuid}]
+        },
+        {
+            "type": "naive",
+            "tag": "naive-in",
+            "listen": "::",
+            "listen_port": 20449,
+            "users": [{"username": "naiveuser", "password": "NaivePass_" + secrets.token_hex(4)}],
+            "tls": {
+                "enabled": True,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        {
+            "type": "mixed",
+            "tag": "mixed-in",
+            "listen": "::",
+            "listen_port": 2080,
+            "sniff": True
+        }
+    ]
+
+    return {
+        "log": {
+            "level": "info",
+            "timestamp": True,
+            "output": "/var/log/sing-box.log"
+        },
+        "dns": {
+            "servers": [
+                {"tag": "dns-direct", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
+            ]
+        },
+        "inbounds": inbounds,
+        "outbounds": [
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"}
+        ],
+        "route": {
+            "auto_detect_interface": True,
+            "rules": [
+                {"protocol": "dns", "outbound": "direct"},
+                {"ip_is_private": True, "outbound": "direct"}
+            ]
+        }
+    }
+
 def ensure_singbox_default_config():
     os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
+    need_init = False
     if not os.path.exists(SINGBOX_CONFIG_FILE) or os.path.getsize(SINGBOX_CONFIG_FILE) < 10:
-        default_cfg = {
-            "log": {
-                "level": "info",
-                "timestamp": True
-            },
-            "dns": {
-                "servers": [
-                    {"tag": "dns-remote", "address": "tcp://1.1.1.1", "address_resolver": "dns-direct", "strategy": "prefer_ipv4"},
-                    {"tag": "dns-direct", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
-                ],
-                "rules": [
-                    {"outbound": "any", "server": "dns-direct"}
-                ]
-            },
-            "inbounds": [],
-            "outbounds": [
-                {"type": "direct", "tag": "direct"},
-                {"type": "block", "tag": "block"}
-            ],
-            "route": {
-                "rules": [
-                    {"protocol": "dns", "outbound": "direct"},
-                    {"ip_is_private": True, "outbound": "direct"}
-                ]
-            }
-        }
+        need_init = True
+    else:
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            if not c.get("inbounds"):
+                need_init = True
+        except Exception:
+            need_init = True
+
+    if need_init:
+        full_cfg = build_default_singbox_full_suite()
         with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(default_cfg, f, indent=2)
+            json.dump(full_cfg, f, indent=2, ensure_ascii=False)
+        try:
+            subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+        except Exception: pass
 
 def validate_singbox_config(cfg_obj):
     tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
@@ -18339,6 +18480,19 @@ def generate_singbox_share_link(inbound, host_ip):
         password = inbound.get("password", "")
         userinfo = base64.b64encode(f"{method}:{password}".encode()).decode()
         return f"ss://{userinfo}@{host_ip}:{port}#{tag}"
+
+    elif itype == "naive":
+        uname = user0.get("username") or user0.get("name") or "naiveuser"
+        upass = user0.get("password", "")
+        return f"naive+https://{uname}:{upass}@{host_ip}:{port}?insecure=1#{tag}"
+
+    elif itype == "shadowtls":
+        password = inbound.get("password", "")
+        hs = inbound.get("handshake", {}).get("server", "dl.google.com")
+        return f"shadow-tls://{password}@{host_ip}:{port}/?sni={hs}#{tag}"
+
+    elif itype in ["mixed", "socks", "http"]:
+        return f"socks5://{host_ip}:{port}#{tag}"
 
     return f"{itype}://{host_ip}:{port}#{tag}"
 
@@ -18488,9 +18642,29 @@ def api_singbox_inbound_add():
 
     elif itype == "shadowsocks":
         method = req.get("method") or "2022-blake3-aes-128-gcm"
-        password = req.get("password") or secrets.token_urlsafe(16)
+        password = (req.get("password") or "").strip()
+        if "2022" in method:
+            try:
+                raw_b = base64.b64decode(password)
+                if len(raw_b) not in [16, 32]:
+                    password = base64.b64encode(os.urandom(16)).decode()
+            except Exception:
+                password = base64.b64encode(os.urandom(16)).decode()
+        elif not password:
+            password = secrets.token_urlsafe(16)
         new_inbound["method"] = method
         new_inbound["password"] = password
+
+    elif itype == "naive":
+        uname = req.get("user_name") or "naiveuser"
+        upass = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["users"] = [{"username": uname, "password": upass}]
+        if "tls" not in new_inbound and req.get("tls_mode", "tls") != "none":
+            new_inbound["tls"] = {
+                "enabled": True,
+                "certificate_path": req.get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt",
+                "key_path": req.get("key_path") or "/etc/vpnpanel/ssl/panel.key"
+            }
 
     elif itype == "shadowtls":
         password = req.get("password") or secrets.token_urlsafe(16)
@@ -18673,6 +18847,126 @@ def api_singbox_inbound_share(tag):
         "inbound_json": inbound
     })
 
+@app.route("/api/singbox/logs", methods=["GET", "POST"])
+def api_singbox_logs():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "POST":
+        req = request.get_json() or {}
+        action = req.get("action", "clear")
+        if action == "clear":
+            try:
+                if os.path.exists("/var/log/sing-box.log"):
+                    with open("/var/log/sing-box.log", "w", encoding="utf-8") as f:
+                        f.write("")
+                return jsonify({"success": True, "message": "لاگ‌های سینگ‌باکس با موفقیت پاکسازی شد."})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
+    try:
+        lines_limit = int(request.args.get("lines") or 150)
+    except Exception:
+        lines_limit = 150
+    level_filter = (request.args.get("level") or "").strip().upper()
+    search_q = (request.args.get("search") or "").strip().lower()
+
+    raw_lines = []
+    log_src = "/var/log/sing-box.log"
+    if os.path.exists("/var/log/sing-box.log") and os.path.getsize("/var/log/sing-box.log") > 0:
+        try:
+            with open("/var/log/sing-box.log", "r", encoding="utf-8", errors="ignore") as f:
+                raw_lines = f.readlines()
+        except Exception:
+            raw_lines = []
+
+    if not raw_lines:
+        r = subprocess.run(["journalctl", "-u", SINGBOX_SERVICE_NAME, "-n", str(lines_limit), "--no-pager"],
+                           capture_output=True, text=True)
+        raw_lines = (r.stdout or "").splitlines()
+        log_src = "journalctl"
+
+    filtered = []
+    for line in raw_lines:
+        line_str = line.strip()
+        if not line_str:
+            continue
+        if level_filter and level_filter != "ALL":
+            if level_filter not in line_str.upper():
+                continue
+        if search_q:
+            if search_q not in line_str.lower():
+                continue
+        filtered.append(line_str)
+
+    logs_slice = filtered[-lines_limit:]
+
+    r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
+    is_active = (r.stdout.strip() == "active")
+
+    return jsonify({
+        "success": True,
+        "logs": "\n".join(logs_slice),
+        "lines": logs_slice,
+        "count": len(logs_slice),
+        "is_active": is_active,
+        "log_source": log_src
+    })
+
+@app.route("/api/singbox/init-defaults", methods=["POST"])
+def api_singbox_init_defaults():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+
+    full_cfg = build_default_singbox_full_suite()
+    ok, err = validate_singbox_config(full_cfg)
+    if not ok:
+        return jsonify({"error": f"خطا در ایجاد کانفیگ پیش‌فرض: {err}"}), 400
+
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(full_cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({
+        "success": True,
+        "message": "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل VLESS Reality، تروجان، هیستوریا ۲، TUIC، شادوساکس، وی‌مس، نایوپروکسی و میکسد) با موفقیت ایجاد و فعال شدند.",
+        "inbounds_count": len(full_cfg["inbounds"])
+    })
+
+@app.route("/api/singbox/inbound/<tag>/toggle", methods=["POST"])
+def api_singbox_inbound_toggle(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    target = None
+    for ib in cfg.get("inbounds", []):
+        if ib.get("tag") == tag:
+            target = ib
+            break
+
+    if not target:
+        return jsonify({"error": f"اینباند با تگ {tag} یافت نشد."}), 404
+
+    curr_disabled = target.get("disabled", False)
+    target["disabled"] = not curr_disabled
+
+    ok, err = validate_singbox_config(cfg)
+    if not ok:
+        return jsonify({"error": f"خطا در اعتبارسنجی: {err}"}), 400
+
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    state_str = "غیرفعال" if target["disabled"] else "فعال"
+    return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت {state_str} شد.", "disabled": target["disabled"]})
 
 if __name__ == "__main__":
     if os.path.exists(HELPER_SCRIPT):
