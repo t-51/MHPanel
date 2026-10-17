@@ -14829,12 +14829,13 @@ def apply_adv_tunnel(adv):
     elif tool == "rathole":
         cfg_file = f"/etc/mhpanel/rathole_{adv_id}.toml"
         if role == "server":
+            svc_bind = remote_port if (remote_port and remote_port != listen_port) else (listen_port + 10000)
             cfg_content = f"""[server]
 bind_addr = "0.0.0.0:{listen_port}"
 default_token = "{secret}"
 
 [server.services.{safe_name}]
-bind_addr = "0.0.0.0:{listen_port}"
+bind_addr = "0.0.0.0:{svc_bind}"
 """
             exec_cmd = f"/usr/local/bin/rathole -s {cfg_file}"
         else:
