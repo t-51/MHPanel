@@ -1,56 +1,107 @@
-# 🚀 MH Panel - Enterprise Unified VPN, Anti-Censorship Tunnels & MikroTik RouterOS Management Hub
+<div dir="rtl">
+
+# 🚀 پنل جامع MH Panel - مرکز سازمانی مدیریت VPN، تانل‌های ضد فیلترینگ، Sing-box و روترهای میکروتیک
 
 <p align="center">
-  <a href="README.md"><b>🇬🇧 English</b></a> |
-  <a href="README_FA.md"><b>🇮🇷 فارسی</b></a> |
+  <a href="README.md"><b>🇮🇷 فارسی (صفحه اصلی)</b></a> |
+  <a href="README_EN.md"><b>🇬🇧 English Documentation</b></a> |
   <a href="README_RU.md"><b>🇷🇺 Русский</b></a>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.4.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
-  <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
-  <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
-  <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
-  <img src="https://img.shields.io/badge/Languages-EN%20%7C%20FA%20%7C%20RU-purple.svg?style=for-the-badge" alt="Languages">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.5.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
+  <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
+  <img src="https://img.shields.io/badge/مجوز-MIT-emerald.svg?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/زبان‌ها-فارسی%20%7C%20العربية%20%7C%20English%20%7C%20Русский-purple.svg?style=for-the-badge" alt="Languages">
 </p>
 
 ---
 
-### 🌟 What's New in Version 1.4.0
-- 📱 **Comprehensive Mobile UX Overhaul:** Floating mobile bottom navigation bar providing instant one-thumb switching between Dashboard, Protocols, Tunnels, Servers, and Menu drawer. Responsive bottom-sheet modals with sticky headers/footers, touch-optimized hit areas, and zero unwanted iOS viewport zoom.
-- 🌐 **IPv6 Dual-Stack Support Across All Tunnels:** Smart IPv4/IPv6 auto-detection on tunnel endpoints with Linux kernel modules (`ip6gre`, `ip6gretap`, `ip6tnl`), dual-stack MikroTik RouterOS v7/v6 script generation, MSS clamping, and seamless routing.
-- 🛠️ **AmneziaWG Fix & Kernel S2S Tunneling:** WireGuard port collision resolved with dedicated port 51821, pre-startup link cleanup eliminating `RTNETLINK answers: File exists` errors, dual-stack IPv6 client assignment (`fd77:77::/64`), and real AmneziaWG obfuscated site-to-site tunnel support (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
-- ⚡ **SlowDNS / DNSTT Tunnels Studio:** Full-featured management studio for DNS tunneling. Create, monitor, edit, and toggle DNSTT tunnels in Server or Client mode with integrated Noise Curve25519 keypair generation, Systemd persistence, and automated client command generation.
+## 🌟 امکانات شگفت‌انگیز در نسخه ۱.۵.۰ (What's New in v1.5.0)
+
+نسخه **۱.۵.۰** بزرگ‌ترین و تحول‌آفرین‌ترین بروزرسانی پنل **MH Panel** است که امکانات انقلابی متعددی را در حوزه اتوماسیون تانل‌ها، استقرار کلاستر سرورها، پایش هوشمند ترافیک و هسته مدرن **Sing-box** به همراه بومی‌سازی کامل زبان عربی به ارمغان آورده است:
+
+### ۱. 🚀 راه‌انداز خودکار مش کامل تمامی تانل‌ها با ۱ کلیک (1-Click Full Mesh Deployer)
+- **استقرار همزمان تمام تانل‌ها بدون تنظیم دستی:** دیگر نیازی به ساخت دانه‌به‌دانه تانل‌ها میان سرور ایران و خارج نیست! تنها با وارد کردن مشخصات سرور مبدا و مقصد، سامانه به صورت کاملاً خودکار تمامی تانل‌های ممکن را در چند ثانیه برقرار می‌کند.
+- **پوشش تمامی تانل‌های لایه ۲/۳ و ضد سانسور:**
+  - **تانل‌های بومی کرنل لینوکس (L2/L3):** IPIP، SIT (6in4)، GRE، GRETAP، IP6GRE، IP6GRETAP، WireGuard، AmneziaWG (با استتار هدر)، OpenVPN با کلید متقارن، VXLAN و GENEVE.
+  - **تانل‌های پیشرفته ضد فیلترینگ (Anti-DPI):** GOST، WSTunnel (بر بستر WebSocket و TLS)، Rathole (فوق سریع مبتنی بر Rust)، Chisel و Sing-box Tunnel.
+- **تخصیص خودکار ساب‌نت و تولید کلیدهای رمزنگاری:** تولید خودکار و هوشمند آدرس‌های IP داخلی (Subnet بدون تداخل)، کلیدهای اختصاصی WireGuard و سکرت امنیتی OpenVPN.
+- **اتوماسیون ریموت از طریق SSH:** اجرای خودکار دستورات برقراری تانل در سرور مقصد از راه دور بدون نیاز به باز کردن ترمینال جداگانه.
 
 ---
 
-### 🌟 What's New in Version 1.3.0
-- 🔐 **Centralized Protocol Authentication & Accounting (FreeRADIUS + SQLite):** Unified hybrid accounting engine for 5 core protocols (**Shadowsocks**, **TUIC v5**, **Hysteria 2**, **Trojan-GFW**, **StunTLS**). Allows creating local users with per-protocol quotas and expiration dates while seamlessly synchronizing with FreeRADIUS `radcheck`/`radreply` and MikroTik User Manager.
-- 💾 **SWAP Memory Studio & Real-time Telemetry:** Dynamic hardware monitoring with live SWAP usage gauge, 1-click swap allocation resize (1GB, 2GB, 4GB, 8GB), real-time Linux swappiness slider (0–100%), and instant memory/swap cache flush.
-- 🎨 **Visual Traffic Flow Pipelines for All Protocols:** Interactive visual pipeline displaying traffic flow from client to server for every protocol, detailing ALPN, TLS 1.3, AEAD 2022 ciphers, port hopping, and decoy masquerading.
-- 🛡️ **Anti-Censorship & DPI Evasion Studio:** Graphical tuning for port hopping ranges, STUN header jitter simulation, PMTU discovery clamping, active-prober decoy fallbacks, alongside full support for NoizDNS, NaiveProxy, MasterdnsVPN, and Tor Snowflake / obfs4 / WebTunnel bridges.
-- 🏷️ **Complete Brand Unification to MH Panel:** Cleaned up all legacy name references across all systemd units, shell scripts, API endpoints, and web views.
-- 🌓 **High-Contrast Dark Mode & Full Trilingual Parity:** Optimized typography, contrast ratios, and complete parity across Persian, English, and Russian locales.
+### ۲. ⚡ پایشگر زنده پینگ و سنجش تاخیر تانل‌های Anti-DPI (Real-time Probe & Latency Tester)
+- **تست پینگ و سلامت بلادرنگ تانل‌های ضد فیلترینگ:** اضافه شدن قابلیت پروب پیشرفته برای سنجش تاخیر میلی‌ثانیه‌ای سوکت و هندشیک تانل‌های GOST، WSTunnel، Rathole، Chisel و Sing-box.
+- **دکمه تست دسته‌جمعی («⚡ تست پینگ تمام تانل‌های Anti-DPI»):** تست همزمان تمامی تانل‌های فعال ضد سانسور و دریافت گزارش وضعیت بدون نیاز به بررسی دستی.
+- **نشانگرهای بصری و برچسب‌های وضعیت پویا:** نمایش تاخیر میلی‌ثانیه‌ای با برچسب سبز درخشان در صورت برقراری اتصال و برچسب قرمز خطا در صورت بروز قطعی یا مسدودی پورت توسط فیلترینگ.
 
 ---
 
-## 📖 Overview
-
-**MH Panel** is an enterprise-grade, highly modular, all-in-one VPN orchestration and anti-censorship infrastructure designed specifically for Linux (Ubuntu 20.04/22.04/24.04 and Debian 11/12). 
-
-It combines a modern, high-performance responsive **Web Dashboard** (Glassmorphism design, Dark/Light modes) and an interactive **Master CLI Management Console** (`mhpanel`), giving system administrators complete autonomy to deploy, monitor, and scale 11+ VPN and proxy protocols, layer-2/layer-3 site-to-site anti-censorship network tunnels, SNI-based port multiplexing on port 443, centralized FreeRADIUS user accounting, and automated MikroTik RouterOS bridge configuration scripts.
+### ۳. 🛠️ استودیوی مدیریت باینری‌ها و ابزارهای تانل (Tunnel Engines & Tools Manager)
+- **داشبورد گرافیکی وضعیت هسته‌ها و باینری‌ها:** تب مجزا در بخش تانل‌ها برای مشاهده وضعیت نصب، مسیر فایل اجرایی و نسخه بیش از **۲۰ ابزار و انجین تانلینگ**:
+  - `sing-box`, `gost`, `wstunnel`, `rathole`, `chisel`, `hysteria`, `tuic-server`, `tun2socks`, `rtt`, `dnstt-server`, `dnstt-client`, `vaydns-server`, `vaydns-client`, `slipstream-server`, `udp2raw`, `badvpn-udpgw`, `ssserver`, `stuntls-server`, `noizdns-server`, `masterdnsvpn-server`.
+- **نصب و ارتقای ۱ کلیکه:** امکان بررسی سریع وجود فایل اجرایی و نصب یا دانلود مستقیم جدیدترین نسخه هر ابزار تنها با یک کلیک از داخل پنل.
 
 ---
 
-## ⚡ Quick Installation
+### ۴. 🌐 سیستم استقرار نودهای ریموت و کلاستر چند سروره (Multi-Node Cluster & Remote Provisioning)
+- **مدیریت نودهای تابعه از سرور مرکزی (Master / Slave Architecture):** امکان تعریف سرورهای مقصد به عنوان نودهای تحت فرمان پنل اصلی، با حفظ استقلال کامل هر سرور.
+- **نصب خودکار پنل روی سرور ریموت (1-Click Auto Provision via SSH):** تنها با وارد کردن IP، پورت SSH و رمز عبور سرور مقصد، اسکریپت نصب MH Panel به صورت خودکار روی سرور ریموت اجرا شده و وضعیت آن لحظه‌به‌لحظه گزارش می‌شود.
+- **مانیتورینگ زنده تلمتری و دسترسی مستقیم:** پایش پینگ، وضعیت دسترسی، نمایش وضعیت نصب پنل روی هر نود و دکمه اتصال مستقیم به داشبورد وب هر سرور از سرور اصلی.
 
-Run the master automated installer with `root` privileges on any clean Ubuntu or Debian VPS:
+---
+
+### ۵. 🎛️ استودیوی جامع و گرافیکی هسته Sing-box (Sing-box Universal Studio)
+- **تب اختصاصی Sing-box در منوی پنل:** پنل کامل برای مدیریت مستقیم هسته قدرتمند **Sing-box 1.9.x** در قالب یک استودیوی گرافیکی حرفه‌ای.
+- **پشتیبانی کامل و بدون استثنا از تمامی پروتکل‌های سینگ‌باکس با کلیه گزینه‌های قابل تنظیم:**
+  - **VLESS Reality:** پشتیبانی کامل از Reality، تولید خودکار کلیدهای خصوصی و عمومی X25519، کلید کوتاه (Short ID)، هاست شبیه‌سازی (Dest / ServerNames)، کنترل uTLS و Flow.
+  - **VMess:** پیکربندی کامل UUID کلاینت‌ها، سایفرها (auto, aes-128-gcm, chacha20-poly1305, none) و سازگاری با تمامی نسخه‌های سینگ‌باکس.
+  - **Trojan:** پشتیبانی از پسوردهای چندگانه، ترنسپورت TCP/WS/gRPC و اتصال به گواهی‌های SSL اختصاصی پنل.
+  - **Hysteria 2:** پروتکل فوق سریع مبتنی بر UDP با پورت هاپینگ بازه‌ای، کنترل ازدحام Brutal و احراز هویت پسورد.
+  - **TUIC v5:** پروتکل بر پایه QUIC با احراز هویت توکن/UUID و کنترل هوشمند احتقان.
+  - **Shadowsocks:** متدهای مدرن 2022 (`2022-blake3-aes-128-gcm`, `2022-blake3-chacha20-poly1305`, `chacha20-ietf-poly1305`).
+  - **ShadowTLS:** شبیه‌سازی کامل TLS هندشیک با سرورهای خارجی.
+  - **Direct, Mixed (SOCKS5/HTTP) و Tun:** امکان ساخت اینترفیس‌های سیستمی و پراکسی‌های محلی.
+- **تولید خودکار کلیدها و کانفیگ‌ها:** دکمه‌های جادویی برای تولید آنی جفت‌کلید Reality X25519، کلید کوتاه تصادفی و پسوردهای امن.
+- **اشتراک‌گذاری آسان و بارکد QR:** دریافت آنی لینک‌های استاندارد کلاینت (`vless://`, `vmess://`, `trojan://`, `hysteria2://`, `tuic://`, `ss://`) و بارکد QR با قابلیت اسکن مستقیم در اپلیکیشن‌های v2rayN, v2rayNG, Sing-box, Nekoray, Clash Verge, Karing, Shadowrocket.
+- **ادیتور زنده JSON با اعتبارسنجی سینتکس:** امکان ویرایش مستقیم و پیشرفته کل فایل `config.json` با بررسی خودکار قبل از اعمال و جلوگیری از خرابی سرویس.
+- **سرویس پایدار سیستمی:** اجرای پایدار هسته بر بستر واحد سرویس اختصاصی `mhpanel-singbox.service`.
+
+---
+
+### ۶. 🌍 بومی‌سازی کامل زبان عربی (Full Arabic Localization - العربية)
+- **پشتیبانی رسمی از زبان عربی (`ar`):** ترجمه و پوشش کامل بیش از **۳,۱۰۰ واژه و اصطلاح فنی شبکه و VPN** به زبان عربی استاندارد و دقیق.
+- **پشتیبانی کامل از ساختار راست‌چین (`dir="rtl"`):** چیدمان هماهنگ، آیکون‌های متقارن و طراحی چشم‌نواز در هدر، سایدبار، کارت‌های داشبورد، مودال‌ها و جداول برای زبان‌های فارسی و عربی.
+- **تغییر آنی زبان:** دکمه اختصاصی زبان عربی با پرچم هماهنگ در هدر پنل و منوی موبایل.
+
+---
+
+## 🌟 امکانات نسخه‌های پیشین (Previous Releases)
+
+### نسخه ۱.۴.۰
+- 📱 **بهینه‌سازی کامل نسخه موبایل (Mobile UX):** نوار ناوبری اختصاصی پایین صفحه (Bottom Navigation)، مودال‌های شناور Bottom Sheet و هماهنگی کامل لمسی بدون زوم ناخواسته در iOS و Android.
+- 🌐 **پشتیبانی دوطرفه از IPv6 در تمامی تونل‌ها:** تشخیص خودکار IPv6 در اینترفیس‌ها، روتینگ کرنل با `ip6gre`، `ip6gretap` و صدور اسکریپت‌های دوگانه IPv4/IPv6 برای میکروتیک.
+- 🛠️ **اصلاح اساسی AmneziaWG:** رفع کامل تداخل پورت با وایرگارد، پاکسازی خودکار اینترفیس `awg0` و ساب‌نت دوگانه IPv6 (`fd77:77::/64`) با استتار پیشرفته هدر (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
+- ⚡ **استودیوی SlowDNS / DNSTT:** مدیریت گرافیکی تونل‌های DNS در هر دو حالت سرور و کلاینت با تولید جفت‌کلید Noise Curve25519 و پایش سرویس Systemd.
+
+### نسخه ۱.۳.۰
+- 🔐 **اکانتینگ متمرکز FreeRADIUS و SQLite:** احراز هویت هیبریدی کاربران با سهمیه حجم و انقضا برای Shadowsocks، TUIC، Hysteria 2، Trojan و StunTLS با پشتیبانی از میکروتیک User Manager.
+- 💾 **استودیوی مدیریت حافظه SWAP:** مانیتورینگ زنده اسواپ، تغییر آنی حجم به ۱، ۲، ۴ یا ۸ گیگابایت، اسلایدر تنظیم Swappiness (۰ تا ۱۰۰٪) و دکمه تخلیه فوری رم.
+- 🎨 **پایپ‌لاین بصری اتصال برای تک‌تک پروتکل‌ها:** نمایش گام‌به‌گام اتصال از کلاینت تا ترنسپورت، رمزنگاری AEAD 2022، پورت هاپینگ و خروج اینترنت.
+
+---
+
+## ⚡ نصب سریع و تک‌خطی (One-Line Installer)
+
+برای نصب سریع و کامل جدیدترین نسخه **MH Panel v1.5.0**، دستور زیر را با دسترسی `root` در ترمینال سرور خود (Ubuntu 20.04/22.04/24.04 یا Debian 11/12) اجرا کنید:
 
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh)
 ```
 
-### Alternative Installation via Git Clone:
+### روش جایگزین با استفاده از مخزن گیت:
 
 ```bash
 git clone https://github.com/t-51/MHPanel.git /www/wwwroot/mhpanel
@@ -58,11 +109,21 @@ cd /www/wwwroot/mhpanel
 sudo bash install.sh
 ```
 
+پس از پایان فرآیند نصب، آدرس وب پنل به همراه نام کاربری و رمز عبور اختصاصی در خروجی ترمینال نمایش داده خواهد شد:
+```text
+=================================================
+🌐 Web Panel URL:  https://YOUR_SERVER_IP:9090
+👤 Admin Username: admin
+🔑 Admin Password: [Generated Secure Password]
+🔑 Public API Key: [Generated API Token]
+=================================================
+```
+
 ---
 
-## 🧭 Master Interactive CLI Hub (`mhpanel`)
+## 🧭 کنسول تعاملی خط فرمان سرور (`mhpanel`)
 
-In addition to the Web UI, MH Panel installs a command-line tool accessible server-wide. Simply execute:
+علاوه بر داشبورد وب، ابزار قدرتمند خط فرمان سرور در هر زمان با تایپ دستور `mhpanel` در دسترس است:
 
 ```bash
 mhpanel
@@ -70,154 +131,40 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.4.0)
+     🚀 مرکز مدیریت خط فرمان پنل جامع MH PANEL (نسخه ۱.۵.۰)
   ======================================================================
-  [1]  Run Full Automated Installation (Setup All Missing Components)
-  [2]  Run Step-by-Step Custom Installation Wizard
-  [3]  Install Lightweight Web UI Only
-  ----------------------------------------------------------------------
-  [4]  Live System & Service Diagnostic Report
-  [5]  Manage, Install, Uninstall & Reconfigure VPN Protocols
-  [6]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub
-  [7]  Web Dashboard Settings (Credentials, Port, Logs & Restart)
-  [8]  SSL Certificate Management (Let's Encrypt & IP SAN)
-  [9]  Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)
-  [10] Backup & Restore Panel Configurations
-  [11] Update Script & Panel
-  [0]  Exit
+  [1]  اجرای نصب خودکار و کامل (نصب تمام پروتکل‌ها و وابستگی‌ها)
+  [2]  ویزارد نصب مرحله‌به‌مرحله و سفارشی
+  [3]  نصب سبک پنل وب به تنهایی
+  [4]  مدیریت و پایش سرویس‌های فعال
+  [5]  ری‌استارت کلیه سرویس‌ها و وب پنل
+  [6]  بررسی و ارتقای پنل به آخرین نسخه رسمی
+  [7]  مشاهده اطلاعات ورود و درگاه وب پنل
+  [8]  تنظیمات هسته Sing-box و پروتکل‌ها
+  [9]  مدیریت تانل‌ها و ابزارهای Anti-DPI
+  [0]  خروج
+  ======================================================================
 ```
 
 ---
 
-## 🌟 Key Architecture & Superpowers
+## 🛡️ پروتکل‌ها و تکنولوژی‌های پشتیبانی‌شده
 
-```
-                    ┌───────────────────────────────────────────────┐
-                    │          Internet / Mobile Operators          │
-                    │      (MCI, Irancell, Mokhaberat, Rightel)     │
-                    └───────────────────────┬───────────────────────┘
-                                            │
-                                            ▼
-                    ┌───────────────────────────────────────────────┐
-                    │      Port 443 HAProxy SNI Multiplexer         │
-                    │          (Single Public Port Entry)           │
-                    └───┬─────────────┬─────────────┬───────────┬───┘
-                        │             │             │           │
-        ┌───────────────┘             │             │           └────────────────┐
-        ▼                             ▼             ▼                            ▼
-┌───────────────┐             ┌───────────────┐ ┌───────────────┐        ┌───────────────┐
-│ MH Web Panel  │             │CiscoAnyConnect│ │ Windows SSTP  │        │ SSH TLS WSS   │
-│  (:9090 SSL)  │             │ (OCServ 443)  │ │ (sstpd 4443)  │        │ (Stunnel 4444)│
-└───────┬───────┘             └───────┬───────┘ └───────┬───────┘        └───────┬───────┘
-        │                             │                 │                        │
-        └─────────────────────────────┼─────────────────┴────────────────────────┘
-                                      ▼
-                    ┌───────────────────────────────────────────────┐
-                    │           Centralized FreeRADIUS 3            │
-                    │  (Unified Auth, Speed, Quota & Expiry Limits) │
-                    └───────────────────────────────────────────────┘
-```
-
-### 1. 🔀 Port 443 SNI Multiplexing (HAProxy Dispatcher)
-Run multiple SSL/TLS services simultaneously over a single public port (443):
-- `panel.domain.com` ➔ Dispatched to MH Panel Web Console (Port 9090)
-- `vpn.domain.com` ➔ Dispatched to Cisco AnyConnect / OCServ (Port 10443)
-- `sstp.domain.com` ➔ Dispatched to Windows SSTP (Port 4443)
-- `ssh.domain.com` ➔ Dispatched to SSH TLS Stunnel (Port 4444)
-- `ovpn.domain.com` ➔ Dispatched to OpenVPN TCP (Port 1194)
-- **Result:** To state-level DPI firewalls, your server behaves identical to an ordinary corporate HTTPS web server.
-
-### 2. 👥 Centralized FreeRADIUS 3 & Mikrotik-Style User Manager
-- **Single Account, Multiple Protocols:** One username and password grants access across OpenVPN, Cisco AnyConnect, L2TP, IKEv2, SSTP, SSH, and SOCKS5.
-- **Traffic Quotas & Expiration:** Set total gigabyte limits (`Max-Octets`) and account expiration timestamps (`Expiration`).
-- **Simultaneous Connection Enforcement:** Limit how many devices can log in concurrently per user (`Simultaneous-Use`).
-- **Live Session Termination:** Real-time online user tracker with one-click Packet of Disconnect (PoD / Disconnect-Request) support.
-
-### 3. 🛡️ Advanced Anti-DPI & Anti-Censorship Suite
-- **AmneziaWG (AWG):** Obfuscated WireGuard protocol with randomized junk packets (`Jc`, `Jmin`, `Jmax`) and disguised handshakes (`S1`, `S2`, `H1..H4`).
-- **OpenVPN Scramble (XOR):** Scrambles packet signatures to neutralize deep packet inspection.
-- **UDPspeeder (FEC):** Injects Forward Error Correction packets to eliminate lag, jitter, and packet loss on congested international routes.
-- **Rosenpass:** Quantum-resistant symmetric key exchange protocol to protect against future quantum computing decryption attacks.
-- **SlowDNS / DNSTT Tunnels:** Bypasses total international internet blackouts using base32-encoded DNS query/TXT record encapsulation.
-
-### 4. 🔗 Multi-Protocol Client Subscription Portal (`/sub/<token>`)
-- Each client receives a unique, secret subscription link (`/sub/<token>`).
-- Features interactive QR codes, direct one-click config import, `.ovpn` file downloads, and real-time usage meters (traffic used vs. allowed quota, expiry date).
-- **JSON API Export:** Provides `/sub/<token>/json` ready for integration with custom Android, iOS, Windows, or macOS client apps.
-
-### 5. 🌍 100% Trilingual Native Localization
-- Instant one-click toggle between **English (🇬🇧)**, **Persian / فارسی (🇮🇷)**, and **Russian / Русский (🇷🇺)**.
-- Every modal, chart label, notification, terminal output, and technical description is translated natively with zero unlocalized strings.
+| دسته بندی | پروتکل‌ها و سرویس‌های تحت پوشش |
+| :--- | :--- |
+| **هسته پیشرفته Sing-box** | VLESS Reality, VMess, Trojan, Hysteria 2, TUIC v5, Shadowsocks 2022, ShadowTLS, Direct, Tun |
+| **پروتکل‌های کلاسیک VPN** | OpenVPN (TCP/UDP/XOR), WireGuard, AmneziaWG, OCserv (Cisco AnyConnect), IKEv2, SSTP, PPTP, L2TP/IPsec |
+| **پروکسی‌های ضد سانسور** | Shadowsocks-rust, TUIC, Hysteria 2, Trojan-GFW, StunTLS, NaiveProxy, SOCKS5, HTTP Proxy, MTProto Proxy |
+| **تونلینگ DNS (SlowDNS)** | DNSTT (Noise Curve25519), VayDNS, Slipstream, NoizDNS, MasterdnsVPN |
+| **شبکه‌های ناشناس** | Tor Bridges (Snowflake, obfs4, WebTunnel) |
+| **سیستم‌های تانلینگ سرور-به-سرور** | IPIP, GRE, GRETAP, IP6GRE, IP6GRETAP, VXLAN, GENEVE, SIT (6in4), WireGuard S2S, AmneziaWG S2S, OpenVPN P2P |
+| **تانل‌های تخصصی Anti-DPI** | GOST (WebSocket/TLS/QUIC), WSTunnel, Rathole (Rust), Chisel, Sing-box Tun |
+| **اکانتینگ و مدیریت شبکه** | FreeRADIUS + SQLite, MikroTik RouterOS v6/v7 Script Generator, BadVPN UDP-GW (Port 7300), Fail2ban, UFW |
 
 ---
 
-## 📚 Complete Protocols Breakdown
+## 📄 مجوز (License)
 
-| Protocol | Transport Layer | Client Compatibility | Key Advantage & Use Case |
-|---|---|---|---|
-| **AmneziaWG (AWG)** | UDP | Windows, Android, iOS, macOS (AmneziaVPN) | **#1 Anti-DPI:** Scrambles handshakes and sends randomized junk packet bursts. Immune to WireGuard blocks. |
-| **WireGuard Standard** | UDP (v4 & v6) | All platforms (Official WireGuard) | Highest kernel throughput, dual-stack IPv4/IPv6 address pools, automated MTU/MSS clamping. |
-| **Cisco AnyConnect (OCServ)**| SSL/TLS + DTLS | Official Cisco AnyConnect, OpenConnect | Ultra-stable on mobile networks (MCI, Irancell, Rightel). Seamless port 443 multiplexing. |
-| **Windows SSTP (sstpd)** | HTTPS / Port 443 | Built-in on Windows 7/10/11 (No app needed) | Standard HTTPS traffic footprint; works natively in Windows without installing third-party apps. |
-| **IKEv2 StrongSwan** | IPSec / UDP 500, 4500 | iOS, macOS, Windows, Android (Native) | **Zero-app configuration.** Native OS settings support; instant reconnect during Wi-Fi ↔ 4G/5G handovers (MOBIKE). |
-| **L2TP / IPsec** | UDP 1701, 500, 4500 | Legacy OS, MikroTik, Android, Windows | Proven interoperability for legacy routers, embedded systems, and enterprise site-to-site bridges. |
-| **OpenVPN Dual-Stack** | Multi-Port TCP & UDP | Official OpenVPN Connect, Tunnelblick | Multi-port listening (443, 1194, 9443), XOR Scramble patch, UDPspeeder FEC, Rosenpass post-quantum encryption. |
-| **SSH Direct & WebSocket** | TCP / WSS / Stunnel | PuTTY, Termius, NapsternetV, v2rayNG | Direct hardened SSH + HTTP/WebSocket upgrade tunneling for CDN fronting + BadVPN UDP-GW (Port 7300 for VoIP/Gaming). |
-| **TUIC v5** | QUIC (HTTP/3) / UDP | Clash Meta, Sing-box, v2rayNG | 0-RTT handshake eliminates latency; advanced congestion control algorithms (BBR, Cubic). |
-| **Shadowsocks (Rust 2022)**| TCP & UDP | Shadowsocks, Clash, Outline, Sing-box | High-speed AEAD ciphers (`2022-blake3-chacha20poly1305`, `2022-blake3-aes-256-gcm`). |
-| **MTProto Proxy** | Fake-TLS / TCP | Official Telegram (Desktop, Mobile) | Native Telegram proxy with Fake-TLS domain impersonation (Google/Cloudflare) and `@MTProxybot` sponsor tag. |
-| **DNS Tunnels (SlowDNS)** | UDP Port 53 | SlowDNS apps, DNSTT client | Operates over raw DNS requests during total internet shutdowns and strict firewall blackouts. |
+این پروژه تحت مجوز متن‌باز **MIT** توسعه یافته و برای استفاده همگان آزاد است.
 
----
-
-## 🌐 Network Tunnels & Bridge Hub (Relay / Kharej ↔ Iran)
-
-MH Panel includes a carrier-grade tunneling engine to interconnect domestic (Iran) relay VPS with international (Kharej) endpoints:
-
-| Tunnel Type | Transport | Key Feature & Purpose |
-|---|---|---|
-| **`IP6GRE`** | Native IPv6 | **Top Censorship Resistance:** GRE tunnel encapsulated in IPv6. Circumvents domestic DPI filters that only inspect IPv4 traffic. |
-| **`IP6TNL` (IPIP6)** | Native IPv6 | IPv4 over pure IPv6 transport. Minimal 20-byte header overhead for ultra-low latency. |
-| **`SIT` (6in4)** | IPv4 | 6in4 encapsulation carrying IPv6 traffic across legacy IPv4 networks. |
-| **`GRE` & `IPIP`** | IPv4 | Standard Linux layer-3 point-to-point tunnels with kernel acceleration. |
-| **`WireGuard P2P`** | UDP (v4/v6) | Peer-to-peer encrypted tunnel with dual-stack masquerading. |
-| **`GOST v3`** | Multi-Protocol | Versatile relay supporting TLS, WSS, KCP, HTTP2, and multi-hop forwarding chains. |
-| **`WSTunnel`** | WebSocket | High-performance TCP/UDP tunneling over WebSockets (Cloudflare CDN friendly). |
-| **`Reverse TLS (RTT)`**| TLS Reverse | Initiates connection from international server to domestic server without open inbound ports on the domestic node. |
-| **`Chisel & Rathole`** | HTTP / Rust | Ultra-low memory NAT traversal and high-throughput port forwarding. |
-| **`Phantun & UDP2Raw`**| Fake TCP | Converts UDP packets into fake TCP SYN/ACK handshakes to bypass aggressive UDP blocking. |
-
-### 📟 Automated MikroTik RouterOS Configuration Generator
-For any tunnel created, MH Panel dynamically generates tested, copy-paste-ready scripts for both **RouterOS v7** and **RouterOS v6**:
-- Interface initialization (`/interface gre`, `/interface ip6gre`, `/interface wireguard`)
-- IP addressing (`/ip address`, `/ipv6 address`)
-- Routing tables & default gateways (`/ip route`)
-- Firewall NAT Masquerade and MSS Clamping rules (`/ip firewall mangle`, `/ip firewall nat`)
-
----
-
-## 📡 Live ISP Censorship Radar & Connectivity Analyzer
-
-MH Panel features an integrated **Censorship Radar** that continuously tests live connectivity against major Iranian telecommunication providers:
-- **Hamrah Aval (MCI)**
-- **Irancell (MTN)**
-- **Mokhaberat (TCI)**
-- **Shatel**
-- **Rightel**
-- **System Verdict & Behavioral Analysis:** Evaluates packet loss, DNS tampering, TCP RST injection, and UDP dropping to provide actionable protocol optimization recommendations.
-
----
-
-## 🔐 Security & Hardening
-
-- **Two-Factor Authentication (2FA / TOTP):** Native RFC 6238 TOTP engine compatible with Google Authenticator and Microsoft Authenticator.
-- **SSL Certificate Automation:** Built-in Let's Encrypt client with auto-renewal plus self-signed 10-year IP SAN certificates with downloadable Root CA (`.crt`) for client devices.
-- **Zero Sensitive Data in Git:** Private keys, credentials, session secrets, and user databases are protected and excluded via `.gitignore`.
-- **Systemd Supervision:** Every background daemon runs under an isolated, supervised systemd unit with automatic crash recovery.
-- **Kernel-Level Tuning:** Automated activation of Google BBR congestion control, increased file descriptors (`nofile` 65535), and optimized TCP memory buffers.
-
----
-
-## 📄 License
-
-This project is licensed under the terms of the [MIT License](LICENSE).
+</div>

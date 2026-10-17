@@ -49,6 +49,13 @@
                 <span data-i18n="nav_sec_vpn">پروتکل‌های اتصال (VPN)</span>
             </div>
             
+            <!-- Sing-box Universal Suite Core -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox')">
+                <i data-lucide="box" style="color: #6366f1;"></i>
+                <span data-i18n="nav_singbox">هسته سینگ‌باکس (Sing-box)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Universal</span>
+            </button>
+
             <!-- Cisco AnyConnect (OCServ) -->
             <button class="sidebar-nav-item" onclick="switchTab('ocserv')">
                 <i data-lucide="radio" style="color: #0284c7;"></i>
@@ -257,6 +264,15 @@
                     <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
                 </svg>
                 <span style="font-size: 11px;">RU</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية" style="flex: 1; justify-content: center; padding: 5px 6px;">
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+                    <rect width="18" height="4.33" fill="#007A3D"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#000000"/>
+                    <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
+                </svg>
+                <span style="font-size: 11px;">AR</span>
             </button>
         </div>
     </div>

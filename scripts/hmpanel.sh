@@ -34,7 +34,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="1.4.0"
+VERSION="1.5.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -893,6 +893,7 @@ install_tunnel_tools() {
             echo -e "    ${RED}[!] Warning: Failed to download sing-box. Check server internet access.${NC}"
         fi
     fi
+    mkdir -p /etc/sing-box
 
     # Shadowsocks-rust (ssserver)
     if [ ! -x /usr/local/bin/ssserver ]; then

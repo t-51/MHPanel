@@ -147,7 +147,7 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
-PANEL_VERSION = "1.4.0"
+PANEL_VERSION = "1.5.0"
 GITHUB_REPO = "t-51/MHPanel"
 TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
 SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
@@ -17445,6 +17445,1233 @@ def api_export_tunnel_alerts_report():
         rep.append(f"  - {k}: {v:,}")
 
     return Response("\n".join(rep), mimetype="text/plain; charset=utf-8", headers={"Content-Disposition": "attachment; filename=tunnel_integrity_report.txt"})
+
+
+
+# =========================================================================
+# MHPanel v1.5.0 Extensions
+# 1. Anti-DPI Tunnels Health & Latency Probe Engine
+# 2. Tunnel Engines & Binaries Manager (20+ Tools)
+# 3. 1-Click Full Mesh Tunnel Deployer
+# 4. Remote Node Auto-Provisioning & Central Multi-Node Cluster
+# 5. Sing-box Universal Protocol Suite & Graphical Controls
+# =========================================================================
+
+# --- 1. Anti-DPI Tunnels Health & Latency Probe ---
+
+def probe_adv_tunnel(adv):
+    adv_id = adv.get("id", "")
+    name = adv.get("name", f"tun_{adv_id}")
+    tool = adv.get("tool", "gost")
+    role = adv.get("role", "server")
+    listen_port = int(adv.get("listen_port", 8443))
+    remote_ip = (adv.get("remote_ip") or "").strip()
+    remote_port = int(adv.get("remote_port", 8443))
+    enabled = adv.get("enabled", True)
+
+    if not enabled:
+        return {
+            "tunnel_id": adv_id,
+            "name": name,
+            "tool": tool,
+            "role": role,
+            "alive": False,
+            "status": "disabled",
+            "latency_ms": 0,
+            "details": "تونل غیرفعال است (Disabled)",
+            "timestamp": datetime.now().strftime("%H:%M:%S")
+        }
+
+    unit_name = f"mhtun_{adv_id}.service"
+    r = subprocess.run(["systemctl", "is-active", unit_name], capture_output=True, text=True)
+    is_active = (r.stdout.strip() == "active")
+
+    if not is_active:
+        return {
+            "tunnel_id": adv_id,
+            "name": name,
+            "tool": tool,
+            "role": role,
+            "alive": False,
+            "status": "service_down",
+            "latency_ms": 0,
+            "details": f"سرویس سیستم‌دی {unit_name} متوقف است",
+            "timestamp": datetime.now().strftime("%H:%M:%S")
+        }
+
+    latency_ms = 0
+    alive = False
+    status_str = "active"
+    details_str = ""
+
+    if role == "server":
+        t0 = time.time()
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1.5)
+            sock.connect(("127.0.0.1", listen_port))
+            t1 = time.time()
+            sock.close()
+            latency_ms = round((t1 - t0) * 1000, 2)
+            alive = True
+            status_str = "listening"
+            details_str = f"سرور در حال شنود روی پورت {listen_port} است ({latency_ms}ms)"
+        except Exception:
+            alive = True
+            status_str = "active_listening"
+            details_str = f"سرویس سرور فعال است (پورت {listen_port})"
+    else:
+        target_host = remote_ip
+        target_p = remote_port
+        if target_host:
+            t0 = time.time()
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2.5)
+                sock.connect((target_host, target_p))
+                t1 = time.time()
+                sock.close()
+                latency_ms = round((t1 - t0) * 1000, 1)
+                alive = True
+                status_str = "connected"
+                details_str = f"ارتباط با سرور مقصد ({target_host}:{target_p}) برقرار است (تاخیر: {latency_ms}ms)"
+            except Exception:
+                ping_r = subprocess.run(["ping", "-c", "1", "-W", "2", target_host], capture_output=True, text=True)
+                if ping_r.returncode == 0:
+                    m = re.search(r'time=([\d\.]+)\s*ms', ping_r.stdout)
+                    latency_ms = float(m.group(1)) if m else 50.0
+                    alive = True
+                    status_str = "connected"
+                    details_str = f"پینگ سرور مقابل {latency_ms}ms (مسیر فعال)"
+                else:
+                    alive = False
+                    status_str = "peer_unreachable"
+                    details_str = f"عدم پاسخگویی از سرور مقصد {target_host}:{target_p}"
+        else:
+            alive = is_active
+            status_str = "running"
+            details_str = "سرویس کلاینت فعال است"
+
+    return {
+        "tunnel_id": adv_id,
+        "name": name,
+        "tool": tool,
+        "role": role,
+        "alive": alive,
+        "status": status_str,
+        "latency_ms": latency_ms,
+        "details": details_str,
+        "timestamp": datetime.now().strftime("%H:%M:%S")
+    }
+
+@app.route("/api/tunnels/adv/<adv_id>/probe", methods=["GET", "POST"])
+def api_probe_adv_tunnel(adv_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    adv = next((a for a in data.get("adv_tunnels", []) if a["id"] == adv_id), None)
+    if not adv:
+        return jsonify({"error": "تونل ضد فیلتر یافت نشد."}), 404
+    res = probe_adv_tunnel(adv)
+    return jsonify({"success": True, "probe": res})
+
+@app.route("/api/tunnels/adv/probe-all", methods=["GET", "POST"])
+def api_probe_all_adv_tunnels():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = load_tunnels_data()
+    adv_list = data.get("adv_tunnels", [])
+    probes = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(probe_adv_tunnel, a): a for a in adv_list}
+        for future in concurrent.futures.as_completed(futures):
+            try:
+                probes.append(future.result())
+            except Exception as e:
+                pass
+    return jsonify({"success": True, "probes": probes})
+
+# --- 2. Tunnel Engines & Binaries Manager ---
+
+TUNNEL_TOOLS_REGISTRY = [
+    {"key": "sing-box", "name": "Sing-box Universal Core", "category": "Universal Proxy", "bin": "sing-box", "desc": "هسته جامع و قدرتمند پروکسی نسل جدید (VLESS Reality, Hysteria 2, TUIC, Shadowsocks, WireGuard)", "cmd_ver": ["/usr/local/bin/sing-box", "version"]},
+    {"key": "gost", "name": "GOST Multi-Tunnel", "category": "Anti-DPI / Relay", "bin": "gost", "desc": "ابزار تونل‌سازی چندپروتکله با پشتیبانی از WSS, TLS, KCP, QUIC و پروکسی زنجیره‌ای", "cmd_ver": ["/usr/local/bin/gost", "-V"]},
+    {"key": "wstunnel", "name": "WSTunnel Stealth", "category": "Anti-DPI / WebSocket", "bin": "wstunnel", "desc": "تونل‌سازی مخفی ترافیک TCP/UDP در بستر پروتکل WebSocket و TLS با استتار کلودفلر", "cmd_ver": ["/usr/local/bin/wstunnel", "--version"]},
+    {"key": "rathole", "name": "Rathole Rust NAT-T", "category": "Reverse Proxy", "bin": "rathole", "desc": "پروکسی معکوس و تونل NAT-T بسیار سریع با مصرف ناچیز رم و امنیت بالا نوشته شده با Rust", "cmd_ver": ["/usr/local/bin/rathole", "-V"]},
+    {"key": "chisel", "name": "Chisel HTTP/WS Tunnel", "category": "HTTP/WS Transport", "bin": "chisel", "desc": "تونل سریع TCP/UDP مبتنی بر HTTP/WebSocket با امنیت SSH داخلی", "cmd_ver": ["/usr/local/bin/chisel", "-v"]},
+    {"key": "hysteria", "name": "Hysteria 2 Brutal", "category": "QUIC / UDP", "bin": "hysteria", "desc": "پروتکل پرسرعت مبتنی بر QUIC سفارشی شده با کنترل ازدحام Brutal برای شبکه فیلترشده", "cmd_ver": ["/usr/local/bin/hysteria", "version"]},
+    {"key": "tuic-server", "name": "TUIC v5 Engine", "category": "QUIC 0-RTT", "bin": "tuic-server", "desc": "سرور پروکسی فوق سریع با معماری QUIC و کمترین تاخیر و لیتنسی", "cmd_ver": ["/usr/local/bin/tuic-server", "-v"]},
+    {"key": "ssserver", "name": "Shadowsocks-rust 2022", "category": "AEAD / Rust", "bin": "ssserver", "desc": "هسته پرسرعت شادوساکس ۲۰۲۲ با الگوریتم‌های BLAKE3 و رمزنگاری پیشرفته", "cmd_ver": ["/usr/local/bin/ssserver", "-V"]},
+    {"key": "tun2socks", "name": "Tun2Socks Interface", "category": "Layer 3 Router", "bin": "tun2socks", "desc": "تبدیل ترافیک لایه ۳ اینترفیس مجازی TUN به پروکسی SOCKS5 و Shadowsocks", "cmd_ver": ["/usr/local/bin/tun2socks", "--version"]},
+    {"key": "rtt", "name": "RTT Covert Tunnel", "category": "Stealth Transport", "bin": "rtt", "desc": "تونل استتار مبهم‌سازی تاخیر و دور زدن فیلترینگ ترافیک UDP بر بستر TCP", "cmd_ver": ["/usr/local/bin/rtt", "--version"]},
+    {"key": "frps", "name": "FRP Server", "category": "Reverse Proxy", "bin": "frps", "desc": "سرور پروکسی معکوس پرسرعت FRP جهت اکسپوز کردن پورت‌های داخلی به اینترنت", "cmd_ver": ["/usr/local/bin/frps", "-v"]},
+    {"key": "frpc", "name": "FRP Client", "category": "Reverse Proxy", "bin": "frpc", "desc": "کلاینت معکوس FRP جهت برقراری ارتباط با سرور خارج", "cmd_ver": ["/usr/local/bin/frpc", "-v"]},
+    {"key": "udp2raw", "name": "UDP2Raw Tunnel", "category": "Fake TCP Raw", "bin": "udp2raw", "desc": "تبدیل و کپسوله‌سازی پکت‌های UDP درون فیک TCP Raw با هدرهای معتبر برای دور زدن محدودیت UDP", "cmd_ver": ["/usr/local/bin/udp2raw", "-h"]},
+    {"key": "dnstt-server", "name": "DNSTT Server (DoH/DoT)", "category": "DNS Tunnel", "bin": "dnstt-server", "desc": "سرور تونل DNS از طریق DoH, DoT و رکوردهای DNS معمولی برای عبور از فیلترینگ شدید", "cmd_ver": ["/usr/local/bin/dnstt-server", "-v"]},
+    {"key": "dnstt-client", "name": "DNSTT Client", "category": "DNS Tunnel", "bin": "dnstt-client", "desc": "کلاینت تونل DNS برای اتصال به سرور از طریق کوئری‌های DNS", "cmd_ver": ["/usr/local/bin/dnstt-client", "-v"]},
+    {"key": "vaydns-server", "name": "VayDNS Server", "category": "DNS Tunnel", "bin": "vaydns-server", "desc": "تونل اختصاصی ضد فیلتر مبتنی بر سیستم DNS فشرده پرسرعت", "cmd_ver": ["/usr/local/bin/vaydns-server", "--version"]},
+    {"key": "slipstream-server", "name": "Slipstream DNS", "category": "DNS Tunnel", "bin": "slipstream-server", "desc": "تونل پوششی QUIC بر بستر رکوردهای تکه‌تکه شده DNS", "cmd_ver": ["/usr/local/bin/slipstream-server", "-h"]},
+    {"key": "badvpn-udpgw", "name": "BadVPN UDP-GW", "category": "UDP Gateway", "bin": "badvpn-udpgw", "desc": "گیت‌وی فوروارد ترافیک UDP برای کلاینت‌های SSH، اوپن‌وی‌پی‌ان و تونل‌ها", "cmd_ver": ["/usr/local/bin/badvpn-udpgw", "--version"]},
+    {"key": "openvpn", "name": "OpenVPN Engine", "category": "L3/L2 SSL/TLS", "bin": "openvpn", "desc": "موتور رسمی اوپن‌وی‌پی‌ان ۲.۶ با پشتیبانی از کدهای متقارن و ترانزیت شبکه", "cmd_ver": ["openvpn", "--version"]},
+    {"key": "wireguard", "name": "WireGuard Kernel Tools", "category": "Kernel VPN", "bin": "wg", "desc": "ابزارهای رسمی مدیریت اینترفیس و کلیدهای وایرگارد کرنل لینوکس", "cmd_ver": ["wg", "--version"]}
+]
+
+def get_installed_tool_info(tool_def):
+    bin_name = tool_def["bin"]
+    paths = [f"/usr/local/bin/{bin_name}", f"/usr/bin/{bin_name}", f"/bin/{bin_name}"]
+    found_path = ""
+    for p in paths:
+        if os.path.exists(p) and os.access(p, os.X_OK):
+            found_path = p
+            break
+    if not found_path:
+        w = subprocess.run(["which", bin_name], capture_output=True, text=True)
+        if w.returncode == 0 and w.stdout.strip():
+            found_path = w.stdout.strip()
+
+    is_installed = bool(found_path)
+    version_str = ""
+    if is_installed:
+        try:
+            cmd = list(tool_def.get("cmd_ver", [found_path, "-v"]))
+            cmd[0] = found_path
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
+            out = (r.stdout or r.stderr or "").strip()
+            first_line = out.split("\n")[0] if out else "Installed"
+            version_str = first_line[:45]
+        except Exception:
+            version_str = "نصب شده (Active)"
+    else:
+        version_str = "نصب نشده"
+
+    return {
+        "key": tool_def["key"],
+        "name": tool_def["name"],
+        "category": tool_def["category"],
+        "desc": tool_def["desc"],
+        "bin": bin_name,
+        "installed": is_installed,
+        "path": found_path,
+        "version": version_str
+    }
+
+def install_tunnel_tool_binary(tool_key):
+    bundle_dirs = ["/root/mhpanel-repo/bin", "/www/wwwroot/mhpanel/bin", "/usr/local/bin"]
+    tool_def = next((t for t in TUNNEL_TOOLS_REGISTRY if t["key"] == tool_key), None)
+    if not tool_def:
+        return False, f"ابزار {tool_key} تعریف نشده است."
+
+    bin_name = tool_def["bin"]
+    target_path = f"/usr/local/bin/{bin_name}"
+
+    if os.path.exists(target_path) and os.access(target_path, os.X_OK):
+        return True, f"ابزار {bin_name} در حال حاضر نصب است."
+
+    for bdir in bundle_dirs:
+        candidate = os.path.join(bdir, bin_name)
+        if os.path.exists(candidate) and os.path.isfile(candidate):
+            try:
+                subprocess.run(["cp", "-f", candidate, target_path], check=True)
+                os.chmod(target_path, 0o755)
+                return True, f"ابزار {bin_name} با موفقیت از پکیج به {target_path} منتقل و فعال شد."
+            except Exception as e:
+                return False, f"خطا در کپی باینری: {e}"
+
+    if tool_key in ["openvpn", "wireguard"]:
+        pkg = "openvpn" if tool_key == "openvpn" else "wireguard-tools"
+        r = subprocess.run(["apt-get", "install", "-y", pkg], capture_output=True, text=True)
+        if r.returncode == 0:
+            return True, f"پکیج {pkg} با موفقیت توسط مخازن لینوکس نصب شد."
+        else:
+            return False, f"خطا در نصب apt: {r.stderr[:100]}"
+
+    return False, f"فایل باینری {bin_name} یافت نشد."
+
+@app.route("/api/tunnels/tools/status", methods=["GET"])
+def api_tunnel_tools_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    results = [get_installed_tool_info(t) for t in TUNNEL_TOOLS_REGISTRY]
+    installed_count = sum(1 for r in results if r["installed"])
+    return jsonify({
+        "success": True,
+        "tools": results,
+        "total": len(results),
+        "installed_count": installed_count,
+        "missing_count": len(results) - installed_count
+    })
+
+@app.route("/api/tunnels/tools/install", methods=["POST"])
+def api_tunnel_tools_install():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    key = req.get("key")
+    if not key:
+        return jsonify({"error": "کلید ابزار مشخص نشده است."}), 400
+
+    if key == "all_missing":
+        installed_any = []
+        for t in TUNNEL_TOOLS_REGISTRY:
+            info = get_installed_tool_info(t)
+            if not info["installed"]:
+                ok, msg = install_tunnel_tool_binary(t["key"])
+                if ok: installed_any.append(t["name"])
+        return jsonify({"success": True, "installed": installed_any, "message": f"{len(installed_any)} ابزار مفقود با موفقیت نصب گردید."})
+
+    ok, msg = install_tunnel_tool_binary(key)
+    if not ok:
+        return jsonify({"error": msg}), 500
+    return jsonify({"success": True, "message": msg})
+
+# --- 3. 1-Click Full Mesh Tunnel Deployer ---
+
+@app.route("/api/tunnels/deploy-mesh", methods=["POST"])
+def api_deploy_mesh_tunnels():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+
+    source_ip = (req.get("source_ip") or "").strip() or get_server_public_ip()
+    dest_ip = (req.get("dest_ip") or "").strip()
+    dest_port = int(req.get("dest_port") or 22)
+    dest_user = (req.get("dest_user") or "root").strip()
+    dest_pass = (req.get("dest_pass") or "").strip()
+    mesh_prefix = (req.get("mesh_prefix") or "mesh").strip().lower()
+    base_subnet_prefix = (req.get("base_subnet") or "10.210").strip()
+
+    if not dest_ip:
+        return jsonify({"error": "آدرس آی‌پی سرور مقصد الزامی است."}), 400
+
+    tunnel_types = req.get("tunnel_types") or [
+        "gre", "ipip", "eoip", "vxlan", "geneve", "sit", "wireguard", "openvpn",
+        "gost_wss", "gost_tls", "wstunnel", "rathole", "chisel"
+    ]
+
+    data = load_tunnels_data()
+    results = []
+    remote_commands = ["#!/bin/bash", "set -e", "mkdir -p /etc/openvpn /run/openvpn /etc/mhpanel"]
+    subnet_idx = 1
+    port_counter = 45100
+
+    for t_type in tunnel_types:
+        t_type = t_type.strip().lower()
+        sub_local = f"{base_subnet_prefix}.{subnet_idx}.1"
+        sub_remote = f"{base_subnet_prefix}.{subnet_idx}.2"
+        subnet_idx += 1
+        tun_name = f"{mesh_prefix}_{t_type[:6]}"
+
+        if t_type in ["gre", "ipip", "eoip", "vxlan", "geneve", "sit", "wireguard", "openvpn"]:
+            data["tunnels"] = [t for t in data.get("tunnels", []) if t.get("name") != tun_name]
+            tun_cfg = {
+                "id": f"tun_{uuid.uuid4().hex[:8]}",
+                "name": tun_name,
+                "type": t_type,
+                "local_ip": source_ip,
+                "remote_ip": dest_ip,
+                "tunnel_local_ip": sub_local,
+                "tunnel_remote_ip": sub_remote,
+                "mtu": 1420 if t_type in ["wireguard", "openvpn"] else 1476,
+                "enabled": True,
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            if t_type == "wireguard":
+                # Generate keypair
+                r1 = subprocess.run(["wg", "genkey"], capture_output=True, text=True)
+                priv = r1.stdout.strip()
+                r2 = subprocess.run(["wg", "pubkey"], input=priv, capture_output=True, text=True)
+                pub = r2.stdout.strip()
+
+                r3 = subprocess.run(["wg", "genkey"], capture_output=True, text=True)
+                r_priv = r3.stdout.strip()
+                r4 = subprocess.run(["wg", "pubkey"], input=r_priv, capture_output=True, text=True)
+                r_pub = r4.stdout.strip()
+
+                wg_port = 51820 + subnet_idx
+                tun_cfg["listen_port"] = wg_port
+                tun_cfg["private_key"] = priv
+                tun_cfg["public_key"] = pub
+                tun_cfg["peer_public_key"] = r_pub
+                tun_cfg["peer_endpoint"] = f"{dest_ip}:{wg_port}"
+
+                remote_commands.append(f"""
+# WG {tun_name}
+ip link del {tun_name} 2>/dev/null || true
+ip link add dev {tun_name} type wireguard
+ip address add {sub_remote}/30 dev {tun_name}
+echo "{r_priv}" > /tmp/wg_{tun_name}.key
+wg set {tun_name} listen-port {wg_port} private-key /tmp/wg_{tun_name}.key peer {pub} allowed-ips 0.0.0.0/0 endpoint {source_ip}:{wg_port}
+rm -f /tmp/wg_{tun_name}.key
+ip link set up dev {tun_name}
+""")
+            elif t_type == "openvpn":
+                # Generate static secret
+                tmp_k = f"/tmp/ovpn_mesh_{uuid.uuid4().hex}.key"
+                subprocess.run(["openvpn", "--genkey", "secret", tmp_k], capture_output=True)
+                secret_str = ""
+                if os.path.exists(tmp_k):
+                    with open(tmp_k) as f: secret_str = f.read().strip()
+                    os.remove(tmp_k)
+                ovpn_port = 11940 + subnet_idx
+                tun_cfg["listen_port"] = ovpn_port
+                tun_cfg["shared_secret"] = secret_str
+                local_k_path = f"/etc/openvpn/{tun_name}_mesh.key"
+                with open(local_k_path, "w") as f: f.write(secret_str)
+                os.chmod(local_k_path, 0o600)
+
+                remote_commands.append(f"""
+# OpenVPN {tun_name}
+cat << 'SEC_EOF' > /etc/openvpn/{tun_name}_mesh.key
+{secret_str}
+SEC_EOF
+chmod 600 /etc/openvpn/{tun_name}_mesh.key
+cat << 'OVPN_EOF' > /etc/openvpn/{tun_name}.conf
+dev {tun_name}
+dev-type tun
+ifconfig {sub_remote} {sub_local}
+secret /etc/openvpn/{tun_name}_mesh.key
+port {ovpn_port}
+remote {source_ip}
+cipher AES-256-CBC
+data-ciphers AES-256-CBC
+status /run/openvpn/{tun_name}.status 10
+verb 3
+keepalive 10 60
+OVPN_EOF
+systemctl restart openvpn@{tun_name} || true
+""")
+            else:
+                if t_type == "gre":
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip tunnel add {tun_name} mode gre remote {source_ip} local {dest_ip} ttl 255
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1476
+""")
+                elif t_type == "ipip":
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip tunnel add {tun_name} mode ipip remote {source_ip} local {dest_ip} ttl 255
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1480
+""")
+                elif t_type == "eoip":
+                    eid = 100 + subnet_idx
+                    tun_cfg["eoip_id"] = eid
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip link add name {tun_name} type eoip remote {source_ip} local {dest_ip} id {eid}
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1500
+""")
+                elif t_type == "vxlan":
+                    vni = 200 + subnet_idx
+                    tun_cfg["vni"] = vni
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip link add {tun_name} type vxlan id {vni} remote {source_ip} local {dest_ip} dstport 4789
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1450
+""")
+                elif t_type == "geneve":
+                    vni = 300 + subnet_idx
+                    tun_cfg["vni"] = vni
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip link add {tun_name} type geneve id {vni} remote {source_ip}
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1450
+""")
+                elif t_type == "sit":
+                    remote_commands.append(f"""
+ip link del {tun_name} 2>/dev/null || true
+ip tunnel add {tun_name} mode sit remote {source_ip} local {dest_ip} ttl 255
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1480
+""")
+
+            ok, msg = apply_tunnel_interface(tun_cfg)
+            data["tunnels"].append(tun_cfg)
+            results.append({
+                "name": tun_name,
+                "protocol": t_type.upper(),
+                "local_endpoint": f"{source_ip}:{tun_cfg.get('listen_port', '-')}",
+                "remote_endpoint": f"{dest_ip}:{tun_cfg.get('listen_port', '-')}",
+                "virtual_ip": f"{sub_local} <-> {sub_remote}",
+                "status": "applied" if ok else "error",
+                "details": msg
+            })
+        else:
+            # Anti-DPI
+            adv_name = f"{mesh_prefix}_{t_type[:8]}"
+            data["adv_tunnels"] = [a for a in data.get("adv_tunnels", []) if a.get("name") != adv_name]
+            port = port_counter
+            port_counter += 10
+
+            tool_name = "gost"
+            transport = "wss"
+            if t_type == "gost_tls":
+                tool_name = "gost"
+                transport = "tls"
+            elif t_type == "wstunnel":
+                tool_name = "wstunnel"
+                transport = "wss"
+            elif t_type == "rathole":
+                tool_name = "rathole"
+            elif t_type == "chisel":
+                tool_name = "chisel"
+            elif t_type == "singbox":
+                tool_name = "singbox"
+
+            adv_cfg = {
+                "id": f"adv_{uuid.uuid4().hex[:8]}",
+                "name": adv_name,
+                "tool": tool_name,
+                "role": "server",
+                "listen_port": port,
+                "remote_ip": dest_ip,
+                "remote_port": port,
+                "target_addr": "127.0.0.1:443",
+                "transport": transport,
+                "secret": f"MeshSecret_{uuid.uuid4().hex[:10]}",
+                "sni": "dl.google.com",
+                "enabled": True,
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+
+            ok, msg = apply_adv_tunnel(adv_cfg)
+            data["adv_tunnels"].append(adv_cfg)
+
+            client_script = generate_adv_tunnel_script(adv_cfg)
+            remote_commands.append(f"""
+# Anti-DPI Client: {adv_name} ({tool_name})
+{client_script}
+""")
+            results.append({
+                "name": adv_name,
+                "protocol": f"Anti-DPI ({tool_name.upper()})",
+                "local_endpoint": f"{source_ip}:{port} (Server)",
+                "remote_endpoint": f"{dest_ip} (Client)",
+                "virtual_ip": f"Tunnel Port {port}",
+                "status": "applied" if ok else "error",
+                "details": msg
+            })
+
+    save_tunnels_data(data)
+
+    remote_deployed = False
+    remote_log = ""
+    if dest_ip and dest_pass:
+        full_sh = "\n".join(remote_commands)
+        try:
+            cmd = ["sshpass", "-p", dest_pass, "ssh", "-p", str(dest_port), "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=15", f"{dest_user}@{dest_ip}", "bash -s"]
+            p = subprocess.run(cmd, input=full_sh, text=True, capture_output=True, timeout=45)
+            if p.returncode == 0:
+                remote_deployed = True
+                remote_log = "کانفیگ طرف سرور مقابل با موفقیت از طریق SSH استقرار یافت."
+            else:
+                remote_log = f"خطا در اجرای اسکریپت در سرور مقصد: {p.stderr[:200]}"
+        except Exception as e:
+            remote_log = f"خطا در اتصال SSH: {e}"
+
+    return jsonify({
+        "success": True,
+        "results": results,
+        "remote_deployed": remote_deployed,
+        "remote_log": remote_log,
+        "count": len(results),
+        "peer_script": "\n".join(remote_commands)
+    })
+
+# --- 4. Remote Node Auto-Provisioning & Multi-Node Cluster ---
+
+@app.route("/api/servers/provision", methods=["POST"])
+def api_servers_provision():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    server_ip = (req.get("ip") or "").strip()
+    ssh_port = int(req.get("port") or 22)
+    user = (req.get("user") or "root").strip()
+    password = (req.get("pass") or "").strip()
+    name = (req.get("name") or server_ip).strip()
+
+    if not server_ip or not password:
+        return jsonify({"error": "آدرس آی‌پی و رمز عبور سرور ریموت الزامی است."}), 400
+
+    test_cmd = ["sshpass", "-p", password, "ssh", "-p", str(ssh_port), "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=8", f"{user}@{server_ip}", "uname -a"]
+    r = subprocess.run(test_cmd, capture_output=True, text=True)
+    if r.returncode != 0:
+        return jsonify({"error": f"اتصال SSH به سرور {server_ip}:{ssh_port} ناموفق بود: {r.stderr.strip()[:150]}"}), 400
+
+    master_ip = get_server_public_ip()
+    cluster_token = secrets.token_hex(16)
+
+    remote_setup = f"""#!/bin/bash
+set -e
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -qq || true
+apt-get install -y -qq git python3 python3-pip python3-venv curl wget iptables net-tools || true
+
+mkdir -p /www/wwwroot
+if [ ! -d "/www/wwwroot/mhpanel/.git" ]; then
+    rm -rf /www/wwwroot/mhpanel
+    git clone https://github.com/t-51/MHPanel.git /www/wwwroot/mhpanel
+else
+    cd /www/wwwroot/mhpanel
+    git pull origin main || true
+fi
+
+cd /www/wwwroot/mhpanel
+if [ ! -d "venv" ]; then
+    python3 -m venv venv || true
+fi
+
+if [ -f "venv/bin/pip" ]; then
+    ./venv/bin/pip install --upgrade pip -q || true
+    ./venv/bin/pip install -r requirements.txt -q || true
+fi
+
+cat << 'NODE_EOF' > /www/wwwroot/mhpanel/cluster_node.json
+{{
+    "role": "node",
+    "master_ip": "{master_ip}",
+    "cluster_token": "{cluster_token}",
+    "node_name": "{name}",
+    "attached_at": "{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+}}
+NODE_EOF
+
+cat << 'SVC_EOF' > /etc/systemd/system/mhpanel.service
+[Unit]
+Description=MHPanel Node Web Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/www/wwwroot/mhpanel
+ExecStart=/www/wwwroot/mhpanel/venv/bin/python app.py
+Restart=always
+RestartSec=3
+Environment=PATH=/www/wwwroot/mhpanel/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+SVC_EOF
+
+systemctl daemon-reload
+systemctl enable --now mhpanel
+sleep 2
+systemctl is-active mhpanel
+"""
+    try:
+        run_cmd = ["sshpass", "-p", password, "ssh", "-p", str(ssh_port), "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=30", f"{user}@{server_ip}", "bash -s"]
+        p = subprocess.run(run_cmd, input=remote_setup, text=True, capture_output=True, timeout=120)
+        if p.returncode != 0:
+            return jsonify({"error": f"خطا در نصب پنل روی نود: {p.stderr.strip()[:200]}"}), 500
+
+        sf = get_servers_file()
+        servers = []
+        if os.path.exists(sf):
+            try:
+                with open(sf, "r") as f: servers = json.load(f)
+            except Exception: pass
+
+        existing = next((s for s in servers if s.get("ip") == server_ip), None)
+        if not existing:
+            existing = {"ip": server_ip}
+            servers.append(existing)
+
+        existing.update({
+            "name": name,
+            "port": ssh_port,
+            "user": user,
+            "pass": password,
+            "is_node": True,
+            "node_status": "active",
+            "cluster_token": cluster_token,
+            "panel_port": 9090,
+            "panel_url": f"http://{server_ip}:9090",
+            "last_provisioned": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+
+        with open(sf, "w") as f:
+            json.dump(servers, f, indent=2)
+
+        return jsonify({
+            "success": True,
+            "message": f"پنل MHPanel با موفقیت روی سرور {server_ip} نصب و به عنوان نود تابعه متصل گردید.",
+            "panel_url": f"http://{server_ip}:9090"
+        })
+    except Exception as e:
+        return jsonify({"error": f"استثنا در استقرار ریموت: {e}"}), 500
+
+@app.route("/api/servers/test-ssh", methods=["POST"])
+def api_servers_test_ssh():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    server_ip = (req.get("ip") or "").strip()
+    ssh_port = int(req.get("port") or 22)
+    user = (req.get("user") or "root").strip()
+    password = (req.get("pass") or "").strip()
+
+    t0 = time.time()
+    cmd = ["sshpass", "-p", password, "ssh", "-p", str(ssh_port), "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=5", f"{user}@{server_ip}", "uname -srm"]
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    lat = round((time.time() - t0) * 1000, 1)
+
+    if r.returncode == 0:
+        return jsonify({
+            "success": True,
+            "online": True,
+            "latency_ms": lat,
+            "system_info": r.stdout.strip(),
+            "message": f"اتصال برقرار است (تاخیر: {lat}ms)"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "online": False,
+            "latency_ms": lat,
+            "error": r.stderr.strip()[:120] or "اتصال برقرار نشد"
+        }), 400
+
+@app.route("/api/servers/<ip>/status", methods=["GET"])
+def api_server_node_status(ip):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    sf = get_servers_file()
+    servers = []
+    if os.path.exists(sf):
+        try:
+            with open(sf, "r") as f: servers = json.load(f)
+        except Exception: pass
+    srv = next((s for s in servers if s.get("ip") == ip), None)
+    if not srv:
+        return jsonify({"error": "سرور یافت نشد."}), 404
+
+    is_node = srv.get("is_node", False)
+    # Ping test
+    ping_r = subprocess.run(["ping", "-c", "1", "-W", "1", ip], capture_output=True, text=True)
+    is_alive = (ping_r.returncode == 0)
+    lat = 0.0
+    if is_alive:
+        m = re.search(r'time=([\d\.]+)\s*ms', ping_r.stdout)
+        lat = float(m.group(1)) if m else 25.0
+
+    panel_active = False
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1.0)
+        sock.connect((ip, int(srv.get("panel_port") or 9090)))
+        sock.close()
+        panel_active = True
+    except Exception:
+        panel_active = False
+
+    return jsonify({
+        "success": True,
+        "ip": ip,
+        "is_alive": is_alive,
+        "latency_ms": lat,
+        "is_node": is_node,
+        "node_status": "active" if panel_active else ("standby" if is_alive else "offline"),
+        "panel_active": panel_active,
+        "panel_url": f"http://{ip}:{srv.get('panel_port', 9090)}"
+    })
+
+# --- 5. Sing-box Universal Protocol Suite Engine ---
+
+SINGBOX_CONFIG_DIR = "/etc/sing-box"
+SINGBOX_CONFIG_FILE = "/etc/sing-box/config.json"
+SINGBOX_SERVICE_NAME = "mhpanel-singbox.service"
+
+def ensure_singbox_service():
+    os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
+    svc_path = f"/etc/systemd/system/{SINGBOX_SERVICE_NAME}"
+    if not os.path.exists(svc_path):
+        unit_content = f"""[Unit]
+Description=MHPanel - Sing-box Universal Suite Core
+After=network.target network-online.target nss-lookup.target
+
+[Service]
+Type=simple
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+ExecStart=/usr/local/bin/sing-box run -c {SINGBOX_CONFIG_FILE}
+Restart=always
+RestartSec=3s
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target
+"""
+        with open(svc_path, "w") as f:
+            f.write(unit_content)
+        subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+
+def ensure_singbox_default_config():
+    os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
+    if not os.path.exists(SINGBOX_CONFIG_FILE) or os.path.getsize(SINGBOX_CONFIG_FILE) < 10:
+        default_cfg = {
+            "log": {
+                "level": "info",
+                "timestamp": True
+            },
+            "dns": {
+                "servers": [
+                    {"tag": "dns-remote", "address": "tcp://1.1.1.1", "address_resolver": "dns-direct", "strategy": "prefer_ipv4"},
+                    {"tag": "dns-direct", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
+                ],
+                "rules": [
+                    {"outbound": "any", "server": "dns-direct"}
+                ]
+            },
+            "inbounds": [],
+            "outbounds": [
+                {"type": "direct", "tag": "direct"},
+                {"type": "block", "tag": "block"}
+            ],
+            "route": {
+                "rules": [
+                    {"protocol": "dns", "outbound": "direct"},
+                    {"ip_is_private": True, "outbound": "direct"}
+                ]
+            }
+        }
+        with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(default_cfg, f, indent=2)
+
+def validate_singbox_config(cfg_obj):
+    tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(cfg_obj, f, indent=2)
+        r = subprocess.run(["/usr/local/bin/sing-box", "check", "-c", tmp_path], capture_output=True, text=True)
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        if r.returncode == 0:
+            return True, "Valid"
+        else:
+            err = (r.stderr or r.stdout or "").strip()
+            return False, err
+    except Exception as e:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        return False, str(e)
+
+def generate_singbox_share_link(inbound, host_ip):
+    itype = inbound.get("type", "vless")
+    port = inbound.get("listen_port", 443)
+    tag = inbound.get("tag", itype)
+
+    tls_obj = inbound.get("tls", {})
+    tls_enabled = tls_obj.get("enabled", False)
+    reality_obj = tls_obj.get("reality", {})
+    reality_enabled = reality_obj.get("enabled", False)
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "dl.google.com")
+
+    users = inbound.get("users", [])
+    user0 = users[0] if users else {}
+
+    if itype == "vless":
+        uuid_str = user0.get("uuid", "")
+        flow = user0.get("flow", "")
+        sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
+        pbk = reality_obj.get("public_key") or ""
+        sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
+        link = f"vless://{uuid_str}@{host_ip}:{port}?security={sec}&sni={sni}&type=tcp"
+        if flow: link += f"&flow={flow}"
+        if pbk: link += f"&pbk={pbk}"
+        if sid: link += f"&sid={sid}"
+        if reality_enabled: link += "&fp=chrome"
+        link += f"#{tag}"
+        return link
+
+    elif itype == "vmess":
+        uuid_str = user0.get("uuid", "")
+        vmess_dict = {
+            "v": "2",
+            "ps": tag,
+            "add": host_ip,
+            "port": str(port),
+            "id": uuid_str,
+            "aid": "0",
+            "scy": "auto",
+            "net": inbound.get("transport", {}).get("type", "tcp"),
+            "type": "none",
+            "host": sni,
+            "path": inbound.get("transport", {}).get("path", ""),
+            "tls": "tls" if tls_enabled else ""
+        }
+        b64_json = base64.b64encode(json.dumps(vmess_dict).encode()).decode()
+        return f"vmess://{b64_json}"
+
+    elif itype == "trojan":
+        password = user0.get("password", "")
+        sec = "tls" if tls_enabled else "none"
+        return f"trojan://{password}@{host_ip}:{port}?security={sec}&sni={sni}#{tag}"
+
+    elif itype == "hysteria2":
+        password = user0.get("password", "")
+        obfs_obj = inbound.get("obfs", {})
+        obfs_type = obfs_obj.get("type", "")
+        obfs_pass = obfs_obj.get("password", "")
+        link = f"hysteria2://{password}@{host_ip}:{port}?sni={sni}&insecure=1"
+        if obfs_type and obfs_pass:
+            link += f"&obfs={obfs_type}&obfs-password={obfs_pass}"
+        link += f"#{tag}"
+        return link
+
+    elif itype == "tuic":
+        uuid_str = user0.get("uuid", "")
+        password = user0.get("password", "")
+        cc = inbound.get("congestion_control", "bbr")
+        return f"tuic://{uuid_str}:{password}@{host_ip}:{port}?congestion_control={cc}&sni={sni}&alpn=h3&insecure=1#{tag}"
+
+    elif itype == "shadowsocks":
+        method = inbound.get("method", "2022-blake3-aes-128-gcm")
+        password = inbound.get("password", "")
+        userinfo = base64.b64encode(f"{method}:{password}".encode()).decode()
+        return f"ss://{userinfo}@{host_ip}:{port}#{tag}"
+
+    return f"{itype}://{host_ip}:{port}#{tag}"
+
+@app.route("/api/singbox/status", methods=["GET"])
+def api_singbox_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    ensure_singbox_default_config()
+
+    r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
+    is_active = (r.stdout.strip() == "active")
+
+    ver_r = subprocess.run(["/usr/local/bin/sing-box", "version"], capture_output=True, text=True)
+    ver = (ver_r.stdout.split("\n")[0] if ver_r.stdout else "sing-box 1.9.3").strip()
+
+    cfg = {}
+    if os.path.exists(SINGBOX_CONFIG_FILE):
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception: pass
+
+    inbounds = cfg.get("inbounds", [])
+    return jsonify({
+        "success": True,
+        "is_active": is_active,
+        "version": ver,
+        "inbounds_count": len(inbounds),
+        "inbounds": inbounds,
+        "outbounds_count": len(cfg.get("outbounds", []))
+    })
+
+@app.route("/api/singbox/config", methods=["GET", "POST"])
+def api_singbox_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    ensure_singbox_default_config()
+
+    if request.method == "GET":
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            return jsonify({"success": True, "config": cfg})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    new_cfg = request.get_json()
+    if not new_cfg or not isinstance(new_cfg, dict):
+        return jsonify({"error": "فرمت کانفیگ نامعتبر است."}), 400
+
+    ok, msg = validate_singbox_config(new_cfg)
+    if not ok:
+        return jsonify({"error": f"خطای اعتبارسنجی سینگ‌باکس: {msg}"}), 400
+
+    try:
+        with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(new_cfg, f, indent=2, ensure_ascii=False)
+        subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+        return jsonify({"success": True, "message": "کانفیگ سینگ‌باکس با موفقیت ذخیره و سرویس بازنشانی گردید."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/singbox/service/<action>", methods=["POST"])
+def api_singbox_service_action(action):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if action not in ["start", "stop", "restart", "reload", "check"]:
+        return jsonify({"error": "عملیات نامعتبر است."}), 400
+
+    if action == "check":
+        if os.path.exists(SINGBOX_CONFIG_FILE):
+            try:
+                with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                ok, msg = validate_singbox_config(cfg)
+                if not ok:
+                    return jsonify({"success": False, "valid": False, "message": msg}), 400
+                return jsonify({"success": True, "valid": True, "message": "ساختار کانفیگ Sing-box کاملاً معتبر و صحیح است."})
+            except Exception as e:
+                return jsonify({"error": str(e)}), 400
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    r = subprocess.run(["systemctl", action, SINGBOX_SERVICE_NAME], capture_output=True, text=True)
+    if r.returncode == 0:
+        return jsonify({"success": True, "message": f"سرویس هسته سینگ‌باکس با موفقیت {action} شد."})
+    else:
+        return jsonify({"error": f"خطا در اجرای دستور: {r.stderr[:100]}"}), 500
+
+@app.route("/api/singbox/inbound/add", methods=["POST"])
+def api_singbox_inbound_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    ensure_singbox_default_config()
+
+    req = request.get_json() or {}
+    itype = (req.get("type") or "vless").strip().lower()
+    tag = (req.get("tag") or f"{itype}_{uuid.uuid4().hex[:6]}").strip()
+
+    try:
+        listen_port = int(req.get("listen_port") or 20443)
+    except Exception:
+        return jsonify({"error": "شماره پورت نامعتبر است."}), 400
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    if any(ib.get("tag") == tag for ib in cfg.get("inbounds", [])):
+        return jsonify({"error": f"اینباندی با نام تگ {tag} از قبل وجود دارد."}), 400
+
+    new_inbound = {
+        "type": itype,
+        "tag": tag,
+        "listen": req.get("listen") or "::",
+        "listen_port": listen_port
+    }
+
+    # Protocol-specific options
+    if itype in ["vless", "vmess"]:
+        uuid_val = (req.get("uuid") or str(uuid.uuid4())).strip()
+        user_obj = {"name": req.get("user_name") or f"{itype}-user", "uuid": uuid_val}
+        if itype == "vless" and req.get("flow"):
+            user_obj["flow"] = req.get("flow")
+        new_inbound["users"] = [user_obj]
+
+    elif itype == "trojan":
+        password = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["users"] = [{"name": req.get("user_name") or "trojan-user", "password": password}]
+
+    elif itype == "hysteria2":
+        password = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["users"] = [{"name": req.get("user_name") or "hy2-user", "password": password}]
+        new_inbound["up_mbps"] = int(req.get("up_mbps") or 100)
+        new_inbound["down_mbps"] = int(req.get("down_mbps") or 100)
+        if req.get("obfs_password"):
+            new_inbound["obfs"] = {"type": "salamander", "password": req.get("obfs_password")}
+
+    elif itype == "tuic":
+        uuid_val = (req.get("uuid") or str(uuid.uuid4())).strip()
+        password = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["users"] = [{"name": req.get("user_name") or "tuic-user", "uuid": uuid_val, "password": password}]
+        new_inbound["congestion_control"] = req.get("congestion_control") or "bbr"
+        new_inbound["zero_rtt_handshake"] = bool(req.get("zero_rtt", True))
+
+    elif itype == "shadowsocks":
+        method = req.get("method") or "2022-blake3-aes-128-gcm"
+        password = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["method"] = method
+        new_inbound["password"] = password
+
+    elif itype == "shadowtls":
+        password = req.get("password") or secrets.token_urlsafe(16)
+        new_inbound["version"] = int(req.get("version") or 3)
+        new_inbound["password"] = password
+        new_inbound["handshake"] = {
+            "server": req.get("handshake_server") or "dl.google.com",
+            "server_port": int(req.get("handshake_port") or 443)
+        }
+
+    elif itype in ["socks", "http", "mixed"]:
+        if req.get("user_name") and req.get("password"):
+            new_inbound["users"] = [{"username": req["user_name"], "password": req["password"]}]
+
+    elif itype == "direct":
+        new_inbound["network"] = req.get("network") or "tcp"
+        if req.get("override_address"):
+            new_inbound["override_address"] = req["override_address"]
+            new_inbound["override_port"] = int(req.get("override_port") or listen_port)
+
+    elif itype == "tun":
+        new_inbound["interface_name"] = req.get("interface_name") or f"tun_{tag[:6]}"
+        new_inbound["inet4_address"] = req.get("inet4_address") or "172.19.0.1/30"
+        new_inbound["auto_route"] = bool(req.get("auto_route", True))
+        new_inbound["strict_route"] = bool(req.get("strict_route", False))
+        new_inbound["stack"] = req.get("stack") or "system"
+
+    # TLS & Reality settings
+    tls_mode = req.get("tls_mode") or "none"
+    if tls_mode == "reality":
+        new_inbound["tls"] = {
+            "enabled": True,
+            "server_name": req.get("sni") or "dl.google.com",
+            "reality": {
+                "enabled": True,
+                "handshake": {
+                    "server": req.get("handshake_server") or "dl.google.com",
+                    "server_port": int(req.get("handshake_port") or 443)
+                },
+                "private_key": req.get("reality_private_key") or "",
+                "short_id": [req.get("reality_short_id") or "86d7ec6343d000b6"]
+            }
+        }
+        if req.get("reality_public_key"):
+            new_inbound["tls"]["reality"]["public_key"] = req.get("reality_public_key")
+    elif tls_mode == "tls":
+        cert_p = req.get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt"
+        key_p = req.get("key_path") or "/etc/vpnpanel/ssl/panel.key"
+        new_inbound["tls"] = {
+            "enabled": True,
+            "server_name": req.get("sni") or "dl.google.com",
+            "certificate_path": cert_p,
+            "key_path": key_p
+        }
+        if req.get("alpn"):
+            new_inbound["tls"]["alpn"] = req.get("alpn") if isinstance(req.get("alpn"), list) else [req.get("alpn")]
+
+    # Transport settings
+    transport_type = req.get("transport_type") or "tcp"
+    if transport_type == "ws":
+        new_inbound["transport"] = {
+            "type": "ws",
+            "path": req.get("ws_path") or "/"
+        }
+    elif transport_type == "grpc":
+        new_inbound["transport"] = {
+            "type": "grpc",
+            "service_name": req.get("grpc_service_name") or "GunService"
+        }
+    elif transport_type == "httpupgrade":
+        new_inbound["transport"] = {
+            "type": "httpupgrade",
+            "host": req.get("httpupgrade_host") or req.get("sni") or "",
+            "path": req.get("httpupgrade_path") or "/"
+        }
+
+    # Multiplex settings
+    if req.get("multiplex_enabled"):
+        new_inbound["multiplex"] = {
+            "enabled": True,
+            "protocol": req.get("multiplex_protocol") or "smux",
+            "max_connections": int(req.get("multiplex_max_conn") or 4)
+        }
+
+    # Validate new config
+    test_cfg = dict(cfg)
+    test_cfg["inbounds"] = list(test_cfg.get("inbounds", [])) + [new_inbound]
+    ok, err_msg = validate_singbox_config(test_cfg)
+    if not ok:
+        return jsonify({"error": f"تنظیمات اینباند با هسته سینگ‌باکس ناسازگار است: {err_msg}"}), 400
+
+    cfg["inbounds"] = test_cfg["inbounds"]
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "inbound": new_inbound, "message": f"اینباند {tag} ({itype}) با موفقیت ایجاد شد."})
+
+@app.route("/api/singbox/inbound/<tag>/delete", methods=["POST", "DELETE"])
+def api_singbox_inbound_delete(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ یافت نشد."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    inbounds = cfg.get("inbounds", [])
+    before_len = len(inbounds)
+    inbounds = [ib for ib in inbounds if ib.get("tag") != tag]
+    if len(inbounds) == before_len:
+        return jsonify({"error": f"اینباند با نام {tag} یافت نشد."}), 404
+
+    cfg["inbounds"] = inbounds
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت حذف گردید."})
+
+@app.route("/api/singbox/generate-keys", methods=["GET"])
+def api_singbox_generate_keys():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    priv_k, pub_k = "", ""
+    try:
+        r = subprocess.run(["/usr/local/bin/sing-box", "generate", "reality-keypair"], capture_output=True, text=True)
+        for line in r.stdout.split("\n"):
+            if "PrivateKey:" in line:
+                priv_k = line.split("PrivateKey:")[1].strip()
+            elif "PublicKey:" in line:
+                pub_k = line.split("PublicKey:")[1].strip()
+    except Exception: pass
+
+    uid_str = str(uuid.uuid4())
+    short_id = secrets.token_hex(8)
+
+    wg_priv, wg_pub = "", ""
+    try:
+        r1 = subprocess.run(["wg", "genkey"], capture_output=True, text=True)
+        wg_priv = r1.stdout.strip()
+        r2 = subprocess.run(["wg", "pubkey"], input=wg_priv, capture_output=True, text=True)
+        wg_pub = r2.stdout.strip()
+    except Exception: pass
+
+    return jsonify({
+        "success": True,
+        "uuid": uid_str,
+        "reality_private_key": priv_k,
+        "reality_public_key": pub_k,
+        "short_id": short_id,
+        "wg_private_key": wg_priv,
+        "wg_public_key": wg_pub
+    })
+
+@app.route("/api/singbox/inbound/<tag>/share", methods=["GET"])
+def api_singbox_inbound_share(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ یافت نشد."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    inbound = next((ib for ib in cfg.get("inbounds", []) if ib.get("tag") == tag), None)
+    if not inbound:
+        return jsonify({"error": "اینباند یافت نشد."}), 404
+
+    server_ip = get_server_public_ip()
+    share_link = generate_singbox_share_link(inbound, server_ip)
+
+    return jsonify({
+        "success": True,
+        "tag": tag,
+        "type": inbound.get("type"),
+        "share_link": share_link,
+        "inbound_json": inbound
+    })
 
 
 if __name__ == "__main__":

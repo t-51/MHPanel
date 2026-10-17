@@ -1,54 +1,115 @@
 <div class="tab-pane" id="tab-servers">
     <div class="config-card glass-card">
-        <div class="config-header">
-            <h3 class="config-title">
-                <i data-lucide="server"></i>
-                <span data-i18n="servers_title">مدیریت سرورهای ریموت (Remote Servers)</span>
-            </h3>
-        </div>
-        <p class="text-sm" style="color: var(--text-muted); margin-bottom: 20px;" data-i18n="servers_desc">
-            مدیریت سرورهای ریموت لینوکس جهت توزیع بار، انتقال ترافیک و استقرار اسکریپت‌های VPN.
-        </p>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-            <div class="form-group">
-                <label class="form-label" data-i18n="servers_ip_label">آدرس سرور (IP یا Domain)</label>
-                <input type="text" class="form-input" id="server-ip" placeholder="e.g. 192.168.1.100">
+        <div class="config-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div>
+                <h3 class="config-title" style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="server" style="color: #4f46e5;"></i>
+                    <span data-i18n="servers_title">مدیریت سرورهای ریموت و کلاستر نودها (Multi-Node Cluster)</span>
+                    <span class="sidebar-badge sidebar-badge-blue">Master & Nodes</span>
+                </h3>
+                <p class="text-sm" style="color: var(--text-muted); margin-top: 4px;" data-i18n="servers_desc">
+                    مدیریت متمرکز سرورهای ریموت لینوکس با قابلیت استقرار خودکار و یک‌کلیکه MHPanel از راه دور و تبدیل آن‌ها به نودهای تابعه زیر نظر سرور اصلی
+                </p>
             </div>
-            <div class="form-group">
-                <label class="form-label" data-i18n="servers_port_label">پورت SSH سرور</label>
-                <input type="number" class="form-input" id="server-port" value="22">
-            </div>
-            <div class="form-group">
-                <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
-                <input type="text" class="form-input" id="server-user" value="root">
-            </div>
-            <div class="form-group">
-                <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
-                <input type="password" class="form-input" id="server-pass" placeholder="Password">
-            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadServersList()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                <span data-i18n="btn_refresh">بروزرسانی وضعیت نودها</span>
+            </button>
         </div>
 
-        <button class="btn btn-primary" onclick="addServer()">
-            <i data-lucide="plus"></i> <span data-i18n="servers_add_btn">افزودن سرور</span>
-        </button>
+        <!-- Add Server Form -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-top: 18px;">
+            <h4 style="margin: 0 0 14px 0; font-size: 14.5px; font-weight: 700; color: var(--text-main);" data-i18n="servers_add_card_title">
+                ثبت سرور جدید / الحاق نود به کلاستر
+            </h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                <div class="form-group">
+                    <label class="form-label" data-i18n="servers_name_label">نام یا برچسب سرور (اختیاری)</label>
+                    <input type="text" class="form-input" id="server-name" placeholder="e.g. نود باکو (Azerbaijan)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="servers_ip_label">آدرس سرور (IP یا Domain)</label>
+                    <input type="text" class="form-input" id="server-ip" placeholder="e.g. 180.149.44.168" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="servers_port_label">پورت SSH سرور</label>
+                    <input type="number" class="form-input" id="server-port" value="22" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                    <input type="text" class="form-input" id="server-user" value="root" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" data-i18n="servers_pass_label">رمز عبور SSH سرور (Password)</label>
+                    <input type="password" class="form-input" id="server-pass" placeholder="Password" required>
+                </div>
+            </div>
 
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-main); cursor: pointer;">
+                    <input type="checkbox" id="server-auto-provision" checked>
+                    <span data-i18n="servers_auto_deploy_checkbox">نصب و استقرار خودکار پنل کامل MHPanel روی سرور مقصد پس از ثبت (Node Auto-Provisioning)</span>
+                </label>
+                <button class="btn btn-primary" onclick="addServer()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="servers_add_btn">ثبت سرور و استقرار</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Servers Table -->
         <div style="margin-top: 30px;">
-            <h4 style="margin-bottom: 15px; font-weight: 500;" data-i18n="servers_saved_title">سرورهای ثبت‌شده</h4>
-            <div style="border-radius: 8px; border: 1px solid var(--border-color); overflow: hidden;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-                    <thead style="background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border-color);">
+            <h4 style="margin-bottom: 15px; font-weight: 600; font-size: 15px;" data-i18n="servers_saved_title">لیست سرورها و وضعیت نودهای کلاستر</h4>
+            <div style="border-radius: 10px; border: 1px solid var(--border-color); overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead style="background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color);">
                         <tr>
-                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_addr">آدرس سرور</th>
-                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_port">پورت SSH</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_name">نام و شناسه سرور</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_addr">آدرس آی‌پی و پورت SSH</th>
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_user">نام کاربری</th>
-                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="servers_col_actions">عملیات</th>
+                            <th style="padding: 12px 16px; font-weight: 600; text-align: center;" data-i18n="servers_col_ping">تاخیر و اتصال</th>
+                            <th style="padding: 12px 16px; font-weight: 600; text-align: center;" data-i18n="servers_col_status">وضعیت نود</th>
+                            <th style="padding: 12px 16px; font-weight: 600; text-align: center;" data-i18n="servers_col_actions">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="servers-table-body">
-                        <!-- Servers injected here by JS -->
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);" data-i18n="servers_loading">
+                                در حال بارگذاری اطلاعات سرورها و نودها...
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Node Provisioning Output / Progress -->
+    <div class="modal" id="modal-server-provision" style="display: none;">
+        <div class="modal-content" style="max-width: 600px; width: 95%;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 14px;">
+                <h3 style="margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="rocket" style="color: #4f46e5;"></i>
+                    <span id="provision-modal-title">استقرار و نصب پنل روی سرور مقصد</span>
+                </h3>
+                <button type="button" class="btn-close" onclick="closeServerProvisionModal()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                </button>
+            </div>
+            <div style="margin-bottom: 12px;">
+                <div id="provision-status-badge" style="font-size: 13px; font-weight: 600; color: #4f46e5; margin-bottom: 8px;">
+                    در حال اتصال SSH و آغاز فرآیند استقرار...
+                </div>
+                <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-family:'JetBrains Mono'; font-size: 12px; height: 220px; overflow-y: auto; color: #e2e8f0;" id="provision-log-box">
+                    [1/4] بررسی اعتبارسنجی اتصال SSH...
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn btn-secondary" type="button" onclick="closeServerProvisionModal()" data-i18n="btn_close">بستن پنجره</button>
+                <a class="btn btn-primary" id="btn-open-node-panel" href="#" target="_blank" style="display: none; align-items: center; gap: 6px;">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+                    <span>ورود مستقیم به پنل نود</span>
+                </a>
             </div>
         </div>
     </div>

@@ -38,8 +38,33 @@
 <i data-lucide="shield-alert" style="width: 16px; height: 16px; color:#ef4444;"></i> <span data-i18n="tun_shield_tab_btn">پایش دستکاری و دراپ پکت‌ها</span>
 <span class="badge-pill" id="pill-tun-alerts-badge" style="background:rgba(239,68,68,0.15); color:#dc2626;">0</span>
 </button>
+<button class="rad-tab-btn" id="tun-subtab-btn-tools" onclick="switchTunnelSubTab('tools')" type="button">
+<i data-lucide="wrench" style="width: 16px; height: 16px; color:#6366f1;"></i> <span data-i18n="tun_tools_tab_btn">مدیریت باینری‌ها و ابزارها</span>
+<span class="badge-pill" id="pill-tools-installed-count" style="background:rgba(99,102,241,0.15); color:#4f46e5;">20 ابزار</span>
+</button>
 </div>
+
+<!-- 1-Click Full Mesh Tunnel Deployer Banner Card -->
+<div class="glass-card" style="padding: 16px 20px; border: 1px solid rgba(99, 102, 241, 0.3); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.06) 100%); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="network" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main);" data-i18n="mesh_deploy_banner_title">
+                راه‌اندازی مشبک خودکار تانل‌ها (1-Click Full Mesh Tunnel Deployer)
+            </h3>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);" data-i18n="mesh_deploy_banner_desc">
+                استقرار همزمان تمام تانل‌های نیتیو و ضد فیلتر لینوکس بین دو سرور با ساب‌نت‌های غیرتداخلی بدون نیاز به تنظیم تک‌تک
+            </p>
+        </div>
+    </div>
+    <button class="btn btn-primary" onclick="openDeployMeshModal()" style="display: flex; align-items: center; gap: 8px; padding: 9px 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);" type="button">
+        <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+        <span data-i18n="mesh_deploy_btn">استقرار یکپارچه تمام تانل‌ها بین دو سرور</span>
+    </button>
 </div>
+
 <!-- Top Stat Cards -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
 <!-- Active Standard Tunnels -->
@@ -194,6 +219,9 @@
 </div>
 </div>
 <div style="display:flex; gap:10px; align-items:center;">
+<button class="btn btn-secondary btn-sm" onclick="probeAllAdvTunnels()" style="padding: 8px 14px; display:flex; align-items:center; gap:6px; border:1px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); color:#059669; font-weight:600;" type="button">
+<i data-lucide="zap" style="width: 14px; height: 14px; color:#10b981;"></i> <span data-i18n="probe_all_adv_btn">⚡ تست پینگ تمام تانل‌های Anti-DPI</span>
+</button>
 <button class="btn btn-primary btn-sm" onclick="openCreateAdvTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);" type="button">
 <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> <span data-i18n="tunnels_setting_up_new_anti_filter">راه‌اندازی تونل ضد فیلتر جدید</span>
 </button>
@@ -213,6 +241,7 @@
 <th data-i18n="tunnels_listening_port_endpoint" style="padding: 12px 14px;">پورت شنود / اندپوینت</th>
 <th data-i18n="tunnels_target_service" style="padding: 12px 14px;">سرویس مقصد (Target)</th>
 <th data-i18n="tunnels_obfuscation_transportation" style="padding: 12px 14px;">مبهم‌سازی و ترانسپورت</th>
+<th data-i18n="tunnels_col_probe_latency" style="padding: 12px 14px; text-align:center;">تاخیر و پینگ (Latency)</th>
 <th data-i18n="tunnels_system_service_systemd" style="padding: 12px 14px;">سرویس سیستم (Systemd)</th>
 <th data-i18n="tunnels_commands_operations" style="padding: 12px 14px; text-align:left;">دستورات و عملیات</th>
 </tr>
@@ -555,6 +584,177 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- SUB-TAB 7: TUNNEL ENGINES & BINARIES MANAGER (20+ Tools) -->
+<!-- ========================================================================= -->
+<div class="tun-subpane" id="tun-pane-tools" style="display:none;">
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="wrench" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="tun_tools_title">
+                        مدیریت باینری‌ها و ابزارهای تانل (Tunnel Engines & Tools Manager)
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;" data-i18n="tun_tools_desc">
+                        مشاهده وضعیت نصب ۲۰+ هسته و ابزار ترانزیت، ضد فیلتر و پروکسی با امکان نصب و ارتقای یک‌کلیکه
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" onclick="installAllMissingTools()" style="padding: 8px 16px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); display: flex; align-items: center; gap: 6px;" type="button">
+                    <i data-lucide="download-cloud" style="width: 15px; height: 15px;"></i>
+                    <span data-i18n="tun_tools_install_all">⚡ نصب تمامی ابزارهای مفقود</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="loadTunnelToolsStatus(true)" style="padding: 8px 12px;" type="button" title="بروزرسانی">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tools Table -->
+        <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                <thead>
+                    <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
+                        <th style="padding: 12px 14px; width: 60px; text-align:center;">وضعیت</th>
+                        <th style="padding: 12px 14px;">نام و عنوان ابزار</th>
+                        <th style="padding: 12px 14px;">دسته‌بندی تخصصی</th>
+                        <th style="padding: 12px 14px;">نسخه و مسیر فایل باینری</th>
+                        <th style="padding: 12px 14px;">کاربرد و ویژگی‌های کلیدی</th>
+                        <th style="padding: 12px 14px; text-align:center; width: 130px;">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="tunnel-tools-table-body">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                            در حال بررسی وضعیت نصب باینری‌ها و ابزارهای تانل...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Full Mesh Tunnel Deployer -->
+<div class="modal" id="modal-deploy-mesh" style="display: none;">
+    <div class="modal-content" style="max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="network" style="color: #6366f1;"></i>
+                <span data-i18n="mesh_modal_title">استقرار مشبک خودکار تانل‌ها (1-Click Full Mesh Deployer)</span>
+            </h3>
+            <button type="button" class="btn-close" onclick="closeDeployMeshModal()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <form id="form-deploy-mesh" onsubmit="submitDeployMesh(event)" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="background: rgba(99, 102, 241, 0.05); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2); font-size: 12.5px; color: var(--text-main);">
+                با انتخاب سرور مقصد و ورود مشخصات SSH، سیستم به صورت خودکار تمام تانل‌های درخواستی را روی هر دو سرور با تخصیص ساب‌نت و کلیدهای امنیتی اختصاصی برقرار می‌کند.
+            </div>
+
+            <!-- Source Server -->
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 600;">سرور مبدا (Source Node):</label>
+                <input type="text" class="form-input" id="mesh-source-ip" value="سرور محلی (این سرور)" readonly style="background: rgba(255,255,255,0.03); color: var(--text-muted);">
+            </div>
+
+            <!-- Destination Server Selection -->
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 600;">انتخاب سریع از سرورهای ریموت ثبت‌شده یا ورود دستی:</label>
+                <select class="form-input" id="mesh-saved-servers-select" onchange="onMeshServerSelectChange()">
+                    <option value="">-- انتخاب از سرورهای ثبت‌شده (Servers Cluster) --</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">آدرس سرور مقصد (Destination IP)</label>
+                    <input type="text" class="form-input" id="mesh-dest-ip" placeholder="e.g. 180.149.44.168" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">پورت SSH مقصد</label>
+                    <input type="number" class="form-input" id="mesh-dest-port" value="22" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">نام کاربری SSH</label>
+                    <input type="text" class="form-input" id="mesh-dest-user" value="root" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">رمز عبور SSH مقصد (جهت استقرار خودکار طرف سرور مقابل)</label>
+                    <input type="password" class="form-input" id="mesh-dest-pass" placeholder="Password" required>
+                </div>
+            </div>
+
+            <!-- Protocols Checklist -->
+            <div class="form-group" style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label class="form-label" style="font-weight: 600;">پروتکل‌های مورد نظر جهت استقرار:</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="wireguard" checked> WireGuard Tunnel
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="openvpn" checked> OpenVPN P2P Secret
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gre" checked> GRE Tunnel (L3)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="ipip" checked> IPIP Tunnel (L3)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="eoip" checked> EoIP Bridge (L2)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="vxlan" checked> VXLAN Bridge (L2)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="geneve" checked> GENEVE Overlay
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="sit" checked> SIT Tunnel (6in4)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gost_wss" checked> GOST (WSS WebSocket)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gost_tls" checked> GOST (TLS Stealth)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="wstunnel" checked> WSTunnel Anti-DPI
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="rathole" checked> Rathole Rust Reverse
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="chisel" checked> Chisel HTTP/WS Tunnel
+                    </label>
+                </div>
+            </div>
+
+            <!-- Deploy Results Log Box -->
+            <div id="mesh-deploy-results-box" style="display: none; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; font-family:'JetBrains Mono'; font-size:11.5px;">
+                <!-- Injected after deploy -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" type="button" onclick="closeDeployMeshModal()" data-i18n="btn_cancel">بستن</button>
+                <button class="btn btn-primary" type="submit" id="btn-submit-mesh-deploy">
+                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="mesh_submit_deploy_btn">آغاز استقرار خودکار تمامی تانل‌ها</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

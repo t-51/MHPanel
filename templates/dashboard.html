@@ -6,7 +6,7 @@
     <script>
         (function() {
             var l = localStorage.getItem("panel_language") || "fa";
-            document.documentElement.dir = (l === "fa" ? "rtl" : "ltr");
+            document.documentElement.dir = (l === "fa" || l === "ar" ? "rtl" : "ltr");
             document.documentElement.lang = l;
             var t = localStorage.getItem("panel_theme") || "dark";
             document.documentElement.setAttribute("data-theme", t);
@@ -30,6 +30,7 @@
                     {% include 'partials/tab_overview.html' %}
                     {% include 'partials/tab_radar.html' %}
                     {% include 'partials/tab_protocols.html' %}
+                    {% include 'partials/tab_singbox.html' %}
                     {% include 'partials/tab_wireguard.html' %}
                     {% include 'partials/tab_amneziawg.html' %}
                     {% include 'partials/tab_openvpn.html' %}

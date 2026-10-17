@@ -322,6 +322,34 @@
             [/موتور مسیریابی:/g, "Маршрутизатор:"],
             [/رفع قطعی بسته‌ها \(/g, "Устранение потерь пакетов ("],
             [/مسدودسازی نشت DNS \(/g, "Блокировка утечек DNS ("]
+        ],
+        ar: [
+            [/آنلاین/g, "متصل"],
+            [/آفلاین/g, "غير متصل"],
+            [/فعال/g, "مفعّل"],
+            [/غیرفعال/g, "معطّل"],
+            [/متصل/g, "متصل"],
+            [/قطع/g, "منقطع"],
+            [/نامحدود/g, "غير محدود"],
+            [/در حال بررسی\.\.\./g, "جاري الفحص..."],
+            [/کاربر پیش‌فرض/g, "المستخدم الافتراضي"],
+            [/سقف حجم:/g, "حد الحجم:"],
+            [/سقف اتصالات:/g, "حد الاتصالات:"],
+            [/مصرف کل:/g, "إجمالي الاستهلاك:"],
+            [/مصرف:/g, "الاستهلاك:"],
+            [/انقضا:/g, "تاريخ الانتهاء:"],
+            [/دانلود:/g, "تنزيل:"],
+            [/آپلود:/g, "رفع:"],
+            [/روز باقی‌مانده/g, "أيام متبقية"],
+            [/کاربر/g, "مستخدم"],
+            [/گیگابایت/g, "جيجابايت"],
+            [/مگابایت/g, "ميجابايت"],
+            [/کیلوبایت/g, "كيلوبايت"],
+            [/ثانیه/g, "ثانية"],
+            [/دقیقه/g, "دقيقة"],
+            [/ساعت/g, "ساعة"],
+            [/پینگ:/g, "بينغ:"],
+            [/تاخیر:/g, "التأخير:"]
         ]
     };
 
@@ -452,7 +480,7 @@
         if (!I18N_TRANSLATIONS[lang]) lang = "fa";
         _isTranslating = true;
         try {
-            document.documentElement.dir = (lang === "fa" ? "rtl" : "ltr");
+            document.documentElement.dir = (lang === "fa" || lang === "ar" ? "rtl" : "ltr");
             document.documentElement.lang = lang;
 
             // Sync all language selectors
@@ -5455,6 +5483,8 @@
             if (!lastRadarData) {
                 runRadarScan('quick');
             }
+        } else if (tabId === "singbox") {
+            loadSingboxData();
         } else if (tabId === "tunnels") {
             fetchTunnels();
         } else if (tabId === "system") {
@@ -6859,7 +6889,9 @@
         });
     }
 
-    // --- Remote Servers Manager ---
+    // --- Remote Servers & Multi-Node Cluster Manager ---
+    window.loadServersList = fetchServers;
+
     async function fetchServers() {
         try {
             const res = await fetch("/api/servers");
@@ -6867,63 +6899,151 @@
             const tbody = document.getElementById("servers-table-body");
             if (!tbody) return;
             tbody.innerHTML = "";
-            if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted);">No servers added yet.</td></tr>`;
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 28px; color: var(--text-muted);" data-i18n="servers_no_records">هنوز هیچ سرور ریموتی ثبت نشده است.</td></tr>`;
                 return;
             }
             data.forEach((srv) => {
                 const tr = document.createElement("tr");
                 tr.style.borderBottom = "1px solid var(--border-color)";
+                const isNode = srv.is_node || false;
+                const nodeBadge = isNode
+                    ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px;">🟢 نود فعال کلاستر</span>`
+                    : `<span class="badge" style="background: rgba(100, 116, 139, 0.15); color: #64748b; font-size: 11px; padding: 3px 8px; border-radius: 6px;">⚪ سرور مستقل</span>`;
+
                 tr.innerHTML = `
-                    <td style="padding: 12px 16px;">${srv.ip}</td>
-                    <td style="padding: 12px 16px;">${srv.port}</td>
-                    <td style="padding: 12px 16px;">${srv.user}</td>
-                    <td style="padding: 12px 16px; text-align: right;">
-                        <button class="port-btn" style="padding: 4px 8px; font-size: 11px; margin-right: 5px; background: rgba(0, 200, 83, 0.1); border-color: rgba(0, 200, 83, 0.3); color: #00c853;" onclick="installOnServer('${srv.ip}')">Install Scripts</button>
-                        <button class="port-btn" style="padding: 4px 8px; font-size: 11px; background: rgba(255, 61, 113, 0.1); border-color: rgba(255, 61, 113, 0.3); color: #ff3d71;" onclick="deleteServer('${srv.ip}')">Delete</button>
+                    <td style="padding: 12px 16px;">
+                        <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">${escapeHtml(srv.name || srv.ip)}</div>
+                        <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono';">IP: ${escapeHtml(srv.ip)}</div>
+                    </td>
+                    <td style="padding: 12px 16px; font-family: 'JetBrains Mono';">
+                        <span>${escapeHtml(srv.ip)}:${srv.port || 22}</span>
+                    </td>
+                    <td style="padding: 12px 16px; font-family: 'JetBrains Mono'; color: #4f46e5; font-weight: 600;">
+                        ${escapeHtml(srv.user || "root")}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                        <span id="server-ping-badge-${srv.ip.replace(/[^a-zA-Z0-9]/g, '_')}" style="font-family:'JetBrains Mono'; font-size:11px; padding: 3px 7px; border-radius: 5px; background: rgba(0,0,0,0.06); color: var(--text-muted);">
+                            -- ms
+                        </span>
+                    </td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                        ${nodeBadge}
+                    </td>
+                    <td style="padding: 12px 16px; text-align: center;">
+                        <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="testServerSsh('${srv.ip}', ${srv.port || 22}, '${srv.user || 'root'}', '${srv.pass || ''}')" style="padding: 5px 9px;" title="تست اتصال SSH">
+                                <i data-lucide="zap" style="width: 13px; height: 13px; color: #10b981;"></i>
+                                <span style="font-size: 11px;">تست SSH</span>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openServerProvisionModal('${srv.ip}', ${srv.port || 22}, '${srv.user || 'root'}', '${srv.pass || ''}', '${escapeHtml(srv.name || srv.ip)}')" style="padding: 5px 9px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);" title="نصب و استقرار خودکار پنل روی نود">
+                                <i data-lucide="rocket" style="width: 13px; height: 13px;"></i>
+                                <span style="font-size: 11px;">استقرار نود</span>
+                            </button>
+                            ${isNode ? `
+                            <a href="http://${srv.ip}:${srv.panel_port || 9090}" target="_blank" class="btn btn-secondary btn-sm" style="padding: 5px 9px; color: #0284c7;" title="ورود مستقیم به پنل نود">
+                                <i data-lucide="external-link" style="width: 13px; height: 13px;"></i>
+                                <span style="font-size: 11px;">پنل نود</span>
+                            </a>` : ''}
+                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteServer('${srv.ip}')" style="padding: 5px 9px;" title="حذف سرور">
+                                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 tbody.appendChild(tr);
+
+                // Auto probe server status quietly
+                queryServerNodeStatus(srv.ip);
             });
+            if (window.lucide) lucide.createIcons();
         } catch (e) {
-            console.error(e);
+            console.error("fetchServers error:", e);
         }
     }
 
-    async function addServer() {
-        const ip = document.getElementById("server-ip").value.trim();
-        const port = document.getElementById("server-port").value;
-        const user = document.getElementById("server-user").value.trim();
-        const pass = document.getElementById("server-pass").value;
-        if (!ip || !user || !pass) {
-            showToast("Please fill all fields", "error");
-            return;
-        }
-        toggleLoading(true, "Adding server...");
+    async function queryServerNodeStatus(ip) {
         try {
-            const res = await fetch("/api/servers/add", {
+            const res = await fetch(`/api/servers/${ip}/status`);
+            const data = await res.json();
+            const badgeId = `server-ping-badge-${ip.replace(/[^a-zA-Z0-9]/g, '_')}`;
+            const badge = document.getElementById(badgeId);
+            if (badge && data.success) {
+                if (data.is_alive) {
+                    badge.style.background = "rgba(16, 185, 129, 0.15)";
+                    badge.style.color = "#059669";
+                    badge.textContent = `🟢 ${data.latency_ms}ms`;
+                } else {
+                    badge.style.background = "rgba(239, 68, 68, 0.15)";
+                    badge.style.color = "#dc2626";
+                    badge.textContent = "🔴 آفلاین";
+                }
+            }
+        } catch (e) {}
+    }
+
+    async function testServerSsh(ip, port, user, pass) {
+        showToast(`در حال برقراری تست اتصال SSH با ${ip}:${port}...`, "info");
+        try {
+            const res = await fetch("/api/servers/test-ssh", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ ip, port, user, pass })
             });
             const data = await res.json();
-            if (data.success) {
-                showToast("Server added successfully", "success");
-                document.getElementById("server-ip").value = "";
-                document.getElementById("server-pass").value = "";
-                fetchServers();
+            if (res.ok && data.success) {
+                showToast(`✅ اتصال موفقیت‌آمیز بود! تاخیر: ${data.latency_ms}ms | ${data.system_info}`, "success");
             } else {
-                showToast("Error adding server: " + data.error, "error");
+                showToast(`❌ خطا در اتصال SSH: ${data.error}`, "error");
             }
         } catch (e) {
-            showToast("Connection error", "error");
+            showToast("خطای شبکه در بررسی SSH", "error");
         }
-        toggleLoading(false);
+    }
+
+    async function addServer() {
+        const name = document.getElementById("server-name") ? document.getElementById("server-name").value.trim() : "";
+        const ip = document.getElementById("server-ip").value.trim();
+        const port = document.getElementById("server-port").value;
+        const user = document.getElementById("server-user").value.trim();
+        const pass = document.getElementById("server-pass").value;
+        const autoProvision = document.getElementById("server-auto-provision") ? document.getElementById("server-auto-provision").checked : true;
+
+        if (!ip || !user || !pass) {
+            showToast("لطفاً فیلدهای الزامی (آدرس، نام کاربری و رمز عبور) را وارد نمایید.", "error");
+            return;
+        }
+        toggleLoading(true, "در حال ثبت اطلاعات سرور...");
+        try {
+            const res = await fetch("/api/servers/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ip, port, user, pass, name })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("سرور با موفقیت ثبت گردید.", "success");
+                document.getElementById("server-ip").value = "";
+                document.getElementById("server-pass").value = "";
+                if (document.getElementById("server-name")) document.getElementById("server-name").value = "";
+                fetchServers();
+
+                if (autoProvision) {
+                    openServerProvisionModal(ip, port, user, pass, name);
+                }
+            } else {
+                showToast("خطا در افزودن سرور: " + data.error, "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
     }
 
     async function deleteServer(ip) {
-        if (!confirm("Are you sure you want to delete this server?")) return;
-        toggleLoading(true, "Deleting server...");
+        if (!confirm(`آیا از حذف سرور ${ip} اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال حذف سرور...");
         try {
             const res = await fetch("/api/servers/delete", {
                 method: "POST",
@@ -6931,37 +7051,60 @@
                 body: JSON.stringify({ ip })
             });
             const data = await res.json();
+            toggleLoading(false);
             if (data.success) {
-                showToast("Server deleted", "success");
+                showToast("سرور با موفقیت حذف شد.", "success");
                 fetchServers();
             } else {
-                showToast("Error: " + data.error, "error");
+                showToast("خطا: " + data.error, "error");
             }
         } catch (e) {
-            showToast("Connection error", "error");
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
         }
-        toggleLoading(false);
     }
 
-    async function installOnServer(ip) {
-        if (!confirm(`Are you ready to install VPN scripts on ${ip}?\n\nPlease let the developer know what scripts should be installable first!`)) return;
-        toggleLoading(true, "Preparing installation...");
-        try {
-            const res = await fetch("/api/servers/install", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ip })
-            });
-            const data = await res.json();
+    function openServerProvisionModal(ip, port, user, pass, name) {
+        const modal = document.getElementById("modal-server-provision");
+        if (!modal) return;
+        document.getElementById("provision-modal-title").textContent = `استقرار و راه‌اندازی پنل روی نود ${name || ip}`;
+        document.getElementById("provision-status-badge").textContent = "در حال اتصال به سرور و آغاز استقرار...";
+        document.getElementById("provision-status-badge").style.color = "#4f46e5";
+        const logBox = document.getElementById("provision-log-box");
+        logBox.innerHTML = `[1/4] اتصال SSH به ${ip}:${port} با کاربر ${user}...\n[2/4] نصب وابستگی‌ها، کلون مخزن و استقرار هسته...\n`;
+        document.getElementById("btn-open-node-panel").style.display = "none";
+        modal.style.display = "flex";
+
+        // Call provision endpoint
+        fetch("/api/servers/provision", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ip, port, user, pass, name })
+        }).then(r => r.json()).then(data => {
             if (data.success) {
-                showToast(data.message, "success");
+                document.getElementById("provision-status-badge").textContent = "✅ استقرار با موفقیت کامل انجام شد!";
+                document.getElementById("provision-status-badge").style.color = "#059669";
+                logBox.innerHTML += `\n[3/4] سرویس mhpanel.service فعال شد.\n[4/4] ثبت نود در کلاستر مستر سرور تکمیل گردید.\n\nپنل روی پورت 9090 آماده سرویس‌دهی است: ${data.panel_url}`;
+                const btnOpen = document.getElementById("btn-open-node-panel");
+                btnOpen.href = data.panel_url;
+                btnOpen.style.display = "inline-flex";
+                fetchServers();
             } else {
-                showToast("Error: " + data.error, "error");
+                document.getElementById("provision-status-badge").textContent = "❌ خطا در فرآیند استقرار نود";
+                document.getElementById("provision-status-badge").style.color = "#dc2626";
+                logBox.innerHTML += `\n[خطا]: ${data.error || "عملیات ناموفق بود."}`;
             }
-        } catch (e) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
+        }).catch(err => {
+            document.getElementById("provision-status-badge").textContent = "❌ خطای شبکه";
+            document.getElementById("provision-status-badge").style.color = "#dc2626";
+            logBox.innerHTML += `\n[خطای استثنا]: ${err.message}`;
+        });
+    }
+
+    function closeServerProvisionModal() {
+        const modal = document.getElementById("modal-server-provision");
+        if (modal) modal.style.display = "none";
+        fetchServers();
     }
 
     // Initialize Panel
@@ -11849,6 +11992,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             fetchTunnelAlerts();
         } else if (subTabId === "tester") {
             populateTunnelTesterServers();
+        } else if (subTabId === "tools") {
+            loadTunnelToolsStatus();
         }
 
         if (window.lucide) lucide.createIcons();
@@ -12172,6 +12317,16 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     <div style="display:flex; flex-direction:column; gap:2px;">
                         <span style="font-size:11px; color:#475569; font-weight:700;">${(adv.transport || "TCP").toUpperCase()}</span>
                         ${adv.sni ? `<span style="font-size:10.5px; color:#64748b; font-family:'JetBrains Mono';">SNI: ${escapeHtml(adv.sni)}</span>` : ''}
+                    </div>
+                </td>
+                <td style="padding: 12px 14px; text-align:center;">
+                    <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <span class="badge" id="adv-probe-badge-${adv.id}" style="font-family:'JetBrains Mono'; font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.06); color:#475569;">
+                            -- ms
+                        </span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="probeAdvTunnel('${adv.id}')" style="padding:4px 7px;" title="تست پینگ و تاخیر">
+                            <i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i>
+                        </button>
                     </div>
                 </td>
                 <td style="padding: 12px 14px;">
@@ -13777,8 +13932,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const res = await fetch("/api/system/check_update");
             const data = await res.json();
             if (res.ok && data.success) {
-                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.4.0");
-                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.4.0");
+                if (curVerEl) curVerEl.innerText = "v" + (data.current_version || "1.5.0");
+                if (latVerEl) latVerEl.innerText = "v" + (data.latest_version || "1.5.0");
 
                 if (data.has_update) {
                     if (badge) badge.style.display = "inline-flex";
@@ -13812,7 +13967,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         statusEl.innerHTML = `
                             <div style="color:var(--text-main); font-weight:600; display:flex; align-items:center; gap:6px;">
                                 <i data-lucide="check-circle" style="width:16px; height:16px; color:#10b981;"></i>
-                                <span>شما در حال حاضر از جدیدترین نسخه پایدار MH Panel (نسخه ${data.current_version || '1.4.0'}) استفاده می‌فرمایید.</span>
+                                <span>شما در حال حاضر از جدیدترین نسخه پایدار MH Panel (نسخه ${data.current_version || '1.5.0'}) استفاده می‌فرمایید.</span>
                             </div>
                             ${data.release_name ? `<div style="font-size:12px; color:#6366f1; margin-top:8px; font-weight:700;">آخرین ریلیز گیت‌هاب: ${data.release_name}</div>` : ''}
                             ${data.commit_message ? `<div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">آخرین کامیت: <code>${data.commit_message}</code></div>` : ''}
@@ -13821,7 +13976,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                                     <i data-lucide="external-link" style="width:13px; height:13px;"></i> <span>مشاهده صفحه Release در گیت‌هاب</span>
                                 </a>
                                 <a href="${data.zipball_url || '#'}" target="_blank" class="btn btn-secondary btn-sm" style="font-size:11.5px; padding:5px 12px; display:inline-flex; align-items:center; gap:5px;">
-                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود مستقیم پکیج v${data.current_version || '1.4.0'}</span>
+                                    <i data-lucide="download" style="width:13px; height:13px;"></i> <span>دانلود مستقیم پکیج v${data.current_version || '1.5.0'}</span>
                                 </a>
                             </div>
                         `;
@@ -15607,4 +15762,827 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             setInterval(fetchTunnelAlerts, 60000);
         }
     }, 4000);
+
+    // =========================================================================
+    // MHPanel v1.5.0 Frontend Suites
+    // 1. Anti-DPI Tunnels Health & Latency Probe
+    // 2. Tunnel Engines & Binaries Manager (20+ tools)
+    // 3. 1-Click Full Mesh Tunnel Deployer
+    // 4. Sing-box Universal Suite Controls & Graphical Builder
+    // =========================================================================
+
+    // --- 1. Anti-DPI Tunnels Health & Latency Probe ---
+    async function probeAdvTunnel(advId) {
+        const badge = document.getElementById(`adv-probe-badge-${advId}`);
+        if (badge) {
+            badge.style.background = "rgba(245, 158, 11, 0.15)";
+            badge.style.color = "#d97706";
+            badge.textContent = "⏳ پینگ...";
+        }
+        try {
+            const res = await fetch(`/api/tunnels/adv/${advId}/probe`);
+            const data = await res.json();
+            if (badge && data.success && data.probe) {
+                const p = data.probe;
+                if (p.alive) {
+                    badge.style.background = "rgba(16, 185, 129, 0.15)";
+                    badge.style.color = "#059669";
+                    badge.textContent = `🟢 ${p.latency_ms}ms`;
+                    showToast(`✅ ${p.name}: ${p.details}`, "success");
+                } else {
+                    badge.style.background = "rgba(239, 68, 68, 0.15)";
+                    badge.style.color = "#dc2626";
+                    badge.textContent = "🔴 آفلاین";
+                    showToast(`⚠️ ${p.name}: ${p.details}`, "error");
+                }
+            }
+        } catch (e) {
+            if (badge) {
+                badge.style.background = "rgba(239, 68, 68, 0.15)";
+                badge.style.color = "#dc2626";
+                badge.textContent = "خطا";
+            }
+            showToast("خطای شبکه در تست پینگ", "error");
+        }
+    }
+
+    async function probeAllAdvTunnels() {
+        showToast("در حال پایش و ارزیابی تاخیر تمام تانل‌های Anti-DPI...", "info");
+        try {
+            const res = await fetch("/api/tunnels/adv/probe-all");
+            const data = await res.json();
+            if (data.success && data.probes) {
+                let onlineCount = 0;
+                data.probes.forEach(p => {
+                    const badge = document.getElementById(`adv-probe-badge-${p.tunnel_id}`);
+                    if (badge) {
+                        if (p.alive) {
+                            onlineCount++;
+                            badge.style.background = "rgba(16, 185, 129, 0.15)";
+                            badge.style.color = "#059669";
+                            badge.textContent = `🟢 ${p.latency_ms}ms`;
+                        } else {
+                            badge.style.background = "rgba(239, 68, 68, 0.15)";
+                            badge.style.color = "#dc2626";
+                            badge.textContent = "🔴 آفلاین";
+                        }
+                    }
+                });
+                showToast(`ارزیابی تکمیل شد: ${onlineCount} از ${data.probes.length} تانل فعال و متصل هستند.`, onlineCount > 0 ? "success" : "warning");
+            }
+        } catch (e) {
+            showToast("خطا در پایش تانل‌های ضد فیلتر", "error");
+        }
+    }
+
+    // --- 2. Tunnel Engines & Binaries Manager ---
+    async function loadTunnelToolsStatus(showToastMsg = false) {
+        const tbody = document.getElementById("tunnel-tools-table-body");
+        if (!tbody) return;
+        try {
+            const res = await fetch("/api/tunnels/tools/status");
+            const data = await res.json();
+            if (data.success && data.tools) {
+                const pill = document.getElementById("pill-tools-installed-count");
+                if (pill) {
+                    pill.textContent = `${data.installed_count} / ${data.total} نصب شده`;
+                    pill.style.background = (data.installed_count === data.total) ? "rgba(16,185,129,0.15)" : "rgba(99,102,241,0.15)";
+                    pill.style.color = (data.installed_count === data.total) ? "#059669" : "#4f46e5";
+                }
+
+                tbody.innerHTML = "";
+                data.tools.forEach(tool => {
+                    const tr = document.createElement("tr");
+                    tr.style.borderBottom = "1px solid var(--border-color)";
+                    const isInst = tool.installed;
+                    const statusBadge = isInst
+                        ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px;">🟢 نصب شده</span>`
+                        : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #dc2626; font-weight: 700; font-size: 11px; padding: 3px 8px; border-radius: 6px;">🔴 نیاز به نصب</span>`;
+
+                    tr.innerHTML = `
+                        <td style="padding: 12px 14px; text-align: center;">${statusBadge}</td>
+                        <td style="padding: 12px 14px;">
+                            <div style="font-weight: 700; color: var(--text-main); font-size: 13.5px;">${escapeHtml(tool.name)}</div>
+                            <code style="font-size: 11px; color: #4f46e5; font-family: 'JetBrains Mono';">${escapeHtml(tool.bin)}</code>
+                        </td>
+                        <td style="padding: 12px 14px;">
+                            <span style="font-size: 11px; background: rgba(99, 102, 241, 0.1); color: #4f46e5; padding: 2px 7px; border-radius: 5px; font-weight: 600;">${escapeHtml(tool.category)}</span>
+                        </td>
+                        <td style="padding: 12px 14px;">
+                            <div style="font-family: 'JetBrains Mono'; font-size: 11.5px; color: var(--text-main);">${escapeHtml(tool.version || "-")}</div>
+                            <div style="font-family: 'JetBrains Mono'; font-size: 10.5px; color: var(--text-muted);">${escapeHtml(tool.path || "یافت نشد")}</div>
+                        </td>
+                        <td style="padding: 12px 14px; font-size: 12px; color: var(--text-muted); max-width: 280px; line-height: 1.5;">
+                            ${escapeHtml(tool.desc)}
+                        </td>
+                        <td style="padding: 12px 14px; text-align: center;">
+                            <button type="button" class="btn ${isInst ? 'btn-secondary' : 'btn-primary'} btn-sm" onclick="installTunnelTool('${tool.key}')" style="padding: 5px 12px; font-size: 11.5px; display: inline-flex; align-items: center; gap: 4px;">
+                                <i data-lucide="${isInst ? 'refresh-cw' : 'download'}" style="width: 13px; height: 13px;"></i>
+                                <span>${isInst ? 'بروزرسانی' : 'نصب ابزار'}</span>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+                if (window.lucide) lucide.createIcons();
+                if (showToastMsg) showToast("وضعیت باینری‌ها و موتورهای تانل بروزرسانی شد.", "success");
+            }
+        } catch (e) {
+            console.error("loadTunnelToolsStatus error:", e);
+        }
+    }
+
+    async function installTunnelTool(key) {
+        showToast(`در حال نصب و پیکربندی ابزار ${key}...`, "info");
+        try {
+            const res = await fetch("/api/tunnels/tools/install", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                loadTunnelToolsStatus(false);
+            } else {
+                showToast(`خطا در نصب: ${data.error}`, "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط در نصب ابزار", "error");
+        }
+    }
+
+    async function installAllMissingTools() {
+        if (!confirm("آیا مایل به بررسی و نصب تمامی ابزارها و باینری‌های مفقود تانل هستید؟")) return;
+        toggleLoading(true, "در حال دانلود و نصب تمامی ابزارهای تانل...");
+        try {
+            const res = await fetch("/api/tunnels/tools/install", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: "all_missing" })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(data.message, "success");
+                loadTunnelToolsStatus(false);
+            } else {
+                showToast(`خطا: ${data.error}`, "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- 3. 1-Click Full Mesh Deployer ---
+    let savedServersCache = [];
+
+    async function openDeployMeshModal() {
+        const modal = document.getElementById("modal-deploy-mesh");
+        if (!modal) return;
+        modal.style.display = "flex";
+        document.getElementById("mesh-deploy-results-box").style.display = "none";
+        document.getElementById("btn-submit-mesh-deploy").disabled = false;
+
+        try {
+            const res = await fetch("/api/servers");
+            savedServersCache = await res.json();
+            const sel = document.getElementById("mesh-saved-servers-select");
+            sel.innerHTML = `<option value="">-- انتخاب از سرورهای ثبت‌شده (Servers Cluster) --</option>`;
+            savedServersCache.forEach((s, idx) => {
+                sel.innerHTML += `<option value="${idx}">${escapeHtml(s.name || s.ip)} (${s.ip})</option>`;
+            });
+        } catch (e) {}
+    }
+
+    function closeDeployMeshModal() {
+        const modal = document.getElementById("modal-deploy-mesh");
+        if (modal) modal.style.display = "none";
+    }
+
+    function onMeshServerSelectChange() {
+        const sel = document.getElementById("mesh-saved-servers-select");
+        const idx = sel.value;
+        if (idx !== "" && savedServersCache[idx]) {
+            const s = savedServersCache[idx];
+            document.getElementById("mesh-dest-ip").value = s.ip || "";
+            document.getElementById("mesh-dest-port").value = s.port || 22;
+            document.getElementById("mesh-dest-user").value = s.user || "root";
+            document.getElementById("mesh-dest-pass").value = s.pass || "";
+        }
+    }
+
+    async function submitDeployMesh(e) {
+        e.preventDefault();
+        const destIp = document.getElementById("mesh-dest-ip").value.trim();
+        const destPort = document.getElementById("mesh-dest-port").value;
+        const destUser = document.getElementById("mesh-dest-user").value.trim();
+        const destPass = document.getElementById("mesh-dest-pass").value;
+
+        const checkedBoxes = document.querySelectorAll("input[name='mesh_proto']:checked");
+        const tunnelTypes = Array.from(checkedBoxes).map(cb => cb.value);
+
+        if (!destIp) {
+            showToast("آدرس آی‌پی سرور مقصد الزامی است.", "error");
+            return;
+        }
+        if (tunnelTypes.length === 0) {
+            showToast("حداقل یک پروتکل برای استقرار انتخاب نمایید.", "error");
+            return;
+        }
+
+        const btn = document.getElementById("btn-submit-mesh-deploy");
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="spin" style="width:16px; height:16px;"></i> در حال استقرار همزمان تانل‌ها...`;
+        if (window.lucide) lucide.createIcons();
+
+        const resBox = document.getElementById("mesh-deploy-results-box");
+        resBox.style.display = "block";
+        resBox.innerHTML = `[+] آغاز فرآیند استقرار مشبک ${tunnelTypes.length} تانل بین این سرور و ${destIp}...
+[+] تولید کلیدهای رمزنگاری و تخصیص ساب‌نت‌ها...
+`;
+
+        try {
+            const res = await fetch("/api/tunnels/deploy-mesh", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    dest_ip: destIp,
+                    dest_port: destPort,
+                    dest_user: destUser,
+                    dest_pass: destPass,
+                    tunnel_types: tunnelTypes
+                })
+            });
+            const data = await res.json();
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="zap" style="width:16px; height:16px;"></i> استقرار مجدد`;
+            if (window.lucide) lucide.createIcons();
+
+            if (res.ok && data.success) {
+                showToast(`✅ استقرار موفقیت‌آمیز! ${data.count} تانل ایجاد شد.`, "success");
+                resBox.innerHTML += `
+[✅ وضعیت استقرار محلی]: ${data.count} تانل با موفقیت اعمال گردید.
+`;
+                if (data.remote_deployed) {
+                    resBox.innerHTML += `[✅ وضعیت استقرار ریموت SSH]: کانفیگ طرف سرور مقابل اعمال گردید.
+`;
+                } else if (data.remote_log) {
+                    resBox.innerHTML += `[⚠️ وضعیت ریموت SSH]: ${data.remote_log}
+`;
+                }
+                resBox.innerHTML += `
+--- لیست تانل‌های برقرار شده ---
+`;
+                data.results.forEach((t, i) => {
+                    resBox.innerHTML += `${i+1}. [${t.protocol}] ${t.name} | محلی: ${t.local_endpoint} <-> مقصد: ${t.remote_endpoint} | IP: ${t.virtual_ip} [${t.status.toUpperCase()}]
+`;
+                });
+                fetchTunnels(false);
+            } else {
+                showToast(`خطا در استقرار: ${data.error}`, "error");
+                resBox.innerHTML += `
+[❌ خطا]: ${data.error}
+`;
+            }
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="zap" style="width:16px; height:16px;"></i> استقرار مجدد`;
+            resBox.innerHTML += `
+[❌ خطای استثنا]: ${err.message}
+`;
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
+
+    // --- 4. Sing-box Universal Suite Frontend Engine ---
+    let activeSingboxInbounds = [];
+
+    async function loadSingboxData() {
+        try {
+            const res = await fetch("/api/singbox/status");
+            const data = await res.json();
+            if (data.success) {
+                activeSingboxInbounds = data.inbounds || [];
+
+                const inboundsCountEl = document.getElementById("singbox-stat-inbounds-count");
+                if (inboundsCountEl) inboundsCountEl.textContent = data.inbounds_count || 0;
+
+                const svcTextEl = document.getElementById("singbox-stat-service-text");
+                if (svcTextEl) {
+                    svcTextEl.textContent = data.is_active ? "فعال و در حال اجرا" : "متوقف شده";
+                    svcTextEl.style.color = data.is_active ? "#059669" : "#dc2626";
+                }
+
+                const verTextEl = document.getElementById("singbox-stat-version-text");
+                if (verTextEl) verTextEl.textContent = data.version || "sing-box 1.9.3";
+
+                const verPill = document.getElementById("singbox-version-pill");
+                if (verPill) verPill.textContent = (data.version || "1.9.3").split(" ")[1] || "1.9.3";
+
+                const statusPill = document.getElementById("singbox-live-status-pill");
+                if (statusPill) {
+                    statusPill.textContent = data.is_active ? "Running" : "Stopped";
+                    statusPill.className = data.is_active ? "sidebar-badge sidebar-badge-green" : "sidebar-badge sidebar-badge-red";
+                }
+
+                renderSingboxInboundsTable(activeSingboxInbounds);
+            }
+        } catch (e) {
+            console.error("loadSingboxData error:", e);
+        }
+    }
+
+    function renderSingboxInboundsTable(inbounds) {
+        const tbody = document.getElementById("singbox-inbounds-table-body");
+        if (!tbody) return;
+
+        if (!inbounds || inbounds.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                            <i data-lucide="box" style="width:36px; height:36px; color:#6366f1;"></i>
+                            <span style="font-size:14px; font-weight:600; color:var(--text-main);">هنوز هیچ اینباندی در هسته Sing-box تعریف نشده است.</span>
+                            <span style="font-size:12px;">روی دکمه «افزودن اینباند پروتکل جدید» بزنید تا پروتکل دلخواه (VLESS Reality, Hysteria 2, TUIC, Shadowsocks و...) را راه‌اندازی کنید.</span>
+                        </div>
+                    </td>
+                </tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        const protoBadges = {
+            vless: { bg: "#ecfdf5", text: "#065f46", label: "VLESS Reality" },
+            hysteria2: { bg: "#fef3c7", text: "#b45309", label: "Hysteria 2" },
+            tuic: { bg: "#e0f2fe", text: "#0284c7", label: "TUIC v5" },
+            trojan: { bg: "#f3e8ff", text: "#7e22ce", label: "Trojan TLS" },
+            vmess: { bg: "#eff6ff", text: "#1d4ed8", label: "VMess" },
+            shadowsocks: { bg: "#f1f5f9", text: "#334155", label: "Shadowsocks 2022" },
+            shadowtls: { bg: "#ffe4e6", text: "#e11d48", label: "ShadowTLS v3" },
+            mixed: { bg: "#dcfce7", text: "#059669", label: "Mixed SOCKS/HTTP" },
+            direct: { bg: "#f1f5f9", text: "#475569", label: "Direct Route" },
+            tun: { bg: "#ede9fe", text: "#6d28d9", label: "Tun Adapter" }
+        };
+
+        let html = "";
+        inbounds.forEach(ib => {
+            const pb = protoBadges[ib.type] || { bg: "#f1f5f9", text: "#475569", label: (ib.type || "UNKNOWN").toUpperCase() };
+            const tls = ib.tls || {};
+            let secLabel = "بدون رمزنگاری (Plain)";
+            let secBg = "#f1f5f9";
+            let secColor = "#64748b";
+
+            if (tls.enabled) {
+                if (tls.reality && tls.reality.enabled) {
+                    secLabel = `REALITY (${tls.reality.handshake ? tls.reality.handshake.server : 'Google'})`;
+                    secBg = "#ecfdf5";
+                    secColor = "#059669";
+                } else {
+                    secLabel = `TLS (${tls.server_name || 'Standard'})`;
+                    secBg = "#eff6ff";
+                    secColor = "#1d4ed8";
+                }
+            } else if (ib.obfs) {
+                secLabel = `Obfs (${ib.obfs.type})`;
+                secBg = "#fef3c7";
+                secColor = "#b45309";
+            }
+
+            const trType = (ib.transport ? ib.transport.type : "tcp").toUpperCase();
+
+            html += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 16px;">
+                    <strong style="color:var(--text-main); font-family:'JetBrains Mono'; font-size:13px;">${escapeHtml(ib.tag)}</strong>
+                </td>
+                <td style="padding: 12px 16px;">
+                    <span style="font-size:11px; background:${pb.bg}; color:${pb.text}; padding:3px 8px; border-radius:6px; font-weight:700;">${pb.label}</span>
+                </td>
+                <td style="padding: 12px 16px; font-family:'JetBrains Mono'; font-weight:700; color:#4f46e5;">
+                    Port ${ib.listen_port}
+                </td>
+                <td style="padding: 12px 16px;">
+                    <span style="font-size:11px; background:${secBg}; color:${secColor}; padding:3px 8px; border-radius:6px; font-weight:600;">${secLabel}</span>
+                </td>
+                <td style="padding: 12px 16px;">
+                    <span style="font-size:11.5px; font-family:'JetBrains Mono'; font-weight:700; color:var(--text-main);">${trType}</span>
+                </td>
+                <td style="padding: 12px 16px; font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono';">
+                    ${ib.users && ib.users[0] ? `User: ${escapeHtml(ib.users[0].name || '')}` : `Listen: ${ib.listen || '::'}`}
+                </td>
+                <td style="padding: 12px 16px; text-align: center;">
+                    <div style="display:flex; gap:6px; justify-content:center;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxShareModal('${ib.tag}')" style="padding:4px 8px; background:linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);" title="دریافت کانفیگ و QR">
+                            <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                            <span style="font-size:11px;">لینک و QR</span>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxInbound('${ib.tag}')" style="padding:4px 8px;" title="حذف اینباند">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openSingboxAddInboundModal() {
+        const modal = document.getElementById("modal-singbox-add-inbound");
+        if (!modal) return;
+        modal.style.display = "flex";
+        onSingboxProtocolChange();
+    }
+
+    function closeSingboxAddModal() {
+        const modal = document.getElementById("modal-singbox-add-inbound");
+        if (modal) modal.style.display = "none";
+    }
+
+    function onSingboxProtocolChange() {
+        const p = document.getElementById("sb-inbound-type").value;
+        const tagInput = document.getElementById("sb-inbound-tag");
+        const portInput = document.getElementById("sb-inbound-port");
+        const dynContainer = document.getElementById("sb-dynamic-protocol-fields");
+        const tlsModeSelect = document.getElementById("sb-tls-mode");
+
+        if (tagInput && !tagInput.value.includes("_custom")) {
+            tagInput.value = `${p}_${Math.floor(1000 + Math.random() * 9000)}`;
+        }
+
+        const portMap = {
+            vless: 20443, hysteria2: 20446, tuic: 20447, trojan: 20445,
+            vmess: 20444, shadowsocks: 20448, shadowtls: 20449, mixed: 20450, direct: 20451, tun: 0
+        };
+        if (portInput && portMap[p] !== undefined) portInput.value = portMap[p];
+
+        if (p === "vless") {
+            tlsModeSelect.value = "reality";
+        } else if (p === "trojan" || p === "hysteria2" || p === "tuic") {
+            tlsModeSelect.value = "tls";
+        } else {
+            tlsModeSelect.value = "none";
+        }
+        onSingboxTlsModeChange();
+
+        let html = "";
+        if (p === "vless" || p === "vmess") {
+            html = `
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">شناسه کاربری (UUID)</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" class="form-input" id="sb-user-uuid" value="${crypto.randomUUID ? crypto.randomUUID() : '08205c7a-fb03-4206-9855-7d0fc8cb24ee'}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-user-uuid').value = crypto.randomUUID()" title="UUID تصادفی">⚡</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">الگوریتم Flow</label>
+                        <select class="form-input" id="sb-user-flow">
+                            <option value="xtls-rprx-vision">xtls-rprx-vision (ضد فیلتر)</option>
+                            <option value="">None (عادی)</option>
+                        </select>
+                    </div>
+                </div>`;
+        } else if (p === "hysteria2") {
+            html = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال کلاینت</label>
+                        <input type="text" class="form-input" id="sb-hy2-pass" value="Hy2_${Math.random().toString(36).substring(2, 10)}">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">رمز مبهم‌سازی Salamander (اختیاری)</label>
+                        <input type="text" class="form-input" id="sb-hy2-obfs" placeholder="Salamander Password">
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">سقف سرعت آپلود (Mbps)</label>
+                        <input type="number" class="form-input" id="sb-hy2-up" value="100">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">سقف سرعت دانلود (Mbps)</label>
+                        <input type="number" class="form-input" id="sb-hy2-down" value="100">
+                    </div>
+                </div>`;
+        } else if (p === "tuic") {
+            html = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">شناسه کاربری (UUID)</label>
+                        <input type="text" class="form-input" id="sb-tuic-uuid" value="${crypto.randomUUID ? crypto.randomUUID() : '08205c7a-fb03-4206-9855-7d0fc8cb24ee'}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال</label>
+                        <input type="text" class="form-input" id="sb-tuic-pass" value="Tuic_${Math.random().toString(36).substring(2, 10)}">
+                    </div>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size:11.5px;">الگوریتم کنترل ازدحام (Congestion Control)</label>
+                    <select class="form-input" id="sb-tuic-cc">
+                        <option value="bbr">BBR (حداکثر بازدهی شبکه فیلترشده)</option>
+                        <option value="cubic">CUBIC</option>
+                        <option value="new_reno">New Reno</option>
+                    </select>
+                </div>`;
+        } else if (p === "trojan") {
+            html = `
+                <div>
+                    <label class="form-label" style="font-size:11.5px;">رمز عبور Trojan (Password)</label>
+                    <input type="text" class="form-input" id="sb-trojan-pass" value="Trojan_${Math.random().toString(36).substring(2, 12)}">
+                </div>`;
+        } else if (p === "shadowsocks") {
+            html = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">الگوریتم رمزنگاری Method</label>
+                        <select class="form-input" id="sb-ss-method">
+                            <option value="2022-blake3-aes-128-gcm">2022-blake3-aes-128-gcm (16-byte key)</option>
+                            <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm (32-byte key)</option>
+                            <option value="aes-128-gcm">aes-128-gcm</option>
+                            <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px;">رمز عبور (Password)</label>
+                        <input type="text" class="form-input" id="sb-ss-pass" value="MHPanelSSKey16B!">
+                    </div>
+                </div>`;
+        }
+        dynContainer.innerHTML = html;
+    }
+
+    function onSingboxTlsModeChange() {
+        const mode = document.getElementById("sb-tls-mode").value;
+        const realityBox = document.getElementById("sb-reality-fields");
+        const tlsBox = document.getElementById("sb-tls-fields");
+
+        if (mode === "reality") {
+            realityBox.style.display = "flex";
+            tlsBox.style.display = "none";
+            if (!document.getElementById("sb-reality-privkey").value) {
+                generateSingboxRealityKeys();
+            }
+        } else if (mode === "tls") {
+            realityBox.style.display = "none";
+            tlsBox.style.display = "flex";
+        } else {
+            realityBox.style.display = "none";
+            tlsBox.style.display = "none";
+        }
+    }
+
+    function onSingboxTransportChange() {
+        const tr = document.getElementById("sb-transport-type").value;
+        const wsBox = document.getElementById("sb-ws-fields");
+        if (wsBox) wsBox.style.display = (tr === "ws" || tr === "httpupgrade") ? "grid" : "none";
+    }
+
+    async function generateSingboxRealityKeys() {
+        try {
+            const res = await fetch("/api/singbox/generate-keys");
+            const data = await res.json();
+            if (data.success) {
+                if (data.reality_private_key) document.getElementById("sb-reality-privkey").value = data.reality_private_key;
+                if (data.reality_public_key) document.getElementById("sb-reality-pubkey").value = data.reality_public_key;
+                if (data.short_id) document.getElementById("sb-reality-shortid").value = data.short_id;
+                showToast("جفت کلید Reality با موفقیت تولید شد.", "success");
+            }
+        } catch (e) {
+            showToast("خطا در تولید کلیدهای Reality", "error");
+        }
+    }
+
+    async function submitSingboxInbound(e) {
+        e.preventDefault();
+        const itype = document.getElementById("sb-inbound-type").value;
+        const tag = document.getElementById("sb-inbound-tag").value.trim();
+        const port = document.getElementById("sb-inbound-port").value;
+        const tlsMode = document.getElementById("sb-tls-mode").value;
+        const transportType = document.getElementById("sb-transport-type").value;
+
+        const payload = {
+            type: itype,
+            tag: tag,
+            listen_port: port,
+            tls_mode: tlsMode,
+            transport_type: transportType
+        };
+
+        if (itype === "vless" || itype === "vmess") {
+            const uuidEl = document.getElementById("sb-user-uuid");
+            if (uuidEl) payload.uuid = uuidEl.value.trim();
+            const flowEl = document.getElementById("sb-user-flow");
+            if (flowEl) payload.flow = flowEl.value;
+        } else if (itype === "hysteria2") {
+            const passEl = document.getElementById("sb-hy2-pass");
+            if (passEl) payload.password = passEl.value.trim();
+            const obfsEl = document.getElementById("sb-hy2-obfs");
+            if (obfsEl) payload.obfs_password = obfsEl.value.trim();
+            const upEl = document.getElementById("sb-hy2-up");
+            if (upEl) payload.up_mbps = upEl.value;
+            const downEl = document.getElementById("sb-hy2-down");
+            if (downEl) payload.down_mbps = downEl.value;
+        } else if (itype === "tuic") {
+            const uuidEl = document.getElementById("sb-tuic-uuid");
+            if (uuidEl) payload.uuid = uuidEl.value.trim();
+            const passEl = document.getElementById("sb-tuic-pass");
+            if (passEl) payload.password = passEl.value.trim();
+            const ccEl = document.getElementById("sb-tuic-cc");
+            if (ccEl) payload.congestion_control = ccEl.value;
+        } else if (itype === "trojan") {
+            const passEl = document.getElementById("sb-trojan-pass");
+            if (passEl) payload.password = passEl.value.trim();
+        } else if (itype === "shadowsocks") {
+            const mEl = document.getElementById("sb-ss-method");
+            if (mEl) payload.method = mEl.value;
+            const passEl = document.getElementById("sb-ss-pass");
+            if (passEl) payload.password = passEl.value.trim();
+        }
+
+        if (tlsMode === "reality") {
+            payload.sni = document.getElementById("sb-reality-sni").value.trim();
+            payload.handshake_server = document.getElementById("sb-reality-sni").value.trim();
+            payload.handshake_port = document.getElementById("sb-reality-sni-port").value;
+            payload.reality_private_key = document.getElementById("sb-reality-privkey").value.trim();
+            payload.reality_public_key = document.getElementById("sb-reality-pubkey").value.trim();
+            payload.reality_short_id = document.getElementById("sb-reality-shortid").value.trim();
+        } else if (tlsMode === "tls") {
+            payload.sni = document.getElementById("sb-tls-sni").value.trim() || "dl.google.com";
+            payload.certificate_path = document.getElementById("sb-tls-cert").value.trim();
+            payload.key_path = document.getElementById("sb-tls-key").value.trim();
+        }
+
+        if (transportType === "ws") {
+            payload.ws_path = document.getElementById("sb-ws-path").value.trim();
+        }
+
+        toggleLoading(true, "در حال ایجاد و اعتبارسنجی اینباند...");
+        try {
+            const res = await fetch("/api/singbox/inbound/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                closeSingboxAddModal();
+                loadSingboxData();
+            } else {
+                showToast(`خطا: ${data.error}`, "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ایجاد اینباند", "error");
+        }
+    }
+
+    async function deleteSingboxInbound(tag) {
+        if (!confirm(`آیا از حذف اینباند ${tag} اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال حذف اینباند...");
+        try {
+            const res = await fetch(`/api/singbox/inbound/${tag}/delete`, { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                loadSingboxData();
+            } else {
+                showToast(`خطا: ${data.error}`, "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function restartSingboxService() {
+        showToast("در حال راه‌اندازی مجدد هسته Sing-box...", "info");
+        try {
+            const res = await fetch("/api/singbox/service/restart", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                showToast("هسته با موفقیت ری‌استارت شد.", "success");
+                loadSingboxData();
+            } else {
+                showToast(`خطا: ${data.error}`, "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با هسته", "error");
+        }
+    }
+
+    async function checkSingboxConfig() {
+        showToast("در حال اجرای sing-box check...", "info");
+        try {
+            const res = await fetch("/api/singbox/service/check", { method: "POST" });
+            const data = await res.json();
+            if (data.success && data.valid) {
+                showToast("✅ ساختار کانفیگ Sing-box کاملاً معتبر است.", "success");
+            } else {
+                showToast(`❌ خطای اعتبارسنجی: ${data.message}`, "error");
+            }
+        } catch (e) {
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function openSingboxJsonModal() {
+        const modal = document.getElementById("modal-singbox-json");
+        if (!modal) return;
+        modal.style.display = "flex";
+        loadSingboxRawJson();
+    }
+
+    function closeSingboxJsonModal() {
+        const modal = document.getElementById("modal-singbox-json");
+        if (modal) modal.style.display = "none";
+    }
+
+    async function loadSingboxRawJson() {
+        try {
+            const res = await fetch("/api/singbox/config");
+            const data = await res.json();
+            if (data.success && data.config) {
+                document.getElementById("singbox-json-textarea").value = JSON.stringify(data.config, null, 2);
+            }
+        } catch (e) {
+            showToast("خطا در بارگذاری کانفیگ JSON", "error");
+        }
+    }
+
+    async function saveSingboxRawJson() {
+        const text = document.getElementById("singbox-json-textarea").value;
+        let obj;
+        try {
+            obj = JSON.parse(text);
+        } catch (err) {
+            showToast("خطای سینتکس JSON: " + err.message, "error");
+            return;
+        }
+
+        toggleLoading(true, "در حال اعتبارسنجی و ذخیره کانفیگ...");
+        try {
+            const res = await fetch("/api/singbox/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(obj)
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                closeSingboxJsonModal();
+                loadSingboxData();
+            } else {
+                showToast(`خطای اعتبارسنجی هسته: ${data.error}`, "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function openSingboxShareModal(tag) {
+        const modal = document.getElementById("modal-singbox-share");
+        if (!modal) return;
+        modal.style.display = "flex";
+        document.getElementById("singbox-share-title").textContent = `لینک اشتراک اینباند ${tag}`;
+        document.getElementById("singbox-share-link-input").value = "در حال تولید...";
+
+        try {
+            const res = await fetch(`/api/singbox/inbound/${tag}/share`);
+            const data = await res.json();
+            if (data.success && data.share_link) {
+                document.getElementById("singbox-share-link-input").value = data.share_link;
+                renderQrCodeHelper("singbox-qrcode", data.share_link);
+            }
+        } catch (e) {
+            showToast("خطا در تولید لینک اشتراک", "error");
+        }
+    }
+
+    function closeSingboxShareModal() {
+        const modal = document.getElementById("modal-singbox-share");
+        if (modal) modal.style.display = "none";
+    }
+
+    function copySingboxShareLink() {
+        const inp = document.getElementById("singbox-share-link-input");
+        if (!inp || !inp.value) return;
+        inp.select();
+        navigator.clipboard.writeText(inp.value).then(() => {
+            showToast("لینک استاندارد پروتکل در کلیپ‌بورد کپی شد.", "success");
+        }).catch(() => {
+            document.execCommand("copy");
+            showToast("لینک کپی شد.", "success");
+        });
+    }
+
 </script>
