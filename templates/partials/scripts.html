@@ -1682,62 +1682,6 @@
             category: "proxy",
             tab: "tor",
             radius: false
-        },
-        amneziawg: {
-            title: "AmneziaWG",
-            faTitle: "آمنزیا وایرگارد (AmneziaWG)",
-            ruTitle: "AmneziaWG (Анти-DPI)",
-            desc_en: "Anti-DPI obfuscated WireGuard protocol with randomized handshake headers and packet junk.",
-            desc_fa: "پروتکل وایرگارد با مبهم‌سازی پیشرفته و نویز تصادفی جهت عبور پایدار از سنسورشیپ DPI",
-            desc_ru: "Модифицированный протокол WireGuard с обфускацией заголовков против DPI.",
-            icon: "shield",
-            color: "#10b981",
-            bg: "rgba(16, 185, 129, 0.1)",
-            category: "crypto",
-            tab: "amneziawg",
-            radius: false
-        },
-        dnstt: {
-            title: "DNSTT SlowDNS",
-            faTitle: "تونل دی‌ان‌اس‌تی‌تی (DNSTT)",
-            ruTitle: "DNSTT SlowDNS",
-            desc_en: "Encrypted DNS tunnel utilizing DNS queries for censorship circumvention over DoH/DoT.",
-            desc_fa: "تونل رمزنگاری‌شده بر بستر رکوردهای دی‌ان‌اس و DoH/DoT برای دور زدن فیلترینگ شدید",
-            desc_ru: "Зашифрованный DNS-туннель через DoH/DoT для обхода жестких блокировок.",
-            icon: "globe",
-            color: "#14b8a6",
-            bg: "rgba(20, 184, 166, 0.1)",
-            category: "crypto",
-            tab: "dns-tunnels",
-            radius: false
-        },
-        vaydns: {
-            title: "VayDNS",
-            faTitle: "وای دی‌ان‌اس (VayDNS)",
-            ruTitle: "VayDNS",
-            desc_en: "High-throughput multiplexed DNS tunneling daemon with dynamic packet compression.",
-            desc_fa: "دیمون تانلینگ چندکاناله پرسرعت بر بستر پروتکل DNS با فشرده‌سازی پکت",
-            desc_ru: "Высокоскоростной мультиплексированный DNS туннель с компрессией пакетов.",
-            icon: "globe",
-            color: "#0ea5e9",
-            bg: "rgba(14, 165, 233, 0.1)",
-            category: "crypto",
-            tab: "dns-tunnels",
-            radius: false
-        },
-        slipstream: {
-            title: "Slipstream",
-            faTitle: "اسلیپ‌استریم (Slipstream)",
-            ruTitle: "Slipstream Covert",
-            desc_en: "Covert high-entropy DNS tunnel channel evading deep packet inspection systems.",
-            desc_fa: "کانال ارتباطی مخفی با انتروپی بالا بر بستر کوئری‌های DNS مقاوم در برابر فیلترینگ هوشمند",
-            desc_ru: "Скрытый высокоэнтропийный DNS канал для незаметного обхода DPI систем.",
-            icon: "globe",
-            color: "#6366f1",
-            bg: "rgba(99, 102, 241, 0.1)",
-            category: "crypto",
-            tab: "dns-tunnels",
-            radius: false
         }
     };
 
@@ -11989,7 +11933,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (!tunnels || tunnels.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="9" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+                    <td colspan="10" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
                             <i data-lucide="router" style="width:36px; height:36px; color:#94a3b8;"></i>
                             <span style="font-size:14px; font-weight:600; color:#475569;">${window.t("no_standard_or_mikrotik_tunnel_configured", "هنوز هیچ تونل استاندارد یا میکروتیک پیکربندی نشده است.")}</span>
@@ -12039,6 +11983,44 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             };
             const tColor = typeColors[tun.type] || { bg: "#f1f5f9", text: "#475569", label: tun.type.toUpperCase() };
 
+            let portBadge = "";
+            const t = (tun.type || "").toLowerCase();
+            if (t === "wireguard") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#fef3c7; color:#b45309; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP ${tun.wg_port || 51830}</span>`;
+            } else if (t === "vxlan") {
+                portBadge = `<div><span style="display:inline-block; font-size:11px; background:#ccfbf1; color:#0f766e; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP ${tun.vxlan_port || 4789}</span><div style="font-size:10px; color:#64748b; margin-top:2px; font-family:'JetBrains Mono';">VNI: ${tun.vni || 100}</div></div>`;
+            } else if (t === "geneve") {
+                portBadge = `<div><span style="display:inline-block; font-size:11px; background:#ccfbf1; color:#0d9488; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP 6081</span><div style="font-size:10px; color:#64748b; margin-top:2px; font-family:'JetBrains Mono';">VNI: ${tun.geneve_vni || tun.vni || 100}</div></div>`;
+            } else if (t === "fou") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#dcfce7; color:#15803d; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP ${tun.fou_port || 5554}</span>`;
+            } else if (t === "gue") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#dcfce7; color:#166534; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP ${tun.gue_port || 5555}</span>`;
+            } else if (t === "l2tpv3") {
+                portBadge = `<div><span style="display:inline-block; font-size:11px; background:#fee2e2; color:#b91c1c; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP ${tun.l2tp_port || 1701}</span><div style="font-size:10px; color:#64748b; margin-top:2px; font-family:'JetBrains Mono';">ID: ${tun.l2tp_tunnel_id || 1000}</div></div>`;
+            } else if (t === "openvpn" || t === "openvpn_tap") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#fef3c7; color:#d97706; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">${(tun.ovpn_proto || 'UDP').toUpperCase()} ${tun.ovpn_port || 1195}</span>`;
+            } else if (t === "sstp") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#e0f2fe; color:#0284c7; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">TCP 443</span>`;
+            } else if (t === "pptp") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#f1f5f9; color:#64748b; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">TCP 1723</span>`;
+            } else if (t === "l2tp") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#fee2e2; color:#dc2626; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP 1701</span>`;
+            } else if (t === "eoip" || t === "eoipv6") {
+                portBadge = `<div><span style="display:inline-block; font-size:11px; background:#dcfce7; color:#047857; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 47</span><div style="font-size:10px; color:#64748b; margin-top:2px; font-family:'JetBrains Mono';">ID: ${tun.eoip_id || 1}</div></div>`;
+            } else if (t === "gre" || t === "ip6gre" || t === "gre_ipsec") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#e0e7ff; color:#4338ca; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 47</span>`;
+            } else if (t === "ipip" || t === "ipip_ipsec") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#e0f2fe; color:#0369a1; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 4</span>`;
+            } else if (t === "sit") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#f3e8ff; color:#7e22ce; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 41</span>`;
+            } else if (t === "vti") {
+                portBadge = `<div><span style="display:inline-block; font-size:11px; background:#dbeafe; color:#2563eb; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">IPsec ESP: 50</span><div style="font-size:10px; color:#64748b; margin-top:2px; font-family:'JetBrains Mono';">Key: ${tun.vti_key || 10}</div></div>`;
+            } else if (t === "zerotier") {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#ffe4e6; color:#e11d48; padding:3px 8px; border-radius:6px; font-weight:700; font-family:'JetBrains Mono';">UDP 9993 / P2P</span>`;
+            } else {
+                portBadge = `<span style="display:inline-block; font-size:11px; background:#f1f5f9; color:#64748b; padding:3px 8px; border-radius:6px; font-family:'JetBrains Mono';">IP Layer</span>`;
+            }
+
             const rxStr = formatTrafficBytes(tun.rx_bytes || 0);
             const txStr = formatTrafficBytes(tun.tx_bytes || 0);
 
@@ -12051,6 +12033,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         <span style="font-size:10.5px; background:${tColor.bg}; color:${tColor.text}; padding:2px 7px; border-radius:5px; font-weight:700;">${tColor.label}</span>
                     </div>
                     <div style="font-size:11px; color:#64748b; margin-top:2px;">ایجاد: ${escapeHtml(tun.created_at || "")}</div>
+                </td>
+                <td style="padding: 12px 14px;">
+                    ${portBadge}
                 </td>
                 <td style="padding: 12px 14px;">
                     <code style="font-family:'JetBrains Mono'; font-size:12px; color:#1e293b;">${escapeHtml(tun.local_ip || serverIp || "N/A")}</code>
