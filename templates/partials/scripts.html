@@ -12374,6 +12374,39 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         setVal("tun-wg-privkey", tun.wg_privkey || "");
         setVal("tun-wg-pubkey", tun.wg_pubkey || "");
 
+        let activePort = "";
+        let layer = "Raw IP";
+        if (tun.type === "wireguard") { activePort = tun.wg_port || 51830; layer = "UDP"; }
+        else if (tun.type === "vxlan") { activePort = tun.vxlan_port || 4789; layer = "UDP"; }
+        else if (tun.type === "geneve") { activePort = 6081; layer = "UDP"; }
+        else if (tun.type === "fou") { activePort = tun.fou_port || 5554; layer = "UDP"; }
+        else if (tun.type === "gue") { activePort = tun.gue_port || 5555; layer = "UDP"; }
+        else if (tun.type === "l2tpv3") { activePort = tun.l2tp_port || 1701; layer = "UDP"; }
+        else if (tun.type === "openvpn" || tun.type === "openvpn_tap") { activePort = tun.ovpn_port || 1195; layer = "UDP"; }
+        else if (tun.type === "sstp") { activePort = 443; layer = "TCP"; }
+        else if (tun.type === "pptp") { activePort = 1723; layer = "TCP"; }
+        else if (tun.type === "zerotier") { activePort = 9993; layer = "UDP"; }
+        else if (tun.type === "gre" || tun.type === "eoip" || tun.type === "ip6gre") { activePort = "IP Proto 47"; layer = "Raw IP"; }
+        else if (tun.type === "ipip") { activePort = "IP Proto 4"; layer = "Raw IP"; }
+        else if (tun.type === "sit" || tun.type === "ip6tnl") { activePort = "IP Proto 41"; layer = "Raw IP"; }
+        else if (tun.type === "vti") { activePort = "ESP Proto 50"; layer = "Raw IP"; }
+        else if (tun.type === "gre_ipsec" || tun.type === "ipip_ipsec") { activePort = "Proto 47/4 + 50"; layer = "Raw IP"; }
+        else if (tun.type === "l2tp") { activePort = "500, 4500, 1701"; layer = "UDP"; }
+
+        const mainPortInput = document.getElementById("tun-main-port");
+        const portBadge = document.getElementById("tun-port-badge");
+        const isEditable = ["wireguard", "vxlan", "geneve", "fou", "gue", "l2tpv3", "openvpn", "openvpn_tap", "sstp", "pptp"].includes(tun.type);
+        if (mainPortInput) {
+            mainPortInput.value = activePort;
+            mainPortInput.readOnly = !isEditable;
+            mainPortInput.style.backgroundColor = isEditable ? "" : "var(--bg-base)";
+        }
+        if (portBadge) {
+            portBadge.innerText = layer;
+            portBadge.style.background = layer === "UDP" ? "rgba(2,132,199,0.12)" : (layer === "TCP" ? "rgba(217,119,6,0.12)" : "rgba(99,102,241,0.12)");
+            portBadge.style.color = layer === "UDP" ? "#0284c7" : (layer === "TCP" ? "#b45309" : "#4338ca");
+        }
+
         const modal = document.getElementById("modal-create-tunnel");
         if (modal) modal.classList.add("active");
     }
@@ -12409,28 +12442,28 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const innerRemoteInput = document.getElementById("tun-inner-remote");
 
         const defaults = {
-            gre: { name: `gre${count}`, mtu: 1476, local: `10.10.${count}.1/30`, remote: `10.10.${count}.2` },
-            ip6gre: { name: `ip6gre${count}`, mtu: 1456, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2` },
-            ipip: { name: `ipip${count}`, mtu: 1480, local: `10.20.${count}.1/30`, remote: `10.20.${count}.2` },
-            ip6tnl: { name: `ip6tnl${count}`, mtu: 1460, local: `2001:db8:${count + 10}::1/64`, remote: `2001:db8:${count + 10}::2` },
-            sit: { name: `sit${count}`, mtu: 1480, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2` },
-            vti: { name: `vti${count}`, mtu: 1440, local: `10.25.${count}.1/30`, remote: `10.25.${count}.2` },
-            eoip: { name: `eoip${count}`, mtu: 1450, local: `10.35.${count}.1/24`, remote: `10.35.${count}.2` },
-            eoipv6: { name: `eoipv6_${count}`, mtu: 1430, local: `10.36.${count}.1/24`, remote: `10.36.${count}.2` },
-            vxlan: { name: `vxlan${count}`, mtu: 1450, local: `10.30.${count}.1/24`, remote: `10.30.${count}.2` },
-            geneve: { name: `gnv${count}`, mtu: 1450, local: `10.32.${count}.1/24`, remote: `10.32.${count}.2` },
-            l2tpv3: { name: `l2tpv3_${count}`, mtu: 1460, local: `10.38.${count}.1/24`, remote: `10.38.${count}.2` },
-            openvpn_tap: { name: `ovpn_tap${count}`, mtu: 1500, local: `10.72.${count}.1/24`, remote: `10.72.${count}.2` },
-            wireguard: { name: `wg_tun${count}`, mtu: 1420, local: `10.50.${count}.1/30`, remote: `10.50.${count}.2` },
-            fou: { name: `fou${count}`, mtu: 1480, local: `10.40.${count}.1/30`, remote: `10.40.${count}.2` },
-            gue: { name: `gue${count}`, mtu: 1476, local: `10.45.${count}.1/30`, remote: `10.45.${count}.2` },
-            gre_ipsec: { name: `gre_ipsec${count}`, mtu: 1436, local: `10.15.${count}.1/30`, remote: `10.15.${count}.2` },
-            ipip_ipsec: { name: `ipip_ipsec${count}`, mtu: 1440, local: `10.22.${count}.1/30`, remote: `10.22.${count}.2` },
-            l2tp: { name: `l2tp${count}`, mtu: 1400, local: `10.60.${count}.1/30`, remote: `10.60.${count}.2` },
-            openvpn: { name: `ovpn${count}`, mtu: 1500, local: `10.70.${count}.1/30`, remote: `10.70.${count}.2` },
-            sstp: { name: `sstp${count}`, mtu: 1450, local: `10.80.${count}.1/30`, remote: `10.80.${count}.2` },
-            pptp: { name: `pptp${count}`, mtu: 1400, local: `10.90.${count}.1/30`, remote: `10.90.${count}.2` },
-            zerotier: { name: `zt_${count}`, mtu: 2800, local: `10.99.${count}.1/24`, remote: `10.99.${count}.2` }
+            gre: { name: `gre${count}`, mtu: 1476, local: `10.10.${count}.1/30`, remote: `10.10.${count}.2`, port: "IP Proto 47", layer: "Raw IP", editable: false, hint: "پروتکل مستقیم لایه ۳ بدون پورت UDP/TCP (شماره ۴۷)" },
+            ip6gre: { name: `ip6gre${count}`, mtu: 1456, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2`, port: "Proto 47 (IPv6)", layer: "Raw IP", editable: false, hint: "پروتکل GRE روی بستر پکت‌های IPv6 (شماره ۴۷)" },
+            ipip: { name: `ipip${count}`, mtu: 1480, local: `10.20.${count}.1/30`, remote: `10.20.${count}.2`, port: "IP Proto 4", layer: "Raw IP", editable: false, hint: "پروتکل مستقیم لایه ۳ بدون پورت (شماره ۴)" },
+            ip6tnl: { name: `ip6tnl${count}`, mtu: 1460, local: `2001:db8:${count + 10}::1/64`, remote: `2001:db8:${count + 10}::2`, port: "Proto 41 (IPv6)", layer: "Raw IP", editable: false, hint: "پروتکل کپسوله‌سازی IPv6 (شماره ۴۱)" },
+            sit: { name: `sit${count}`, mtu: 1480, local: `2001:db8:${count}::1/64`, remote: `2001:db8:${count}::2`, port: "IP Proto 41", layer: "Raw IP", editable: false, hint: "پروتکل انتقال 6in4 SIT بدون پورت (شماره ۴۱)" },
+            vti: { name: `vti${count}`, mtu: 1440, local: `10.25.${count}.1/30`, remote: `10.25.${count}.2`, port: "ESP Proto 50", layer: "Raw IP", editable: false, hint: "پروتکل رمزنگاری لایه ۳ ESP IPsec (شماره ۵۰)" },
+            eoip: { name: `eoip${count}`, mtu: 1450, local: `10.35.${count}.1/24`, remote: `10.35.${count}.2`, port: "IP Proto 47", layer: "Raw IP", editable: false, hint: "پروتکل اترنت میکروتیک بر بستر GRE (شماره ۴۷)" },
+            eoipv6: { name: `eoipv6_${count}`, mtu: 1430, local: `10.36.${count}.1/24`, remote: `10.36.${count}.2`, port: "Proto 47 (IPv6)", layer: "Raw IP", editable: false, hint: "پروتکل EoIP میکروتیک روی IPv6 (شماره ۴۷)" },
+            vxlan: { name: `vxlan${count}`, mtu: 1450, local: `10.30.${count}.1/24`, remote: `10.30.${count}.2`, port: 4789, layer: "UDP", editable: true, hint: "پورت شنود UDP استاندارد پروتکل VXLAN لایه ۲" },
+            geneve: { name: `gnv${count}`, mtu: 1450, local: `10.32.${count}.1/24`, remote: `10.32.${count}.2`, port: 6081, layer: "UDP", editable: true, hint: "پورت شنود UDP پروتکل استاندارد مدرن GENEVE" },
+            l2tpv3: { name: `l2tpv3_${count}`, mtu: 1460, local: `10.38.${count}.1/24`, remote: `10.38.${count}.2`, port: 1701, layer: "UDP", editable: true, hint: "پورت UDP اترنت شبه‌سیم L2TPv3" },
+            openvpn_tap: { name: `ovpn_tap${count}`, mtu: 1500, local: `10.72.${count}.1/24`, remote: `10.72.${count}.2`, port: 1195, layer: "UDP", editable: true, hint: "پورت شنود OpenVPN TAP لایه ۲" },
+            wireguard: { name: `wg_tun${count}`, mtu: 1420, local: `10.50.${count}.1/30`, remote: `10.50.${count}.2`, port: 51830, layer: "UDP", editable: true, hint: "پورت شنود UDP پروتکل رمزنگاری WireGuard" },
+            fou: { name: `fou${count}`, mtu: 1480, local: `10.40.${count}.1/30`, remote: `10.40.${count}.2`, port: 5554, layer: "UDP", editable: true, hint: "پورت کپسوله‌سازی بسته‌های IPIP در UDP" },
+            gue: { name: `gue${count}`, mtu: 1476, local: `10.45.${count}.1/30`, remote: `10.45.${count}.2`, port: 5555, layer: "UDP", editable: true, hint: "پورت کپسوله‌سازی بسته‌های GRE در UDP" },
+            gre_ipsec: { name: `gre_ipsec${count}`, mtu: 1436, local: `10.15.${count}.1/30`, remote: `10.15.${count}.2`, port: "Proto 47 + 50", layer: "Raw IP", editable: false, hint: "ترکیب GRE 47 و رمزنگاری سخت‌افزاری ESP 50" },
+            ipip_ipsec: { name: `ipip_ipsec${count}`, mtu: 1440, local: `10.22.${count}.1/30`, remote: `10.22.${count}.2`, port: "Proto 4 + 50", layer: "Raw IP", editable: false, hint: "ترکیب IPIP 4 و رمزنگاری سخت‌افزاری ESP 50" },
+            l2tp: { name: `l2tp${count}`, mtu: 1400, local: `10.60.${count}.1/30`, remote: `10.60.${count}.2`, port: "500, 4500, 1701", layer: "UDP", editable: false, hint: "پورت‌های استاندارد مذاکره IPsec و L2TP" },
+            openvpn: { name: `ovpn${count}`, mtu: 1500, local: `10.70.${count}.1/30`, remote: `10.70.${count}.2`, port: 1194, layer: "UDP", editable: true, hint: "پورت شنود تونل نقطه به نقطه OpenVPN TUN" },
+            sstp: { name: `sstp${count}`, mtu: 1450, local: `10.80.${count}.1/30`, remote: `10.80.${count}.2`, port: 443, layer: "TCP", editable: true, hint: "پورت امن استاندارد SSL VPN روی HTTPS" },
+            pptp: { name: `pptp${count}`, mtu: 1400, local: `10.90.${count}.1/30`, remote: `10.90.${count}.2`, port: 1723, layer: "TCP", editable: true, hint: "پورت کنترل ارتباطی پروتکل PPTP" },
+            zerotier: { name: `zt_${count}`, mtu: 2800, local: `10.99.${count}.1/24`, remote: `10.99.${count}.2`, port: 9993, layer: "UDP", editable: false, hint: "پورت ارتباطی شبکه ابری P2P زیروتیر" }
         };
 
         const conf = defaults[selectedType] || defaults.gre;
@@ -12440,6 +12473,13 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (innerLocalInput) innerLocalInput.value = conf.local;
             if (innerRemoteInput) innerRemoteInput.value = conf.remote;
 
+            const mainPortInput = document.getElementById("tun-main-port");
+            if (mainPortInput) {
+                mainPortInput.value = conf.port;
+                mainPortInput.readOnly = !conf.editable;
+                mainPortInput.style.backgroundColor = conf.editable ? "" : "var(--bg-base)";
+            }
+
             const locEl = document.getElementById("tun-local-ip");
             if (locEl && currentTunnelsData) {
                 if ((selectedType === "ip6gre" || selectedType === "ip6tnl" || selectedType === "eoipv6") && currentTunnelsData.server_ipv6) {
@@ -12448,6 +12488,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     locEl.value = currentTunnelsData.server_ip;
                 }
             }
+        }
+
+        const portBadge = document.getElementById("tun-port-badge");
+        const portHint = document.getElementById("tun-port-hint");
+        if (portBadge) {
+            portBadge.innerText = conf.layer;
+            portBadge.style.background = conf.layer === "UDP" ? "rgba(2,132,199,0.12)" : (conf.layer === "TCP" ? "rgba(217,119,6,0.12)" : "rgba(99,102,241,0.12)");
+            portBadge.style.color = conf.layer === "UDP" ? "#0284c7" : (conf.layer === "TCP" ? "#b45309" : "#4338ca");
+        }
+        if (portHint) {
+            portHint.innerText = conf.hint;
         }
 
         // Field toggles
@@ -12482,6 +12533,38 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (ovpnSec && !ovpnSec.value) {
                 generateOpenVpnP2pKey();
             }
+        }
+    }
+
+    function onMainPortChange() {
+        const typeRadios = document.getElementsByName("tunnel_type");
+        let selectedType = "gre";
+        for (const r of typeRadios) {
+            if (r.checked) selectedType = r.value;
+        }
+        const val = (document.getElementById("tun-main-port")?.value || "").trim();
+        if (!val) return;
+        const numVal = parseInt(val, 10);
+        if (isNaN(numVal)) return;
+
+        if (selectedType === "wireguard") {
+            const el = document.getElementById("tun-wg-port");
+            if (el) el.value = numVal;
+        } else if (selectedType === "vxlan") {
+            const el = document.getElementById("tun-vxlan-port");
+            if (el) el.value = numVal;
+        } else if (selectedType === "fou") {
+            const el = document.getElementById("tun-fou-port");
+            if (el) el.value = numVal;
+        } else if (selectedType === "gue") {
+            const el = document.getElementById("tun-gue-port");
+            if (el) el.value = numVal;
+        } else if (selectedType === "l2tpv3") {
+            const el = document.getElementById("tun-l2tpv3-port");
+            if (el) el.value = numVal;
+        } else if (selectedType === "openvpn" || selectedType === "openvpn_tap") {
+            const el = document.getElementById("tun-ovpn-port");
+            if (el) el.value = numVal;
         }
     }
 
@@ -12574,6 +12657,17 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             ovpn_cipher: document.getElementById("tun-ovpn-cipher")?.value,
             ovpn_secret: document.getElementById("tun-ovpn-secret")?.value
         };
+
+        const mainPortRaw = (document.getElementById("tun-main-port")?.value || "").trim();
+        const mainPortNum = parseInt(mainPortRaw, 10);
+        if (!isNaN(mainPortNum) && mainPortNum > 0) {
+            if (selectedType === "wireguard" && (!payload.wg_port || payload.wg_port == 51830)) payload.wg_port = mainPortNum;
+            if (selectedType === "vxlan" && (!payload.vxlan_port || payload.vxlan_port == 4789)) payload.vxlan_port = mainPortNum;
+            if (selectedType === "fou" && (!payload.fou_port || payload.fou_port == 5554)) payload.fou_port = mainPortNum;
+            if (selectedType === "gue" && (!payload.gue_port || payload.gue_port == 5555)) payload.gue_port = mainPortNum;
+            if (selectedType === "l2tpv3" && (!payload.l2tp_port || payload.l2tp_port == 1701)) payload.l2tp_port = mainPortNum;
+            if ((selectedType === "openvpn" || selectedType === "openvpn_tap") && (!payload.ovpn_port || payload.ovpn_port == 1195)) payload.ovpn_port = mainPortNum;
+        }
 
         const submitBtn = document.getElementById("btn-submit-tunnel");
         if (submitBtn) submitBtn.disabled = true;

@@ -630,32 +630,38 @@
 <label id="type-card-gre" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input checked="" name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gre"/>
 <strong style="display:block; font-size:12px; color:#4338ca;">GRE</strong>
-<span style="font-size:9.5px; color:#64748b;">لایه ۳ میکروتیک</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">لایه ۳ میکروتیک</span>
+<span style="display:inline-block; font-size:9px; background:rgba(67,56,202,0.1); color:#4338ca; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 47</span>
 </label>
 <label id="type-card-ipip" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ipip"/>
 <strong style="display:block; font-size:12px; color:#0369a1;">IPIP</strong>
-<span style="font-size:9.5px; color:#64748b;">سبک و کم‌مصرف</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">سبک و کم‌مصرف</span>
+<span style="display:inline-block; font-size:9px; background:rgba(2,132,199,0.1); color:#0369a1; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 4</span>
 </label>
 <label id="type-card-ip6gre" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ip6gre"/>
 <strong style="display:block; font-size:12px; color:#6366f1;">IP6GRE</strong>
-<span style="font-size:9.5px; color:#64748b;">GRE روی IPv6</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">GRE روی IPv6</span>
+<span style="display:inline-block; font-size:9px; background:rgba(99,102,241,0.1); color:#4f46e5; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">Proto 47 (IPv6)</span>
 </label>
 <label id="type-card-ip6tnl" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ip6tnl"/>
 <strong style="display:block; font-size:12px; color:#0891b2;">IP6TNL</strong>
-<span style="font-size:9.5px; color:#64748b;">IPIP روی IPv6</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">IPIP روی IPv6</span>
+<span style="display:inline-block; font-size:9px; background:rgba(8,145,178,0.1); color:#0891b2; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">Proto 41 (IPv6)</span>
 </label>
 <label id="type-card-sit" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="sit"/>
 <strong style="display:block; font-size:12px; color:#7e22ce;">6in4 SIT</strong>
-<span style="font-size:9.5px; color:#64748b;">IPv6 روی IPv4</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">IPv6 روی IPv4</span>
+<span style="display:inline-block; font-size:9px; background:rgba(126,34,206,0.1); color:#7e22ce; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 41</span>
 </label>
 <label id="type-card-vti" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="vti"/>
 <strong style="display:block; font-size:12px; color:#2563eb;">IPsec VTI</strong>
-<span style="font-size:9.5px; color:#64748b;">Route-based IPsec</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Route-based IPsec</span>
+<span style="display:inline-block; font-size:9px; background:rgba(37,99,235,0.1); color:#2563eb; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">ESP Proto 50</span>
 </label>
 </div>
 
@@ -665,32 +671,38 @@
 <label id="type-card-eoip" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="eoip"/>
 <strong style="display:block; font-size:12px; color:#047857;">EoIP</strong>
-<span style="font-size:9.5px; color:#64748b;">اترنت میکروتیک</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">اترنت میکروتیک</span>
+<span style="display:inline-block; font-size:9px; background:rgba(4,120,87,0.1); color:#047857; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">IP Proto 47</span>
 </label>
 <label id="type-card-eoipv6" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="eoipv6"/>
 <strong style="display:block; font-size:12px; color:#059669;">EoIPv6</strong>
-<span style="font-size:9.5px; color:#64748b;">EoIP روی IPv6</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">EoIP روی IPv6</span>
+<span style="display:inline-block; font-size:9px; background:rgba(5,150,105,0.1); color:#059669; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">Proto 47 (IPv6)</span>
 </label>
 <label id="type-card-vxlan" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="vxlan"/>
 <strong style="display:block; font-size:12px; color:#0f766e;">VXLAN</strong>
-<span style="font-size:9.5px; color:#64748b;">UDP لایه ۲ استاندارد</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">UDP لایه ۲ استاندارد</span>
+<span style="display:inline-block; font-size:9px; background:rgba(15,118,110,0.1); color:#0f766e; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 4789</span>
 </label>
 <label id="type-card-geneve" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="geneve"/>
 <strong style="display:block; font-size:12px; color:#0d9488;">GENEVE</strong>
-<span style="font-size:9.5px; color:#64748b;">UDP مدرن ROS v7</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">UDP مدرن ROS v7</span>
+<span style="display:inline-block; font-size:9px; background:rgba(13,148,136,0.1); color:#0d9488; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 6081</span>
 </label>
 <label id="type-card-l2tpv3" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="l2tpv3"/>
 <strong style="display:block; font-size:12px; color:#b91c1c;">L2TPv3</strong>
-<span style="font-size:9.5px; color:#64748b;">اترنت شبه‌سیم</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">اترنت شبه‌سیم</span>
+<span style="display:inline-block; font-size:9px; background:rgba(185,28,28,0.1); color:#b91c1c; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP/IP 1701</span>
 </label>
 <label id="type-card-openvpn_tap" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="openvpn_tap"/>
 <strong style="display:block; font-size:12px; color:#b45309;">OpenVPN TAP</strong>
-<span style="font-size:9.5px; color:#64748b;">بریج لایه ۲</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">بریج لایه ۲</span>
+<span style="display:inline-block; font-size:9px; background:rgba(180,83,9,0.1); color:#b45309; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 1195</span>
 </label>
 </div>
 
@@ -700,63 +712,81 @@
 <label id="type-card-wireguard" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="wireguard"/>
 <strong style="display:block; font-size:12px; color:#b45309;">WireGuard</strong>
-<span style="font-size:9.5px; color:#64748b;">P2P پرسرعت</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">P2P پرسرعت</span>
+<span style="display:inline-block; font-size:9px; background:rgba(180,83,9,0.1); color:#b45309; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 51830</span>
 </label>
 <label id="type-card-fou" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="fou"/>
 <strong style="display:block; font-size:12px; color:#15803d;">FOU</strong>
-<span style="font-size:9.5px; color:#64748b;">IPIP روی UDP</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">IPIP روی UDP</span>
+<span style="display:inline-block; font-size:9px; background:rgba(21,128,61,0.1); color:#15803d; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 5554</span>
 </label>
 <label id="type-card-gue" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gue"/>
 <strong style="display:block; font-size:12px; color:#166534;">GUE</strong>
-<span style="font-size:9.5px; color:#64748b;">GRE روی UDP</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">GRE روی UDP</span>
+<span style="display:inline-block; font-size:9px; background:rgba(22,101,52,0.1); color:#166534; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 5555</span>
 </label>
 <label id="type-card-gre_ipsec" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="gre_ipsec"/>
 <strong style="display:block; font-size:12px; color:#4338ca;">GRE + IPsec</strong>
-<span style="font-size:9.5px; color:#64748b;">رمزنگاری سخت‌افزاری</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">رمزنگاری سخت‌افزاری</span>
+<span style="display:inline-block; font-size:9px; background:rgba(67,56,202,0.1); color:#4338ca; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">Proto 47+50</span>
 </label>
 <label id="type-card-ipip_ipsec" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="ipip_ipsec"/>
 <strong style="display:block; font-size:12px; color:#0284c7;">IPIP + IPsec</strong>
-<span style="font-size:9.5px; color:#64748b;">امن و بهینه</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">امن و بهینه</span>
+<span style="display:inline-block; font-size:9px; background:rgba(2,132,199,0.1); color:#0284c7; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">Proto 4+50</span>
 </label>
 <label id="type-card-l2tp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="l2tp"/>
 <strong style="display:block; font-size:12px; color:#dc2626;">L2TP/IPsec</strong>
-<span style="font-size:9.5px; color:#64748b;">Site-to-Site</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Site-to-Site</span>
+<span style="display:inline-block; font-size:9px; background:rgba(220,38,38,0.1); color:#dc2626; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 500/4500</span>
 </label>
 <label id="type-card-openvpn" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="openvpn"/>
 <strong style="display:block; font-size:12px; color:#d97706;">OpenVPN TUN</strong>
-<span style="font-size:9.5px; color:#64748b;">کلید Static P2P</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">کلید Static P2P</span>
+<span style="display:inline-block; font-size:9px; background:rgba(217,119,6,0.1); color:#d97706; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 1194</span>
 </label>
 <label id="type-card-sstp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="sstp"/>
 <strong style="display:block; font-size:12px; color:#0284c7;">SSTP</strong>
-<span style="font-size:9.5px; color:#64748b;">SSL VPN پورت ۴۴۳</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">SSL VPN</span>
+<span style="display:inline-block; font-size:9px; background:rgba(2,132,199,0.1); color:#0284c7; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP 443</span>
 </label>
 <label id="type-card-pptp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="pptp"/>
 <strong style="display:block; font-size:12px; color:#64748b;">PPTP</strong>
-<span style="font-size:9.5px; color:#64748b;">سبک کلاسیک</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">سبک کلاسیک</span>
+<span style="display:inline-block; font-size:9px; background:rgba(100,116,139,0.1); color:#475569; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP 1723</span>
 </label>
 <label id="type-card-zerotier" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 6px 4px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="tunnel_type" onchange="onTunnelTypeChange()" style="display:none;" type="radio" value="zerotier"/>
 <strong style="display:block; font-size:12px; color:#e11d48;">ZeroTier</strong>
-<span style="font-size:9.5px; color:#64748b;">SDN ابری P2P</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">SDN ابری P2P</span>
+<span style="display:inline-block; font-size:9px; background:rgba(225,29,72,0.1); color:#e11d48; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 9993</span>
 </label>
 </div>
 </div>
 <!-- Basic Interface Fields -->
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px;">
+<div style="display: grid; grid-template-columns: 1fr 1.2fr 0.8fr; gap: 12px; margin-bottom: 14px;">
 <div class="form-group" style="margin-bottom:0;">
-<label class="form-label" data-i18n="modal_interface_name" style="font-size:12px;">نام اینترفیس (Interface Name):</label>
+<label class="form-label" data-i18n="modal_interface_name" style="font-size:12px; font-weight:700;">نام اینترفیس (Interface Name):</label>
 <input class="form-input" id="tun-name" placeholder="gre1" style="font-family:'JetBrains Mono'; direction:ltr;" type="text"/>
 </div>
 <div class="form-group" style="margin-bottom:0;">
-<label class="form-label" data-i18n="modal_interface_mtu" style="font-size:12px;">MTU اینترفیس:</label>
+<label class="form-label" style="font-size:12px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+<span>پورت / لایه انتقال:</span>
+<span id="tun-port-badge" class="badge" style="font-size:10px; font-weight:700; padding:1px 6px; border-radius:4px; background:rgba(99,102,241,0.12); color:#4338ca;">IP Proto 47</span>
+</label>
+<input class="form-input" id="tun-main-port" oninput="onMainPortChange()" placeholder="پورت یا پروتکل" style="font-family:'JetBrains Mono'; direction:ltr;" type="text" value="IP Proto 47"/>
+<small id="tun-port-hint" style="font-size:10px; color:#64748b; display:block; margin-top:2px;">پروتکل مستقیم لایه ۳ بدون پورت UDP/TCP</small>
+</div>
+<div class="form-group" style="margin-bottom:0;">
+<label class="form-label" data-i18n="modal_interface_mtu" style="font-size:12px; font-weight:700;">MTU اینترفیس:</label>
 <input class="form-input" id="tun-mtu" style="font-family:'JetBrains Mono'; direction:ltr;" type="number" value="1476"/>
 </div>
 </div>
@@ -1024,87 +1054,104 @@
 <label id="adv-card-gost" style="border: 1px solid #10b981; background:#ecfdf5; border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input checked="" name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="gost"/>
 <strong style="display:block; font-size:12px; color:#065f46;">GOST v3</strong>
-<span style="font-size:9.5px; color:#64748b;">WSS, TLS, Relay</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">WSS, TLS, Relay</span>
+<span style="display:inline-block; font-size:9px; background:rgba(16,185,129,0.12); color:#065f46; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">WSS/TLS 8443</span>
 </label>
 <label id="adv-card-wstunnel" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="wstunnel"/>
 <strong style="display:block; font-size:12px; color:#0369a1;">WSTunnel</strong>
-<span style="font-size:9.5px; color:#64748b;">WebSocket v11</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">WebSocket v11</span>
+<span style="display:inline-block; font-size:9px; background:rgba(3,105,161,0.12); color:#0369a1; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">WS 8080</span>
 </label>
 <label id="adv-card-rtt" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="rtt"/>
 <strong style="display:block; font-size:12px; color:#b45309;">RTT (ReverseTLS)</strong>
-<span style="font-size:9.5px; color:#64748b;">تونل معکوس TLS</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">تونل معکوس TLS</span>
+<span style="display:inline-block; font-size:9px; background:rgba(180,83,9,0.12); color:#b45309; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TLS 443</span>
 </label>
 <label id="adv-card-udp2raw" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="udp2raw"/>
 <strong style="display:block; font-size:12px; color:#dc2626;">UDP2Raw</strong>
-<span style="font-size:9.5px; color:#64748b;">Fake TCP فریب فیلتر</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Fake TCP فریب فیلتر</span>
+<span style="display:inline-block; font-size:9px; background:rgba(220,38,38,0.12); color:#dc2626; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">FakeTCP 8090</span>
 </label>
 <label id="adv-card-chisel" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="chisel"/>
 <strong style="display:block; font-size:12px; color:#4f46e5;">Chisel</strong>
-<span style="font-size:9.5px; color:#64748b;">HTTP/WS over SSH</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">HTTP/WS over SSH</span>
+<span style="display:inline-block; font-size:9px; background:rgba(79,70,229,0.12); color:#4f46e5; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">HTTP/WS 8088</span>
 </label>
 <label id="adv-card-phantun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="phantun"/>
 <strong style="display:block; font-size:12px; color:#0284c7;">Phantun</strong>
-<span style="font-size:9.5px; color:#64748b;">UDP to TCP سبک</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">UDP to TCP سبک</span>
+<span style="display:inline-block; font-size:9px; background:rgba(2,132,199,0.12); color:#0284c7; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">FakeTCP 4567</span>
 </label>
 <label id="adv-card-rathole" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="rathole"/>
 <strong style="display:block; font-size:12px; color:#7e22ce;">Rathole</strong>
-<span style="font-size:9.5px; color:#64748b;">Rust Reverse Proxy</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Rust Reverse Proxy</span>
+<span style="display:inline-block; font-size:9px; background:rgba(126,34,206,0.12); color:#7e22ce; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP/TLS 2333</span>
 </label>
 <label id="adv-card-frp" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="frp"/>
 <strong style="display:block; font-size:12px; color:var(--text-main);">FRP</strong>
-<span style="font-size:9.5px; color:#64748b;">Fast Reverse Proxy</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Fast Reverse Proxy</span>
+<span style="display:inline-block; font-size:9px; background:rgba(100,116,139,0.12); color:#475569; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP 7000</span>
 </label>
 <label id="adv-card-kcptun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="kcptun"/>
 <strong style="display:block; font-size:12px; color:#059669;">Kcptun</strong>
-<span style="font-size:9.5px; color:#64748b;">UDP با FEC</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">UDP با FEC</span>
+<span style="display:inline-block; font-size:9px; background:rgba(5,150,105,0.12); color:#059669; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 29900</span>
 </label>
 <label id="adv-card-hysteria" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="hysteria"/>
 <strong style="display:block; font-size:12px; color:#f59e0b;">Hysteria 2</strong>
-<span style="font-size:9.5px; color:#64748b;">Salamander UDP</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Salamander UDP</span>
+<span style="display:inline-block; font-size:9px; background:rgba(245,158,11,0.12); color:#b45309; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">QUIC 8443</span>
 </label>
 <label id="adv-card-tuic" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="tuic"/>
 <strong style="display:block; font-size:12px; color:#06b6d4;">TUIC v5</strong>
-<span style="font-size:9.5px; color:#64748b;">QUIC Anti-DPI</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">QUIC Anti-DPI</span>
+<span style="display:inline-block; font-size:9px; background:rgba(6,182,212,0.12); color:#0e7490; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">QUIC 8444</span>
 </label>
 <label id="adv-card-awg" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="awg"/>
 <strong style="display:block; font-size:12px; color:#e11d48;">AmneziaWG</strong>
-<span style="font-size:9.5px; color:#64748b;">Junk Packets</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Junk Packets</span>
+<span style="display:inline-block; font-size:9px; background:rgba(225,29,72,0.12); color:#e11d48; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">UDP 51825</span>
 </label>
 <label id="adv-card-ssh_tun" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="ssh_tun"/>
 <strong style="display:block; font-size:12px; color:#475569;">SSH Tunnel</strong>
-<span style="font-size:9.5px; color:#64748b;">L2/L3 امن سیستم</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">L2/L3 امن سیستم</span>
+<span style="display:inline-block; font-size:9px; background:rgba(71,85,105,0.12); color:#475569; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">SSH 2222</span>
 </label>
 <label id="adv-card-singbox" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="singbox"/>
 <strong style="display:block; font-size:12px; color:#10b981;">Sing-box</strong>
-<span style="font-size:9.5px; color:#64748b;">Multiplex S2S</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Multiplex S2S</span>
+<span style="display:inline-block; font-size:9px; background:rgba(16,185,129,0.12); color:#059669; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TLS 9000</span>
 </label>
 <label id="adv-card-ss2022" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="ss2022"/>
 <strong style="display:block; font-size:12px; color:#6366f1;">SS-2022</strong>
-<span style="font-size:9.5px; color:#64748b;">AEAD پرسرعت</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">AEAD پرسرعت</span>
+<span style="display:inline-block; font-size:9px; background:rgba(99,102,241,0.12); color:#4f46e5; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP 8388</span>
 </label>
 <label id="adv-card-tun2socks" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="tun2socks"/>
 <strong style="display:block; font-size:12px; color:#8b5cf6;">Tun2Socks</strong>
-<span style="font-size:9.5px; color:#64748b;">Virtual TUN Device</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">Virtual TUN Device</span>
+<span style="display:inline-block; font-size:9px; background:rgba(139,92,246,0.12); color:#7c3aed; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">TCP 10808</span>
 </label>
 <label id="adv-card-dnstt" style="border: 1px solid var(--border-glow); border-radius: 8px; padding: 7px 6px; cursor: pointer; text-align: center; transition: all 0.2s;">
 <input name="adv_tool" onchange="onAdvToolChange()" style="display:none;" type="radio" value="dnstt"/>
 <strong style="display:block; font-size:12px; color:#14b8a6;">DNSTT</strong>
-<span style="font-size:9.5px; color:#64748b;">SlowDNS / DoH</span>
+<span style="font-size:9.5px; color:#64748b; display:block;">SlowDNS / DoH</span>
+<span style="display:inline-block; font-size:9px; background:rgba(20,184,166,0.12); color:#0d9488; padding:1px 5px; border-radius:4px; margin-top:3px; font-weight:700; font-family:'JetBrains Mono';">DNS 53</span>
 </label>
 </div>
 </div>
