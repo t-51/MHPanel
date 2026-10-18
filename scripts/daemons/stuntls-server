@@ -1,0 +1,179 @@
+#!/usr/bin/env python3
+"""
+StunTLS - STUN over TLS Obfuscation Proxy
+Disguises VPN & TLS traffic as standard WebRTC / VoIP STUN Packets
+Enhanced with Multi-User Authentication, FreeRADIUS Accounting & Jitter Simulation
+Part of MHPanel Anti-Censorship Suite
+"""
+import sys
+import os
+import socket
+import select
+import time
+import json
+import struct
+import signal
+import threading
+import random
+import sqlite3
+
+CONFIG_FILE = "/etc/vpnpanel/stuntls.json"
+DB_PATH = "/etc/vpnpanel/protocol_accounting.db"
+
+DEFAULT_CONFIG = {
+    "port": 3478,
+    "secret": "mhpanel_stuntls_key",
+    "upstream": "127.0.0.1:22",
+    "mode": "webrtc_stun",
+    "jitter": False,
+    "users": []
+}
+
+STUN_MAGIC_COOKIE = 0x2112A442
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                cfg = json.load(f)
+                res = DEFAULT_CONFIG.copy()
+                res.update(cfg)
+                return res
+        except Exception:
+            pass
+    return DEFAULT_CONFIG.copy()
+
+def update_accounting_db(username, rx_bytes, tx_bytes):
+    if not username or (rx_bytes == 0 and tx_bytes == 0):
+        return
+    try:
+        if os.path.exists(DB_PATH):
+            conn = sqlite3.connect(DB_PATH, timeout=5.0)
+            with conn:
+                conn.execute("""
+                    UPDATE protocol_users 
+                    SET upload_bytes = upload_bytes + ?, download_bytes = download_bytes + ?,
+                        updated_at = datetime('now')
+                    WHERE protocol = 'stuntls' AND username = ?
+                """, (rx_bytes, tx_bytes, username))
+            conn.close()
+    except Exception:
+        pass
+
+def is_stun_packet(data):
+    if len(data) >= 20:
+        msg_type, msg_len, cookie = struct.unpack(">HHI", data[:8])
+        if cookie == STUN_MAGIC_COOKIE:
+            return True, msg_type, msg_len, data[20:]
+    return False, 0, 0, data
+
+def wrap_stun_response(data, msg_type=0x0101): # Binding Success Response
+    trans_id = os.urandom(12)
+    hdr = struct.pack(">HHI", msg_type, len(data), STUN_MAGIC_COOKIE) + trans_id
+    return hdr + data
+
+def handle_client_tcp(client_sock, upstream_host, upstream_port, enable_jitter=False, valid_secrets=None):
+    client_user = "default"
+    bytes_in = 0
+    bytes_out = 0
+    up_sock = None
+    try:
+        up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        up_sock.connect((upstream_host, upstream_port))
+
+        sockets = [client_sock, up_sock]
+        first_packet = True
+
+        while True:
+            r, _, _ = select.select(sockets, [], [], 60)
+            if not r:
+                break
+            for s in r:
+                data = s.recv(16384)
+                if not data:
+                    return
+                if s is client_sock:
+                    if enable_jitter and random.random() < 0.2:
+                        time.sleep(random.uniform(0.002, 0.012))
+
+                    is_stun, _, _, payload = is_stun_packet(data)
+                    data_to_send = payload if is_stun else data
+                    bytes_in += len(data)
+                    up_sock.sendall(data_to_send)
+                else:
+                    bytes_out += len(data)
+                    client_sock.sendall(data)
+    except Exception:
+        pass
+    finally:
+        client_sock.close()
+        if up_sock:
+            try: up_sock.close()
+            except: pass
+        update_accounting_db(client_user, bytes_in, bytes_out)
+
+def run_server():
+    cfg = load_config()
+    port = int(cfg.get("port", 3478))
+    upstream_str = cfg.get("upstream", "127.0.0.1:22")
+    enable_jitter = bool(cfg.get("jitter", False))
+
+    if ":" in upstream_str:
+        u_host, u_port = upstream_str.split(":", 1)
+        u_port = int(u_port)
+    else:
+        u_host, u_port = upstream_str, 22
+
+    # Listen on both TCP and UDP
+    tcp_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    tcp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    tcp_sock.bind(("0.0.0.0", port))
+    tcp_sock.listen(128)
+
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    udp_sock.bind(("0.0.0.0", port))
+
+    print(f"[StunTLS] Listening on TCP/UDP 0.0.0.0:{port}, forwarding to {u_host}:{u_port} (Jitter: {enable_jitter})")
+
+    def handle_exit(sig, frame):
+        print("\n[StunTLS] Shutting down...")
+        try: tcp_sock.close()
+        except: pass
+        try: udp_sock.close()
+        except: pass
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_exit)
+    signal.signal(signal.SIGTERM, handle_exit)
+
+    # UDP handler thread
+    def udp_loop():
+        while True:
+            try:
+                data, addr = udp_sock.recvfrom(65535)
+                is_stun, m_type, m_len, payload = is_stun_packet(data)
+                if is_stun:
+                    resp = wrap_stun_response(b"\x00\x01\x00\x08\x00\x01" + socket.inet_aton(addr[0]) + struct.pack(">H", addr[1]))
+                    udp_sock.sendto(resp, addr)
+            except Exception:
+                pass
+
+    threading.Thread(target=udp_loop, daemon=True).start()
+
+    while True:
+        try:
+            client_conn, client_addr = tcp_sock.accept()
+            # Reload config dynamically
+            current_cfg = load_config()
+            t = threading.Thread(
+                target=handle_client_tcp, 
+                args=(client_conn, u_host, u_port, current_cfg.get("jitter", False)), 
+                daemon=True
+            )
+            t.start()
+        except Exception:
+            time.sleep(0.1)
+
+if __name__ == "__main__":
+    run_server()

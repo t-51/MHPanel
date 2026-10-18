@@ -6,7 +6,7 @@
     <script>
         (function() {
             var l = localStorage.getItem("panel_language") || "fa";
-            document.documentElement.dir = (l === "fa" ? "rtl" : "ltr");
+            document.documentElement.dir = (l === "fa" || l === "ar" ? "rtl" : "ltr");
             document.documentElement.lang = l;
             var t = localStorage.getItem("panel_theme") || "dark";
             document.documentElement.setAttribute("data-theme", t);
@@ -30,6 +30,7 @@
                     {% include 'partials/tab_overview.html' %}
                     {% include 'partials/tab_radar.html' %}
                     {% include 'partials/tab_protocols.html' %}
+                    {% include 'partials/tab_singbox.html' %}
                     {% include 'partials/tab_wireguard.html' %}
                     {% include 'partials/tab_amneziawg.html' %}
                     {% include 'partials/tab_openvpn.html' %}
@@ -58,6 +59,40 @@
                 </main>
             </div>
         </div>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+            <button type="button" class="mob-nav-item active" data-tab="overview" onclick="switchTab('overview')">
+                <div class="mob-nav-icon-wrap">
+                    <i data-lucide="layout-dashboard"></i>
+                </div>
+                <span data-i18n="nav_mob_dashboard">داشبورد</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="protocols" onclick="switchTab('protocols')">
+                <div class="mob-nav-icon-wrap">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <span data-i18n="nav_mob_protocols">پروتکل‌ها</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="radar" onclick="switchTab('radar')">
+                <div class="mob-nav-icon-wrap">
+                    <i data-lucide="radar"></i>
+                </div>
+                <span data-i18n="nav_mob_radar">رادار</span>
+            </button>
+            <button type="button" class="mob-nav-item" data-tab="tunnels" onclick="switchTab('tunnels')">
+                <div class="mob-nav-icon-wrap">
+                    <i data-lucide="route"></i>
+                </div>
+                <span data-i18n="nav_mob_tunnels">تونل‌ها</span>
+            </button>
+            <button type="button" class="mob-nav-item" id="mob-nav-menu-btn" onclick="toggleMobileSidebar()">
+                <div class="mob-nav-icon-wrap">
+                    <i data-lucide="menu"></i>
+                </div>
+                <span data-i18n="nav_mob_menu">منو</span>
+            </button>
+        </nav>
 
         {% include 'partials/modals.html' %}
     {% endif %}

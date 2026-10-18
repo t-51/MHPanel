@@ -3,7 +3,7 @@
 <!-- RADIUS Sub-Tabs Navigation Header -->
 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
 <div>
-<h2 style="font-size: 20px; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 10px; margin: 0;">
+<h2 style="font-size: 20px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin: 0;">
 <i data-lucide="database" style="color: #059669; width: 24px; height: 24px;"></i> <span data-i18n="radius_title">مدیریت یکپارچه ردیوس و کاربران سراسری (FreeRADIUS Hub)</span>
 </h2>
 <p data-i18n="rad_comprehensive_user_management_system_pack" style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">
@@ -41,7 +41,7 @@
 </div>
 <div>
 <div data-i18n="rad_all_radius_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کل کاربران ردیوس</div>
-<div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: #0f172a; font-family: 'JetBrains Mono';">0</div>
+<div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
 </div>
 </div>
 <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; ">
@@ -109,8 +109,8 @@
 </div>
 <!-- Single User Add / Edit Collapsible Box -->
 <div id="add-radius-user-box" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid #f1f5f9; padding-bottom: 12px;">
-<h4 style="font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; margin: 0;">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+<h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
 <i data-lucide="user-plus" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
 <span data-i18n="rad_radius_new_user_profile" id="radius-user-form-title">مشخصات کاربر جدید ردیوس</span>
 </h4>
@@ -177,7 +177,7 @@
 </div>
 <!-- Login-Time schedule config -->
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
-<div data-i18n="rad_freeradius_login_time" style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">محدودیت زمانی اتصال (FreeRADIUS Login-Time)</div>
+<div data-i18n="rad_freeradius_login_time" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">محدودیت زمانی اتصال (FreeRADIUS Login-Time)</div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
 <div>
 <label data-i18n="rad_allowed_days" style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
@@ -238,7 +238,7 @@
 <div class="rad-subpane" id="rad-subpane-groups" style="display: none; flex-direction: column; gap: 20px;">
 <div class="glass-card" style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
 <div>
-<h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; display:flex; align-items:center; gap:8px;">
+<h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
 <i data-lucide="layers" style="color: var(--color-primary); width:20px; height:20px;"></i> <span data-i18n="rad_mikrotik_user_manager">تعریف بسته‌ها و گروه‌ها (مشابه Mikrotik User Manager)</span>
 </h3>
 <p data-i18n="rad_each_group_you_can_set" style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
@@ -250,7 +250,7 @@
 </button>
 </div>
 <!-- Group Cards Grid -->
-<div id="radius-groups-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+<div id="radius-groups-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
 <!-- Injected via JavaScript -->
 </div>
 </div>
@@ -261,7 +261,7 @@
 <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
 <div style="display: flex; align-items: center; gap: 10px;">
 <span class="status-dot active"></span>
-<strong data-i18n="rad_active_connected_sessions_across_server" style="color: #0f172a; font-size: 15px;">نشست‌های فعال متصل در سراسر سرور</strong>
+<strong data-i18n="rad_active_connected_sessions_across_server" style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور</strong>
 <span class="badge-pill" data-i18n="rad_0_connection" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;">0 اتصال</span>
 </div>
 <button class="btn btn-secondary" onclick="fetchRadiusData(true)" style="padding: 8px 16px; font-size: 12.5px;" type="button">
@@ -300,7 +300,7 @@
 <!-- Core FreeRADIUS Card -->
 <div class="glass-card config-card" style="border: 1px solid rgba(16, 185, 129, 0.25); ">
 <div class="config-header" style="margin-bottom: 16px;">
-<h3 class="config-title" style="color: #065f46; font-size: 16px;">
+<h3 class="config-title" style="color: var(--color-emerald); font-size: 16px;">
 <i data-lucide="cpu" style="color: #10b981; width: 22px; height: 22px;"></i> <span data-i18n="rad_internal_freeradius_engine">موتور ردیوس محلی (Internal FreeRADIUS Engine)</span>
 </h3>
 <span data-i18n-html="elem_tab_radius_43" id="radius-internal-status-badge" style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
@@ -310,19 +310,19 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
 <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="rad_item_4" style="color: #64748b; font-size: 11px; font-weight: 600;">پورت احراز هویت / اکانتینگ</div>
-<div style="font-weight: 700; color: #0f172a; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">UDP 1812 / UDP 1813</div>
+<div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">UDP 1812 / UDP 1813</div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="rad_address_local_radius_server" style="color: #64748b; font-size: 11px; font-weight: 600;">آدرس سرور ردیوس محلی</div>
-<div style="font-weight: 700; color: #0f172a; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">127.0.0.1 / localhost</div>
+<div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">127.0.0.1 / localhost</div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="rad_secret" style="color: #64748b; font-size: 11px; font-weight: 600;">کلید امنیتی اشتراکی (Secret)</div>
-<div id="rad-secret-display" style="font-weight: 700; color: #0f172a; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">testing123</div>
+<div id="rad-secret-display" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">testing123</div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="rad_integrated_user_bank" style="color: #64748b; font-size: 11px; font-weight: 600;">بانک کاربران یکپارچه</div>
-<div data-i18n="rad_0_users" id="rad-total-users" style="font-weight: 700; color: #0f172a; font-family: 'JetBrains Mono', monospace; margin-top: 4px;">0 کاربر</div>
+<div data-i18n="rad_0_users" id="rad-total-users" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">0 کاربر</div>
 </div>
 </div>
 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
@@ -342,7 +342,7 @@
                     </span>
 </div>
 <form id="radius-form">
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="rad_radius_server_address_host_ip">آدرس سرور ردیوس (Host/IP)</label>
 <input class="form-input" id="rad-ip" placeholder="127.0.0.1" style="padding-left:16px;" type="text"/>
@@ -352,7 +352,7 @@
 <input class="form-input" id="rad-secret" placeholder="testing123" style="padding-left:16px;" type="password"/>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px;">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="rad_authentication_port">پورت احراز هویت (Authentication Port)</label>
 <input class="form-input" id="rad-auth-port" style="padding-left:16px;" type="number" value="1812"/>

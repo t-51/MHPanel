@@ -31,7 +31,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت اتصال (UDP)</div>
-                    <div style="font-weight: 700; color: #ef4444; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="hysteria2-stat-port">7443</div>
+                    <div style="font-weight: 700; color: #ef4444; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="hysteria2-stat-port">11443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="hysteria2_stat_congestion">کنترل ازدحام (Congestion)</div>
@@ -47,6 +47,68 @@
                 </div>
             </div>
 
+            <!-- Visual Architecture & Connection Pipeline -->
+            <div style="margin-bottom: 18px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="git-commit" style="width:14px; height:14px; color:#ef4444;"></i>
+                    <span data-i18n="hy2_pipeline_title">پایپ‌لاین شتاب‌دهنده ترافیک و احراز هویت هیستوریا ۲:</span>
+                </div>
+                <div class="proto-pipeline-container">
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(239,68,68,0.15); color:#f87171;">
+                            <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="pipe_client">کلاینت کاربر</div>
+                        <div class="proto-pipeline-subtitle">Hiddify / v2rayN</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                            <i data-lucide="zap" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="hy2_pipe_quic">بستر QUIC UDP</div>
+                        <div class="proto-pipeline-subtitle" id="hy2-arch-port-label">11443 + Port Hop</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                            <i data-lucide="activity" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="hy2_pipe_brutal">الگوریتم Brutal</div>
+                        <div class="proto-pipeline-subtitle" id="hy2-arch-speed-label">جبران پکت‌لاس</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(14,165,233,0.15); color:#38bdf8;">
+                            <i data-lucide="eye-off" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="hy2_pipe_obfs">استتار Salamander</div>
+                        <div class="proto-pipeline-subtitle" id="hy2-arch-obfs-label">ضد مسدودسازی DPI</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(139,92,246,0.15); color:#a78bfa;">
+                            <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="hy2_pipe_auth">احراز هویت کاربران</div>
+                        <div class="proto-pipeline-subtitle" id="hy2-arch-auth-label">Dual / FreeRADIUS</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+                            <i data-lucide="globe" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="pipe_outbound">اینترنت و استتار وب</div>
+                        <div class="proto-pipeline-subtitle" id="hy2-arch-masq-label">Direct / Masquerade</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Service Control Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="controlProtocol('hysteria2', 'restart')" style="width:auto; padding: 8px 16px;">
@@ -58,112 +120,369 @@
             </div>
         </div>
 
-        <!-- Settings Form -->
+        <!-- 1. Port & Network Settings -->
         <div class="glass-card config-card">
             <div class="config-header">
                 <h3 class="config-title">
-                    <i data-lucide="sliders" style="color: #ef4444; width: 20px; height: 20px;"></i>
-                    <span data-i18n="hysteria2_config_title">تنظیمات هسته و مبهم‌سازی Hysteria 2</span>
-                </h3>
-            </div>
-
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
-                <div>
-                    <label class="form-label" data-i18n="hysteria2_port_label">پورت سرور (UDP Port)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-port" placeholder="7443" min="1" max="65535">
-                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="hysteria2_port_hint">
-                        پیش‌فرض ۷۴۴۳ (شنود بر روی تمامی آدرس‌های IPv4 و IPv6)
-                    </span>
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="password">رمز عبور احراز هویت (Auth Password)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-password" placeholder="mhpanel_hysteria_secret">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('hysteria2-cfg-password', 18)" title="تولید رمز رندوم">
-                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="hysteria2_obfs_pass_label">کلید مبهم‌سازی سالاماندر (Salamander Password)</label>
-                    <div style="display:flex; gap:8px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-obfs-pass" placeholder="mhpanel_salamander_key">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('hysteria2-cfg-obfs-pass', 16)" title="تولید کلید رندوم">
-                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
-                        </button>
-                    </div>
-                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="hysteria2_obfs_hint">
-                        باعث غیرقابل تشخیص شدن هدرهای پروتکل برای فایروال‌های DPI می‌شود.
-                    </span>
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="domain">دامنه متصل به گواهی SSL (SNI)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-domain" readonly>
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="hysteria2_up_mbps">محدودیت پهنای باند آپلود پیش‌فرض (Mbps)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-up" placeholder="100">
-                </div>
-
-                <div>
-                    <label class="form-label" data-i18n="hysteria2_down_mbps">محدودیت پهنای باند دانلود پیش‌فرض (Mbps)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-down" placeholder="100">
-                </div>
-            </div>
-
-            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn btn-primary" onclick="saveHysteria2Config()" style="width:auto; padding: 9px 24px;">
-                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات Hysteria 2</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Client Export & Integration -->
-        <div class="glass-card config-card">
-            <div class="config-header">
-                <h3 class="config-title">
-                    <i data-lucide="qr-code" style="color: #10b981; width: 20px; height: 20px;"></i>
-                    <span data-i18n="hysteria2_export_title">لینک اتصال کلاینت و بارکد QR (v2rayN, Nekoray, Hiddify, Sing-box)</span>
+                    <i data-lucide="radio" style="color: #ef4444; width: 20px; height: 20px;"></i>
+                    <span>تنظیمات درگاه و پورت شبکه شنود Hysteria 2</span>
                 </h3>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:16px;">
                 <div>
-                    <label class="form-label" data-i18n="hysteria2_uri_label">لینک مستقیم Hysteria 2 (URI):</label>
-                    <div style="display:flex; gap:8px;">
-                        <input class="form-input" id="hysteria2-client-uri" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#38bdf8;">
-                        <button type="button" class="btn btn-secondary" onclick="copyElementText('hysteria2-client-uri'); showToast('لینک کپی شد', 'success');" style="width:auto; white-space:nowrap;">
-                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div style="display:flex; gap:18px; flex-wrap:wrap; align-items:center;">
-                    <div id="hysteria2-qrcode-container" style="background:#fff; padding:10px; border-radius:10px; width:160px; height:160px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.15);">
-                        <!-- QR code rendered here -->
-                    </div>
-                    <div style="flex:1; min-width:240px; font-size:12.5px; color:var(--text-muted); line-height:1.8;">
-                        <p style="margin:0 0 8px 0;" data-i18n="hysteria2_client_instructions">
-                            این لینک و بارکد در تمامی برنامه‌های مدرن موبایل و کامپیوتر شامل <strong>v2rayN</strong> (ویندوز)، <strong>v2rayNG</strong> (اندروید)، <strong>NekoBox</strong>، <strong>Hiddify Next</strong> و <strong>Sing-box</strong> مستقیماً قابل استفاده است.
-                        </p>
-                        <p style="margin:0;">
-                            <i data-lucide="shield-check" style="width:14px; height:14px; color:#10b981; vertical-align:middle; margin-left:4px;"></i>
-                            <span data-i18n="hysteria2_brutal_notice">الگوریتم Brutal به صورت خودکار پکت‌های از دست رفته بر اثر اختلالات DPI را بازتولید می‌کند.</span>
-                        </p>
+                    <label class="form-label" data-i18n="hysteria2_port_label">پورت سرور (UDP Port)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-port" placeholder="11443" min="1" max="65535">
+                    <div class="quick-chip-group">
+                        <span style="font-size:11px; color:var(--text-muted); align-self:center; margin-left:4px;" data-i18n="quick_select">انتخاب سریع:</span>
+                        <button type="button" class="quick-chip active-rose" onclick="selectHysteria2Port(11443)">11443 (پیش‌فرض)</button>
+                        <button type="button" class="quick-chip" onclick="selectHysteria2Port(8443)">8443</button>
+                        <button type="button" class="quick-chip" onclick="selectHysteria2Port(443)">443 (استاندارد QUIC)</button>
+                        <button type="button" class="quick-chip" onclick="selectHysteria2Port(2083)">2083 (کلودفلر)</button>
+                        <button type="button" class="quick-chip" onclick="selectHysteria2Port(2087)">2087</button>
                     </div>
                 </div>
 
                 <div>
+                    <label class="form-label" data-i18n="domain">دامنه متصل به گواهی SSL (SNI)</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-domain" placeholder="yourdomain.com">
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">دامنه جهت معتبرسازی دست‌تکانی TLS بر بستر QUIC</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Brutal Bandwidth & Congestion Control -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="gauge" style="color: #10b981; width: 20px; height: 20px;"></i>
+                    <span>مدیریت پهنای باند و کنترل ازدحام Brutal (Rate Control)</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:16px;">
+                    <div>
+                        <label class="form-label" data-i18n="hysteria2_up_mbps">محدودیت پهنای باند آپلود پیش‌فرض (Mbps)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-up" placeholder="100">
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="hysteria2_down_mbps">محدودیت پهنای باند دانلود پیش‌فرض (Mbps)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="hysteria2-cfg-down" placeholder="100">
+                    </div>
+                </div>
+
+                <div class="quick-chip-group">
+                    <span style="font-size:11px; color:var(--text-muted); align-self:center; margin-left:4px;">پروفایل‌های سرعت:</span>
+                    <button type="button" class="quick-chip" onclick="selectHysteria2Speed(50)">50 Mbps</button>
+                    <button type="button" class="quick-chip active-rose" onclick="selectHysteria2Speed(100)">100 Mbps (پیش‌فرض)</button>
+                    <button type="button" class="quick-chip" onclick="selectHysteria2Speed(250)">250 Mbps</button>
+                    <button type="button" class="quick-chip" onclick="selectHysteria2Speed(500)">500 Mbps (حرفه‌ای)</button>
+                    <button type="button" class="quick-chip" onclick="selectHysteria2Speed(1000)">1000 Mbps (گیگابیت)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Salamander Obfuscation & QUIC Buffer Tuning -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="shield" style="color: #0ea5e9; width: 20px; height: 20px;"></i>
+                    <span>مبهم‌سازی Salamander و بافر جریان داده QUIC</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+                    <div>
+                        <div style="font-weight:700; font-size:13px;">فعال‌سازی مبهم‌سازی پیشرفته سالاماندر (Salamander Obfuscation)</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">تبدیل تمام هدرهای پروتکل به نویز تصادفی جهت دور زدن کامل فیلترینگ هوشمند DPI</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="hysteria2-cfg-obfs-toggle" checked onchange="toggleHysteria2ObfsInput()">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div id="hysteria2-obfs-input-box">
+                    <label class="form-label" data-i18n="hysteria2_obfs_pass_label">کلید مبهم‌سازی سالاماندر (Salamander Password)</label>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-obfs-pass" placeholder="mhpanel_salamander_key">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('hysteria2-cfg-obfs-pass', 16)" title="تولید کلید تصادفی">
+                            <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- QUIC Buffer Presets -->
+                <div>
+                    <label class="form-label">بهینه‌سازی بافر پنجره دریافت QUIC (Stream Windows)</label>
+                    <input type="hidden" id="hysteria2-cfg-quic-preset" value="balanced">
+                    <div class="proto-card-selector">
+                        <div class="proto-card-option active-rose" id="hy2-card-balanced" onclick="selectHysteria2Quic('balanced')">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(239,68,68,0.15); color:#ef4444; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <i data-lucide="scale" style="width:18px; height:18px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700; font-size:13px; color:var(--text-main);">استاندارد (Balanced)</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">بافر 20MB - پایداری و تعادل کامل در مصرف منابع</div>
+                            </div>
+                        </div>
+
+                        <div class="proto-card-option" id="hy2-card-turbo" onclick="selectHysteria2Quic('turbo')">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700; font-size:13px; color:var(--text-main);">توربو حداکثری (Turbo)</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">بافر 32MB - ایده‌آل برای دانلودهای حجیم و استریم 4K</div>
+                            </div>
+                        </div>
+
+                        <div class="proto-card-option" id="hy2-card-low" onclick="selectHysteria2Quic('low')">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(139,92,246,0.15); color:#8b5cf6; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <i data-lucide="feather" style="width:18px; height:18px;"></i>
+                            </div>
+                            <div>
+                                <div style="font-weight:700; font-size:13px; color:var(--text-main);">سبک و کم‌مصرف (Low RAM)</div>
+                                <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">بافر 8MB - ویژه سرورهای با رم پایین (زیر ۱ گیگابایت)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Anti-Filtering, Decoy Masquerade & Port Hopping Studio -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.25);">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="shield-alert" style="color: #f59e0b; width: 20px; height: 20px;"></i>
+                    <span data-i18n="hy2_antifilter_title">استتار وب، پورت‌هاپینگ و ضد مسدودسازی فایروال (Anti-DPI Shield)</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:16px;">
+                    <div>
+                        <label class="form-label" data-i18n="hy2_port_hop_label">محدوده پرش تصادفی پورت (Port Hopping Range)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-port-hop" placeholder="20000:50000" value="20000:50000">
+                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="hy2_port_hop_hint">
+                            پرش مداوم بین هزاران پورت UDP مانع مسدودسازی پورت توسط سیستم‌های فیلترینگ می‌شود.
+                        </span>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="hy2_masq_label">آدرس وب‌سایت استتار فریبنده (Decoy Masquerade URL)</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-masq-url" placeholder="https://bing.com" value="https://bing.com">
+                        <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="hy2_masq_hint">
+                            در صورت بازرسی اسکنرها یا مرورگرهای عادی، سایت فریب به جای سرویس پروکسی نمایش داده می‌شود.
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+                    <div>
+                        <div style="font-weight:700; font-size:13px;" data-i18n="hy2_disable_pmtu">غیرفعال‌سازی کشف خودکار MTU مسیر (Disable PMTU Discovery)</div>
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-top:2px;" data-i18n="hy2_disable_pmtu_hint">جلوگیری از افت پکت‌ها و حل مشکل عدم بارگذاری در شبکه اپراتورهای همراه اول و ایرانسل</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="hysteria2-cfg-disable-pmtu" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Multi-User Management & FreeRADIUS Central Accounting -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(239, 68, 68, 0.25);">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(239, 68, 68, 0.12); color:#ef4444; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="users" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="hy2_users_hub_title">
+                            مدیریت کاربران و احراز هویت با FreeRADIUS (Hysteria 2)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="proto_users_hub_desc">
+                            تعریف کاربران محلی یا اتصال به یوزر منیجر FreeRADIUS (میکروتیک)، تفکیک مصرف آپلود و دانلود و سقف انقضا
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="syncProtocolAccounting('hysteria2')" style="padding:7px 14px; font-size:12px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sync_freeradius">همگام‌سازی FreeRADIUS</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddProtocolUserModal('hysteria2')" style="padding:7px 16px; font-size:12px; font-weight:700;">
+                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="add_user">کاربر جدید</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Auth Mode Switcher -->
+            <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow); margin-bottom:16px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:15px; height:15px; color:#ef4444;"></i>
+                    <span data-i18n="auth_mode_selector_title">حالت احراز هویت و مدیریت اکانت‌ها:</span>
+                </div>
+                <div class="proto-card-selector" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+                    <div class="proto-card-option" id="hysteria2-authmode-dual" onclick="setProtocolAuthMode('hysteria2', 'dual')">
+                        <div style="font-weight:700; font-size:12.5px; color:#38bdf8;">حالت دوگانه (Dual Mode)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">بررسی کاربران محلی + FreeRADIUS (پیشنهادی)</div>
+                    </div>
+                    <div class="proto-card-option" id="hysteria2-authmode-radius" onclick="setProtocolAuthMode('hysteria2', 'radius')">
+                        <div style="font-weight:700; font-size:12.5px; color:#10b981;">فقط FreeRADIUS</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">مدیریت متمرکز یوزر منیجر میکروتیک</div>
+                    </div>
+                    <div class="proto-card-option" id="hysteria2-authmode-local" onclick="setProtocolAuthMode('hysteria2', 'local')">
+                        <div style="font-weight:700; font-size:12.5px; color:#f59e0b;">فقط کاربران محلی (Local)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">دیتابیس مستقل بدون اتصال به ردیوس</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border-glow);">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
+                    <thead>
+                        <tr style="background:var(--bg-muted); border-bottom:1px solid var(--border-glow); color:var(--text-main); font-weight:700;">
+                            <th style="padding:10px 12px;" data-i18n="col_user">نام کاربری</th>
+                            <th style="padding:10px 12px;" data-i18n="col_password">رمز / کلید</th>
+                            <th style="padding:10px 12px;" data-i18n="col_source">منبع</th>
+                            <th style="padding:10px 12px;" data-i18n="col_traffic_usage">میزان مصرف (آپلود / دانلود)</th>
+                            <th style="padding:10px 12px;" data-i18n="col_expire">تاریخ انقضا</th>
+                            <th style="padding:10px 12px;" data-i18n="col_status">وضعیت</th>
+                            <th style="padding:10px 12px; text-align:center;" data-i18n="col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hysteria2-users-table-body">
+                        <!-- User rows inject here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 6. Auth Password & Save -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="key" style="color: #ef4444; width: 20px; height: 20px;"></i>
+                    <span data-i18n="password">رمز عبور پیش‌فرض احراز هویت Hysteria 2</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <div style="display:flex; gap:8px;">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="hysteria2-cfg-password" placeholder="mhpanel_hysteria_secret">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomToInput('hysteria2-cfg-password', 18)" title="تولید رمز تصادفی">
+                            <i data-lucide="shuffle" style="width:14px; height:14px; margin-left:4px;"></i> <span>تولید رمز</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('hysteria2-cfg-password'); showToast('رمز عبور کپی شد', 'success');" title="کپی رمز">
+                            <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top: 8px; display:flex; justify-content:flex-end;">
+                    <button type="button" class="btn btn-primary" onclick="saveHysteria2Config()" style="width:auto; padding: 11px 32px; font-weight:700; font-size:14px;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال بلادرنگ تنظیمات Hysteria 2</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Client Export Studio -->
+        <div class="glass-card config-card">
+            <div class="config-header">
+                <h3 class="config-title">
+                    <i data-lucide="share-2" style="color: #ef4444; width: 20px; height: 20px;"></i>
+                    <span data-i18n="hysteria2_export_title">هاب یکپارچه صدور کانفیگ برای کلاینت‌ها</span>
+                </h3>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div class="client-tab-nav">
+                    <button type="button" class="client-tab-btn active-rose" id="hy2-tabbtn-uri" onclick="switchHysteria2ClientTab('uri')">
+                        <i data-lucide="link" style="width:14px; height:14px;"></i> <span>لینک مستقیم Hysteria 2 URI</span>
+                    </button>
+                    <button type="button" class="client-tab-btn" id="hy2-tabbtn-singbox" onclick="switchHysteria2ClientTab('singbox')">
+                        <i data-lucide="cpu" style="width:14px; height:14px;"></i> <span>Sing-box Outbound</span>
+                    </button>
+                    <button type="button" class="client-tab-btn" id="hy2-tabbtn-clash" onclick="switchHysteria2ClientTab('clash')">
+                        <i data-lucide="box" style="width:14px; height:14px;"></i> <span>Clash Meta (Mihomo)</span>
+                    </button>
+                    <button type="button" class="client-tab-btn" id="hy2-tabbtn-apps" onclick="switchHysteria2ClientTab('apps')">
+                        <i data-lucide="smartphone" style="width:14px; height:14px;"></i> <span>راهنمای برنامه‌ها</span>
+                    </button>
+                </div>
+
+                <!-- Pane 1: URI & QR -->
+                <div id="hy2-clientpane-uri" style="display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <label class="form-label" data-i18n="hysteria2_uri_label">لینک مستقیم Hysteria 2 (URI):</label>
+                        <div style="display:flex; gap:8px;">
+                            <input class="form-input" id="hysteria2-client-uri" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#38bdf8;">
+                            <button type="button" class="btn btn-secondary" onclick="copyElementText('hysteria2-client-uri'); showToast('لینک کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                                <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:center; background:var(--bg-base); padding:16px; border-radius:12px; border:1px solid var(--border-glow);">
+                        <div id="hysteria2-qrcode-container" style="background:#fff; padding:10px; border-radius:10px; width:160px; height:160px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.25);">
+                            <!-- QR code rendered here -->
+                        </div>
+                        <div style="flex:1; min-width:240px; font-size:12.5px; color:var(--text-muted); line-height:1.9;">
+                            <div style="font-weight:700; font-size:14px; color:var(--text-main); margin-bottom:6px;">اسکن بارکد و اتصال آنی:</div>
+                            <p style="margin:0 0 6px 0;">
+                                پشتیبانی کامل در کلاینت‌های <strong>v2rayNG</strong>، <strong>Hiddify Next</strong>، <strong>NekoBox</strong>، <strong>Streisand</strong> و <strong>Sing-box</strong>.
+                            </p>
+                            <p style="margin:0; color:#10b981;">
+                                <i data-lucide="shield-check" style="width:14px; height:14px; vertical-align:middle; margin-left:4px;"></i>
+                                عبور کامل از فیلترینگ شدید و بستن پورت‌های UDP به کمک مبهم‌سازی سالاماندر.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pane 2: Sing-box -->
+                <div id="hy2-clientpane-singbox" style="display:none; flex-direction:column; gap:12px;">
                     <label class="form-label" data-i18n="hysteria2_singbox_label">کانفیگ Sing-box Outbound JSON:</label>
-                    <textarea class="form-input" id="hysteria2-singbox-snippet" rows="8" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#a7f3d0;"></textarea>
-                    <div style="margin-top:8px;">
+                    <textarea class="form-input" id="hysteria2-singbox-snippet" rows="12" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#a7f3d0;"></textarea>
+                    <div style="display:flex; justify-content:flex-end;">
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('hysteria2-singbox-snippet'); showToast('کانفیگ Sing-box کپی شد', 'success');" style="width:auto;">
                             <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy_singbox">کپی کانفیگ Sing-box</span>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Pane 3: Clash Meta -->
+                <div id="hy2-clientpane-clash" style="display:none; flex-direction:column; gap:12px;">
+                    <label class="form-label">کانفیگ Clash Meta (Mihomo) Outbound YAML:</label>
+                    <textarea class="form-input" id="hysteria2-clash-snippet" rows="10" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#bae6fd;"></textarea>
+                    <div style="display:flex; justify-content:flex-end;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('hysteria2-clash-snippet'); showToast('کانفیگ Clash کپی شد', 'success');" style="width:auto;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span>کپی کانفیگ Clash</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pane 4: Apps Guide -->
+                <div id="hy2-clientpane-apps" style="display:none; flex-direction:column; gap:12px; font-size:13px; line-height:1.9;">
+                    <div style="background:var(--bg-base); padding:16px; border-radius:10px; border:1px solid var(--border-glow);">
+                        <strong style="color:#ef4444;">📱 اندروید (Android):</strong>
+                        برنامه <strong>NekoBox</strong> یا <strong>Hiddify</strong> را نصب نموده، علامت + را لمس کرده و با انتخاب <code>Scan QR code</code> بارکد بالا را اسکن کنید.
+                    </div>
+                    <div style="background:var(--bg-base); padding:16px; border-radius:10px; border:1px solid var(--border-glow);">
+                        <strong style="color:#10b981;">🍏 آیفون (iOS):</strong>
+                        از نرم‌افزار <strong>Streisand</strong> یا <strong>FoXray</strong> یا <strong>Sing-box</strong> استفاده نمایید و لینک بالا را مستقیماً وارد کنید.
+                    </div>
+                    <div style="background:var(--bg-base); padding:16px; border-radius:10px; border:1px solid var(--border-glow);">
+                        <strong style="color:#8b5cf6;">💻 ویندوز و لینوکس:</strong>
+                        نرم‌افزار <strong>Hiddify Next</strong> یا <strong>Clash Verge Rev</strong> را باز کرده و لینک را در پروفایل‌های اتصال درج نمایید.
                     </div>
                 </div>
             </div>

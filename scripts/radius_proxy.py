@@ -145,7 +145,7 @@ def authenticate_radius(username, password, rad_config, client_ip="127.0.0.1"):
         client = get_radius_client(rad_config)
         req = client.CreateAuthPacket(code=pyrad.packet.AccessRequest, User_Name=username)
         req["User-Password"] = req.PwCrypt(password)
-        req["NAS-Identifier"] = "aethervpn-proxy"
+        req["NAS-Identifier"] = "mhpanel-proxy"
         req["NAS-IP-Address"] = "127.0.0.1"
         req["Framed-IP-Address"] = client_ip
         
@@ -430,7 +430,7 @@ async def handle_http_proxy(reader, writer, rad_config, use_radius):
             if not username or not password:
                 # Request credentials
                 writer.write(b"HTTP/1.1 407 Proxy Authentication Required\r\n"
-                             b"Proxy-Authenticate: Basic realm=\"AetherVPN Proxy\"\r\n"
+                             b"Proxy-Authenticate: Basic realm=\"MHPanel Proxy\"\r\n"
                              b"Connection: close\r\n\r\n")
                 await writer.drain()
                 writer.close()

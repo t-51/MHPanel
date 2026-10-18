@@ -61,7 +61,7 @@ def authenticate_radius(username, rad_config, client_ip="127.0.0.1"):
         # Use username as password for WireGuard peers
         req = client.CreateAuthPacket(code=pyrad.packet.AccessRequest, User_Name=username)
         req["User-Password"] = req.PwCrypt(username)
-        req["NAS-Identifier"] = "aethervpn-wg"
+        req["NAS-Identifier"] = "mhpanel-wg"
         req["NAS-IP-Address"] = "127.0.0.1"
         req["Framed-IP-Address"] = client_ip
         
@@ -88,7 +88,7 @@ def send_accounting_radius(username, session_id, status, rx_bytes, tx_bytes, ela
         req = client.CreateAcctPacket(code=pyrad.packet.AccountingRequest, User_Name=username)
         req["Acct-Status-Type"] = status
         req["Acct-Session-Id"] = session_id
-        req["NAS-Identifier"] = "aethervpn-wg"
+        req["NAS-Identifier"] = "mhpanel-wg"
         req["NAS-IP-Address"] = "127.0.0.1"
         req["Framed-IP-Address"] = client_ip
         

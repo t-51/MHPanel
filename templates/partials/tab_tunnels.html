@@ -9,7 +9,7 @@
 <span class="sidebar-badge sidebar-badge-blue" style="font-size: 11px;">MikroTik &amp; Linux</span>
 </h2>
 <p data-i18n="tunnels_graphical_management_standard_mikroti" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
-                    مدیریت گرافیکی انواع تونل‌های استاندارد روتربورد میکروتیک (GRE، IPIP، VXLAN، L2TP، OpenVPN، WireGuard) و تونل‌های پیشرفته ضد فیلتر لینوکس (GOST، WSTunnel، RTT، Chisel، FRP، UDP2Raw، Phantun، Rathole)
+                    مدیریت گرافیکی انواع تونل‌های استاندارد روتربورد میکروتیک (۲۲ نوع پروتکل نظیر GRE، EoIP، IPIP، VXLAN، GENEVE، WireGuard، FOU، GUE، L2TPv3، OpenVPN، SSTP، VTI و...) و تونل‌های پیشرفته ترانزیت و ضد فیلتر لینوکس (۱۷ ابزار شامل Hysteria 2، TUIC، AmneziaWG، GOST، WSTunnel، RTT، Sing-box، SS-2022، Chisel، FRP، UDP2Raw، Tun2Socks، DNSTT و...)
                 </p>
 </div>
 <!-- Sub-Tabs Navigation Switcher -->
@@ -38,51 +38,76 @@
 <i data-lucide="shield-alert" style="width: 16px; height: 16px; color:#ef4444;"></i> <span data-i18n="tun_shield_tab_btn">پایش دستکاری و دراپ پکت‌ها</span>
 <span class="badge-pill" id="pill-tun-alerts-badge" style="background:rgba(239,68,68,0.15); color:#dc2626;">0</span>
 </button>
+<button class="rad-tab-btn" id="tun-subtab-btn-tools" onclick="switchTunnelSubTab('tools')" type="button">
+<i data-lucide="wrench" style="width: 16px; height: 16px; color:#6366f1;"></i> <span data-i18n="tun_tools_tab_btn">مدیریت باینری‌ها و ابزارها</span>
+<span class="badge-pill" id="pill-tools-installed-count" style="background:rgba(99,102,241,0.15); color:#4f46e5;">20 ابزار</span>
+</button>
 </div>
+
+<!-- 1-Click Full Mesh Tunnel Deployer Banner Card -->
+<div class="glass-card" style="padding: 16px 20px; border: 1px solid rgba(99, 102, 241, 0.3); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.06) 100%); border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="network" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: var(--text-main);" data-i18n="mesh_deploy_banner_title">
+                راه‌اندازی مشبک خودکار تانل‌ها (1-Click Full Mesh Tunnel Deployer)
+            </h3>
+            <p style="margin: 3px 0 0 0; font-size: 12px; color: var(--text-muted);" data-i18n="mesh_deploy_banner_desc">
+                استقرار همزمان تمام تانل‌های نیتیو و ضد فیلتر لینوکس بین دو سرور با ساب‌نت‌های غیرتداخلی بدون نیاز به تنظیم تک‌تک
+            </p>
+        </div>
+    </div>
+    <button class="btn btn-primary" onclick="openDeployMeshModal()" style="display: flex; align-items: center; gap: 8px; padding: 9px 18px; font-weight: 600; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);" type="button">
+        <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+        <span data-i18n="mesh_deploy_btn">استقرار یکپارچه تمام تانل‌ها بین دو سرور</span>
+    </button>
 </div>
+
 <!-- Top Stat Cards -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;">
 <!-- Active Standard Tunnels -->
-<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(99, 102, 241, 0.2); background: linear-gradient(135deg, rgba(238, 242, 255, 0.7) 0%, #ffffff 100%);">
+<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(99, 102, 241, 0.25); background: var(--bg-card);">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="tunnels_mikrotik_active_interfaces" style="font-size: 11.5px; color: #4338ca; font-weight: 700; display: block; margin-bottom: 4px;">اینترفیس‌های فعال میکروتیک:</span>
+<span data-i18n="tunnels_mikrotik_active_interfaces" style="font-size: 11.5px; color: var(--color-primary); font-weight: 700; display: block; margin-bottom: 4px;">اینترفیس‌های فعال میکروتیک:</span>
 <div style="display:flex; align-items:baseline; gap:6px;">
-<span id="stat-active-tunnels-count" style="font-size: 28px; font-weight: 800; color: #4f46e5; font-family:'JetBrains Mono', monospace;">0</span>
-<span data-i18n="tunnels_0_interface" id="stat-total-tunnels-count" style="font-size: 13px; color: #6366f1; font-weight: 600;">/ 0 اینترفیس</span>
+<span id="stat-active-tunnels-count" style="font-size: 28px; font-weight: 800; color: var(--color-primary); font-family:'JetBrains Mono', monospace;">0</span>
+<span data-i18n="tunnels_0_interface" id="stat-total-tunnels-count" style="font-size: 13px; color: var(--text-muted); font-weight: 600;">/ 0 اینترفیس</span>
 </div>
 </div>
-<div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+<div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); color: var(--color-primary); display: flex; align-items: center; justify-content: center;">
 <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
 </div>
 </div>
-<div data-i18n="tunnels_gre_ip6gre_ipip_ip6tnl_vxlan" style="margin-top: 10px; font-size: 11px; color: #4338ca;">
-                    GRE، IP6GRE، IPIP، IP6TNL، VXLAN، WireGuard (IPv6)، SIT 6in4
+<div data-i18n="tunnels_gre_ip6gre_ipip_ip6tnl_vxlan" style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+                    پشتیبانی از ۲۲ پروتکل مسیریابی و بریج RouterOS v7 و v6
                 </div>
 </div>
 <!-- Active Advanced Anti-Filter Tunnels -->
-<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(16, 185, 129, 0.2); background: linear-gradient(135deg, rgba(236, 253, 245, 0.7) 0%, #ffffff 100%);">
+<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(16, 185, 129, 0.25); background: var(--bg-card);">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="tunnels_linux_anti_filter_tunnels" style="font-size: 11.5px; color: #065f46; font-weight: 700; display: block; margin-bottom: 4px;">تونل‌های ضد فیلتر لینوکس:</span>
+<span data-i18n="tunnels_linux_anti_filter_tunnels" style="font-size: 11.5px; color: #10b981; font-weight: 700; display: block; margin-bottom: 4px;">تونل‌های ضد فیلتر لینوکس:</span>
 <div style="display:flex; align-items:baseline; gap:6px;">
-<span id="stat-adv-active-count" style="font-size: 28px; font-weight: 800; color: #059669; font-family:'JetBrains Mono', monospace;">0</span>
-<span data-i18n="tunnels_0" id="stat-adv-total-count" style="font-size: 13px; color: #047857; font-weight: 600;">/ 0 سرویس دائم</span>
+<span id="stat-adv-active-count" style="font-size: 28px; font-weight: 800; color: #10b981; font-family:'JetBrains Mono', monospace;">0</span>
+<span data-i18n="tunnels_0" id="stat-adv-total-count" style="font-size: 13px; color: var(--text-muted); font-weight: 600;">/ 0 سرویس دائم</span>
 </div>
 </div>
-<div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center;">
+<div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
 <i data-lucide="shield-alert" style="width: 20px; height: 20px;"></i>
 </div>
 </div>
-<div data-i18n="tunnels_gost_wss_rtt_wstunnel_chisel" style="margin-top: 10px; font-size: 11px; color: #065f46;">
-                    GOST (WSS)، RTT، WSTunnel، Chisel، FRP، UDP2Raw
+<div data-i18n="tunnels_gost_wss_rtt_wstunnel_chisel" style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
+                    ۱۷ موتور ترانزیت، ضد DPI، مبهم‌سازی ترافیک و مالتی‌پلکسینگ
                 </div>
 </div>
 <!-- Server IP Card -->
-<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(2, 132, 199, 0.2); background: linear-gradient(135deg, rgba(240, 249, 255, 0.7) 0%, #ffffff 100%);">
+<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(2, 132, 199, 0.25); background: var(--bg-card);">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="tunnels_public_ip_this_server" style="font-size: 11.5px; color: #0369a1; font-weight: 700; display: block; margin-bottom: 4px;">آی‌پی عمومی این سرور:</span>
+<span data-i18n="tunnels_public_ip_this_server" style="font-size: 11.5px; color: #0284c7; font-weight: 700; display: block; margin-bottom: 4px;">آی‌پی عمومی این سرور:</span>
 <div style="display:flex; align-items:center; gap:8px; margin-top: 4px;">
 <span data-i18n="mtproto_item_4" id="stat-server-public-ip" style="font-size: 17px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">بارگذاری...</span>
 <button class="btn btn-secondary btn-sm" data-i18n-title="tunnels_ip_copy" onclick="copyServerPublicIp()" style="padding: 2px 7px; font-size: 10.5px;" title="کپی آی‌پی" type="button">
@@ -94,27 +119,27 @@
 <i data-lucide="globe" style="width: 20px; height: 20px;"></i>
 </div>
 </div>
-<div data-i18n="tunnels_remote_ip" style="margin-top: 10px; font-size: 11px; color: #0369a1;">
+<div data-i18n="tunnels_remote_ip" style="margin-top: 10px; font-size: 11px; color: var(--text-muted);">
                     جهت درج در فیلد Remote IP سرور یا روتر مقابل
                 </div>
 </div>
-<!-- Total Bandwidth Card -->
-<div class="glass-card" style="padding: 18px 20px; border: 1px solid rgba(217, 119, 6, 0.2); background: linear-gradient(135deg, rgba(254, 243, 199, 0.7) 0%, #ffffff 100%);">
+<!-- Total Bandwidth Card (Gold Accent) -->
+<div class="glass-card" style="padding: 18px 20px; border: 1px solid var(--color-gold-border); background: var(--bg-card);">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="tunnels_total_traffic_passing_through_interfa" style="font-size: 11.5px; color: #b45309; font-weight: 700; display: block; margin-bottom: 4px;">مجموع ترافیک عبوری اینترفیس‌ها:</span>
+<span data-i18n="tunnels_total_traffic_passing_through_interfa" style="font-size: 11.5px; color: var(--color-gold); font-weight: 700; display: block; margin-bottom: 4px;">مجموع ترافیک عبوری اینترفیس‌ها:</span>
 <div style="display:flex; align-items:baseline; gap:8px;">
-<span id="stat-tunnels-total-traffic" style="font-size: 20px; font-weight: 800; color: #d97706; font-family:'JetBrains Mono', monospace;">0 MB</span>
+<span id="stat-tunnels-total-traffic" style="font-size: 20px; font-weight: 800; color: var(--color-gold); font-family:'JetBrains Mono', monospace;">0 MB</span>
 </div>
 </div>
-<div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(217, 119, 6, 0.15); color: #d97706; display: flex; align-items: center; justify-content: center;">
+<div style="width: 42px; height: 42px; border-radius: 12px; background: var(--color-gold-bg); color: var(--color-gold); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px var(--color-gold-glow);">
 <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
 </div>
 </div>
-<div style="margin-top: 10px; font-size: 11px; color: #b45309; display:flex; gap:10px;">
-<span><span data-i18n="tunnels_item_5">دریافت:</span> <strong id="stat-tunnels-rx" style="font-family:'JetBrains Mono';">0 B</strong></span>
+<div style="margin-top: 10px; font-size: 11px; color: var(--text-muted); display:flex; gap:10px;">
+<span><span data-i18n="tunnels_item_5">دریافت:</span> <strong id="stat-tunnels-rx" style="font-family:'JetBrains Mono'; color: var(--color-gold);">0 B</strong></span>
 <span>|</span>
-<span><span data-i18n="tunnels_send">ارسال:</span> <strong id="stat-tunnels-tx" style="font-family:'JetBrains Mono';">0 B</strong></span>
+<span><span data-i18n="tunnels_send">ارسال:</span> <strong id="stat-tunnels-tx" style="font-family:'JetBrains Mono'; color: var(--color-gold);">0 B</strong></span>
 </div>
 </div>
 </div>
@@ -133,7 +158,7 @@
                                 اینترفیس‌های استاندارد میکروتیک و لینوکس (MikroTik RouterOS Interfaces)
                             </h3>
 <p data-i18n="tunnels_gre_ip6gre_ipv6_ipip_ip6tnl" style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
-                                GRE، IP6GRE (IPv6)، IPIP، IP6TNL (IPv6)، VXLAN/EoIP، WireGuard، L2TP، OpenVPN، SSTP، SIT 6in4 و PPTP با اسکریپت کانفیگ آماده RouterOS v7 و v6
+                                پشتیبانی جامع از ۲۲ پروتکل: GRE، EoIP، IPIP، VXLAN، GENEVE، WireGuard، FOU، GUE، L2TPv3، OpenVPN (TUN/TAP)، SSTP، SIT 6in4، VTI، ZeroTier با کدهای آماده Winbox و Terminal
                             </p>
 </div>
 </div>
@@ -152,7 +177,8 @@
 <thead>
 <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
 <th data-i18n="tunnels_item_3" style="padding: 12px 14px; width: 60px; text-align:center;">پرچم</th>
-<th data-i18n="tunnels_interface_name_protocol" style="padding: 12px 14px;">نام و پروتکل اینترفیس</th>
+<th data-i18n="tunnels_interface_name_protocol" style="padding: 12px 14px;">نام و نوع اینترفیس</th>
+<th style="padding: 12px 14px; font-weight:700; color:#4f46e5;">پورت / لایه انتقال</th>
 <th data-i18n="tunnels_local_address_2" style="padding: 12px 14px;">آدرس محلی (Local)</th>
 <th data-i18n="tunnels_remote" style="padding: 12px 14px;">آدرس ریموت (Remote)</th>
 <th data-i18n="tunnels_internal_ip_tunnel" style="padding: 12px 14px;">آی‌پی داخلی تونل</th>
@@ -164,7 +190,7 @@
 </thead>
 <tbody id="tunnels-table-body">
 <tr>
-<td colspan="9" data-i18n="tunnels_item_4" style="text-align: center; padding: 28px; color: var(--text-muted);">
+<td colspan="10" data-i18n="tunnels_item_4" style="text-align: center; padding: 28px; color: var(--text-muted);">
                                     در حال دریافت لیست تونل‌ها...
                                 </td>
 </tr>
@@ -188,11 +214,14 @@
                                 تونل‌های پیشرفته ضد فیلتر و مبهم‌ساز لینوکس (Advanced Anti-Censorship Tunnels)
                             </h3>
 <p data-i18n="tunnels_dedicated_projects_circumvent_strong" style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">
-                                پروژه‌های اختصاصی دور زدن فیلترینگ شدید: GOST (WSS/TLS)، ReverseTlsTunnel (RTT)، WSTunnel، Chisel، FRP، UDP2Raw (FakeTCP)، Phantun، Rathole
+                                پروژه‌های قدرتمند دور زدن فیلترینگ و ترانزیت سرور به سرور: Hysteria 2 (Salamander)، TUIC v5، AmneziaWG، GOST v3 (WSS/TLS)، WSTunnel، RTT، Sing-box، SS-2022، Chisel، FRP، UDP2Raw، Tun2Socks، DNSTT
                             </p>
 </div>
 </div>
 <div style="display:flex; gap:10px; align-items:center;">
+<button class="btn btn-secondary btn-sm" onclick="probeAllAdvTunnels()" style="padding: 8px 14px; display:flex; align-items:center; gap:6px; border:1px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.08); color:#059669; font-weight:600;" type="button">
+<i data-lucide="zap" style="width: 14px; height: 14px; color:#10b981;"></i> <span data-i18n="probe_all_adv_btn">⚡ تست پینگ تمام تانل‌های Anti-DPI</span>
+</button>
 <button class="btn btn-primary btn-sm" onclick="openCreateAdvTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #10b981 0%, #059669 100%);" type="button">
 <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i> <span data-i18n="tunnels_setting_up_new_anti_filter">راه‌اندازی تونل ضد فیلتر جدید</span>
 </button>
@@ -212,6 +241,7 @@
 <th data-i18n="tunnels_listening_port_endpoint" style="padding: 12px 14px;">پورت شنود / اندپوینت</th>
 <th data-i18n="tunnels_target_service" style="padding: 12px 14px;">سرویس مقصد (Target)</th>
 <th data-i18n="tunnels_obfuscation_transportation" style="padding: 12px 14px;">مبهم‌سازی و ترانسپورت</th>
+<th data-i18n="tunnels_col_probe_latency" style="padding: 12px 14px; text-align:center;">تاخیر و پینگ (Latency)</th>
 <th data-i18n="tunnels_system_service_systemd" style="padding: 12px 14px;">سرویس سیستم (Systemd)</th>
 <th data-i18n="tunnels_commands_operations" style="padding: 12px 14px; text-align:left;">دستورات و عملیات</th>
 </tr>
@@ -276,44 +306,85 @@
 </div>
 <!-- SUB-PANE 4: DNS Tunnels (SlowDNS & Anti-Filter) -->
 <div class="tun-subpane" id="tun-pane-dns" style="display:none; flex-direction:column; gap:20px;">
-<div class="glass-card" style="padding: 22px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-<div>
-<h3 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="globe" style="color:#14b8a6; width:20px; height:20px;"></i>
-<span data-i18n="tunnels_dedicated_dns_tunnels_bypassing_sever">تونل‌های اختصاصی DNS و عبور از فیلترینگ شدید (DNS Tunnels)</span>
-</h3>
-<p data-i18n="tunnels_tunneling_server_traffic_basis_dns" style="font-size:12.5px; color:var(--text-muted); margin-top:4px;">
-                            تونل‌سازی ترافیک سرور در بستر پروتکل DNS (SlowDNS / DNSTT). این پروتکل حتی در زمان قطعی کامل اینترنت بین‌الملل نیز پکت‌ها را از مسیر پورت 53 UDP عبور می‌دهد.
-                        </p>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="switchTab('dns-tunnels')" type="button">
-<i data-lucide="external-link" style="width:14px; height:14px;"></i> <span data-i18n="tunnels_complete_dns_management_comprehensive">صفحه جامع مدیریت کامل DNS</span>
-</button>
-</div>
-</div>
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:16px;">
-<div style="background:rgba(20,184,166,0.06); padding:14px; border-radius:10px; border:1px solid rgba(20,184,166,0.2);">
-<div data-i18n="tunnels_dnstt_protocol_slowdns" style="font-size:11px; color:#0d9488; font-weight:700;">پروتکل DNSTT (SlowDNS)</div>
-<div data-i18n="tunnels_noise_protocol" style="font-size:13px; font-weight:700; margin-top:4px;">رمزنگاری Noise Protocol</div>
-<div data-i18n="tunnels_default_port_5300_udp" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">پورت پیش‌فرض: 5300 UDP</div>
-</div>
-<div style="background:rgba(99,102,241,0.06); padding:14px; border-radius:10px; border:1px solid rgba(99,102,241,0.2);">
-<div data-i18n="tunnels_vaydns" style="font-size:11px; color:#4f46e5; font-weight:700;">پروتکل VayDNS</div>
-<div data-i18n="tunnels_transmission_kcp_platform" style="font-size:13px; font-weight:700; margin-top:4px;">انتقال بر بستر KCP</div>
-<div data-i18n="tunnels_suitable_disturbed_networks" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">مناسب شبکه‌های پر اختلال</div>
-</div>
-<div style="background:rgba(14,165,233,0.06); padding:14px; border-radius:10px; border:1px solid rgba(14,165,233,0.2);">
-<div data-i18n="tunnels_slipstream_protocol" style="font-size:11px; color:#0284c7; font-weight:700;">پروتکل Slipstream</div>
-<div data-i18n="tunnels_quic" style="font-size:13px; font-weight:700; margin-top:4px;">کپسوله‌سازی در کوئری QUIC</div>
-<div data-i18n="tunnels_high_speed_flexibility" style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">سرعت و انعطاف بالا</div>
-</div>
-</div>
-<div data-i18n-html="elem_tab_tunnels_71" style="background:rgba(255,255,255,0.02); padding:14px 16px; border-radius:10px; border:1px solid var(--border-color); font-size:12px; line-height:1.7;">
-<strong data-i18n="tunnels_how_dns_tunnel_works">نحوه کارکرد تونل DNS:</strong> یک رکورد NS اختصاصی (مثلاً <code>t.example.com</code>) به آی‌پی این سرور اشاره می‌کند. کلاینت داده‌های خود را داخل ساب‌دامین‌های تصادفی کوئری‌های DNS استاندارد به سرور می‌فرستد و پاسخ‌ها در قالب TXT Record دریافت می‌شوند؛ در نتیجه فایروال هیچ اثری از ارتباط VPN یا پروکسی مشاهده نمی‌کند.
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(20, 184, 166, 0.12); color:#0d9488; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="globe" style="width:20px; height:20px;"></i>
                 </div>
-</div>
+                <div>
+                    <h3 style="margin:0; font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px;" data-i18n="tunnels_dedicated_dns_tunnels_bypassing_sever">
+                        تونل‌های اختصاصی DNS و عبور از فیلترینگ شدید (DNS Tunnels / SlowDNS)
+                    </h3>
+                    <p style="font-size:12.5px; color:var(--text-muted); margin-top:3px;" data-i18n="tunnels_tunneling_server_traffic_basis_dns">
+                        تونل‌سازی ترافیک سرور بر بستر پروتکل DNS (DNSTT). پکت‌ها حتی در زمان قطعی کامل اینترنت بین‌الملل نیز از بستر DNS و پورت 53 UDP یا DoH عبور می‌کنند.
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openCreateDnsTunnelModal()" style="padding: 8px 16px; background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);">
+                    <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+                    <span data-i18n="tunnels_create_dns_tunnel_btn">ساخت تونل DNS جدید (SlowDNS)</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchTunnels(true)" style="padding: 8px 12px;">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- DNS Protocol Info Cards -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-bottom:18px;">
+            <div style="background:rgba(20,184,166,0.06); padding:14px; border-radius:10px; border:1px solid rgba(20,184,166,0.2);">
+                <div style="font-size:11px; color:#0d9488; font-weight:700;" data-i18n="tunnels_dnstt_protocol_slowdns">پروتکل DNSTT (SlowDNS)</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;" data-i18n="tunnels_noise_protocol">رمزنگاری Noise Curve25519</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">پورت پیش‌فرض: 53 UDP / 5300</div>
+            </div>
+            <div style="background:rgba(99,102,241,0.06); padding:14px; border-radius:10px; border:1px solid rgba(99,102,241,0.2);">
+                <div style="font-size:11px; color:#4f46e5; font-weight:700;">بستر ارتباطی (Transport)</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;">DoH / DoT / Direct UDP 53</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">عبور از فایروال ملی و DPI</div>
+            </div>
+            <div style="background:rgba(14,165,233,0.06); padding:14px; border-radius:10px; border:1px solid rgba(14,165,233,0.2);">
+                <div style="font-size:11px; color:#0284c7; font-weight:700;">پشتیبانی IPv4 و IPv6</div>
+                <div style="font-size:13px; font-weight:700; margin-top:4px;">Dual-Stack DNS Queries</div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:4px;">بدون افشای آی‌پی واقعی سرور</div>
+            </div>
+        </div>
+
+        <!-- DNS Tunnels Table -->
+        <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px; margin-bottom:18px;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                <thead>
+                    <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
+                        <th style="padding: 12px 14px; width: 60px; text-align:center;">وضعیت</th>
+                        <th style="padding: 12px 14px;">نام و نقش تونل</th>
+                        <th style="padding: 12px 14px;">دامنه اختصاصی NS</th>
+                        <th style="padding: 12px 14px;">کلید عمومی Noise</th>
+                        <th style="padding: 12px 14px;">پورت محلی</th>
+                        <th style="padding: 12px 14px;">مقصد هدایت / ریزالور</th>
+                        <th style="padding: 12px 14px; text-align:left;">عملیات و اسکریپت</th>
+                    </tr>
+                </thead>
+                <tbody id="dns-tunnels-table-body">
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                            در حال دریافت لیست تونل‌های DNS...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- How it works guide -->
+        <div style="background:rgba(255,255,255,0.02); padding:16px 18px; border-radius:12px; border:1px solid var(--border-color); font-size:12px; line-height:1.7;">
+            <strong style="color:var(--text-main); font-size:12.5px;">📋 راهنمای تنظیم رکورد DNS در کلودفلر یا پنل دامنه:</strong>
+            <div style="margin-top:6px; color:var(--text-muted);">
+                برای اتصال پایدار، دو رکورد زیر را در دامنه خود ایجاد کنید:<br>
+                1. رکورد <code style="color:#0d9488;">A</code> با نام <code style="color:#0d9488;">ns1.yourdomain.com</code> اشاره به آی‌پی این سرور (<strong id="dns-guide-server-ip">212.227.143.16</strong>). (پروکسی کلودفلر را حتماً خاکستری/خاموش کنید).<br>
+                2. رکورد <code style="color:#0d9488;">NS</code> با نام مثلاً <code style="color:#0d9488;">t.yourdomain.com</code> اشاره به <code style="color:#0d9488;">ns1.yourdomain.com</code>.
+            </div>
+        </div>
+    </div>
 </div>
 <!-- ========================================================================= -->
 <!-- SUB-TAB 5: TUNNEL COMPATIBILITY & CONNECTIVITY TESTER (REQUIREMENT 2) -->
@@ -513,6 +584,177 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- SUB-TAB 7: TUNNEL ENGINES & BINARIES MANAGER (20+ Tools) -->
+<!-- ========================================================================= -->
+<div class="tun-subpane" id="tun-pane-tools" style="display:none;">
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="wrench" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin: 0;" data-i18n="tun_tools_title">
+                        مدیریت باینری‌ها و ابزارهای تانل (Tunnel Engines & Tools Manager)
+                    </h3>
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;" data-i18n="tun_tools_desc">
+                        مشاهده وضعیت نصب ۲۰+ هسته و ابزار ترانزیت، ضد فیلتر و پروکسی با امکان نصب و ارتقای یک‌کلیکه
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" onclick="installAllMissingTools()" style="padding: 8px 16px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); display: flex; align-items: center; gap: 6px;" type="button">
+                    <i data-lucide="download-cloud" style="width: 15px; height: 15px;"></i>
+                    <span data-i18n="tun_tools_install_all">⚡ نصب تمامی ابزارهای مفقود</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="loadTunnelToolsStatus(true)" style="padding: 8px 12px;" type="button" title="بروزرسانی">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tools Table -->
+        <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
+            <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                <thead>
+                    <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
+                        <th style="padding: 12px 14px; width: 60px; text-align:center;">وضعیت</th>
+                        <th style="padding: 12px 14px;">نام و عنوان ابزار</th>
+                        <th style="padding: 12px 14px;">دسته‌بندی تخصصی</th>
+                        <th style="padding: 12px 14px;">نسخه و مسیر فایل باینری</th>
+                        <th style="padding: 12px 14px;">کاربرد و ویژگی‌های کلیدی</th>
+                        <th style="padding: 12px 14px; text-align:center; width: 130px;">عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="tunnel-tools-table-body">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 28px; color: var(--text-muted);">
+                            در حال بررسی وضعیت نصب باینری‌ها و ابزارهای تانل...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Full Mesh Tunnel Deployer -->
+<div class="modal" id="modal-deploy-mesh" style="display: none;">
+    <div class="modal-content" style="max-width: 720px; width: 95%; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px;">
+            <h3 style="margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="network" style="color: #6366f1;"></i>
+                <span data-i18n="mesh_modal_title">استقرار مشبک خودکار تانل‌ها (1-Click Full Mesh Deployer)</span>
+            </h3>
+            <button type="button" class="btn-close" onclick="closeDeployMeshModal()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+            </button>
+        </div>
+
+        <form id="form-deploy-mesh" onsubmit="submitDeployMesh(event)" style="display: flex; flex-direction: column; gap: 14px;">
+            <div style="background: rgba(99, 102, 241, 0.05); padding: 12px 16px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2); font-size: 12.5px; color: var(--text-main);">
+                با انتخاب سرور مقصد و ورود مشخصات SSH، سیستم به صورت خودکار تمام تانل‌های درخواستی را روی هر دو سرور با تخصیص ساب‌نت و کلیدهای امنیتی اختصاصی برقرار می‌کند.
+            </div>
+
+            <!-- Source Server -->
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 600;">سرور مبدا (Source Node):</label>
+                <input type="text" class="form-input" id="mesh-source-ip" value="سرور محلی (این سرور)" readonly style="background: rgba(255,255,255,0.03); color: var(--text-muted);">
+            </div>
+
+            <!-- Destination Server Selection -->
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 600;">انتخاب سریع از سرورهای ریموت ثبت‌شده یا ورود دستی:</label>
+                <select class="form-input" id="mesh-saved-servers-select" onchange="onMeshServerSelectChange()">
+                    <option value="">-- انتخاب از سرورهای ثبت‌شده (Servers Cluster) --</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">آدرس سرور مقصد (Destination IP)</label>
+                    <input type="text" class="form-input" id="mesh-dest-ip" placeholder="e.g. 180.149.44.168" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">پورت SSH مقصد</label>
+                    <input type="number" class="form-input" id="mesh-dest-port" value="22" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label class="form-label">نام کاربری SSH</label>
+                    <input type="text" class="form-input" id="mesh-dest-user" value="root" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">رمز عبور SSH مقصد (جهت استقرار خودکار طرف سرور مقابل)</label>
+                    <input type="password" class="form-input" id="mesh-dest-pass" placeholder="Password" required>
+                </div>
+            </div>
+
+            <!-- Protocols Checklist -->
+            <div class="form-group" style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label class="form-label" style="font-weight: 600;">پروتکل‌های مورد نظر جهت استقرار:</label>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="wireguard" checked> WireGuard Tunnel
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="openvpn" checked> OpenVPN P2P Secret
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gre" checked> GRE Tunnel (L3)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="ipip" checked> IPIP Tunnel (L3)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="eoip" checked> EoIP Bridge (L2)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="vxlan" checked> VXLAN Bridge (L2)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="geneve" checked> GENEVE Overlay
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="sit" checked> SIT Tunnel (6in4)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gost_wss" checked> GOST (WSS WebSocket)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="gost_tls" checked> GOST (TLS Stealth)
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="wstunnel" checked> WSTunnel Anti-DPI
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="rathole" checked> Rathole Rust Reverse
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+                        <input type="checkbox" name="mesh_proto" value="chisel" checked> Chisel HTTP/WS Tunnel
+                    </label>
+                </div>
+            </div>
+
+            <!-- Deploy Results Log Box -->
+            <div id="mesh-deploy-results-box" style="display: none; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; max-height: 200px; overflow-y: auto; font-family:'JetBrains Mono'; font-size:11.5px;">
+                <!-- Injected after deploy -->
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+                <button class="btn btn-secondary" type="button" onclick="closeDeployMeshModal()" data-i18n="btn_cancel">بستن</button>
+                <button class="btn btn-primary" type="submit" id="btn-submit-mesh-deploy">
+                    <i data-lucide="zap" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="mesh_submit_deploy_btn">آغاز استقرار خودکار تمامی تانل‌ها</span>
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

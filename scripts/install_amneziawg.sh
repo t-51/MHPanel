@@ -4,7 +4,7 @@
 # ==============================================================================
 set -euo pipefail
 
-PORT="${1:-51820}"
+PORT="${1:-51821}"
 SUBNET="${2:-10.77.77.0/24}"
 DNS="${3:-8.8.8.8, 1.1.1.1}"
 
@@ -29,11 +29,36 @@ apt-get install -y "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools 
 
 # Ensure kernel module is loaded
 if ! lsmod | grep -q '^amneziawg '; then
-    modprobe amneziawg || {
+    if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi "enabled"; then
+        echo "[!] Warning: Secure Boot is enabled on this system. Third-party DKMS kernel modules cannot be inserted without MOK enrollment."
+        echo "[!] Please use standard WireGuard (which is signed by the kernel) or disable Secure Boot."
+        exit 0
+    fi
+
+    # Patch compat.h if on Linux kernel 7.0+
+    if [ -f /usr/src/amneziawg-1.0.0/compat/compat.h ]; then
+        python3 -c "
+with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'r') as f:
+    c = f.read()
+if 'KERNEL_VERSION(7, 0, 0)' not in c:
+    c = c.replace('#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 5)\n#include <net/udp_tunnel.h>\n#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)\n#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)\n#endif', '''#include <net/udp_tunnel.h>
+#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
+#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)
+#endif
+#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)''')
+    with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'w') as f:
+        f.write(c)
+" 2>/dev/null || true
+    fi
+
+    modprobe amneziawg 2>/dev/null || {
         echo "[!] Rebuilding DKMS module for kernel ${KERNEL_VER}..."
-        dkms autoinstall -k "${KERNEL_VER}"
-        depmod -a
-        modprobe amneziawg
+        dkms autoinstall -k "${KERNEL_VER}" 2>/dev/null || true
+        depmod -a 2>/dev/null || true
+        modprobe amneziawg 2>/dev/null || {
+            echo "[!] Could not insert amneziawg kernel module. Skipping service activation."
+            exit 0
+        }
     }
 fi
 
@@ -44,8 +69,9 @@ if [[ -z "${IFACE}" ]]; then
 fi
 
 # Enable IPv4 forwarding
-sysctl -w net.ipv4.ip_forward=1 >/dev/null
-grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+touch /etc/sysctl.conf
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
 AMNEZIA_DIR="/etc/amnezia/amneziawg"
 mkdir -p "${AMNEZIA_DIR}"
@@ -96,7 +122,7 @@ fi
 
 cat > "${AMNEZIA_DIR}/awg0.conf" <<EOF
 [Interface]
-Address = ${SERVER_IP_BASE}/24
+Address = ${SERVER_IP_BASE}/24, fd77:77::1/64
 ListenPort = ${PORT}
 PrivateKey = ${SERVER_PRIVKEY}
 MTU = 1300
@@ -116,11 +142,15 @@ PostUp = iptables -I INPUT -p udp --dport ${PORT} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${IFACE} -o awg0 -j ACCEPT
 PostUp = iptables -I FORWARD -i awg0 -j ACCEPT
 PostUp = iptables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE
+PostUp = ip6tables -I FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostUp = ip6tables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 
-PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT
-PostDown = iptables -D FORWARD -i ${IFACE} -o awg0 -j ACCEPT
-PostDown = iptables -D FORWARD -i awg0 -j ACCEPT
-PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE
+PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i ${IFACE} -o awg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
+PostDown = ip6tables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
+PostDown = ip6tables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 ${PEERS}
 EOF
 
@@ -128,6 +158,7 @@ chmod 600 "${AMNEZIA_DIR}/awg0.conf"
 
 systemctl daemon-reload
 systemctl enable awg-quick@awg0
+ip link del dev awg0 2>/dev/null || true
 systemctl restart awg-quick@awg0
 
 echo "[+] AmneziaWG installed and running on port UDP ${PORT} with Anti-DPI params:"

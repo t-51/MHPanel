@@ -34,6 +34,9 @@ servers.json
 multiplexer_config.json
 sstp_config.json
 openvpn_multiport.json
+tunnel_alerts.json
+sub_settings.json
+backups_*/
 
 # SSL and CA Certificates & Private Keys
 *.pem

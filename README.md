@@ -7,12 +7,39 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.1.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.5.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Linux-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/License-MIT-emerald.svg?style=for-the-badge" alt="License">
   <img src="https://img.shields.io/badge/Languages-EN%20%7C%20FA%20%7C%20RU-purple.svg?style=for-the-badge" alt="Languages">
 </p>
+
+---
+
+### 🌟 What's New in Version 1.5.0
+- 🔀 **Universal Multi-Protocol Port Multiplexer (Port 443 Sharing):** Simultaneous dispatch of over 26 VPN and proxy protocols over shared ports 443, 80, and 8443 via intelligent SNI & ALPN routing with automated fallback prober protection.
+- 📱 **Mobile UX 2.0 Overhaul:** Capsule pill bottom navigation with 70% icon prominence, single-word touch navigation, 38×38px squircle avatar containers for all 35 menu items, real-time live search in drawer, and grid collapse fix.
+- 📡 **Active Ports & Connectivity Radar Matrix:** Dynamic detection of all 53 listening sockets with ephemeral outbound socket filtration, dual-view National Information Network (NIN) vs International latency radar, and 100/100 health telemetry.
+- 📦 **Sing-box Core Universal Suite Integration:** Full integrated support for VLESS Reality, Trojan TLS, Hysteria 2 (QUIC/Brutal), TUIC v5, Shadowsocks 2022, NaiveProxy (Chromium stack), VMess, and ShadowTLS v3.
+- ⚡ **Tunnel Packet Tamper & Drop Shield:** Real-time physical and virtual interface drop tracking, DPI TCP RST packet injection detection, and dynamic alert badges.
+
+---
+
+### 🌟 What's New in Version 1.4.0
+- 📱 **Comprehensive Mobile UX Overhaul:** Floating mobile bottom navigation bar providing instant one-thumb switching between Dashboard, Protocols, Tunnels, Servers, and Menu drawer. Responsive bottom-sheet modals with sticky headers/footers, touch-optimized hit areas, and zero unwanted iOS viewport zoom.
+- 🌐 **IPv6 Dual-Stack Support Across All Tunnels:** Smart IPv4/IPv6 auto-detection on tunnel endpoints with Linux kernel modules (`ip6gre`, `ip6gretap`, `ip6tnl`), dual-stack MikroTik RouterOS v7/v6 script generation, MSS clamping, and seamless routing.
+- 🛠️ **AmneziaWG Fix & Kernel S2S Tunneling:** WireGuard port collision resolved with dedicated port 51821, pre-startup link cleanup eliminating `RTNETLINK answers: File exists` errors, dual-stack IPv6 client assignment (`fd77:77::/64`), and real AmneziaWG obfuscated site-to-site tunnel support (`Jc`, `Jmin`, `Jmax`, `S1`, `S2`, `H1-H4`).
+- ⚡ **SlowDNS / DNSTT Tunnels Studio:** Full-featured management studio for DNS tunneling. Create, monitor, edit, and toggle DNSTT tunnels in Server or Client mode with integrated Noise Curve25519 keypair generation, Systemd persistence, and automated client command generation.
+
+---
+
+### 🌟 What's New in Version 1.3.0
+- 🔐 **Centralized Protocol Authentication & Accounting (FreeRADIUS + SQLite):** Unified hybrid accounting engine for 5 core protocols (**Shadowsocks**, **TUIC v5**, **Hysteria 2**, **Trojan-GFW**, **StunTLS**). Allows creating local users with per-protocol quotas and expiration dates while seamlessly synchronizing with FreeRADIUS `radcheck`/`radreply` and MikroTik User Manager.
+- 💾 **SWAP Memory Studio & Real-time Telemetry:** Dynamic hardware monitoring with live SWAP usage gauge, 1-click swap allocation resize (1GB, 2GB, 4GB, 8GB), real-time Linux swappiness slider (0–100%), and instant memory/swap cache flush.
+- 🎨 **Visual Traffic Flow Pipelines for All Protocols:** Interactive visual pipeline displaying traffic flow from client to server for every protocol, detailing ALPN, TLS 1.3, AEAD 2022 ciphers, port hopping, and decoy masquerading.
+- 🛡️ **Anti-Censorship & DPI Evasion Studio:** Graphical tuning for port hopping ranges, STUN header jitter simulation, PMTU discovery clamping, active-prober decoy fallbacks, alongside full support for NoizDNS, NaiveProxy, MasterdnsVPN, and Tor Snowflake / obfs4 / WebTunnel bridges.
+- 🏷️ **Complete Brand Unification to MH Panel:** Cleaned up all legacy name references across all systemd units, shell scripts, API endpoints, and web views.
+- 🌓 **High-Contrast Dark Mode & Full Trilingual Parity:** Optimized typography, contrast ratios, and complete parity across Persian, English, and Russian locales.
 
 ---
 
@@ -52,7 +79,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.1.0)
+     🚀 MH PANEL - UNIFIED MASTER CLI MANAGEMENT HUB (v1.4.0)
   ======================================================================
   [1]  Run Full Automated Installation (Setup All Missing Components)
   [2]  Run Step-by-Step Custom Installation Wizard

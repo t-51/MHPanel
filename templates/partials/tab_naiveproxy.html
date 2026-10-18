@@ -31,7 +31,7 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت اتصال (TCP TLS)</div>
-                    <div style="font-weight: 700; color: #f59e0b; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="naiveproxy-stat-port">8444</div>
+                    <div style="font-weight: 700; color: #f59e0b; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="naiveproxy-stat-port">13443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="naiveproxy_stat_engine">موتور پروتکل (Core Engine)</div>
@@ -44,6 +44,50 @@
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال</div>
                     <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="naiveproxy-stat-connections">0</div>
+                </div>
+            </div>
+
+            <!-- Visual Architecture Pipeline -->
+            <div style="margin-bottom: 18px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="git-commit" style="width:14px; height:14px; color:#f59e0b;"></i>
+                    <span>پایپ‌لاین استتار مرورگر کروم NaiveProxy:</span>
+                </div>
+                <div class="proto-pipeline-container">
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                            <i data-lucide="globe" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">کلاینت کروم</div>
+                        <div class="proto-pipeline-subtitle">Chromium Network</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                            <i data-lucide="lock" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">ترافیک HTTPS</div>
+                        <div class="proto-pipeline-subtitle">دست‌تکانی واقعی</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(14,165,233,0.15); color:#38bdf8;">
+                            <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">پراکسی Naive</div>
+                        <div class="proto-pipeline-subtitle">HTTP/2 CONNECT</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+                            <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">خروجی مستقیم</div>
+                        <div class="proto-pipeline-subtitle">اینترنت آزاد</div>
+                    </div>
                 </div>
             </div>
 
@@ -70,7 +114,14 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                 <div>
                     <label class="form-label" data-i18n="port">پورت شنود سرور (TCP Port)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="naiveproxy-cfg-port" placeholder="8444" min="1" max="65535">
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="naiveproxy-cfg-port" placeholder="13443" min="1" max="65535">
+                    <div class="quick-chip-group">
+                        <span style="font-size:11px; color:var(--text-muted); align-self:center; margin-left:4px;">انتخاب پورت:</span>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('naiveproxy-cfg-port').value=13443">13443 (پیش‌فرض)</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('naiveproxy-cfg-port').value=8444">8444</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('naiveproxy-cfg-port').value=443">443</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('naiveproxy-cfg-port').value=2083">2083</button>
+                    </div>
                 </div>
 
                 <div>
@@ -95,7 +146,7 @@
             </div>
 
             <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn btn-primary" onclick="saveNaiveProxyConfig()" style="width:auto; padding: 9px 24px;">
+                <button type="button" class="btn btn-primary" onclick="saveNaiveProxyConfig()" style="width:auto; padding: 10px 28px; font-weight:700;">
                     <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات NaiveProxy</span>
                 </button>
             </div>

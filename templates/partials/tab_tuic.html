@@ -47,6 +47,59 @@
                 </div>
             </div>
 
+            <!-- Visual Architecture & Connection Pipeline -->
+            <div style="margin-bottom: 18px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="git-commit" style="width:14px; height:14px; color:#4f46e5;"></i>
+                    <span data-i18n="tuic_pipeline_title">پایپ‌لاین معماری و جریان داده ترافیک TUIC v5:</span>
+                </div>
+                <div class="proto-pipeline-container">
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(99,102,241,0.15); color:#818cf8;">
+                            <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="tuic_pipe_client">کلاینت کاربر</div>
+                        <div class="proto-pipeline-subtitle">NekoBox / Mihomo</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(14,165,233,0.15); color:#38bdf8;">
+                            <i data-lucide="zap" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="tuic_pipe_handshake">دست‌تکانی 0-RTT</div>
+                        <div class="proto-pipeline-subtitle" id="tuic-arch-zerortt-label">اتصال فوری QUIC</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(16,185,129,0.15); color:#34d399;">
+                            <i data-lucide="activity" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="tuic_pipe_congestion">کنترل BBR / GSO</div>
+                        <div class="proto-pipeline-subtitle" id="tuic-arch-congestion-label">Google BBR Controller</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(139,92,246,0.15); color:#a78bfa;">
+                            <i data-lucide="shield-check" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="tuic_pipe_auth">احراز هویت و ردیوس</div>
+                        <div class="proto-pipeline-subtitle" id="tuic-arch-auth-label">UUID / FreeRADIUS</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:16px; height:16px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(245,158,11,0.15); color:#fbbf24;">
+                            <i data-lucide="globe" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="tuic_pipe_outbound">خروجی اینترنت</div>
+                        <div class="proto-pipeline-subtitle">Direct UDP / TCP</div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Service Control Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="button" class="btn btn-secondary btn-sm" onclick="controlTuic('restart')" style="width:auto; padding: 8px 16px;">
@@ -63,66 +116,155 @@
             <div class="config-header">
                 <h3 class="config-title">
                     <i data-lucide="sliders" style="color: #4f46e5; width: 20px; height: 20px;"></i>
-                    <span data-i18n="tuic_config_title">تنظیمات اصلی و ضد فیلترینگ TUIC</span>
+                    <span data-i18n="tuic_config_title">تنظیمات اصلی و گزینه‌های ضد فیلترینگ TUIC v5</span>
                 </h3>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div style="display:flex; flex-direction:column; gap:16px;">
                 <div>
                     <label class="form-label" data-i18n="tuic_port_label">پورت سرور TUIC (UDP Port)</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="tuic-cfg-port" placeholder="7443">
-                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="tuic_port_hint">
-                        پیش‌فرض ۷۴۴۳ (ترافیک بر بستر پروتکل UDP ارسال می‌شود).
-                    </span>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="tuic-cfg-port" placeholder="7443" min="1" max="65535">
+                    <div class="quick-chip-group">
+                        <span style="font-size:11px; color:var(--text-muted); align-self:center; margin-left:4px;" data-i18n="quick_select">انتخاب سریع:</span>
+                        <button type="button" class="quick-chip active" onclick="document.getElementById('tuic-cfg-port').value=7443">7443 (پیش‌فرض)</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('tuic-cfg-port').value=8443">8443</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('tuic-cfg-port').value=443">443 (HTTPS)</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('tuic-cfg-port').value=2083">2083</button>
+                        <button type="button" class="quick-chip" onclick="document.getElementById('tuic-cfg-port').value=2087">2087</button>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="form-label" data-i18n="tuic_congestion_label">الگوریتم کنترل ازدحام (Congestion Control)</label>
-                    <select class="form-input" id="tuic-cfg-congestion">
-                        <option value="bbr" data-i18n="tuic_bbr_google_bbr">BBR (Google BBR - پیشنهادی برای مقابله با کاهش سرعت و پکت‌لاس)</option>
-                        <option value="cubic" data-i18n="tuic_cubic">Cubic (استاندارد لینوکس)</option>
-                        <option value="new_reno">New Reno</option>
-                    </select>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                    <div>
+                        <label class="form-label" data-i18n="tuic_congestion_label">الگوریتم کنترل ازدحام (Congestion Control)</label>
+                        <select class="form-input" id="tuic-cfg-congestion">
+                            <option value="bbr" data-i18n="tuic_bbr_google_bbr">BBR (Google BBR - پیشنهادی برای مقابله با کاهش سرعت و پکت‌لاس)</option>
+                            <option value="cubic" data-i18n="tuic_cubic">Cubic (استاندارد لینوکس)</option>
+                            <option value="new_reno">New Reno</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="tuic_zerortt_label">اتصال صفر ثانیه (0-RTT Handshake)</label>
+                        <select class="form-input" id="tuic-cfg-zero-rtt">
+                            <option value="true" data-i18n="tuic_active_uninterrupted_connection_initial">فعال (اتصال بدون وقفه 0-RTT)</option>
+                            <option value="false" data-i18n="tuic_rtt">غیرفعال (۱-RTT استاندارد)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="tuic_domain_label">دامنه و SNI متصل به سرور</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="tuic-cfg-domain" readonly>
+                    </div>
+
+                    <div>
+                        <label class="form-label" data-i18n="tuic_udp_relay_label">حالت ارسال ترافیک UDP (UDP Relay)</label>
+                        <select class="form-input" id="tuic-cfg-udp-relay">
+                            <option value="native" selected>Native UDP (بالاترین بازدهی)</option>
+                            <option value="quic">QUIC Stream (بهینه برای فایروال‌های ضد UDP)</option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="form-label" data-i18n="tuic_zerortt_label">اتصال صفر ثانیه (0-RTT Handshake)</label>
-                    <select class="form-input" id="tuic-cfg-zero-rtt">
-                        <option value="true" data-i18n="tuic_active_uninterrupted_connection_initial">فعال (اتصال بدون وقفه و بازگشت داده اولیه 0-RTT)</option>
-                        <option value="false" data-i18n="tuic_rtt">غیرفعال (۱-RTT استاندارد)</option>
-                    </select>
+                <!-- Anti-Filtering Switches: GSO & PMTU -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+                        <div>
+                            <div style="font-weight:700; font-size:12.5px;">شتاب‌دهنده سخت‌افزاری GSO</div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">کاهش بار CPU سرور هنگام ترافیک سنگین گیگابیتی</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tuic-cfg-gso" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-base); padding:12px 14px; border-radius:10px; border:1px solid var(--border-glow);">
+                        <div>
+                            <div style="font-weight:700; font-size:12.5px;">مدیریت خودکار MTU (PMTU)</div>
+                            <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">جلوگیری از تکه‌تکه شدن بسته‌ها در اینترنت ایران</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="tuic-cfg-pmtu" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="form-label" data-i18n="tuic_domain_label">دامنه و SNI متصل به سرور</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="tuic-cfg-domain" readonly>
-                    <span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;" data-i18n="tuic_domain_hint">
-                        دامنه شناسایی شده از تنظیمات SSL (جهت تغییر به تب SSL سرور مراجعه نمایید).
-                    </span>
+                <div style="margin-top: 6px; display:flex; justify-content:flex-end;">
+                    <button type="button" class="btn btn-primary" onclick="saveTuicConfig()" style="width:auto; padding: 10px 28px; font-weight:700;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال بلادرنگ تنظیمات TUIC</span>
+                    </button>
                 </div>
-            </div>
-
-            <div style="margin-top: 18px; display:flex; justify-content:flex-end;">
-                <button type="button" class="btn btn-primary" onclick="saveTuicConfig()" style="width:auto; padding: 9px 24px;">
-                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_settings">ذخیره و اعمال تنظیمات</span>
-                </button>
             </div>
         </div>
 
-        <!-- Users & Client Accounts -->
-        <div class="glass-card config-card">
-            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 class="config-title">
-                    <i data-lucide="users" style="color: #059669; width: 20px; height: 20px;"></i>
-                    <span data-i18n="tuic_users_title">کاربران و کلیدهای دسترسی TUIC</span>
-                </h3>
-                <button type="button" class="btn btn-primary btn-sm" onclick="addTuicUserModal()" style="width:auto; padding: 7px 16px;">
-                    <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="add_user">افزودن کاربر جدید</span>
-                </button>
+        <!-- Multi-User Management & FreeRADIUS Hub Card -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(79, 70, 229, 0.25);">
+            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(79, 70, 229, 0.12); color:#4f46e5; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="users" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="tuic_users_hub_title">
+                            مدیریت کاربران و احراز هویت با FreeRADIUS (TUIC v5)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="proto_users_hub_desc">
+                            تعریف کاربران محلی یا اتصال به یوزر منیجر FreeRADIUS (میکروتیک)، تفکیک مصرف آپلود و دانلود و سقف انقضا
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="syncProtocolAccounting('tuic')" style="padding:7px 14px; font-size:12px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sync_freeradius">همگام‌سازی FreeRADIUS</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openAddProtocolUserModal('tuic')" style="padding:7px 16px; font-size:12px; font-weight:700;">
+                        <i data-lucide="user-plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="add_user">کاربر جدید</span>
+                    </button>
+                </div>
             </div>
 
-            <div id="tuic-users-list" style="display:flex; flex-direction:column; gap:12px;">
-                <!-- Users injected here -->
+            <!-- Auth Mode Switcher -->
+            <div style="background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow); margin-bottom:16px;">
+                <div style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:15px; height:15px; color:#4f46e5;"></i>
+                    <span data-i18n="auth_mode_selector_title">حالت احراز هویت و مدیریت اکانت‌ها:</span>
+                </div>
+                <div class="proto-card-selector" style="grid-template-columns:repeat(auto-fit, minmax(210px, 1fr)); gap:10px;">
+                    <div class="proto-card-option" id="tuic-authmode-dual" onclick="setProtocolAuthMode('tuic', 'dual')">
+                        <div style="font-weight:700; font-size:12.5px; color:#38bdf8;">حالت دوگانه (Dual Mode)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">بررسی کاربران محلی + FreeRADIUS (پیشنهادی)</div>
+                    </div>
+                    <div class="proto-card-option" id="tuic-authmode-radius" onclick="setProtocolAuthMode('tuic', 'radius')">
+                        <div style="font-weight:700; font-size:12.5px; color:#10b981;">فقط FreeRADIUS</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">مدیریت متمرکز یوزر منیجر میکروتیک</div>
+                    </div>
+                    <div class="proto-card-option" id="tuic-authmode-local" onclick="setProtocolAuthMode('tuic', 'local')">
+                        <div style="font-weight:700; font-size:12.5px; color:#f59e0b;">فقط کاربران محلی (Local)</div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:3px;">دیتابیس مستقل بدون اتصال به ردیوس</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x:auto; border-radius:8px; border:1px solid var(--border-glow);">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
+                    <thead>
+                        <tr style="background:var(--bg-muted); border-bottom:1px solid var(--border-glow); color:var(--text-main); font-weight:700;">
+                            <th style="padding:10px 12px;" data-i18n="col_user">نام کاربری / UUID</th>
+                            <th style="padding:10px 12px;" data-i18n="col_password">رمز / کلید</th>
+                            <th style="padding:10px 12px;" data-i18n="col_source">منبع</th>
+                            <th style="padding:10px 12px;" data-i18n="col_traffic_usage">میزان مصرف (آپلود / دانلود)</th>
+                            <th style="padding:10px 12px;" data-i18n="col_expire">تاریخ انقضا</th>
+                            <th style="padding:10px 12px;" data-i18n="col_status">وضعیت</th>
+                            <th style="padding:10px 12px; text-align:center;" data-i18n="col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tuic-users-table-body">
+                        <!-- User rows inject here -->
+                    </tbody>
+                </table>
             </div>
         </div>
 

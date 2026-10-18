@@ -37,24 +37,24 @@
 <!-- Top Stat & Gauge Cards -->
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
 <!-- Score Card -->
-<div class="glass-card radar-stat-card radar-stat-red">
+<div class="glass-card radar-stat-card radar-stat-green" id="radar-score-card">
 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
 <div>
-<span data-i18n="radar_item_3" style="font-size: 12px; color: #dc2626; font-weight: 700; display: block; margin-bottom: 4px;">شاخص سلامت و ضدسانسور:</span>
+<span id="radar-score-title" data-i18n="radar_item_3" style="font-size: 12px; color: #10b981; font-weight: 700; display: block; margin-bottom: 4px;">شاخص سلامت و ضدسانسور:</span>
 <div style="display:flex; align-items:baseline; gap:6px;">
-<span id="radar-score-value" style="font-size: 32px; font-weight: 800; color: #dc2626; font-family:'JetBrains Mono', monospace;">--</span>
-<span data-i18n="msg_7534662" style="font-size: 14px; font-weight: 600;">/ ۱۰۰</span>
+<span id="radar-score-value" style="font-size: 32px; font-weight: 800; color: #10b981; font-family:'JetBrains Mono', monospace;">۱۰۰</span>
+<span data-i18n="msg_7534662" style="font-size: 14px; font-weight: 600; color: var(--text-muted);">/ ۱۰۰</span>
 </div>
 </div>
-<div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.15); color: #dc2626; display: flex; align-items: center; justify-content: center;">
-<i data-lucide="shield-alert" style="width: 22px; height: 22px;"></i>
+<div id="radar-score-icon-box" style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
+<i id="radar-score-icon" data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
 </div>
 </div>
 <div style="margin-top: 10px;">
-<div style="height: 6px; width: 100%; background: rgba(239, 68, 68, 0.2); border-radius: 10px; overflow: hidden;">
-<div id="radar-score-bar" style="height: 100%; width: 0%; background: #dc2626; transition: width 0.8s ease;"></div>
+<div id="radar-score-bar-bg" style="height: 6px; width: 100%; background: rgba(16, 185, 129, 0.2); border-radius: 10px; overflow: hidden;">
+<div id="radar-score-bar" style="height: 100%; width: 100%; background: #10b981; transition: width 0.8s ease;"></div>
 </div>
-<span id="radar-score-desc" style="font-size: 11px; font-weight: 600; display: block; margin-top: 6px; color: var(--text-muted);">در حال آماده‌سازی سنجش...</span>
+<span id="radar-score-desc" style="font-size: 11px; font-weight: 600; display: block; margin-top: 6px; color: var(--text-muted);">کیفیت اتصال و مقاومت فیلترینگ عالی و کاملاً پایدار</span>
 </div>
 </div>
 <!-- Country Operators Stat -->
@@ -132,10 +132,10 @@
                     پایش مستقیم از مبدا سرور به گیت‌وی‌های اپراتورها
                 </span>
 </div>
-<div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px;">
+<div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px;">
 <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
 <thead>
-<tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #475569;">
+<tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
 <th data-i18n="radar_col_operator" style="padding: 12px 14px;">نام اپراتور و نوع شبکه</th>
 <th data-i18n="radar_col_ping" style="padding: 12px 14px;">تاخیر (Ping)</th>
 <th data-i18n="radar_col_loss" style="padding: 12px 14px;">پکت لوس (Loss %)</th>
@@ -169,26 +169,14 @@
                         </p>
 </div>
 </div>
+<span id="radar-global-summary-badge" style="font-size: 11px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.25); padding: 4px 10px; border-radius: 6px; font-weight: 600;">
+    پایش مسیر بین‌المللی و مراکز داده ابری
+</span>
 </div>
-<div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 12px;">
-<table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
-<thead>
-<tr style="border-bottom: 1px solid var(--border-color); color: var(--text-muted);">
-<th data-i18n="radar_col_dest" style="padding: 12px 14px;">مقصد و دیتاسنتر</th>
-<th data-i18n="radar_col_region" style="padding: 12px 14px;">منطقه جغرافیایی</th>
-<th data-i18n="radar_ping_2" style="padding: 12px 14px;">تاخیر ارتباط (Ping)</th>
-<th data-i18n="radar_bad_packet" style="padding: 12px 14px;">پکت لوس</th>
-<th data-i18n="radar_col_transit" style="padding: 12px 14px;">کیفیت ترانزیت</th>
-</tr>
-</thead>
-<tbody id="radar-global-tbody">
-<tr>
-<td colspan="5" data-i18n="radar_waiting_scan" style="text-align: center; padding: 24px; color: var(--text-muted);">
-                                در انتظار اجرای اسکن...
-                            </td>
-</tr>
-</tbody>
-</table>
+<div id="radar-global-grid" class="radar-dest-grid">
+    <div style="grid-column: 1 / -1; text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px;" data-i18n="radar_waiting_scan">
+        در انتظار اجرای اسکن...
+    </div>
 </div>
 </div>
 <!-- Section 3: Server Protocol Ports Matrix -->
@@ -207,9 +195,14 @@
                         </p>
 </div>
 </div>
+<span id="radar-ports-summary-badge" style="font-size: 11px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; border: 1px solid rgba(99, 102, 241, 0.25); padding: 4px 10px; border-radius: 6px; font-weight: 600;">
+    شناسایی خودکار و زنده سوکت‌ها و پورت‌ها
+</span>
 </div>
-<div id="radar-ports-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
-<!-- Port tiles will render here -->
+<div id="radar-ports-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+    <div style="grid-column: 1 / -1; text-align: center; padding: 28px; color: var(--text-muted); font-size: 13px;" data-i18n="radar_ports_waiting">
+        در حال شناسایی و پایش پورت‌های فعال پروتکل‌ها...
+    </div>
 </div>
 </div>
 <!-- Section 4: Deep Censorship & DPI Analysis -->

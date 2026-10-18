@@ -1,0 +1,796 @@
+<div class="tab-pane" id="tab-singbox">
+    <section style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="box" style="color: #6366f1; width: 24px; height: 24px;"></i>
+                    <span data-i18n="singbox_title">استودیوی جامع هسته سینگ‌باکس (Sing-box Universal Suite)</span>
+                    <span class="sidebar-badge sidebar-badge-purple" id="singbox-version-pill">sing-box 1.9.3</span>
+                    <span class="sidebar-badge sidebar-badge-green" id="singbox-live-status-pill">Active</span>
+                </h2>
+                <p data-i18n="singbox_subtitle" style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                    مدیریت و کنترل گرافیکی ۱۰۰٪ پروتکل‌های هسته Sing-box (شامل VLESS Reality، Hysteria 2، TUIC v5، Trojan TLS، VMess، شادوساکس ۲۰۲۲، ShadowTLS، NaiveProxy، Tun Interface، Mixed و Direct) با مدیریت کاربران محلی، استریم زنده لاگ‌ها، لاگ ویوور ترمینال، uTLS و تولید لینک اشتراک کلاینت
+                </p>
+            </div>
+            <!-- Header Action Buttons -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="openSingboxAddInboundModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="singbox_add_inbound_btn">افزودن اینباند پروتکل</span>
+                </button>
+                <button class="btn btn-primary" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                    <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="singbox_add_user_btn">افزودن کاربر محلی</span>
+                </button>
+                <button class="btn btn-gold" onclick="initializeDefaultSingboxSuite()" type="button" title="راه‌اندازی و بازنشانی خودکار کلیه ۸ پروتکل پیش‌فرض هسته سینگ‌باکس با یک کلیک" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="singbox_init_defaults_btn">راه‌اندازی خودکار تمام پروتکل‌ها</span>
+                </button>
+                <button class="btn btn-secondary" onclick="openSingboxJsonModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="code" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="singbox_raw_json_btn">ویرایش زنده JSON</span>
+                </button>
+                <button class="btn btn-secondary" onclick="checkSingboxConfig()" type="button" title="تست صحت ساختار کانفیگ" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="check-check" style="width: 16px; height: 16px; color: #10b981;"></i>
+                    <span data-i18n="singbox_test_btn">تست کانفیگ</span>
+                </button>
+                <button class="btn btn-secondary" onclick="restartSingboxService()" type="button" title="بازنشانی هسته" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="rotate-cw" style="width: 16px; height: 16px; color: #6366f1;"></i>
+                    <span data-i18n="singbox_restart_btn">ری‌استارت هسته</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Protocol Pills -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-top: 4px;">
+            <button type="button" class="btn btn-sm btn-subtab active" id="sb-subtab-btn-inbounds" onclick="switchSingboxSubTab('inbounds')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="list" style="width: 14px; height: 14px;"></i> <span>کلیه اینباندهای هسته</span>
+                <span class="badge-pill" id="sb-badge-all-count" style="font-size: 11px; padding: 1px 6px; background: rgba(99, 102, 241, 0.2); color: #6366f1;">-</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-users" onclick="switchSingboxSubTab('users')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="users" style="color: #3b82f6; width: 14px; height: 14px;"></i> <span>کاربران محلی هسته (Users)</span>
+                <span class="badge-pill" id="sb-badge-users-count" style="font-size: 11px; padding: 1px 6px; background: rgba(59, 130, 246, 0.2); color: #3b82f6;">0</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-logs" onclick="switchSingboxSubTab('logs')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="terminal" style="color: #10b981; width: 14px; height: 14px;"></i> <span>لاگ‌های زنده هسته (Live Logs)</span>
+                <span class="pulse-dot" style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-vless" onclick="switchSingboxSubTab('vless')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="shield-check" style="color: #8b5cf6; width: 14px; height: 14px;"></i> <span>VLESS Reality</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-trojan" onclick="switchSingboxSubTab('trojan')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="shield" style="color: #0ea5e9; width: 14px; height: 14px;"></i> <span>Trojan TLS</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-hysteria2" onclick="switchSingboxSubTab('hysteria2')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="flame" style="color: #ef4444; width: 14px; height: 14px;"></i> <span>Hysteria 2</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-tuic" onclick="switchSingboxSubTab('tuic')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="zap" style="color: #6366f1; width: 14px; height: 14px;"></i> <span>TUIC v5</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-shadowsocks" onclick="switchSingboxSubTab('shadowsocks')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="lock" style="color: #10b981; width: 14px; height: 14px;"></i> <span>Shadowsocks</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-vmess" onclick="switchSingboxSubTab('vmess')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="layers" style="color: #06b6d4; width: 14px; height: 14px;"></i> <span>VMess</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-naive" onclick="switchSingboxSubTab('naive')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="compass" style="color: #f59e0b; width: 14px; height: 14px;"></i> <span>NaiveProxy</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-shadowtls" onclick="switchSingboxSubTab('shadowtls')" style="display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="eye-off" style="color: #ec4899; width: 14px; height: 14px;"></i> <span>ShadowTLS</span>
+            </button>
+        </div>
+
+        <!-- Quick Stats Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(99, 102, 241, 0.25); background: var(--bg-card);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span data-i18n="singbox_active_inbounds_label" style="font-size: 11.5px; color: var(--color-primary); font-weight: 700; display: block; margin-bottom: 4px;">اینباندهای فعال پروکسی:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="singbox-stat-inbounds-count" style="font-size: 26px; font-weight: 800; color: var(--color-primary); font-family:'JetBrains Mono', monospace;">0</span>
+                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">پروتکل فعال</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: var(--color-primary); display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    Reality، Brutal QUIC، uTLS و Smux
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(59, 130, 246, 0.25); background: var(--bg-card);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #3b82f6; font-weight: 700; display: block; margin-bottom: 4px;">کاربران محلی سینگ‌باکس:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="singbox-stat-users-count" style="font-size: 26px; font-weight: 800; color: #3b82f6; font-family:'JetBrains Mono', monospace;">0</span>
+                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">کاربر متصل</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('users')">
+                        <i data-lucide="users" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    تخصیص مستقل کانفیگ و اشتراک
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(16, 185, 129, 0.25); background: var(--bg-card);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span data-i18n="singbox_core_status_label" style="font-size: 11.5px; color: #10b981; font-weight: 700; display: block; margin-bottom: 4px;">وضعیت سرویس دائم:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="singbox-stat-service-text" style="font-size: 20px; font-weight: 800; color: #10b981;">بررسی...</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    systemd: mhpanel-singbox
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(2, 132, 199, 0.25); background: var(--bg-card);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span data-i18n="singbox_core_version_label" style="font-size: 11.5px; color: #0284c7; font-weight: 700; display: block; margin-bottom: 4px;">نسخه و کامپایل هسته:</span>
+                        <div style="display:flex; align-items:center; gap:8px; margin-top: 4px;">
+                            <span id="singbox-stat-version-text" style="font-size: 16px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">1.9.3</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="cpu" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    Reality, QUIC, gVisor
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(168, 85, 247, 0.25); background: var(--bg-card);">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #a855f7; font-weight: 700; display: block; margin-bottom: 4px;">استریم لاگ زنده هسته:</span>
+                        <div style="display:flex; align-items:center; gap:6px; margin-top: 4px;">
+                            <span class="status-dot active"></span>
+                            <span id="singbox-stat-log-status" style="font-size: 14px; font-weight: 700; color: #a855f7;">فعال و متصل</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(168, 85, 247, 0.15); color: #a855f7; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('logs')" title="مشاهده لاگ‌های زنده">
+                        <i data-lucide="terminal" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    /var/log/sing-box.log
+                </div>
+            </div>
+        </div>
+
+        <!-- Protocol Filter Banner (Shown when a specific protocol tab is active) -->
+        <div id="sb-protocol-filter-banner" style="display:none; padding: 14px 18px; border-radius: 10px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div id="sb-filter-banner-icon" style="width: 32px; height: 32px; border-radius: 8px; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="shield"></i>
+                </div>
+                <div>
+                    <div id="sb-filter-banner-title" style="font-size: 14px; font-weight: 700; color: var(--text-main);">پروتکل انتخابی</div>
+                    <div id="sb-filter-banner-desc" style="font-size: 12px; color: var(--text-muted);">نمایش اینباندهای زیرمجموعه هسته برای این پروتکل</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary btn-sm" id="sb-filter-banner-add-btn" onclick="openSingboxAddModalForCurrentProto()" type="button">
+                    <i data-lucide="plus" style="width: 13px; height: 13px;"></i> افزودن اینباند این پروتکل
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="switchSingboxSubTab('inbounds')" type="button">
+                    نمایش تمام پروتکل‌ها
+                </button>
+            </div>
+        </div>
+
+        <!-- PANE 1: Inbounds Table Card -->
+        <div class="glass-card" id="sb-pane-inbounds" style="padding: 24px; border: 1px solid var(--border-color); border-radius: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="radio" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                        <span data-i18n="singbox_inbounds_table_title">لیست اینباندهای فعال در هسته Sing-box</span>
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);" data-i18n="singbox_inbounds_table_desc">
+                        هر اینباند یک درگاه ورودی اختصاصی پروکسی روی پورت دلخواه با رمزنگاری مستقل است.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick="openSingboxAddInboundModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
+                        <span>افزودن اینباند</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="loadSingboxData()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <span data-i18n="btn_refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
+                        <tr>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_tag">تگ / نام</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_protocol">پروتکل</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_port">پورت شنود</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_security">امنیت و استتار</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_transport">ترانسپورت</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_details">مشخصات کلیدی</th>
+                            <th style="padding: 12px 16px; font-weight: 600; text-align: center;" data-i18n="singbox_col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="singbox-inbounds-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);" data-i18n="singbox_loading">
+                                در حال دریافت اطلاعات از هسته سینگ‌باکس...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PANE 2: Local Users Card -->
+        <div class="glass-card" id="sb-pane-users" style="display: none; padding: 24px; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="users" style="width: 18px; height: 18px; color: #3b82f6;"></i>
+                        <span data-i18n="singbox_users_table_title">مدیریت کاربران محلی هسته Sing-box (Local Users)</span>
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);" data-i18n="singbox_users_table_desc">
+                        تعریف کاربران با امکان انتخاب اینباندها و کانفیگ‌های مجاز برای هر کاربر و تولید مستقیم لینک‌های اتصال اختصاصی.
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                        <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
+                        <span data-i18n="singbox_btn_add_user">افزودن کاربر محلی جدید</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="loadSingboxUsers()" type="button" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <span data-i18n="btn_refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
+                        <tr>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_username">نام کاربری</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_assigned_inbounds">کانفیگ‌های مجاز و متصل</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_credentials">مشخصات احراز هویت</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_status">وضعیت</th>
+                            <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_created">تاریخ ایجاد</th>
+                            <th style="padding: 12px 16px; font-weight: 600; text-align: center;" data-i18n="singbox_col_actions">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="singbox-users-table-body">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);" data-i18n="singbox_loading_users">
+                                در حال دریافت لیست کاربران محلی سینگ‌باکس...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- PANE 3: Live Logs Viewer Card -->
+        <div class="glass-card" id="sb-pane-logs" style="display: none; padding: 22px; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px;">
+            <!-- Live Log Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite;"></div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="terminal" style="color: #10b981; width: 18px; height: 18px;"></i>
+                        <span data-i18n="singbox_live_logs_title">استریم لاگ‌های زنده هسته Sing-box (Live Console)</span>
+                    </h3>
+                    <span class="badge-pill" id="sb-log-count-pill" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">- خط</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); background: var(--bg-muted); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <input type="checkbox" id="sb-log-auto-refresh" checked onchange="toggleSingboxLogAutoRefresh(this.checked)">
+                        <span data-i18n="singbox_logs_auto_refresh">بروزرسانی خودکار (۲.۵ ثانیه)</span>
+                    </label>
+                    <select id="sb-log-level-filter" onchange="fetchSingboxLogs(true)" class="form-input" style="padding: 4px 8px; font-size: 12px; width: auto; font-weight: 600;">
+                        <option value="ALL">همه سطوح (ALL)</option>
+                        <option value="INFO">سطح INFO</option>
+                        <option value="WARN">سطح WARN</option>
+                        <option value="ERROR">سطح ERROR / FATAL</option>
+                    </select>
+                    <input type="text" id="sb-log-search-input" oninput="filterSingboxLogsLocal()" placeholder="جستجو در لاگ..." class="form-input" style="padding: 4px 8px; font-size: 12px; width: 140px;">
+                    <button class="btn btn-secondary btn-sm" onclick="fetchSingboxLogs(true)" type="button" title="بروزرسانی دستی لاگ">
+                        <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="copySingboxLogs()" type="button" title="کپی کردن متن لاگ">
+                        <i data-lucide="copy" style="width: 13px; height: 13px;"></i> <span data-i18n="singbox_logs_copy_btn">کپی</span>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="clearSingboxLogs()" type="button" title="پاکسازی فایل لاگ">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> <span data-i18n="singbox_logs_clear_btn">پاکسازی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Terminal Viewer Body -->
+            <div id="sb-logs-terminal" style="background: #0b0f19; border: 1px solid #1e293b; border-radius: 10px; padding: 14px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.7; color: #e2e8f0; height: 480px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; direction: ltr; text-align: left; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
+                <span style="color: #64748b;">در حال دریافت لاگ‌های هسته سینگ‌باکس...</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal 1: Add Inbound -->
+    <div class="modal" id="modal-singbox-add-inbound">
+        <div class="modal-card" style="max-width: 680px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="plus-circle" style="color: #6366f1;"></i>
+                    <span data-i18n="singbox_modal_add_title">ایجاد و راه‌اندازی اینباند پروتکل جدید در Sing-box</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxAddModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+
+            <div style="padding: 24px;">
+                <form id="form-singbox-inbound" onsubmit="submitSingboxInbound(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <!-- Protocol Selection -->
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 600;" data-i18n="singbox_field_protocol">انتخاب پروتکل ارتباطی (Protocol)</label>
+                        <select class="form-input" id="sb-inbound-type" onchange="onSingboxProtocolChange()" style="font-weight: 600;">
+                            <option value="vless">VLESS Reality (XTLS-Vision / ضد فیلترینگ شدید)</option>
+                            <option value="trojan">Trojan (TLS / استتار وبسایت)</option>
+                            <option value="hysteria2">Hysteria 2 (QUIC Brutal / پرسرعت)</option>
+                            <option value="tuic">TUIC v5 (QUIC 0-RTT / تاخیر حداقل)</option>
+                            <option value="shadowsocks">Shadowsocks-rust 2022 (BLAKE3 / سبک)</option>
+                            <option value="vmess">VMess (WebSocket / استاندارد)</option>
+                            <option value="naive">NaiveProxy (کرومیوم / ضد فیلترینگ TLS)</option>
+                            <option value="shadowtls">ShadowTLS v3 (استتار لایه TLS)</option>
+                            <option value="mixed">Mixed (HTTP + SOCKS5 ترکیبی)</option>
+                            <option value="direct">Direct (مسیریابی مستقیم / پورت فوروارد)</option>
+                            <option value="tun">Tun Interface (کارت شبکه مجازی هسته)</option>
+                        </select>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="singbox_field_tag">تگ / نام شناسایی (Tag)</label>
+                            <input type="text" class="form-input" id="sb-inbound-tag" placeholder="e.g. vless-reality-in" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="singbox_field_port">پورت شنود (Port)</label>
+                            <input type="number" class="form-input" id="sb-inbound-port" value="20443" min="1" max="65535" required>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields Container -->
+                    <div id="sb-dynamic-protocol-fields" style="display: flex; flex-direction: column; gap: 14px;">
+                    </div>
+
+                    <!-- Security & Camouflage Settings -->
+                    <div class="form-group" id="sb-security-section" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                        <label class="form-label" style="font-weight: 600;" data-i18n="singbox_sec_mode">شیوه رمزنگاری و استتار امنیتی (Security / TLS)</label>
+                        <select class="form-input" id="sb-tls-mode" onchange="onSingboxTlsModeChange()">
+                            <option value="reality">REALITY (استتار هوشمند بدون نیاز به دامنه)</option>
+                            <option value="tls">TLS استاندارد (با گواهی SSL پنل)</option>
+                            <option value="none">بدون رمزنگاری TLS (Plain)</option>
+                        </select>
+                    </div>
+
+                    <div id="sb-reality-fields" style="display: flex; flex-direction: column; gap: 12px; background: rgba(99, 102, 241, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; font-weight: 700; color: #4f46e5;">تنظیمات استتار Reality:</span>
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="generateSingboxRealityKeys()" style="font-size: 11px; padding: 3px 8px;">
+                                <i data-lucide="zap" style="width: 12px; height: 12px;"></i> تولید خودکار جفت کلید Reality
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">سرور هدف شبیه‌سازی (Handshake Dest):</label>
+                                <input type="text" class="form-input" id="sb-reality-dest" value="dl.google.com" placeholder="e.g. dl.google.com">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">پورت هدف:</label>
+                                <input type="number" class="form-input" id="sb-reality-dest-port" value="443">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">کلید خصوصی (Private Key):</label>
+                                <input type="text" class="form-input" id="sb-reality-privkey" placeholder="Reality x25519 Private Key">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">کلید عمومی (Public Key - اختیاری برای لینک):</label>
+                                <input type="text" class="form-input" id="sb-reality-pubkey" placeholder="Reality Public Key">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 11px;">کلید کوتاه شناسایی (Short ID):</label>
+                            <input type="text" class="form-input" id="sb-reality-shortid" value="86d7ec6343d000b6" placeholder="Short ID (hex)">
+                        </div>
+                    </div>
+
+                    <div id="sb-tls-fields" style="display: none; flex-direction: column; gap: 10px; background: rgba(16, 185, 129, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <div style="font-size: 12px; font-weight: 700; color: #059669;">تنظیمات گواهی امنیتی TLS:</div>
+                        <div>
+                            <label class="form-label" style="font-size: 11px;">دامنه / نام سرور (SNI / Server Name):</label>
+                            <input type="text" class="form-input" id="sb-tls-sni" placeholder="yourdomain.com یا خالی برای آی‌پی سرور">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">مسیر گواهی (Cert Path):</label>
+                                <input type="text" class="form-input" id="sb-tls-cert" value="/etc/vpnpanel/ssl/panel.crt">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">مسیر کلید (Key Path):</label>
+                                <input type="text" class="form-input" id="sb-tls-key" value="/etc/vpnpanel/ssl/panel.key">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transport Settings -->
+                    <div class="form-group" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                        <label class="form-label" style="font-weight: 600;" data-i18n="singbox_transport_mode">ترانسپورت شبکه (Transport)</label>
+                        <select class="form-input" id="sb-transport-type" onchange="onSingboxTransportChange()">
+                            <option value="tcp">TCP مستقیم (حداکثر سرعت و پایداری)</option>
+                            <option value="ws">WebSocket (WS - استتار پشت CDN و کلادفلر)</option>
+                            <option value="grpc">gRPC (مالتی‌پلکس پیشرفته)</option>
+                            <option value="httpupgrade">HTTPUpgrade (جایگزین مدرن WS)</option>
+                        </select>
+                    </div>
+
+                    <div id="sb-ws-fields" style="display: none; flex-direction: column; gap: 10px;">
+                        <label class="form-label" style="font-size: 11px;">مسیر وب‌سوکت (WS Path):</label>
+                        <input type="text" class="form-input" id="sb-ws-path" value="/" placeholder="e.g. /ws-path">
+                    </div>
+
+                    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                        <button class="btn btn-secondary" type="button" onclick="closeSingboxAddModal()" data-i18n="btn_cancel">انصراف</button>
+                        <button class="btn btn-primary" type="submit" id="sb-submit-inbound-btn" data-i18n="singbox_btn_create_inbound">ایجاد و فعال‌سازی اینباند</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: Edit Inbound -->
+    <div class="modal" id="modal-singbox-edit-inbound">
+        <div class="modal-card" style="max-width: 680px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="edit-3" style="color: #6366f1;"></i>
+                    <span data-i18n="singbox_modal_edit_title">ویرایش مشخصات و فیلدهای اینباند Sing-box</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxEditModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+
+            <div style="padding: 24px;">
+                <form id="form-singbox-edit-inbound" onsubmit="submitSingboxEditInbound(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <input type="hidden" id="sb-edit-orig-tag">
+                    <input type="hidden" id="sb-edit-inbound-type">
+
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(99, 102, 241, 0.08); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 12px; font-weight: 600;">پروتکل اینباند:</span>
+                            <span id="sb-edit-proto-badge" class="badge-pill" style="font-weight: 700; background: #6366f1; color: white; padding: 2px 10px; border-radius: 6px;">-</span>
+                        </div>
+                        <span id="sb-edit-status-hint" style="font-size: 11px; color: var(--text-muted);"></span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="singbox_field_tag">تگ / نام شناسایی (Tag)</label>
+                            <input type="text" class="form-input" id="sb-edit-inbound-tag" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" data-i18n="singbox_field_port">پورت شنود (Port)</label>
+                            <input type="number" class="form-input" id="sb-edit-inbound-port" min="1" max="65535" required>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Fields Container for Edit -->
+                    <div id="sb-edit-dynamic-protocol-fields" style="display: flex; flex-direction: column; gap: 14px;">
+                    </div>
+
+                    <!-- Security & Camouflage Settings -->
+                    <div class="form-group" id="sb-edit-security-section" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                        <label class="form-label" style="font-weight: 600;" data-i18n="singbox_sec_mode">شیوه رمزنگاری و استتار امنیتی (Security / TLS)</label>
+                        <select class="form-input" id="sb-edit-tls-mode" onchange="onSingboxEditTlsModeChange()">
+                            <option value="reality">REALITY (استتار هوشمند بدون نیاز به دامنه)</option>
+                            <option value="tls">TLS استاندارد (با گواهی SSL پنل)</option>
+                            <option value="none">بدون رمزنگاری TLS (Plain)</option>
+                        </select>
+                    </div>
+
+                    <div id="sb-edit-reality-fields" style="display: flex; flex-direction: column; gap: 12px; background: rgba(99, 102, 241, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 12px; font-weight: 700; color: #4f46e5;">تنظیمات استتار Reality:</span>
+                            <button class="btn btn-secondary btn-sm" type="button" onclick="generateSingboxEditRealityKeys()" style="font-size: 11px; padding: 3px 8px;">
+                                <i data-lucide="zap" style="width: 12px; height: 12px;"></i> تولید مجدد جفت کلید
+                            </button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">سرور هدف شبیه‌سازی (Handshake Dest):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-dest" placeholder="e.g. dl.google.com">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">پورت هدف:</label>
+                                <input type="number" class="form-input" id="sb-edit-reality-dest-port" value="443">
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">کلید خصوصی (Private Key):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-privkey">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">کلید عمومی (Public Key):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-pubkey">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 11px;">کلید کوتاه شناسایی (Short ID):</label>
+                            <input type="text" class="form-input" id="sb-edit-reality-shortid" placeholder="Short ID (hex)">
+                        </div>
+                    </div>
+
+                    <div id="sb-edit-tls-fields" style="display: none; flex-direction: column; gap: 10px; background: rgba(16, 185, 129, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <div style="font-size: 12px; font-weight: 700; color: #059669;">تنظیمات گواهی امنیتی TLS:</div>
+                        <div>
+                            <label class="form-label" style="font-size: 11px;">دامنه / نام سرور (SNI / Server Name):</label>
+                            <input type="text" class="form-input" id="sb-edit-tls-sni">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">مسیر گواهی (Cert Path):</label>
+                                <input type="text" class="form-input" id="sb-edit-tls-cert" value="/etc/vpnpanel/ssl/panel.crt">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">مسیر کلید (Key Path):</label>
+                                <input type="text" class="form-input" id="sb-edit-tls-key" value="/etc/vpnpanel/ssl/panel.key">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transport Settings -->
+                    <div class="form-group" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                        <label class="form-label" style="font-weight: 600;" data-i18n="singbox_transport_mode">ترانسپورت شبکه (Transport)</label>
+                        <select class="form-input" id="sb-edit-transport-type" onchange="onSingboxEditTransportChange()">
+                            <option value="tcp">TCP مستقیم (حداکثر سرعت و پایداری)</option>
+                            <option value="ws">WebSocket (WS - استتار پشت CDN و کلادفلر)</option>
+                            <option value="grpc">gRPC (مالتی‌پلکس پیشرفته)</option>
+                            <option value="httpupgrade">HTTPUpgrade (جایگزین مدرن WS)</option>
+                        </select>
+                    </div>
+
+                    <div id="sb-edit-ws-fields" style="display: none; flex-direction: column; gap: 10px;">
+                        <label class="form-label" style="font-size: 11px;">مسیر وب‌سوکت (WS Path):</label>
+                        <input type="text" class="form-input" id="sb-edit-ws-path" value="/" placeholder="e.g. /ws-path">
+                    </div>
+
+                    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                        <button class="btn btn-secondary" type="button" onclick="closeSingboxEditModal()" data-i18n="btn_cancel">انصراف</button>
+                        <button class="btn btn-primary" type="submit" id="sb-submit-edit-btn" data-i18n="btn_save_changes">ذخیره تغییرات اینباند</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: Add / Edit Local User -->
+    <div class="modal" id="modal-singbox-user">
+        <div class="modal-card" style="max-width: 620px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="user-check" style="color: #3b82f6;"></i>
+                    <span id="sb-user-modal-title">تعریف کاربر محلی هسته Sing-box</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxUserModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+
+            <div style="padding: 24px;">
+                <form id="form-singbox-user" onsubmit="submitSingboxUserForm(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 600;">نام کاربری (Username)</label>
+                        <input type="text" class="form-input" id="sb-user-input-username" placeholder="e.g. client1" required style="font-family:'JetBrains Mono';">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                        <div class="form-group">
+                            <label class="form-label">رمز عبور (Password)</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" class="form-input" id="sb-user-input-password" style="font-family:'JetBrains Mono'; font-size:12px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomSingboxUserPass()" title="رمز تصادفی">⚡</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">شناسه (UUID)</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" class="form-input" id="sb-user-input-uuid" style="font-family:'JetBrains Mono'; font-size:11px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateRandomSingboxUserUuid()" title="UUID تصادفی">⚡</button>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <!-- Inbounds Selection Checklist -->
+                    <div class="form-group" style="background: rgba(59, 130, 246, 0.05); padding: 14px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                            <label class="form-label" style="font-weight: 700; color: #1d4ed8; margin: 0;">
+                                کانفیگ‌ها و اینباندهای مجاز برای این کاربر:
+                            </label>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="selectSingboxUserInbounds(true)" style="font-size: 11px; padding: 2px 8px;">انتخاب همه</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="selectSingboxUserInbounds(false)" style="font-size: 11px; padding: 2px 8px;">لغو همه</button>
+                            </div>
+                        </div>
+                        <div id="sb-user-inbounds-checklist" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 200px; overflow-y: auto;">
+                            <!-- Checkboxes injected by JS -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">توضیحات و یادداشت (اختیاری)</label>
+                        <input type="text" class="form-input" id="sb-user-input-note" placeholder="مثلاً: کاربر ماهانه تلگرام">
+                    </div>
+
+                    <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                        <button class="btn btn-secondary" type="button" onclick="closeSingboxUserModal()" data-i18n="btn_cancel">انصراف</button>
+                        <button class="btn btn-primary" type="submit" id="sb-submit-user-btn" data-i18n="btn_save_apply">ذخیره و اتصال به هسته</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 4: User Multi-Config Links & QR Code -->
+    <div class="modal" id="modal-singbox-user-links">
+        <div class="modal-card" style="max-width: 580px; width: 95%; text-align: center;">
+            <header class="modal-header">
+                <h3 class="modal-title" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="qr-code" style="color: #3b82f6;"></i>
+                    <span>کانفیگ‌های اختصاصی کاربر: <strong id="sb-user-links-title-name" style="color: #4f46e5;"></strong></span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxUserLinksModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+
+            <div style="padding: 24px;">
+                <div style="margin-bottom: 14px;">
+                    <label class="form-label" style="text-align: right; font-weight: 600;">انتخاب پروتکل فعال کاربر:</label>
+                    <select id="sb-user-links-proto-select" class="form-input" onchange="onSingboxUserProtoSelectChange()" style="font-weight: 600;">
+                        <!-- Options injected by JS -->
+                    </select>
+                </div>
+
+                <div id="sb-user-qr-canvas-container" style="background: white; padding: 16px; border-radius: 12px; display: inline-block; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                </div>
+
+                <div style="margin-top: 16px; text-align: right;">
+                    <label class="form-label" style="font-size: 11.5px;">لینک استاندارد کلاینت برای این پروتکل:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" class="form-input" id="sb-user-link-uri-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                        <button class="btn btn-secondary" onclick="copySingboxUserSelectedUri()" type="button" title="کپی کردن لینک">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: center; gap: 10px; margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 14px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" type="button" onclick="closeSingboxUserLinksModal()">بستن</button>
+                    <button class="btn btn-primary" type="button" onclick="copyAllSingboxUserConfigs()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                        <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        <span>کپی یکجای کلیه کانفیگ‌های این کاربر</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 5: Raw JSON Config Editor -->
+    <div class="modal" id="modal-singbox-json">
+        <div class="modal-card" style="max-width: 820px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="code" style="color: #6366f1;"></i>
+                    <span data-i18n="singbox_json_modal_title">ویرایشگر مستقیم فایل کانفیگ Sing-box (/etc/sing-box/config.json)</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxJsonModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div style="padding: 24px;">
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                    کانفیگ قبل از اعمال توسط دستور <code>sing-box check</code> اعتبارسنجی خواهد شد.
+                </div>
+                <textarea id="singbox-json-editor" style="width: 100%; height: 420px; background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; border-radius: 8px; border: 1px solid #334155; padding: 12px; direction: ltr; resize: vertical;"></textarea>
+                <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
+                    <span id="sb-json-status" style="font-size: 12px; color: var(--text-muted);"></span>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" type="button" onclick="closeSingboxJsonModal()" data-i18n="btn_cancel">بستن</button>
+                        <button class="btn btn-primary" type="button" onclick="saveSingboxJsonConfig()" id="sb-save-json-btn" data-i18n="btn_save_apply">ذخیره و ری‌استارت</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 6: Inbound Settings & Connection QR (Single Inbound) -->
+    <div class="modal" id="modal-singbox-qr">
+        <div class="modal-card" style="max-width: 540px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title" id="sb-qr-title" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="settings" style="color: #6366f1;"></i>
+                    <span>تنظیمات و مشخصات اینباند</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxQrModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div style="padding: 20px 24px;">
+                <!-- View Toggle Buttons -->
+                <div style="display: flex; gap: 6px; background: var(--bg-muted); padding: 4px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border-color);">
+                    <button type="button" id="sb-inbound-view-btn-qr" class="btn btn-sm btn-primary" onclick="switchSingboxInboundDetailView('qr')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                        <i data-lucide="qr-code" style="width: 13px; height: 13px;"></i>
+                        <span>لینک و بارکد اتصال</span>
+                    </button>
+                    <button type="button" id="sb-inbound-view-btn-json" class="btn btn-sm btn-secondary" onclick="switchSingboxInboundDetailView('json')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                        <i data-lucide="code" style="width: 13px; height: 13px;"></i>
+                        <span>تنظیمات اینباند (JSON)</span>
+                    </button>
+                </div>
+
+                <!-- View 1: QR & Link -->
+                <div id="sb-inbound-qr-view" style="text-align: center;">
+                    <div id="sb-qr-canvas-container" style="background: white; padding: 16px; border-radius: 12px; display: inline-block; margin: 0 auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                    </div>
+                    <div style="margin-top: 14px; text-align: right;">
+                        <label class="form-label" style="font-size: 11.5px;">لینک استاندارد کلاینت اینباند:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" class="form-input" id="sb-share-uri-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                            <button class="btn btn-secondary" onclick="copySingboxUri()" type="button" title="کپی کردن لینک">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View 2: JSON Settings Preview -->
+                <div id="sb-inbound-json-view" style="display: none; text-align: right;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="font-size: 11.5px; margin: 0;">ساختار کامل تنظیمات اینباند (JSON):</label>
+                        <button class="btn btn-secondary btn-sm" onclick="copySingboxInboundJson()" type="button" style="font-size: 11px; padding: 3px 8px;">
+                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                            <span>کپی تنظیمات JSON</span>
+                        </button>
+                    </div>
+                    <textarea id="sb-inbound-json-preview" readonly style="width: 100%; height: 220px; background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; border-radius: 8px; border: 1px solid #334155; padding: 10px; direction: ltr; resize: none;"></textarea>
+                </div>
+
+                <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-align: center;">
+                    تنظیمات پیش‌فرض هسته Sing-box • قابل استفاده و کپی برای کلاینت‌ها و نودهای واسط
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

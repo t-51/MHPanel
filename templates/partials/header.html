@@ -8,7 +8,7 @@
         </div>
         <h1 class="header-title" style="display:flex; align-items:center; gap:8px;">
             <span data-i18n="login_title">MH Panel</span>
-            <span class="badge-pill" onclick="openAboutModal()" style="font-size:11px; padding:2px 8px; cursor:pointer; background:rgba(99,102,241,0.2); color:#818cf8; font-weight:700;" title="مشاهده مشخصات و درباره پنل" data-i18n-title="header_view_specifications_about_panel">v1.0.0</span>
+            <span class="badge-pill badge-gold" onclick="openAboutModal()" style="font-size:11px; padding:2px 8px; cursor:pointer;" title="مشاهده مشخصات و درباره پنل" data-i18n-title="header_view_specifications_about_panel"><i data-lucide="crown" style="width:11px; height:11px;"></i> v1.5.0</span>
         </h1>
         <!-- Tunnel Packet Tamper & Drop Alert Pill (Requirement 3) -->
         <div id="header-tunnel-alert-badge" style="display:none; margin-inline-start:8px;">
@@ -72,12 +72,22 @@
                 </svg>
                 <span>RU</span>
             </button>
+            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية">
+                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                    <rect width="18" height="4.33" fill="#007A3D"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#000000"/>
+                    <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
+                </svg>
+                <span>AR</span>
+            </button>
         </div>
         <!-- Hidden/Fallback Select to keep sync with legacy scripts -->
         <select id="lang-select" style="display:none;" onchange="changeLanguage(this.value)">
             <option value="fa">FA</option>
             <option value="en">EN</option>
             <option value="ru">RU</option>
+            <option value="ar">AR</option>
         </select>
         <span id="server-ip-header" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);"></span>
         <button type="button" class="header-btn" id="logout-btn">

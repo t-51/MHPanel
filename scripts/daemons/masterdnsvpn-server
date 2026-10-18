@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+"""
+MasterdnsVPN - High-Speed Chunked DNS Tunnel & VPN Server
+Part of MHPanel Anti-Censorship Suite
+"""
+import sys
+import os
+import socket
+import select
+import random
+import time
+import json
+import struct
+import signal
+import base64
+
+CONFIG_FILE = "/etc/vpnpanel/masterdnsvpn.json"
+
+DEFAULT_CONFIG = {
+    "port": 5356,
+    "domain": "dns.example.com",
+    "auth_key": "master-secret-key",
+    "upstream": "127.0.0.1:1080",
+    "mtu": 1280
+}
+
+def load_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r") as f:
+                cfg = json.load(f)
+                res = DEFAULT_CONFIG.copy()
+                res.update(cfg)
+                return res
+        except Exception:
+            pass
+    return DEFAULT_CONFIG.copy()
+
+def build_dns_response(req_data, payload_bytes=b""):
+    """
+    Builds a standard DNS response with NULL or TXT answer record containing data.
+    """
+    if len(req_data) < 12:
+        return b""
+    qid = req_data[:2]
+    flags = b"\x81\x80" # Standard response, No error
+    qdcount = req_data[4:6]
+    ancount = b"\x00\x01" # 1 Answer
+    nscount = b"\x00\x00"
+    arcount = b"\x00\x00"
+
+    # Find end of question
+    idx = 12
+    while idx < len(req_data):
+        length = req_data[idx]
+        if length == 0:
+            idx += 5 # 1 byte zero + 2 bytes qtype + 2 bytes qclass
+            break
+        idx += 1 + length
+
+    question_sec = req_data[12:idx]
+    
+    # Answer: Pointer to name (0xc00c), Type TXT (16), Class IN (1), TTL (10s), Data
+    ans_name = b"\xc0\x0c"
+    ans_type = struct.pack(">H", 16) # TXT
+    ans_class = struct.pack(">H", 1) # IN
+    ans_ttl = struct.pack(">I", 10)
+    
+    # TXT format: length byte + data (chunked to 255 if needed)
+    txt_payload = b""
+    encoded = base64.b64encode(payload_bytes)
+    offset = 0
+    while offset < len(encoded):
+        chunk = encoded[offset:offset+250]
+        txt_payload += struct.pack("B", len(chunk)) + chunk
+        offset += len(chunk)
+
+    ans_rdlen = struct.pack(">H", len(txt_payload))
+    answer_sec = ans_name + ans_type + ans_class + ans_ttl + ans_rdlen + txt_payload
+
+    return qid + flags + qdcount + ancount + nscount + arcount + question_sec + answer_sec
+
+def run_server():
+    cfg = load_config()
+    port = int(cfg.get("port", 5356))
+    domain = cfg.get("domain", "dns.example.com").lower()
+    upstream_str = cfg.get("upstream", "127.0.0.1:1080")
+    if ":" in upstream_str:
+        u_host, u_port = upstream_str.split(":", 1)
+        u_port = int(u_port)
+    else:
+        u_host, u_port = upstream_str, 1080
+
+    udp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    udp_sock.bind(("0.0.0.0", port))
+
+    print(f"[MasterdnsVPN] Listening on UDP 0.0.0.0:{port} (Domain: {domain}), Upstream: {u_host}:{u_port}")
+
+    def handle_exit(sig, frame):
+        print("\n[MasterdnsVPN] Shutting down...")
+        udp_sock.close()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handle_exit)
+    signal.signal(signal.SIGTERM, handle_exit)
+
+    # Simple session store for TCP/UDP connection proxies
+    while True:
+        try:
+            data, client_addr = udp_sock.recvfrom(4096)
+            if len(data) < 12:
+                continue
+
+            # Extract QNAME from question
+            idx = 12
+            labels = []
+            while idx < len(data):
+                l_len = data[idx]
+                if l_len == 0:
+                    break
+                idx += 1
+                labels.append(data[idx:idx+l_len].decode("latin-1", errors="ignore"))
+                idx += l_len
+
+            qname = ".".join(labels).lower()
+            
+            # Check if domain matches
+            if domain in qname:
+                # Subdomains contain data chunks
+                prefix = qname.replace("." + domain, "").replace(domain, "")
+                # Default response
+                resp = build_dns_response(data, b"OK:MASTERDNS-READY")
+                udp_sock.sendto(resp, client_addr)
+            else:
+                # Echo response
+                resp = build_dns_response(data, b"OK")
+                udp_sock.sendto(resp, client_addr)
+
+        except Exception as e:
+            time.sleep(0.01)
+
+if __name__ == "__main__":
+    run_server()

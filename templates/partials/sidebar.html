@@ -2,17 +2,28 @@
     <!-- Mobile Sidebar Close Header -->
     <div class="sidebar-mobile-header">
         <div style="display:flex; align-items:center; gap:8px;">
-            <i data-lucide="shield" style="color: #6366f1; width:20px; height:20px;"></i>
-            <strong style="color:#fff; font-size:15px;" data-i18n="login_title">MH Panel</strong>
+            <i data-lucide="shield" style="color: var(--color-gold); width:20px; height:20px;"></i>
+            <strong style="color: var(--text-main); font-size:15px;" data-i18n="login_title">MH Panel</strong>
         </div>
         <button type="button" class="sidebar-mobile-close" onclick="toggleMobileSidebar(false)" aria-label="Close Navigation">
             <i data-lucide="x" style="width:18px; height:18px;"></i>
         </button>
     </div>
 
+    <!-- Mobile Sidebar Quick Search Filter -->
+    <div class="sidebar-mobile-search">
+        <div class="sidebar-search-box">
+            <i data-lucide="search" class="sidebar-search-icon"></i>
+            <input type="text" id="sidebar-filter-input" placeholder="جستجوی سریع پروتکل یا ابزار..." oninput="filterSidebarMenu(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="sidebar_search_placeholder">
+            <button type="button" id="sidebar-search-clear" onclick="clearSidebarFilter()" style="display:none;" aria-label="Clear Search">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Desktop Sidebar Header with Collapse Toggle -->
-    <div class="sidebar-desktop-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 12px 6px; border-bottom: 1px solid rgba(226, 232, 240, 0.7); margin-bottom: 6px;">
-        <span class="sidebar-header-label" style="font-size: 11.5px; font-weight: 700; color: #64748b; letter-spacing: 0.04em;" data-i18n="nav_menu_title">منوی ناوبری</span>
+    <div class="sidebar-desktop-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 12px 6px; border-bottom: 1px solid var(--border-glow); margin-bottom: 6px;">
+        <span class="sidebar-header-label" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em;" data-i18n="nav_menu_title">منوی ناوبری</span>
         <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" title="جمع کردن / باز کردن منو" data-i18n-title="sidebar_collapse_expand_menu" aria-label="Toggle Sidebar">
             <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 16px; height: 16px;"></i>
         </button>
@@ -32,7 +43,7 @@
             <button class="sidebar-nav-item" onclick="switchTab('radar')">
                 <i data-lucide="radar" style="color: #ef4444;"></i>
                 <span data-i18n="nav_radar">رادار فیلترینگ و اتصال</span>
-                <span class="sidebar-badge sidebar-badge-green">Radar</span>
+                <span class="sidebar-badge sidebar-badge-gold"><i data-lucide="zap" style="width:10px; height:10px;"></i> Radar</span>
             </button>
             <button class="sidebar-nav-item" onclick="switchTab('protocols')">
                 <i data-lucide="activity" style="color: #0ea5e9;"></i>
@@ -42,11 +53,98 @@
 
         <div class="sidebar-divider"></div>
 
-        <!-- ۲. بخش پروتکل‌های اتصال و VPN -->
+        <!-- ۲. بخش هسته جامع سینگ‌باکس و پروتکل‌های زیرمجموعه آن -->
+        <div class="sidebar-section">
+            <div class="sidebar-section-header">
+                <i data-lucide="box" style="color: var(--color-gold);"></i>
+                <span data-i18n="nav_sec_singbox">هسته سینگ‌باکس (Sing-box Core Suite)</span>
+                <span class="sidebar-badge sidebar-badge-gold"><i data-lucide="sparkles" style="width:10px; height:10px;"></i> Universal</span>
+            </div>
+            
+            <!-- داشبورد و اینباندهای Sing-box -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('inbounds');">
+                <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
+                <span data-i18n="nav_singbox">داشبورد و اینباندهای Sing-box</span>
+            </button>
+
+            <!-- کاربران محلی هسته (Users) -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('users');">
+                <i data-lucide="users" style="color: #3b82f6;"></i>
+                <span data-i18n="nav_singbox_users">کاربران محلی هسته (Users)</span>
+                <span class="sidebar-badge sidebar-badge-blue">Multi-Config</span>
+            </button>
+
+            <!-- لاگ‌های زنده هسته (Live Logs) -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('logs');">
+                <i data-lucide="terminal" style="color: #10b981;"></i>
+                <span data-i18n="nav_singbox_logs">لاگ‌های زنده هسته (Live Logs)</span>
+                <span class="sidebar-badge sidebar-badge-green">Logs</span>
+            </button>
+
+            <!-- VLESS Reality زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');">
+                <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
+                <span data-i18n="nav_singbox_vless">پروتکل VLESS Reality</span>
+                <span class="sidebar-badge sidebar-badge-purple">Reality</span>
+            </button>
+
+            <!-- Trojan TLS زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
+                <i data-lucide="shield" style="color: #0ea5e9;"></i>
+                <span data-i18n="nav_trojan">پروتکل Trojan (تروجان)</span>
+                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
+            </button>
+
+            <!-- Hysteria 2 زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
+                <i data-lucide="flame" style="color: #ef4444;"></i>
+                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
+            </button>
+
+            <!-- TUIC Protocol زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
+                <i data-lucide="zap" style="color: #6366f1;"></i>
+                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
+                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
+            </button>
+
+            <!-- Shadowsocks زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
+                <i data-lucide="lock" style="color: #10b981;"></i>
+                <span data-i18n="nav_shadowsocks">شادوساکس (Shadowsocks 2022)</span>
+                <span class="sidebar-badge sidebar-badge-blue">2022</span>
+            </button>
+
+            <!-- NaiveProxy زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
+                <i data-lucide="compass" style="color: #f59e0b;"></i>
+                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
+                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
+            </button>
+
+            <!-- VMess زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');">
+                <i data-lucide="layers" style="color: #06b6d4;"></i>
+                <span data-i18n="nav_singbox_vmess">پروتکل VMess</span>
+                <span class="sidebar-badge sidebar-badge-blue">WS</span>
+            </button>
+
+            <!-- ShadowTLS زیرمجموعه سینگ‌باکس -->
+            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');">
+                <i data-lucide="eye-off" style="color: #ec4899;"></i>
+                <span data-i18n="nav_singbox_shadowtls">پروتکل ShadowTLS v3</span>
+                <span class="sidebar-badge sidebar-badge-purple">Stealth</span>
+            </button>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- ۳. سایر پروتکل‌های اتصال و VPN (کلاسیک و تونل) -->
         <div class="sidebar-section">
             <div class="sidebar-section-header">
                 <i data-lucide="shield"></i>
-                <span data-i18n="nav_sec_vpn">پروتکل‌های اتصال (VPN)</span>
+                <span data-i18n="nav_sec_vpn_classic">سایر پروتکل‌های VPN و تونل</span>
             </div>
             
             <!-- Cisco AnyConnect (OCServ) -->
@@ -56,46 +154,11 @@
                 <span class="sidebar-badge sidebar-badge-blue">Cisco</span>
             </button>
 
-            <!-- Hysteria 2 (QUIC / Brutal) -->
-            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
-                <i data-lucide="flame" style="color: #ef4444;"></i>
-                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
-                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
-            </button>
-
-            <!-- Trojan TLS -->
-            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
-                <i data-lucide="shield" style="color: #0ea5e9;"></i>
-                <span data-i18n="nav_trojan">پروتکل Trojan</span>
-                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
-            </button>
-
-            <!-- NaiveProxy -->
-            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
-                <i data-lucide="compass" style="color: #f59e0b;"></i>
-                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
-                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
-            </button>
-
-            <!-- TUIC Protocol (QUIC) -->
-            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
-                <i data-lucide="zap" style="color: #6366f1;"></i>
-                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
-                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
-            </button>
-
             <!-- StunTLS (WebRTC VoIP) -->
             <button class="sidebar-nav-item" onclick="switchTab('stuntls')">
                 <i data-lucide="radio-tower" style="color: #a855f7;"></i>
                 <span data-i18n="nav_stuntls">پروتکل StunTLS</span>
                 <span class="sidebar-badge sidebar-badge-purple">STUN</span>
-            </button>
-
-            <!-- Shadowsocks-rust -->
-            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
-                <i data-lucide="shield" style="color: #d97706;"></i>
-                <span data-i18n="nav_shadowsocks">شادوساکس (Rust)</span>
-                <span class="sidebar-badge sidebar-badge-blue">2022</span>
             </button>
 
             <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream / NoizDNS / MasterdnsVPN) -->
@@ -257,6 +320,15 @@
                     <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
                 </svg>
                 <span style="font-size: 11px;">RU</span>
+            </button>
+            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية" style="flex: 1; justify-content: center; padding: 5px 6px;">
+                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+                    <rect width="18" height="4.33" fill="#007A3D"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#000000"/>
+                    <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
+                </svg>
+                <span style="font-size: 11px;">AR</span>
             </button>
         </div>
     </div>

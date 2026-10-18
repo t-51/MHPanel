@@ -20,8 +20,9 @@ if [[ -z "${IFACE}" ]]; then
 fi
 
 # Enable IPv4 forwarding
-sysctl -w net.ipv4.ip_forward=1 >/dev/null
-grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+touch /etc/sysctl.conf
+sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
+grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
 mkdir -p /etc/wireguard
 chmod 700 /etc/wireguard

@@ -1,44 +1,108 @@
 <div class="tab-pane active" id="tab-overview">
     <!-- 1. System resource summary cards -->
     <section class="system-stats-grid">
-        <div class="glass-card stat-card">
-            <div class="stat-info">
-                <span class="stat-label" data-i18n="stat_cpu">مصرف پردازنده</span>
-                <span class="stat-value" id="cpu-val">- %</span>
+        <!-- CPU Card -->
+        <div class="glass-card stat-card" style="border-top: 3px solid #8b5cf6;">
+            <div class="stat-card-header">
+                <div class="stat-label-wrap">
+                    <span class="stat-label" data-i18n="stat_cpu">مصرف پردازنده</span>
+                </div>
+                <div class="stat-icon-box stat-icon-cpu">
+                    <i data-lucide="cpu" style="width: 20px; height: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <span class="stat-value" id="cpu-val" style="color: #8b5cf6;">- %</span>
+                <div class="stat-progress-track">
+                    <div id="cpu-progress-bar" class="stat-progress-fill" style="width: 0%; background: #8b5cf6;"></div>
+                </div>
                 <span class="stat-meta" id="cpu-meta" data-i18n="stat_multicore">وضعیت چند هسته‌ای</span>
             </div>
-            <div class="stat-icon-box stat-icon-cpu">
-                <i data-lucide="cpu" style="width: 24px; height: 24px;"></i>
-            </div>
         </div>
-        <div class="glass-card stat-card">
-            <div class="stat-info">
-                <span class="stat-label" data-i18n="stat_ram">مصرف رم</span>
-                <span class="stat-value" id="ram-val">- %</span>
+
+        <!-- RAM Card -->
+        <div class="glass-card stat-card" style="border-top: 3px solid #06b6d4;">
+            <div class="stat-card-header">
+                <div class="stat-label-wrap">
+                    <span class="stat-label" data-i18n="stat_ram">مصرف حافظه رم</span>
+                </div>
+                <div class="stat-icon-box stat-icon-ram">
+                    <i data-lucide="hard-drive" style="width: 20px; height: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <span class="stat-value" id="ram-val" style="color: #06b6d4;">- %</span>
+                <div class="stat-progress-track">
+                    <div id="ram-progress-bar" class="stat-progress-fill" style="width: 0%; background: #06b6d4;"></div>
+                </div>
                 <span class="stat-meta" id="ram-meta">- GB / - GB</span>
             </div>
-            <div class="stat-icon-box stat-icon-ram">
-                <i data-lucide="hard-drive" style="width: 24px; height: 24px;"></i>
-            </div>
         </div>
-        <div class="glass-card stat-card">
-            <div class="stat-info">
-                <span class="stat-label" data-i18n="stat_disk">فضای دیسک</span>
-                <span class="stat-value" id="disk-val">- %</span>
+
+        <!-- DISK Card -->
+        <div class="glass-card stat-card" style="border-top: 3px solid var(--color-gold);">
+            <div class="stat-card-header">
+                <div class="stat-label-wrap">
+                    <span class="stat-label" data-i18n="stat_disk">فضای دیسک سرور</span>
+                </div>
+                <div class="stat-icon-box stat-icon-disk" style="background: var(--color-gold-bg); color: var(--color-gold); border: 1px solid var(--color-gold-border);">
+                    <i data-lucide="database" style="width: 20px; height: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <span class="stat-value" id="disk-val" style="color: var(--color-gold);">- %</span>
+                <div class="stat-progress-track">
+                    <div id="disk-progress-bar" class="stat-progress-fill" style="width: 0%; background: var(--color-gold-gradient);"></div>
+                </div>
                 <span class="stat-meta" id="disk-meta">- GB / - GB</span>
             </div>
-            <div class="stat-icon-box stat-icon-disk">
-                <i data-lucide="database" style="width: 24px; height: 24px;"></i>
-            </div>
         </div>
-        <div class="glass-card stat-card">
-            <div class="stat-info">
-                <span class="stat-label" data-i18n="stat_net">ترافیک شبکه</span>
-                <span class="stat-value" id="net-speed-val">0 KB/s</span>
+
+        <!-- NET Card -->
+        <div class="glass-card stat-card" style="border-top: 3px solid #10b981;">
+            <div class="stat-card-header">
+                <div class="stat-label-wrap">
+                    <span class="stat-label" data-i18n="stat_net">ترافیک زنده شبکه</span>
+                </div>
+                <div class="stat-icon-box stat-icon-net">
+                    <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 6px;">
+                    <span class="stat-value" id="net-speed-val" style="color: #10b981; font-size: 21px;">0 KB/s</span>
+                    <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted);" data-i18n="net_live_speed">سرعت کل</span>
+                </div>
+                <div class="net-pills-row">
+                    <span class="net-pill net-pill-rx" title="سرعت دانلود">
+                        <i data-lucide="arrow-down" style="width: 11px; height: 11px;"></i>
+                        <span id="net-rx-val">0 KB/s</span>
+                    </span>
+                    <span class="net-pill net-pill-tx" title="سرعت آپلود">
+                        <i data-lucide="arrow-up" style="width: 11px; height: 11px;"></i>
+                        <span id="net-tx-val">0 KB/s</span>
+                    </span>
+                </div>
                 <span class="stat-meta" id="net-total-val">Rx: 0 GB | Tx: 0 GB</span>
             </div>
-            <div class="stat-icon-box stat-icon-net">
-                <i data-lucide="activity" style="width: 24px; height: 24px;"></i>
+        </div>
+
+        <!-- SWAP Card -->
+        <div class="glass-card stat-card" style="border-top: 3px solid #a855f7;">
+            <div class="stat-card-header">
+                <div class="stat-label-wrap">
+                    <span class="stat-label" data-i18n="stat_swap">حافظه مجازی (SWAP)</span>
+                </div>
+                <div class="stat-icon-box stat-icon-swap" style="background: rgba(168, 85, 247, 0.12); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);">
+                    <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                </div>
+            </div>
+            <div class="stat-card-body">
+                <span class="stat-value" id="swap-val" style="color: #a855f7;">- %</span>
+                <div class="stat-progress-track">
+                    <div id="swap-progress-bar" class="stat-progress-fill" style="width: 0%; background: #a855f7;"></div>
+                </div>
+                <span class="stat-meta" id="swap-meta">- GB / - GB</span>
             </div>
         </div>
     </section>
@@ -53,7 +117,7 @@
                         <i data-lucide="server" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="spec_server_title">مشخصات فنی و سخت‌افزاری سرور</span>
                     </h3>
-                    <span id="spec-uptime-badge" style="font-size: 11px; padding: 4px 10px; background: rgba(99, 102, 241, 0.1); color: var(--color-primary); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 999px; font-weight: 700;">
+                    <span id="spec-uptime-badge" class="badge-gold" style="font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
                         <span data-i18n="spec_uptime">روشن:</span> <span id="spec-uptime-val">-</span>
                     </span>
                 </div>
@@ -99,10 +163,20 @@
                         <div class="spec-item-sub" id="spec-ram-status-val">در دسترس: - | مصرف: -</div>
                     </div>
 
-                    <!-- Item 5: RAM Bus Speed & Type -->
+                    <!-- Item 5: SWAP Memory & Swappiness -->
+                    <div class="spec-item-box">
+                        <div class="spec-item-head">
+                            <i data-lucide="layers" style="color: #a855f7; width: 15px; height: 15px;"></i>
+                            <span data-i18n="spec_swap_title">حافظه مجازی و اسواپ (SWAP)</span>
+                        </div>
+                        <div class="spec-item-value" id="spec-swap-total-val">- GB</div>
+                        <div class="spec-item-sub" id="spec-swap-sub-val">Swappiness: 60 | آزاد: -</div>
+                    </div>
+
+                    <!-- Item 6: RAM Bus Speed & Type -->
                     <div class="spec-item-box" style="grid-column: 1 / -1;">
                         <div class="spec-item-head">
-                            <i data-lucide="layers" style="color: #8b5cf6; width: 15px; height: 15px;"></i>
+                            <i data-lucide="cpu" style="color: #8b5cf6; width: 15px; height: 15px;"></i>
                             <span data-i18n="spec_bus_title">قدرت باس و استاندارد رم</span>
                         </div>
                         <div class="spec-item-value" id="spec-bus-val" data-i18n="overview_qemu_kvm_host_bus">باس پرسرعت مجازی (QEMU/KVM Host Bus)</div>
@@ -137,9 +211,9 @@
     <section class="chart-section" style="margin-top: 24px;">
         <div class="glass-card chart-card">
             <div class="chart-header">
-                <h3 class="chart-title" style="color: var(--text-main); font-weight: 700; font-size: 16px;">
-                    <i data-lucide="trending-up" style="color: #7c3aed; width: 20px; height: 20px;"></i>
-                    <span data-i18n="overview_cpu_ram_chart">نمودار زنده مصرف پردازنده و رم</span>
+                <h3 class="chart-title">
+                    <i data-lucide="trending-up" style="color: #a78bfa; width: 20px; height: 20px;"></i>
+                    <span data-i18n="overview_cpu_ram_chart">روند مصرف منابع سخت‌افزاری سرور (CPU & RAM)</span>
                 </h3>
             </div>
             <div style="flex:1; min-height:220px; position:relative;">
@@ -150,9 +224,9 @@
         
         <div class="glass-card chart-card">
             <div class="chart-header">
-                <h3 class="chart-title" style="color: var(--text-main); font-weight: 700; font-size: 16px;">
-                    <i data-lucide="arrow-down-up" style="color: #059669; width: 20px; height: 20px;"></i>
-                    <span data-i18n="overview_bandwidth_chart">نمودار زنده پهنای باند شبکه</span>
+                <h3 class="chart-title">
+                    <i data-lucide="arrow-down-up" style="color: #34d399; width: 20px; height: 20px;"></i>
+                    <span data-i18n="overview_bandwidth_chart">نرخ مصرف پهنای باند شبکه سرور (Bandwidth Rate)</span>
                 </h3>
             </div>
             <div style="flex:1; min-height:220px; position:relative;">
@@ -185,6 +259,70 @@
             <div id="proto-bandwidth-grid" class="proto-bandwidth-grid">
                 <!-- Injected via JavaScript dynamically -->
                 <div style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 20px 0; grid-column: 1 / -1;" data-i18n="loading_traffic">در حال بارگذاری ترافیک پروتکل‌ها...</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4.5. Multi-Protocol Architecture, Port Sharing & Smart Channels Showcase -->
+    <section class="architecture-showcase-section" style="margin-top: 24px;">
+        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(99, 102, 241, 0.25); background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(14, 165, 233, 0.02));">
+            <div class="spec-card-header" style="flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h3 class="spec-card-title" style="display: flex; align-items: center; gap: 10px;">
+                        <i data-lucide="layers" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                        <span>معماری مولتی‌پروتکل و اشتراک پورت ۴۴۳ (Port Multiplexing & Smart Routing)</span>
+                    </h3>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+                        پشتیبانی همزمان بیش از ۲۶ پروتکل، اجرای بدون تداخل روی یک پورت مشترک با تفکیک هوشمند SNI و مانیتورینگ بلادرنگ
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('multiplexer')" style="font-size: 11.5px;">
+                        <i data-lucide="network"></i> <span>تنظیمات اشتراک پورت</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openArchitectureGuideModal()" style="font-size: 11.5px;">
+                        <i data-lucide="file-text"></i> <span>مشاهده دیاگرام و راهنما</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visual Flowchart Summary Grid -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px; margin-top: 18px;">
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); color: #818cf8; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="share-2" style="width: 16px; height: 16px;"></i>
+                        </span>
+                        <strong style="font-size: 13px; color: var(--text-main);">اشتراک پورت ۴۴۳</strong>
+                    </div>
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                        شنود همزمان وب پنل، Trojan، Reality، سیسکو و SSTP روی پورت ۴۴۳ از طریق تفکیک هدر SNI و ALPN.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+                        </span>
+                        <strong style="font-size: 13px; color: var(--text-main);">رادار و مانیتورینگ زنده</strong>
+                    </div>
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                        پایش بلادرنگ ۵۳ پورت و سوکت فعال، بررسی کیفیت اتصال شبکه ملی و اینترنت جهانی با نمره سلامت ۱۰۰/۱۰۰.
+                    </p>
+                </div>
+
+                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="route" style="width: 16px; height: 16px;"></i>
+                        </span>
+                        <strong style="font-size: 13px; color: var(--text-main);">مسیریابی هوشمند و چنل</strong>
+                    </div>
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                        تفکیک خودکار سایت‌های بانکی و ملی ایران، تونل‌های دوطرفه IPv6 Dual-Stack و سازگاری با روترهای میکروتیک.
+                    </p>
+                </div>
             </div>
         </div>
     </section>
