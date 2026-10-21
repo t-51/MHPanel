@@ -64,40 +64,35 @@ Version **1.6.0** is the most comprehensive and battle-tested release of **MH Pa
 
 Allows running every modern protocol simultaneously over a single public HTTPS port (443) behind an intelligent Layer-4/Layer-7 SNI dispatcher with authentic decoy fallback:
 
-```mermaid
-flowchart TD
-    subgraph Clients ["📱 Global Clients (Android, iOS, Windows, macOS, Linux, MikroTik)"]
-        C_Vless["VLESS Reality Clients"]
-        C_Trojan["Trojan TLS Clients"]
-        C_Cisco["Cisco AnyConnect Clients"]
-        C_Sstp["Native Windows SSTP"]
-        C_Naive["NaiveProxy (Chrome Stack)"]
-        C_DPI["Censorship DPI Probers & Active Scanners"]
-    end
-
-    Clients -->|Incoming Traffic on Shared Port 443 HTTPS| MUX["🔀 Port Multiplexer & SNI Dispatcher (HAProxy / Sing-box Mux)"]
-
-    subgraph Inspection ["🔎 Intelligent Inspection Layer (SNI, ALPN & Handshake Pattern)"]
-        MUX --> Inspector{"ClientHello Analyzer"}
-    end
-
-    Inspector -->|SNI: panel.domain.com<br/>ALPN: h2, http/1.1| WebPanel["🖥️ MH Panel Glassmorphic Web GUI (Port 9090)"]
-    Inspector -->|SNI: reality.domain.com<br/>Stealth Handshake| RealityCore["⚡ Sing-box Core: VLESS Reality (Identity Theft / No SSL)"]
-    Inspector -->|SNI: trojan.domain.com<br/>ALPN: h2, http/1.1| TrojanCore["🛡️ Sing-box Core: Trojan TLS (Standard TLS 1.3)"]
-    Inspector -->|SNI: cisco.domain.com<br/>Cisco SSL VPN| CiscoCore["🔒 Cisco AnyConnect OCServ (Port 10443)"]
-    Inspector -->|SNI: sstp.domain.com<br/>PPP over HTTPS| SstpCore["🪟 Windows SSTP Native (Port 4443)"]
-    Inspector -->|SNI: naive.domain.com<br/>HTTP/2 CONNECT| NaiveCore["🌐 NaiveProxy Chromium Stack (Port 8080)"]
-    Inspector -->|Unrecognized SNI / Invalid Handshake / Active Scanner| DecoyWP["🎭 Anti-DPI WordPress Decoy Site (Genuine CMS Blog)"]
-
-    subgraph InternetWorld ["🌍 Global Uncensored Internet"]
-        RealityCore --> Web["Unrestricted World Wide Web"]
-        TrojanCore --> Web
-        CiscoCore --> Web
-        SstpCore --> Web
-        NaiveCore --> Web
-    end
-
-    DecoyWP -->|Returns Standard Blog Pages & 200 OK| SafeDPI["✅ Scanner Cleared (Server Avoids Blacklisting)"]
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                      📱 Global Clients & Operating Systems                             │
+│         (v2rayNG, Streisand, Clash, AnyConnect, Windows SSTP, Chrome, iOS)             │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            │ Incoming Secure HTTPS Connection on Port 443
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│              🔀 Universal Port 443 Multiplexer & SNI Dispatcher Layer                  │
+│               Intelligent TLS ClientHello, SNI Domain & ALPN Inspection                │
+└───────┬─────────────────┬─────────────────┬─────────────────┬─────────────────┬────────┘
+        │                 │                 │                 │                 │
+  [sni: panel.*]    [sni: vless.*]    [sni: trojan.*]   [sni: cisco.*]    [sni: sstp.*]   [Untrusted / Scanner]
+        │                 │                 │                 │                 │                 │
+        ▼                 ▼                 ▼                 ▼                 ▼                 ▼
+ ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+ │ Web Admin    │  │ VLESS        │  │ Trojan       │  │ Cisco        │  │ Windows      │  │ WordPress    │
+ │ Panel GUI    │  │ Reality      │  │ TLS          │  │ AnyConnect   │  │ SSTP         │  │ Decoy Site   │
+ │ (Port 9090)  │  │ (Sing-box)   │  │ (Sing-box)   │  │ (OCServ)     │  │ (sstpd)      │  │ (Anti-DPI)   │
+ └──────────────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+                          │                 │                 │                 │                 │
+                          └─────────────────┼─────────────────┼─────────────────┘                 │
+                                            │                 │                                   │
+                                            ▼                 ▼                                   ▼
+                             ┌──────────────────────────────────────────────┐              ┌──────────────┐
+                             │       🌐 Uncensored Global Internet          │              │ Scanner Safe │
+                             │        (YouTube, Instagram, Telegram)        │              │  200 OK Page │
+                             └──────────────────────────────────────────────┘              └──────────────┘
 ```
 
 ---
@@ -106,101 +101,117 @@ flowchart TD
 
 Bypasses aggressive DPI filters by relaying traffic via official Google Cloud Edge workers (`script.google.com`):
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 👤 Client (V2Ray / Sing-box / Custom App)
-    participant Google as ☁️ Google Cloud Edge (Apps Script V8 Worker)
-    participant Server as 🖥️ MH Panel VPS (Google Script Forwarder)
-    participant Internet as 🌐 Target Internet (YouTube, Telegram, Instagram)
-
-    Note over User,Google: Client connects to Google official IPs (172.217.x.x) - DPI cannot block Google
-    User->>Google: Encrypted Payload (AES-256-GCM + HMAC-SHA256 Token)
-    Note over Google: Google V8 Engine executes cloud worker script with zero intermediary VPS cost
-    Google->>Server: Relays request to secure forwarder daemon on your VPS
-    Server->>Server: Verifies token, decrypts payload, forwards to egress interface
-    Server->>Internet: Establishes connection to destination target
-    Internet-->>Server: Returns web responses and data packets
-    Server-->>Google: Re-encrypts payload and returns to Google Edge
-    Google-->>User: Delivers data to client over high-speed Google CDN backbone
+```text
+┌──────────────┐       AES-256-GCM Encrypted + HMAC Auth       ┌───────────────────────────────────┐
+│  👤 User     │ ─────────────────────────────────────────────► │    ☁️ Google Cloud Edge CDN       │
+│  Client      │                                                │     Google Apps Script V8 Engine  │
+│ (Sing-box/V2)│ ◄───────────────────────────────────────────── │    Official IPs (172.217.x.x)     │
+└──────────────┘       Fast Response via Official Google CDN    └─────────────────┬─────────────────┘
+                                                                                  │
+                                                                 Relays to VPS    │ (Google CDN IPs are
+                                                                 Daemon over TLS  │  unblockable by DPI)
+                                                                                  ▼
+┌──────────────────────────────┐     Unrestricted Target Web    ┌───────────────────────────────────┐
+│     🌍 Unfiltered Internet   │ ◄───────────────────────────── │    🖥️ MH Panel VPS (Foreign Server)│
+│  (YouTube, Telegram, Google) │ ─────────────────────────────► │      Google Script Forwarder      │
+└──────────────────────────────┘      Packets Returned to VPS   └───────────────────────────────────┘
 ```
 
 ---
 
 ### 3. Anti-DPI WordPress Decoy Site vs Active Probers
 
-```mermaid
-flowchart LR
-    subgraph Inbound ["Inbound Traffic on Port 443"]
-        C_User["👤 Legitimate Client with Credentials"]
-        C_Probe["🤖 DPI Automated Active Prober / Scanner"]
-    end
-
-    Inbound --> Port443["Public Port 443 Entrypoint"]
-
-    Port443 --> Analyzer{"Handshake Verification"}
-
-    Analyzer -->|Valid Key & Known Protocol SNI| ProxyEngine["⚡ Sing-box / Trojan / Reality Core"]
-    ProxyEngine --> FreeNet["🌐 High-Speed Uncensored Internet"]
-
-    Analyzer -->|Generic HTTP Request / Probe Packet / Untrusted SNI| WP["🎭 Anti-DPI WordPress Decoy Site"]
-    WP --> FakeResponse["📄 Returns Authentic Blog Articles, CSS, JS & Media"]
-    FakeResponse --> SafeCensor["🟢 Censor Firewall: 'Standard website detected' -> Server IP Safe"]
+```text
+                     ┌────────────────────────────────────────────────────────┐
+                     │          Inbound Traffic on Public Port 443            │
+                     └───────────────────────────┬────────────────────────────┘
+                                                 │
+                                                 ▼
+                     ┌────────────────────────────────────────────────────────┐
+                     │          Intelligent Handshake Pattern Analysis        │
+                     └─────────────┬────────────────────────────┬─────────────┘
+                                   │                            │
+                     [Valid Key & Protocol SNI]      [Untrusted Scan / Generic HTTP]
+                                   │                            │
+                                   ▼                            ▼
+                     ┌───────────────────────────┐┌───────────────────────────┐
+                     │  ⚡ Core Proxy Engines    ││  🎭 WordPress Decoy Site  │
+                     │  (Sing-box, Reality, ...) ││  (Anti-DPI CMS Template)  │
+                     └─────────────┬─────────────┘└─────────────┬─────────────┘
+                                   │                            │
+                                   ▼                            ▼
+                     ┌───────────────────────────┐┌───────────────────────────┐
+                     │ 🌐 Unfiltered Global Web  ││ 📄 Returns Authentic Blog │
+                     │    Full Speed Internet    ││ 🟢 "Standard site found"  │
+                     └───────────────────────────┘└───────────────────────────┘
 ```
 
 ---
 
 ### 4. Telegram Bot Alert Engine & Automated Backup Dispatch
 
-```mermaid
-flowchart TD
-    subgraph MHPanelCore ["🖥️ MH Panel Core Telemetry"]
-        HW["📈 Real-time Hardware Telemetry (CPU / RAM / SWAP)"]
-        RadarMon["📡 Site-to-Site Tunnel & Latency Monitor"]
-        ShieldMon["🛡️ DPI TCP RST Tamper & Drop Shield"]
-        BackupCron["⏰ Scheduled Cron Backups (Daily / Weekly)"]
-    end
-
-    subgraph BotService ["🤖 Telegram Bot Dispatcher Daemon"]
-        BotDispatcher["Telegram Bot Worker (Direct HTTPS API Delivery)"]
-    end
-
-    subgraph TelegramAdmin ["📱 Administrator Telegram Chat"]
-        Alerts["🚨 Instant Critical Alerts:<br/>- High Resource Saturation Warning<br/>- Tunnel Disconnect / High Packet Loss<br/>- Active DPI TCP RST Injection Attack"]
-        BackupFile["💾 Direct Delivery of Compressed Backup File<br/>(mhpanel-backup-*.tar.gz)"]
-        BotControl["⚙️ Interactive Commands:<br/>Send /status for on-demand live system report"]
-    end
-
-    HW -->|Threshold Exceeded| BotDispatcher
-    RadarMon -->|Tunnel Outage Detected| BotDispatcher
-    ShieldMon -->|RST Injection Spotted| BotDispatcher
-    BackupCron -->|New Backup Generated| BotDispatcher
-
-    BotDispatcher --> Alerts
-    BotDispatcher --> BackupFile
-    BotControl --> BotDispatcher
+```text
+┌──────────────────────────────────────────────┐
+│           🖥️ MH Panel Telemetry Core         │
+│  • Hardware Resource Probing (CPU, RAM, SWAP)│
+│  • Tunnel Health, RTT & Packet Loss Tracking │
+│  • DPI TCP RST Injection Attack Sensor       │
+│  • Scheduled Cron Backup Engine (Daily/Weekly│
+└──────────────────────┬───────────────────────┘
+                       │
+                       │ Direct HTTPS Dispatch to Telegram API
+                       ▼
+┌──────────────────────────────────────────────┐
+│           🤖 Administrator Telegram Bot      │
+│          MH Panel Alert & Backup Engine      │
+└──────┬───────────────────────┬───────────────┘
+       │                       │
+       ▼ Instant Critical Push ▼ Direct Delivery of Archive
+┌──────────────────────────────┐┌──────────────────────────────┐
+│ 🚨 Emergency Security Alerts:││ 💾 Automated Backup File:    │
+│ - Hardware Saturation Alert  ││ mhpanel-backup-*.tar.gz      │
+│ - Tunnel Outage Detected     ││ Full Database & Configs      │
+│ - Active DPI Attack Warning  ││ Instant 1-Click Download     │
+└──────────────────────────────┘└──────────────────────────────┘
 ```
 
 ---
 
 ### 5. Sing-box First-Connect Triggered Accounting Lifecycle
 
-```mermaid
-flowchart TD
-    Create["👨‍💼 Admin creates user account<br/>(Quota: 50 GB | Duration: 30 Days)"] --> DB[("Database (SQLite + FreeRADIUS)")]
-
-    DB --> StateWaiting["🟡 Status: First-Connect Pending<br/>* 30-day countdown has NOT started yet *"]
-
-    StateWaiting --> UserConnect["⚡ User establishes first active handshake on any Sing-box protocol"]
-
-    UserConnect --> Activated["🟢 Records First Handshake Timestamp<br/>* 30-day countdown begins now *"]
-
-    Activated --> Accounting["📊 Real-time Upload / Download Bandwidth Metering"]
-
-    Accounting --> ExpiryCheck{"Has quota expired or 30 days elapsed?"}
-
-    ExpiryCheck -->|No| Accounting
-    ExpiryCheck -->|Yes| Block["🔴 Automatic account suspension across all protocol inbounds"]
+```text
+┌────────────────────────────────────────────────────────┐
+│             👨‍💼 Administrator in Web GUI                │
+│    Create User Account (Quota: 50 GB | Duration: 30 D) │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│      🟡 Initial Status: First-Connect Pending          │
+│       * 30-Day validity countdown has NOT begun yet *  │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            │ User imports config & initiates first handshake
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│     🟢 First Handshake Timestamp Automatically Stamped │
+│       * 30-Day validity countdown starts right now *   │
+└───────────────────────────┬────────────────────────────┘
+                            │
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│     📊 Real-Time Bandwidth Accounting (Upload+Download)│
+└───────────────────────────┬────────────────────────────┘
+                            │
+              ┌─────────────┴─────────────┐
+              │ Did 50 GB quota deplete   │
+              │  OR 30 days expire?       │
+              └─────────────┬─────────────┘
+                            │ Yes
+                            ▼
+┌────────────────────────────────────────────────────────┐
+│     🔴 Automatic User Suspension Across All Inbounds   │
+└───────────────────────────┘
 ```
 
 ---
