@@ -1564,11 +1564,20 @@
                     </div>
 
                     <!-- Steps helper bar -->
-                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 14px; margin-bottom:10px; font-size:12px; color:var(--text-muted); line-height:1.6;">
                         <strong style="color:#60a5fa;">راهنمای اتصال ۳ مرحله‌ای:</strong>
                         ۱. نرم‌افزار <code>mhrv-rs</code> را نصب کنید.
                         ۲. در بخش Relay Mode حالت <strong>Full</strong> را انتخاب کنید.
                         ۳. آدرس <strong>Apps Script URL</strong> و <strong>Auth Key</strong> زیر را وارد کرده و اتصال را روشن کنید.
+                    </div>
+
+                    <!-- Access Permission Critical Tip -->
+                    <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:11.5px; color:var(--text-muted); line-height:1.5;">
+                        <strong style="color:#f59e0b; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                            <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i>
+                            <span>نکته حیاتی برای عبور ترافیک (حل مشکل رد و بدل نشدن داده‌ها):</span>
+                        </strong>
+                        در تنظیمات استقرار وب‌اپ گوگل (Deploy > Manage deployments)، گزینه <strong>Who has access</strong> باید حتماً روی <strong>Anyone</strong> (همه افراد - ناشناس) باشد. اگر روی «Anyone with a Google account» باشد، گوگل درخواست کلاینت mhrv-rs را رد کرده و ترافیک برقرار نمی‌شود.
                     </div>
 
                     <!-- Parameters Quick Table -->
