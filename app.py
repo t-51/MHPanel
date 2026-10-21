@@ -21327,6 +21327,11 @@ def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_
                 msg = err_json.get("error", {}).get("message", err_body)
             except Exception:
                 msg = err_body
+            if e.code == 403 and ("usersettings" in msg or "not enabled the Apps Script API" in msg):
+                return False, {
+                    "is_api_disabled": True,
+                    "message": "کلید Google Apps Script API در حساب کاربری گوگل شما خاموش (OFF) است. لطفاً وارد آدرس https://script.google.com/home/usersettings شوید و کلید Google Apps Script API را در حالت روشن (ON) قرار دهید، سپس ۱ الی ۲ دقیقه بعد مجدداً دکمه استقرار را بزنید."
+                }
             return False, f"خطا در ایجاد پروژه گوگل اسکریپت (کد {e.code}): {msg}"
         except Exception as e:
             return False, f"خطای اتصال به API گوگل: {str(e)}"
@@ -21596,7 +21601,13 @@ def api_google_script_deploy():
     
     success, res = deploy_gas_to_google(access_token, script_title, code_gs, existing_script_id)
     if not success:
-        return jsonify({"success": False, "error": res}), 400
+        if isinstance(res, dict) and res.get("is_api_disabled"):
+            return jsonify({
+                "success": False,
+                "error": res["message"],
+                "is_api_disabled": True
+            }), 400
+        return jsonify({"success": False, "error": str(res)}), 400
     
     # Save deployment result
     cfg["google_project_title"] = script_title

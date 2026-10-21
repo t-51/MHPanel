@@ -997,6 +997,15 @@
                                 <i data-lucide="copy" style="width:11px; height:11px; margin-left:3px;"></i> کپی هر دو اسکوپ
                             </button>
                         </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-top:6px;">
+                            <small style="color:var(--text-muted); font-size:11px;">
+                                توکن دسترسی موقت گوگل که با ya29 آغاز می‌شود
+                            </small>
+                            <a href="https://script.google.com/home/usersettings" target="_blank" style="color:#f59e0b; font-size:11px; text-decoration:none; display:flex; align-items:center; gap:4px; font-weight:600;">
+                                <i data-lucide="shield-alert" style="width:13px; height:13px;"></i>
+                                <span>خطای ۴۰۳؟ روشن کردن کلید API در اکانت گوگل ↗</span>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Project Title Input Box -->
@@ -1017,14 +1026,39 @@
 
                 <!-- Interactive 3-Step Token Guide Wizard (Collapsible) -->
                 <div id="gas-token-help-box" style="display:none; background:rgba(66,133,244,0.06); border:1px solid rgba(66,133,244,0.25); border-radius:12px; padding:14px; margin-bottom:16px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
                         <div style="font-size:12.5px; font-weight:700; color:#4285F4; display:flex; align-items:center; gap:6px;">
                             <i data-lucide="sparkles" style="width:15px; height:15px;"></i>
-                            <span>دریافت توکن گوگل در ۳۰ ثانیه از Google OAuth Playground:</span>
+                            <span>راهنمای جامع دریافت توکن و استقرار در گوگل (حل خطای ۴۰۳):</span>
                         </div>
                         <button type="button" class="gas-tool-btn" onclick="toggleGasTokenHelp()" style="width:24px; height:24px;">
                             <i data-lucide="x" style="width:14px; height:14px;"></i>
                         </button>
+                    </div>
+
+                    <!-- Step 0 Prerequisite Banner: Enable Apps Script API -->
+                    <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.28); border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+                        <div style="display:flex; align-items:flex-start; gap:10px;">
+                            <div style="width:24px; height:24px; border-radius:6px; background:#ef4444; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; flex-shrink:0;">
+                                ۰
+                            </div>
+                            <div style="flex:1;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+                                    <strong style="font-size:12px; color:#ef4444;">گام پیش‌نیاز اجباری (فقط ۱ بار برای همیشه): روشن کردن Google Apps Script API</strong>
+                                    <span style="font-size:10.5px; background:rgba(239,68,68,0.2); color:#ef4444; padding:2px 7px; border-radius:4px; font-weight:700;">دلیل خطای ۴۰۳</span>
+                                </div>
+                                <p style="font-size:11.5px; color:var(--text-muted); margin:0 0 8px 0; line-height:1.5;">
+                                    شرکت گوگل برای امنیت حساب‌ها، امکان ساخت اسکریپت با API را به صورت پیش‌فرض <strong>خاموش (OFF)</strong> می‌گذارد. قبل از استقرار یا در صورت دریافت خطای ۴۰۳، دکمه زیر را بزنید و در صفحه باز شده، کلید <strong>Google Apps Script API</strong> را روی <strong>ON (روشن)</strong> بگذارید:
+                                </p>
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <a href="https://script.google.com/home/usersettings" target="_blank" class="btn btn-sm" style="background:#ef4444; border-color:#ef4444; color:#fff; font-size:11.5px; text-decoration:none; padding:5px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                                        <i data-lucide="external-link" style="width:13px; height:13px;"></i>
+                                        <span>باز کردن تنظیمات حساب کاربری گوگل (usersettings) ↗</span>
+                                    </a>
+                                    <span style="font-size:11px; color:#f59e0b;">(پس از روشن کردن، ۱ الی ۲ دقیقه برای فعال‌سازی کامل در گوگل صبر کنید)</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="gas-wizard-grid">
@@ -1119,6 +1153,9 @@
 
                     </div>
                 </div>
+
+                <!-- Real-time Deployment Alert & 403 Helper Banner -->
+                <div id="gas-deploy-alert-container" style="display:none; margin-bottom:14px;"></div>
 
                 <!-- Submit Action Bar (Responsive) -->
                 <div class="gas-submit-bar">
