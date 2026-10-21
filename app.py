@@ -21109,51 +21109,74 @@ def save_gas_config(cfg, restart_service=True):
     os.makedirs(os.path.dirname(GAS_CONFIG_FILE), exist_ok=True)
     with open(GAS_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
+    # Also write /etc/vpnpanel/gas_tunnel.env for mhrv-tunnel-node systemd service
+    try:
+        env_file = "/etc/vpnpanel/gas_tunnel.env"
+        port = cfg.get("port", 8448)
+        secret = cfg.get("secret", "mhpanel_gas_secret_key_2026")
+        with open(env_file, "w", encoding="utf-8") as f:
+            f.write(f"PORT={port}\nTUNNEL_AUTH_KEY={secret}\nMHRV_DIAGNOSTIC=0\n")
+    except Exception:
+        pass
     if restart_service:
         subprocess.run(["systemctl", "restart", "mhpanel-gas-tunnel"], check=False)
 
 def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443"):
     """
     Returns pre-configured templates for both Server side and Google Apps Script side.
+    100% compliant with MasterHttpRelayVPN-RUST (ghcr.io/therealaleph/mhrv-tunnel-node & CodeFull.gs).
     """
-    full_tunnel_gas = f'''/**
- * MHPanel - Google Apps Script Full Tunnel Relay (GooseRelay Mode)
- * Relays raw TCP/UDP streams through Google Edge CDN to VPS Exit Server.
+    code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
+    full_tunnel_gas = ""
+    if os.path.exists(code_full_path):
+        try:
+            with open(code_full_path, "r", encoding="utf-8") as f:
+                full_tunnel_gas = f.read()
+            full_tunnel_gas = full_tunnel_gas.replace(
+                'const AUTH_KEY = "CHANGE_ME_TO_A_STRONG_SECRET";',
+                f'const AUTH_KEY = "{secret}";'
+            )
+            full_tunnel_gas = full_tunnel_gas.replace(
+                'const TUNNEL_SERVER_URL = "https://YOUR_TUNNEL_NODE_URL";',
+                f'const TUNNEL_SERVER_URL = "http://{server_ip}:{port}";'
+            )
+            full_tunnel_gas = full_tunnel_gas.replace(
+                'const TUNNEL_AUTH_KEY = "YOUR_TUNNEL_AUTH_KEY";',
+                f'const TUNNEL_AUTH_KEY = "{secret}";'
+            )
+        except Exception:
+            pass
+
+    if not full_tunnel_gas:
+        full_tunnel_gas = f'''/**
+ * MasterHttpRelayVPN-RUST - CodeFull.gs (DomainFront Relay + Full Tunnel)
+ * Official MasterHttpRelayVPN Full Mode Template
  */
-const VPS_TUNNEL_URL = "http://{server_ip}:{port}/tunnel";
-const SECRET_KEY = "{secret}";
+const AUTH_KEY = "{secret}";
+const TUNNEL_SERVER_URL = "http://{server_ip}:{port}";
+const TUNNEL_AUTH_KEY = "{secret}";
+const ENABLE_EDGE_DNS_CACHE = true;
 
 function doPost(e) {{
-  try {{
-    const postData = e.postData.contents;
-    const options = {{
+  var req = JSON.parse(e.postData.contents);
+  if (req.k !== AUTH_KEY) return ContentService.createTextOutput("404 Not Found");
+  if (req.t === "batch") {{
+    var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel/batch", {{
       method: "post",
       contentType: "application/json",
-      headers: {{
-        "X-Auth-Key": SECRET_KEY
-      }},
-      payload: postData,
+      payload: JSON.stringify({{ k: TUNNEL_AUTH_KEY, ops: req.ops, zc: req.zc }}),
       muteHttpExceptions: true
-    }};
-    
-    const response = UrlFetchApp.fetch(VPS_TUNNEL_URL, options);
-    return ContentService.createTextOutput(response.getContentText())
-      .setMimeType(ContentService.MimeType.JSON);
-  }} catch (err) {{
-    return ContentService.createTextOutput(JSON.stringify({{
-      status: "error",
-      message: err.toString()
-    }})).setMimeType(ContentService.MimeType.JSON);
+    }});
+    return ContentService.createTextOutput(resp.getContentText()).setMimeType(ContentService.MimeType.JSON);
   }}
-}}
-
-function doGet(e) {{
-  return ContentService.createTextOutput(JSON.stringify({{
-    status: "online",
-    relay: "MHPanel-GAS-FullTunnel",
-    mode: "GooseRelay",
-    timestamp: new Date().toISOString()
-  }})).setMimeType(ContentService.MimeType.JSON);
+  var payload = {{ k: TUNNEL_AUTH_KEY, op: req.t, host: req.h, port: req.p, sid: req.sid, data: req.d }};
+  var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel", {{
+    method: "post",
+    contentType: "application/json",
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  }});
+  return ContentService.createTextOutput(resp.getContentText()).setMimeType(ContentService.MimeType.JSON);
 }}
 '''
 
@@ -21240,16 +21263,20 @@ function doPost(e) {{
 }}
 '''
 
-    server_daemon_snippet = f'''# MHPanel GAS VPS Server Daemon (Running as mhpanel-gas-tunnel.service)
-# Port: {port} | Secret: {secret} | Sing-box: {singbox_target}
-# Config file: /etc/vpnpanel/google_script.json
-# Binary: /usr/local/bin/mhpanel-gas-server
+    server_daemon_snippet = f'''# MasterHttpRelayVPN-RUST Tunnel Node (mhrv-tunnel-node)
+# Official Container: ghcr.io/therealaleph/mhrv-tunnel-node:latest
+# Binary: /usr/local/bin/mhrv-tunnel-node
+# Service: mhpanel-gas-tunnel.service
+# Port: {port} | Secret (TUNNEL_AUTH_KEY): {secret}
+# Sing-box Detour Target: {singbox_target}
+# Config: /etc/vpnpanel/google_script.json & /etc/vpnpanel/gas_tunnel.env
+# Endpoints: POST /tunnel, POST /tunnel/batch, GET /health
 '''
 
     return {
         "full_tunnel": {
-            "name": "گووس ریلی فول‌تانل (GooseRelay Full Tunnel)",
-            "description": "حالت تمام‌عیار و پرسرعت جهت عبور بلادرنگ ترافیک کامل TCP/UDP (اینستاگرام، تلگرام، وب، گیم) از Google Edge CDN به خروجی سرور مجازی با استریم Base64.",
+            "name": "مستر اچ‌تی‌تی‌پی فول‌تانل رله (MasterHttpRelayVPN-RUST Full Tunnel)",
+            "description": "پروتکل رسمی فول‌تانل بر پایه mhrv-tunnel-node و CodeFull.gs با پشتیبانی کامل از Batching چند اتصاله، استریم TCP/UDP (تلگرام، اینستاگرام، وب)، کش محلی DoH در Google Edge و سازگاری ۱۰۰٪ با کلاینت‌های mhrv-rs و کانتینر ghcr.io/therealaleph/mhrv-tunnel-node.",
             "google_code": full_tunnel_gas,
             "server_code": server_daemon_snippet
         },
@@ -21403,14 +21430,28 @@ def api_google_script_status():
     
     active_sessions = 0
     server_health = "offline"
+    backend_engine = "mhrv-tunnel-node (Rust v1.9.38)"
+    port = cfg.get("port", 8448)
+    
+    # 1. Health check for native mhrv-tunnel-node
     try:
-        req = urllib.request.Request(f"http://127.0.0.1:{cfg.get('port', 8448)}/stats")
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/health")
         with urllib.request.urlopen(req, timeout=1.5) as r:
-            sdata = json.loads(r.read().decode())
-            active_sessions = sdata.get("active_sessions", 0)
-            server_health = "online"
+            body = r.read().decode().strip()
+            if body == "ok":
+                server_health = "online"
+                backend_engine = "mhrv-tunnel-node (Rust v1.9.38)"
     except Exception:
-        pass
+        # 2. Fallback check for python daemon /stats
+        try:
+            req = urllib.request.Request(f"http://127.0.0.1:{port}/stats")
+            with urllib.request.urlopen(req, timeout=1.5) as r:
+                sdata = json.loads(r.read().decode())
+                active_sessions = sdata.get("active_sessions", 0)
+                server_health = "online"
+                backend_engine = "Python Daemon"
+        except Exception:
+            pass
 
     server_ip = get_server_public_ip()
     
@@ -21418,8 +21459,9 @@ def api_google_script_status():
         "success": True,
         "is_active": is_active,
         "server_health": server_health,
+        "backend_engine": backend_engine,
         "active_sessions": active_sessions,
-        "port": cfg.get("port", 8448),
+        "port": port,
         "mode": cfg.get("mode", "full_tunnel"),
         "secret": cfg.get("secret", ""),
         "server_ip": server_ip,
@@ -21630,10 +21672,23 @@ def api_google_script_client_configs():
     deployment_id = cfg.get("google_deployment_id", "")
     webapp_url = cfg.get("google_webapp_url", "")
     
+    actual_webapp_url = webapp_url or (f"https://script.google.com/macros/s/{deployment_id}/exec" if deployment_id else "")
+    mhrv_profile = {
+        "client": "MasterHttpRelayVPN-RUST (mhrv-rs)",
+        "mode": "full",
+        "apps_script_url": actual_webapp_url or "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "auth_key": secret,
+        "tunnel_server": f"http://{server_ip}:{port}",
+        "local_socks5": "127.0.0.1:1080",
+        "local_http": "127.0.0.1:8123",
+        "batch_mode": True,
+        "edge_dns_cache": True
+    }
+
     goose_uri = f"goose://{deployment_id or 'AKfycb_YOUR_DEPLOYMENT_ID'}@{server_ip}:{port}?secret={secret}&mode=full"
     
     goose_json = {
-        "relay_url": webapp_url or f"https://script.google.com/macros/s/{deployment_id}/exec",
+        "relay_url": actual_webapp_url,
         "secret": secret,
         "mode": cfg.get("mode", "full_tunnel"),
         "local_socks": "127.0.0.1:10808",
@@ -21649,7 +21704,7 @@ def api_google_script_client_configs():
 
     master_http_profile = {
         "app": "MasterHttpRelay",
-        "web_app_url": webapp_url,
+        "web_app_url": actual_webapp_url,
         "auth_key": secret,
         "listen_port": 1080
     }
@@ -21658,7 +21713,7 @@ def api_google_script_client_configs():
 # Provides SOCKS5 Proxy on 127.0.0.1:1080 via Google Apps Script Relay
 import socket, threading, json, base64, urllib.request, time
 
-GAS_URL = "{webapp_url or 'https://script.google.com/macros/s/' + deployment_id + '/exec'}"
+GAS_URL = "{actual_webapp_url}"
 SECRET = "{secret}"
 LOCAL_PORT = 1080
 
@@ -21667,6 +21722,7 @@ print(f"Connecting to GAS Relay: {{GAS_URL}}")
 
     return jsonify({
         "success": True,
+        "mhrv_profile": mhrv_profile,
         "goose_uri": goose_uri,
         "goose_json": goose_json,
         "singbox_outbound": singbox_outbound,

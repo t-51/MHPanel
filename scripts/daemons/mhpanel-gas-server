@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""
+MHPanel - Google Apps Script (GAS) Full Tunnel Manager
+Launches the official high-performance Rust mhrv-tunnel-node (MasterHttpRelayVPN-RUST)
+from ghcr.io/therealaleph/mhrv-tunnel-node.
+"""
+import os
+import sys
+import json
+import subprocess
+
+CONFIG_FILE = "/etc/vpnpanel/google_script.json"
+DEFAULT_CONFIG = {
+    "port": 8448,
+    "secret": "mhpanel_gas_secret_key_2026",
+    "mode": "full_tunnel"
+}
+
+def load_config():
+    cfg = dict(DEFAULT_CONFIG)
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+    return cfg
+
+def main():
+    cfg = load_config()
+    port = str(cfg.get("port", 8448))
+    secret = str(cfg.get("secret", "mhpanel_gas_secret_key_2026"))
+    
+    os.makedirs("/etc/vpnpanel", exist_ok=True)
+    try:
+        with open("/etc/vpnpanel/gas_tunnel.env", "w", encoding="utf-8") as f:
+            f.write(f"PORT={port}\nTUNNEL_AUTH_KEY={secret}\nMHRV_DIAGNOSTIC=0\n")
+    except Exception:
+        pass
+
+    rust_bin = "/usr/local/bin/mhrv-tunnel-node"
+    if os.path.isfile(rust_bin) and os.access(rust_bin, os.X_OK):
+        print(f"[*] Starting native Rust mhrv-tunnel-node on port {port}...")
+        os.environ["PORT"] = port
+        os.environ["TUNNEL_AUTH_KEY"] = secret
+        os.environ["MHRV_DIAGNOSTIC"] = "0"
+        os.execv(rust_bin, [rust_bin])
+
+    print(f"[!] Error: {rust_bin} not found. Please ensure mhrv-tunnel-node is installed.")
+    sys.exit(1)
+
+if __name__ == "__main__":
+    main()

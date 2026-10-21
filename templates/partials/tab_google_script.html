@@ -387,8 +387,8 @@
                     <div style="font-weight: 700; color: #4285F4; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-port">8448</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="gas_stat_mode">حالت عملیاتی رله</div>
-                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-mode">Full Tunnel (GooseRelay)</div>
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="gas_stat_mode">موتور اجرایی سرور خروجی</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-mode">mhrv-tunnel-node (Rust v1.9.38)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">نشست‌های آنلاین فعال</div>
@@ -944,8 +944,28 @@
                     <div>
                         <h4 style="margin:0; font-size:16px; font-weight:700;">لینک و کانفیگ کلاینت‌های متصل به گوگل اسکریپت</h4>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                            کانفیگ‌های آماده برای نرم‌افزارهای کلاینتی GooseRelay، Sing-box Detour، MasterHttp و اسکریپت پایتون
+                            کانفیگ‌های رسمی برای کلاینت‌های MasterHttpRelayVPN-RUST (mhrv-rs)، GooseRelay، Sing-box Detour و اسکریپت پایتون
                         </p>
+                    </div>
+                </div>
+
+                <!-- 0. Official MasterHttpRelayVPN-RUST (mhrv-rs) Client -->
+                <div class="gas-token-card active-emerald" style="margin-bottom:14px; border: 1px solid rgba(16, 185, 129, 0.45); background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);">
+                    <div class="gas-token-header">
+                        <span class="gas-token-title" style="color:#10b981; font-weight:700;">
+                            <i data-lucide="shield-check" style="width:15px; height:15px; color:#10b981;"></i>
+                            کانفیگ کلاینت رسمی MasterHttpRelayVPN (mhrv-rs کلاینت اندروید، ویندوز، مک، لینوکس):
+                        </span>
+                        <span class="gas-token-badge gas-token-badge-green">Official Full Tunnel (Batching & UDP)</span>
+                    </div>
+                    <pre class="gas-token-value-box" id="gas-client-mhrv-profile" style="color:#34d399; max-height:140px; font-size:12px;">-</pre>
+                    <div class="gas-token-actions" style="flex-wrap:wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-mhrv" onclick="copyGasText('gas-client-mhrv-profile', 'btn-copy-client-mhrv')">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی تنظیمات mhrv-rs
+                        </button>
+                        <a href="https://github.com/therealaleph/MasterHttpRelayVPN-RUST/releases" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; align-items:center; gap:4px;">
+                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود کلاینت mhrv-rs (Android / Windows / Linux)
+                        </a>
                     </div>
                 </div>
 

@@ -20812,6 +20812,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const data = await res.json();
             if (!data.success) return;
 
+            if (document.getElementById("gas-client-mhrv-profile")) {
+                document.getElementById("gas-client-mhrv-profile").textContent = JSON.stringify(data.mhrv_profile, null, 2);
+            }
             if (document.getElementById("gas-client-goose-uri")) {
                 document.getElementById("gas-client-goose-uri").textContent = data.goose_uri || "-";
             }

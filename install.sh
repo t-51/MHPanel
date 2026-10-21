@@ -726,6 +726,49 @@ EOF
     systemctl restart mhpanel
     sleep 2
 
+    # Setup Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/google_script.json ]; then
+        local rand_gas_sec
+        rand_gas_sec=$(openssl rand -hex 16 2>/dev/null || echo "mhpanel_gas_$(date +%s)")
+        cat > /etc/vpnpanel/google_script.json <<GEO
+{
+  "enabled": true,
+  "port": 8448,
+  "secret": "${rand_gas_sec}",
+  "mode": "full_tunnel",
+  "singbox_target": "127.0.0.1:20443",
+  "default_upstream": "127.0.0.1:20443",
+  "session_timeout": 60,
+  "read_timeout": 1.2,
+  "google_project_title": "MHPanel-GAS-FullTunnel",
+  "google_script_id": "",
+  "google_deployment_id": "",
+  "google_webapp_url": "",
+  "last_deploy_time": ""
+}
+GEO
+    fi
+    cat > /etc/systemd/system/mhpanel-gas-tunnel.service <<GEO
+[Unit]
+Description=MHPanel Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+After=network.target sing-box.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/mhpanel-gas-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+GEO
+    systemctl daemon-reload
+    systemctl enable mhpanel-gas-tunnel >/dev/null 2>&1
+    systemctl restart mhpanel-gas-tunnel >/dev/null 2>&1
+
     if systemctl is-active --quiet mhpanel; then
         echo -e "    ${GREEN}[✓] MH Panel Web UI service is active and running.${NC}"
     else
@@ -1789,6 +1832,7 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/stuntls-server" -o "${PANEL_DIR}/scripts/daemons/stuntls-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/ssh-ws-proxy.py" -o "${PANEL_DIR}/scripts/daemons/ssh-ws-proxy.py" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/mhpanel-gas-server" -o "${PANEL_DIR}/scripts/daemons/mhpanel-gas-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
@@ -1797,6 +1841,8 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true
+        mkdir -p "${PANEL_DIR}/templates/gas"
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/gas/CodeFull.gs" -o "${PANEL_DIR}/templates/gas/CodeFull.gs" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/translations.html" -o "${PANEL_DIR}/templates/partials/translations.html" 2>/dev/null || true
@@ -1862,9 +1908,10 @@ update_panel_repo() {
         "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || true
     fi
 
-    echo -e "${YELLOW}>>> [4/4] Reloading systemd and restarting MH Panel Web UI...${NC}"
+    echo -e "${YELLOW}>>> [4/4] Reloading systemd and restarting MH Panel Web UI & Services...${NC}"
     systemctl daemon-reload
     systemctl restart mhpanel 2>/dev/null || true
+    systemctl restart mhpanel-gas-tunnel 2>/dev/null || true
 
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"
