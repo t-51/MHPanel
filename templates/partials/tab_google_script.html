@@ -343,6 +343,370 @@
         padding: 10px 12px !important;
     }
 }
+
+/* =====================================================================
+   CODE STUDIO & TEMPLATES PROFESSIONAL STYLES
+   ===================================================================== */
+.gas-tmpl-selector {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+    scrollbar-width: thin;
+}
+.gas-tmpl-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.gas-tmpl-tab:hover {
+    background: rgba(66, 133, 244, 0.1);
+    color: var(--text-main);
+    border-color: rgba(66, 133, 244, 0.35);
+}
+.gas-tmpl-tab.active {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.2) 0%, rgba(37, 99, 235, 0.1) 100%);
+    color: #60a5fa;
+    border-color: #4285F4;
+    box-shadow: 0 0 16px rgba(66, 133, 244, 0.25);
+}
+
+/* Injected Variables Bar */
+.gas-vars-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    margin-bottom: 14px;
+    font-size: 12px;
+}
+.gas-var-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.gas-var-pill:hover {
+    background: rgba(66, 133, 244, 0.15);
+    color: #60a5fa;
+    border-color: rgba(66, 133, 244, 0.3);
+}
+
+/* Editor Window Frame (macOS / VS Code dark style) */
+.gas-editor-window {
+    background: #0b0f19;
+    border: 1px solid rgba(66, 133, 244, 0.28);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+    transition: all 0.25s ease;
+}
+.gas-editor-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #070a12;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.gas-editor-file-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #0b0f19;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+.gas-editor-badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.gas-editor-badge {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.gas-editor-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.gas-editor-tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    font-weight: 600;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.gas-editor-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--text-main);
+}
+.gas-editor-tool-btn:active {
+    transform: scale(0.95);
+}
+
+.gas-editor-textarea {
+    width: 100%;
+    min-height: 440px;
+    height: 480px;
+    background: #0b0f19 !important;
+    color: #38bdf8 !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace !important;
+    font-size: 13px !important;
+    line-height: 1.65 !important;
+    direction: ltr !important;
+    text-align: left !important;
+    resize: vertical;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+    transition: height 0.2s ease;
+}
+.gas-editor-textarea.wrap-mode {
+    white-space: pre-wrap !important;
+    overflow-wrap: break-word !important;
+}
+.gas-editor-textarea.expanded-mode {
+    height: 720px !important;
+}
+
+.gas-editor-statusbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    background: #070a12;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    direction: ltr;
+}
+
+@media (max-width: 768px) {
+    .gas-tmpl-tab {
+        padding: 8px 12px !important;
+        font-size: 12px !important;
+    }
+    .gas-editor-textarea {
+        height: 360px !important;
+        min-height: 320px !important;
+        font-size: 12px !important;
+        padding: 10px 12px !important;
+    }
+    .gas-editor-topbar {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
+    .gas-editor-tools {
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }
+}
+
+/* =====================================================================
+   CLIENT CONNECTIONS HUB - UNIFIED DARK-GLASS LUXURY PALETTE
+   ===================================================================== */
+.gas-client-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+}
+.gas-client-nav::-webkit-scrollbar { display: none; }
+
+.gas-client-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 16px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.gas-client-nav-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--text-main);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+.gas-client-nav-btn.active {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.12) 100%);
+    color: #60a5fa;
+    border-color: #3b82f6;
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.2);
+}
+
+.gas-client-box {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.8) 0%, rgba(10, 14, 26, 0.9) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    transition: all 0.2s ease;
+}
+.gas-client-box:hover {
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+}
+.gas-client-box.featured {
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    background: linear-gradient(145deg, rgba(17, 24, 39, 0.9) 0%, rgba(15, 23, 42, 0.85) 100%);
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.12);
+}
+
+.gas-client-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.gas-client-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+.gas-client-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.gas-client-params-table {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+.gas-client-param-row {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+}
+.gas-client-param-name {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.gas-client-param-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #38bdf8;
+    direction: ltr;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.gas-client-code-display {
+    background: #080c14;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 9px;
+    padding: 12px 14px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #38bdf8;
+    direction: ltr;
+    text-align: left;
+    max-height: 140px;
+    overflow-y: auto;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.gas-client-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+}
 </style>
 
 <div class="tab-pane" id="tab-google-script">
@@ -808,63 +1172,219 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- SUBTAB 2: Script Templates & Code Studio -->
+        <!-- SUBTAB 2: Script Templates & Code Studio (Redesigned & Professional) -->
         <!-- ============================================================== -->
         <div id="gas-subtab-scripts" class="gas-subtab-content" style="display:none;">
-            <div class="glass-card config-card" style="margin-bottom:20px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <i data-lucide="file-code" style="width:20px; height:20px;"></i>
+            
+            <!-- Code Studio Main Card -->
+            <div class="glass-card config-card" style="margin-bottom:20px; border: 1px solid rgba(66, 133, 244, 0.35);">
+                
+                <!-- Studio Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, rgba(66,133,244,0.2) 0%, rgba(16,185,129,0.2) 100%); color:#60a5fa; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(66,133,244,0.3);">
+                            <i data-lucide="file-code-2" style="width:22px; height:22px;"></i>
                         </div>
-                        <div>
-                            <h4 style="margin:0; font-size:16px; font-weight:700;">استودیو کدهای سمت گوگل اسکریپت (Code.gs)</h4>
-                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                                کدهای زیر به‌صورت کاملاً داینامیک با پورت، آی‌پی سرور و کلید امنیتی تنظیم شده‌اند و آماده استقرار هستند.
+                        <div style="min-width:0;">
+                            <h4 style="margin:0; font-size:16.5px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span>استودیو کدهای تمپلت و اسکریپت گوگل (Google Apps Script Studio)</span>
+                                <span class="gas-token-badge gas-token-badge-blue">Multi-Template IDE</span>
+                            </h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.5;">
+                                تمپلت مورد نظر را انتخاب کنید؛ متغیرهای سرور (IP، پورت و کلید امنیتی) به طور خودکار تزریق شده‌اند و می‌توانید کد را کپی یا مستقیماً استقرار دهید.
                             </p>
                         </div>
                     </div>
-                    <div style="display:flex; gap:8px;">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code-gs" onclick="copyGasCode('gas-code-gs-editor', 'btn-copy-code-gs')" style="width:auto; padding:6px 14px;">
-                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی کد Code.gs
+
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadCurrentStudioCode()" style="padding:7px 12px; display:inline-flex; align-items:center; gap:6px;">
+                            <i data-lucide="download" style="width:14px; height:14px;"></i>
+                            <span>دانلود فایل سورس</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code-gs" onclick="copyCurrentStudioCode()" style="padding:7px 14px; display:inline-flex; align-items:center; gap:6px;">
+                            <i data-lucide="copy" style="width:14px; height:14px; color:#10b981;"></i>
+                            <span id="gas-copy-btn-text">کپی کل کد</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">محتوای اسکریپت گوگل (Google Apps Script Code.gs):</label>
-                    <textarea id="gas-code-gs-editor" class="form-control" rows="16" style="font-family:'JetBrains Mono', monospace; font-size:12.5px; direction:ltr; line-height:1.6; background:#0f172a; color:#38bdf8;"></textarea>
-                </div>
-
-                <div class="gas-submit-bar">
-                    <span style="font-size:11.5px; color:var(--text-muted);">
-                        متغیرهای <code>{SERVER_IP}</code> و <code>{PORT}</code> و <code>{SECRET}</code> به صورت خودکار با مقادیر سرور جایگزین شده‌اند.
-                    </span>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="deployCurrentEditorCode();" style="width:auto; padding:8px 18px; background:#4285F4; border-color:#4285F4; font-weight:700;">
-                        <i data-lucide="upload-cloud" style="width:14px; height:14px; margin-left:4px;"></i> دیپلوی مستقیم همین کد روی گوگل
+                <!-- Template Selector Pills Navigation -->
+                <div class="gas-tmpl-selector" id="gas-tmpl-selector-bar">
+                    <button type="button" class="gas-tmpl-tab active" data-tmpl="full_tunnel" onclick="selectGasStudioTemplate('full_tunnel')">
+                        <i data-lucide="zap" style="width:15px; height:15px; color:#10b981;"></i>
+                        <span>Full Tunnel (CodeFull.gs)</span>
+                        <span class="gas-token-badge gas-token-badge-green" style="font-size:10px;">Official Rust</span>
+                    </button>
+                    <button type="button" class="gas-tmpl-tab" data-tmpl="singbox_detour" onclick="selectGasStudioTemplate('singbox_detour')">
+                        <i data-lucide="shuffle" style="width:15px; height:15px; color:#a855f7;"></i>
+                        <span>Sing-box Core Detour</span>
+                        <span class="gas-token-badge" style="background:rgba(168,85,247,0.15); color:#c084fc; font-size:10px;">پل مستقیم</span>
+                    </button>
+                    <button type="button" class="gas-tmpl-tab" data-tmpl="master_http" onclick="selectGasStudioTemplate('master_http')">
+                        <i data-lucide="globe" style="width:15px; height:15px; color:#38bdf8;"></i>
+                        <span>MasterHttp Relay</span>
+                        <span class="gas-token-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px;">وب پروکسی</span>
+                    </button>
+                    <button type="button" class="gas-tmpl-tab" data-tmpl="manifest" onclick="selectGasStudioTemplate('manifest')">
+                        <i data-lucide="settings" style="width:15px; height:15px; color:#f59e0b;"></i>
+                        <span>Manifest (appsscript.json)</span>
+                        <span class="gas-token-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; font-size:10px;">تنظیمات V8</span>
+                    </button>
+                    <button type="button" class="gas-tmpl-tab" data-tmpl="custom" onclick="selectGasStudioTemplate('custom')">
+                        <i data-lucide="code" style="width:15px; height:15px; color:#f43f5e;"></i>
+                        <span>Custom Script</span>
+                        <span class="gas-token-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; font-size:10px;">سفارشی</span>
                     </button>
                 </div>
-            </div>
 
-            <!-- Server-Side Daemon Script Preview -->
-            <div class="glass-card config-card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:34px; height:34px; border-radius:10px; background:rgba(168,85,247,0.15); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                            <i data-lucide="terminal" style="width:18px; height:18px;"></i>
+                <!-- Injected Dynamic Variables Bar -->
+                <div class="gas-vars-bar">
+                    <div style="display:flex; align-items:center; gap:6px; font-weight:700; color:var(--text-main); margin-right:4px;">
+                        <i data-lucide="variable" style="width:14px; height:14px; color:#4285F4;"></i>
+                        <span>متغیرهای تزریق‌شده به سورس:</span>
+                    </div>
+                    <div class="gas-var-pill" onclick="copyGasTextValue(document.getElementById('gas-var-tunnel-url').dataset.val, 'آدرس نود سرور')" title="کلیک برای کپی">
+                        <span style="color:#60a5fa;">TUNNEL_SERVER_URL:</span>
+                        <span id="gas-var-tunnel-url" style="color:#e2e8f0; font-weight:700;" data-val="">-</span>
+                        <i data-lucide="copy" style="width:11px; height:11px; opacity:0.6;"></i>
+                    </div>
+                    <div class="gas-var-pill" onclick="copyGasTextValue(document.getElementById('gas-var-auth-key').dataset.val, 'کلید احراز هویت')" title="کلیک برای کپی">
+                        <span style="color:#10b981;">AUTH_KEY:</span>
+                        <span id="gas-var-auth-key" style="color:#e2e8f0; font-weight:700;" data-val="">-</span>
+                        <i data-lucide="copy" style="width:11px; height:11px; opacity:0.6;"></i>
+                    </div>
+                    <div class="gas-var-pill" title="کش خودکار پکت‌های DNS در سرورهای لبه گوگل بدون ارسال به VPS">
+                        <span style="color:#f59e0b;">EDGE_DNS_CACHE:</span>
+                        <span style="color:#10b981; font-weight:700;">true (RFC 8484 DoH)</span>
+                    </div>
+                </div>
+
+                <!-- Modern IDE-Style Code Window -->
+                <div class="gas-editor-window">
+                    <div class="gas-editor-topbar">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="display:flex; gap:6px; margin-right:4px;">
+                                <span style="width:10px; height:10px; border-radius:50%; background:#ef4444; opacity:0.8; display:inline-block;"></span>
+                                <span style="width:10px; height:10px; border-radius:50%; background:#f59e0b; opacity:0.8; display:inline-block;"></span>
+                                <span style="width:10px; height:10px; border-radius:50%; background:#10b981; opacity:0.8; display:inline-block;"></span>
+                            </div>
+                            <div class="gas-editor-file-tab">
+                                <i data-lucide="file-code" style="width:14px; height:14px; color:#4285F4;"></i>
+                                <span id="gas-editor-filename">CodeFull.gs</span>
+                            </div>
+                            <div class="gas-editor-badges">
+                                <span class="gas-editor-badge" id="gas-editor-lang-badge">Google Apps Script V8 (JavaScript)</span>
+                                <span class="gas-editor-badge" id="gas-editor-lines-badge">773 lines</span>
+                                <span class="gas-editor-badge" id="gas-editor-size-badge">~28.4 KB</span>
+                            </div>
+                        </div>
+
+                        <div class="gas-editor-tools">
+                            <button type="button" class="gas-editor-tool-btn" id="gas-wrap-toggle-btn" onclick="toggleGasEditorWrap()" title="تغییر حالت شکست خطوط (Wrap)">
+                                <i data-lucide="wrap-text" style="width:13px; height:13px;"></i>
+                                <span id="gas-wrap-btn-text">Wrap On</span>
+                            </button>
+                            <button type="button" class="gas-editor-tool-btn" id="gas-expand-toggle-btn" onclick="toggleGasEditorExpand()" title="بزرگنمایی پنجره کد">
+                                <i data-lucide="maximize-2" style="width:13px; height:13px;"></i>
+                                <span id="gas-expand-btn-text">بزرگنمایی</span>
+                            </button>
+                            <button type="button" class="gas-editor-tool-btn" onclick="resetCurrentStudioCode()" title="بازنشانی تغییرات به تمپلت اصلی">
+                                <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
+                                <span>بازنشانی</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Code Textarea -->
+                    <textarea id="gas-code-gs-editor" class="gas-editor-textarea" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" oninput="updateGasEditorMetrics()"></textarea>
+
+                    <!-- Status Bar -->
+                    <div class="gas-editor-statusbar">
+                        <div>
+                            <span style="color:#10b981;">● SYNCHRONIZED</span> | UTF-8 | LF | Target: <span id="gas-status-target-url">http://...</span>
                         </div>
                         <div>
-                            <h4 style="margin:0; font-size:15px; font-weight:700;">اسکریپت دیمن سمت سرور خروجی (VPS Exit Daemon)</h4>
-                            <span style="font-size:12px; color:var(--text-muted);">مسیر فایل اجرایی: <code>/usr/local/bin/mhpanel-gas-server</code> | سرویس: <code>mhpanel-gas-tunnel.service</code></span>
+                            <span id="gas-status-chars-count">Chars: 0</span> | <span>Lines: <span id="gas-status-lines-count">1</span></span>
                         </div>
                     </div>
                 </div>
-                <div style="background:var(--bg-base); padding:12px; border-radius:8px; border:1px solid var(--border-glow); font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted); direction:ltr; line-height:1.7;">
-                    # Active Daemon: /usr/local/bin/mhpanel-gas-server<br>
-                    # Handles TCP/UDP non-blocking socket stream relay from Google Apps Script<br>
-                    # Auth Key Header: X-Auth-Key | Health Check: GET /health | Stats: GET /stats
+
+                <!-- Template Details & Action Bar -->
+                <div style="background: rgba(15, 23, 42, 0.65); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px 18px; margin-bottom: 6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div style="min-width:0; flex:1;">
+                        <div style="font-size:13px; font-weight:700; color:var(--text-main); margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="info" style="width:15px; height:15px; color:#4285F4;"></i>
+                            <span id="gas-tmpl-desc-title">درباره این تمپلت:</span>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.6;" id="gas-tmpl-desc-text">
+                            پروتکل رسمی فول‌تانل بر پایه mhrv-tunnel-node و CodeFull.gs با پشتیبانی کامل از Batching چند اتصاله و استریم TCP/UDP.
+                        </p>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+                        <a href="https://script.google.com/home" target="_blank" class="btn btn-secondary btn-sm" style="height:40px; padding:0 14px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                            <i data-lucide="external-link" style="width:14px; height:14px;"></i>
+                            <span>کنسول گوگل اسکریپت</span>
+                        </a>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="deployCurrentEditorCode();" style="height:40px; padding:0 20px; background:#4285F4; border-color:#4285F4; font-weight:700; display:inline-flex; align-items:center; gap:8px;">
+                            <i data-lucide="upload-cloud" style="width:16px; height:16px;"></i>
+                            <span>استقرار مستقیم همین کد روی گوگل</span>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Server-Side Daemon Status & Specifications Card -->
+            <div class="glass-card config-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(168,85,247,0.15); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:15.5px; font-weight:700;">مشخصات دیمن سرور خروجی (VPS Exit Tunnel Daemon)</h4>
+                            <span style="font-size:12px; color:var(--text-muted);">موتور پرسرعت بومی Rust بر پایه Tokio و Axum</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="gas-token-badge gas-token-badge-green" id="gas-daemon-status-badge">Active (Rust v1.9.38)</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="controlGasService('restart')" style="padding:6px 12px; display:inline-flex; align-items:center; gap:4px;">
+                            <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
+                            <span>ری‌استارت سرویس</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Daemon Details Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:10px; margin-bottom:12px;">
+                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                        <div style="font-size:11px; color:var(--text-muted);">فایل اجرایی (Binary Path)</div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#c084fc; font-weight:700; margin-top:3px;">/usr/local/bin/mhrv-tunnel-node</div>
+                    </div>
+                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                        <div style="font-size:11px; color:var(--text-muted);">سرویس سیستم‌دی (Systemd)</div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#60a5fa; font-weight:700; margin-top:3px;">mhpanel-gas-tunnel.service</div>
+                    </div>
+                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                        <div style="font-size:11px; color:var(--text-muted);">اندپوینت‌های فعال (Endpoints)</div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#34d399; font-weight:700; margin-top:3px;">POST /tunnel, /batch & GET /health</div>
+                    </div>
+                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                        <div style="font-size:11px; color:var(--text-muted);">پروتکل شبکه (Protocols)</div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#fbbf24; font-weight:700; margin-top:3px;">TCP Stream + UDP Relay (udpgw)</div>
+                    </div>
+                </div>
+
+                <!-- Quick Shell Commands Helper -->
+                <div style="background:#070a12; padding:12px 14px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-muted); direction:ltr; line-height:1.7;">
+                    <span style="color:#64748b;"># Check service status & logs:</span><br>
+                    <span style="color:#38bdf8;">systemctl status mhpanel-gas-tunnel</span><br>
+                    <span style="color:#38bdf8;">journalctl -u mhpanel-gas-tunnel -n 50 -f</span><br>
+                    <span style="color:#64748b;"># Check live health:</span><br>
+                    <span style="color:#34d399;">curl -i http://127.0.0.1:8448/health</span>
                 </div>
             </div>
+
         </div>
 
         <!-- ============================================================== -->
@@ -933,113 +1453,215 @@
         </div>
 
         <!-- ============================================================== -->
-        <!-- SUBTAB 4: Client Connections & Subscriptions -->
+        <!-- SUBTAB 4: Client Connections & Subscriptions (Redesigned & Unified) -->
         <!-- ============================================================== -->
         <div id="gas-subtab-client" class="gas-subtab-content" style="display:none;">
-            <div class="glass-card config-card" style="margin-bottom:20px;">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
-                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(168,85,247,0.15); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i data-lucide="link" style="width:20px; height:20px;"></i>
-                    </div>
-                    <div>
-                        <h4 style="margin:0; font-size:16px; font-weight:700;">لینک و کانفیگ کلاینت‌های متصل به گوگل اسکریپت</h4>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                            کانفیگ‌های رسمی برای کلاینت‌های MasterHttpRelayVPN-RUST (mhrv-rs)، GooseRelay، Sing-box Detour و اسکریپت پایتون
-                        </p>
-                    </div>
-                </div>
-
-                <!-- 0. Official MasterHttpRelayVPN-RUST (mhrv-rs) Client -->
-                <div class="gas-token-card active-emerald" style="margin-bottom:14px; border: 1px solid rgba(16, 185, 129, 0.45); background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.8) 100%);">
-                    <div class="gas-token-header">
-                        <span class="gas-token-title" style="color:#10b981; font-weight:700;">
-                            <i data-lucide="shield-check" style="width:15px; height:15px; color:#10b981;"></i>
-                            کانفیگ کلاینت رسمی MasterHttpRelayVPN (mhrv-rs کلاینت اندروید، ویندوز، مک، لینوکس):
-                        </span>
-                        <span class="gas-token-badge gas-token-badge-green">Official Full Tunnel (Batching & UDP)</span>
-                    </div>
-                    <pre class="gas-token-value-box" id="gas-client-mhrv-profile" style="color:#34d399; max-height:140px; font-size:12px;">-</pre>
-                    <div class="gas-token-actions" style="flex-wrap:wrap;">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-mhrv" onclick="copyGasText('gas-client-mhrv-profile', 'btn-copy-client-mhrv')">
-                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی تنظیمات mhrv-rs
-                        </button>
-                        <a href="https://github.com/therealaleph/MasterHttpRelayVPN-RUST/releases" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; align-items:center; gap:4px;">
-                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود کلاینت mhrv-rs (Android / Windows / Linux)
-                        </a>
+            <div class="glass-card config-card" style="margin-bottom:20px; border: 1px solid rgba(66, 133, 244, 0.35);">
+                
+                <!-- Main Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, rgba(66,133,244,0.2) 0%, rgba(168,85,247,0.2) 100%); color:#60a5fa; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(66,133,244,0.3);">
+                            <i data-lucide="share-2" style="width:22px; height:22px;"></i>
+                        </div>
+                        <div style="min-width:0;">
+                            <h4 style="margin:0; font-size:16.5px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <span>مرکز اتصال و کانفیگ کلاینت‌های کاربر (Client Connection Hub)</span>
+                                <span class="gas-token-badge gas-token-badge-blue">Multi-Platform</span>
+                            </h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.5;">
+                                کانفیگ‌های رسمی و استاندارد جهت اتصال گوشی‌های هوشمند (اندروید و آیفون)، کامپیوترها و هسته Sing-box از لبه‌های ابری گوگل
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 1. GooseRelay URI -->
-                <div class="gas-token-card" style="margin-bottom:14px;">
-                    <div class="gas-token-header">
-                        <span class="gas-token-title">
-                            <i data-lucide="zap" style="width:14px; height:14px; color:#4285F4;"></i>
-                            ۱. لینک GooseRelay URI (اندروید و ویندوز):
-                        </span>
-                        <span class="gas-token-badge gas-token-badge-blue">Goose Protocol</span>
+                <!-- Client Filter Category Pills -->
+                <div class="gas-client-nav" id="gas-client-filter-nav">
+                    <button type="button" class="gas-client-nav-btn active" data-client-filter="all" onclick="filterGasClientCards('all')">
+                        <i data-lucide="layout-grid" style="width:14px; height:14px;"></i>
+                        <span>همه کلاینت‌ها (All)</span>
+                    </button>
+                    <button type="button" class="gas-client-nav-btn" data-client-filter="mhrv" onclick="filterGasClientCards('mhrv')">
+                        <i data-lucide="smartphone" style="width:14px; height:14px; color:#10b981;"></i>
+                        <span>mhrv-rs (اندروید و دسکتاپ)</span>
+                    </button>
+                    <button type="button" class="gas-client-nav-btn" data-client-filter="goose" onclick="filterGasClientCards('goose')">
+                        <i data-lucide="zap" style="width:14px; height:14px; color:#60a5fa;"></i>
+                        <span>GooseRelay (لینک URI)</span>
+                    </button>
+                    <button type="button" class="gas-client-nav-btn" data-client-filter="singbox" onclick="filterGasClientCards('singbox')">
+                        <i data-lucide="shuffle" style="width:14px; height:14px; color:#a855f7;"></i>
+                        <span>Sing-box Core Outbound</span>
+                    </button>
+                    <button type="button" class="gas-client-nav-btn" data-client-filter="other" onclick="filterGasClientCards('other')">
+                        <i data-lucide="terminal" style="width:14px; height:14px; color:#f59e0b;"></i>
+                        <span>اسکریپت پایتون و وب پروکسی</span>
+                    </button>
+                </div>
+
+                <!-- 1. HERO CARD: Official MasterHttpRelayVPN-RUST (mhrv-rs) -->
+                <div class="gas-client-box featured" data-client-type="mhrv">
+                    <div class="gas-client-box-header">
+                        <div class="gas-client-title-row">
+                            <div class="gas-client-avatar">
+                                <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
+                            </div>
+                            <div>
+                                <h4 class="gas-client-title" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <span>اپلیکیشن رسمی MasterHttpRelayVPN (mhrv-rs)</span>
+                                    <span class="gas-token-badge gas-token-badge-green">توصیه‌شده برای فیلترینگ شدید</span>
+                                </h4>
+                                <div class="gas-client-subtitle">
+                                    کلاینت بومی با پشتیبانی از Full Tunnel، استریم TCP/UDP و فشرده‌سازی Zstandard بدون قطعی
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="gas-client-actions-row">
+                            <a href="https://github.com/therealaleph/MasterHttpRelayVPN-RUST/releases" target="_blank" class="btn btn-secondary btn-sm" style="height:36px; padding:0 12px; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                                <i data-lucide="download" style="width:14px; height:14px;"></i>
+                                <span>دانلود اپلیکیشن (GitHub)</span>
+                            </a>
+                        </div>
                     </div>
-                    <div class="gas-token-value-box" id="gas-client-goose-uri" style="color:var(--text-main);">
-                        -
+
+                    <!-- Steps helper bar -->
+                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                        <strong style="color:#60a5fa;">راهنمای اتصال ۳ مرحله‌ای:</strong>
+                        ۱. نرم‌افزار <code>mhrv-rs</code> را نصب کنید.
+                        ۲. در بخش Relay Mode حالت <strong>Full</strong> را انتخاب کنید.
+                        ۳. آدرس <strong>Apps Script URL</strong> و <strong>Auth Key</strong> زیر را وارد کرده و اتصال را روشن کنید.
                     </div>
-                    <div class="gas-token-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-goose" onclick="copyGasText('gas-client-goose-uri', 'btn-copy-client-goose')">
-                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی لینک
+
+                    <!-- Parameters Quick Table -->
+                    <div class="gas-client-params-table">
+                        <div class="gas-client-param-row">
+                            <span class="gas-client-param-name">Apps Script URL:</span>
+                            <span class="gas-client-param-value" id="gas-param-mhrv-url">-</span>
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding:4px 8px; height:28px;" onclick="copyGasText('gas-param-mhrv-url', '')" title="کپی آدرس">
+                                <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                            </button>
+                        </div>
+                        <div class="gas-client-param-row">
+                            <span class="gas-client-param-name">Auth Key (Secret):</span>
+                            <span class="gas-client-param-value" id="gas-param-mhrv-key">-</span>
+                            <button type="button" class="btn btn-secondary btn-sm" style="padding:4px 8px; height:28px;" onclick="copyGasText('gas-param-mhrv-key', '')" title="کپی کلید">
+                                <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                            </button>
+                        </div>
+                        <div class="gas-client-param-row">
+                            <span class="gas-client-param-name">Relay Mode:</span>
+                            <span class="gas-client-param-value" style="color:#10b981; font-weight:700;">Full (mhrv-tunnel-node)</span>
+                        </div>
+                        <div class="gas-client-param-row">
+                            <span class="gas-client-param-name">پورت‌های محلی لوکال:</span>
+                            <span class="gas-client-param-value" style="color:#fbbf24;">SOCKS5: 1080 | HTTP: 8123</span>
+                        </div>
+                    </div>
+
+                    <!-- Raw JSON preview toggle box -->
+                    <div class="gas-client-code-display" id="gas-client-mhrv-profile">-</div>
+
+                    <div class="gas-client-actions-row">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-mhrv" onclick="copyGasText('gas-client-mhrv-profile', 'btn-copy-client-mhrv')" style="height:36px; padding:0 14px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی کل کانفیگ JSON
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('لینک اتصال GooseRelay', document.getElementById('gas-client-goose-uri').textContent)">
-                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد QR
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('کانفیگ کلاینت mhrv-rs', document.getElementById('gas-client-mhrv-profile').textContent)" style="height:36px; padding:0 14px;">
+                            <i data-lucide="qr-code" style="width:13px; height:13px; margin-left:4px;"></i> بارکد QR
                         </button>
                     </div>
                 </div>
 
-                <!-- 2. Sing-box Detour Outbound JSON -->
-                <div class="gas-token-card" style="margin-bottom:14px;">
-                    <div class="gas-token-header">
-                        <span class="gas-token-title">
-                            <i data-lucide="layers" style="width:14px; height:14px; color:#8b5cf6;"></i>
-                            ۲. بلاک Outbound هسته سینگ‌باکس (Sing-box Detour):
-                        </span>
-                        <span class="gas-token-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);">Outbound Detour</span>
+                <!-- 2. GooseRelay URI Card -->
+                <div class="gas-client-box" data-client-type="goose">
+                    <div class="gas-client-box-header">
+                        <div class="gas-client-title-row">
+                            <div class="gas-client-avatar">
+                                <i data-lucide="zap" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <h4 class="gas-client-title" style="display:flex; align-items:center; gap:8px;">
+                                    <span>لینک GooseRelay URI (اتصال مستقیم)</span>
+                                    <span class="gas-token-badge gas-token-badge-blue">URI Scheme</span>
+                                </h4>
+                                <div class="gas-client-subtitle">
+                                    پروتکل تک‌لینکی برای نرم‌افزارهای سازگار با GooseRelay در اندروید و ویندوز
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <pre class="gas-token-value-box" id="gas-client-singbox-outbound" style="color:#c084fc; max-height:120px;">-</pre>
-                    <div class="gas-token-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-singbox" onclick="copyGasText('gas-client-singbox-outbound', 'btn-copy-client-singbox')">
-                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی JSON
+
+                    <div class="gas-client-code-display" id="gas-client-goose-uri" style="max-height:80px; color:#60a5fa;">-</div>
+
+                    <div class="gas-client-actions-row">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-goose" onclick="copyGasText('gas-client-goose-uri', 'btn-copy-client-goose')" style="height:36px; padding:0 14px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک URI
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('لینک اتصال GooseRelay', document.getElementById('gas-client-goose-uri').textContent)" style="height:36px; padding:0 14px;">
+                            <i data-lucide="qr-code" style="width:13px; height:13px; margin-left:4px;"></i> بارکد QR
                         </button>
                     </div>
                 </div>
 
-                <!-- 3. MasterHttpRelay Settings -->
-                <div class="gas-token-card" style="margin-bottom:14px;">
-                    <div class="gas-token-header">
-                        <span class="gas-token-title">
-                            <i data-lucide="globe" style="width:14px; height:14px; color:#10b981;"></i>
-                            ۳. مشخصات اپلیکیشن MasterHttpRelay:
-                        </span>
-                        <span class="gas-token-badge gas-token-badge-green">HTTP Proxy</span>
+                <!-- 3. Sing-box Detour Outbound Card -->
+                <div class="gas-client-box" data-client-type="singbox">
+                    <div class="gas-client-box-header">
+                        <div class="gas-client-title-row">
+                            <div class="gas-client-avatar">
+                                <i data-lucide="shuffle" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <h4 class="gas-client-title" style="display:flex; align-items:center; gap:8px;">
+                                    <span>بلاک Outbound هسته سینگ‌باکس (Sing-box Core Detour)</span>
+                                    <span class="gas-token-badge" style="background:rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3);">Outbound Relay</span>
+                                </h4>
+                                <div class="gas-client-subtitle">
+                                    تزریق اینباند یا رله مستقیم به کانفیگ کلاینت‌های V2RayN، Nekoray یا کلاینت‌های Sing-box
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <pre class="gas-token-value-box" id="gas-client-masterhttp" style="color:#34d399; max-height:120px;">-</pre>
-                    <div class="gas-token-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-master" onclick="copyGasText('gas-client-masterhttp', 'btn-copy-client-master')">
-                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی مشخصات
+
+                    <div class="gas-client-code-display" id="gas-client-singbox-outbound" style="max-height:120px;">-</div>
+
+                    <div class="gas-client-actions-row">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-singbox" onclick="copyGasText('gas-client-singbox-outbound', 'btn-copy-client-singbox')" style="height:36px; padding:0 14px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی JSON سینگ‌باکس
                         </button>
                     </div>
                 </div>
 
-                <!-- 4. Standalone Python Local Client -->
-                <div class="gas-token-card">
-                    <div class="gas-token-header">
-                        <span class="gas-token-title">
-                            <i data-lucide="terminal" style="width:14px; height:14px; color:#f59e0b;"></i>
-                            ۴. اسکریپت لوکال کلاینت پایتون (SOCKS5 روی ۱۲۷.۰.۰.۱:۱۰۸۰):
-                        </span>
-                        <span class="gas-token-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">Python Script</span>
+                <!-- 4. MasterHttp & Python Script Card -->
+                <div class="gas-client-box" data-client-type="other">
+                    <div class="gas-client-box-header">
+                        <div class="gas-client-title-row">
+                            <div class="gas-client-avatar">
+                                <i data-lucide="terminal" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <h4 class="gas-client-title" style="display:flex; align-items:center; gap:8px;">
+                                    <span>کلاینت لوکال پایتون و پروکسی وب (Local Python SOCKS5 & MasterHttp)</span>
+                                    <span class="gas-token-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">Developer Tools</span>
+                                </h4>
+                                <div class="gas-client-subtitle">
+                                    اجرای پروکسی لوکال SOCKS5 روی سیستم خانگی با پایتون ۳ بدون نیاز به نصب هیچ نرم‌افزار اضافی
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <pre class="gas-token-value-box" id="gas-client-python-script" style="color:#fbbf24; max-height:140px;">-</pre>
-                    <div class="gas-token-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-py" onclick="copyGasText('gas-client-python-script', 'btn-copy-client-py')">
-                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی اسکریپت پایتون
+
+                    <div class="gas-client-code-display" id="gas-client-python-script" style="max-height:120px; color:#e2e8f0;">-</div>
+
+                    <div class="gas-client-actions-row">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-py" onclick="copyGasText('gas-client-python-script', 'btn-copy-client-py')" style="height:36px; padding:0 14px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی اسکریپت پایتون
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-master" onclick="copyGasText('gas-client-masterhttp', 'btn-copy-client-master')" style="height:36px; padding:0 14px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی مشخصات MasterHttp
                         </button>
                     </div>
+                    <pre id="gas-client-masterhttp" style="display:none;"></pre>
                 </div>
 
             </div>

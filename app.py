@@ -21527,7 +21527,44 @@ def api_google_script_templates():
     singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
     
     templates = get_gas_templates(server_ip, port, secret, singbox_target)
-    return jsonify({"success": True, "templates": templates, "server_ip": server_ip, "port": port, "secret": secret})
+    
+    manifest_content = json.dumps({
+        "timeZone": "Asia/Tehran",
+        "dependencies": {},
+        "exceptionLogging": "STACKDRIVER",
+        "runtimeVersion": "V8",
+        "webapp": {
+            "executeAs": "USER_DEPLOYING",
+            "access": "ANYONE"
+        }
+    }, indent=2)
+    
+    templates["manifest"] = {
+        "name": "فایل مانیفست گوگل (appsscript.json)",
+        "file_name": "appsscript.json",
+        "description": "فایل پیکربندی رسمی مانیفست پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE).",
+        "google_code": manifest_content,
+        "server_code": ""
+    }
+    
+    # Add file_name to other templates
+    if "full_tunnel" in templates:
+        templates["full_tunnel"]["file_name"] = "CodeFull.gs"
+    if "singbox_detour" in templates:
+        templates["singbox_detour"]["file_name"] = "CodeSingbox.gs"
+    if "master_http" in templates:
+        templates["master_http"]["file_name"] = "CodeRelay.gs"
+    if "custom" in templates:
+        templates["custom"]["file_name"] = "CustomCode.gs"
+
+    return jsonify({
+        "success": True,
+        "templates": templates,
+        "server_ip": server_ip,
+        "port": port,
+        "secret": secret,
+        "singbox_target": singbox_target
+    })
 
 @app.route("/api/google_script/deploy", methods=["POST"])
 def api_google_script_deploy():

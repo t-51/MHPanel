@@ -20591,6 +20591,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    let gasCurrentTemplateKey = 'full_tunnel';
+
     async function fetchGasTemplates() {
         try {
             const res = await fetch("/api/google_script/templates");
@@ -20598,22 +20600,165 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (!data.success) return;
             gasCachedTemplates = data.templates;
 
-            updateGasEditorFromSelection();
+            // Update variables pill bar
+            if (document.getElementById("gas-var-tunnel-url")) {
+                const tunnelUrl = `http://${data.server_ip}:${data.port}`;
+                document.getElementById("gas-var-tunnel-url").textContent = tunnelUrl;
+                document.getElementById("gas-var-tunnel-url").dataset.val = tunnelUrl;
+            }
+            if (document.getElementById("gas-var-auth-key")) {
+                document.getElementById("gas-var-auth-key").textContent = data.secret || "None";
+                document.getElementById("gas-var-auth-key").dataset.val = data.secret || "";
+            }
+            if (document.getElementById("gas-status-target-url")) {
+                document.getElementById("gas-status-target-url").textContent = `http://${data.server_ip}:${data.port}/tunnel`;
+            }
+
+            selectGasStudioTemplate(gasCurrentTemplateKey || 'full_tunnel');
         } catch (e) {
             console.error("fetchGasTemplates error:", e);
         }
+    }
+
+    function selectGasStudioTemplate(key) {
+        gasCurrentTemplateKey = key;
+        document.querySelectorAll('.gas-tmpl-tab').forEach(tab => {
+            if (tab.dataset.tmpl === key) {
+                tab.classList.add('active');
+            } else {
+                tab.classList.remove('active');
+            }
+        });
+
+        if (!gasCachedTemplates || !gasCachedTemplates[key]) return;
+        const tpl = gasCachedTemplates[key];
+
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (editor) {
+            editor.value = tpl.google_code || "";
+        }
+
+        const filenameEl = document.getElementById('gas-editor-filename');
+        if (filenameEl) {
+            filenameEl.textContent = tpl.file_name || (key === 'manifest' ? 'appsscript.json' : 'Code.gs');
+        }
+
+        const langBadge = document.getElementById('gas-editor-lang-badge');
+        if (langBadge) {
+            langBadge.textContent = (key === 'manifest') ? 'JSON (V8 Manifest)' : 'Google Apps Script V8 (JavaScript)';
+        }
+
+        const descTitle = document.getElementById('gas-tmpl-desc-title');
+        if (descTitle) {
+            descTitle.textContent = tpl.name || 'درباره این تمپلت:';
+        }
+
+        const descText = document.getElementById('gas-tmpl-desc-text');
+        if (descText) {
+            descText.textContent = tpl.description || '';
+        }
+
+        updateGasEditorMetrics();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function updateGasEditorMetrics() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (!editor) return;
+        const text = editor.value || "";
+        const lines = text.split('\n').length;
+        const chars = text.length;
+        const kbSize = (chars / 1024).toFixed(1);
+
+        const linesBadge = document.getElementById('gas-editor-lines-badge');
+        if (linesBadge) linesBadge.textContent = `${lines} lines`;
+
+        const sizeBadge = document.getElementById('gas-editor-size-badge');
+        if (sizeBadge) sizeBadge.textContent = `~${kbSize} KB`;
+
+        const statusLines = document.getElementById('gas-status-lines-count');
+        if (statusLines) statusLines.textContent = lines;
+
+        const statusChars = document.getElementById('gas-status-chars-count');
+        if (statusChars) statusChars.textContent = `Chars: ${chars}`;
+    }
+
+    function copyCurrentStudioCode() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (!editor || !editor.value) {
+            showToast("متنی در ادیتور وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(editor.value).then(() => {
+            showToast("سورس تمپلت با موفقیت در کلیپ‌بورد کپی شد!", "success");
+            const btnText = document.getElementById('gas-copy-btn-text');
+            if (btnText) {
+                const old = btnText.textContent;
+                btnText.textContent = "کپی شد! ✓";
+                setTimeout(() => { btnText.textContent = old; }, 2000);
+            }
+        }).catch(err => {
+            showToast("خطا در کپی کردن متن.", "error");
+        });
+    }
+
+    function downloadCurrentStudioCode() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (!editor || !editor.value) {
+            showToast("متنی در ادیتور وجود ندارد.", "warning");
+            return;
+        }
+        const filename = (document.getElementById('gas-editor-filename') || {}).textContent || 'Code.gs';
+        const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`فایل ${filename} با موفقیت دانلود شد.`, "success");
+    }
+
+    function toggleGasEditorWrap() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        const btnText = document.getElementById('gas-wrap-btn-text');
+        if (!editor) return;
+        editor.classList.toggle('wrap-mode');
+        if (btnText) {
+            btnText.textContent = editor.classList.contains('wrap-mode') ? "Wrap Off" : "Wrap On";
+        }
+    }
+
+    function toggleGasEditorExpand() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        const btnText = document.getElementById('gas-expand-btn-text');
+        if (!editor) return;
+        editor.classList.toggle('expanded-mode');
+        if (btnText) {
+            btnText.textContent = editor.classList.contains('expanded-mode') ? "کوچک‌نمایی" : "بزرگنمایی";
+        }
+    }
+
+    function resetCurrentStudioCode() {
+        if (!gasCachedTemplates || !gasCurrentTemplateKey) return;
+        selectGasStudioTemplate(gasCurrentTemplateKey);
+        showToast("محتوای تمپلت به حالت اولیه بازنشانی شد.", "info");
+    }
+
+    function copyGasTextValue(val, label) {
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => {
+            showToast(`${label || 'مقدار'} در کلیپ‌بورد کپی شد: ${val}`, "success");
+        });
     }
 
     function updateGasEditorFromSelection() {
         if (!gasCachedTemplates) return;
         const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
         const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
-        
-        const tpl = gasCachedTemplates[mode] || gasCachedTemplates['full_tunnel'];
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (editor) {
-            editor.value = tpl.google_code;
-        }
+        selectGasStudioTemplate(mode);
     }
 
     function onGasDeployModeChanged(mode) {
@@ -20812,15 +20957,30 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const data = await res.json();
             if (!data.success) return;
 
+            // mhrv-rs parameters
+            if (document.getElementById("gas-param-mhrv-url")) {
+                const url = (data.mhrv_profile && data.mhrv_profile.apps_script_url) || data.webapp_url || "-";
+                document.getElementById("gas-param-mhrv-url").textContent = url;
+            }
+            if (document.getElementById("gas-param-mhrv-key")) {
+                const key = (data.mhrv_profile && data.mhrv_profile.auth_key) || "-";
+                document.getElementById("gas-param-mhrv-key").textContent = key;
+            }
             if (document.getElementById("gas-client-mhrv-profile")) {
                 document.getElementById("gas-client-mhrv-profile").textContent = JSON.stringify(data.mhrv_profile, null, 2);
             }
+
+            // Goose URI
             if (document.getElementById("gas-client-goose-uri")) {
                 document.getElementById("gas-client-goose-uri").textContent = data.goose_uri || "-";
             }
+
+            // Singbox Detour
             if (document.getElementById("gas-client-singbox-outbound")) {
                 document.getElementById("gas-client-singbox-outbound").textContent = JSON.stringify(data.singbox_outbound, null, 2);
             }
+
+            // MasterHttp & Python
             if (document.getElementById("gas-client-masterhttp")) {
                 document.getElementById("gas-client-masterhttp").textContent = JSON.stringify(data.master_http_profile, null, 2);
             }
@@ -20831,6 +20991,26 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         } catch (e) {
             console.error("fetchGasClientConfigs error:", e);
         }
+    }
+
+    function filterGasClientCards(type) {
+        document.querySelectorAll('.gas-client-nav-btn').forEach(btn => {
+            if (btn.dataset.clientFilter === type) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        const cards = document.querySelectorAll('.gas-client-box');
+        cards.forEach(card => {
+            if (type === 'all' || card.dataset.clientType === type) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        if (window.lucide) lucide.createIcons();
     }
 
     function copyGasCode(textareaId, btnId) {
