@@ -21330,6 +21330,11 @@ def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_
                 msg = err_json.get("error", {}).get("message", err_body)
             except Exception:
                 msg = err_body
+            if e.code == 401:
+                return False, {
+                    "is_token_expired": True,
+                    "message": "توکن دسترسی گوگل (OAuth Bearer Token) منقضی شده یا نامعتبر است! توکن‌های موقت گوگل (ya29) تنها ۱ ساعت اعتبار دارند. لطفاً یک توکن تازه از Google OAuth Playground دریافت و وارد نمایید."
+                }
             if e.code == 403 and ("usersettings" in msg or "not enabled the Apps Script API" in msg):
                 return False, {
                     "is_api_disabled": True,
@@ -21631,11 +21636,12 @@ def api_google_script_deploy():
     
     success, res = deploy_gas_to_google(access_token, script_title, code_gs, existing_script_id)
     if not success:
-        if isinstance(res, dict) and res.get("is_api_disabled"):
+        if isinstance(res, dict):
             return jsonify({
                 "success": False,
                 "error": res["message"],
-                "is_api_disabled": True
+                "is_api_disabled": res.get("is_api_disabled", False),
+                "is_token_expired": res.get("is_token_expired", False)
             }), 400
         return jsonify({"success": False, "error": str(res)}), 400
     

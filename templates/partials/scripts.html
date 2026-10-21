@@ -20829,10 +20829,39 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             } else {
                 const errMsg = data.error || "خطا در استقرار پروژه در گوگل";
                 const is403ApiDisabled = data.is_api_disabled || errMsg.includes("usersettings") || errMsg.includes("Apps Script API") || errMsg.includes("کد 403");
+                const is401TokenExpired = data.is_token_expired || errMsg.includes("کد 401") || errMsg.includes("invalid authentication credentials") || errMsg.includes("OAuth 2 access token");
 
                 if (alertContainer) {
                     alertContainer.style.display = 'block';
-                    if (is403ApiDisabled) {
+                    if (is401TokenExpired) {
+                        alertContainer.innerHTML = `
+                            <div style="background:rgba(245, 158, 11, 0.09); border:1px solid rgba(245, 158, 11, 0.4); border-radius:12px; padding:16px; margin-bottom:12px;">
+                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                                    <div style="display:flex; align-items:center; gap:8px; color:#f59e0b; font-weight:800; font-size:13.5px;">
+                                        <i data-lucide="key-round" style="width:20px; height:20px;"></i>
+                                        <span>علت خطای ۴۰۱: توکن دسترسی گوگل منقضی شده یا نامعتبر است!</span>
+                                    </div>
+                                    <button type="button" class="gas-tool-btn" onclick="document.getElementById('gas-deploy-alert-container').style.display='none'" style="width:24px; height:24px;">
+                                        <i data-lucide="x" style="width:14px; height:14px;"></i>
+                                    </button>
+                                </div>
+                                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 12px 0;">
+                                    توکن‌های موقت گوگل (که با <code>ya29.</code> شروع می‌شوند) به دلایل امنیتی دقیقاً پس از <strong>۶۰ دقیقه (۱ ساعت)</strong> باطل می‌شوند. همچنین مطمئن شوید دقیقاً فیلد <strong>Access Token</strong> (شروع با ya29) را پیست کرده باشید نه Refresh Token یا کد مجوز.
+                                    <br>برای حل مشکل، در Playground مجدداً روی <strong>Exchange authorization code for tokens</strong> کلیک کنید تا توکن تازه دریافت نمایید:
+                                </p>
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                                    <a href="https://developers.google.com/oauthplayground" target="_blank" class="btn btn-sm" style="background:#f59e0b; border-color:#f59e0b; color:#000; text-decoration:none; padding:7px 16px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                                        <i data-lucide="external-link" style="width:14px; height:14px;"></i>
+                                        <span>🔗 ۱. دریافت توکن جدید از Playground ↗</span>
+                                    </a>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleGasTokenHelp()" style="padding:7px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                                        <i data-lucide="help-circle" style="width:14px; height:14px;"></i>
+                                        <span>مشاهده آموزش ۳۰ ثانیه‌ای</span>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else if (is403ApiDisabled) {
                         alertContainer.innerHTML = `
                             <div style="background:rgba(239, 68, 68, 0.09); border:1px solid rgba(239, 68, 68, 0.35); border-radius:12px; padding:16px; margin-bottom:12px;">
                                 <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
