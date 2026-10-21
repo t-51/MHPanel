@@ -152,7 +152,7 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
-PANEL_VERSION = "1.5.0"
+PANEL_VERSION = "1.6.0"
 GITHUB_REPO = "t-51/MHPanel"
 TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
 SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
@@ -17829,7 +17829,7 @@ def api_export_tunnel_alerts_report():
 
 
 # =========================================================================
-# MHPanel v1.5.0 Extensions
+# MHPanel v1.6.0 Extensions
 # 1. Anti-DPI Tunnels Health & Latency Probe Engine
 # 2. Tunnel Engines & Binaries Manager (20+ Tools)
 # 3. 1-Click Full Mesh Tunnel Deployer
@@ -20365,7 +20365,7 @@ def create_system_backup(backup_type="full", note=""):
     filepath = os.path.join(BACKUP_DIR, filename)
 
     metadata = {
-        "version": "1.5.0",
+        "version": "1.6.0",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "backup_type": backup_type,
         "note": note,

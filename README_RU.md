@@ -7,12 +7,23 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.5.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.6.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
   <img src="https://img.shields.io/badge/Платформа-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Платформа">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Лицензия-MIT-emerald.svg?style=for-the-badge" alt="Лицензия">
   <img src="https://img.shields.io/badge/Языки-Русский%20%7C%20English%20%7C%20فارسی-purple.svg?style=for-the-badge" alt="Языки">
 </p>
+
+---
+
+### 🌟 Новое в версии 1.6.0
+- ☁️ **Полноценный прокси-туннель на Google Apps Script (V8 Engine):** Маршрутизация трафика через неблокируемую глобальную сеть Google Edge CDN (IP 172.217.x.x), устойчивая к DPI, с шифрованием AES-256-GCM и токенами HMAC.
+- 🎭 **Сайт-маскировка WordPress (Anti-DPI Decoy):** Автоматическое развертывание аутентичного сайта на WordPress для защиты от активных зондов цензуры при обращениях на порт 443.
+- 🤖 **Telegram-бот администратора, мониторинг и авто-бэкапы:** Мгновенные пуш-уведомления об аппаратных нагрузках и атаках DPI, а также прямая доставка архивов бэкапа в чат Telegram.
+- 💾 **Центр мгновенного резервного копирования и восстановления:** Бэкап в 1 клик конфигураций Sing-box, пользователей FreeRADIUS, сертификатов SSL и туннелей.
+- ⏱️ **Учет трафика Sing-box с момента первого подключения:** Активация срока действия тарифа точно по первому успешному рукопожатию пользователя.
+- 🔀 **Универсальный мультиплексор портов (Общий порт 443):** Одновременная работа более 26 VPN и прокси протоколов на общем порту 443 без конфликтов с интеллектуальной маршрутизацией по SNI & ALPN.
+- 🌍 **Поддержка 8 языков с зеркалированием скроллбаров:** Персидский, английский, русский, арабский, итальянский, испанский, китайский и немецкий.
 
 ---
 

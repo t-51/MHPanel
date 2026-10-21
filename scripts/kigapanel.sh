@@ -34,7 +34,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="1.5.0"
+VERSION="1.6.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -97,7 +97,7 @@ show_banner() {
 EOF
     echo -e "${WHITE}${BOLD}   MH Panel - Master Installer & Management CLI (v${VERSION})${NC}"
     echo -e "${DIM}   Universal Anti-Censorship VPN Suite, Port Multiplexer & MikroTik Hub${NC}"
-    echo -e "${GREEN}   [v${VERSION}] Multi-Protocol Port Multiplexing | Live Radar Matrix | Mobile UX | IPv6 Tunnels${NC}" 
+    echo -e "${GREEN}   [v${VERSION}] Google Apps Script Proxy | WordPress Decoy | Telegram Alerts | Sing-box Suite | Port 443 Mux${NC}" 
     echo -e "${BLUE}------------------------------------------------------------------------${NC}"
 }
 
@@ -1789,7 +1789,14 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/stuntls-server" -o "${PANEL_DIR}/scripts/daemons/stuntls-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/ssh-ws-proxy.py" -o "${PANEL_DIR}/scripts/daemons/ssh-ws-proxy.py" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/styles.html" -o "${PANEL_DIR}/templates/partials/styles.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/translations.html" -o "${PANEL_DIR}/templates/partials/translations.html" 2>/dev/null || true
