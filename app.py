@@ -21126,6 +21126,9 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
     Returns pre-configured templates for both Server side and Google Apps Script side.
     100% compliant with MasterHttpRelayVPN-RUST (ghcr.io/therealaleph/mhrv-tunnel-node & CodeFull.gs).
     """
+    has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
+    tunnel_node_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}"
+
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
     full_tunnel_gas = ""
     if os.path.exists(code_full_path):
@@ -21138,7 +21141,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
             )
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const TUNNEL_SERVER_URL = "https://YOUR_TUNNEL_NODE_URL";',
-                f'const TUNNEL_SERVER_URL = "http://{server_ip}:{port}";'
+                f'const TUNNEL_SERVER_URL = "{tunnel_node_url}";'
             )
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const TUNNEL_AUTH_KEY = "YOUR_TUNNEL_AUTH_KEY";',
@@ -21153,7 +21156,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
  * Official MasterHttpRelayVPN Full Mode Template
  */
 const AUTH_KEY = "{secret}";
-const TUNNEL_SERVER_URL = "http://{server_ip}:{port}";
+const TUNNEL_SERVER_URL = "{tunnel_node_url}";
 const TUNNEL_AUTH_KEY = "{secret}";
 const ENABLE_EDGE_DNS_CACHE = true;
 
@@ -21347,7 +21350,7 @@ def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_
         "runtimeVersion": "V8",
         "webapp": {
             "executeAs": "USER_DEPLOYING",
-            "access": "ANYONE"
+            "access": "ANYONE_ANONYMOUS"
         }
     }, indent=2)
 
@@ -21423,6 +21426,33 @@ def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_
     except Exception as e:
         return False, f"خطای استقرار در گوگل: {str(e)}"
 
+
+# --- Google Apps Script / mhrv-tunnel-node Reverse Proxy Endpoint ---
+@app.route("/tunnel", methods=["GET", "POST"])
+@app.route("/tunnel/<path:subpath>", methods=["GET", "POST"])
+def proxy_gas_tunnel(subpath=""):
+    cfg = get_gas_config()
+    target_port = cfg.get("port", 8448)
+    url = f"http://127.0.0.1:{target_port}/tunnel"
+    if subpath:
+        url += f"/{subpath}"
+    
+    headers = {k: v for k, v in request.headers if k.lower() not in ["host", "content-length"]}
+    try:
+        req = urllib.request.Request(
+            url,
+            data=request.get_data(),
+            headers=headers,
+            method=request.method
+        )
+        with urllib.request.urlopen(req, timeout=35) as resp:
+            content = resp.read()
+            resp_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in ["content-length", "transfer-encoding", "content-encoding"]]
+            return Response(content, status=resp.status, headers=resp_headers)
+    except urllib.error.HTTPError as e:
+        return Response(e.read(), status=e.code)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
 
 @app.route("/api/google_script/status", methods=["GET"])
 def api_google_script_status():
@@ -21540,14 +21570,14 @@ def api_google_script_templates():
         "runtimeVersion": "V8",
         "webapp": {
             "executeAs": "USER_DEPLOYING",
-            "access": "ANYONE"
+            "access": "ANYONE_ANONYMOUS"
         }
     }, indent=2)
     
     templates["manifest"] = {
         "name": "فایل مانیفست گوگل (appsscript.json)",
         "file_name": "appsscript.json",
-        "description": "فایل پیکربندی رسمی مانیفست پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE).",
+        "description": "فایل پیکربندی رسمی مانیفست پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE_ANONYMOUS).",
         "google_code": manifest_content,
         "server_code": ""
     }
@@ -21674,6 +21704,13 @@ def api_google_script_test_endpoint():
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "MHPanel-Ping/1.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
+            final_url = resp.geturl()
+            if "accounts.google.com" in final_url:
+                return jsonify({
+                    "success": False,
+                    "is_auth_redirect": True,
+                    "error": "⚠️ وب‌اپ به صفحه ورود گوگل هدایت شد! سطح دسترسی پروژه روی Anyone تنظیم نشده است. لطفاً در پنل Google Apps Script گزینه Deploy > Manage deployments را زده، ویرایش را انتخاب کرده و Who has access را روی Anyone (هر کاربری) بگذارید."
+                }), 400
             latency_ms = int((time.time() - start_t) * 1000)
             status_code = resp.getcode()
             body = resp.read().decode("utf-8", errors="ignore")
