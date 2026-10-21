@@ -1,35 +1,40 @@
 <aside class="sidebar" id="app-sidebar">
-    <!-- Mobile Sidebar Close Header -->
-    <div class="sidebar-mobile-header">
-        <div style="display:flex; align-items:center; gap:8px;">
-            <i data-lucide="shield" style="color: var(--color-gold); width:20px; height:20px;"></i>
-            <strong style="color: var(--text-main); font-size:15px;" data-i18n="login_title">MH Panel</strong>
-        </div>
-        <button type="button" class="sidebar-mobile-close" onclick="toggleMobileSidebar(false)" aria-label="Close Navigation">
-            <i data-lucide="x" style="width:18px; height:18px;"></i>
-        </button>
-    </div>
-
-    <!-- Mobile Sidebar Quick Search Filter -->
-    <div class="sidebar-mobile-search">
-        <div class="sidebar-search-box">
-            <i data-lucide="search" class="sidebar-search-icon"></i>
-            <input type="text" id="sidebar-filter-input" placeholder="جستجوی سریع پروتکل یا ابزار..." oninput="filterSidebarMenu(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="sidebar_search_placeholder">
-            <button type="button" id="sidebar-search-clear" onclick="clearSidebarFilter()" style="display:none;" aria-label="Clear Search">
-                <i data-lucide="x"></i>
+    <!-- Sticky Top Header & Search Area -->
+    <div class="sidebar-top-wrapper">
+        <!-- Mobile Sidebar Close Header -->
+        <div class="sidebar-mobile-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="shield" style="color: var(--color-gold); width:20px; height:20px;"></i>
+                <strong style="color: var(--text-main); font-size:15px;" data-i18n="login_title">MH Panel</strong>
+            </div>
+            <button type="button" class="sidebar-mobile-close" onclick="toggleMobileSidebar(false)" aria-label="Close Navigation">
+                <i data-lucide="x" style="width:18px; height:18px;"></i>
             </button>
         </div>
+
+        <!-- Desktop Sidebar Header with Collapse Toggle -->
+        <div class="sidebar-desktop-header">
+            <span class="sidebar-header-label" data-i18n="nav_menu_title">منوی ناوبری</span>
+            <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" title="جمع کردن / باز کردن منو" data-i18n-title="sidebar_collapse_expand_menu" aria-label="Toggle Sidebar">
+                <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 16px; height: 16px;"></i>
+            </button>
+        </div>
+
+        <!-- Unified Clean Quick Search Filter (Desktop & Mobile) -->
+        <div class="sidebar-search-container">
+            <div class="sidebar-search-box">
+                <i data-lucide="search" class="sidebar-search-icon"></i>
+                <input type="text" id="sidebar-filter-input" placeholder="جستجوی سریع پروتکل یا ابزار..." oninput="filterSidebarMenu(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-i18n-placeholder="sidebar_search_placeholder">
+                <button type="button" id="sidebar-search-clear" onclick="clearSidebarFilter()" style="display:none;" aria-label="Clear Search" title="پاکسازی جستجو">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+        </div>
     </div>
 
-    <!-- Desktop Sidebar Header with Collapse Toggle -->
-    <div class="sidebar-desktop-header" style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 12px 6px; border-bottom: 1px solid var(--border-glow); margin-bottom: 6px;">
-        <span class="sidebar-header-label" style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.04em;" data-i18n="nav_menu_title">منوی ناوبری</span>
-        <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" title="جمع کردن / باز کردن منو" data-i18n-title="sidebar_collapse_expand_menu" aria-label="Toggle Sidebar">
-            <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 16px; height: 16px;"></i>
-        </button>
-    </div>
-
-    <nav class="sidebar-nav">
+    <!-- Independent Scroll Container for Nav Items -->
+    <div class="sidebar-scroll-container">
+        <nav class="sidebar-nav">
         <!-- ۱. بخش داشبورد و آمار عمومی -->
         <div class="sidebar-section">
             <div class="sidebar-section-header">
@@ -161,6 +166,13 @@
                 <span class="sidebar-badge sidebar-badge-purple">STUN</span>
             </button>
 
+            <!-- Google Apps Script Full Tunnel Relay -->
+            <button class="sidebar-nav-item" onclick="switchTab('google-script')">
+                <i data-lucide="cloud-lightning" style="color: #4285F4;"></i>
+                <span data-i18n="nav_google_script">تونل گوگل اسکریپت (GAS)</span>
+                <span class="sidebar-badge sidebar-badge-blue">Google-CDN</span>
+            </button>
+
             <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream / NoizDNS / MasterdnsVPN) -->
             <button class="sidebar-nav-item" onclick="switchTab('dns-tunnels')">
                 <i data-lucide="globe" style="color: #14b8a6;"></i>
@@ -288,47 +300,108 @@
                 </div>
                 <span id="sidebar-twofa-badge" class="sidebar-badge sidebar-badge-blue">2FA</span>
             </button>
+            <button class="sidebar-nav-item" onclick="openBackupModal()" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="archive" style="color: #10b981;"></i>
+                    <span data-i18n="nav_backup_restore">پشتیبان‌گیری و بازگردانی</span>
+                </div>
+                <span class="sidebar-badge sidebar-badge-green">Backup</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="openTelegramBotModal()" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="send" style="color: #0284c7;"></i>
+                    <span data-i18n="nav_telegram_bot">ربات تلگرام مدیر و هشدار</span>
+                </div>
+                <span class="sidebar-badge sidebar-badge-blue">Bot</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="openDecoyWpModal()" style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="globe" style="color: #8b5cf6;"></i>
+                    <span data-i18n="nav_decoy_wp">سایت استتار وردپرس (Anti-DPI)</span>
+                </div>
+                <span class="sidebar-badge sidebar-badge-purple">Anti-DPI</span>
+            </button>
         </div>
     </nav>
+    </div>
 
-    <!-- Sidebar Footer Quick Language Switcher with SVG Flags -->
-    <div class="sidebar-footer" style="padding: 12px 6px 4px 6px; border-top: 1px solid rgba(226, 232, 240, 0.15); margin-top: auto;">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
-            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی" data-i18n-title="sys_item_2" style="flex: 1; justify-content: center; padding: 5px 6px;">
-                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+    <!-- Sidebar Footer Quick Language Switcher with SVG Flags (8 Languages Grid) -->
+    <div class="sidebar-footer">
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;">
+            <!-- FA -->
+            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی" data-i18n-title="sys_item_2" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
                     <rect width="18" height="4.33" fill="#239F40"/>
                     <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
                     <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
                     <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
                 </svg>
-                <span style="font-size: 11px;" data-i18n="sys_item_2">فارسی</span>
+                <span style="font-size: 10px;">FA</span>
             </button>
-            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English" style="flex: 1; justify-content: center; padding: 5px 6px;">
-                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+            <!-- EN -->
+            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
                     <rect width="18" height="13" fill="#012169"/>
                     <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
                     <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
                     <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
                     <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
                 </svg>
-                <span style="font-size: 11px;">EN</span>
+                <span style="font-size: 10px;">EN</span>
             </button>
-            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский" style="flex: 1; justify-content: center; padding: 5px 6px;">
-                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+            <!-- RU -->
+            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
                     <rect width="18" height="4.33" fill="#FFFFFF"/>
                     <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
                     <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
                 </svg>
-                <span style="font-size: 11px;">RU</span>
+                <span style="font-size: 10px;">RU</span>
             </button>
-            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية" style="flex: 1; justify-content: center; padding: 5px 6px;">
-                <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; display: inline-block; vertical-align: middle; flex-shrink: 0;">
+            <!-- AR -->
+            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
                     <rect width="18" height="4.33" fill="#007A3D"/>
                     <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
                     <rect y="8.67" width="18" height="4.33" fill="#000000"/>
                     <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
                 </svg>
-                <span style="font-size: 11px;">AR</span>
+                <span style="font-size: 10px;">AR</span>
+            </button>
+            <!-- IT -->
+            <button type="button" class="lang-pill" data-lang="it" onclick="changeLanguage('it')" title="Italiano" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
+                    <rect width="6" height="13" fill="#009246"/>
+                    <rect x="6" width="6" height="13" fill="#FFFFFF"/>
+                    <rect x="12" width="6" height="13" fill="#CE2B37"/>
+                </svg>
+                <span style="font-size: 10px;">IT</span>
+            </button>
+            <!-- ES -->
+            <button type="button" class="lang-pill" data-lang="es" onclick="changeLanguage('es')" title="Español" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
+                    <rect width="18" height="3.25" fill="#AA151B"/>
+                    <rect y="3.25" width="18" height="6.5" fill="#F1BF00"/>
+                    <rect y="9.75" width="18" height="3.25" fill="#AA151B"/>
+                </svg>
+                <span style="font-size: 10px;">ES</span>
+            </button>
+            <!-- ZH -->
+            <button type="button" class="lang-pill" data-lang="zh" onclick="changeLanguage('zh')" title="简体中文" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
+                    <rect width="18" height="13" fill="#DE2910"/>
+                    <polygon points="3.5,1.5 4,3 5.5,3 4.2,4 4.7,5.5 3.5,4.5 2.3,5.5 2.8,4 1.5,3 3,3" fill="#FFDE00"/>
+                </svg>
+                <span style="font-size: 10px;">ZH</span>
+            </button>
+            <!-- DE -->
+            <button type="button" class="lang-pill" data-lang="de" onclick="changeLanguage('de')" title="Deutsch" style="justify-content: center; padding: 4px 2px;">
+                <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius: 2px; flex-shrink: 0;">
+                    <rect width="18" height="4.33" fill="#000000"/>
+                    <rect y="4.33" width="18" height="4.33" fill="#DD0000"/>
+                    <rect y="8.67" width="18" height="4.33" fill="#FFCE00"/>
+                </svg>
+                <span style="font-size: 10px;">DE</span>
             </button>
         </div>
     </div>

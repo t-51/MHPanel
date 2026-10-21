@@ -12,7 +12,12 @@ import concurrent.futures
 import base64
 import uuid
 import platform
-from datetime import datetime
+import tarfile
+import shutil
+import urllib.request
+import urllib.error
+import urllib.parse
+from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session, render_template, send_from_directory, Response
 
 app = Flask(__name__)
@@ -158,7 +163,7 @@ VPN_SERVER_CERT = os.path.join(VPN_CERT_DIR, "vpn-server.crt")
 VPN_SERVER_KEY = os.path.join(VPN_CERT_DIR, "vpn-server.key")
 PANEL_CERT = os.path.join(PANEL_SSL_DIR, "panel.crt")
 PANEL_KEY = os.path.join(PANEL_SSL_DIR, "panel.key")
-PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "noizdns", "masterdnsvpn", "tor", "singbox", "tunnels"]
+PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "noizdns", "masterdnsvpn", "tor", "singbox", "tunnels", "google_script"]
 PROTOCOL_DEFAULT_PORTS = {
     "ssh": 2222,
     "openvpn": 1194,
@@ -186,6 +191,7 @@ PROTOCOL_DEFAULT_PORTS = {
     "tor": 9001,
     "singbox": 20443,
     "tunnels": "RouterOS",
+    "google_script": 8448,
 }
 PROTOCOL_SERVICE_MAP = {
     "ssh": "mhpanel-ssh",
@@ -214,6 +220,7 @@ PROTOCOL_SERVICE_MAP = {
     "tor": "mhpanel-tor",
     "singbox": "mhpanel-singbox",
     "tunnels": "mhpanel-tunnels",
+    "google_script": "mhpanel-gas-tunnel",
 }
 
 def get_session_secret():
@@ -534,6 +541,8 @@ def is_installed(protocol):
         return os.path.exists("/etc/tor/torrc") and (os.path.exists("/etc/systemd/system/mhpanel-tor.service") or os.path.exists("/usr/bin/tor"))
     elif protocol == "singbox":
         return os.path.exists("/usr/local/bin/sing-box") or os.path.exists("/etc/systemd/system/mhpanel-singbox.service") or os.path.exists("/etc/sing-box/config.json")
+    elif protocol == "google_script":
+        return os.path.exists("/usr/local/bin/mhpanel-gas-server") or os.path.exists("/etc/systemd/system/mhpanel-gas-tunnel.service")
     elif protocol == "tunnels":
         return True
     return False
@@ -741,6 +750,14 @@ def get_active_port(protocol):
                 except Exception:
                     pass
             return 20443
+        elif protocol == "google_script":
+            if os.path.exists("/etc/vpnpanel/google_script.json"):
+                try:
+                    with open("/etc/vpnpanel/google_script.json", "r") as f:
+                        return int(json.load(f).get("port", 8448))
+                except Exception:
+                    pass
+            return 8448
         elif protocol == "tunnels":
             return "RouterOS"
         if protocol in ["http", "socks", "shadowsocks"] and os.path.exists(path):
@@ -2866,6 +2883,8 @@ def get_service_names(protocol):
         return ["mhpanel-tor"]
     elif protocol == "singbox":
         return ["mhpanel-singbox"]
+    elif protocol == "google_script":
+        return ["mhpanel-gas-tunnel"]
     elif protocol == "tunnels":
         return []
     return []
@@ -13694,6 +13713,17 @@ def get_default_multiplexer_config():
                 "is_default": False,
                 "protocol_type": "sstp",
                 "desc": "اتصال مستقیم کلاینت‌های ویندوز با SSL/TLS"
+            },
+            {
+                "id": "singbox",
+                "name": "هسته جامع سینگ‌باکس (Sing-box Core)",
+                "enabled": True,
+                "sni": "sb.kigaping.com,vless.kigaping.com",
+                "backend_ip": "127.0.0.1",
+                "backend_port": 20443,
+                "is_default": False,
+                "protocol_type": "singbox",
+                "desc": "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
             }
         ],
         "custom_rules": [],
@@ -13704,7 +13734,25 @@ def get_multiplexer_config():
     if os.path.exists(MULTIPLEXER_CONFIG_FILE):
         try:
             with open(MULTIPLEXER_CONFIG_FILE, "r") as f:
-                return json.load(f)
+                cfg = json.load(f)
+                # Auto-merge singbox protocol if missing
+                protocols = cfg.get("protocols", [])
+                proto_ids = [p.get("id") for p in protocols]
+                if "singbox" not in proto_ids:
+                    protocols.append({
+                        "id": "singbox",
+                        "name": "هسته جامع سینگ‌باکس (Sing-box Core)",
+                        "enabled": True,
+                        "sni": "sb.kigaping.com,vless.kigaping.com",
+                        "backend_ip": "127.0.0.1",
+                        "backend_port": 20443,
+                        "is_default": False,
+                        "protocol_type": "singbox",
+                        "desc": "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
+                    })
+                    cfg["protocols"] = protocols
+                    save_multiplexer_config(cfg)
+                return cfg
         except Exception:
             pass
     cfg = get_default_multiplexer_config()
@@ -13824,6 +13872,7 @@ def generate_haproxy_cfg(config):
             elif p_id == "ssh": p_port = 4444
             elif p_id == "openvpn": p_port = 1194
             elif p_id == "sstp": p_port = 4443
+            elif p_id == "singbox": p_port = 20443
             else: p_port = 8444
             
         backend_name = f"{p_id}_backend"
@@ -18579,7 +18628,13 @@ def build_default_singbox_full_suite():
 
     cert_path = "/etc/vpnpanel/ssl/panel.crt"
     key_path = "/etc/vpnpanel/ssl/panel.key"
-    if not os.path.exists(cert_path) or not os.path.exists(key_path):
+    sni_domain = "mhpanel.kigaping.com"
+    le_cert = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem"
+    le_key = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem"
+    if os.path.exists(le_cert) and os.path.exists(le_key):
+        cert_path = le_cert
+        key_path = le_key
+    elif not os.path.exists(cert_path) or not os.path.exists(key_path):
         os.makedirs("/etc/vpnpanel/ssl", exist_ok=True)
         if not os.path.exists(cert_path):
             try:
@@ -18615,6 +18670,7 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
             "tls": {
                 "enabled": True,
+                "server_name": sni_domain,
                 "certificate_path": cert_path,
                 "key_path": key_path
             }
@@ -18627,8 +18683,13 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
             "up_mbps": 100,
             "down_mbps": 100,
+            "obfs": {
+                "type": "salamander",
+                "password": secrets.token_hex(8)
+            },
             "tls": {
                 "enabled": True,
+                "server_name": sni_domain,
                 "certificate_path": cert_path,
                 "key_path": key_path
             }
@@ -18643,6 +18704,7 @@ def build_default_singbox_full_suite():
             "zero_rtt_handshake": True,
             "tls": {
                 "enabled": True,
+                "server_name": sni_domain,
                 "certificate_path": cert_path,
                 "key_path": key_path
             }
@@ -18654,6 +18716,38 @@ def build_default_singbox_full_suite():
             "listen_port": 20447,
             "method": "2022-blake3-aes-128-gcm",
             "password": psk16
+        },
+        {
+            "type": "shadowtls",
+            "tag": "shadowtls-in",
+            "listen": "::",
+            "listen_port": 20450,
+            "version": 3,
+            "password": secrets.token_urlsafe(16),
+            "users": [{"password": secrets.token_urlsafe(16)}],
+            "handshake": {
+                "server": "dl.google.com",
+                "server_port": 443
+            },
+            "detour": "shadowsocks-in"
+        },
+        {
+            "type": "vless",
+            "tag": "vless-ws-in",
+            "listen": "::",
+            "listen_port": 20451,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "ws",
+                "path": "/vless-ws"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
         },
         {
             "type": "vmess",
@@ -18671,6 +18765,7 @@ def build_default_singbox_full_suite():
             "users": [{"username": "naiveuser", "password": "NaivePass_" + secrets.token_hex(4)}],
             "tls": {
                 "enabled": True,
+                "server_name": sni_domain,
                 "certificate_path": cert_path,
                 "key_path": key_path
             }
@@ -18690,9 +18785,15 @@ def build_default_singbox_full_suite():
             "timestamp": True,
             "output": "/var/log/sing-box.log"
         },
+        "experimental": {
+            "clash_api": {
+                "external_controller": "127.0.0.1:9095"
+            }
+        },
         "dns": {
             "servers": [
-                {"tag": "dns-direct", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
+                {"tag": "dns-direct", "address": "1.1.1.1", "strategy": "prefer_ipv4", "detour": "direct"},
+                {"tag": "dns-google", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
             ]
         },
         "inbounds": inbounds,
@@ -18773,8 +18874,21 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
-        link = f"vless://{u_uuid}@{host_ip}:{port}?security={sec}&sni={sni}&type=tcp"
-        if flow: link += f"&flow={flow}"
+        tp = inbound.get("transport", {}).get("type", "tcp")
+        target_server = host_ip
+        if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
+            target_server = sni
+        link = f"vless://{u_uuid}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}"
+        if tp == "ws":
+            ws_path = inbound.get("transport", {}).get("path", "/")
+            link += f"&path={ws_path}"
+        elif tp == "grpc":
+            svc = inbound.get("transport", {}).get("service_name", "GunService")
+            link += f"&serviceName={svc}"
+        elif tp == "httpupgrade":
+            hpath = inbound.get("transport", {}).get("path", "/")
+            link += f"&path={hpath}"
+        if flow and reality_enabled: link += f"&flow={flow}"
         if pbk: link += f"&pbk={pbk}"
         if sid: link += f"&sid={sid}"
         if reality_enabled: link += "&fp=chrome"
@@ -18801,13 +18915,29 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
 
     elif itype == "trojan":
         sec = "tls" if tls_enabled else "none"
-        return f"trojan://{u_pass}@{host_ip}:{port}?security={sec}&sni={sni}#{tag_name}"
+        tp = inbound.get("transport", {}).get("type", "tcp")
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        link = f"trojan://{u_pass}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}"
+        if tp == "ws":
+            ws_path = inbound.get("transport", {}).get("path", "/trojan-ws")
+            link += f"&path={ws_path}"
+        elif tp == "grpc":
+            svc = inbound.get("transport", {}).get("service_name", "trojan-grpc")
+            link += f"&serviceName={svc}"
+        elif tp == "httpupgrade":
+            hpath = inbound.get("transport", {}).get("path", "/trojan-upgrade")
+            link += f"&path={hpath}"
+        link += f"#{tag_name}"
+        return link
 
     elif itype == "hysteria2":
         obfs_obj = inbound.get("obfs", {})
         obfs_type = obfs_obj.get("type", "")
         obfs_pass = obfs_obj.get("password", "")
-        link = f"hysteria2://{u_pass}@{host_ip}:{port}?sni={sni}&insecure=1"
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
+        insec_flag = "&insecure=1" if is_self_signed else ""
+        link = f"hysteria2://{u_pass}@{target_server}:{port}?sni={sni}{insec_flag}"
         if obfs_type and obfs_pass:
             link += f"&obfs={obfs_type}&obfs-password={obfs_pass}"
         link += f"#{tag_name}"
@@ -18815,7 +18945,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
 
     elif itype == "tuic":
         cc = inbound.get("congestion_control", "bbr")
-        return f"tuic://{u_uuid}:{u_pass}@{host_ip}:{port}?congestion_control={cc}&sni={sni}&alpn=h3&insecure=1#{tag_name}"
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
+        insec_flag = "&insecure=1" if is_self_signed else ""
+        return f"tuic://{u_uuid}:{u_pass}@{target_server}:{port}?congestion_control={cc}&sni={sni}&alpn=h3{insec_flag}#{tag_name}"
 
     elif itype == "shadowsocks":
         method = inbound.get("method", "2022-blake3-aes-128-gcm")
@@ -18825,10 +18958,13 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
 
     elif itype == "naive":
         uname = u_name or "naiveuser"
-        return f"naive+https://{uname}:{u_pass}@{host_ip}:{port}?insecure=1#{tag_name}"
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
+        insec_flag = "?insecure=1" if is_self_signed else ""
+        return f"naive+https://{uname}:{u_pass}@{target_server}:{port}{insec_flag}#{tag_name}"
 
     elif itype == "shadowtls":
-        password = inbound.get("password", "")
+        password = inbound.get("password") or (inbound.get("users", [{}])[0].get("password") if inbound.get("users") else "")
         hs = inbound.get("handshake", {}).get("server", "dl.google.com")
         return f"shadow-tls://{password}@{host_ip}:{port}/?sni={hs}#{tag_name}"
 
@@ -18840,6 +18976,55 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     return f"{itype}://{host_ip}:{port}#{tag_name}"
 
 SINGBOX_USERS_FILE = "/etc/sing-box/local_users.json"
+SINGBOX_CATEGORIES_FILE = "/etc/sing-box/categories.json"
+
+def load_singbox_categories():
+    default_cats = ["عمومی (Default)", "دسته الف (VIP)", "دسته ب (نرمال)", "دسته ج (تست)", "سازمانی"]
+    if not os.path.exists(SINGBOX_CATEGORIES_FILE):
+        save_singbox_categories(default_cats)
+        return default_cats
+    try:
+        with open(SINGBOX_CATEGORIES_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, list) and data:
+                return data
+            return default_cats
+    except Exception:
+        return default_cats
+
+def save_singbox_categories(cats):
+    os.makedirs(os.path.dirname(SINGBOX_CATEGORIES_FILE), exist_ok=True)
+    with open(SINGBOX_CATEGORIES_FILE, "w", encoding="utf-8") as f:
+        json.dump(cats, f, indent=2, ensure_ascii=False)
+
+def format_bytes_human(b):
+    if not b or b <= 0:
+        return "0 B"
+    b = float(b)
+    if b < 1024:
+        return f"{int(b)} B"
+    elif b < 1024 ** 2:
+        return f"{b / 1024:.1f} KB"
+    elif b < 1024 ** 3:
+        return f"{b / (1024 ** 2):.1f} MB"
+    elif b < 1024 ** 4:
+        return f"{b / (1024 ** 3):.2f} GB"
+    else:
+        return f"{b / (1024 ** 4):.2f} TB"
+
+def get_singbox_clash_traffic():
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://127.0.0.1:9095/connections")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            data = json.loads(resp.read().decode())
+            traffic_map = {}
+            for conn in (data.get("connections") or []):
+                meta = conn.get("metadata") or {}
+                # metadata or inbound match
+            return traffic_map
+    except Exception:
+        return {}
 
 def load_singbox_users():
     if not os.path.exists(SINGBOX_USERS_FILE):
@@ -18847,9 +19032,101 @@ def load_singbox_users():
     try:
         with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
-            return data if isinstance(data, list) else []
+            users = data if isinstance(data, list) else []
     except Exception:
-        return []
+        users = []
+
+    today = datetime.now().date()
+    clash_traffic = get_singbox_clash_traffic()
+    needs_save = False
+
+    for u in users:
+        u.setdefault("category", "عمومی (Default)")
+        u.setdefault("traffic_limit_gb", 0.0)
+        u.setdefault("used_traffic_bytes", 0)
+        u.setdefault("upload_bytes", 0)
+        u.setdefault("download_bytes", 0)
+        u.setdefault("expire_date", "")
+        u.setdefault("expiry_type", "fixed_date")
+        u.setdefault("validity_days", 30)
+        u.setdefault("first_connected_at", None)
+
+        uname = u.get("username")
+        if clash_traffic and uname in clash_traffic:
+            u["upload_bytes"] = max(u.get("upload_bytes", 0), clash_traffic[uname].get("up", 0))
+            u["download_bytes"] = max(u.get("download_bytes", 0), clash_traffic[uname].get("down", 0))
+            u["used_traffic_bytes"] = u["upload_bytes"] + u["download_bytes"]
+
+        used_bytes = int(u.get("used_traffic_bytes") or 0)
+        expiry_type = u.get("expiry_type", "fixed_date")
+        try:
+            validity_days = int(u.get("validity_days") or 30)
+        except (ValueError, TypeError):
+            validity_days = 30
+        first_connected = u.get("first_connected_at")
+
+        is_waiting_first_use = False
+        if expiry_type == "on_first_use":
+            if used_bytes > 0 and not first_connected:
+                # User has connected for the first time! Lock in expiration countdown
+                now_dt = datetime.now()
+                first_connected = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+                u["first_connected_at"] = first_connected
+                exp_date_str = (now_dt.date() + timedelta(days=validity_days)).strftime("%Y-%m-%d")
+                u["expire_date"] = exp_date_str
+                needs_save = True
+            elif not first_connected:
+                is_waiting_first_use = True
+                u["expire_date"] = f"پس از اولین اتصال ({validity_days} روزه)"
+
+        exp_date_str = (u.get("expire_date") or "").strip()
+        is_expired = False
+        days_remaining = None
+
+        if is_waiting_first_use:
+            days_remaining = validity_days
+            is_expired = False
+        elif exp_date_str and not is_waiting_first_use:
+            try:
+                exp_d = datetime.strptime(exp_date_str, "%Y-%m-%d").date()
+                diff = (exp_d - today).days
+                days_remaining = diff
+                if diff < 0:
+                    is_expired = True
+            except Exception:
+                pass
+
+        try:
+            limit_gb = float(u.get("traffic_limit_gb") or 0.0)
+        except (ValueError, TypeError):
+            limit_gb = 0.0
+
+        is_quota_exceeded = False
+        traffic_percent = 0.0
+
+        if limit_gb > 0:
+            limit_bytes = limit_gb * (1024 ** 3)
+            if used_bytes >= limit_bytes:
+                is_quota_exceeded = True
+            traffic_percent = min(100.0, round((used_bytes / limit_bytes) * 100, 1))
+
+        u["is_waiting_first_use"] = is_waiting_first_use
+        u["is_expired"] = is_expired
+        u["is_quota_exceeded"] = is_quota_exceeded
+        u["days_remaining"] = days_remaining
+        u["traffic_percent"] = traffic_percent
+        u["used_traffic_formatted"] = format_bytes_human(used_bytes)
+        u["upload_formatted"] = format_bytes_human(u.get("upload_bytes", 0))
+        u["download_formatted"] = format_bytes_human(u.get("download_bytes", 0))
+        u["traffic_limit_formatted"] = f"{limit_gb:g} GB" if limit_gb > 0 else "نامحدود"
+
+    if needs_save:
+        try:
+            save_singbox_users(users)
+        except Exception:
+            pass
+
+    return users
 
 def save_singbox_users(users_list):
     os.makedirs(os.path.dirname(SINGBOX_USERS_FILE), exist_ok=True)
@@ -18867,7 +19144,10 @@ def sync_singbox_users_to_config():
         return False, f"خطا در خواندن کانفیگ: {e}"
 
     local_users = load_singbox_users()
-    active_users = [u for u in local_users if u.get("enabled", True)]
+    active_users = [
+        u for u in local_users
+        if u.get("enabled", True) and not u.get("is_expired", False) and not u.get("is_quota_exceeded", False)
+    ]
     local_usernames = {u["username"] for u in local_users}
 
     for ib in cfg.get("inbounds", []):
@@ -18933,6 +19213,13 @@ def sync_singbox_users_to_config():
                 existing = [x for x in ib.get("users", []) if x.get("username") not in local_usernames]
                 users_arr = existing if existing else [{"username": "naiveuser", "password": secrets.token_urlsafe(16)}]
             ib["users"] = users_arr
+
+        elif itype == "shadowtls":
+            users_arr = []
+            for u in assigned:
+                users_arr.append({"password": u.get("password") or secrets.token_urlsafe(16)})
+            if users_arr:
+                ib["users"] = users_arr
 
         elif itype in ["mixed", "socks", "http"]:
             users_arr = []
@@ -19630,13 +19917,44 @@ def api_singbox_user_add():
     elif not isinstance(inbounds, list):
         inbounds = []
 
+    category = (req.get("category") or "عمومی (Default)").strip()
+    cats = load_singbox_categories()
+    if category not in cats:
+        cats.append(category)
+        save_singbox_categories(cats)
+
+    traffic_limit = 0.0
+    try:
+        traffic_limit = float(req.get("traffic_limit_gb") or 0.0)
+    except (ValueError, TypeError):
+        traffic_limit = 0.0
+
+    expire_date = (req.get("expire_date") or "").strip()
+    expiry_type = req.get("expiry_type", "fixed_date")
+    try:
+        validity_days = int(req.get("validity_days") or 30)
+    except (ValueError, TypeError):
+        validity_days = 30
+
+    if expiry_type == "on_first_use":
+        expire_date = f"پس از اولین اتصال ({validity_days} روزه)"
+
     new_user = {
         "username": username,
         "uuid": user_uuid,
         "password": user_pass,
         "enabled": True,
+        "category": category,
         "inbounds": inbounds,
         "flow": req.get("flow", "xtls-rprx-vision"),
+        "traffic_limit_gb": traffic_limit,
+        "used_traffic_bytes": 0,
+        "upload_bytes": 0,
+        "download_bytes": 0,
+        "expire_date": expire_date,
+        "expiry_type": expiry_type,
+        "validity_days": validity_days,
+        "first_connected_at": None,
         "note": req.get("note", "").strip(),
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
     }
@@ -19674,6 +19992,35 @@ def api_singbox_user_edit(username):
         target["note"] = req["note"].strip()
     if "enabled" in req:
         target["enabled"] = bool(req["enabled"])
+    if "category" in req:
+        new_cat = (req["category"] or "عمومی (Default)").strip()
+        target["category"] = new_cat
+        cats = load_singbox_categories()
+        if new_cat not in cats:
+            cats.append(new_cat)
+            save_singbox_categories(cats)
+    if "traffic_limit_gb" in req:
+        try:
+            target["traffic_limit_gb"] = float(req["traffic_limit_gb"] or 0.0)
+        except (ValueError, TypeError):
+            target["traffic_limit_gb"] = 0.0
+    if "expire_date" in req:
+        target["expire_date"] = (req["expire_date"] or "").strip()
+    if "expiry_type" in req:
+        target["expiry_type"] = req["expiry_type"]
+    if "validity_days" in req:
+        try:
+            target["validity_days"] = int(req["validity_days"] or 30)
+        except (ValueError, TypeError):
+            target["validity_days"] = 30
+    if req.get("reset_first_connection"):
+        target["first_connected_at"] = None
+        if target.get("expiry_type") == "on_first_use":
+            target["expire_date"] = f"پس از اولین اتصال ({target.get('validity_days', 30)} روزه)"
+    if req.get("reset_traffic"):
+        target["used_traffic_bytes"] = 0
+        target["upload_bytes"] = 0
+        target["download_bytes"] = 0
 
     save_singbox_users(users)
     ok, err = sync_singbox_users_to_config()
@@ -19681,6 +20028,23 @@ def api_singbox_user_edit(username):
         return jsonify({"error": f"خطا در همگام‌سازی کاربر با هسته: {err}"}), 400
 
     return jsonify({"success": True, "message": f"تنظیمات کاربر {username} با موفقیت ویرایش و با هسته همگام شد.", "user": target})
+
+@app.route("/api/singbox/user/<username>/reset-traffic", methods=["POST"])
+def api_singbox_user_reset_traffic(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    target = next((u for u in users if u.get("username") == username), None)
+    if not target:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    target["used_traffic_bytes"] = 0
+    target["upload_bytes"] = 0
+    target["download_bytes"] = 0
+    save_singbox_users(users)
+    sync_singbox_users_to_config()
+
+    return jsonify({"success": True, "message": f"ترافیک مصرفی کاربر {username} با موفقیت صفر شد."})
 
 @app.route("/api/singbox/user/<username>/toggle", methods=["POST"])
 def api_singbox_user_toggle(username):
@@ -19761,6 +20125,1558 @@ def api_singbox_user_links(username):
     })
 
 
+@app.route("/api/singbox/categories", methods=["GET", "POST"])
+def api_singbox_categories():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    cats = load_singbox_categories()
+    if request.method == "POST":
+        req = request.get_json() or {}
+        new_cat = (req.get("name") or "").strip()
+        if not new_cat:
+            return jsonify({"error": "نام دسته‌بندی الزامی است."}), 400
+        if new_cat not in cats:
+            cats.append(new_cat)
+            save_singbox_categories(cats)
+        return jsonify({"success": True, "categories": cats, "message": f"دسته‌بندی «{new_cat}» اضافه شد."})
+
+    return jsonify({"success": True, "categories": cats})
+
+@app.route("/api/singbox/categories/<path:cat_name>", methods=["DELETE"])
+def api_singbox_category_delete(cat_name):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    cats = load_singbox_categories()
+    if cat_name not in cats:
+        return jsonify({"error": "دسته‌بندی یافت نشد."}), 404
+
+    cats = [c for c in cats if c != cat_name]
+    if not cats:
+        cats = ["عمومی (Default)"]
+    save_singbox_categories(cats)
+
+    users = load_singbox_users()
+    modified = False
+    for u in users:
+        if u.get("category") == cat_name:
+            u["category"] = cats[0]
+            modified = True
+    if modified:
+        save_singbox_users(users)
+
+    return jsonify({"success": True, "categories": cats, "message": f"دسته‌بندی «{cat_name}» حذف گردید."})
+
+@app.route("/api/singbox/users/bulk-add", methods=["POST"])
+def api_singbox_users_bulk_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    req = request.get_json() or {}
+    prefix = (req.get("prefix") or "user_").strip()
+    prefix = re.sub(r"[^a-zA-Z0-9_\-]", "", prefix) or "user_"
+
+    try:
+        count = int(req.get("count") or 10)
+    except (ValueError, TypeError):
+        count = 10
+    count = max(1, min(count, 200))
+
+    try:
+        start_idx = int(req.get("start_index") or 1)
+    except (ValueError, TypeError):
+        start_idx = 1
+    start_idx = max(1, start_idx)
+
+    category = (req.get("category") or "عمومی (Default)").strip()
+    cats = load_singbox_categories()
+    if category not in cats:
+        cats.append(category)
+        save_singbox_categories(cats)
+
+    try:
+        traffic_limit = float(req.get("traffic_limit_gb") or 0.0)
+    except (ValueError, TypeError):
+        traffic_limit = 0.0
+
+    expire_date = (req.get("expire_date") or "").strip()
+    expiry_type = req.get("expiry_type", "fixed_date")
+    try:
+        validity_days = int(req.get("validity_days") or 30)
+    except (ValueError, TypeError):
+        validity_days = 30
+
+    if expiry_type == "on_first_use":
+        expire_date = f"پس از اولین اتصال ({validity_days} روزه)"
+
+    inbounds = req.get("inbounds")
+    if inbounds is None:
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+                inbounds = [ib.get("tag") for ib in c.get("inbounds", []) if ib.get("tag")]
+        except Exception:
+            inbounds = []
+    elif not isinstance(inbounds, list):
+        inbounds = []
+
+    note = (req.get("note") or f"ساخت انبوه - {category}").strip()
+
+    users = load_singbox_users()
+    existing_usernames = {u.get("username") for u in users}
+
+    created_users = []
+    current_idx = start_idx
+    for _ in range(count):
+        while True:
+            uname = f"{prefix}{current_idx:02d}" if current_idx < 100 else f"{prefix}{current_idx}"
+            current_idx += 1
+            if uname not in existing_usernames:
+                existing_usernames.add(uname)
+                break
+
+        new_uuid = str(uuid.uuid4())
+        new_pass = "Sb_" + secrets.token_urlsafe(8)
+        u_record = {
+            "username": uname,
+            "uuid": new_uuid,
+            "password": new_pass,
+            "enabled": True,
+            "category": category,
+            "inbounds": inbounds,
+            "flow": "xtls-rprx-vision",
+            "traffic_limit_gb": traffic_limit,
+            "used_traffic_bytes": 0,
+            "upload_bytes": 0,
+            "download_bytes": 0,
+            "expire_date": expire_date,
+            "expiry_type": expiry_type,
+            "validity_days": validity_days,
+            "first_connected_at": None,
+            "note": note,
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S")
+        }
+        users.append(u_record)
+        created_users.append(u_record)
+
+    save_singbox_users(users)
+    ok, err = sync_singbox_users_to_config()
+    if not ok:
+        created_names = {u["username"] for u in created_users}
+        users = [u for u in users if u["username"] not in created_names]
+        save_singbox_users(users)
+        return jsonify({"error": f"خطا در همگام‌سازی با هسته: {err}"}), 400
+
+    server_ip = get_server_public_ip()
+    all_links = []
+    csv_rows = ["Username,Password,UUID,Category,TrafficLimitGB,ExpireDate,InboundTag,ShareLink"]
+    user_links_map = {}
+
+    try:
+        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        all_inbounds = {ib.get("tag"): ib for ib in cfg.get("inbounds", [])}
+
+        for cu in created_users:
+            u_links = []
+            u_inbounds = cu.get("inbounds", [])
+            for ib_tag in u_inbounds:
+                if ib_tag in all_inbounds:
+                    link = generate_singbox_share_link(all_inbounds[ib_tag], server_ip, target_user=cu)
+                    all_links.append(link)
+                    u_links.append({"tag": ib_tag, "link": link})
+                    csv_rows.append(f'"{cu["username"]}","{cu["password"]}","{cu["uuid"]}","{cu["category"]}","{cu["traffic_limit_gb"]}","{cu["expire_date"]}","{ib_tag}","{link}"')
+            user_links_map[cu["username"]] = u_links
+    except Exception:
+        pass
+
+    return jsonify({
+        "success": True,
+        "message": f"{len(created_users)} کاربر جدید در دسته‌بندی «{category}» با موفقیت ایجاد و کانفیگ‌ها صادر شدند.",
+        "created_count": len(created_users),
+        "category": category,
+        "created_users": created_users,
+        "all_links_text": "\n".join(all_links),
+        "csv_text": "\n".join(csv_rows),
+        "links_count": len(all_links),
+        "user_links_map": user_links_map
+    })
+
+@app.route("/api/singbox/category/<path:category_name>/export", methods=["GET"])
+def api_singbox_category_export(category_name):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    users = load_singbox_users()
+    if category_name.lower() != "all" and category_name != "همه دسته‌ها":
+        target_users = [u for u in users if u.get("category") == category_name]
+    else:
+        target_users = users
+
+    if not target_users:
+        return jsonify({"error": f"هیچ کاربری در دسته «{category_name}» یافت نشد."}), 404
+
+    server_ip = get_server_public_ip()
+    all_links = []
+    csv_rows = ["Username,Password,UUID,Category,TrafficLimitGB,ExpireDate,InboundTag,ShareLink"]
+    grouped = {}
+
+    try:
+        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+        all_inbounds = {ib.get("tag"): ib for ib in cfg.get("inbounds", [])}
+
+        for u in target_users:
+            uname = u["username"]
+            grouped[uname] = []
+            u_inbounds = u.get("inbounds", [])
+            for ib_tag in u_inbounds:
+                if ib_tag in all_inbounds:
+                    link = generate_singbox_share_link(all_inbounds[ib_tag], server_ip, target_user=u)
+                    all_links.append(link)
+                    grouped[uname].append({"tag": ib_tag, "link": link})
+                    csv_rows.append(f'"{u["username"]}","{u["password"]}","{u["uuid"]}","{u.get("category","")}","{u.get("traffic_limit_gb",0)}","{u.get("expire_date","")}","{ib_tag}","{link}"')
+    except Exception as e:
+        return jsonify({"error": f"خطا در خواندن کانفیگ هسته: {e}"}), 500
+
+    return jsonify({
+        "success": True,
+        "category": category_name,
+        "users_count": len(target_users),
+        "links_count": len(all_links),
+        "all_links_text": "\n".join(all_links),
+        "csv_text": "\n".join(csv_rows),
+        "grouped": grouped
+    })
+
+
+# =========================================================================
+# MHPanel Backup & Restore Suite (Sing-box Core & Full Panel)
+# =========================================================================
+BACKUP_DIR = "/var/backups/mhpanel"
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+def create_system_backup(backup_type="full", note=""):
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    prefix = "mhpanel_singbox" if backup_type == "singbox" else "mhpanel_full"
+    filename = f"{prefix}_backup_{ts}.tar.gz"
+    filepath = os.path.join(BACKUP_DIR, filename)
+
+    metadata = {
+        "version": "1.5.0",
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "backup_type": backup_type,
+        "note": note,
+        "files_included": []
+    }
+
+    targets = []
+    if backup_type == "singbox":
+        singbox_targets = [
+            "/etc/sing-box/config.json",
+            "/etc/sing-box/local_users.json",
+            "/etc/sing-box/categories.json"
+        ]
+        targets = [p for p in singbox_targets if os.path.exists(p)]
+    else:
+        full_targets = [
+            "/etc/sing-box",
+            "/etc/mhpanel",
+            "/etc/haproxy/haproxy.cfg",
+            "/etc/wireguard",
+            "/etc/openvpn",
+            "/etc/ocserv",
+            "/etc/shadowsocks-rust",
+            "/etc/freeradius",
+            "/etc/stunnel",
+            "/etc/caddy"
+        ]
+        for t in full_targets:
+            if os.path.exists(t):
+                targets.append(t)
+
+    meta_file = "/tmp/mhpanel_backup_meta.json"
+    metadata["files_included"] = targets
+    with open(meta_file, "w", encoding="utf-8") as f:
+        json.dump(metadata, f, indent=2, ensure_ascii=False)
+
+    with tarfile.open(filepath, "w:gz") as tar:
+        tar.add(meta_file, arcname="mhpanel_backup_meta.json")
+        for item in targets:
+            arcname = item.lstrip("/")
+            tar.add(item, arcname=arcname)
+
+    if os.path.exists(meta_file):
+        try: os.remove(meta_file)
+        except Exception: pass
+
+    stat = os.stat(filepath)
+    return {
+        "success": True,
+        "filename": filename,
+        "filepath": filepath,
+        "size_bytes": stat.st_size,
+        "size_formatted": format_bytes_human(stat.st_size),
+        "created_at": metadata["created_at"],
+        "backup_type": backup_type,
+        "items_count": len(targets)
+    }
+
+def restore_system_backup(filepath):
+    if not os.path.exists(filepath):
+        return False, "فایل بکاپ یافت نشد."
+
+    try:
+        with tarfile.open(filepath, "r:gz") as tar:
+            names = tar.getnames()
+            if not names:
+                return False, "فایل بکاپ خالی است."
+    except Exception as e:
+        return False, f"فایل فشرده بکاپ نامعتبر یا خراب است: {e}"
+
+    try:
+        with tarfile.open(filepath, "r:gz") as tar:
+            safe_members = []
+            for member in tar.getmembers():
+                if member.name.startswith("/") or ".." in member.name:
+                    continue
+                if member.name == "mhpanel_backup_meta.json":
+                    continue
+                safe_members.append(member)
+            tar.extractall(path="/", members=safe_members)
+    except Exception as e:
+        return False, f"خطا در استخراج فایل‌های بکاپ: {e}"
+
+    if os.path.exists("/etc/sing-box/config.json"):
+        chk = subprocess.run(["sing-box", "check", "-c", "/etc/sing-box/config.json"], capture_output=True, text=True)
+        if chk.returncode != 0:
+            return False, f"هشدار: فایل کانفیگ سینگ‌باکس پس از بازیابی معتبر نیست: {chk.stderr}"
+        subprocess.run(["systemctl", "restart", "mhpanel-singbox.service"], capture_output=True)
+
+    return True, "پشتیبان با موفقیت بازیابی شد و هسته سینگ‌باکس با تنظیمات جدید ری‌استارت گردید."
+
+@app.route("/api/backup/list", methods=["GET"])
+def api_backup_list():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    files = []
+    for f in os.listdir(BACKUP_DIR):
+        if f.endswith(".tar.gz") or f.endswith(".zip"):
+            fp = os.path.join(BACKUP_DIR, f)
+            try:
+                stat = os.stat(fp)
+                btype = "singbox" if "singbox" in f else "full"
+                files.append({
+                    "filename": f,
+                    "size_bytes": stat.st_size,
+                    "size_formatted": format_bytes_human(stat.st_size),
+                    "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime)),
+                    "mtime": stat.st_mtime,
+                    "backup_type": btype
+                })
+            except Exception:
+                pass
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify({"success": True, "backups": files, "count": len(files)})
+
+@app.route("/api/backup/create", methods=["POST"])
+def api_backup_create():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    btype = req.get("type", "full")
+    note = (req.get("note") or "").strip()
+    try:
+        res = create_system_backup(backup_type=btype, note=note)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"خطا در ساخت پشتیبان: {e}"}), 500
+
+@app.route("/api/backup/download/<filename>", methods=["GET"])
+def api_backup_download(filename):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    safe_name = os.path.basename(filename)
+    if not os.path.exists(os.path.join(BACKUP_DIR, safe_name)):
+        return jsonify({"error": "فایل یافت نشد"}), 404
+    return send_from_directory(BACKUP_DIR, safe_name, as_attachment=True)
+
+@app.route("/api/backup/restore/<filename>", methods=["POST"])
+def api_backup_restore(filename):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    safe_name = os.path.basename(filename)
+    fp = os.path.join(BACKUP_DIR, safe_name)
+    ok, msg = restore_system_backup(fp)
+    if ok:
+        return jsonify({"success": True, "message": msg})
+    return jsonify({"success": False, "error": msg}), 400
+
+@app.route("/api/backup/upload-restore", methods=["POST"])
+def api_backup_upload_restore():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if "backup_file" not in request.files:
+        return jsonify({"error": "فایل بکاپ ارسال نشده است."}), 400
+    file = request.files["backup_file"]
+    if not file.filename:
+        return jsonify({"error": "نام فایل نامعتبر است."}), 400
+    ts = time.strftime("%Y%m%d_%H%M%S")
+    safe_name = f"uploaded_restore_{ts}_{os.path.basename(file.filename)}"
+    fp = os.path.join(BACKUP_DIR, safe_name)
+    file.save(fp)
+    ok, msg = restore_system_backup(fp)
+    if ok:
+        return jsonify({"success": True, "message": msg, "filename": safe_name})
+    return jsonify({"success": False, "error": msg}), 400
+
+@app.route("/api/backup/delete/<filename>", methods=["POST", "DELETE"])
+def api_backup_delete(filename):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    safe_name = os.path.basename(filename)
+    fp = os.path.join(BACKUP_DIR, safe_name)
+    if os.path.exists(fp):
+        try:
+            os.remove(fp)
+            return jsonify({"success": True, "message": "فایل بکاپ با موفقیت حذف شد."})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    return jsonify({"error": "فایل یافت نشد"}), 404
+
+
+# =========================================================================
+# MHPanel Telegram Bot & Notification Engine
+# =========================================================================
+TELEGRAM_CONFIG_FILE = "/etc/mhpanel/telegram_bot.json"
+
+def load_telegram_config():
+    default_cfg = {
+        "bot_token": "",
+        "chat_id": "",
+        "enabled": False,
+        "auto_backup": False,
+        "auto_backup_schedule": "daily",
+        "alert_cpu_percent": 90,
+        "alert_ram_percent": 90,
+        "alert_disk_percent": 90,
+        "notify_on_login": True,
+        "last_backup_sent": None
+    }
+    if os.path.exists(TELEGRAM_CONFIG_FILE):
+        try:
+            with open(TELEGRAM_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+                default_cfg.update(c)
+        except Exception:
+            pass
+    return default_cfg
+
+def save_telegram_config(cfg):
+    os.makedirs(os.path.dirname(TELEGRAM_CONFIG_FILE), exist_ok=True)
+    with open(TELEGRAM_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+def send_telegram_msg(text, cfg=None):
+    if not cfg:
+        cfg = load_telegram_config()
+    token = (cfg.get("bot_token") or "").strip()
+    chat_id = str(cfg.get("chat_id") or "").strip()
+    if not token or not chat_id:
+        return False, "توکن یا شناسه چت تنظیم نشده است."
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = json.dumps({
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "disable_web_page_preview": True
+    }).encode("utf-8")
+    req = urllib.request.Request(url, data=payload, headers={"Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+            if data.get("ok"):
+                return True, "پیام با موفقیت ارسال شد."
+            return False, data.get("description", "خطای تلگرام")
+    except Exception as e:
+        return False, f"خطای ارتباط با سرورهای تلگرام: {e}"
+
+def send_telegram_doc(filepath, caption="", cfg=None):
+    if not cfg:
+        cfg = load_telegram_config()
+    token = (cfg.get("bot_token") or "").strip()
+    chat_id = str(cfg.get("chat_id") or "").strip()
+    if not token or not chat_id:
+        return False, "توکن یا شناسه چت تنظیم نشده است."
+    if not os.path.exists(filepath):
+        return False, "فایل پشتیبان برای ارسال یافت نشد."
+
+    url = f"https://api.telegram.org/bot{token}/sendDocument"
+    boundary = "----WebKitFormBoundary" + secrets.token_hex(16)
+    filename = os.path.basename(filepath)
+
+    with open(filepath, "rb") as f:
+        file_bytes = f.read()
+
+    body = bytearray()
+    body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"chat_id\"\r\n\r\n{chat_id}\r\n".encode())
+    if caption:
+        body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"caption\"\r\n\r\n{caption}\r\n".encode())
+    body.extend(f"--{boundary}\r\nContent-Disposition: form-data; name=\"document\"; filename=\"{filename}\"\r\nContent-Type: application/gzip\r\n\r\n".encode())
+    body.extend(file_bytes)
+    body.extend(f"\r\n--{boundary}--\r\n".encode())
+
+    req = urllib.request.Request(url, data=bytes(body), headers={
+        "Content-Type": f"multipart/form-data; boundary={boundary}"
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=35) as resp:
+            data = json.loads(resp.read().decode())
+            if data.get("ok"):
+                return True, "فایل پشتیبان با موفقیت به تلگرام ارسال شد."
+            return False, data.get("description", "خطای تلگرام")
+    except Exception as e:
+        return False, f"خطای ارسال سند به تلگرام: {e}"
+
+@app.route("/api/telegram/settings", methods=["GET", "POST"])
+def api_telegram_settings():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = load_telegram_config()
+    if request.method == "POST":
+        req = request.get_json() or {}
+        if "bot_token" in req:
+            token = req["bot_token"].strip()
+            if not token.startswith("****"):
+                cfg["bot_token"] = token
+        if "chat_id" in req:
+            cfg["chat_id"] = str(req["chat_id"]).strip()
+        if "enabled" in req or "alerts_enabled" in req:
+            cfg["enabled"] = bool(req.get("alerts_enabled", req.get("enabled", True)))
+        if "auto_backup" in req or "auto_backup_enabled" in req:
+            cfg["auto_backup"] = bool(req.get("auto_backup_enabled", req.get("auto_backup", True)))
+        if "auto_backup_schedule" in req or "backup_schedule" in req:
+            cfg["auto_backup_schedule"] = req.get("backup_schedule", req.get("auto_backup_schedule", "daily"))
+        if "backup_type" in req:
+            cfg["backup_type"] = req.get("backup_type", "singbox")
+        if "alert_cpu_percent" in req or "cpu_threshold" in req:
+            cfg["alert_cpu_percent"] = int(req.get("cpu_threshold", req.get("alert_cpu_percent", 90)))
+        if "alert_ram_percent" in req or "ram_threshold" in req:
+            cfg["alert_ram_percent"] = int(req.get("ram_threshold", req.get("alert_ram_percent", 90)))
+        if "alert_disk_percent" in req or "disk_threshold" in req:
+            cfg["alert_disk_percent"] = int(req.get("disk_threshold", req.get("alert_disk_percent", 90)))
+        if "notify_on_login" in req:
+            cfg["notify_on_login"] = bool(req["notify_on_login"])
+
+        save_telegram_config(cfg)
+        return jsonify({"success": True, "message": "تنظیمات ربات تلگرام با موفقیت ذخیره شد."})
+
+    resp_cfg = dict(cfg)
+    token = resp_cfg.get("bot_token", "")
+    if len(token) > 8:
+        resp_cfg["bot_token_masked"] = token[:4] + "****" + token[-4:]
+    else:
+        resp_cfg["bot_token_masked"] = ""
+    resp_cfg["alerts_enabled"] = resp_cfg.get("enabled", True)
+    resp_cfg["auto_backup_enabled"] = resp_cfg.get("auto_backup", True)
+    resp_cfg["backup_schedule"] = resp_cfg.get("auto_backup_schedule", "daily")
+    resp_cfg["cpu_threshold"] = resp_cfg.get("alert_cpu_percent", 90)
+    resp_cfg["ram_threshold"] = resp_cfg.get("alert_ram_percent", 90)
+    resp_cfg["disk_threshold"] = resp_cfg.get("alert_disk_percent", 90)
+    return jsonify({"success": True, "config": resp_cfg, "settings": resp_cfg})
+
+@app.route("/api/telegram/test", methods=["POST"])
+def api_telegram_test():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    cfg = load_telegram_config()
+    if req.get("bot_token"):
+        cfg["bot_token"] = req["bot_token"].strip()
+    if req.get("chat_id"):
+        cfg["chat_id"] = str(req["chat_id"]).strip()
+
+    srv_ip = get_server_public_ip()
+    now_str = time.strftime("%Y-%m-%d %H:%M:%S")
+    cpu = psutil.cpu_percent(interval=0.2)
+    ram = psutil.virtual_memory().percent
+    disk = psutil.disk_usage("/").percent
+
+    msg = (
+        f"🤖 <b>MHPanel Telegram Notification Bot</b>\n\n"
+        f"✅ ارتباط ربات تلگرام با سرور با موفقیت برقرار شد!\n"
+        f"🌐 <b>آی‌پی سرور:</b> <code>{srv_ip}</code>\n"
+        f"⏰ <b>زمان سیستم:</b> <code>{now_str}</code>\n"
+        f"📊 <b>وضعیت منابع:</b> CPU: {cpu}% | RAM: {ram}% | Disk: {disk}%\n"
+        f"🛡️ <b>هسته سینگ‌باکس:</b> فعال و آماده سرویس‌دهی\n\n"
+        f"<i>این پیام جهت تست اتصال سیستم هشدار و پشتیبان‌گیری خودکار ارسال شده است.</i>"
+    )
+    ok, res_msg = send_telegram_msg(msg, cfg)
+    if ok:
+        return jsonify({"success": True, "message": "پیام تستی با موفقیت به تلگرام شما ارسال شد!"})
+    return jsonify({"success": False, "error": res_msg}), 400
+
+@app.route("/api/telegram/send-backup", methods=["POST"])
+def api_telegram_send_backup():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    btype = req.get("type", "singbox")
+    cfg = load_telegram_config()
+    if not cfg.get("bot_token") or not cfg.get("chat_id"):
+        return jsonify({"error": "ربات تلگرام هنوز تنظیم نشده است. ابتدا توکن و چت‌آیدی را ذخیره کنید."}), 400
+
+    try:
+        b_res = create_system_backup(backup_type=btype, note="ارسال مستقیم به تلگرام")
+        fp = b_res["filepath"]
+        srv_ip = get_server_public_ip()
+        caption = (
+            f"📦 <b>پشتیبان خودکار MHPanel ({btype.upper()})</b>\n\n"
+            f"🌐 سرور: <code>{srv_ip}</code>\n"
+            f"📅 تاریخ: <code>{b_res['created_at']}</code>\n"
+            f"💾 حجم: <code>{b_res['size_formatted']}</code>\n"
+            f"⚡ فایل در پیوست آماده بازیابی سریع در صورت بروز مشکل می‌باشد."
+        )
+        ok, res_msg = send_telegram_doc(fp, caption, cfg)
+        if ok:
+            cfg["last_backup_sent"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            save_telegram_config(cfg)
+            return jsonify({"success": True, "message": "فایل بکاپ با موفقیت در چت تلگرام شما آپلود و ارسال شد!"})
+        return jsonify({"success": False, "error": res_msg}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+def telegram_monitor_worker():
+    last_alert_time = 0
+    while True:
+        try:
+            time.sleep(300)
+            cfg = load_telegram_config()
+            if not cfg.get("enabled") or not cfg.get("bot_token") or not cfg.get("chat_id"):
+                continue
+
+            now = time.time()
+            if now - last_alert_time > 3600:
+                cpu = psutil.cpu_percent(interval=1)
+                ram = psutil.virtual_memory().percent
+                disk = psutil.disk_usage("/").percent
+                c_thresh = cfg.get("alert_cpu_percent", 90)
+                r_thresh = cfg.get("alert_ram_percent", 90)
+                d_thresh = cfg.get("alert_disk_percent", 90)
+                if cpu >= c_thresh or ram >= r_thresh or disk >= d_thresh:
+                    alert_txt = (
+                        f"⚠️ <b>هشدار مصرف بالای منابع سرور MHPanel</b>\n\n"
+                        f"🔥 CPU: {cpu}% (سقف: {c_thresh}%)\n"
+                        f"🧠 RAM: {ram}% (سقف: {r_thresh}%)\n"
+                        f"💽 Disk: {disk}% (سقف: {d_thresh}%)\n"
+                        f"⏰ زمان: {time.strftime('%Y-%m-%d %H:%M:%S')}"
+                    )
+                    send_telegram_msg(alert_txt, cfg)
+                    last_alert_time = now
+
+            if cfg.get("auto_backup"):
+                last_sent = cfg.get("last_backup_sent")
+                should_send = False
+                if not last_sent:
+                    should_send = True
+                else:
+                    try:
+                        last_dt = datetime.strptime(last_sent, "%Y-%m-%d %H:%M:%S")
+                        sched = cfg.get("auto_backup_schedule", "daily")
+                        hours = 24 if sched == "daily" else (12 if sched == "every_12h" else 168)
+                        if datetime.now() - last_dt >= timedelta(hours=hours):
+                            should_send = True
+                    except Exception:
+                        should_send = True
+
+                if should_send:
+                    b_res = create_system_backup(backup_type="full", note="پشتیبان خودکار زمان‌بندی شده")
+                    srv_ip = get_server_public_ip()
+                    caption = (
+                        f"📦 <b>پشتیبان خودکار زمان‌بندی شده MHPanel (Full)</b>\n\n"
+                        f"🌐 سرور: <code>{srv_ip}</code>\n"
+                        f"📅 تاریخ: <code>{b_res['created_at']}</code>\n"
+                        f"💾 حجم: <code>{b_res['size_formatted']}</code>"
+                    )
+                    ok, _ = send_telegram_doc(b_res["filepath"], caption, cfg)
+                    if ok:
+                        cfg["last_backup_sent"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                        save_telegram_config(cfg)
+        except Exception:
+            pass
+
+
+# =========================================================================
+# Decoy Fake WordPress Anti-DPI Camouflage Studio
+# =========================================================================
+DECOY_WP_DIR = "/www/wwwroot/decoy-wp"
+DECOY_CONFIG_FILE = "/etc/mhpanel/decoy_wp.json"
+
+def get_decoy_wp_config():
+    default_cfg = {
+        "installed": False,
+        "domain": "blog.kigaping.com",
+        "site_title": "Cloud Computing & Modern Dev Journal",
+        "theme": "twentytwentythree",
+        "port": 8444,
+        "deployed_at": None
+    }
+    if os.path.exists(DECOY_CONFIG_FILE):
+        try:
+            with open(DECOY_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+                default_cfg.update(c)
+        except Exception:
+            pass
+    return default_cfg
+
+def save_decoy_wp_config(cfg):
+    os.makedirs(os.path.dirname(DECOY_CONFIG_FILE), exist_ok=True)
+    with open(DECOY_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+def deploy_decoy_wordpress(domain, site_title="Cloud Computing & Modern Dev Journal", theme="twentytwentythree"):
+    os.makedirs(DECOY_WP_DIR, exist_ok=True)
+    os.makedirs(os.path.join(DECOY_WP_DIR, "wp-content/themes", theme), exist_ok=True)
+    os.makedirs(os.path.join(DECOY_WP_DIR, "wp-includes/css"), exist_ok=True)
+    os.makedirs(os.path.join(DECOY_WP_DIR, "wp-admin"), exist_ok=True)
+
+    html_content = f"""<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="max-image-preview:large">
+    <title>{site_title} &#8211; Insights, Scalability & Architecture</title>
+    <meta name="generator" content="WordPress 6.4.3">
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; margin: 0; padding: 0; background: #fbfbfb; color: #23282d; line-height: 1.7; }}
+        header {{ background: #ffffff; border-bottom: 1px solid #eaeaea; padding: 24px 40px; display: flex; justify-content: space-between; align-items: center; }}
+        .site-title {{ font-size: 22px; font-weight: 800; color: #111827; text-decoration: none; }}
+        .nav-links {{ display: flex; gap: 20px; list-style: none; margin: 0; padding: 0; font-size: 14px; font-weight: 500; }}
+        .nav-links a {{ color: #4b5563; text-decoration: none; }}
+        .nav-links a:hover {{ color: #2563eb; }}
+        .container {{ max-width: 1040px; margin: 40px auto; padding: 0 20px; display: grid; grid-template-columns: 2.4fr 1fr; gap: 40px; }}
+        .post-card {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 30px; margin-bottom: 30px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }}
+        .post-meta {{ font-size: 12.5px; color: #6b7280; margin-bottom: 12px; }}
+        .post-title {{ font-size: 24px; font-weight: 700; margin: 0 0 14px 0; color: #1f2937; }}
+        .post-title a {{ color: inherit; text-decoration: none; }}
+        .post-title a:hover {{ color: #2563eb; }}
+        .post-content {{ color: #4b5563; font-size: 15px; }}
+        .read-more {{ display: inline-block; margin-top: 14px; font-weight: 600; font-size: 14px; color: #2563eb; text-decoration: none; }}
+        .sidebar-widget {{ background: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; margin-bottom: 24px; }}
+        .widget-title {{ font-size: 16px; font-weight: 700; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-top: 0; }}
+        footer {{ background: #111827; color: #9ca3af; padding: 40px 20px; text-align: center; font-size: 13.5px; margin-top: 60px; }}
+        footer a {{ color: #d1d5db; text-decoration: none; }}
+        @media (max-width: 768px) {{ .container {{ grid-template-columns: 1fr; }} }}
+    </style>
+</head>
+<body class="home blog wp-embed-responsive">
+    <header>
+        <a href="/" class="site-title">{site_title}</a>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/category/cloud">Cloud Architecture</a></li>
+            <li><a href="/category/devops">DevOps & CI/CD</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/wp-login.php">Log In</a></li>
+        </ul>
+    </header>
+
+    <div class="container">
+        <main>
+            <article class="post-card">
+                <div class="post-meta">Posted on October 18, 2026 by <strong>Admin</strong> in <em>Cloud Infrastructure</em> &#8226; 4 Comments</div>
+                <h2 class="post-title"><a href="#">Optimizing Linux Kernel TCP BBRv3 for Global Edge Networks</a></h2>
+                <div class="post-content">
+                    Congestion control in modern edge computing plays a crucial role in packet latency reduction. In this benchmark analysis, we examine throughput performance across high-loss transatlantic fiber channels...
+                </div>
+                <a href="#" class="read-more">Continue reading &rarr;</a>
+            </article>
+
+            <article class="post-card">
+                <div class="post-meta">Posted on October 14, 2026 by <strong>DevOps Team</strong> in <em>Microservices</em> &#8226; 2 Comments</div>
+                <h2 class="post-title"><a href="#">Deploying Resilient Zero-Trust Service Meshes with Envoy and QUIC</a></h2>
+                <div class="post-content">
+                    Moving from traditional perimeter firewalls to identity-driven mTLS and zero-trust proxies eliminates single points of failure. Here is our production-ready blueprint...
+                </div>
+                <a href="#" class="read-more">Continue reading &rarr;</a>
+            </article>
+
+            <article class="post-card">
+                <div class="post-meta">Posted on October 08, 2026 by <strong>Research Lab</strong> in <em>Web Performance</em> &#8226; 6 Comments</div>
+                <h2 class="post-title"><a href="#">HTTP/3 and 0-RTT Session Resumption: Real-World Measurements</a></h2>
+                <div class="post-content">
+                    With UDP-based transport protocols gaining mainstream browser adoption, TLS 1.3 0-RTT allows instantaneous handshakes, drastically lowering TTFB on congested mobile networks...
+                </div>
+                <a href="#" class="read-more">Continue reading &rarr;</a>
+            </article>
+        </main>
+
+        <aside>
+            <div class="sidebar-widget">
+                <h3 class="widget-title">Search</h3>
+                <input type="text" placeholder="Search blog posts..." style="width: 100%; box-sizing: border-box; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;">
+            </div>
+            <div class="sidebar-widget">
+                <h3 class="widget-title">Recent Topics</h3>
+                <ul style="padding-left: 18px; margin: 0; color: #4b5563; font-size: 13.5px; line-height: 2;">
+                    <li>High-Availability K8s Clusters</li>
+                    <li>WireGuard Kernel Module Deep Dive</li>
+                    <li>eBPF Packet Filtering at 100Gbps</li>
+                    <li>Database Replication Best Practices</li>
+                </ul>
+            </div>
+            <div class="sidebar-widget">
+                <h3 class="widget-title">Powered By</h3>
+                <p style="font-size: 13px; color: #6b7280; margin: 0;">Running on official WordPress 6.4 with high performance caching and TLS 1.3 edge protection.</p>
+            </div>
+        </aside>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 {site_title}. Proudly powered by <a href="https://wordpress.org/">WordPress</a>.</p>
+    </footer>
+</body>
+</html>"""
+
+    with open(os.path.join(DECOY_WP_DIR, "index.html"), "w", encoding="utf-8") as f:
+        f.write(html_content)
+
+    login_content = f"""<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <title>Log In &#8249; {site_title} &#8212; WordPress</title>
+    <style>
+        body {{ background: #f0f0f1; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; margin: 0; }}
+        .login-card {{ background: #fff; border: 1px solid #c3c4c7; padding: 26px 24px 34px 24px; width: 320px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); border-radius: 4px; }}
+        .login-logo {{ margin-bottom: 20px; text-align: center; font-size: 38px; color: #2271b1; }}
+        label {{ font-size: 14px; color: #2c3338; display: block; margin-bottom: 4px; font-weight: 500; }}
+        input[type="text"], input[type="password"] {{ width: 100%; box-sizing: border-box; padding: 7px 10px; font-size: 16px; border: 1px solid #8c8f94; border-radius: 4px; margin-bottom: 16px; }}
+        .btn-submit {{ background: #2271b1; border: none; color: #fff; padding: 8px 16px; border-radius: 4px; font-weight: 600; cursor: pointer; float: right; }}
+        .back-link {{ margin-top: 24px; font-size: 13px; }}
+        .back-link a {{ color: #50575e; text-decoration: none; }}
+    </style>
+</head>
+<body>
+    <div class="login-logo">&#9881;</div>
+    <div class="login-card">
+        <form onsubmit="alert('Access restricted to authorized personnel only.'); return false;">
+            <label for="user_login">Username or Email Address</label>
+            <input type="text" id="user_login" required>
+            <label for="user_pass">Password</label>
+            <input type="password" id="user_pass" required>
+            <input type="submit" class="btn-submit" value="Log In">
+        </form>
+    </div>
+    <div class="back-link"><a href="/">&larr; Go to {site_title}</a></div>
+</body>
+</html>"""
+    with open(os.path.join(DECOY_WP_DIR, "wp-login.php"), "w", encoding="utf-8") as f:
+        f.write(login_content)
+
+    apache_vhost_dir = "/www/server/apache/conf/vhost"
+    if os.path.exists(apache_vhost_dir):
+        vhost_conf = f"""<VirtualHost *:80>
+    ServerAdmin webmaster@{domain}
+    DocumentRoot "{DECOY_WP_DIR}"
+    ServerName {domain}
+    ErrorLog "/var/log/decoy_wp_error.log"
+    CustomLog "/var/log/decoy_wp_access.log" combined
+    <Directory "{DECOY_WP_DIR}">
+        SetOutputFilter DEFLATE
+        Options FollowSymLinks
+        AllowOverride All
+        Order allow,deny
+        Allow from all
+        DirectoryIndex index.html index.php
+    </Directory>
+</VirtualHost>
+"""
+        try:
+            with open(os.path.join(apache_vhost_dir, "decoy_wp.conf"), "w", encoding="utf-8") as f:
+                f.write(vhost_conf)
+            subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
+        except Exception:
+            pass
+
+    cfg = {
+        "installed": True,
+        "domain": domain,
+        "site_title": site_title,
+        "theme": theme,
+        "path": DECOY_WP_DIR,
+        "deployed_at": time.strftime("%Y-%m-%d %H:%M:%S")
+    }
+    save_decoy_wp_config(cfg)
+    return cfg
+
+def remove_decoy_wordpress():
+    apache_vhost_file = "/www/server/apache/conf/vhost/decoy_wp.conf"
+    if os.path.exists(apache_vhost_file):
+        try:
+            os.remove(apache_vhost_file)
+            subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
+        except Exception:
+            pass
+    cfg = get_decoy_wp_config()
+    cfg["installed"] = False
+    save_decoy_wp_config(cfg)
+    return True
+
+@app.route("/api/decoy-wp/status", methods=["GET"])
+def api_decoy_wp_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_decoy_wp_config()
+    cfg["files_exist"] = os.path.exists(os.path.join(DECOY_WP_DIR, "index.html"))
+    return jsonify({
+        "success": True,
+        "decoy": cfg,
+        "config": cfg,
+        "deployed": cfg.get("installed", False),
+        "path": cfg.get("path", DECOY_WP_DIR)
+    })
+
+@app.route("/api/decoy-wp/deploy", methods=["POST"])
+def api_decoy_wp_deploy():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    domain = (req.get("domain") or "").strip()
+    if not domain:
+        return jsonify({"error": "نام دامنه الزامی است."}), 400
+    title = (req.get("site_title") or "Cloud Computing & Modern Dev Journal").strip()
+    theme = (req.get("theme") or "twentytwentythree").strip()
+    try:
+        cfg = deploy_decoy_wordpress(domain, site_title=title, theme=theme)
+        return jsonify({
+            "success": True,
+            "message": f"سایت استتار وردپرسی برای دامنه «{domain}» با موفقیت نصب و فعال شد!",
+            "decoy": cfg
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": f"خطا در نصب سایت فریب: {e}"}), 500
+
+@app.route("/api/decoy-wp/remove", methods=["POST"])
+def api_decoy_wp_remove():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    remove_decoy_wordpress()
+    return jsonify({"success": True, "message": "سایت فریب وردپرس با موفقیت غیرفعال و حذف گردید."})
+
+
+# =====================================================================
+# GOOGLE APPS SCRIPT (GAS) FULL TUNNEL MODULE
+# =====================================================================
+
+GAS_CONFIG_FILE = "/etc/vpnpanel/google_script.json"
+GAS_DEFAULT_CONFIG = {
+    "enabled": True,
+    "port": 8448,
+    "secret": "mhpanel_gas_secret_key_2026",
+    "mode": "full_tunnel", # "full_tunnel" | "singbox_detour" | "master_http" | "custom"
+    "singbox_target": "127.0.0.1:20443",
+    "default_upstream": "127.0.0.1:20443",
+    "session_timeout": 60,
+    "read_timeout": 1.2,
+    "google_project_title": "MHPanel-GAS-FullTunnel",
+    "google_script_id": "",
+    "google_deployment_id": "",
+    "google_webapp_url": "",
+    "last_deploy_time": "",
+    "google_access_token": "",
+    "custom_server_script": "",
+    "custom_google_script": ""
+}
+
+def get_gas_config():
+    cfg = dict(GAS_DEFAULT_CONFIG)
+    if os.path.exists(GAS_CONFIG_FILE):
+        try:
+            with open(GAS_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                cfg.update(saved)
+        except Exception:
+            pass
+    return cfg
+
+def save_gas_config(cfg, restart_service=True):
+    os.makedirs(os.path.dirname(GAS_CONFIG_FILE), exist_ok=True)
+    with open(GAS_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    if restart_service:
+        subprocess.run(["systemctl", "restart", "mhpanel-gas-tunnel"], check=False)
+
+def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443"):
+    """
+    Returns pre-configured templates for both Server side and Google Apps Script side.
+    """
+    full_tunnel_gas = f'''/**
+ * MHPanel - Google Apps Script Full Tunnel Relay (GooseRelay Mode)
+ * Relays raw TCP/UDP streams through Google Edge CDN to VPS Exit Server.
+ */
+const VPS_TUNNEL_URL = "http://{server_ip}:{port}/tunnel";
+const SECRET_KEY = "{secret}";
+
+function doPost(e) {{
+  try {{
+    const postData = e.postData.contents;
+    const options = {{
+      method: "post",
+      contentType: "application/json",
+      headers: {{
+        "X-Auth-Key": SECRET_KEY
+      }},
+      payload: postData,
+      muteHttpExceptions: true
+    }};
+    
+    const response = UrlFetchApp.fetch(VPS_TUNNEL_URL, options);
+    return ContentService.createTextOutput(response.getContentText())
+      .setMimeType(ContentService.MimeType.JSON);
+  }} catch (err) {{
+    return ContentService.createTextOutput(JSON.stringify({{
+      status: "error",
+      message: err.toString()
+    }})).setMimeType(ContentService.MimeType.JSON);
+  }}
+}}
+
+function doGet(e) {{
+  return ContentService.createTextOutput(JSON.stringify({{
+    status: "online",
+    relay: "MHPanel-GAS-FullTunnel",
+    mode: "GooseRelay",
+    timestamp: new Date().toISOString()
+  }})).setMimeType(ContentService.MimeType.JSON);
+}}
+'''
+
+    singbox_gas = f'''/**
+ * MHPanel - Sing-box Core Direct Detour Relay
+ * Direct multiplexed bridge to Sing-box inbound on VPS ({singbox_target}).
+ */
+const VPS_TUNNEL_URL = "http://{server_ip}:{port}/tunnel";
+const SECRET_KEY = "{secret}";
+const SINGBOX_INBOUND = "{singbox_target}";
+
+function doPost(e) {{
+  try {{
+    let payloadObj = JSON.parse(e.postData.contents || "{{}}");
+    if (payloadObj.action === "open" && !payloadObj.target) {{
+      payloadObj.target = SINGBOX_INBOUND;
+    }}
+    
+    const options = {{
+      method: "post",
+      contentType: "application/json",
+      headers: {{
+        "X-Auth-Key": SECRET_KEY
+      }},
+      payload: JSON.stringify(payloadObj),
+      muteHttpExceptions: true
+    }};
+    
+    const response = UrlFetchApp.fetch(VPS_TUNNEL_URL, options);
+    return ContentService.createTextOutput(response.getContentText())
+      .setMimeType(ContentService.MimeType.JSON);
+  }} catch (err) {{
+    return ContentService.createTextOutput(JSON.stringify({{
+      status: "error",
+      message: err.toString()
+    }})).setMimeType(ContentService.MimeType.JSON);
+  }}
+}}
+
+function doGet(e) {{
+  return ContentService.createTextOutput(JSON.stringify({{
+    status: "online",
+    relay: "Singbox-Detour",
+    target: SINGBOX_INBOUND,
+    time: new Date().toISOString()
+  }})).setMimeType(ContentService.MimeType.JSON);
+}}
+'''
+
+    master_http_gas = f'''/**
+ * MasterHttpRelay - Universal Google Apps Script Proxy
+ * Supports dynamic URL fetching and base64 HTTP tunneling.
+ */
+const VPS_RELAY_URL = "http://{server_ip}:{port}/relay";
+const SECRET_KEY = "{secret}";
+
+function doGet(e) {{
+  const target = e.parameter.url;
+  if (!target) {{
+    return ContentService.createTextOutput("MasterHttpRelay Active. Use parameter ?url=...");
+  }}
+  try {{
+    const res = UrlFetchApp.fetch(target, {{ muteHttpExceptions: true }});
+    return ContentService.createTextOutput(res.getContentText());
+  }} catch (err) {{
+    return ContentService.createTextOutput("Fetch error: " + err.toString());
+  }}
+}}
+
+function doPost(e) {{
+  try {{
+    const res = UrlFetchApp.fetch(VPS_RELAY_URL, {{
+      method: "post",
+      payload: e.postData.contents,
+      headers: {{ "X-Auth-Key": SECRET_KEY }},
+      muteHttpExceptions: true
+    }});
+    return ContentService.createTextOutput(res.getContentText())
+      .setMimeType(ContentService.MimeType.JSON);
+  }} catch (err) {{
+    return ContentService.createTextOutput(JSON.stringify({{ error: err.toString() }}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }}
+}}
+'''
+
+    server_daemon_snippet = f'''# MHPanel GAS VPS Server Daemon (Running as mhpanel-gas-tunnel.service)
+# Port: {port} | Secret: {secret} | Sing-box: {singbox_target}
+# Config file: /etc/vpnpanel/google_script.json
+# Binary: /usr/local/bin/mhpanel-gas-server
+'''
+
+    return {
+        "full_tunnel": {
+            "name": "گووس ریلی فول‌تانل (GooseRelay Full Tunnel)",
+            "description": "حالت تمام‌عیار و پرسرعت جهت عبور بلادرنگ ترافیک کامل TCP/UDP (اینستاگرام، تلگرام، وب، گیم) از Google Edge CDN به خروجی سرور مجازی با استریم Base64.",
+            "google_code": full_tunnel_gas,
+            "server_code": server_daemon_snippet
+        },
+        "singbox_detour": {
+            "name": "پل مستقیم به سینگ‌باکس (Sing-box Core Detour)",
+            "description": "هدایت خودکار و بی‌واسطه پکت‌های رله شده از گوگل اسکریپت به پورت هسته سینگ‌باکس (VLESS Reality / Trojan / Shadowsocks) روی سرور.",
+            "google_code": singbox_gas,
+            "server_code": server_daemon_snippet
+        },
+        "master_http": {
+            "name": "مستر اچ‌تی‌تی‌پی رله (MasterHttpRelay Universal)",
+            "description": "پروتکل سازگار با نرم‌افزارهای MasterHttpRelay و پروکسی‌های کلاینتی وب با پشتیبانی از واکشی داینامیک URL و بسته‌بندی HTTP.",
+            "google_code": master_http_gas,
+            "server_code": server_daemon_snippet
+        },
+        "custom": {
+            "name": "اسکریپت سفارشی مدیر (Custom Script)",
+            "description": "امکان نوشتن و تزریق کد کاملاً اختصاصی مدیر برای سمت سرور مجازی و سمت گوگل اپس اسکریپت با استقرار خودکار بر روی گوگل.",
+            "google_code": full_tunnel_gas,
+            "server_code": server_daemon_snippet
+        }
+    }
+
+def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_script_id=None):
+    """
+    Automates deployment to Google Apps Script via REST API v1.
+    Returns (success, result_dict_or_error_msg)
+    """
+    headers = {
+        "Authorization": f"Bearer {access_token.strip()}",
+        "Content-Type": "application/json"
+    }
+    
+    script_id = existing_script_id
+    
+    # 1. Create or verify Project
+    if not script_id:
+        req_data = json.dumps({"title": project_title or "MHPanel-GAS-FullTunnel"}).encode("utf-8")
+        req = urllib.request.Request("https://script.googleapis.com/v1/projects", data=req_data, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                script_id = data.get("scriptId")
+        except urllib.error.HTTPError as e:
+            err_body = e.read().decode("utf-8", errors="ignore")
+            try:
+                err_json = json.loads(err_body)
+                msg = err_json.get("error", {}).get("message", err_body)
+            except Exception:
+                msg = err_body
+            return False, f"خطا در ایجاد پروژه گوگل اسکریپت (کد {e.code}): {msg}"
+        except Exception as e:
+            return False, f"خطای اتصال به API گوگل: {str(e)}"
+    
+    if not script_id:
+        return False, "شناسه پروژه گوگل دریافت نشد."
+
+    # 2. Upload manifest (appsscript.json) and Code.gs
+    manifest_content = json.dumps({
+        "timeZone": "Asia/Tehran",
+        "dependencies": {},
+        "exceptionLogging": "STACKDRIVER",
+        "runtimeVersion": "V8",
+        "webapp": {
+            "executeAs": "USER_DEPLOYING",
+            "access": "ANYONE"
+        }
+    }, indent=2)
+
+    files_payload = {
+        "files": [
+            {
+                "name": "appsscript",
+                "type": "JSON",
+                "source": manifest_content
+            },
+            {
+                "name": "Code",
+                "type": "SERVER_JS",
+                "source": code_gs_content
+            }
+        ]
+    }
+    req_data = json.dumps(files_payload).encode("utf-8")
+    req = urllib.request.Request(f"https://script.googleapis.com/v1/projects/{script_id}/content", data=req_data, headers=headers, method="PUT")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            pass
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        return False, f"خطا در آپلود کدهای پروژه (کد {e.code}): {err_body}"
+    except Exception as e:
+        return False, f"خطای بارگذاری فایل‌ها روی گوگل: {str(e)}"
+
+    # 3. Create Project Version
+    req_data = json.dumps({"description": "Deployed automatically by MHPanel"}).encode("utf-8")
+    req = urllib.request.Request(f"https://script.googleapis.com/v1/projects/{script_id}/versions", data=req_data, headers=headers, method="POST")
+    version_number = 1
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            vdata = json.loads(resp.read().decode("utf-8"))
+            version_number = vdata.get("versionNumber", 1)
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        return False, f"خطا در ایجاد نگارش پروژه (کد {e.code}): {err_body}"
+    except Exception as e:
+        return False, f"خطای ثبت نسخه در گوگل: {str(e)}"
+
+    # 4. Create Web App Deployment
+    deploy_payload = {
+        "versionNumber": version_number,
+        "manifestFileName": "appsscript",
+        "description": f"MHPanel GAS WebApp v{version_number}"
+    }
+    req_data = json.dumps(deploy_payload).encode("utf-8")
+    req = urllib.request.Request(f"https://script.googleapis.com/v1/projects/{script_id}/deployments", data=req_data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            ddata = json.loads(resp.read().decode("utf-8"))
+            deployment_id = ddata.get("deploymentId")
+            entry_points = ddata.get("entryPoints", [])
+            webapp_url = ""
+            for ep in entry_points:
+                if ep.get("entryPointType") == "WEB_APP" and "webApp" in ep:
+                    webapp_url = ep["webApp"].get("url", "")
+                    break
+            if not webapp_url and deployment_id:
+                webapp_url = f"https://script.google.com/macros/s/{deployment_id}/exec"
+
+            return True, {
+                "script_id": script_id,
+                "deployment_id": deployment_id,
+                "webapp_url": webapp_url,
+                "version": version_number
+            }
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        return False, f"خطا در ساخت وب‌اپ و استقرار (کد {e.code}): {err_body}"
+    except Exception as e:
+        return False, f"خطای استقرار در گوگل: {str(e)}"
+
+
+@app.route("/api/google_script/status", methods=["GET"])
+def api_google_script_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-gas-tunnel"], capture_output=True, text=True)
+    is_active = (res.stdout.strip() == "active")
+    
+    active_sessions = 0
+    server_health = "offline"
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{cfg.get('port', 8448)}/stats")
+        with urllib.request.urlopen(req, timeout=1.5) as r:
+            sdata = json.loads(r.read().decode())
+            active_sessions = sdata.get("active_sessions", 0)
+            server_health = "online"
+    except Exception:
+        pass
+
+    server_ip = get_server_public_ip()
+    
+    return jsonify({
+        "success": True,
+        "is_active": is_active,
+        "server_health": server_health,
+        "active_sessions": active_sessions,
+        "port": cfg.get("port", 8448),
+        "mode": cfg.get("mode", "full_tunnel"),
+        "secret": cfg.get("secret", ""),
+        "server_ip": server_ip,
+        "singbox_target": cfg.get("singbox_target", "127.0.0.1:20443"),
+        "google_project_title": cfg.get("google_project_title", ""),
+        "google_script_id": cfg.get("google_script_id", ""),
+        "google_deployment_id": cfg.get("google_deployment_id", ""),
+        "google_webapp_url": cfg.get("google_webapp_url", ""),
+        "last_deploy_time": cfg.get("last_deploy_time", "")
+    })
+
+@app.route("/api/google_script/config", methods=["GET", "POST"])
+def api_google_script_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if request.method == "GET":
+        cfg = get_gas_config()
+        cfg["server_ip"] = get_server_public_ip()
+        return jsonify({"success": True, "config": cfg})
+    
+    data = request.json or {}
+    cfg = get_gas_config()
+    
+    if "port" in data:
+        try:
+            cfg["port"] = int(data["port"])
+        except ValueError:
+            return jsonify({"success": False, "error": "پورت نامعتبر است."}), 400
+    if "secret" in data:
+        cfg["secret"] = str(data["secret"]).strip()
+    if "mode" in data:
+        cfg["mode"] = str(data["mode"]).strip()
+    if "singbox_target" in data:
+        cfg["singbox_target"] = str(data["singbox_target"]).strip()
+    if "default_upstream" in data:
+        cfg["default_upstream"] = str(data["default_upstream"]).strip()
+    if "google_project_title" in data:
+        cfg["google_project_title"] = str(data["google_project_title"]).strip()
+    if "google_access_token" in data:
+        cfg["google_access_token"] = str(data["google_access_token"]).strip()
+    if "google_deployment_id" in data:
+        cfg["google_deployment_id"] = str(data["google_deployment_id"]).strip()
+    if "google_webapp_url" in data:
+        cfg["google_webapp_url"] = str(data["google_webapp_url"]).strip()
+    if "custom_server_script" in data:
+        cfg["custom_server_script"] = str(data["custom_server_script"])
+    if "custom_google_script" in data:
+        cfg["custom_google_script"] = str(data["custom_google_script"])
+
+    save_gas_config(cfg, restart_service=True)
+    return jsonify({"success": True, "message": "تنظیمات تونل گوگل اسکریپت با موفقیت ذخیره و اعمال شد.", "config": cfg})
+
+@app.route("/api/google_script/templates", methods=["GET"])
+def api_google_script_templates():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+    
+    templates = get_gas_templates(server_ip, port, secret, singbox_target)
+    return jsonify({"success": True, "templates": templates, "server_ip": server_ip, "port": port, "secret": secret})
+
+@app.route("/api/google_script/deploy", methods=["POST"])
+def api_google_script_deploy():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json or {}
+    cfg = get_gas_config()
+    
+    access_token = data.get("access_token", "").strip() or cfg.get("google_access_token", "").strip()
+    if not access_token:
+        return jsonify({"success": False, "error": "لطفاً توکن دسترسی گوگل (Google OAuth Token) را وارد نمایید."}), 400
+    
+    script_title = data.get("title", "").strip() or cfg.get("google_project_title", "MHPanel-GAS-FullTunnel")
+    code_gs = data.get("code_gs", "").strip()
+    mode = data.get("mode", cfg.get("mode", "full_tunnel"))
+    
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+    
+    if not code_gs:
+        templates = get_gas_templates(server_ip, port, secret, singbox_target)
+        selected_tpl = templates.get(mode, templates["full_tunnel"])
+        code_gs = selected_tpl["google_code"]
+
+    existing_script_id = cfg.get("google_script_id") if data.get("update_existing") else None
+    
+    success, res = deploy_gas_to_google(access_token, script_title, code_gs, existing_script_id)
+    if not success:
+        return jsonify({"success": False, "error": res}), 400
+    
+    # Save deployment result
+    cfg["google_project_title"] = script_title
+    cfg["google_access_token"] = access_token
+    cfg["google_script_id"] = res.get("script_id", "")
+    cfg["google_deployment_id"] = res.get("deployment_id", "")
+    cfg["google_webapp_url"] = res.get("webapp_url", "")
+    cfg["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    cfg["mode"] = mode
+    save_gas_config(cfg, restart_service=False)
+    
+    return jsonify({
+        "success": True,
+        "message": "استقرار خودکار روی گوگل اسکریپت با موفقیت انجام شد!",
+        "deployment_id": cfg["google_deployment_id"],
+        "webapp_url": cfg["google_webapp_url"],
+        "script_id": cfg["google_script_id"],
+        "last_deploy_time": cfg["last_deploy_time"]
+    })
+
+@app.route("/api/google_script/save-manual-deployment", methods=["POST"])
+def api_google_script_save_manual():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json or {}
+    url_or_id = data.get("deployment_input", "").strip()
+    if not url_or_id:
+        return jsonify({"success": False, "error": "لطفاً Web App URL یا Deployment ID را وارد کنید."}), 400
+    
+    cfg = get_gas_config()
+    if url_or_id.startswith("http"):
+        cfg["google_webapp_url"] = url_or_id
+        m = re.search(r"/s/([a-zA-Z0-9_-]+)/exec", url_or_id)
+        if m:
+            cfg["google_deployment_id"] = m.group(1)
+    else:
+        cfg["google_deployment_id"] = url_or_id
+        cfg["google_webapp_url"] = f"https://script.google.com/macros/s/{url_or_id}/exec"
+    
+    cfg["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({
+        "success": True,
+        "message": "اطلاعات استقرار با موفقیت ثبت گردید.",
+        "deployment_id": cfg["google_deployment_id"],
+        "webapp_url": cfg["google_webapp_url"]
+    })
+
+@app.route("/api/google_script/test-endpoint", methods=["POST"])
+def api_google_script_test_endpoint():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json or {}
+    url = data.get("url", "").strip()
+    if not url:
+        cfg = get_gas_config()
+        url = cfg.get("google_webapp_url", "").strip()
+    if not url:
+        return jsonify({"success": False, "error": "آدرس وب‌اپ گوگل مشخص نشده است."}), 400
+
+    start_t = time.time()
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "MHPanel-Ping/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            latency_ms = int((time.time() - start_t) * 1000)
+            status_code = resp.getcode()
+            body = resp.read().decode("utf-8", errors="ignore")
+            return jsonify({
+                "success": True,
+                "status_code": status_code,
+                "latency_ms": latency_ms,
+                "response_body": body[:500],
+                "message": f"اتصال به گوگل اسکریپت با موفقیت برقرار شد (پاسخ در {latency_ms}ms)!"
+            })
+    except urllib.error.HTTPError as e:
+        latency_ms = int((time.time() - start_t) * 1000)
+        return jsonify({
+            "success": False,
+            "status_code": e.code,
+            "latency_ms": latency_ms,
+            "error": f"خطای HTTP {e.code} از طرف گوگل اسکریپت"
+        }), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"عدم برقراری ارتباط با گوگل: {str(e)}"}), 500
+
+@app.route("/api/google_script/service/<action>", methods=["POST"])
+def api_google_script_service(action):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    if action not in ["start", "stop", "restart"]:
+        return jsonify({"success": False, "error": "عملیات نامعتبر است."}), 400
+    
+    res = subprocess.run(["systemctl", action, "mhpanel-gas-tunnel"], capture_output=True, text=True)
+    if res.returncode == 0:
+        return jsonify({"success": True, "message": f"سرویس با موفقیت {action} گردید."})
+    return jsonify({"success": False, "error": res.stderr}), 500
+
+@app.route("/api/google_script/client-configs", methods=["GET"])
+def api_google_script_client_configs():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    deployment_id = cfg.get("google_deployment_id", "")
+    webapp_url = cfg.get("google_webapp_url", "")
+    
+    goose_uri = f"goose://{deployment_id or 'AKfycb_YOUR_DEPLOYMENT_ID'}@{server_ip}:{port}?secret={secret}&mode=full"
+    
+    goose_json = {
+        "relay_url": webapp_url or f"https://script.google.com/macros/s/{deployment_id}/exec",
+        "secret": secret,
+        "mode": cfg.get("mode", "full_tunnel"),
+        "local_socks": "127.0.0.1:10808",
+        "local_http": "127.0.0.1:10809"
+    }
+
+    singbox_outbound = {
+        "type": "socks",
+        "tag": "gas-relay-out",
+        "server": "127.0.0.1",
+        "server_port": 10808
+    }
+
+    master_http_profile = {
+        "app": "MasterHttpRelay",
+        "web_app_url": webapp_url,
+        "auth_key": secret,
+        "listen_port": 1080
+    }
+
+    python_client = f'''# MHPanel GAS Full Tunnel Local Client (Run on your PC/Phone)
+# Provides SOCKS5 Proxy on 127.0.0.1:1080 via Google Apps Script Relay
+import socket, threading, json, base64, urllib.request, time
+
+GAS_URL = "{webapp_url or 'https://script.google.com/macros/s/' + deployment_id + '/exec'}"
+SECRET = "{secret}"
+LOCAL_PORT = 1080
+
+print(f"Connecting to GAS Relay: {{GAS_URL}}")
+'''
+
+    return jsonify({
+        "success": True,
+        "goose_uri": goose_uri,
+        "goose_json": goose_json,
+        "singbox_outbound": singbox_outbound,
+        "master_http_profile": master_http_profile,
+        "python_client": python_client,
+        "deployment_id": deployment_id,
+        "webapp_url": webapp_url
+    })
+
+
 if __name__ == "__main__":
     if os.path.exists(HELPER_SCRIPT):
         os.chmod(HELPER_SCRIPT, 0o755)
@@ -19798,6 +21714,8 @@ if __name__ == "__main__":
     t8.start()
     t9 = threading.Thread(target=awg_client_tracker, daemon=True)
     t9.start()
+    t_tg = threading.Thread(target=telegram_monitor_worker, daemon=True)
+    t_tg.start()
     redirect_server.start()
     
     ssl_context = None

@@ -1,0 +1,1058 @@
+<style>
+/* =====================================================================
+   GOOGLE APPS SCRIPT (GAS) RESPONSIVE STYLES (MOBILE & DESKTOP)
+   ===================================================================== */
+
+/* Container & Cards */
+.gas-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.gas-subtabs-nav {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-glow);
+    padding-bottom: 10px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.gas-subtabs-nav::-webkit-scrollbar { display: none; }
+
+.gas-subtab-btn {
+    white-space: nowrap;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+/* Responsive Grids */
+.gas-grid-2col {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.gas-grid-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.gas-modes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+/* Modern Input Groups with Integrated Action Buttons */
+.gas-input-composite {
+    display: flex;
+    align-items: center;
+    background: var(--bg-base);
+    border: 1px solid var(--border-glow);
+    border-radius: 10px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+    position: relative;
+}
+.gas-input-composite:focus-within {
+    border-color: #4285F4;
+    box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.18);
+}
+.gas-input-composite input {
+    flex: 1;
+    border: none !important;
+    background: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    padding: 10px 14px;
+    height: 44px;
+    font-size: 13.5px;
+    color: var(--text-main);
+    min-width: 0;
+}
+.gas-input-tools {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    background: transparent;
+}
+.gas-tool-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.gas-tool-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+}
+.gas-tool-btn:active {
+    transform: scale(0.92);
+}
+
+/* Deployed Token Hub & Showcase Cards */
+.gas-token-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(66, 133, 244, 0.3);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
+    position: relative;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+}
+.gas-token-card.active-emerald {
+    border-color: rgba(16, 185, 129, 0.35);
+}
+.gas-token-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.gas-token-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.gas-token-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+}
+.gas-token-badge-blue {
+    background: rgba(66, 133, 244, 0.15);
+    color: #4285F4;
+    border: 1px solid rgba(66, 133, 244, 0.3);
+}
+.gas-token-badge-green {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.gas-token-value-box {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    word-break: break-all;
+    line-height: 1.5;
+    direction: ltr;
+    text-align: left;
+    max-height: 80px;
+    overflow-y: auto;
+}
+.gas-token-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+/* Radio Mode Select Cards */
+.gas-mode-card {
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 14px;
+    cursor: pointer;
+    background: var(--bg-base);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.gas-mode-card:hover {
+    border-color: rgba(66, 133, 244, 0.4);
+    background: rgba(66, 133, 244, 0.04);
+}
+.gas-mode-card.selected {
+    border-color: #4285F4;
+    background: rgba(66, 133, 244, 0.08);
+    box-shadow: 0 0 12px rgba(66, 133, 244, 0.15);
+}
+.gas-mode-card input[type="radio"] {
+    margin-top: 4px;
+    accent-color: #4285F4;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Pulsing Status Dot */
+.gas-pulse-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+    animation: gasPulse 2s infinite;
+}
+@keyframes gasPulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Scopes Chip Bar */
+.gas-scopes-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 11px;
+}
+.gas-scope-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-glow);
+    padding: 3px 8px;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+}
+
+/* Steps Wizard */
+.gas-wizard-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+.gas-wizard-step {
+    background: var(--bg-base);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.gas-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4285F4;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+/* Submit Action Bar */
+.gas-submit-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-top: 8px;
+}
+
+/* =====================================================================
+   MOBILE RESPONSIVE BREAKPOINTS (≤ 768px & ≤ 480px)
+   ===================================================================== */
+@media (max-width: 768px) {
+    .gas-grid-2col {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+    .gas-grid-form {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+    }
+    .gas-modes-grid {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+    .gas-wizard-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+    .gas-submit-bar {
+        flex-direction: column-reverse !important;
+        align-items: stretch !important;
+        gap: 12px !important;
+    }
+    .gas-submit-bar .btn-primary {
+        width: 100% !important;
+        height: 48px !important;
+        font-size: 14.5px !important;
+        justify-content: center !important;
+    }
+    .gas-token-actions {
+        width: 100%;
+    }
+    .gas-token-actions .btn {
+        flex: 1 !important;
+        min-height: 40px !important;
+        justify-content: center !important;
+        font-size: 12px !important;
+    }
+    .gas-input-composite input {
+        font-size: 16px !important; /* iOS auto-zoom prevention */
+    }
+    .gas-subtab-btn {
+        padding: 8px 14px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .gas-token-card {
+        padding: 12px !important;
+    }
+    .gas-token-value-box {
+        font-size: 11.5px !important;
+        padding: 8px 10px !important;
+    }
+    .gas-mode-card {
+        padding: 10px 12px !important;
+    }
+}
+</style>
+
+<div class="tab-pane" id="tab-google-script">
+    <section class="gas-container">
+        
+        <!-- ============================================================== -->
+        <!-- HEADER & CORE STATUS CARD -->
+        <!-- ============================================================== -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(66, 133, 244, 0.35);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <div style="width:48px; height:48px; border-radius:14px; background: rgba(66, 133, 244, 0.15); color:#4285F4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i data-lucide="cloud-lightning" style="width:26px; height:26px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <h3 class="config-title" style="margin:0; font-size:18px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;" data-i18n="gas_title">
+                            <span>تونل فول‌تانل گوگل اسکریپت (GAS Relay)</span>
+                            <span class="sidebar-badge sidebar-badge-blue" style="font-size:11px;">Google Edge CDN</span>
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.5;" data-i18n="gas_subtitle">
+                            رله نامحدود ترافیک TCP/UDP از لبه‌های ابری گوگل (script.google.com) به سرور خروجی، بدون فیلترینگ با استقرار ۱-کلیکی از طریق Google API
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+                    <span id="gas-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchGoogleScriptConfig();" style="width:auto; padding: 7px 12px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="controlGasService('restart');" style="width:auto; padding: 7px 12px;">
+                        <i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="restart">ری‌استارت</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar (Auto-fit responsive grid) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-bottom: 16px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="port">پورت شنود سرور خروجی</div>
+                    <div style="font-weight: 700; color: #4285F4; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-port">8448</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="gas_stat_mode">حالت عملیاتی رله</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-mode">Full Tunnel (GooseRelay)</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">نشست‌های آنلاین فعال</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-sessions">0</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="gas_stat_deploy">وضعیت استقرار گوگل</div>
+                    <div style="font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="gas-stat-deploy-status">
+                        <span style="color: #f59e0b;">بررسی نشده</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Architecture Pipeline -->
+            <div style="margin-bottom: 8px;">
+                <div style="font-size:11.5px; font-weight:700; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="git-commit" style="width:14px; height:14px; color:#4285F4;"></i>
+                    <span data-i18n="gas_pipeline_title">مسیر عبور ترافیک از لبه‌های امن گوگل (Google Fronting Relay):</span>
+                </div>
+                <div class="proto-pipeline-container" style="overflow-x:auto;">
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(66,133,244,0.15); color:#4285F4;">
+                            <i data-lucide="smartphone" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="gas_pipe_client">کلاینت کاربر</div>
+                        <div class="proto-pipeline-subtitle">Goose / Sing-box</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:14px; height:14px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(52,168,83,0.15); color:#34A853;">
+                            <i data-lucide="shield-check" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">Google Fronting</div>
+                        <div class="proto-pipeline-subtitle">script.google.com</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:14px; height:14px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(251,188,4,0.15); color:#f59e0b;">
+                            <i data-lucide="code" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title">Google WebApp</div>
+                        <div class="proto-pipeline-subtitle" id="gas-pipe-deploy-id">AKfycb...</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:14px; height:14px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(168,85,247,0.15); color:#a855f7;">
+                            <i data-lucide="server" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="gas_pipe_vps">سرور VPS</div>
+                        <div class="proto-pipeline-subtitle" id="gas-pipe-vps-info">Exit Daemon :8448</div>
+                    </div>
+                    <div class="proto-pipeline-arrow"><i data-lucide="arrow-left" style="width:14px; height:14px;"></i></div>
+
+                    <div class="proto-pipeline-node">
+                        <div class="proto-pipeline-icon" style="background:rgba(16,185,129,0.15); color:#10b981;">
+                            <i data-lucide="globe" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div class="proto-pipeline-title" data-i18n="gas_pipe_internet">اینترنت آزاد</div>
+                        <div class="proto-pipeline-subtitle">Direct / Sing-box Detour</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTABS NAVIGATION (TOUCH SCROLLABLE) -->
+        <!-- ============================================================== -->
+        <div class="gas-subtabs-nav">
+            <button type="button" class="btn btn-secondary gas-subtab-btn active" id="gas-subtab-btn-deploy" onclick="switchGasSubTab('deploy');">
+                <i data-lucide="rocket" style="width:15px; height:15px; color:#4285F4;"></i>
+                <span data-i18n="gas_tab_deploy">استقرار خودکار در گوگل (Auto-Deploy)</span>
+            </button>
+            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-scripts" onclick="switchGasSubTab('scripts');">
+                <i data-lucide="code-2" style="width:15px; height:15px; color:#10b981;"></i>
+                <span data-i18n="gas_tab_scripts">کدها و تمپلت‌ها (Templates)</span>
+            </button>
+            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-server" onclick="switchGasSubTab('server');">
+                <i data-lucide="sliders" style="width:15px; height:15px; color:#f59e0b;"></i>
+                <span data-i18n="gas_tab_server">تنظیمات سرور خروجی (Server)</span>
+            </button>
+            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-client" onclick="switchGasSubTab('client');">
+                <i data-lucide="share-2" style="width:15px; height:15px; color:#a855f7;"></i>
+                <span data-i18n="gas_tab_client">لینک اتصال کلاینت‌ها (Client Configs)</span>
+            </button>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 1: Auto-Deploy Studio (Redesigned & Standardized) -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-deploy" class="gas-subtab-content">
+            
+            <!-- 1. LIVE DEPLOYED TOKEN SHOWCASE HUB (When deployed) -->
+            <div id="gas-deployed-banner" class="glass-card" style="border: 1px solid rgba(16, 185, 129, 0.4); background: linear-gradient(145deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%); margin-bottom: 20px; display:none; padding:18px;">
+                
+                <!-- Hub Header -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:40px; height:40px; border-radius:12px; background:rgba(16,185,129,0.2); color:#10b981; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <div class="gas-pulse-dot"></div>
+                        </div>
+                        <div style="min-width:0;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <h4 style="margin:0; font-size:16px; color:#10b981; font-weight:700;">
+                                    وب‌اپ گوگل با موفقیت مستقر و آماده اتصال است
+                                </h4>
+                                <span class="gas-token-badge gas-token-badge-green">Online & Verified</span>
+                            </div>
+                            <span style="font-size:11.5px; color:var(--text-muted); margin-top:2px; display:block;" id="gas-last-deploy-text">
+                                آخرین استقرار: -
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="gas-ping-test-btn" onclick="testGasEndpoint();" style="width:auto; padding:6px 14px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="zap" style="width:13px; height:13px; color:#10b981;"></i>
+                            <span id="gas-ping-btn-text">تست زنده اتصال</span>
+                            <span id="gas-ping-latency-badge" style="display:none; font-family:'JetBrains Mono', monospace; font-size:11px; background:rgba(16,185,129,0.2); color:#10b981; padding:1px 6px; border-radius:4px;"></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Showcase Responsive Grid (2 Columns on Desktop, 1 Column on Mobile) -->
+                <div class="gas-grid-2col">
+                    
+                    <!-- Card A: Deployment ID / Token -->
+                    <div class="gas-token-card">
+                        <div class="gas-token-header">
+                            <span class="gas-token-title">
+                                <i data-lucide="key" style="width:14px; height:14px; color:#4285F4;"></i>
+                                توکن و شناسه استقرار (Deployment ID)
+                            </span>
+                            <span class="gas-token-badge gas-token-badge-blue">Deployment Token</span>
+                        </div>
+                        
+                        <div class="gas-token-value-box" id="gas-deployed-id-val" style="color:#60a5fa; font-weight:700;">
+                            -
+                        </div>
+
+                        <div class="gas-token-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-deploy-id" onclick="copyGasText('gas-deployed-id-val', 'btn-copy-deploy-id');">
+                                <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                                <span>کپی توکن</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('توکن استقرار گوگل', document.getElementById('gas-deployed-id-val').textContent);">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                                <span>بارکد QR</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card B: Web App Exec URL -->
+                    <div class="gas-token-card active-emerald">
+                        <div class="gas-token-header">
+                            <span class="gas-token-title">
+                                <i data-lucide="globe" style="width:14px; height:14px; color:#10b981;"></i>
+                                آدرس وب‌اپ اجرایی گوگل (Web App Exec URL)
+                            </span>
+                            <span class="gas-token-badge gas-token-badge-green">Public Exec</span>
+                        </div>
+                        
+                        <div class="gas-token-value-box" id="gas-deployed-url-val" style="color:#34d399;">
+                            -
+                        </div>
+
+                        <div class="gas-token-actions">
+                            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-deploy-url" onclick="copyGasText('gas-deployed-url-val', 'btn-copy-deploy-url');">
+                                <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                                <span>کپی آدرس</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openGasWebAppInBrowser();">
+                                <i data-lucide="external-link" style="width:13px; height:13px;"></i>
+                                <span>باز کردن</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('آدرس وب‌اپ گوگل', document.getElementById('gas-deployed-url-val').textContent);">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                                <span>بارکد QR</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 2. AUTO-DEPLOY FORM (Standardized Mobile & Desktop) -->
+            <div class="glass-card config-card" style="margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                    <div style="width:38px; height:38px; border-radius:12px; background:rgba(66,133,244,0.15); color:#4285F4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:16px; font-weight:700;" data-i18n="gas_autodeploy_form_title">
+                            استقرار خودکار ۱-کلیکی از طریق Google Apps Script API
+                        </h4>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            کافیست توکن دسترسی گوگل را وارد کنید؛ پنل تمام مراحل ساخت پروژه، بارگذاری کد و فعال‌سازی وب‌اپ Anyone را انجام داده و توکن استقرار را به شما تحویل می‌دهد.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Main Form Inputs: Responsive Grid -->
+                <div class="gas-grid-form" style="margin-bottom:14px;">
+                    
+                    <!-- Token Input Box -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12.5px; font-weight:700; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
+                            <span style="display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="key-round" style="width:14px; height:14px; color:#4285F4;"></i>
+                                <span>توکن دسترسی گوگل (Google OAuth Bearer Token)</span>
+                                <span style="color:#ef4444;">*</span>
+                            </span>
+                            <a href="javascript:void(0)" onclick="toggleGasTokenHelp()" style="font-size:11.5px; color:#4285F4; text-decoration:none; display:flex; align-items:center; gap:4px;">
+                                <i data-lucide="help-circle" style="width:13px; height:13px;"></i>
+                                <span>راهنمای ۳۰ ثانیه‌ای دریافت توکن ▾</span>
+                            </a>
+                        </label>
+
+                        <!-- Modern Composite Input with Eye / Paste / Clear tools -->
+                        <div class="gas-input-composite">
+                            <input type="password" id="gas-input-token" placeholder="یا پیست کنید... (ya29.a0Ac_vpx...)" style="font-family:'JetBrains Mono', monospace; direction:ltr;" autocomplete="off" spellcheck="false">
+                            <div class="gas-input-tools">
+                                <button type="button" class="gas-tool-btn" onclick="toggleGasTokenVisibility()" id="gas-token-eye-btn" title="نمایش / مخفی کردن توکن" aria-label="Toggle Token Visibility">
+                                    <i data-lucide="eye" style="width:16px; height:16px;"></i>
+                                </button>
+                                <button type="button" class="gas-tool-btn" onclick="pasteGasTokenFromClipboard()" title="چسباندن از کلیپ‌بورد" aria-label="Paste from Clipboard">
+                                    <i data-lucide="clipboard-paste" style="width:16px; height:16px; color:#4285F4;"></i>
+                                </button>
+                                <button type="button" class="gas-tool-btn" onclick="clearGasTokenInput()" title="پاک کردن" aria-label="Clear Token">
+                                    <i data-lucide="x" style="width:15px; height:15px;"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Scopes info chip bar with 1-click copy -->
+                        <div class="gas-scopes-bar">
+                            <span style="color:var(--text-muted);">اسکوپ‌های مجاز:</span>
+                            <span class="gas-scope-chip">script.projects</span>
+                            <span class="gas-scope-chip">script.deployments</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasScopes()" style="padding:2px 8px; font-size:10.5px; margin-right:4px;">
+                                <i data-lucide="copy" style="width:11px; height:11px; margin-left:3px;"></i> کپی هر دو اسکوپ
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Project Title Input Box -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12.5px; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="folder-git-2" style="width:14px; height:14px; color:#10b981;"></i>
+                            <span>عنوان پروژه در گوگل</span>
+                        </label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-input-title" value="MHPanel-GAS-FullTunnel" style="font-family:'JetBrains Mono', monospace; direction:ltr;" spellcheck="false">
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:5px; display:block;">
+                            نام نمایشی پروژه در داشبورد Google Apps Script
+                        </small>
+                    </div>
+
+                </div>
+
+                <!-- Interactive 3-Step Token Guide Wizard (Collapsible) -->
+                <div id="gas-token-help-box" style="display:none; background:rgba(66,133,244,0.06); border:1px solid rgba(66,133,244,0.25); border-radius:12px; padding:14px; margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div style="font-size:12.5px; font-weight:700; color:#4285F4; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="sparkles" style="width:15px; height:15px;"></i>
+                            <span>دریافت توکن گوگل در ۳۰ ثانیه از Google OAuth Playground:</span>
+                        </div>
+                        <button type="button" class="gas-tool-btn" onclick="toggleGasTokenHelp()" style="width:24px; height:24px;">
+                            <i data-lucide="x" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+
+                    <div class="gas-wizard-grid">
+                        <div class="gas-wizard-step">
+                            <div class="gas-step-num">۱</div>
+                            <div style="font-size:11.5px; font-weight:700; color:var(--text-main); margin-bottom:4px;">باز کردن OAuth Playground</div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px 0; line-height:1.4;">به صفحه رسمی OAuth2 گوگل بروید:</p>
+                            <a href="https://developers.google.com/oauthplayground" target="_blank" class="btn btn-secondary btn-sm" style="width:100%; font-size:11px; text-decoration:none; justify-content:center; color:#4285F4;">
+                                <i data-lucide="external-link" style="width:12px; height:12px; margin-left:4px;"></i> باز کردن صفحه Playground
+                            </a>
+                        </div>
+
+                        <div class="gas-wizard-step">
+                            <div class="gas-step-num">۲</div>
+                            <div style="font-size:11.5px; font-weight:700; color:var(--text-main); margin-bottom:4px;">انتخاب اسکوپ‌ها</div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px 0; line-height:1.4;">در کادر Step 1 اسکوپ‌های زیر را وارد کنید:</p>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasScopes()" style="width:100%; font-size:11px; justify-content:center;">
+                                <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> کپی اسکوپ‌های Apps Script
+                            </button>
+                        </div>
+
+                        <div class="gas-wizard-step">
+                            <div class="gas-step-num">۳</div>
+                            <div style="font-size:11.5px; font-weight:700; color:var(--text-main); margin-bottom:4px;">تأیید و کپی Access Token</div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0 0 8px 0; line-height:1.4;">Authorize APIs را زده و در Step 2 روی Exchange کلیک نموده و Access Token (شروع با ya29) را کپی کنید.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Template Selection Cards -->
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12.5px; font-weight:700; margin-bottom:8px; display:block;">
+                        انتخاب حالت و قالب اسکریپت جهت استقرار (Script Template):
+                    </label>
+                    <div class="gas-modes-grid">
+                        
+                        <!-- Mode 1: GooseRelay Full Tunnel -->
+                        <label class="gas-mode-card selected" id="gas-card-mode-full_tunnel">
+                            <input type="radio" name="gas_deploy_mode" value="full_tunnel" checked onchange="onGasDeployModeChanged(this.value)">
+                            <div style="min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <strong style="font-size:13px; color:#4285F4;">GooseRelay Full Tunnel</strong>
+                                    <span class="gas-token-badge gas-token-badge-blue">پیش‌فرض</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:3px; line-height:1.4;">
+                                    استریم تمام‌عیار خام TCP/UDP با حداکثر سرعت برای کلیه اپ‌ها (اینستاگرام، تلگرام، وب، گیم)
+                                </span>
+                            </div>
+                        </label>
+
+                        <!-- Mode 2: Sing-box Detour -->
+                        <label class="gas-mode-card" id="gas-card-mode-singbox_detour">
+                            <input type="radio" name="gas_deploy_mode" value="singbox_detour" onchange="onGasDeployModeChanged(this.value)">
+                            <div style="min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <strong style="font-size:13px; color:#8b5cf6;">Sing-box Direct Detour</strong>
+                                    <span class="gas-token-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);">Core Bridge</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:3px; line-height:1.4;">
+                                    هدایت مستقیم پکت‌های رله شده به اینباند هسته سینگ‌باکس روی پورت ۲۰۴۴۳ سرور
+                                </span>
+                            </div>
+                        </label>
+
+                        <!-- Mode 3: MasterHttpRelay -->
+                        <label class="gas-mode-card" id="gas-card-mode-master_http">
+                            <input type="radio" name="gas_deploy_mode" value="master_http" onchange="onGasDeployModeChanged(this.value)">
+                            <div style="min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <strong style="font-size:13px; color:#10b981;">MasterHttpRelay Universal</strong>
+                                    <span class="gas-token-badge gas-token-badge-green">HTTP / Proxy</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:3px; line-height:1.4;">
+                                    پروتکل کلاینتی وب مسترکینگ ۳۲ با واکشی داینامیک URL و بسته‌بندی HTTP
+                                </span>
+                            </div>
+                        </label>
+
+                        <!-- Mode 4: Custom Script -->
+                        <label class="gas-mode-card" id="gas-card-mode-custom">
+                            <input type="radio" name="gas_deploy_mode" value="custom" onchange="onGasDeployModeChanged(this.value)">
+                            <div style="min-width:0;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <strong style="font-size:13px; color:#f59e0b;">Custom Script</strong>
+                                    <span class="gas-token-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">کد اختصاصی</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:3px; line-height:1.4;">
+                                    امکان نوشتن و تزریق کد سفارشی سمت سرور و سمت گوگل با بارگذاری خودکار
+                                </span>
+                            </div>
+                        </label>
+
+                    </div>
+                </div>
+
+                <!-- Submit Action Bar (Responsive) -->
+                <div class="gas-submit-bar">
+                    <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="shield-check" style="width:14px; height:14px; color:#10b981;"></i>
+                        <span>پس از زدن دکمه، پروسه استقرار خودکار در کمتر از ۱۰ ثانیه تکمیل شده و توکن به شما تحویل می‌شود.</span>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="gas-deploy-submit-btn" onclick="executeGoogleScriptDeploy();" style="padding:10px 24px; font-weight:700; background:#4285F4; border-color:#4285F4; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="rocket" style="width:16px; height:16px;"></i>
+                        <span>🚀 استقرار خودکار روی گوگل و دریافت توکن</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 3. MANUAL 1-CLICK REGISTRATION FALLBACK CARD -->
+            <div class="glass-card config-card">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:34px; height:34px; border-radius:10px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="clipboard-check" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:15px; font-weight:700;">ثبت دستی شناسه یا آدرس وب‌اپ گوگل</h4>
+                            <span style="font-size:11.5px; color:var(--text-muted);">اگر کد را دستی در ادیتور گوگل مستقر کرده‌اید، آدرس یا شناسه را در اینجا ثبت کنید</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="gas-grid-form">
+                    <div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.7; margin:0 0 10px 0;">
+                            در محیط وب گوگل اسکریپت (<a href="https://script.google.com/home" target="_blank" style="color:#4285F4; font-weight:bold; text-decoration:underline;">script.google.com</a>) کد را قرار داده و <strong>Deploy -> New Deployment</strong> با دسترسی <strong>Anyone</strong> بسازید، سپس آدرس یا توکن آن را در کادر مقابل پیست کنید:
+                        </p>
+                    </div>
+                    <div>
+                        <div class="gas-input-composite" style="margin-bottom:8px;">
+                            <input type="text" id="gas-manual-input" placeholder="AKfycb... یا URL کامل" style="font-family:'JetBrains Mono', monospace; direction:ltr;" spellcheck="false">
+                            <div class="gas-input-tools">
+                                <button type="button" class="gas-tool-btn" onclick="pasteGasManualInput()" title="چسباندن" aria-label="Paste">
+                                    <i data-lucide="clipboard-paste" style="width:16px; height:16px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="saveGasManualDeployment();" style="width:100%; height:38px; font-weight:600;">
+                            <i data-lucide="save" style="width:14px; height:14px; margin-left:4px;"></i> ثبت و اعتبارسنجی این استقرار
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 2: Script Templates & Code Studio -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-scripts" class="gas-subtab-content" style="display:none;">
+            <div class="glass-card config-card" style="margin-bottom:20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="file-code" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:16px; font-weight:700;">استودیو کدهای سمت گوگل اسکریپت (Code.gs)</h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                کدهای زیر به‌صورت کاملاً داینامیک با پورت، آی‌پی سرور و کلید امنیتی تنظیم شده‌اند و آماده استقرار هستند.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-code-gs" onclick="copyGasCode('gas-code-gs-editor', 'btn-copy-code-gs')" style="width:auto; padding:6px 14px;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی کد Code.gs
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:6px; display:block;">محتوای اسکریپت گوگل (Google Apps Script Code.gs):</label>
+                    <textarea id="gas-code-gs-editor" class="form-control" rows="16" style="font-family:'JetBrains Mono', monospace; font-size:12.5px; direction:ltr; line-height:1.6; background:#0f172a; color:#38bdf8;"></textarea>
+                </div>
+
+                <div class="gas-submit-bar">
+                    <span style="font-size:11.5px; color:var(--text-muted);">
+                        متغیرهای <code>{SERVER_IP}</code> و <code>{PORT}</code> و <code>{SECRET}</code> به صورت خودکار با مقادیر سرور جایگزین شده‌اند.
+                    </span>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="deployCurrentEditorCode();" style="width:auto; padding:8px 18px; background:#4285F4; border-color:#4285F4; font-weight:700;">
+                        <i data-lucide="upload-cloud" style="width:14px; height:14px; margin-left:4px;"></i> دیپلوی مستقیم همین کد روی گوگل
+                    </button>
+                </div>
+            </div>
+
+            <!-- Server-Side Daemon Script Preview -->
+            <div class="glass-card config-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:34px; height:34px; border-radius:10px; background:rgba(168,85,247,0.15); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="terminal" style="width:18px; height:18px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:15px; font-weight:700;">اسکریپت دیمن سمت سرور خروجی (VPS Exit Daemon)</h4>
+                            <span style="font-size:12px; color:var(--text-muted);">مسیر فایل اجرایی: <code>/usr/local/bin/mhpanel-gas-server</code> | سرویس: <code>mhpanel-gas-tunnel.service</code></span>
+                        </div>
+                    </div>
+                </div>
+                <div style="background:var(--bg-base); padding:12px; border-radius:8px; border:1px solid var(--border-glow); font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted); direction:ltr; line-height:1.7;">
+                    # Active Daemon: /usr/local/bin/mhpanel-gas-server<br>
+                    # Handles TCP/UDP non-blocking socket stream relay from Google Apps Script<br>
+                    # Auth Key Header: X-Auth-Key | Health Check: GET /health | Stats: GET /stats
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 3: Server Configuration -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-server" class="gas-subtab-content" style="display:none;">
+            <div class="glass-card config-card">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:16px; font-weight:700;">پیکربندی سرور خروجی تونل (Exit Relay Server)</h4>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            تنظیم پورت شنود دیمن روی VPS، کلید احراز هویت و مقصد هدایت بسته‌ها
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-bottom:16px;">
+                    <div class="form-group">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">پورت سرور خروجی (Exit Server Port)</label>
+                        <div class="gas-input-composite">
+                            <input type="number" id="gas-cfg-port" value="8448" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">پورت TCP شنود سرور خروجی (پیش‌فرض: 8448)</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between;">
+                            <span>کلید امنیتی احراز هویت (Secret Key)</span>
+                            <a href="javascript:void(0)" onclick="generateGasSecret()" style="font-size:11.5px; color:#4285F4; text-decoration:none;">تولید تصادفی 🎲</a>
+                        </label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-cfg-secret" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">کلید ارسالی در هدر X-Auth-Key جهت امنیت تونل</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">مقصد هسته سینگ‌باکس (Sing-box Inbound)</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-cfg-singbox-target" value="127.0.0.1:20443" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آدرس اینباند سینگ‌باکس در حالت Sing-box Detour</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">آی‌پی عمومی سرور (Public IP)</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-cfg-server-ip" readonly style="font-family:'JetBrains Mono', monospace; direction:ltr; background:rgba(0,0,0,0.15);">
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آی‌پی شناسایی شده سرور مجازی جهت تزریق به اسکریپت</small>
+                    </div>
+                </div>
+
+                <div class="gas-submit-bar">
+                    <button type="button" class="btn btn-secondary" onclick="fetchGoogleScriptConfig();" style="width:auto; padding:8px 18px;">
+                        انصراف / لغو تغییرات
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="saveGoogleScriptServerConfig();" style="width:auto; padding:8px 24px; font-weight:700;">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> ذخیره و اعمال تغییرات سرور
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 4: Client Connections & Subscriptions -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-client" class="gas-subtab-content" style="display:none;">
+            <div class="glass-card config-card" style="margin-bottom:20px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(168,85,247,0.15); color:#a855f7; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                        <i data-lucide="link" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:16px; font-weight:700;">لینک و کانفیگ کلاینت‌های متصل به گوگل اسکریپت</h4>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            کانفیگ‌های آماده برای نرم‌افزارهای کلاینتی GooseRelay، Sing-box Detour، MasterHttp و اسکریپت پایتون
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 1. GooseRelay URI -->
+                <div class="gas-token-card" style="margin-bottom:14px;">
+                    <div class="gas-token-header">
+                        <span class="gas-token-title">
+                            <i data-lucide="zap" style="width:14px; height:14px; color:#4285F4;"></i>
+                            ۱. لینک GooseRelay URI (اندروید و ویندوز):
+                        </span>
+                        <span class="gas-token-badge gas-token-badge-blue">Goose Protocol</span>
+                    </div>
+                    <div class="gas-token-value-box" id="gas-client-goose-uri" style="color:var(--text-main);">
+                        -
+                    </div>
+                    <div class="gas-token-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-goose" onclick="copyGasText('gas-client-goose-uri', 'btn-copy-client-goose')">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی لینک
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showGasQrModal('لینک اتصال GooseRelay', document.getElementById('gas-client-goose-uri').textContent)">
+                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد QR
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Sing-box Detour Outbound JSON -->
+                <div class="gas-token-card" style="margin-bottom:14px;">
+                    <div class="gas-token-header">
+                        <span class="gas-token-title">
+                            <i data-lucide="layers" style="width:14px; height:14px; color:#8b5cf6;"></i>
+                            ۲. بلاک Outbound هسته سینگ‌باکس (Sing-box Detour):
+                        </span>
+                        <span class="gas-token-badge" style="background:rgba(139,92,246,0.15); color:#a78bfa; border:1px solid rgba(139,92,246,0.3);">Outbound Detour</span>
+                    </div>
+                    <pre class="gas-token-value-box" id="gas-client-singbox-outbound" style="color:#c084fc; max-height:120px;">-</pre>
+                    <div class="gas-token-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-singbox" onclick="copyGasText('gas-client-singbox-outbound', 'btn-copy-client-singbox')">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی JSON
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. MasterHttpRelay Settings -->
+                <div class="gas-token-card" style="margin-bottom:14px;">
+                    <div class="gas-token-header">
+                        <span class="gas-token-title">
+                            <i data-lucide="globe" style="width:14px; height:14px; color:#10b981;"></i>
+                            ۳. مشخصات اپلیکیشن MasterHttpRelay:
+                        </span>
+                        <span class="gas-token-badge gas-token-badge-green">HTTP Proxy</span>
+                    </div>
+                    <pre class="gas-token-value-box" id="gas-client-masterhttp" style="color:#34d399; max-height:120px;">-</pre>
+                    <div class="gas-token-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-master" onclick="copyGasText('gas-client-masterhttp', 'btn-copy-client-master')">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی مشخصات
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4. Standalone Python Local Client -->
+                <div class="gas-token-card">
+                    <div class="gas-token-header">
+                        <span class="gas-token-title">
+                            <i data-lucide="terminal" style="width:14px; height:14px; color:#f59e0b;"></i>
+                            ۴. اسکریپت لوکال کلاینت پایتون (SOCKS5 روی ۱۲۷.۰.۰.۱:۱۰۸۰):
+                        </span>
+                        <span class="gas-token-badge" style="background:rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3);">Python Script</span>
+                    </div>
+                    <pre class="gas-token-value-box" id="gas-client-python-script" style="color:#fbbf24; max-height:140px;">-</pre>
+                    <div class="gas-token-actions">
+                        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-client-py" onclick="copyGasText('gas-client-python-script', 'btn-copy-client-py')">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی اسکریپت پایتون
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- QR CODE POPUP MODAL (RESPONSIVE) -->
+    <!-- ============================================================== -->
+    <div id="gas-qr-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.75); z-index:99999; backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="max-width:380px; width:100%; border:1px solid rgba(66,133,244,0.4); text-align:center; padding:24px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+            <button type="button" onclick="closeGasQrModal()" style="position:absolute; top:12px; left:12px; background:transparent; border:none; color:var(--text-muted); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                <i data-lucide="x" style="width:18px; height:18px;"></i>
+            </button>
+
+            <h4 style="margin:0 0 4px 0; font-size:16px; font-weight:700; color:#4285F4;" id="gas-qr-modal-title">
+                بارکد QR
+            </h4>
+            <p style="font-size:11.5px; color:var(--text-muted); margin:0 0 16px 0;">
+                دوربین گوشی را مقابل بارکد بگیرید تا اسکن شود:
+            </p>
+
+            <div id="gas-qr-modal-canvas" style="display:inline-flex; padding:12px; background:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.3); margin-bottom:14px; min-width:180px; min-height:180px; align-items:center; justify-content:center;">
+            </div>
+
+            <div id="gas-qr-modal-val" style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-muted); word-break:break-all; max-height:60px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; direction:ltr; margin-bottom:14px;">
+            </div>
+
+            <button type="button" class="btn btn-secondary" onclick="closeGasQrModal()" style="width:100%; font-weight:600;">
+                بستن پنجره
+            </button>
+        </div>
+    </div>
+
+</div>

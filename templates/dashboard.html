@@ -14,7 +14,7 @@
         })();
     </script>
 </head>
-<body>
+<body class="{% if logged_in %}app-viewport{% endif %}">
 
     {% if not logged_in %}
         {% include 'partials/login.html' %}
@@ -53,6 +53,7 @@
                     {% include 'partials/tab_trojan.html' %}
                     {% include 'partials/tab_naiveproxy.html' %}
                     {% include 'partials/tab_stuntls.html' %}
+                    {% include 'partials/tab_google_script.html' %}
                     {% include 'partials/tab_tor.html' %}
                     {% include 'partials/tab_dns_management.html' %}
                     {% include 'partials/tab_system.html' %}

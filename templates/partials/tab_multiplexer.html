@@ -261,6 +261,34 @@
 </div>
 </div>
 </div>
+<!-- 6. Sing-box Universal Core Suite (Port 443 Multiplexer) -->
+<div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">
+<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<label class="switch">
+<input checked="" id="mpx-proto-singbox-enabled" type="checkbox"/>
+<span class="slider"></span>
+</label>
+<div>
+<div style="font-weight: 700; font-size: 14.5px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+<i data-lucide="box" style="color: var(--color-gold); width: 18px; height: 18px;"></i> <span data-i18n="mpx_singbox_core_suite">هسته جامع سینگ‌باکس (Sing-box Core - VLESS / Trojan / VMess)</span>
+<span class="sidebar-badge sidebar-badge-gold" style="font-size: 11px;">Universal Port 443</span>
+</div>
+<div data-i18n="mpx_singbox_desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">هدایت ترافیک کانفیگ‌های سینگ‌باکس (VLESS Reality / Trojan / Shadowsocks) با SNI روی پورت اشتراکی ۴۴۳ بدون تداخل با وب‌سایت</div>
+</div>
+</div>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
+<div>
+<label class="form-label" data-i18n="mpx_singbox_sni" style="font-size: 12px; margin-bottom: 4px;">دامنه‌های SNI سینگ‌باکس (با ویرگول جدا کنید):</label>
+<input class="form-input" id="mpx-proto-singbox-sni" placeholder="e.g. sb.kigaping.com,vless.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="sb.kigaping.com,vless.kigaping.com"/>
+</div>
+<div>
+<label class="form-label" data-i18n="mpx_singbox_target" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی Sing-box Multiplexer:</label>
+<input class="form-input" id="mpx-proto-singbox-target" placeholder="127.0.0.1:20443" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="127.0.0.1:20443"/>
+</div>
+</div>
+</div>
 </div>
 <!-- Custom SNI Rules -->
 <div style="margin-top: 24px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 18px;">

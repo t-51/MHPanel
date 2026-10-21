@@ -43,51 +43,121 @@
             <span style="font-size: 11px; font-weight: 700; margin-inline-start: 4px;">2FA</span>
         </button>
 
-        <!-- Quick Language Switcher Shortcut Pills with SVG Flags -->
-        <div class="header-lang-pills" id="header-lang-pills">
-            <button type="button" class="lang-pill" data-lang="fa" onclick="changeLanguage('fa')" title="فارسی" data-i18n-title="sys_item_2">
-                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
-                    <rect width="18" height="4.33" fill="#239F40"/>
-                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
-                    <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
-                    <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
-                </svg>
-                <span>FA</span>
+        <!-- Standard Modern Language Selector Dropdown (8 Languages) -->
+        <div class="header-lang-container" id="header-lang-container">
+            <button type="button" class="header-lang-btn" id="header-lang-btn" onclick="toggleLangDropdown(event)" title="تغییر زبان پنل / Change Language" aria-expanded="false">
+                <span id="header-active-flag">
+                    <svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#239F40"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
+                        <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
+                    </svg>
+                </span>
+                <span id="header-active-lang-text" style="font-size:12px; font-weight:700;">FA</span>
+                <i data-lucide="chevron-down" style="width: 13px; height: 13px; opacity: 0.7;"></i>
             </button>
-            <button type="button" class="lang-pill" data-lang="en" onclick="changeLanguage('en')" title="English">
-                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
-                    <rect width="18" height="13" fill="#012169"/>
-                    <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
-                    <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
-                    <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
-                    <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
-                </svg>
-                <span>EN</span>
-            </button>
-            <button type="button" class="lang-pill" data-lang="ru" onclick="changeLanguage('ru')" title="Русский">
-                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
-                    <rect width="18" height="4.33" fill="#FFFFFF"/>
-                    <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
-                    <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
-                </svg>
-                <span>RU</span>
-            </button>
-            <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية">
-                <svg width="16" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
-                    <rect width="18" height="4.33" fill="#007A3D"/>
-                    <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
-                    <rect y="8.67" width="18" height="4.33" fill="#000000"/>
-                    <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
-                </svg>
-                <span>AR</span>
-            </button>
+            <div class="header-lang-menu" id="header-lang-menu">
+                <!-- 1. Persian -->
+                <button type="button" class="header-lang-item" data-lang="fa" onclick="selectPanelLanguage('fa')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#239F40"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#DA0000"/>
+                        <circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/>
+                    </svg>
+                    <span>فارسی</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">FA</span>
+                </button>
+                <!-- 2. English -->
+                <button type="button" class="header-lang-item" data-lang="en" onclick="selectPanelLanguage('en')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="13" fill="#012169"/>
+                        <path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/>
+                        <path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/>
+                        <path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/>
+                        <path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/>
+                    </svg>
+                    <span>English</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">EN</span>
+                </button>
+                <!-- 3. Russian -->
+                <button type="button" class="header-lang-item" data-lang="ru" onclick="selectPanelLanguage('ru')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#0039A6"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#D52B1E"/>
+                    </svg>
+                    <span>Русский</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">RU</span>
+                </button>
+                <!-- 4. Arabic -->
+                <button type="button" class="header-lang-item" data-lang="ar" onclick="selectPanelLanguage('ar')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#007A3D"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#000000"/>
+                        <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
+                    </svg>
+                    <span>العربية</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">AR</span>
+                </button>
+                <!-- 5. Italian -->
+                <button type="button" class="header-lang-item" data-lang="it" onclick="selectPanelLanguage('it')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="6" height="13" fill="#009246"/>
+                        <rect x="6" width="6" height="13" fill="#FFFFFF"/>
+                        <rect x="12" width="6" height="13" fill="#CE2B37"/>
+                    </svg>
+                    <span>Italiano</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">IT</span>
+                </button>
+                <!-- 6. Spanish -->
+                <button type="button" class="header-lang-item" data-lang="es" onclick="selectPanelLanguage('es')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="3.25" fill="#AA151B"/>
+                        <rect y="3.25" width="18" height="6.5" fill="#F1BF00"/>
+                        <rect y="9.75" width="18" height="3.25" fill="#AA151B"/>
+                    </svg>
+                    <span>Español</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">ES</span>
+                </button>
+                <!-- 7. Chinese -->
+                <button type="button" class="header-lang-item" data-lang="zh" onclick="selectPanelLanguage('zh')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="13" fill="#DE2910"/>
+                        <polygon points="3.5,1.5 4,3 5.5,3 4.2,4 4.7,5.5 3.5,4.5 2.3,5.5 2.8,4 1.5,3 3,3" fill="#FFDE00"/>
+                        <circle cx="6.5" cy="2.2" r="0.4" fill="#FFDE00"/>
+                        <circle cx="7.5" cy="3.5" r="0.4" fill="#FFDE00"/>
+                        <circle cx="7.5" cy="5.2" r="0.4" fill="#FFDE00"/>
+                        <circle cx="6.5" cy="6.5" r="0.4" fill="#FFDE00"/>
+                    </svg>
+                    <span>简体中文</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">ZH</span>
+                </button>
+                <!-- 8. German -->
+                <button type="button" class="header-lang-item" data-lang="de" onclick="selectPanelLanguage('de')">
+                    <svg width="18" height="13" viewBox="0 0 18 13" fill="none" style="border-radius:2px; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#000000"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#DD0000"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#FFCE00"/>
+                    </svg>
+                    <span>Deutsch</span>
+                    <span style="margin-inline-start:auto; font-size:11px; opacity:0.6; font-family:monospace;">DE</span>
+                </button>
+            </div>
         </div>
+
         <!-- Hidden/Fallback Select to keep sync with legacy scripts -->
         <select id="lang-select" style="display:none;" onchange="changeLanguage(this.value)">
             <option value="fa">FA</option>
             <option value="en">EN</option>
             <option value="ru">RU</option>
             <option value="ar">AR</option>
+            <option value="it">IT</option>
+            <option value="es">ES</option>
+            <option value="zh">ZH</option>
+            <option value="de">DE</option>
         </select>
         <span id="server-ip-header" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);"></span>
         <button type="button" class="header-btn" id="logout-btn">

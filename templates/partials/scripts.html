@@ -212,6 +212,37 @@
         applyLanguage(lang);
     }
 
+    function toggleLangDropdown(e) {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        const menu = document.getElementById("header-lang-menu");
+        const btn = document.getElementById("header-lang-btn");
+        if (!menu) return;
+        const isShowing = menu.classList.contains("show");
+        menu.classList.toggle("show", !isShowing);
+        if (btn) btn.setAttribute("aria-expanded", !isShowing);
+    }
+
+    function selectPanelLanguage(lang) {
+        const menu = document.getElementById("header-lang-menu");
+        const btn = document.getElementById("header-lang-btn");
+        if (menu) menu.classList.remove("show");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+        changeLanguage(lang);
+    }
+
+    document.addEventListener("click", function(e) {
+        const container = document.getElementById("header-lang-container");
+        if (container && !container.contains(e.target)) {
+            const menu = document.getElementById("header-lang-menu");
+            const btn = document.getElementById("header-lang-btn");
+            if (menu) menu.classList.remove("show");
+            if (btn) btn.setAttribute("aria-expanded", "false");
+        }
+    });
+
     const DYNAMIC_REPLACEMENTS = {
         en: [
             // Exact status & badges
@@ -408,6 +439,118 @@
             [/ساعت/g, "ساعة"],
             [/پینگ:/g, "بينغ:"],
             [/تاخیر:/g, "التأخير:"]
+        ],
+        it: [
+            [/آنلاین/g, "Online"],
+            [/آفلاین/g, "Offline"],
+            [/فعال/g, "Attivo"],
+            [/غیرفعال/g, "Inattivo"],
+            [/متصل/g, "Connesso"],
+            [/قطع/g, "Disconnesso"],
+            [/نامحدود/g, "Illimitato"],
+            [/در حال بررسی\.\.\./g, "Verifica in corso..."],
+            [/کاربر پیش‌فرض/g, "Utente predefinito"],
+            [/سقف حجم:/g, "Limite traffico:"],
+            [/سقف اتصالات:/g, "Limite connessioni:"],
+            [/مصرف کل:/g, "Consumo totale:"],
+            [/مصرف:/g, "Consumo:"],
+            [/انقضا:/g, "Scadenza:"],
+            [/دانلود:/g, "Download:"],
+            [/آپلود:/g, "Upload:"],
+            [/وضعیت:/g, "Stato:"],
+            [/کاربر:/g, "Utente:"],
+            [/سرور:/g, "Server:"],
+            [/پورت:/g, "Porta:"],
+            [/پینگ:/g, "Ping:"],
+            [/روز باقی‌مانده/g, "giorni rimasti"],
+            [/کاربر/g, "utente/i"],
+            [/گیگابایت/g, "GB"],
+            [/مگابایت/g, "MB"],
+            [/کیلوبایت/g, "KB"]
+        ],
+        es: [
+            [/آنلاین/g, "En línea"],
+            [/آفلاین/g, "Desconectado"],
+            [/فعال/g, "Activo"],
+            [/غیرفعال/g, "Inactivo"],
+            [/متصل/g, "Conectado"],
+            [/قطع/g, "Desconectado"],
+            [/نامحدود/g, "Ilimitado"],
+            [/در حال بررسی\.\.\./g, "Comprobando..."],
+            [/کاربر پیش‌فرض/g, "Usuario predeterminado"],
+            [/سقف حجم:/g, "Límite de tráfico:"],
+            [/سقف اتصالات:/g, "Límite de conexiones:"],
+            [/مصرف کل:/g, "Consumo total:"],
+            [/مصرف:/g, "Consumo:"],
+            [/انقضا:/g, "Expiración:"],
+            [/دانلود:/g, "Descarga:"],
+            [/آپلود:/g, "Subida:"],
+            [/وضعیت:/g, "Estado:"],
+            [/کاربر:/g, "Usuario:"],
+            [/سرور:/g, "Servidor:"],
+            [/پورت:/g, "Puerto:"],
+            [/پینگ:/g, "Ping:"],
+            [/روز باقی‌مانده/g, "días restantes"],
+            [/کاربر/g, "usuario(s)"],
+            [/گیگابایت/g, "GB"],
+            [/مگابایت/g, "MB"],
+            [/کیلوبایت/g, "KB"]
+        ],
+        zh: [
+            [/آنلاین/g, "在线"],
+            [/آفلاین/g, "离线"],
+            [/فعال/g, "活跃"],
+            [/غیرفعال/g, "禁用"],
+            [/متصل/g, "已连接"],
+            [/قطع/g, "已断开"],
+            [/نامحدود/g, "无限制"],
+            [/در حال بررسی\.\.\./g, "检查中..."],
+            [/کاربر پیش‌فرض/g, "默认用户"],
+            [/سقف حجم:/g, "流量限额:"],
+            [/سقف اتصالات:/g, "连接限制:"],
+            [/مصرف کل:/g, "总使用量:"],
+            [/مصرف:/g, "用量:"],
+            [/انقضا:/g, "到期时间:"],
+            [/دانلود:/g, "下行:"],
+            [/آپلود:/g, "上行:"],
+            [/وضعیت:/g, "状态:"],
+            [/کاربر:/g, "用户:"],
+            [/سرور:/g, "服务器:"],
+            [/پورت:/g, "端口:"],
+            [/پینگ:/g, "延迟:"],
+            [/روز باقی‌مانده/g, "天剩余"],
+            [/کاربر/g, "用户"],
+            [/گیگابایت/g, "GB"],
+            [/مگابایت/g, "MB"],
+            [/کیلوبایت/g, "KB"]
+        ],
+        de: [
+            [/آنلاین/g, "Online"],
+            [/آفلاین/g, "Offline"],
+            [/فعال/g, "Aktiv"],
+            [/غیرفعال/g, "Inaktiv"],
+            [/متصل/g, "Verbunden"],
+            [/قطع/g, "Getrennt"],
+            [/نامحدود/g, "Unbegrenzt"],
+            [/در حال بررسی\.\.\./g, "Prüfe..."],
+            [/کاربر پیش‌فرض/g, "Standardbenutzer"],
+            [/سقف حجم:/g, "Datenlimit:"],
+            [/سقف اتصالات:/g, "Verbindungslimit:"],
+            [/مصرف کل:/g, "Gesamtverbrauch:"],
+            [/مصرف:/g, "Verbrauch:"],
+            [/انقضا:/g, "Ablaufdatum:"],
+            [/دانلود:/g, "Download:"],
+            [/آپلود:/g, "Upload:"],
+            [/وضعیت:/g, "Status:"],
+            [/کاربر:/g, "Benutzer:"],
+            [/سرور:/g, "Server:"],
+            [/پورت:/g, "Port:"],
+            [/پینگ:/g, "Ping:"],
+            [/روز باقی‌مانده/g, "Tage übrig"],
+            [/کاربر/g, "Benutzer"],
+            [/گیگابایت/g, "GB"],
+            [/مگابایت/g, "MB"],
+            [/کیلوبایت/g, "KB"]
         ]
     };
 
@@ -547,7 +690,28 @@
                 if (el) el.value = lang;
             });
 
-            // Sync header language pills
+            // Sync header language dropdown active item & button flag
+            const flagMap = {
+                fa: { text: "FA", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="4.33" fill="#239F40"/><rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/><rect y="8.67" width="18" height="4.33" fill="#DA0000"/><circle cx="9" cy="6.5" r="1.3" fill="#DA0000"/></svg>' },
+                en: { text: "EN", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="13" fill="#012169"/><path d="M0 0L18 13M18 0L0 13" stroke="#FFFFFF" stroke-width="2.5"/><path d="M0 0L18 13M18 0L0 13" stroke="#C8102E" stroke-width="1.2"/><path d="M9 0V13M0 6.5H18" stroke="#FFFFFF" stroke-width="4.5"/><path d="M9 0V13M0 6.5H18" stroke="#C8102E" stroke-width="2.7"/></svg>' },
+                ru: { text: "RU", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="4.33" fill="#FFFFFF"/><rect y="4.33" width="18" height="4.33" fill="#0039A6"/><rect y="8.67" width="18" height="4.33" fill="#D52B1E"/></svg>' },
+                ar: { text: "AR", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="4.33" fill="#007A3D"/><rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/><rect y="8.67" width="18" height="4.33" fill="#000000"/><polygon points="0,0 6,6.5 0,13" fill="#CE1126"/></svg>' },
+                it: { text: "IT", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="6" height="13" fill="#009246"/><rect x="6" width="6" height="13" fill="#FFFFFF"/><rect x="12" width="6" height="13" fill="#CE2B37"/></svg>' },
+                es: { text: "ES", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="3.25" fill="#AA151B"/><rect y="3.25" width="18" height="6.5" fill="#F1BF00"/><rect y="9.75" width="18" height="3.25" fill="#AA151B"/></svg>' },
+                zh: { text: "ZH", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="13" fill="#DE2910"/><polygon points="3.5,1.5 4,3 5.5,3 4.2,4 4.7,5.5 3.5,4.5 2.3,5.5 2.8,4 1.5,3 3,3" fill="#FFDE00"/></svg>' },
+                de: { text: "DE", svg: '<svg width="17" height="12" viewBox="0 0 18 13" fill="none" style="border-radius:2px;"><rect width="18" height="4.33" fill="#000000"/><rect y="4.33" width="18" height="4.33" fill="#DD0000"/><rect y="8.67" width="18" height="4.33" fill="#FFCE00"/></svg>' }
+            };
+            const fItem = flagMap[lang] || flagMap.fa;
+            const flagEl = document.getElementById("header-active-flag");
+            const textEl = document.getElementById("header-active-lang-text");
+            if (flagEl) flagEl.innerHTML = fItem.svg;
+            if (textEl) textEl.textContent = fItem.text;
+
+            document.querySelectorAll(".header-lang-item").forEach(item => {
+                item.classList.toggle("active", item.getAttribute("data-lang") === lang);
+            });
+
+            // Sync header & footer language pills
             document.querySelectorAll(".lang-pill").forEach(pill => {
                 if (pill.getAttribute("data-lang") === lang) {
                     pill.classList.add("active");
@@ -2862,11 +3026,12 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    // Auto-restore sidebar state on page load
+    // Auto-restore sidebar state on page load - ensure full width & prevent accidental half/collapse
     (function restoreSidebarState() {
-        if (localStorage.getItem("sidebar_collapsed") === "true") {
-            const sidebar = document.getElementById("app-sidebar");
-            if (sidebar) sidebar.classList.add("collapsed");
+        const sidebar = document.getElementById("app-sidebar");
+        if (sidebar) {
+            sidebar.classList.remove("collapsed");
+            localStorage.setItem("sidebar_collapsed", "false");
         }
     })();
 
@@ -5622,6 +5787,8 @@
         } else if (tabId === "stuntls") {
             fetchStunTlsConfig();
             fetchProtocolUsers('stuntls');
+        } else if (tabId === "google-script") {
+            fetchGoogleScriptConfig();
         } else if (tabId === "tor") {
             fetchTorConfig();
         } else if (tabId === "dns-management") {
@@ -6042,6 +6209,7 @@
         const sshTarget = parseTarget(document.getElementById("mpx-proto-ssh-target")?.value, 4444);
         const openvpnTarget = parseTarget(document.getElementById("mpx-proto-openvpn-target")?.value, 1194);
         const sstpTarget = parseTarget(document.getElementById("mpx-proto-sstp-target")?.value, 4443);
+        const singboxTarget = parseTarget(document.getElementById("mpx-proto-singbox-target")?.value, 20443);
 
         function parsePortsCsv(val) {
             if (!val) return [];
@@ -6103,6 +6271,17 @@
                     backend_port: sstpTarget.port,
                     is_default: false,
                     protocol_type: "sstp"
+                },
+                {
+                    id: "singbox",
+                    name: "هسته جامع سینگ‌باکس (Sing-box Core)",
+                    enabled: document.getElementById("mpx-proto-singbox-enabled")?.checked ?? true,
+                    sni: document.getElementById("mpx-proto-singbox-sni")?.value.trim() || "sb.kigaping.com,vless.kigaping.com",
+                    backend_ip: singboxTarget.host,
+                    backend_port: singboxTarget.port,
+                    is_default: false,
+                    protocol_type: "singbox",
+                    desc: "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
                 }
             ],
             custom_rules: customRules,
@@ -16299,6 +16478,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // --- 4. Sing-box Universal Suite Frontend Engine ---
     let activeSingboxInbounds = [];
     let activeSingboxUsers = [];
+    let activeSingboxCategories = [];
+    let currentSingboxCategoryFilter = "ALL";
+    let currentExportData = { linksText: "", csvText: "", category: "", userCount: 0, linkCount: 0 };
     let currentSingboxSubTab = "inbounds";
     let singboxLogAutoRefreshTimer = null;
     let singboxCachedLogs = "";
@@ -16338,6 +16520,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
                 renderSingboxInboundsFiltered();
                 loadSingboxUsers();
+                loadSingboxCategories();
             }
         } catch (e) {
             console.error("loadSingboxData error:", e);
@@ -16380,6 +16563,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (banner) banner.style.display = "none";
             if (usersPane) usersPane.style.display = "block";
             loadSingboxUsers();
+            loadSingboxCategories();
         } else {
             stopSingboxLogAutoRefresh();
             if (logsPane) logsPane.style.display = "none";
@@ -16730,12 +16914,583 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
-    function onSingboxProtocolChange() {
+    const SINGBOX_PRESETS = {
+        vless: [
+            {
+                key: "vless_reality_vision",
+                badge: "پیشنهادی ایران",
+                color: "#6366f1",
+                title: "🛡️ VLESS Reality + Vision (TCP)",
+                desc: "نهایت پنهان‌کاری و ضد فیلترینگ تهاجمی همراه اول، ایرانسل و رایتل با پدینگ تصادفی و سرقت SNI گوگل",
+                use_case: "مناسب شرایط فیلترینگ شدید و اینترانت. بهترین عملکرد روی پورت 443 یا پورت‌های بالا بدون نیاز به دامنه.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vless";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "reality";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20443;
+                    document.getElementById("sb-inbound-tag").value = "vless_reality_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const flowEl = document.getElementById("sb-user-flow");
+                    if (flowEl) flowEl.value = "xtls-rprx-vision";
+                    const destEl = document.getElementById("sb-reality-dest");
+                    if (destEl) destEl.value = "dl.google.com";
+                    generateSingboxRealityKeys();
+                }
+            },
+            {
+                key: "vless_ws_cdn",
+                badge: "کلودفلر / CDN",
+                color: "#f59e0b",
+                title: "☁️ VLESS WebSocket + CDN",
+                desc: "عبور از فیلترینگ آی‌پی و پورت با استفاده از شبکه ابری Cloudflare CDN و گواهینامه معتبر SSL",
+                use_case: "مناسب زمان مسدودسازی کامل IP سرور. ترافیک از سرورهای CDN کلودفلر پروکسی می‌شود.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vless";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "ws";
+                    document.getElementById("sb-inbound-port").value = 20451;
+                    document.getElementById("sb-inbound-tag").value = "vless_ws_cdn_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const flowEl = document.getElementById("sb-user-flow");
+                    if (flowEl) flowEl.value = "";
+                    const wsEl = document.getElementById("sb-ws-path");
+                    if (wsEl) wsEl.value = "/vless-ws";
+                    const sniEl = document.getElementById("sb-tls-sni");
+                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "vless_grpc_reality",
+                badge: "مالتی‌پلکس سریع",
+                color: "#10b981",
+                title: "⚡ VLESS gRPC + Reality",
+                desc: "مالتی‌پلکسینگ مالتی‌کانکشن با پروتکل gRPC، کاهش تاخیر برقراری سوکت‌ها و استتار سرور Reality",
+                use_case: "مناسب برای وب‌گردی همزمان چند برنامه‌ای و ارتباط پایدار با پینگ پایین در موبایل.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vless";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "reality";
+                    document.getElementById("sb-transport-type").value = "grpc";
+                    document.getElementById("sb-inbound-port").value = 20452;
+                    document.getElementById("sb-inbound-tag").value = "vless_grpc_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const flowEl = document.getElementById("sb-user-flow");
+                    if (flowEl) flowEl.value = "";
+                    const grpcEl = document.getElementById("sb-grpc-service");
+                    if (grpcEl) grpcEl.value = "GunService";
+                    document.getElementById("sb-reality-dest").value = "dl.google.com";
+                    generateSingboxRealityKeys();
+                }
+            },
+            {
+                key: "vless_httpup_tls",
+                badge: "نسل جدید وب",
+                color: "#06b6d4",
+                title: "🚀 VLESS HTTPUpgrade + TLS",
+                desc: "جایگزین مدرن، پرسرعت و کم‌سربارتر نسبت به WebSocket بر پایه متد HTTP/1.1 Upgrade استاندارد",
+                use_case: "سازگار با CDNهای جدید و ریورس پروکسی‌ها با پینگ و حافظه مصرفی کمتر نسبت به WS.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vless";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "httpupgrade";
+                    document.getElementById("sb-inbound-port").value = 20453;
+                    document.getElementById("sb-inbound-tag").value = "vless_httpup_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const flowEl = document.getElementById("sb-user-flow");
+                    if (flowEl) flowEl.value = "";
+                    const upEl = document.getElementById("sb-httpupgrade-path");
+                    if (upEl) upEl.value = "/vless-upgrade";
+                    const sniEl = document.getElementById("sb-tls-sni");
+                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "vless_direct_tls",
+                badge: "دامنه اختصاصی",
+                color: "#8b5cf6",
+                title: "🔒 VLESS Direct TLS (Port 443)",
+                desc: "اتصال مستقیم امن روی پورت استاندارد ۴۴۳ با گواهینامه معتبر SSL بدون دستکاری هدرها",
+                use_case: "مناسب دامنه‌های بدون اختلال جهت وب‌گردی و استریم با پینگ حداقل و بازدهی ۱۰۰٪.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vless";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 443;
+                    document.getElementById("sb-inbound-tag").value = "vless_tls443_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const flowEl = document.getElementById("sb-user-flow");
+                    if (flowEl) flowEl.value = "";
+                    const sniEl = document.getElementById("sb-tls-sni");
+                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            }
+        ],
+        vmess: [
+            {
+                key: "vmess_ws_cdn",
+                badge: "پشتیبانی همگانی",
+                color: "#06b6d4",
+                title: "☁️ VMess WebSocket + CDN",
+                desc: "سازگارترین پروتکل تاریخ فیلترشکن‌ها با کلیه نسخه‌های کلاینت‌های قدیمی و جدید پشت کلودفلر",
+                use_case: "مناسب برای کلاینت‌های قدیمی v2rayNG، شدوراکت، نکوری و شرایط تغییر مداوم IP سرور.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vmess";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "ws";
+                    document.getElementById("sb-inbound-port").value = 20448;
+                    document.getElementById("sb-inbound-tag").value = "vmess_ws_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const wsEl = document.getElementById("sb-ws-path");
+                    if (wsEl) wsEl.value = "/vmess-ws";
+                    const sniEl = document.getElementById("sb-tls-sni");
+                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "vmess_grpc_tls",
+                badge: "مالتی‌پلکس امن",
+                color: "#10b981",
+                title: "⚡ VMess gRPC + TLS",
+                desc: "ترکیب رمزنگاری VMess با ترانسپورت سریع gRPC جهت کاهش قطعی در شبکه‌های پرنوسان همراه",
+                use_case: "مناسب گوشی‌های هوشمند و ترافیک اپلیکیشن‌های پیام‌رسان با تاخیر کم.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vmess";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "grpc";
+                    document.getElementById("sb-inbound-port").value = 20455;
+                    document.getElementById("sb-inbound-tag").value = "vmess_grpc_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const grpcEl = document.getElementById("sb-grpc-service");
+                    if (grpcEl) grpcEl.value = "VMessGun";
+                    const sniEl = document.getElementById("sb-tls-sni");
+                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "vmess_tcp_direct",
+                badge: "سبک و سریع",
+                color: "#64748b",
+                title: "🔌 VMess TCP مستقیم",
+                desc: "حداقل سربار هدر بدون لایه اضافی، مناسب برای روتینگ‌های داخلی یا تانل‌های ۶به۴ و Gost",
+                use_case: "مناسب برای ارتباط سرور ایران به سرور خارج (Bridge / Tunnel).",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "vmess";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "none";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20456;
+                    document.getElementById("sb-inbound-tag").value = "vmess_tcp_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                }
+            }
+        ],
+        hysteria2: [
+            {
+                key: "hy2_salamander_obfs",
+                badge: "ضد مسدودسازی UDP",
+                color: "#ef4444",
+                title: "🛡️ Hysteria 2 + Salamander Obfs",
+                desc: "پروتکل QUIC مجهز به الگوریتم مبهم‌سازی Salamander جهت نامرئی‌سازی هدرهای QUIC در برابر DPI",
+                use_case: "ضروری برای همراه اول، مخابرات و اینترنت خانگی با پکت‌لاست بالا. باز کردن استریم یوتیوب با کیفیت 4K.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "hysteria2";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20445;
+                    document.getElementById("sb-inbound-tag").value = "hy2_obfs_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const obfsEl = document.getElementById("sb-hy2-obfs");
+                    if (obfsEl) obfsEl.value = Math.random().toString(36).substring(2, 10);
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "hy2_brutal_speed",
+                badge: "حداکثر سرعت",
+                color: "#f97316",
+                title: "⚡ Hysteria 2 Brutal (سرعت ۲۰۰ مگابیت)",
+                desc: "ارسال بسته‌ها با سقف سرعت ۲۰۰ مگابیت بدون توجه به پکت‌لاست تحمیلی شبکه",
+                use_case: "مناسب دانلود فایل‌های فوق‌سنگین و اینترنت‌های پرنویز و فیبر نوری پرسرعت.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "hysteria2";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20445;
+                    document.getElementById("sb-inbound-tag").value = "hy2_brutal_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const upEl = document.getElementById("sb-hy2-up");
+                    const downEl = document.getElementById("sb-hy2-down");
+                    if (upEl) upEl.value = 100;
+                    if (downEl) downEl.value = 200;
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "hy2_balanced",
+                badge: "مصرف بهینه دیتا",
+                color: "#10b981",
+                title: "📱 Hysteria 2 متعادل (۵۰ مگابیت)",
+                desc: "تنظیم سرعت پایدار و سقف پهنای باند متعادل جهت صرفه‌جویی در دیتای بسته‌های موبایل",
+                use_case: "مناسب برای وب‌گردی روزمره، اینستاگرام و استفاده مستمر در طول ماه بدون اتلاف دیتا.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "hysteria2";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20445;
+                    document.getElementById("sb-inbound-tag").value = "hy2_bal_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const upEl = document.getElementById("sb-hy2-up");
+                    const downEl = document.getElementById("sb-hy2-down");
+                    if (upEl) upEl.value = 30;
+                    if (downEl) downEl.value = 50;
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            }
+        ],
+        tuic: [
+            {
+                key: "tuic_gaming_bbr",
+                badge: "مخصوص گیمینگ و پینگ",
+                color: "#6366f1",
+                title: "🎮 TUIC v5 + BBR (پینگ مینیمم)",
+                desc: "هندشیک بدون تاخیر (0-RTT)، سوئیچ خودکار بین دیتا و وای‌فای بدون قطعی و الگوریتم بهینه BBR",
+                use_case: "بهترین انتخاب برای بازی‌های آنلاین (کالاف، پابجی، رینبو)، تماس‌های صوتی تلگرام و واتساپ.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "tuic";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20446;
+                    document.getElementById("sb-inbound-tag").value = "tuic_gaming_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const ccEl = document.getElementById("sb-tuic-cc");
+                    if (ccEl) ccEl.value = "bbr";
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "tuic_cubic",
+                badge: "سازگار با وای‌فای",
+                color: "#0ea5e9",
+                title: "📶 TUIC v5 + CUBIC",
+                desc: "استفاده از کنترل ازدحام سنتی CUBIC برای شبکه‌های وای‌فای خانگی با رفتار متعادل",
+                use_case: "مناسب اینترنت ثابت خانگی، ADSL و روترهایی که با BBR دچار نوسان سرعت می‌شوند.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "tuic";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20446;
+                    document.getElementById("sb-inbound-tag").value = "tuic_cubic_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const ccEl = document.getElementById("sb-tuic-cc");
+                    if (ccEl) ccEl.value = "cubic";
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            }
+        ],
+        trojan: [
+            {
+                key: "trojan_direct_tls",
+                badge: "وب‌سایت امن",
+                color: "#0284c7",
+                title: "🔒 Trojan Direct TLS (پورت ۴۴۳)",
+                desc: "ترافیک کاملاً منطبق بر وب‌سایت امن HTTPS واقعی با گواهینامه معتبر Let's Encrypt",
+                use_case: "مناسب ادارات، شبکه‌های دارای فایروال حساس روی پروتکل UDP و وب‌گردی پایدار.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "trojan";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20444;
+                    document.getElementById("sb-inbound-tag").value = "trojan_tls_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "trojan_ws_cdn",
+                badge: "کلودفلر CDN",
+                color: "#f59e0b",
+                title: "☁️ Trojan WebSocket + CDN",
+                desc: "کپسوله‌سازی بسته‌های تروجان در وب‌سوکت جهت عبور از پشت شبکه توزیع محتوای کلودفلر",
+                use_case: "پایداری بالا در مواقع فیلتر بودن IP اصلی سرور.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "trojan";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "ws";
+                    document.getElementById("sb-inbound-port").value = 20454;
+                    document.getElementById("sb-inbound-tag").value = "trojan_ws_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const wsEl = document.getElementById("sb-ws-path");
+                    if (wsEl) wsEl.value = "/trojan-ws";
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "trojan_grpc_tls",
+                badge: "مالتی‌پلکس gRPC",
+                color: "#10b981",
+                title: "⚡ Trojan gRPC + TLS",
+                desc: "پروتکل تروجان با لایه انتقال مدرن gRPC بر بستر HTTP/2 جهت هندشیک سریع‌تر",
+                use_case: "کاهش مصرف باتری گوشی و اتصالات همزمان امن بدون قطعی.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "trojan";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "grpc";
+                    document.getElementById("sb-inbound-port").value = 20457;
+                    document.getElementById("sb-inbound-tag").value = "trojan_grpc_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const grpcEl = document.getElementById("sb-grpc-service");
+                    if (grpcEl) grpcEl.value = "TrojanGun";
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            },
+            {
+                key: "trojan_httpup_tls",
+                badge: "کم‌تاخیر و سبک",
+                color: "#06b6d4",
+                title: "🚀 Trojan HTTPUpgrade + TLS",
+                desc: "تروجان با ترانسپورت نوین HTTPUpgrade جهت عبور بدون سربار از کلودفلر",
+                use_case: "پینگ کمتر و مصرف پردازنده بهینه‌تر نسبت به وب‌سوکت سنتی.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "trojan";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "httpupgrade";
+                    document.getElementById("sb-inbound-port").value = 20458;
+                    document.getElementById("sb-inbound-tag").value = "trojan_httpup_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const upEl = document.getElementById("sb-httpupgrade-path");
+                    if (upEl) upEl.value = "/trojan-upgrade";
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            }
+        ],
+        shadowtls: [
+            {
+                key: "stls_v3_ss",
+                badge: "ضد پروب فعال",
+                color: "#ec4899",
+                title: "🕵️ ShadowTLS v3 + SS2022 (128-bit)",
+                desc: "استتار هندشیک دامنه‌های مجاز (گوگل/مایکروسافت) با لایه داخلی شادوساکس ۲۰۲۲",
+                use_case: "مقاومت ۱۰۰٪ در برابر پروپ فعال (Active Probing) در شرایط اختلال شدید همراه اول و ایرانسل.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "shadowtls";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "none";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20450;
+                    document.getElementById("sb-inbound-tag").value = "shadowtls_v3_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                }
+            },
+            {
+                key: "stls_v3_ss256",
+                badge: "امنیت نظامی ۲۵۶",
+                color: "#8b5cf6",
+                title: "🛡️ ShadowTLS v3 + SS2022 (256-bit)",
+                desc: "رمزنگاری فوق‌العاده قوی ۲۵۶ بیتی Blake3 با پوشش کامل هندشیک TLS معتبر",
+                use_case: "بالاترین سطح رمزنگاری ضد رمزگشایی و شنود در خطوط پرخطر دولتی و سازمانی.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "shadowtls";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "none";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20459;
+                    document.getElementById("sb-inbound-tag").value = "shadowtls_256_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                }
+            }
+        ],
+        shadowsocks: [
+            {
+                key: "ss_2022_b128",
+                badge: "سریع و سبک",
+                color: "#10b981",
+                title: "🔑 Shadowsocks 2022 (Blake3-128)",
+                desc: "نسخه رسمی ۲۰۲۲ شادوساکس با مشتق‌گیری کلید BLAKE3 و مقاومت در برابر Replay Attack",
+                use_case: "مناسب برای استفاده پشت تانل‌های داخلی (Gost/Rathole) یا اتصالات مستقیم پایدار.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "shadowsocks";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "none";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20447;
+                    document.getElementById("sb-inbound-tag").value = "ss2022_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    const mEl = document.getElementById("sb-ss-method");
+                    if (mEl) mEl.value = "2022-blake3-aes-128-gcm";
+                }
+            }
+        ],
+        naive: [
+            {
+                key: "naive_chrome",
+                badge: "هویت کامل کروم",
+                color: "#f59e0b",
+                title: "🌐 NaiveProxy Chromium HTTPS",
+                desc: "هویت ۱۰۰٪ منطبق با مرورگر رسمی Google Chrome از طریق پشته شبکه کرومیوم",
+                use_case: "مقاوم‌ترین روش در برابر سیستم‌های هوش مصنوعی شناسایی اثر انگشت TLS.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "naive";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "tls";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 20449;
+                    document.getElementById("sb-inbound-tag").value = "naive_chrome_" + Math.floor(1000 + Math.random() * 9000);
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
+                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
+                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                }
+            }
+        ],
+        mixed: [
+            {
+                key: "mixed_local",
+                badge: "پروکسی محلی",
+                color: "#64748b",
+                title: "🔄 Mixed (HTTP + SOCKS5 ترکیبی)",
+                desc: "یک پورت واحد که به طور خودکار پروتکل SOCKS5 و HTTP Proxy را شناسایی و پردازش می‌کند",
+                use_case: "مناسب برای ست کردن روی مرورگرها، دانلود منیجر IDM، ربات‌های تلگرام و برنامه‌های ویندوز.",
+                apply: () => {
+                    document.getElementById("sb-inbound-type").value = "mixed";
+                    onSingboxProtocolChange(true);
+                    document.getElementById("sb-tls-mode").value = "none";
+                    document.getElementById("sb-transport-type").value = "tcp";
+                    document.getElementById("sb-inbound-port").value = 2080;
+                    document.getElementById("sb-inbound-tag").value = "mixed_inbound";
+                    onSingboxTlsModeChange();
+                    onSingboxTransportChange();
+                }
+            }
+        ]
+    };
+
+    function renderSingboxPresets(proto) {
+        const container = document.getElementById("sb-preset-buttons-container");
+        const card = document.getElementById("sb-preset-info-card");
+        if (!container) return;
+        container.innerHTML = "";
+        if (card) { card.style.display = "none"; card.innerHTML = ""; }
+
+        const presets = SINGBOX_PRESETS[proto] || [];
+        if (presets.length === 0) {
+            container.innerHTML = `<span style="font-size:11px; color:var(--text-muted);">برای این پروتکل تنظیم دستی پیش‌فرض فعال است.</span>`;
+            return;
+        }
+
+        presets.forEach((pr) => {
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "btn btn-secondary btn-sm";
+            btn.style.cssText = `font-size: 11px; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; border-radius: 6px; border: 1px solid ${pr.color || '#6366f1'}; background: var(--bg-card); cursor: pointer; transition: all 0.2s;`;
+            btn.innerHTML = `
+                <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:${pr.color || '#6366f1'};"></span>
+                <span style="font-weight:600;">${pr.title}</span>
+                <span class="badge-pill" style="font-size:9.5px; padding:1px 5px; background:rgba(99,102,241,0.1); color:${pr.color};">${pr.badge}</span>
+            `;
+            btn.onclick = () => selectSingboxPreset(proto, pr.key);
+            container.appendChild(btn);
+        });
+    }
+
+    function selectSingboxPreset(proto, key) {
+        const list = SINGBOX_PRESETS[proto] || [];
+        const target = list.find(x => x.key === key);
+        if (!target) return;
+
+        target.apply();
+
+        const badge = document.getElementById("sb-preset-active-badge");
+        if (badge) badge.innerText = `مدل فعال: ${target.badge}`;
+
+        const card = document.getElementById("sb-preset-info-card");
+        if (card) {
+            card.style.display = "block";
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                    <span style="font-weight:700; color:${target.color || '#4f46e5'}; font-size:12px;">${target.title}</span>
+                    <span class="badge-pill" style="font-size:10px; background:rgba(16,185,129,0.15); color:#10b981;">کانفیگ اعمال شد ✔</span>
+                </div>
+                <div style="color:var(--text-main); font-weight:500; margin-bottom:4px;">${target.desc}</div>
+                <div style="color:var(--text-muted); font-size:11px;"><strong>سناریوی ایده‌آل:</strong> ${target.use_case}</div>
+            `;
+        }
+        showToast(`مدل ${target.title} با یک کلیک روی فرم اعمال شد.`, "info");
+    }
+
+    function onSingboxProtocolChange(skipPresets = false) {
         const p = document.getElementById("sb-inbound-type").value;
         const tagInput = document.getElementById("sb-inbound-tag");
         const portInput = document.getElementById("sb-inbound-port");
         const dynContainer = document.getElementById("sb-dynamic-protocol-fields");
         const tlsModeSelect = document.getElementById("sb-tls-mode");
+
+        if (!skipPresets) {
+            renderSingboxPresets(p);
+        }
 
         if (tagInput && !tagInput.value.includes("_custom")) {
             tagInput.value = `${p}_${Math.floor(1000 + Math.random() * 9000)}`;
@@ -16761,96 +17516,145 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             html = `
                 <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">شناسه کاربری (UUID)</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">شناسه کاربری منحصر‌به‌فرد (UUID):</label>
                         <div style="display:flex; gap:6px;">
                             <input type="text" class="form-input" id="sb-user-uuid" value="${crypto.randomUUID ? crypto.randomUUID() : '08205c7a-fb03-4206-9855-7d0fc8cb24ee'}" style="font-family:'JetBrains Mono'; font-size:12px;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-user-uuid').value = crypto.randomUUID()" title="UUID تصادفی">⚡</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-user-uuid').value = crypto.randomUUID()" title="تولید مجدد UUID">⚡</button>
                         </div>
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 کلید احراز هویت اختصاصی استاندارد RFC 4122 (UUIDv4) بدون نیاز به پسورد متنی.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">الگوریتم Flow</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">الگوریتم جریان (Flow):</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('xtls_vision')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند Vision (RPRX)</button>
+                        </div>
                         <select class="form-input" id="sb-user-flow">
-                            <option value="xtls-rprx-vision">xtls-rprx-vision (ضد فیلتر)</option>
-                            <option value="">None (عادی)</option>
+                            <option value="xtls-rprx-vision">xtls-rprx-vision (ضد فیلتر - پدینگ پکت)</option>
+                            <option value="">None (عادی - مخصوص وب‌سوکت/gRPC)</option>
                         </select>
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 الگوریتم Vision ترافیک TLS-in-TLS را مخفی می‌کند (فقط در TCP و Reality فعال شود).</small>
                     </div>
                 </div>`;
         } else if (p === "hysteria2") {
             html = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال کلاینت</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال کلاینت (Password):</label>
                         <input type="text" class="form-input" id="sb-hy2-pass" value="Hy2_${Math.random().toString(36).substring(2, 10)}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 رمز عبور اصلی کاربر جهت احراز هویت در پروتکل Hysteria 2.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز مبهم‌سازی Salamander (اختیاری)</label>
-                        <input type="text" class="form-input" id="sb-hy2-obfs" placeholder="Salamander Password">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">رمز مبهم‌سازی Salamander (Obfs):</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('hysteria2_brutal')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند Tobyx</button>
+                        </div>
+                        <input type="text" class="form-input" id="sb-hy2-obfs" placeholder="Salamander Password" value="${Math.random().toString(36).substring(2, 10)}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 کلید متقارن برای تبدیل هدرهای آشکار QUIC به نویز تصادفی جهت عبور از DPI همراه اول و ایرانسل.</small>
                     </div>
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">سقف سرعت آپلود (Mbps)</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">سقف سرعت آپلود (Mbps):</label>
                         <input type="number" class="form-input" id="sb-hy2-up" value="100">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 نرخ ارسال آپلود الگوریتم کنترل ازدحام Brutal.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">سقف سرعت دانلود (Mbps)</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">سقف سرعت دانلود (Mbps):</label>
                         <input type="number" class="form-input" id="sb-hy2-down" value="100">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 نرخ دانلود Brutal که به پکت‌لاست‌های ۳۰٪ تا ۵۰٪ توجهی نکرده و با حداکثر سرعت فایل دریافت می‌کند.</small>
                     </div>
                 </div>`;
         } else if (p === "tuic") {
             html = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">شناسه کاربری (UUID)</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">شناسه کاربری (UUID):</label>
                         <input type="text" class="form-input" id="sb-tuic-uuid" value="${crypto.randomUUID ? crypto.randomUUID() : '08205c7a-fb03-4206-9855-7d0fc8cb24ee'}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 شناسه کلاینت در پروتکل تاخیر صفر TUIC v5.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال (Password):</label>
                         <input type="text" class="form-input" id="sb-tuic-pass" value="Tuic_${Math.random().toString(36).substring(2, 10)}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 رمز عبور امن جهت اعتبارسنجی هندشیک QUIC.</small>
                     </div>
                 </div>
                 <div>
-                    <label class="form-label" style="font-size:11.5px;">الگوریتم کنترل ازدحام (Congestion Control)</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                        <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">الگوریتم کنترل ازدحام (Congestion Control):</label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('tuic_v5')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند EAimTY</button>
+                    </div>
                     <select class="form-input" id="sb-tuic-cc">
-                        <option value="bbr">BBR (حداکثر بازدهی شبکه فیلترشده)</option>
-                        <option value="cubic">CUBIC</option>
+                        <option value="bbr">BBR (حداکثر بازدهی در شبکه فیلترشده و پینگ مینیمم گیمینگ)</option>
+                        <option value="cubic">CUBIC (مناسب شبکه‌های وای‌فای با تاخیر ثابت)</option>
                         <option value="new_reno">New Reno</option>
                     </select>
+                    <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 الگوریتم BBR پهنای باند را در حضور پکت‌لاست به حداکثر رسانده و جیتر (Jitter) پینگ را به صفر نزدیک می‌کند.</small>
                 </div>`;
         } else if (p === "trojan") {
             html = `
                 <div>
-                    <label class="form-label" style="font-size:11.5px;">رمز عبور Trojan (Password)</label>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                        <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">رمز عبور Trojan (Password):</label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('trojan_architecture')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند تروجان</button>
+                    </div>
                     <input type="text" class="form-input" id="sb-trojan-pass" value="Trojan_${Math.random().toString(36).substring(2, 12)}">
+                    <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 در پروتکل تروجان هش SHA-224 این پسورد در اولین بسته اتصال ارسال می‌شود؛ ظاهر ترافیک ۱۰۰٪ شبیه HTTPS وب است.</small>
                 </div>`;
         } else if (p === "shadowsocks") {
             const randomKey16 = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
             html = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">الگوریتم رمزنگاری Method</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">الگوریتم رمزنگاری (AEAD Cipher Method):</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('shadowsocks_2022')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند SS-2022</button>
+                        </div>
                         <select class="form-input" id="sb-ss-method">
-                            <option value="2022-blake3-aes-128-gcm">2022-blake3-aes-128-gcm (16-byte key)</option>
-                            <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm (32-byte key)</option>
-                            <option value="aes-128-gcm">aes-128-gcm</option>
-                            <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305</option>
+                            <option value="2022-blake3-aes-128-gcm">2022-blake3-aes-128-gcm (کلید ۱۶ بایتی - سریع و امن)</option>
+                            <option value="2022-blake3-aes-256-gcm">2022-blake3-aes-256-gcm (کلید ۳۲ بایتی - امنیت نظامی)</option>
+                            <option value="aes-128-gcm">aes-128-gcm (سنتی)</option>
+                            <option value="chacha20-ietf-poly1305">chacha20-ietf-poly1305 (بهینه برای موبایل)</option>
                         </select>
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 نسخه ۲۰۲۲ با مشتق‌گیری کلید BLAKE3 در برابر حملات بازپخش مصون است.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز عبور یا کلید Base64</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">کلید رمزنگاری Base64:</label>
                         <input type="text" class="form-input" id="sb-ss-pass" value="${randomKey16}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 کلید تولیدشده تصادفی ۱۶ یا ۳۲ بایتی در فرمت استاندارد Base64.</small>
                     </div>
                 </div>`;
         } else if (p === "naive") {
             html = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">نام کاربری Naive</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">نام کاربری Naive:</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('naiveproxy')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند klzgrad</button>
+                        </div>
                         <input type="text" class="form-input" id="sb-naive-user" value="naiveuser">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 نام کاربری جهت ارسال در هدر Proxy-Authorization کرومیوم.</small>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال</label>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال:</label>
                         <input type="text" class="form-input" id="sb-naive-pass" value="Naive_${Math.random().toString(36).substring(2, 10)}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 رمز عبور امن برای متد HTTP/2 CONNECT مرورگر کروم.</small>
+                    </div>
+                </div>`;
+        } else if (p === "shadowtls") {
+            html = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                    <div>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور پروتکل (ShadowTLS Password):</label>
+                        <input type="text" class="form-input" id="sb-stls-pass" value="Stls_${Math.random().toString(36).substring(2, 10)}">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 کلید احراز هویت چالش HMAC در فیلد SessionID بسته ClientHello.</small>
+                    </div>
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600; margin:0;">سرور هدف استتار (Handshake Server):</label>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('shadowtls_v3')" style="font-size:9.5px; padding:1px 5px; color:#4f46e5; border-color:rgba(99,102,241,0.25);">📖 مستند ihciah</button>
+                        </div>
+                        <input type="text" class="form-input" id="sb-stls-server" value="gateway.icloud.com:443" placeholder="gateway.icloud.com:443">
+                        <small style="color:var(--text-muted); font-size:10.5px; margin-top:3px; display:block;">💡 سرور خارجی بسیار معتبر که سرور در برابر اسکنرهای فعال نقش آن را بازی می‌کند.</small>
                     </div>
                 </div>`;
         }
@@ -16880,7 +17684,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     function onSingboxTransportChange() {
         const tr = document.getElementById("sb-transport-type").value;
         const wsBox = document.getElementById("sb-ws-fields");
-        if (wsBox) wsBox.style.display = (tr === "ws" || tr === "httpupgrade") ? "grid" : "none";
+        const grpcBox = document.getElementById("sb-grpc-fields");
+        const httpupBox = document.getElementById("sb-httpupgrade-fields");
+        if (wsBox) wsBox.style.display = (tr === "ws") ? "flex" : "none";
+        if (grpcBox) grpcBox.style.display = (tr === "grpc") ? "flex" : "none";
+        if (httpupBox) httpupBox.style.display = (tr === "httpupgrade") ? "flex" : "none";
     }
 
     async function generateSingboxRealityKeys() {
@@ -16964,7 +17772,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
 
         if (transportType === "ws") {
-            payload.ws_path = document.getElementById("sb-ws-path").value.trim();
+            payload.ws_path = document.getElementById("sb-ws-path") ? document.getElementById("sb-ws-path").value.trim() : "/ws-path";
+        } else if (transportType === "grpc") {
+            payload.grpc_service_name = document.getElementById("sb-grpc-service") ? document.getElementById("sb-grpc-service").value.trim() : "GunService";
+        } else if (transportType === "httpupgrade") {
+            payload.httpupgrade_path = document.getElementById("sb-httpupgrade-path") ? document.getElementById("sb-httpupgrade-path").value.trim() : "/vless-upgrade";
         }
 
         toggleLoading(true, "در حال ایجاد و اعتبارسنجی اینباند...");
@@ -17320,6 +18132,97 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // --- Sing-box Local Users Engine ---
     let currentSingboxUserLinksData = null;
 
+    async function loadSingboxCategories() {
+        try {
+            const res = await fetch("/api/singbox/categories");
+            const data = await res.json();
+            if (data.success && Array.isArray(data.categories)) {
+                activeSingboxCategories = data.categories;
+                populateSingboxCategoryDropdowns();
+            }
+        } catch (e) {
+            console.error("loadSingboxCategories error:", e);
+        }
+    }
+
+    function populateSingboxCategoryDropdowns() {
+        // 1. Users table toolbar category filter
+        const filterSel = document.getElementById("sb-users-category-filter");
+        if (filterSel) {
+            const currVal = currentSingboxCategoryFilter || "ALL";
+            let opts = `<option value="ALL">همه دسته‌ها (All)</option>`;
+            activeSingboxCategories.forEach(cat => {
+                opts += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+            });
+            filterSel.innerHTML = opts;
+            if (activeSingboxCategories.includes(currVal) || currVal === "ALL") {
+                filterSel.value = currVal;
+            } else {
+                filterSel.value = "ALL";
+                currentSingboxCategoryFilter = "ALL";
+            }
+        }
+
+        // 2. Add / Edit local user modal category select
+        const userCatSel = document.getElementById("sb-user-select-category");
+        if (userCatSel) {
+            const currVal = userCatSel.value || "عمومی (Default)";
+            let opts = "";
+            activeSingboxCategories.forEach(cat => {
+                opts += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+            });
+            opts += `<option value="__NEW__">➕ ایجاد دسته‌بندی جدید...</option>`;
+            userCatSel.innerHTML = opts;
+            if (activeSingboxCategories.includes(currVal)) {
+                userCatSel.value = currVal;
+            }
+        }
+
+        // 3. Bulk user generator modal category select
+        const bulkCatSel = document.getElementById("sb-bulk-category-select");
+        if (bulkCatSel) {
+            const currVal = bulkCatSel.value || (activeSingboxCategories[0] || "عمومی (Default)");
+            let opts = "";
+            activeSingboxCategories.forEach(cat => {
+                opts += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+            });
+            opts += `<option value="__NEW__">➕ ایجاد دسته‌بندی جدید...</option>`;
+            bulkCatSel.innerHTML = opts;
+            if (activeSingboxCategories.includes(currVal)) {
+                bulkCatSel.value = currVal;
+            }
+        }
+    }
+
+    function onSingboxCategoryFilterChange(val) {
+        currentSingboxCategoryFilter = val || "ALL";
+        renderSingboxUsersTable();
+    }
+
+    function onUserCategorySelectChange(val) {
+        const customInp = document.getElementById("sb-user-input-category-custom");
+        if (!customInp) return;
+        if (val === "__NEW__") {
+            customInp.style.display = "block";
+            customInp.focus();
+        } else {
+            customInp.style.display = "none";
+            customInp.value = "";
+        }
+    }
+
+    function onBulkCategorySelectChange(val) {
+        const customInp = document.getElementById("sb-bulk-category-custom");
+        if (!customInp) return;
+        if (val === "__NEW__") {
+            customInp.style.display = "block";
+            customInp.focus();
+        } else {
+            customInp.style.display = "none";
+            customInp.value = "";
+        }
+    }
+
     async function loadSingboxUsers() {
         try {
             const res = await fetch("/api/singbox/users");
@@ -17348,9 +18251,37 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="users" style="width:36px; height:36px; opacity:0.35;"></i>
                             <span>هنوز هیچ کاربر محلی برای هسته Sing-box تعریف نشده است.</span>
-                            <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" style="margin-top:6px;">
-                                <i data-lucide="user-plus" style="width:13px; height:13px;"></i>
-                                <span>تعریف اولین کاربر محلی</span>
+                            <div style="display:flex; gap:8px; margin-top:6px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxBulkUserModal()">
+                                    <i data-lucide="users" style="width:13px; height:13px;"></i>
+                                    <span>ساخت انبوه کاربران</span>
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()">
+                                    <i data-lucide="user-plus" style="width:13px; height:13px;"></i>
+                                    <span>تعریف کاربر تکی</span>
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        let filteredUsers = activeSingboxUsers;
+        if (currentSingboxCategoryFilter && currentSingboxCategoryFilter !== "ALL") {
+            filteredUsers = activeSingboxUsers.filter(u => (u.category || "عمومی (Default)") === currentSingboxCategoryFilter);
+        }
+
+        if (filteredUsers.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                        <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+                            <i data-lucide="filter" style="width:32px; height:32px; opacity:0.35;"></i>
+                            <span>هیچ کاربری در دسته‌بندی «<strong>${escapeHtml(currentSingboxCategoryFilter)}</strong>» یافت نشد.</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="onSingboxCategoryFilterChange('ALL'); document.getElementById('sb-users-category-filter').value='ALL';" style="margin-top:6px;">
+                                نمایش همه کاربران
                             </button>
                         </div>
                     </td>
@@ -17360,63 +18291,159 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
 
         let html = "";
-        activeSingboxUsers.forEach(u => {
+        filteredUsers.forEach(u => {
             const isEnabled = (u.enabled !== false);
-            const statusBadge = isEnabled
-                ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:6px; font-weight:700;">فعال</span>`
-                : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:6px; font-weight:700;">غیرفعال</span>`;
+            const userCategory = u.category || "عمومی (Default)";
 
             let inboundsHtml = "";
             if (u.inbounds && u.inbounds.length > 0) {
                 inboundsHtml = u.inbounds.map(tag => {
-                    return `<span class="badge-pill" style="font-size:10.5px; padding:2px 7px; background:rgba(99,102,241,0.12); color:#4338ca; border-radius:6px; font-family:'JetBrains Mono'; margin:2px 3px 2px 0; display:inline-block;">${escapeHtml(tag)}</span>`;
+                    return `<span class="badge-pill" style="font-size:10px; padding:2px 6px; background:rgba(99,102,241,0.12); color:#4338ca; border-radius:5px; font-family:'JetBrains Mono'; margin:2px 2px 2px 0; display:inline-block;">${escapeHtml(tag)}</span>`;
                 }).join("");
             } else {
                 inboundsHtml = `<span style="font-size:11px; color:var(--text-muted);">(بدون کانفیگ)</span>`;
             }
 
-            const credPreview = u.uuid
-                ? `<div style="font-family:'JetBrains Mono'; font-size:11px; color:var(--text-main);" title="${escapeHtml(u.uuid)}">UUID: ${escapeHtml(u.uuid.substring(0, 13))}...</div>`
-                : (u.password ? `<div style="font-family:'JetBrains Mono'; font-size:11px; color:var(--text-main);">Pass: ${escapeHtml(u.password.substring(0, 12))}...</div>` : `<span style="color:var(--text-muted); font-size:11px;">-</span>`);
+            // 1. Traffic & Quota
+            let trafficHtml = "";
+            const limitGb = parseFloat(u.traffic_limit_gb || 0);
+            const usedFormatted = u.used_traffic_formatted || "0 B";
+            const upFormatted = u.upload_formatted || "0 B";
+            const downFormatted = u.download_formatted || "0 B";
 
-            const createdDate = u.created_at ? escapeHtml(u.created_at.split("T")[0]) : "-";
+            if (limitGb > 0) {
+                const pct = u.traffic_percent !== undefined ? u.traffic_percent : 0;
+                let barColor = "#10b981";
+                let badgeBg = "rgba(16,185,129,0.12)";
+                let badgeColor = "#10b981";
+                if (pct >= 90) {
+                    barColor = "#ef4444";
+                    badgeBg = "rgba(239,68,68,0.15)";
+                    badgeColor = "#ef4444";
+                } else if (pct >= 70) {
+                    barColor = "#f59e0b";
+                    badgeBg = "rgba(245,158,11,0.15)";
+                    badgeColor = "#d97706";
+                }
+
+                trafficHtml = `
+                    <div style="min-width: 180px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; font-size:11.5px;">
+                            <span style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono';">${usedFormatted} / ${u.traffic_limit_formatted}</span>
+                            <span class="badge-pill" style="font-size:10px; font-weight:700; background:${badgeBg}; color:${badgeColor}; padding:1px 5px; border-radius:4px;">${pct}%</span>
+                        </div>
+                        <div style="width:100%; height:6px; background:rgba(255,255,255,0.08); border-radius:4px; overflow:hidden;">
+                            <div style="width:${pct}%; height:100%; background:${barColor}; border-radius:4px; transition:width 0.3s;"></div>
+                        </div>
+                        <div style="font-size:10px; color:var(--text-muted); margin-top:3px; display:flex; justify-content:space-between; font-family:'JetBrains Mono';">
+                            <span title="آپلود">↑ ${upFormatted}</span>
+                            <span title="دانلود">↓ ${downFormatted}</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                trafficHtml = `
+                    <div style="min-width: 160px;">
+                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                            <span style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px;">${usedFormatted}</span>
+                            <span class="badge-pill" style="font-size:10px; background:rgba(59,130,246,0.12); color:#3b82f6; padding:1px 6px; border-radius:4px;">نامحدود ∞</span>
+                        </div>
+                        <div style="font-size:10px; color:var(--text-muted); display:flex; gap:8px; font-family:'JetBrains Mono';">
+                            <span title="آپلود">↑ ${upFormatted}</span>
+                            <span title="دانلود">↓ ${downFormatted}</span>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 2. Expiration Date & Validity
+            let expireHtml = "";
+            if (u.is_waiting_first_use) {
+                expireHtml = `
+                    <div style="font-size:12px; font-family:'JetBrains Mono'; font-weight:700; color:#3b82f6;">${u.validity_days || 30} روز اعتبار</div>
+                    <span class="badge-pill" style="font-size:10px; background:rgba(59,130,246,0.12); color:#2563eb; font-weight:700; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block; border:1px solid rgba(59,130,246,0.25);">
+                        ⏳ در انتظار اولین اتصال
+                    </span>
+                `;
+            } else if (u.expire_date) {
+                if (u.is_expired) {
+                    expireHtml = `
+                        <div style="font-size:12px; font-family:'JetBrains Mono'; font-weight:700; color:#ef4444;">${escapeHtml(u.expire_date)}</div>
+                        <span class="badge-pill" style="font-size:10px; background:#fee2e2; color:#b91c1c; font-weight:700; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block;">منقضی شده (${Math.abs(u.days_remaining)} روز پیش)</span>
+                    `;
+                } else {
+                    const daysLeft = u.days_remaining !== null ? u.days_remaining : 0;
+                    expireHtml = `
+                        <div style="font-size:12px; font-family:'JetBrains Mono'; font-weight:600; color:var(--text-main);">${escapeHtml(u.expire_date)}</div>
+                        <span class="badge-pill" style="font-size:10px; background:rgba(16,185,129,0.12); color:#10b981; font-weight:700; padding:1px 6px; border-radius:4px; margin-top:2px; display:inline-block;">${daysLeft} روز باقیمانده ${u.first_connected_at ? '(فعال شده)' : ''}</span>
+                    `;
+                }
+            } else {
+                expireHtml = `
+                    <span class="badge-pill" style="font-size:10.5px; background:rgba(59,130,246,0.1); color:#3b82f6; padding:2px 8px; border-radius:6px; font-weight:600;">
+                        دائمی (بدون انقضا)
+                    </span>
+                `;
+            }
+
+            // 3. Status Badge
+            let statusBadge = "";
+            if (!isEnabled) {
+                statusBadge = `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:6px; font-weight:700;">غیرفعال دستی</span>`;
+            } else if (u.is_waiting_first_use) {
+                statusBadge = `<span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:700;">در انتظار اتصال ⚡</span>`;
+            } else if (u.is_expired) {
+                statusBadge = `<span style="font-size:11px; background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:6px; font-weight:700;">منقضی شده</span>`;
+            } else if (u.is_quota_exceeded) {
+                statusBadge = `<span style="font-size:11px; background:#ffedd5; color:#c2410c; padding:2px 8px; border-radius:6px; font-weight:700;">اتمام سهمیه</span>`;
+            } else {
+                statusBadge = `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:6px; font-weight:700;">فعال ✔</span>`;
+            }
 
             html += `
-            <tr style="border-bottom: 1px solid var(--border-color); ${!isEnabled ? 'opacity:0.6;' : ''}">
+            <tr style="border-bottom: 1px solid var(--border-color); ${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'opacity:0.75;' : ''}">
                 <td style="padding: 12px 16px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="status-dot ${isEnabled ? 'active' : ''}" style="${!isEnabled ? 'background:#94a3b8;' : ''}"></span>
+                        <span class="status-dot ${(isEnabled && !u.is_expired && !u.is_quota_exceeded) ? 'active' : ''}" style="${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'background:#ef4444;' : ''}"></span>
                         <div>
-                            <strong style="color:var(--text-main); font-family:'JetBrains Mono'; font-size:13.5px;">${escapeHtml(u.username)}</strong>
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                <strong style="color:var(--text-main); font-family:'JetBrains Mono'; font-size:13.5px;">${escapeHtml(u.username)}</strong>
+                                <span class="badge-pill" style="font-size:10px; background:rgba(99,102,241,0.12); color:#4338ca; border:1px solid rgba(99,102,241,0.2); padding:1px 6px; border-radius:4px; font-weight:600;" title="دسته‌بندی">
+                                    📁 ${escapeHtml(userCategory)}
+                                </span>
+                            </div>
                             ${u.note ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(u.note)}</div>` : ''}
                         </div>
                     </div>
                 </td>
-                <td style="padding: 12px 16px; max-width: 280px;">
+                <td style="padding: 12px 16px; max-width: 220px;">
                     ${inboundsHtml}
                 </td>
                 <td style="padding: 12px 16px;">
-                    ${credPreview}
+                    ${trafficHtml}
+                </td>
+                <td style="padding: 12px 16px;">
+                    ${expireHtml}
                 </td>
                 <td style="padding: 12px 16px;">
                     ${statusBadge}
                 </td>
-                <td style="padding: 12px 16px; font-size:11.5px; color:var(--text-muted);">
-                    ${createdDate}
-                </td>
                 <td style="padding: 12px 16px; text-align: center;">
-                    <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:6px 9px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و بارکد اختصاصی کاربر">
-                            <i data-lucide="qr-code" style="width:14px; height:14px;"></i>
+                    <div style="display:flex; gap:5px; justify-content:center; align-items:center;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:5px 8px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و بارکد اختصاصی کاربر">
+                            <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditUserModal('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="ویرایش کاربر">
-                            <i data-lucide="edit-3" style="width:14px; height:14px;"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditUserModal('${escapeHtml(u.username)}')" style="padding:5px 8px;" title="ویرایش کاربر">
+                            <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxUser('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="${isEnabled ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}">
-                            <i data-lucide="${isEnabled ? 'pause' : 'play'}" style="width:14px; height:14px;"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="resetSingboxUserTrafficDirect('${escapeHtml(u.username)}')" style="padding:5px 8px;" title="صفر کردن ترافیک مصرفی">
+                            <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
                         </button>
-                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxUser('${escapeHtml(u.username)}')" style="padding:6px 9px;" title="حذف کاربر">
-                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxUser('${escapeHtml(u.username)}')" style="padding:5px 8px;" title="${isEnabled ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}">
+                            <i data-lucide="${isEnabled ? 'pause' : 'play'}" style="width:13px; height:13px;"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxUser('${escapeHtml(u.username)}')" style="padding:5px 8px;" title="حذف کاربر">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
                         </button>
                     </div>
                 </td>
@@ -17427,7 +18454,76 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (window.lucide) lucide.createIcons();
     }
 
+    function setSingboxUserQuotaPreset(gb) {
+        const inp = document.getElementById("sb-user-input-traffic-limit");
+        if (inp) inp.value = gb;
+    }
+
+    function onSingboxUserExpiryModeChange(mode) {
+        const fixedPanel = document.getElementById("sb-user-fixed-date-panel");
+        const firstPanel = document.getElementById("sb-user-first-use-panel");
+        if (fixedPanel) fixedPanel.style.display = (mode === "on_first_use") ? "none" : "block";
+        if (firstPanel) firstPanel.style.display = (mode === "on_first_use") ? "block" : "none";
+    }
+
+    function onSingboxBulkExpiryModeChange(mode) {
+        const fixedPanel = document.getElementById("sb-bulk-fixed-date-panel");
+        const firstPanel = document.getElementById("sb-bulk-first-use-panel");
+        if (fixedPanel) fixedPanel.style.display = (mode === "on_first_use") ? "none" : "block";
+        if (firstPanel) firstPanel.style.display = (mode === "on_first_use") ? "block" : "none";
+    }
+
+    function setSingboxUserValidityPreset(days) {
+        const inp = document.getElementById("sb-user-input-validity-days");
+        if (inp) inp.value = days;
+    }
+
+    function setSingboxBulkValidityPreset(days) {
+        const inp = document.getElementById("sb-bulk-validity-days");
+        if (inp) inp.value = days;
+    }
+
+    function setSingboxUserExpiryPreset(days) {
+        const inp = document.getElementById("sb-user-input-expire-date");
+        if (!inp) return;
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        inp.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function resetCurrentSingboxUserTraffic() {
+        const uInput = document.getElementById("sb-user-input-username");
+        if (!uInput || !uInput.value) return;
+        const username = uInput.value.trim();
+        await resetSingboxUserTrafficDirect(username);
+        const currentText = document.getElementById("sb-user-traffic-current-text");
+        if (currentText) currentText.textContent = `حجم مصرف‌شده تاکنون: 0 B`;
+    }
+
+    async function resetSingboxUserTrafficDirect(username) {
+        if (!confirm(`آیا از صفر کردن ترافیک مصرفی کاربر «${username}» اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال صفر کردن مصرف ترافیک...");
+        try {
+            const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/reset-traffic`, { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در صفر کردن ترافیک", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در صفر کردن ترافیک", "error");
+        }
+    }
+
     function openSingboxAddUserModal() {
+        populateSingboxCategoryDropdowns();
         const modal = document.getElementById("modal-singbox-user");
         if (!modal) return;
         modal.dataset.mode = "add";
@@ -17451,6 +18547,26 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const noteInput = document.getElementById("sb-user-input-note");
         if (noteInput) noteInput.value = "";
 
+        const quotaInput = document.getElementById("sb-user-input-traffic-limit");
+        if (quotaInput) quotaInput.value = "50";
+
+        setSingboxUserExpiryPreset(30);
+        const rFixed = document.querySelector("input[name='sb_user_expiry_mode'][value='fixed_date']");
+        if (rFixed) rFixed.checked = true;
+        onSingboxUserExpiryModeChange('fixed_date');
+        const vDays = document.getElementById("sb-user-input-validity-days");
+        if (vDays) vDays.value = "30";
+
+        const catSel = document.getElementById("sb-user-select-category");
+        if (catSel) catSel.value = (currentSingboxCategoryFilter !== "ALL") ? currentSingboxCategoryFilter : (activeSingboxCategories[0] || "عمومی (Default)");
+        const customCatInp = document.getElementById("sb-user-input-category-custom");
+        if (customCatInp) { customCatInp.value = ""; customCatInp.style.display = "none"; }
+
+        const resetRow = document.getElementById("sb-user-reset-traffic-row");
+        if (resetRow) resetRow.style.display = "none";
+        const usedBadge = document.getElementById("sb-user-traffic-used-badge");
+        if (usedBadge) usedBadge.style.display = "none";
+
         renderSingboxUserInboundsChecklist([]);
 
         modal.classList.add("active");
@@ -17459,6 +18575,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     }
 
     function openSingboxEditUserModal(username) {
+        populateSingboxCategoryDropdowns();
         const modal = document.getElementById("modal-singbox-user");
         if (!modal) return;
         modal.dataset.mode = "edit";
@@ -17486,6 +18603,49 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const noteInput = document.getElementById("sb-user-input-note");
         if (noteInput) noteInput.value = user.note || "";
+
+        const quotaInput = document.getElementById("sb-user-input-traffic-limit");
+        if (quotaInput) quotaInput.value = user.traffic_limit_gb !== undefined ? user.traffic_limit_gb : 0;
+
+        const expInput = document.getElementById("sb-user-input-expire-date");
+        if (expInput) expInput.value = user.expire_date || "";
+
+        const expType = user.expiry_type || (user.is_waiting_first_use ? 'on_first_use' : 'fixed_date');
+        const rMode = document.querySelector(`input[name='sb_user_expiry_mode'][value='${expType}']`);
+        if (rMode) rMode.checked = true;
+        onSingboxUserExpiryModeChange(expType);
+        const vDays = document.getElementById("sb-user-input-validity-days");
+        if (vDays) vDays.value = user.validity_days || 30;
+        const infoEl = document.getElementById("sb-user-first-use-status-info");
+        if (infoEl) {
+            if (user.is_waiting_first_use) {
+                infoEl.innerHTML = `⏱️ <strong>در انتظار اولین اتصال:</strong> روزشمار (${user.validity_days || 30} روزه) به محض اولین اتصال کاربر فعال خواهد شد.`;
+            } else if (user.first_connected_at) {
+                infoEl.innerHTML = `✅ <strong>اولین اتصال ثبت شده:</strong> ${user.first_connected_at} — تاریخ انقضا: ${user.expire_date || '-'}`;
+            } else {
+                infoEl.innerHTML = `⏱️ روزشمار این کاربر تا زمان اتصال اولیه استارت نمی‌خورد. پس از اولین ارسال/دریافت، مهلت روزها محاسبه و ثبت می‌شود.`;
+            }
+        }
+
+        const catSel = document.getElementById("sb-user-select-category");
+        const customCatInp = document.getElementById("sb-user-input-category-custom");
+        const uCat = user.category || "عمومی (Default)";
+        if (catSel) {
+            if (activeSingboxCategories.includes(uCat)) {
+                catSel.value = uCat;
+                if (customCatInp) { customCatInp.style.display = "none"; customCatInp.value = ""; }
+            } else {
+                catSel.value = "__NEW__";
+                if (customCatInp) { customCatInp.style.display = "block"; customCatInp.value = uCat; }
+            }
+        }
+
+        const resetRow = document.getElementById("sb-user-reset-traffic-row");
+        const currentText = document.getElementById("sb-user-traffic-current-text");
+        if (resetRow && currentText) {
+            resetRow.style.display = "flex";
+            currentText.textContent = `حجم مصرف‌شده تاکنون: ${user.used_traffic_formatted || '0 B'} (↑ ${user.upload_formatted || '0 B'} • ↓ ${user.download_formatted || '0 B'})`;
+        }
 
         renderSingboxUserInboundsChecklist(user.inbounds || []);
 
@@ -17552,8 +18712,24 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const uuid = document.getElementById("sb-user-input-uuid").value.trim();
         const note = document.getElementById("sb-user-input-note").value.trim();
 
+        let category = "عمومی (Default)";
+        const catSel = document.getElementById("sb-user-select-category");
+        const customCatInp = document.getElementById("sb-user-input-category-custom");
+        if (catSel) {
+            if (catSel.value === "__NEW__" && customCatInp && customCatInp.value.trim()) {
+                category = customCatInp.value.trim();
+            } else if (catSel.value !== "__NEW__") {
+                category = catSel.value;
+            }
+        }
+
         const checkedBoxes = document.querySelectorAll("#sb-user-inbounds-checklist input[type='checkbox']:checked");
         const inbounds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        const trafficLimit = parseFloat(document.getElementById("sb-user-input-traffic-limit").value) || 0;
+        const expireDate = (document.getElementById("sb-user-input-expire-date").value || "").trim();
+        const expiryType = document.querySelector("input[name='sb_user_expiry_mode']:checked")?.value || "fixed_date";
+        const validityDays = parseInt(document.getElementById("sb-user-input-validity-days")?.value, 10) || 30;
 
         if (!username) {
             showToast("نام کاربری الزامی است.", "warning");
@@ -17565,6 +18741,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             password: password,
             uuid: uuid,
             note: note,
+            category: category,
+            traffic_limit_gb: trafficLimit,
+            expiry_type: expiryType,
+            validity_days: validityDays,
+            expire_date: (expiryType === "on_first_use") ? "" : expireDate,
             inbounds: inbounds
         };
 
@@ -17584,6 +18765,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 showToast(data.message, "success");
                 closeSingboxUserModal();
                 loadSingboxData();
+                loadSingboxCategories();
                 fetchSingboxLogs();
             } else {
                 showToast(`خطا: ${data.error}`, "error");
@@ -17592,6 +18774,288 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             toggleLoading(false);
             showToast("خطای شبکه در ذخیره کاربر", "error");
         }
+    }
+
+    // --- Bulk User Creation Engine ---
+    function openSingboxBulkUserModal() {
+        populateSingboxCategoryDropdowns();
+        const modal = document.getElementById("modal-singbox-bulk-users");
+        if (!modal) return;
+
+        const prefixInput = document.getElementById("sb-bulk-prefix");
+        if (prefixInput) prefixInput.value = "user_";
+        const countInput = document.getElementById("sb-bulk-count");
+        if (countInput) countInput.value = "10";
+        const startIdxInput = document.getElementById("sb-bulk-start-index");
+        if (startIdxInput) startIdxInput.value = "1";
+        const trafficInput = document.getElementById("sb-bulk-traffic-limit");
+        if (trafficInput) trafficInput.value = "50";
+        setSingboxBulkExpiryPreset(30);
+        const rBulkFixed = document.querySelector("input[name='sb_bulk_expiry_mode'][value='fixed_date']");
+        if (rBulkFixed) rBulkFixed.checked = true;
+        onSingboxBulkExpiryModeChange('fixed_date');
+        const bDays = document.getElementById("sb-bulk-validity-days");
+        if (bDays) bDays.value = "30";
+
+        const noteInput = document.getElementById("sb-bulk-note");
+        if (noteInput) noteInput.value = "";
+
+        const catSel = document.getElementById("sb-bulk-category-select");
+        if (catSel) catSel.value = (currentSingboxCategoryFilter !== "ALL") ? currentSingboxCategoryFilter : (activeSingboxCategories[0] || "عمومی (Default)");
+        const customCatInp = document.getElementById("sb-bulk-category-custom");
+        if (customCatInp) { customCatInp.value = ""; customCatInp.style.display = "none"; }
+
+        renderSingboxBulkInboundsChecklist();
+
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSingboxBulkUserModal() {
+        const modal = document.getElementById("modal-singbox-bulk-users");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    function renderSingboxBulkInboundsChecklist() {
+        const container = document.getElementById("sb-bulk-inbounds-checklist");
+        if (!container) return;
+
+        if (!activeSingboxInbounds || activeSingboxInbounds.length === 0) {
+            container.innerHTML = '<span style="color:var(--text-muted); font-size:12px; grid-column:span 2;">هیچ اینباندی برای تخصیص یافت نشد.</span>';
+            return;
+        }
+
+        let html = "";
+        activeSingboxInbounds.forEach(ib => {
+            html += `
+            <label style="display:flex; align-items:center; gap:8px; font-size:12px; background:var(--bg-muted); padding:6px 10px; border-radius:6px; cursor:pointer; border:1px solid var(--border-color);">
+                <input type="checkbox" name="sb_bulk_inbound" value="${escapeHtml(ib.tag)}" checked>
+                <div style="display:flex; flex-direction:column;">
+                    <span style="font-weight:700; font-family:'JetBrains Mono'; color:var(--text-main); font-size:12px;">${escapeHtml(ib.tag)}</span>
+                    <span style="font-size:10.5px; color:var(--text-muted);">${escapeHtml(ib.type.toUpperCase())} : ${ib.listen_port}</span>
+                </div>
+            </label>`;
+        });
+
+        container.innerHTML = html;
+    }
+
+    function selectSingboxBulkInbounds(select) {
+        const checkboxes = document.querySelectorAll("#sb-bulk-inbounds-checklist input[type='checkbox']");
+        checkboxes.forEach(cb => cb.checked = !!select);
+    }
+
+    function setSingboxBulkQuotaPreset(gb) {
+        const inp = document.getElementById("sb-bulk-traffic-limit");
+        if (inp) inp.value = gb;
+    }
+
+    function setSingboxBulkExpiryPreset(days) {
+        const inp = document.getElementById("sb-bulk-expire-date");
+        if (!inp) return;
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        inp.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function submitSingboxBulkUsers(e) {
+        e.preventDefault();
+        const prefix = (document.getElementById("sb-bulk-prefix").value || "user_").trim();
+        const count = parseInt(document.getElementById("sb-bulk-count").value || "10", 10);
+        const startIndex = parseInt(document.getElementById("sb-bulk-start-index").value || "1", 10);
+        const trafficLimit = parseFloat(document.getElementById("sb-bulk-traffic-limit").value) || 0;
+        const expireDate = (document.getElementById("sb-bulk-expire-date").value || "").trim();
+        const expiryType = document.querySelector("input[name='sb_bulk_expiry_mode']:checked")?.value || "fixed_date";
+        const validityDays = parseInt(document.getElementById("sb-bulk-validity-days")?.value, 10) || 30;
+        const note = (document.getElementById("sb-bulk-note").value || "").trim();
+
+        let category = "عمومی (Default)";
+        const catSel = document.getElementById("sb-bulk-category-select");
+        const customCatInp = document.getElementById("sb-bulk-category-custom");
+        if (catSel) {
+            if (catSel.value === "__NEW__" && customCatInp && customCatInp.value.trim()) {
+                category = customCatInp.value.trim();
+            } else if (catSel.value !== "__NEW__") {
+                category = catSel.value;
+            }
+        }
+
+        const checkedBoxes = document.querySelectorAll("#sb-bulk-inbounds-checklist input[type='checkbox']:checked");
+        const inbounds = Array.from(checkedBoxes).map(cb => cb.value);
+
+        toggleLoading(true, `در حال ساخت ${count} کاربر جدید و تولید کانفیگ‌ها در هسته...`);
+        try {
+            const res = await fetch("/api/singbox/users/bulk-add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    prefix: prefix,
+                    count: count,
+                    start_index: startIndex,
+                    category: category,
+                    traffic_limit_gb: trafficLimit,
+                    expiry_type: expiryType,
+                    validity_days: validityDays,
+                    expire_date: (expiryType === "on_first_use") ? "" : expireDate,
+                    inbounds: inbounds,
+                    note: note
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                showToast(data.message, "success");
+                closeSingboxBulkUserModal();
+                loadSingboxUsers();
+                loadSingboxCategories();
+
+                // Select this category in the table filter
+                currentSingboxCategoryFilter = category;
+                const filterSel = document.getElementById("sb-users-category-filter");
+                if (filterSel) filterSel.value = category;
+
+                // Immediately pop up the Export modal with the newly generated links!
+                openSingboxExportModal(
+                    `خروجی لینک‌های کاربران جدید (${category})`,
+                    data.all_links_text || "",
+                    data.csv_text || "",
+                    data.created_count || count,
+                    data.links_count || 0,
+                    category
+                );
+            } else {
+                showToast(data.error || "خطا در ساخت انبوه کاربران", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    // --- Bulk Links & Category Export Engine ---
+    async function exportCurrentCategoryLinks() {
+        const targetCat = currentSingboxCategoryFilter || "ALL";
+        const catNameLabel = (targetCat === "ALL") ? "همه دسته‌ها" : targetCat;
+
+        toggleLoading(true, `در حال استخراج کلیه لینک‌های کانفیگ برای دسته‌بندی «${catNameLabel}»...`);
+        try {
+            const res = await fetch(`/api/singbox/category/${encodeURIComponent(targetCat)}/export`);
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                openSingboxExportModal(
+                    `خروجی لینک‌های اتصال (${catNameLabel})`,
+                    data.all_links_text || "",
+                    data.csv_text || "",
+                    data.users_count || 0,
+                    data.links_count || 0,
+                    catNameLabel
+                );
+            } else {
+                showToast(data.error || "خطا در خروجی لینک‌های دسته", "warning");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه در خروجی لینک‌ها", "error");
+        }
+    }
+
+    function openSingboxExportModal(title, linksText, csvText, usersCount, linksCount, catName) {
+        currentExportData = {
+            linksText: linksText || "",
+            csvText: csvText || "",
+            category: catName || "-",
+            userCount: usersCount || 0,
+            linkCount: linksCount || 0
+        };
+
+        const modal = document.getElementById("modal-singbox-export-links");
+        if (!modal) return;
+
+        const titleEl = document.getElementById("sb-export-modal-title");
+        if (titleEl) titleEl.textContent = title;
+
+        const catBadge = document.getElementById("sb-export-badge-cat");
+        if (catBadge) catBadge.textContent = catName || "-";
+
+        const usersBadge = document.getElementById("sb-export-badge-users");
+        if (usersBadge) usersBadge.textContent = `${usersCount} کاربر`;
+
+        const linksBadge = document.getElementById("sb-export-badge-links");
+        if (linksBadge) linksBadge.textContent = `${linksCount} لینک اتصال`;
+
+        const txtArea = document.getElementById("sb-export-links-textarea");
+        if (txtArea) txtArea.value = linksText || "(هیچ لینکی برای این انتخاب تولید نشده است)";
+
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSingboxExportModal() {
+        const modal = document.getElementById("modal-singbox-export-links");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    function copyExportedLinks() {
+        if (!currentExportData.linksText) {
+            showToast("هیچ لینکی برای کپی وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(currentExportData.linksText).then(() => {
+            showToast(`کلیه ${currentExportData.linkCount} لینک اتصال با موفقیت در کلیپ‌بورد کپی شدند.`, "success");
+        }).catch(() => {
+            const txtArea = document.getElementById("sb-export-links-textarea");
+            if (txtArea) {
+                txtArea.select();
+                document.execCommand("copy");
+                showToast("لینک‌ها در کلیپ‌بورد کپی شدند.", "success");
+            }
+        });
+    }
+
+    function downloadExportedLinks(format) {
+        let content = "";
+        let filename = "";
+        let mimeType = "";
+        const sanitizedCat = (currentExportData.category || "category").replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, "_");
+        const dateStr = new Date().toISOString().slice(0, 10);
+
+        if (format === "csv") {
+            content = currentExportData.csvText || "";
+            filename = `singbox_users_${sanitizedCat}_${dateStr}.csv`;
+            mimeType = "text/csv;charset=utf-8;";
+        } else {
+            content = currentExportData.linksText || "";
+            filename = `singbox_links_${sanitizedCat}_${dateStr}.txt`;
+            mimeType = "text/plain;charset=utf-8;";
+        }
+
+        if (!content) {
+            showToast("داده‌ای برای دانلود وجود ندارد.", "warning");
+            return;
+        }
+
+        const blob = new Blob(["\uFEFF" + content], { type: mimeType });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast(`فایل ${filename} دانلود شد.`, "success");
     }
 
     async function toggleSingboxUser(username) {
@@ -17945,6 +19409,1453 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }
         }
     };
+
+
+
+    // ==========================================
+    // SING-BOX FOUNDER DOCUMENTATION & KNOWLEDGE
+    // ==========================================
+
+    const FOUNDER_TOPICS_KNOWLEDGE = {
+        protocols_overview: {
+            title: "📖 مقایسه پروتکل‌ها و کاربرد عملی در شرایط مختلف فیلترینگ ایران",
+            founder: "جامعه متن‌باز ضد سانسور (RPRX, Tobyx, EAimTY, ihciah, klzgrad)",
+            badge: "معماری کلی",
+            badge_color: "#6366f1",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>چکیده معماری پروتکل‌ها:</strong></div>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:6px;">
+                    <li><strong>VLESS Reality (XTLS-Vision):</strong> پیشرفته‌ترین ترکیب ضد فیلترینگ بدون نیاز به دامنه اختصاصی؛ دور زدن کامل فیلترینگ SNI و محافظت ۱۰۰٪ در برابر مسدودسازی اپراتورهای ایرانسل و همراه اول.</li>
+                    <li><strong>Hysteria 2 (Salamander):</strong> غول سرعت بر بستر UDP؛ دارای الگوریتم کنترل ازدحام Brutal برای بی‌اثر کردن پکت‌لاست‌های ۳۰٪ الی ۶۰٪ ساختگی اپراتورها؛ حتماً رمز Salamander را برای مبهم‌سازی هدرهای آشکار QUIC ست کنید.</li>
+                    <li><strong>TUIC v5 (0-RTT):</strong> حداقل پینگ و تاخیر ممکن برای بازی‌های آنلاین و تماس‌های صوتی بدون قطعی هنگام سوئیچ میان دیتای موبایل و وای‌فای (Connection Migration).</li>
+                    <li><strong>ShadowTLS v3:</strong> استتار لایه انتقال با تزریق چالش احراز هویت در SessionID و فوروارد اسکنرهای فیلترینگ به سرورهای رسمی اپل و مایکروسافت.</li>
+                    <li><strong>NaiveProxy:</strong> ترافیک وب کرومیوم با متد HTTP/2 CONNECT که به دلیل انطباق کامل با مرورگر گوگل کروم، تفکیک آن از وب‌گردی عادی غیرممکن است.</li>
+                    <li><strong>Trojan:</strong> سناریوی کلاسیک و پایدار با دامنه و سرتیفیکیت معتبر Let's Encrypt روی پورت استاندارد ۴۴۳ وب.</li>
+                </ul>
+                <div style="background: rgba(99,102,241,0.1); border-left: 3px solid #6366f1; padding: 8px 12px; border-radius: 6px;">
+                    💡 <strong>ترفند طلایی:</strong> برای وضعیت‌های بحرانی و قطعی شدید بین‌الملل، ترکیبی از یک اینباند VLESS Reality روی پورت‌های خلوت و یک اینباند Hysteria 2 با Salamander Obfs فعال داشته باشید.
+                </div>
+            `
+        },
+        ports_and_firewall: {
+            title: "🚪 استراتژی انتخاب پورت بدون مسدودی و فرار از اسکنرهای فایروال",
+            founder: "تحلیلگران و محققان امنیت شبکه ایران و GFW",
+            badge: "امنیت فایروال",
+            badge_color: "#f59e0b",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>نحوه رفتار سیستم فیلترینگ با پورت‌ها:</strong></div>
+                <p>سیستم‌های فیلترینگ هوشمند (DPI) پورت استاندارد 443 را به شدت زیر ذره‌بین قرار می‌دهند. اگر ترافیک با رفتار وبسایت تطابق نداشته باشد، پورت ممکن است پس از چند ساعت مسدود یا دچار اختلال شود.</p>
+                <div style="margin-bottom: 8px;"><strong>بهترین پورت‌های جایگزین برای تست:</strong></div>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
+                    <li><strong>پورت‌های مجاز کلودفلر (HTTPS):</strong> 8443, 2053, 2083, 2087, 2096 (سیستم‌های فیلترینگ این پورت‌ها را کمتر مشکوک می‌دانند).</li>
+                    <li><strong>پورت‌های تصادفی رنج بالا (High Ports):</strong> مانند 20443 الی 20455 که در پنل تعبیه شده است.</li>
+                    <li><strong>پورت‌های UDP برای Hysteria 2 و TUIC:</strong> پورت‌های 4433 یا رنج‌های بالای 25000 که با پورت‌های مرسوم تداخل ندارند.</li>
+                </ul>
+            `
+        },
+        reality_architecture: {
+            title: "⚡ مستند معماری استتار REALITY از زبان خالق آن (RPRX)",
+            founder: "RPRX (خالق VLESS, XTLS و REALITY)",
+            badge: "اختراع RPRX",
+            badge_color: "#10b981",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>چرا REALITY اختراع شد؟</strong></div>
+                <p>در روش‌های قدیمی (مانند تروجان یا VLESS سنتی)، مدیر سرور باید یک دامنه اختصاصی ثبت می‌کرد. فیلترینگ به سادگی با بررسی فیلد SNI در بسته TLS ClientHello، دامنه را در لیست سیاه قرار می‌داد و سرور بلااستفاده می‌شد.</p>
+                <div style="margin-bottom: 8px;"><strong>مکانیزم REALITY چگونه کار می‌کند؟</strong></div>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
+                    <li><strong>سرقت زنده هندشیک (Steal Handshake):</strong> سرور شما هیچ گواهینامه‌ای ندارد! در عوض، ادای یک سایت فوق‌معتبر خارجی (مانند dl.google.com) را بازی می‌کند.</li>
+                    <li><strong>احراز هویت بدون پسورد:</strong> کلاینت با کلید عمومی منحنی بیضوی X25519 یک هندشیک مخفی درون بسته ClientHello می‌فرستد.</li>
+                    <li><strong>دفع اسکنرهای فیلترینگ (Active Probing):</strong> اگر فایروال به پورت سرور شما وصل شود، چون کلید معتبر ندارد، سرور دقیقاً پاسخ سایت اصلی (Google) را به فایروال بازمی‌گرداند؛ در نتیجه فایروال مطمئن می‌شود که سرور شما یک سرور واقعی گوگل است!</li>
+                </ul>
+            `
+        },
+        reality_dest: {
+            title: "🎯 نحوه انتخاب هوشمند سرور هدف شبیه‌سازی (Handshake Dest)",
+            founder: "مستندات رسمی Sing-box و Xray (RPRX)",
+            badge: "پارامتر کلیدی",
+            badge_color: "#3b82f6",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>ویژگی‌های یک Dest ایده‌آل برای عبور از فیلترینگ ایران:</strong></div>
+                <ol style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:5px;">
+                    <li><strong>پشتیبانی الزامی از TLS 1.3 و ALPN h2:</strong> سایت هدف باید در پورت ۴۴۳ حتماً از پروتکل‌های مدرن HTTP/2 و TLS 1.3 پشتیبانی کند.</li>
+                    <li><strong>فیلتر نبودن در ایران:</strong> سایت هدف نباید فیلتر باشد! (مثلاً یوتیوب یا توییتر را Dest نگذارید؛ چون آی‌پی آنها مسدود است).</li>
+                    <li><strong>پینگ پایین سرور شما تا Dest:</strong> ترجیحاً از سرورهای ابری گوگل، اپل، مایکروسافت، یاهو یا سامسونگ استفاده شود.</li>
+                </ol>
+                <div style="background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px;">
+                    ✨ <strong>نمونه دامنه‌های آزمایش‌شده و قدرتمند:</strong><br>
+                    <code>dl.google.com:443</code> • <code>gateway.icloud.com:443</code> • <code>update.microsoft.com:443</code> • <code>swdist.apple.com:443</code> • <code>www.yahoo.com:443</code> • <code>cdn.samsungcloud.com:443</code>
+                </div>
+                <div style="color:var(--text-muted); font-size:11px;">
+                    💡 نحوه تست Dest در سرور لینوکس: <code>curl -v -I --http2 https://dl.google.com:443</code>
+                </div>
+            `
+        },
+        reality_keys_shortid: {
+            title: "🔑 کارکرد Short ID و جفت‌کلیدهای X25519 در REALITY",
+            founder: "RPRX (XTLS Whitepaper)",
+            badge: "رمزنگاری بیضوی",
+            badge_color: "#8b5cf6",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>نقش Short ID در خنثی کردن اسکنرهای فعال:</strong></div>
+                <p>سیستم‌های فیلترینگ با ارسال بسته‌های کاوشگر (Active Probes) به پورت سرور شما سعی می‌کنند متوجه شوند چه سرویسی پشت آن در حال اجراست.</p>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
+                    <li><strong>Short ID</strong> یک رشته هگزادسیمال تصادفی (۸ تا ۱۶ کاراکتر هگز) است که به عنوان شناسه کلاینت مجاز عمل می‌کند.</li>
+                    <li>اگر بسته‌ای به سرور برسد که Short ID آن با مقدار تعریف‌شده در اینباند همخوانی نداشته باشد، سرور بدون فاش کردن پروکسی، بسته را به سرور Dest (گوگل) پاس می‌دهد.</li>
+                    <li><strong>کلید خصوصی (Private Key)</strong> روی سرور امن نگهداری می‌شود و <strong>کلید عمومی (Public Key)</strong> در لینک کانفیگ کاربر قرار می‌گیرد.</li>
+                </ul>
+            `
+        },
+        xtls_vision: {
+            title: "👁️ الگوریتم جریان xtls-rprx-vision در برابر تحلیل آماری DPI",
+            founder: "RPRX (مخترع XTLS Vision)",
+            badge: "ضد شناسایی پکت",
+            badge_color: "#ec4899",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>مسئله خطرناک TLS-in-TLS چیست؟</strong></div>
+                <p>وقتی شما با یک فیلترشکن به سایتی امن (مانند اینستاگرام یا واتساپ) متصل می‌شوید، ترافیک TLS شما داخل یک ترافیک TLS دیگر بسته‌بندی می‌شود. فایروال‌های مجهز به هوش مصنوعی با تحلیل طول بسته‌ها (Packet Length Distribution) در چند میلی‌ثانیه اول هندشیک، وجود دو لایه TLS را متوجه شده و پورت را قطع می‌کردند.</p>
+                <div style="margin-bottom: 8px;"><strong>راهکار نبوغ‌آمیز Vision:</strong></div>
+                <p>الگوریتم Vision در بسته‌های اولیه داده، پدینگ تصادفی (Random Padding) تزریق می‌کند و طول بسته‌ها را طوری تغییر می‌دهد که رفتار شبکه ۱۰۰٪ مشابه وب‌گردی مستقیم و بدون پروکسی یک مرورگر واقعی به نظر برسد.</p>
+                <div style="color:var(--text-muted); font-size:11px;">
+                    ⚠️ <strong>نکته مهم:</strong> فلو Vision فقط با پروتکل VLESS روی ترانسپورت TCP مستقیم فعال می‌شود (با WebSocket یا gRPC نباید ست شود).
+                </div>
+            `
+        },
+        hysteria2_brutal: {
+            title: "🌪️ پروتکل Hysteria 2، کنترل ازدحام Brutal و استتار Salamander",
+            founder: "Tobyx و HyNetwork (طراحان پروتکل Hysteria)",
+            badge: "ضد پکت‌لاست",
+            badge_color: "#ef4444",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>چرا هیستریا ۲ سرعت شگفت‌انگیزی در ایران دارد؟</strong></div>
+                <p>در ساعات اوج مصرف اینترنت در ایران، اپراتورها روی اتصالات خارجی پکت‌لاست‌های ساختگی (۲۰٪ تا ۶۰٪) اعمال می‌کنند. پروتکل‌های سنتی مبتنی بر TCP (مثل VMess یا تروجان) به محض دیدن پکت‌لاست سرعت خود را به شدت کاهش می‌دهند چون فرض می‌کنند خط شلوغ است.</p>
+                <div style="margin-bottom: 8px;"><strong>کنترل ازدحام Brutal:</strong></div>
+                <p>هیستریا ۲ با پروتکل UDP کار می‌کند و دارای الگوریتم کنترل ازدحام Brutal است؛ این الگوریتم پکت‌لاست را نادیده گرفته و بسته‌ها را با نرخ ثابتی که شما تعیین کرده‌اید (مثلاً ۱۰۰ مگابیت) بی‌وقفه ارسال می‌کند.</p>
+                <div style="margin-bottom: 8px;"><strong>مبهم‌ساز Salamander (الزامی در ایران):</strong></div>
+                <p>فایروال‌های همراه اول و ایرانسل هدرهای استاندارد پروتکل QUIC را مسدود می‌کنند. ماژول Salamander با استفاده از یک رمز عبور مشترک و هش BLAKE2b، هدرهای آشکار QUIC را کاملاً مخدوش کرده و شبیه نویز تصادفی غیرقابل شناسایی می‌کند.</p>
+            `
+        },
+        tuic_v5: {
+            title: "🏎️ پروتکل TUIC نسخه ۵ (EAimTY) - پینگ مینیمم گیمینگ و 0-RTT",
+            founder: "EAimTY (طراح اصلی پروتکل TUIC)",
+            badge: "0-RTT QUIC",
+            badge_color: "#06b6d4",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>مزیت‌های طلایی TUIC v5:</strong></div>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
+                    <li><strong>اتصال بدون تاخیر (0-RTT):</strong> به لطف مکانیزم جدید TLS 1.3 Early Data و خروجی کلیدهای QUIC، تبادل داده از اولین بسته و بدون نیاز به چند دور رفت و برگشت هندشیک آغاز می‌شود؛ پینگ اولیه به صفر نزدیک است.</li>
+                    <li><strong>جابجایی پایدار اتصال (Connection Migration):</strong> اگر کاربر در حال بازی آنلاین، تماس صوتی یا دانلود باشد و از شبکه وای‌فای خانگی به دیتای سیم‌کارت سوئیچ کند، اتصال بدون قطعی و بلافاصله ادامه می‌یابد!</li>
+                    <li><strong>الگوریتم BBR:</strong> کاهش چشمگیر نوسانات پینگ (Jitter) در خطوط دارای نوسان اینترنت ایران.</li>
+                </ul>
+            `
+        },
+        shadowsocks_2022: {
+            title: "🛡️ استاندارد Shadowsocks 2022 و مشتق‌گیری کلید BLAKE3",
+            founder: "جامعه Shadowsocks-rust (مستندات استاندارد ۲۰۲۲)",
+            badge: "سبک و مقاوم",
+            badge_color: "#14b8a6",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>تفاوت نسخه ۲۰۲۲ با نسخه‌های قدیمی شادوساکس:</strong></div>
+                <p>در گذشته فیلترینگ با ضبط ترافیک و بازپخش مجدد آن (Replay Attack) پورت‌های شادوساکس را کشف می‌کرد. نسخه جدید ۲۰۲۲ با معرفی هدرهای احراز هویت مجزا، استفاده از تابع هش فوق‌سریع BLAKE3 و مشتق‌گیری کلیدهای فرعی برای هر نشست، در برابر هر نوع حمله بازپخش مصون است.</p>
+                <div style="color:var(--text-muted); font-size:11px;">
+                    💡 به دلیل سربار پردازشی بسیار پایین، بهترین انتخاب برای روترهای میکروتیک، مودم‌های OpenWrt و سرورهای با منابع محدود است.
+                </div>
+            `
+        },
+        naiveproxy: {
+            title: "🌐 پروتکل NaiveProxy (klzgrad) - مصونیت کامل با استک کرومیوم",
+            founder: "klzgrad (توسعه‌دهنده NaiveProxy)",
+            badge: "استک کروم",
+            badge_color: "#6366f1",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>فلسفه طراحی منحصر‌به‌فرد NaiveProxy:</strong></div>
+                <p>خالق این پروتکل معتقد است بهترین راه فرار از فیلترینگ، شبیه‌سازی نیست، بلکه استفاده از خود مرورگر واقعی است! او کدهای رسمی شبکه مرورگر گوگل کروم (Chromium Network Stack) را داخل هسته NaiveProxy کامپایل کرده است.</p>
+                <div style="margin-bottom: 8px;"><strong>چرا فیلترینگ نمی‌تواند NaiveProxy را ببندد؟</strong></div>
+                <p>ترافیک این پروتکل از متد استاندارد HTTP/2 CONNECT استفاده می‌کند و امضای دیجیتال بسته‌ها (JA3 و TLS Fingerprint) ذره‌ای با مرورگر رسمی گوگل کروم تفاوت ندارد. فیلترینگ برای مسدود کردن این پروتکل، باید کل ترافیک وبسایت‌های جهان را مسدود کند!</p>
+            `
+        },
+        shadowtls_v3: {
+            title: "🕶️ پروتکل ShadowTLS نسخه ۳ (ihciah) - استتار کامل لایه TLS",
+            founder: "ihciah (خالق ShadowTLS)",
+            badge: "چالش HMAC",
+            badge_color: "#8b5cf6",
+            content: `
+                <div style="margin-bottom: 8px;"><strong>مکانیزم چالش HMAC در SessionID:</strong></div>
+                <p>در پروتکل ShadowTLS، یک چالش ریاضی امن (HMAC) در ۴ بایت پایانی فیلد ۳۲ بایتی SessionID در اولین پکت ClientHello تزریق می‌شود.</p>
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
+                    <li>هنگامی که کلاینت مجاز متصل می‌شود، سرور چالش را با رمز اشتراکی تایید کرده و ترافیک را به سرویس پروکسی داخلی متصل می‌کند.</li>
+                    <li>اگر اسکنرهای هوشمند فیلترینگ پورت را بررسی کنند، فاقد چالش معتبر هستند؛ در نتیجه سرور پکت را عیناً به یک سرور بزرگ خارجی (مانند اپل یا مایکروسافت) هدایت می‌کند تا از نظر فیلترینگ هیچ سرویس مشکوکی شناسایی نشود.</li>
+                </ul>
+            `
+        },
+        trojan_architecture: {
+            title: "🏛️ مستند معماری پروتکل Trojan و استتار استاندارد وب",
+            founder: "GreaterFire (خالق اولیه Trojan)",
+            badge: "استتار وب",
+            badge_color: "#10b981",
+            content: `
+                <p>پروتکل تروجان به جای استفاده از رمزنگاری‌های نامتعارف، دقیقاً ترافیک واقعی مرورگرهای اینترنت به سمت یک وبسایت HTTPS را بازسازی می‌کند. در اولین بسته پسورد شما به صورت هش SHA-224 (۵۶ کاراکتر هگز) ارسال می‌شود.</p>
+                <p>در صورتی که گواهینامه معتبر SSL (مانند Let's Encrypt پنل) روی پورت ۴۴۳ فعال باشد، فیلترینگ ارتباط را به عنوان یک بازدید طبیعی از وبسایت اینترنتی قلمداد می‌کند.</p>
+            `
+        },
+        transports_deep_dive: {
+            title: "🚀 مقایسه انواع ترانسپورت شبکه (TCP vs WebSocket vs gRPC vs HTTPUpgrade)",
+            founder: "مهندسان زیرساخت Sing-box و V2Ray",
+            badge: "ترانسپورت شبکه",
+            badge_color: "#059669",
+            content: `
+                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:6px;">
+                    <li><strong>TCP مستقیم (Raw TCP):</strong> سریع‌ترین و سبک‌ترین ترانسپورت ممکن؛ بدون هیچ سربار اضافی هدر پروتکل وب؛ تنها ترانسپورتی که از فلو فوق‌امنیتی xtls-rprx-vision پشتیبانی می‌کند.</li>
+                    <li><strong>WebSocket (WS):</strong> کپسوله‌سازی بسته‌ها داخل پروتکل استاندارد وب؛ این قابلیت را دارد که از پشت CDNهایی مانند Cloudflare یا ArvanCloud عبور کند تا آی‌پی فیلترشده سرور مخفی بماند.</li>
+                    <li><strong>HTTPUpgrade:</strong> جایگزین جدید و بسیار بهینه‌تر از WebSocket در نسخه‌های جدید Sing-box؛ سربار هدرهای سنتی وب‌سوکت را حذف کرده و در ارتباطات ابری پینگ را ۲۰ الی ۳۰ میلی‌ثانیه کاهش می‌دهد.</li>
+                    <li><strong>gRPC:</strong> مالتی‌پلکس پیشرفته بر بستر استریم‌های HTTP/2؛ تداوم پایدار ارتباط در شبکه‌های متغیر دیتای سیم‌کارت موبایل.</li>
+                </ul>
+            `
+        },
+        tls_certificates: {
+            title: "🔒 تفاوت گواهینامه معتبر رسمی Let's Encrypt با گواهی خودساخته (Self-Signed)",
+            founder: "تیم امنیت زیرساخت mhpanel",
+            badge: "گواهی رسمی",
+            badge_color: "#10b981",
+            content: `
+                <p>فایروال‌های DPI ایرانسرور و ارتباطات بین‌الملل، گواهینامه‌های خودساخته (Self-Signed) را در جا شناسایی کرده و ارتباط را به عنوان ترافیک مشکوک قطع می‌کنند.</p>
+                <p>پنل <code>mhpanel</code> برای پروتکل‌های مبتنی بر TLS (مانند تروجان، وب‌سوکت و هیستریا) به طور خودکار از سرتیفیکیت معتبر بین‌المللی دامنه پنل (<code>/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem</code>) استفاده می‌کند تا اصالت ارتباط ۱۰۰٪ تایید شود.</p>
+            `
+        }
+    };
+
+    function openFounderTopic(topicKey) {
+        const card = document.getElementById("sb-founder-knowledge-card");
+        const contentBox = document.getElementById("sb-founder-knowledge-content");
+        if (!card || !contentBox) return;
+
+        const topic = FOUNDER_TOPICS_KNOWLEDGE[topicKey];
+        if (!topic) return;
+
+        contentBox.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #334155; padding-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:700; color:#38bdf8; font-size:13px;">${topic.title}</span>
+                    <span class="badge-pill" style="font-size:10px; background:rgba(56,189,248,0.15); color:${topic.badge_color || '#38bdf8'};">${topic.badge}</span>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxFounderDocsModal('${topicKey}')" style="font-size:10.5px; padding:2px 8px; background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid #6366f1;">
+                    📖 مطالعه دانشنامه کامل
+                </button>
+            </div>
+            <div style="font-size:11px; color:#94a3b8; margin-bottom:8px;">
+                <strong>منبع و سازنده:</strong> ${topic.founder}
+            </div>
+            <div style="color:#e2e8f0; font-size:12px; line-height:1.7;">
+                ${topic.content}
+            </div>
+        `;
+        card.style.display = "block";
+        card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    function closeFounderKnowledgeCard() {
+        const card = document.getElementById("sb-founder-knowledge-card");
+        if (card) card.style.display = "none";
+    }
+
+    function toggleSingboxFounderDocsModal(topicKey) {
+        const modal = document.getElementById("modal-singbox-founder-docs");
+        if (!modal) return;
+        const isShown = modal.style.display === "flex" || modal.classList.contains("active");
+        if (isShown && !topicKey) {
+            modal.style.display = "none";
+            modal.classList.remove("active");
+        } else {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            
+            // Map topicKey to tab if needed
+            let tabId = "rprx";
+            if (topicKey === "hysteria2_brutal") tabId = "tobyx";
+            else if (topicKey === "tuic_v5") tabId = "eaimty";
+            else if (topicKey === "shadowtls_v3") tabId = "ihciah";
+            else if (topicKey === "naiveproxy") tabId = "klzgrad";
+            else if (topicKey === "crafting" || topicKey === "ports_and_firewall") tabId = "crafting";
+            else if (topicKey === "xtls_vision" || topicKey === "reality_architecture" || topicKey === "reality_dest" || topicKey === "reality_keys_shortid") tabId = "rprx";
+
+            switchFounderDocsTab(tabId);
+        }
+    }
+
+    function switchFounderDocsTab(tabId) {
+        document.querySelectorAll(".founder-tab-btn").forEach(btn => {
+            btn.classList.remove("btn-primary");
+            btn.classList.add("btn-secondary");
+        });
+        const activeBtn = document.getElementById(`fdoc-tab-btn-${tabId}`);
+        if (activeBtn) {
+            activeBtn.classList.remove("btn-secondary");
+            activeBtn.classList.add("btn-primary");
+        }
+
+        const body = document.getElementById("sb-founder-docs-body");
+        if (!body) return;
+
+        if (tabId === "rprx") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(56,189,248,0.08) 100%); border:1px solid rgba(99,102,241,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#4f46e5; font-weight:700;">RPRX: خالق پروتکل انقلابی VLESS، استانداردهای XTLS، Vision و شبیه‌سازی REALITY</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.15); color:#4f46e5;">مستند معماری هسته</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        RPRX با بازطراحی پروتکل‌های ضد فیلترینگ، ابتدا استاندارد VLESS را برای حذف سربار احراز هویت‌های سنتی پایه‌گذاری کرد و سپس با ابداع <strong>XTLS</strong> و شاهکار <strong>REALITY</strong>، سیستم‌های فیلترینگ چین (GFW) و ایران را با بن‌بست تحلیلی مواجه ساخت.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. نوآوری سرقت هندشیک در REALITY</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            در گذشته برای ایجاد تونل امن، ملزم به خرید دامنه و دریافت سرتیفیکیت بودید. REALITY نیازی به هیچ گواهینامه‌ای ندارد؛ سرور شما در برابر اسکنرهای فعال، ادای وب‌سایت‌های غول اینترنتی (نظیر <code>dl.google.com</code> یا <code>gateway.icloud.com</code>) را درمی‌آورد.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            هنگامی که پروپ‌های فیلترینگ پورت شما را بررسی می‌کنند، چون کلید احراز هویت ندارند، سرور بسته را فوراً به سرور اصلی گوگل فوروارد می‌کند؛ اسکنر فایروال نیز پاسخ ۱۰۰٪ رسمی گوگل را دریافت کرده و این سرور را یک سرور قانونی می‌داند.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. الگوریتم xtls-rprx-vision (ضد DPI)</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            فیلترینگ هوشمند ایران ترافیک تو در تو (TLS-in-TLS) را با بررسی طول فریم‌های اولیه هندشیک در پکت‌های اول شناسایی و قطع می‌کرد.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            الگوریتم Vision با پدینگ تصادفی و دستکاری هوشمند فریم‌های TLS، الگوی بسته‌ها را کاملاً به الگوی مرورگرهای عادی وب تبدیل کرده و تشخیص آن توسط فایروال را غیرممکن می‌سازد.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:18px;">
+                    <h5 style="color:#059669; margin:0 0 10px 0; font-size:14px; font-weight:700;">راهنمای تنظیم بهینه پارامترها در REALITY برای اینترنت ایران:</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li><strong>انتخاب Handshake Dest:</strong> از دامنه‌هایی استفاده کنید که در ایران مسدود نیستند، از پروتکل TLS 1.3 و ALPN h2 پشتیبانی می‌کنند. بهترین گزینه‌ها: <code>dl.google.com:443</code>, <code>update.microsoft.com:443</code>, <code>swdist.apple.com:443</code>.</li>
+                        <li><strong>Short ID:</strong> حتماً یک رشته ۱۶ کاراکتری هگز تصادفی وارد کنید تا از کاوش فایروال جلوگیری شود.</li>
+                        <li><strong>ترانسپورت:</strong> فقط روی حالت <strong>TCP مستقیم</strong> قرار دهید تا Vision بتواند بسته‌ها را پدینگ کند.</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tabId === "tobyx") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(249,115,22,0.08) 100%); border:1px solid rgba(239,68,68,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#dc2626; font-weight:700;">Tobyx و HyNetwork: پروتکل Hysteria 2، کنترل ازدحام Brutal و استتار Salamander</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(239,68,68,0.15); color:#dc2626;">سریع‌ترین پروتکل UDP</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        هیستریا ۲ پاسخی قاطع به اختلالات عمدی و پکت‌لاست‌های تحمیلی زیرساخت است. در شرایطی که تمام پروتکل‌های مبتنی بر TCP با افت شدید سرعت مواجه می‌شوند، هیستریا ۲ سرعت خط را به حداکثر ممکن می‌رساند.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. مکانیزم کنترل ازدحام Brutal</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            الگوریتم‌های سنتی TCP با اولین افت بسته (Packet Loss) فرض می‌کنند خط اینترنت پر شده و سرعت را تا ۵۰٪ کاهش می‌دهند. اپراتورهای ایرانسل و همراه اول با تزریق ۳۰٪ پکت‌لاست ساختگی تمام فیلترشکن‌های سنتی را از کار می‌اندازند.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            الگوریتم Brutal به پکت‌لاست اهمیتی نمی‌دهد و بدون ترمز بسته‌ها را با نرخ تعیین‌شده ارسال می‌کند و افت سرعت را کاملاً جبران می‌نماید.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. مبهم‌سازی Salamander (حیاتی در ایران)</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            فایروال‌های همراه اول بسته‌های پروتکل استاندارد QUIC را مسدود می‌کنند چون هدرهای مشخصی دارند.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            ماژول Salamander با استفاده از یک رمز اختصاصی و تابع هش BLAKE2b، هدرهای QUIC را به نویز تصادفی تبدیل می‌کند به طوری که فایروال نمی‌تواند ماهیت ترافیک را متوجه شود.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">نکات کاربردی جهت استفاده از Hysteria 2:</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li>حتماً در بخش تنظیمات، <strong>رمز مبهم‌سازی Salamander</strong> را پر کنید؛ اتصال بدون سالاماندر در اپراتورهای موبایل سریعاً محدود می‌شود.</li>
+                        <li>سقف سرعت دانلود و آپلود را منطبق بر پهنای باند سرور (مثلاً ۱۰۰ مگابیت) تنظیم کنید تا عدالت در توزیع پهنای باند بین کاربران رعایت شود.</li>
+                        <li>می‌توانید از پورت‌های UDP غیرمعمول (مثل ۴۴۳۳ یا ۲۸۲۸۲) برای گریز از فایروال استفاده نمایید.</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tabId === "eaimty") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(6,182,212,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#0891b2; font-weight:700;">EAimTY: پروتکل TUIC نسخه ۵ (کمترین تاخیر و پینگ گیمینگ بر بستر 0-RTT QUIC)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(6,182,212,0.15); color:#0891b2;">پینگ مینیمم</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        پروتکل TUIC توسط EAimTY با هدف حذف تاخیر اولیه اتصال طراحی شد. در بازی‌های آنلاین و تماس‌های صوتی که میلی‌ثانیه‌ها اهمیت دارند، TUIC سریع‌ترین واکنش را ارائه می‌دهد.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#0891b2; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. قابلیت Connection Migration در موبایل</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            اگر در حال بازی یا گفتگوی صوتی باشید و از وای‌فای خانه خارج شده و روی دیتای سیم‌کارت سوئیچ کنید، در تمام پروتکل‌های قدیمی اتصال قطع می‌شود و باید از نو متصل شوید. اما در TUIC به لطف شناسه اتصال در لایه QUIC، ارتباط بدون حتی یک میلی‌ثانیه قطعی ادامه می‌یابد!
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#0891b2; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. اتصال بدون معطلی (0-RTT Handshake)</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            در هندشیک سنتی TLS، کلاینت و سرور باید ۳ الی ۴ بار پیام رفت و برگشت ارسال کنند تا رمزنگاری تایید شود. در TUIC نسخه ۵، از همان بسته اول داده‌های کاربری فرستاده می‌شود و پینگ ارتباط در حداقل ممکن قرار می‌گیرد.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#0891b2; margin:0 0 10px 0; font-size:14px; font-weight:700;">الگوریتم‌های کنترل ازدحام در TUIC:</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li><strong>BBR:</strong> به شدت برای شبکه‌های دارای نوسان ایران پیشنهاد می‌شود؛ نوسانات پینگ (Jitter) را به حداقل رسانده و روانی فوق‌العاده‌ای در بازی‌های شوتر ایجاد می‌کند.</li>
+                        <li><strong>CUBIC:</strong> مناسب برای خطوط وای‌فای ثابت بدون پکت‌لاست بالا.</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tabId === "ihciah") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#7c3aed; font-weight:700;">ihciah: پروتکل ShadowTLS نسخه ۳ (استتار هوشمند لایه نشست TLS)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(139,92,246,0.15); color:#7c3aed;">استتار هوشمند</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        پروتکل ShadowTLS ابداع مهندس ihciah برای مقابله با بازرسی عمیق بسته‌ها (DPI) و خنثی کردن اسکن‌های فعال است بدون اینکه نیازی به راه‌اندازی سرورهای سنگین وبسایت باشد.
+                    </p>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:18px;">
+                    <h5 style="color:#7c3aed; margin:0 0 10px 0; font-size:14px; font-weight:700;">چالش HMAC در SessionID چگونه کار می‌کند؟</h5>
+                    <p style="font-size:12.5px; line-height:1.7; margin:0 0 10px 0;">
+                        در استاندارد پروتکل TLS، فیلدی به نام <code>Session ID</code> با طول ۳۲ بایت وجود دارد. خالق ShadowTLS متوجه شد که می‌توان ۴ بایت آخر این فیلد را به عنوان یک شناسه احراز هویت رمزنگاری‌شده (HMAC Challenge) استفاده کرد.
+                    </p>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li>کاربر کلاینت با وارد کردن پسورد، چالش ریاضی را محاسبه کرده و در فیلد می‌گنجاند.</li>
+                        <li>سرور چالش را بررسی می‌کند؛ در صورت صحت، بسته را به عنوان یک کانکشن پروکسی تحویل می‌گیرد.</li>
+                        <li>اگر اسکنر فیلترینگ پورت را وارسی کند، چالش اشتباه است و سرور بسته را مستقیماً به سرور خارجی معتبر (مانند <code>gateway.icloud.com</code>) وصل می‌کند؛ اسکنر فایروال بدون شک فکر می‌کند سرور شما یک سرور رسمی شرکت اپل است!</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tabId === "klzgrad") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#059669; font-weight:700;">klzgrad: پروتکل NaiveProxy (انطباق ۱۰۰٪ با کدهای رسمی مرورگر کروم)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(16,185,129,0.15); color:#059669;">ضد فیلتر تضمینی</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        پروتکل NaiveProxy توسط klzgrad ایجاد شد و امن‌ترین پروتکل وب‌محور جهان محسوب می‌شود. به دلیل اینکه مستقیماً از موتور شبکه رسمی مرورگر گوگل کروم بهره می‌برد، فایروال‌ها هیچ راهی برای شناسایی آن جز قطع کردن کل وبسایت‌های جهان ندارند!
+                    </p>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#059669; margin:0 0 10px 0; font-size:14px; font-weight:700;">چرا NaiveProxy هرگز شناسایی نمی‌شود؟</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li><strong>عدم امکان انگشت‌نگاری (No Fingerprinting):</strong> فایروال‌های DPI از امضاهای JA3/JA4 برای تشخیص فیلترشکن‌ها استفاده می‌کنند. امضای نایو پروکسی دقیقاً امضای مرورگر گوگل کروم است.</li>
+                        <li><strong>متد استاندار HTTP/2 CONNECT:</strong> به جای پکت‌های دست‌ساز، از متد استاندارد تونل وب پروکسی استفاده می‌کند.</li>
+                        <li><strong>استفاده از گواهینامه رسمی پنل:</strong> این پروتکل با سرتیفیکیت معتبر Let's Encrypt پنل روی پورت‌های وب به زیبایی فعالیت می‌کند.</li>
+                    </ul>
+                </div>
+            `;
+        } else if (tabId === "crafting") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(16,185,129,0.08) 100%); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#d97706; font-weight:700;">🛠️ کتابچه مهندسی معکوس و ابداع کانفیگ‌های اختصاصی ضد فیلترینگ در ایران</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(245,158,11,0.15); color:#d97706;">راهنمای ساخت کانفیگ</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        چگونه می‌توانید خودتان کانفیگ‌هایی بسازید که حتی در سخت‌ترین شرایط فیلترینگ فعال بمانند؟ با رعایت چند اصل زیر، کانفیگ اختصاصی شما از رادارهای هوش مصنوعی فیلترینگ پنهان می‌ماند:
+                    </p>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#4f46e5; margin:0 0 8px 0; font-size:13.5px; font-weight:700;">۱. استراتژی دامنه‌های بکر Dest در Reality:</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 6px 0;">
+                            کانفیگ‌های عمومی همیشه از <code>dl.google.com</code> یا <code>yahoo.com</code> استفاده می‌کنند. برای ساخت یک کانفیگ ابداعی و ماندگار، دامنه‌های تست کمتر شناخته شده که سرورهای سریع دارند را پیدا کنید:
+                        </p>
+                        <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:4px; font-size:12px;">
+                            <li>دامنه‌های سرویس‌های ابری سامسونگ (مانند <code>cdn.samsungcloud.com</code>)</li>
+                            <li>دامنه‌های CDN توزیع نرم‌افزارهای امنیتی (مانند <code>updates.cdn-apple.com</code> یا <code>swdist.apple.com</code>)</li>
+                            <li>دامنه‌های مایکروسافت ازور (مانند <code>edge.microsoft.com</code>)</li>
+                        </ul>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#059669; margin:0 0 8px 0; font-size:13.5px; font-weight:700;">۲. ترکیب طلایی پورت و ترانسپورت:</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            اگر پورت 443 سرور شما دچار لیمیت شد، از پورت‌های <strong>2053, 2083, 2096, 8443</strong> استفاده کنید. این پورت‌ها متعلق به کلودفلر هستند و فایروال به راحتی نمی‌تواند آنها را بلاک کند. برای پروتکل‌های وب، به جای WebSocket قدیمی، ترانسپورت <strong>HTTPUpgrade</strong> را انتخاب کنید تا پینگ بهتری دریافت کنید.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#ef4444; margin:0 0 8px 0; font-size:13.5px; font-weight:700;">۳. فرمول شکست فیلترینگ همراه اول و ایرانسل با Hysteria 2:</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            در زمان ملی شدن یا قطعی اینترنت، هیستریا ۲ را روی پورت‌های خلوت مانند <strong>4433</strong> یا <strong>24430</strong> ست کنید و رمز مبهم‌سازی Salamander را فعال نگه دارید. ترافیک شما تبدیل به نویز بدون ساختار شده و از گلوگاه‌های بازرسی عبور می‌کند.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // =========================================================================
+    // Backup & Restore Module (Sing-box Core & Full System)
+    // =========================================================================
+    function openBackupModal() {
+        const modal = document.getElementById("modal-system-backup");
+        if (!modal) return;
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        loadBackupsList();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeBackupModal() {
+        const modal = document.getElementById("modal-system-backup");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function loadBackupsList() {
+        const tbody = document.getElementById("backup-list-table-body");
+        if (!tbody) return;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);"><i data-lucide="loader" class="spin" style="width:18px; height:18px; vertical-align:middle;"></i> در حال دریافت لیست فایل‌های پشتیبان...</td></tr>`;
+        if (window.lucide) lucide.createIcons();
+        try {
+            const res = await fetch("/api/backup/list");
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:18px;">خطا در دریافت لیست بکاپ‌ها: ${escapeHtml(data.error || 'ناشناخته')}</td></tr>`;
+                return;
+            }
+            const backups = data.backups || [];
+            if (backups.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:24px;">هیچ فایل پشتیبانی تاکنون ایجاد یا بارگذاری نشده است.</td></tr>`;
+                return;
+            }
+            let html = "";
+            backups.forEach(b => {
+                const isSb = (b.backup_type === "singbox" || b.type === "singbox");
+                const badgeType = isSb
+                    ? `<span class="badge-pill" style="background:rgba(99,102,241,0.15); color:#4338ca; font-weight:700; font-size:11px; padding:2px 8px;">هسته سینگ‌باکس</span>`
+                    : `<span class="badge-pill" style="background:rgba(16,185,129,0.15); color:#059669; font-weight:700; font-size:11px; padding:2px 8px;">کل پنل و سیستم</span>`;
+                html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px 14px; font-family:'JetBrains Mono'; font-size:12px; font-weight:600; color:var(--text-main);">
+                        <i data-lucide="${isSb ? 'box' : 'archive'}" style="width:14px; height:14px; vertical-align:middle; margin-inline-end:6px; color:${isSb ? '#6366f1' : '#10b981'};"></i>
+                        ${escapeHtml(b.filename)}
+                    </td>
+                    <td style="padding: 10px 14px; text-align:center;">${badgeType}</td>
+                    <td style="padding: 10px 14px; font-family:'JetBrains Mono'; font-size:11.5px; text-align:center; color:var(--text-muted);">${escapeHtml(b.size_formatted)}</td>
+                    <td style="padding: 10px 14px; font-family:'JetBrains Mono'; font-size:11.5px; text-align:center; color:var(--text-muted);">${escapeHtml(b.created_at)}</td>
+                    <td style="padding: 10px 14px; text-align:center;">
+                        <div style="display:flex; justify-content:center; gap:6px;">
+                            <a href="/api/backup/download/${encodeURIComponent(b.filename)}" class="btn btn-secondary btn-sm" style="padding:4px 8px; font-size:11px;" title="دانلود فایل">
+                                <i data-lucide="download" style="width:12px; height:12px;"></i>
+                            </a>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="restoreBackupDirect('${escapeHtml(b.filename)}')" style="padding:4px 8px; font-size:11px; background:#f59e0b;" title="بازگردانی این بکاپ">
+                                <i data-lucide="rotate-ccw" style="width:12px; height:12px;"></i> بازگردانی
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="deleteBackupFile('${escapeHtml(b.filename)}')" style="padding:4px 8px; font-size:11px; color:#ef4444;" title="حذف بکاپ">
+                                <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444; padding:18px;">خطای ارتباط با سرور</td></tr>`;
+        }
+    }
+
+    async function triggerCreateBackup(type) {
+        toggleLoading(true, type === "singbox" ? "در حال ایجاد بکاپ از کانفیگ‌ها و دیتابیس سینگ‌باکس..." : "در حال فشرده‌سازی و تهیه بکاپ کامل از کل پنل...");
+        try {
+            const res = await fetch("/api/backup/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "بکاپ با موفقیت ایجاد شد.", "success");
+                loadBackupsList();
+            } else {
+                showToast(data.error || "خطا در تهیه بکاپ", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای سرور در ایجاد بکاپ", "error");
+        }
+    }
+
+    async function restoreBackupDirect(filename) {
+        if (!confirm(`آیا از بازگردانی فایل پشتیبان «${filename}» اطمینان کامل دارید؟\nاین عملیات تنظیمات قبلی را جایگزین و سرویس‌ها را ریستارت می‌کند.`)) return;
+        toggleLoading(true, "در حال بازگردانی فایل پشتیبان و راه‌اندازی مجدد سرویس‌ها...");
+        try {
+            const res = await fetch(`/api/backup/restore/${encodeURIComponent(filename)}`, { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "بازگردانی با موفقیت انجام شد.", "success");
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast(data.error || "خطا در بازگردانی بکاپ", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در بازگردانی بکاپ", "error");
+        }
+    }
+
+    async function deleteBackupFile(filename) {
+        if (!confirm(`آیا از حذف بکاپ «${filename}» اطمینان دارید؟`)) return;
+        try {
+            const res = await fetch(`/api/backup/delete/${encodeURIComponent(filename)}`, { method: "DELETE" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || "بکاپ با موفقیت حذف شد.", "success");
+                loadBackupsList();
+            } else {
+                showToast(data.error || "خطا در حذف بکاپ", "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط در حذف بکاپ", "error");
+        }
+    }
+
+    async function handleBackupFileUpload(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        if (!confirm(`فایل «${file.name}» بارگذاری و فوراً بر روی سرور بازگردانی خواهد شد. آیا ادامه می‌دهید؟`)) {
+            input.value = "";
+            return;
+        }
+        const formData = new FormData();
+        formData.append("backup_file", file);
+        toggleLoading(true, "در حال آپلود و اعتبارسنجی فایل بکاپ بر روی سرور...");
+        try {
+            const res = await fetch("/api/backup/upload-restore", {
+                method: "POST",
+                body: formData
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            input.value = "";
+            if (res.ok && data.success) {
+                showToast(data.message || "آپلود و بازگردانی موفقیت‌آمیز بود.", "success");
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                showToast(data.error || "خطا در آپلود یا بازگردانی فایل بکاپ", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            input.value = "";
+            showToast("خطای شبکه در آپلود بکاپ", "error");
+        }
+    }
+
+    // =========================================================================
+    // Telegram Notifications & Automated Backup Bot
+    // =========================================================================
+    function openTelegramBotModal() {
+        const modal = document.getElementById("modal-telegram-bot");
+        if (!modal) return;
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        loadTelegramSettings();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeTelegramBotModal() {
+        const modal = document.getElementById("modal-telegram-bot");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function loadTelegramSettings() {
+        try {
+            const res = await fetch("/api/telegram/settings");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                const s = data.settings || {};
+                const tokenInp = document.getElementById("tg-bot-token");
+                const chatInp = document.getElementById("tg-chat-id");
+                const alertsToggle = document.getElementById("tg-alerts-enabled");
+                const backupToggle = document.getElementById("tg-auto-backup-enabled");
+                const scheduleSel = document.getElementById("tg-backup-schedule");
+                const backupTypeSel = document.getElementById("tg-backup-type");
+                const cpuInp = document.getElementById("tg-cpu-threshold");
+                const ramInp = document.getElementById("tg-ram-threshold");
+                const diskInp = document.getElementById("tg-disk-threshold");
+
+                if (tokenInp) tokenInp.value = s.bot_token || "";
+                if (chatInp) chatInp.value = s.chat_id || "";
+                if (alertsToggle) alertsToggle.checked = !!s.alerts_enabled;
+                if (backupToggle) backupToggle.checked = !!s.auto_backup_enabled;
+                if (scheduleSel) scheduleSel.value = s.backup_schedule || "daily";
+                if (backupTypeSel) backupTypeSel.value = s.backup_type || "singbox";
+                if (cpuInp) cpuInp.value = s.cpu_threshold || 90;
+                if (ramInp) ramInp.value = s.ram_threshold || 90;
+                if (diskInp) diskInp.value = s.disk_threshold || 90;
+
+                const lastSent = document.getElementById("tg-last-backup-sent-text");
+                if (lastSent && s.last_backup_sent) {
+                    lastSent.textContent = `آخرین ارسال به تلگرام: ${s.last_backup_sent}`;
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load Telegram settings:", e);
+        }
+    }
+
+    async function saveTelegramSettings(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const payload = {
+            bot_token: (document.getElementById("tg-bot-token")?.value || "").trim(),
+            chat_id: (document.getElementById("tg-chat-id")?.value || "").trim(),
+            alerts_enabled: document.getElementById("tg-alerts-enabled")?.checked ?? true,
+            auto_backup_enabled: document.getElementById("tg-auto-backup-enabled")?.checked ?? true,
+            backup_schedule: document.getElementById("tg-backup-schedule")?.value || "daily",
+            backup_type: document.getElementById("tg-backup-type")?.value || "singbox",
+            cpu_threshold: parseInt(document.getElementById("tg-cpu-threshold")?.value, 10) || 90,
+            ram_threshold: parseInt(document.getElementById("tg-ram-threshold")?.value, 10) || 90,
+            disk_threshold: parseInt(document.getElementById("tg-disk-threshold")?.value, 10) || 90
+        };
+        toggleLoading(true, "در حال ذخیره تنظیمات ربات تلگرام...");
+        try {
+            const res = await fetch("/api/telegram/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "تنظیمات ربات ذخیره شد.", "success");
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات ربات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    async function testTelegramConnection() {
+        const token = (document.getElementById("tg-bot-token")?.value || "").trim();
+        const chat = (document.getElementById("tg-chat-id")?.value || "").trim();
+        if (!token || !chat) {
+            showToast("لطفاً ابتدا توکن ربات و Chat ID را وارد فرمایید.", "warning");
+            return;
+        }
+        toggleLoading(true, "در حال ارسال پیام تست از طریق سرور تلگرام...");
+        try {
+            const res = await fetch("/api/telegram/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ bot_token: token, chat_id: chat })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "پیام تست تلگرام با موفقیت تحویل داده شد! 🎉", "success");
+            } else {
+                showToast(data.error || "ارسال پیام تست با خطا مواجه شد.", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارسال پیام تست", "error");
+        }
+    }
+
+    async function sendTelegramBackupNow() {
+        const type = document.getElementById("tg-backup-type")?.value || "singbox";
+        toggleLoading(true, "در حال فشرده‌سازی بکاپ و ارسال مستقیم به ربات تلگرام...");
+        try {
+            const res = await fetch("/api/telegram/send-backup", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ type })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "فایل پشتیبان با موفقیت به تلگرام شما ارسال شد!", "success");
+                loadTelegramSettings();
+            } else {
+                showToast(data.error || "خطا در ارسال بکاپ به تلگرام", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارسال بکاپ", "error");
+        }
+    }
+
+    // =========================================================================
+    // Anti-DPI Decoy WordPress Site Studio
+    // =========================================================================
+    function openDecoyWpModal() {
+        const modal = document.getElementById("modal-decoy-wp");
+        if (!modal) return;
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        loadDecoyWpStatus();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDecoyWpModal() {
+        const modal = document.getElementById("modal-decoy-wp");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function loadDecoyWpStatus() {
+        try {
+            const res = await fetch("/api/decoy-wp/status");
+            const data = await res.json();
+            if (res.ok && data.success) {
+                const isDeployed = data.deployed;
+                const statusBadge = document.getElementById("decoy-wp-status-badge");
+                const domainInp = document.getElementById("decoy-wp-domain");
+                const titleInp = document.getElementById("decoy-wp-site-title");
+                const themeSel = document.getElementById("decoy-wp-theme");
+                const pathText = document.getElementById("decoy-wp-path-text");
+                const removeBtn = document.getElementById("decoy-wp-remove-btn");
+
+                if (statusBadge) {
+                    if (isDeployed) {
+                        statusBadge.textContent = "فعال و نصب شده ✔";
+                        statusBadge.style.background = "#dcfce7";
+                        statusBadge.style.color = "#15803d";
+                    } else {
+                        statusBadge.textContent = "غیرفعال (نصب نشده)";
+                        statusBadge.style.background = "#fee2e2";
+                        statusBadge.style.color = "#dc2626";
+                    }
+                }
+                if (data.config) {
+                    if (domainInp && data.config.domain) domainInp.value = data.config.domain;
+                    if (titleInp && data.config.site_title) titleInp.value = data.config.site_title;
+                    if (themeSel && data.config.theme) themeSel.value = data.config.theme;
+                }
+                if (pathText) {
+                    pathText.textContent = data.path || "/www/wwwroot/decoy-wp";
+                }
+                if (removeBtn) {
+                    removeBtn.style.display = isDeployed ? "inline-flex" : "none";
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load Decoy WP status:", e);
+        }
+    }
+
+    async function submitDeployDecoyWp(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const domain = (document.getElementById("decoy-wp-domain")?.value || "").trim();
+        const siteTitle = (document.getElementById("decoy-wp-site-title")?.value || "").trim();
+        const theme = document.getElementById("decoy-wp-theme")?.value || "twentyfourteen";
+        const tagline = (document.getElementById("decoy-wp-tagline")?.value || "").trim();
+
+        if (!domain) {
+            showToast("لطفاً دامنه سایت استتار را وارد فرمایید.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ایجاد ساختار وب‌سایت وردپرس ۶.x و کانفیگ VirtualHost...");
+        try {
+            const res = await fetch("/api/decoy-wp/deploy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    domain: domain,
+                    site_title: siteTitle,
+                    theme: theme,
+                    tagline: tagline
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "سایت استتار وردپرس با موفقیت راه‌اندازی گردید!", "success");
+                loadDecoyWpStatus();
+            } else {
+                showToast(data.error || "خطا در نصب سایت استتار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در نصب سایت استتار", "error");
+        }
+    }
+
+    async function removeDecoyWp() {
+        if (!confirm("آیا از حذف سایت استتار وردپرس اطمینان دارید؟ این عملیات فایل‌های استاتیک و VirtualHost را پاک خواهد کرد.")) return;
+        toggleLoading(true, "در حال حذف سایت استتار...");
+        try {
+            const res = await fetch("/api/decoy-wp/remove", { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "سایت استتار با موفقیت حذف گردید.", "success");
+                loadDecoyWpStatus();
+            } else {
+                showToast(data.error || "خطا در حذف سایت استتار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای سرور در حذف سایت استتار", "error");
+        }
+    }
+
+    // =====================================================================
+    // GOOGLE APPS SCRIPT (GAS) FULL TUNNEL MODULE SCRIPTS
+    // =====================================================================
+    let gasCachedTemplates = null;
+    let gasCachedConfig = null;
+
+    function switchGasSubTab(subtab) {
+        document.querySelectorAll('.gas-subtab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('[id^="gas-subtab-btn-"]').forEach(btn => btn.classList.remove('active'));
+        
+        const target = document.getElementById(`gas-subtab-${subtab}`);
+        const btn = document.getElementById(`gas-subtab-btn-${subtab}`);
+        if (target) target.style.display = 'block';
+        if (btn) btn.classList.add('active');
+
+        if (subtab === 'scripts' && !gasCachedTemplates) {
+            fetchGasTemplates();
+        } else if (subtab === 'client') {
+            fetchGasClientConfigs();
+        }
+    }
+
+    function toggleGasTokenHelp() {
+        const box = document.getElementById('gas-token-help-box');
+        if (box) {
+            box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'block' : 'none';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function toggleGasTokenVisibility() {
+        const input = document.getElementById('gas-input-token');
+        const eyeBtn = document.getElementById('gas-token-eye-btn');
+        if (!input || !eyeBtn) return;
+
+        if (input.type === 'password') {
+            input.type = 'text';
+            eyeBtn.innerHTML = '<i data-lucide="eye-off" style="width:16px; height:16px; color:#ef4444;"></i>';
+        } else {
+            input.type = 'password';
+            eyeBtn.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px;"></i>';
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function pasteGasTokenFromClipboard() {
+        const input = document.getElementById('gas-input-token');
+        if (!input) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    input.value = text.trim();
+                    showToast("توکن با موفقیت از کلیپ‌بورد درج گردید.", "success");
+                    return;
+                }
+            }
+        } catch (e) {
+            console.log("Clipboard read blocked, falling back to manual paste prompt.");
+        }
+        input.focus();
+        showToast("لطفاً توکن را در کادر پیست نمایید.", "info");
+    }
+
+    function clearGasTokenInput() {
+        const input = document.getElementById('gas-input-token');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+    }
+
+    async function pasteGasManualInput() {
+        const input = document.getElementById('gas-manual-input');
+        if (!input) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    input.value = text.trim();
+                    showToast("شناسه یا آدرس با موفقیت درج شد.", "success");
+                    return;
+                }
+            }
+        } catch (e) {}
+        input.focus();
+    }
+
+    function copyGasScopes() {
+        const scopes = "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments";
+        navigator.clipboard.writeText(scopes).then(() => {
+            showToast("اسکوپ‌های مجاز گوگل اسکریپت کپی شدند!", "success");
+        }).catch(() => {
+            showToast("کپی انجام شد.", "success");
+        });
+    }
+
+    function openGasWebAppInBrowser() {
+        const urlEl = document.getElementById('gas-deployed-url-val');
+        const url = urlEl ? (urlEl.textContent || urlEl.innerText || "").trim() : "";
+        if (url && url.startsWith('http')) {
+            window.open(url, '_blank');
+        } else {
+            showToast("آدرس وب‌اپ نامعتبر است.", "warning");
+        }
+    }
+
+    function showGasQrModal(title, text) {
+        if (!text || text === "-" || text.trim() === "") {
+            showToast("محتوایی برای نمایش بارکد وجود ندارد.", "warning");
+            return;
+        }
+        const modal = document.getElementById('gas-qr-modal');
+        const modalTitle = document.getElementById('gas-qr-modal-title');
+        const modalVal = document.getElementById('gas-qr-modal-val');
+        const canvasContainer = document.getElementById('gas-qr-modal-canvas');
+
+        if (modalTitle) modalTitle.textContent = title;
+        if (modalVal) modalVal.textContent = text;
+        if (canvasContainer) {
+            canvasContainer.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                if (QRCode.toCanvas) {
+                    QRCode.toCanvas(text, { width: 190, margin: 1 }, (err, canvas) => {
+                        if (!err && canvas) {
+                            canvasContainer.appendChild(canvas);
+                        } else {
+                            canvasContainer.innerHTML = "<p style='color:#ef4444; font-size:12px;'>خطا در تولید QR</p>";
+                        }
+                    });
+                } else {
+                    new QRCode(canvasContainer, {
+                        text: text,
+                        width: 190,
+                        height: 190
+                    });
+                }
+            } else {
+                canvasContainer.innerHTML = "<p style='color:#ef4444; font-size:12px;'>کتابخانه بارکد بارگذاری نشده است.</p>";
+            }
+        }
+
+        if (modal) {
+            modal.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeGasQrModal() {
+        const modal = document.getElementById('gas-qr-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    function copyGasText(elementId, btnId) {
+        const el = document.getElementById(elementId);
+        const text = el ? (el.textContent || el.innerText || "").trim() : "";
+        if (!text || text === "-") {
+            showToast("مقداری برای کپی وجود ندارد.", "warning");
+            return;
+        }
+
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("با موفقیت در کلیپ‌بورد کپی شد!", "success");
+            const btn = document.getElementById(btnId);
+            if (btn) {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" style="width:13px; height:13px; color:#10b981;"></i> <span style="color:#10b981;">کپی شد!</span>';
+                if (window.lucide) lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    if (window.lucide) lucide.createIcons();
+                }, 2000);
+            }
+        }).catch(() => {
+            showToast("کپی انجام شد.", "success");
+        });
+    }
+
+    function generateGasSecret() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+        let secret = 'gas_sec_';
+        for (let i = 0; i < 24; i++) {
+            secret += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const secretInput = document.getElementById('gas-cfg-secret');
+        if (secretInput) secretInput.value = secret;
+        showToast("کلید امنیتی تصادفی جدید ایجاد شد. برای اعمال، روی ذخیره تغییرات سرور کلیک کنید.", "info");
+    }
+
+    async function fetchGoogleScriptConfig() {
+        try {
+            const res = await fetch("/api/google_script/status");
+            const data = await res.json();
+            if (!data.success) return;
+
+            gasCachedConfig = data;
+
+            // Update Status Badge
+            const badge = document.getElementById("gas-status-badge");
+            if (badge) {
+                if (data.is_active && data.server_health === "online") {
+                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#10b981;">فعال و آنلاین (${data.server_health})</span>`;
+                } else if (data.is_active) {
+                    badge.innerHTML = `<span class="status-dot active" style="background:#f59e0b;"></span> <span style="color:#f59e0b;">سرویس فعال (بدون کلاینت)</span>`;
+                } else {
+                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف شده</span>`;
+                }
+            }
+
+            // Update Stats Bar
+            if (document.getElementById("gas-stat-port")) document.getElementById("gas-stat-port").textContent = data.port || 8448;
+            if (document.getElementById("gas-stat-sessions")) document.getElementById("gas-stat-sessions").textContent = data.active_sessions || 0;
+            
+            let modeTitle = "Full Tunnel (GooseRelay)";
+            if (data.mode === "singbox_detour") modeTitle = "Sing-box Detour";
+            else if (data.mode === "master_http") modeTitle = "MasterHttpRelay";
+            else if (data.mode === "custom") modeTitle = "Custom Script";
+            if (document.getElementById("gas-stat-mode")) document.getElementById("gas-stat-mode").textContent = modeTitle;
+
+            // Pipeline subtitles
+            if (document.getElementById("gas-pipe-vps-info")) {
+                document.getElementById("gas-pipe-vps-info").textContent = `${data.server_ip}:${data.port}`;
+            }
+
+            // Deployment status & Showcase Hub
+            const deployStat = document.getElementById("gas-stat-deploy-status");
+            const deployedBanner = document.getElementById("gas-deployed-banner");
+            const deployIdSub = document.getElementById("gas-pipe-deploy-id");
+
+            if (data.google_deployment_id) {
+                if (deployStat) deployStat.innerHTML = `<span style="color:#10b981;">مستقر در گوگل (${data.google_deployment_id.substring(0, 10)}...)</span>`;
+                if (deployIdSub) deployIdSub.textContent = data.google_deployment_id.substring(0, 12) + "...";
+                if (deployedBanner) {
+                    deployedBanner.style.display = 'block';
+                    document.getElementById("gas-deployed-id-val").textContent = data.google_deployment_id;
+                    document.getElementById("gas-deployed-url-val").textContent = data.google_webapp_url || `https://script.google.com/macros/s/${data.google_deployment_id}/exec`;
+                    document.getElementById("gas-last-deploy-text").textContent = `آخرین استقرار: ${data.last_deploy_time || 'اخیراً'}`;
+                }
+                const manualInput = document.getElementById("gas-manual-input");
+                if (manualInput && !manualInput.value) manualInput.value = data.google_deployment_id;
+            } else {
+                if (deployStat) deployStat.innerHTML = `<span style="color:#f59e0b;">آماده استقرار</span>`;
+                if (deployIdSub) deployIdSub.textContent = "هنوز مستقر نشده";
+                if (deployedBanner) deployedBanner.style.display = 'none';
+            }
+
+            // Fill server settings inputs
+            if (document.getElementById("gas-cfg-port")) document.getElementById("gas-cfg-port").value = data.port || 8448;
+            if (document.getElementById("gas-cfg-secret")) document.getElementById("gas-cfg-secret").value = data.secret || "";
+            if (document.getElementById("gas-cfg-singbox-target")) document.getElementById("gas-cfg-singbox-target").value = data.singbox_target || "127.0.0.1:20443";
+            if (document.getElementById("gas-cfg-server-ip")) document.getElementById("gas-cfg-server-ip").value = data.server_ip || "";
+
+            // Fill deploy title input
+            if (document.getElementById("gas-input-title") && data.google_project_title) {
+                document.getElementById("gas-input-title").value = data.google_project_title;
+            }
+
+            // Refresh templates & client configs
+            fetchGasTemplates();
+            fetchGasClientConfigs();
+
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            console.error("fetchGoogleScriptConfig error:", e);
+        }
+    }
+
+    async function fetchGasTemplates() {
+        try {
+            const res = await fetch("/api/google_script/templates");
+            const data = await res.json();
+            if (!data.success) return;
+            gasCachedTemplates = data.templates;
+
+            updateGasEditorFromSelection();
+        } catch (e) {
+            console.error("fetchGasTemplates error:", e);
+        }
+    }
+
+    function updateGasEditorFromSelection() {
+        if (!gasCachedTemplates) return;
+        const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
+        const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
+        
+        const tpl = gasCachedTemplates[mode] || gasCachedTemplates['full_tunnel'];
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (editor) {
+            editor.value = tpl.google_code;
+        }
+    }
+
+    function onGasDeployModeChanged(mode) {
+        document.querySelectorAll('.gas-mode-card').forEach(card => {
+            const radio = card.querySelector('input[type="radio"]');
+            if (radio && radio.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+        updateGasEditorFromSelection();
+    }
+
+    async function executeGoogleScriptDeploy() {
+        const token = (document.getElementById("gas-input-token").value || "").trim();
+        if (!token) {
+            showToast("لطفاً توکن دسترسی گوگل (Google OAuth Token) را وارد نمایید.", "warning");
+            document.getElementById("gas-input-token").focus();
+            return;
+        }
+
+        const title = (document.getElementById("gas-input-title").value || "MHPanel-GAS-FullTunnel").trim();
+        const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
+        const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
+        const codeGs = (document.getElementById("gas-code-gs-editor").value || "").trim();
+
+        const btn = document.getElementById("gas-deploy-submit-btn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loading-spinner"></span> در حال ارتباط با Google API و استقرار...`;
+        }
+        toggleLoading(true, "در حال ایجاد پروژه در Google Apps Script و استقرار وب‌اپ...");
+
+        try {
+            const res = await fetch("/api/google_script/deploy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    access_token: token,
+                    title: title,
+                    mode: mode,
+                    code_gs: codeGs
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="rocket" style="width:16px; height:16px;"></i> <span>🚀 استقرار خودکار روی گوگل و دریافت توکن</span>`;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            if (res.ok && data.success) {
+                showToast(`🎉 استقرار در گوگل با موفقیت انجام شد! شناسه توکن: ${data.deployment_id.substring(0, 15)}...`, "success");
+                fetchGoogleScriptConfig();
+                switchGasSubTab('deploy');
+            } else {
+                showToast(data.error || "خطا در استقرار پروژه در گوگل", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="rocket" style="width:16px; height:16px;"></i> <span>🚀 استقرار خودکار روی گوگل و دریافت توکن</span>`;
+                if (window.lucide) lucide.createIcons();
+            }
+            showToast("خطای شبکه در ارتباط با سرور یا گوگل", "error");
+        }
+    }
+
+    async function deployCurrentEditorCode() {
+        const token = (document.getElementById("gas-input-token").value || "").trim();
+        if (!token) {
+            showToast("برای استقرار مستقیم این کد، لطفاً ابتدا توکن گوگل را در تب استقرار خودکار وارد کنید.", "warning");
+            switchGasSubTab('deploy');
+            document.getElementById("gas-input-token").focus();
+            return;
+        }
+        executeGoogleScriptDeploy();
+    }
+
+    async function saveGasManualDeployment() {
+        const inputVal = (document.getElementById("gas-manual-input").value || "").trim();
+        if (!inputVal) {
+            showToast("لطفاً شناسه Deployment ID یا WebApp URL را وارد کنید.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ثبت اطلاعات استقرار دستی...");
+        try {
+            const res = await fetch("/api/google_script/save-manual-deployment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deployment_input: inputVal })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("شناسه استقرار با موفقیت ثبت شد!", "success");
+                fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در ثبت اطلاعات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ذخیره اطلاعات", "error");
+        }
+    }
+
+    async function testGasEndpoint() {
+        const btnText = document.getElementById("gas-ping-btn-text");
+        const latencyBadge = document.getElementById("gas-ping-latency-badge");
+        if (btnText) btnText.textContent = "در حال پینگ...";
+
+        try {
+            const res = await fetch("/api/google_script/test-endpoint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            if (btnText) btnText.textContent = "تست مجدد";
+            
+            if (res.ok && data.success) {
+                if (latencyBadge) {
+                    latencyBadge.textContent = `${data.latency_ms}ms`;
+                    latencyBadge.style.display = 'inline-block';
+                }
+                showToast(`✅ ${data.message}`, "success");
+            } else {
+                if (latencyBadge) {
+                    latencyBadge.textContent = 'خطا';
+                    latencyBadge.style.display = 'inline-block';
+                    latencyBadge.style.color = '#ef4444';
+                }
+                showToast(data.error || "خطا در برقراری ارتباط با وب‌اپ گوگل", "error");
+            }
+        } catch (e) {
+            if (btnText) btnText.textContent = "تست مجدد";
+            showToast("خطای اتصال به سرور در انجام تست", "error");
+        }
+    }
+
+    async function saveGoogleScriptServerConfig() {
+        const port = document.getElementById("gas-cfg-port").value;
+        const secret = document.getElementById("gas-cfg-secret").value;
+        const singboxTarget = document.getElementById("gas-cfg-singbox-target").value;
+
+        toggleLoading(true, "در حال ذخیره و راه‌اندازی مجدد سرور خروجی...");
+        try {
+            const res = await fetch("/api/google_script/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    port: port,
+                    secret: secret,
+                    singbox_target: singboxTarget
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("تنظیمات سرور ذخیره شد و دیمن با پورت جدید راه‌اندازی گردید.", "success");
+                fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات سرور", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
+
+    async function controlGasService(action) {
+        toggleLoading(true, `در حال ${action} سرویس دیمن...`);
+        try {
+            const res = await fetch(`/api/google_script/service/${action}`, { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || `عملیات ${action} با موفقیت انجام شد.`, "success");
+                setTimeout(fetchGoogleScriptConfig, 1000);
+            } else {
+                showToast(data.error || "خطا در کنترل سرویس", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در کنترل سرویس", "error");
+        }
+    }
+
+    async function fetchGasClientConfigs() {
+        try {
+            const res = await fetch("/api/google_script/client-configs");
+            const data = await res.json();
+            if (!data.success) return;
+
+            if (document.getElementById("gas-client-goose-uri")) {
+                document.getElementById("gas-client-goose-uri").textContent = data.goose_uri || "-";
+            }
+            if (document.getElementById("gas-client-singbox-outbound")) {
+                document.getElementById("gas-client-singbox-outbound").textContent = JSON.stringify(data.singbox_outbound, null, 2);
+            }
+            if (document.getElementById("gas-client-masterhttp")) {
+                document.getElementById("gas-client-masterhttp").textContent = JSON.stringify(data.master_http_profile, null, 2);
+            }
+            if (document.getElementById("gas-client-python-script")) {
+                document.getElementById("gas-client-python-script").textContent = data.python_client || "-";
+            }
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            console.error("fetchGasClientConfigs error:", e);
+        }
+    }
+
+    function copyGasCode(textareaId, btnId) {
+        const textarea = document.getElementById(textareaId);
+        if (textarea) {
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast("کد گوگل اسکریپت (Code.gs) در کلیپ‌بورد کپی شد!", "success");
+                const btn = document.getElementById(btnId);
+                if (btn) {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; color:#10b981;"></i> <span style="color:#10b981;">کپی شد!</span>';
+                    if (window.lucide) lucide.createIcons();
+                    setTimeout(() => {
+                        btn.innerHTML = originalHtml;
+                        if (window.lucide) lucide.createIcons();
+                    }, 2000);
+                }
+            }).catch(() => {
+                document.execCommand('copy');
+                showToast("کپی انجام شد.", "success");
+            });
+        }
+    }
+
+    function copyGasField(elementId) {
+        copyGasText(elementId, null);
+    }
 
 
 </script>
