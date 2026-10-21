@@ -344,6 +344,25 @@
     }
 }
 
+/* Toggle Switch Slider */
+.gas-toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+input:checked + .gas-toggle-slider {
+    background-color: #10b981 !important;
+}
+input:checked + .gas-toggle-slider:before {
+    transform: translateX(20px);
+}
+
 /* =====================================================================
    CODE STUDIO & TEMPLATES PROFESSIONAL STYLES
    ===================================================================== */
@@ -939,6 +958,49 @@
                 </div>
             </div>
 
+            <!-- 1.5 DEPLOYMENTS & VERSIONS MANAGER CARD -->
+            <div class="glass-card config-card" id="gas-deployments-card" style="margin-bottom:20px; border:1px solid rgba(66,133,244,0.3);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(66,133,244,0.15); color:#4285F4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="layers" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:15.5px; font-weight:700;">مدیریت و تاریخچه استقرارهای گوگل (Deployments Manager)</h4>
+                            <span style="font-size:12px; color:var(--text-muted);">مشاهده، جابجایی بین نسخه‌ها، تست زنده و حذف استقرارهای بلااستفاده از روی گوگل</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchGasDeployments(true);" style="display:inline-flex; align-items:center; gap:4px; padding:6px 12px;">
+                            <i data-lucide="refresh-cw" style="width:13px; height:13px;"></i>
+                            <span>بروزرسانی لیست</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Deployments Table Responsive Container -->
+                <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+                    <table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:620px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.08); color:var(--text-muted); text-align:right;">
+                                <th style="padding:10px 8px;">نسخه / عنوان</th>
+                                <th style="padding:10px 8px;">شناسه استقرار (Deployment ID)</th>
+                                <th style="padding:10px 8px;">تاریخ آخرین ثبت</th>
+                                <th style="padding:10px 8px; text-align:center;">وضعیت</th>
+                                <th style="padding:10px 8px; text-align:left;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="gas-deployments-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">
+                                    در حال بارگذاری لیست استقرارها از Google API...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- 2. AUTO-DEPLOY FORM (Standardized Mobile & Desktop) -->
             <div class="glass-card config-card" style="margin-bottom:20px;">
                 <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
@@ -1154,6 +1216,21 @@
                     </div>
                 </div>
 
+                <!-- Deployment Target Option (New Version vs Fresh Project) -->
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; margin-bottom:14px;">
+                    <span style="font-size:12px; font-weight:700; color:var(--text-main); display:block; margin-bottom:8px;">نحوه استقرار روی گوگل:</span>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px;">
+                            <input type="radio" name="gas_deploy_target_type" value="update_existing" checked style="accent-color:#4285F4; width:16px; height:16px;">
+                            <span>استقرار به عنوان <strong>نگارش جدید (New Version)</strong> روی پروژه فعلی <span style="color:#10b981;">(توصیه شده - سریع و بدون نیاز به مجوز مجدد)</span></span>
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12.5px;">
+                            <input type="radio" name="gas_deploy_target_type" value="force_new" style="accent-color:#4285F4; width:16px; height:16px;">
+                            <span>ایجاد یک <strong>پروژه کاملاً تازه و مستقل</strong> در اکانت گوگل</span>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Real-time Deployment Alert & 403 Helper Banner -->
                 <div id="gas-deploy-alert-container" style="display:none; margin-bottom:14px;"></div>
 
@@ -1233,7 +1310,15 @@
                         </div>
                     </div>
 
-                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <button type="button" class="btn btn-sm" id="btn-save-studio-code" onclick="saveCurrentStudioCode()" style="background:#10b981; border-color:#10b981; color:#fff; padding:7px 15px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                            <i data-lucide="save" style="width:14px; height:14px;"></i>
+                            <span id="gas-save-btn-text">💾 ذخیره تغییرات قالب</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="btn-delete-studio-code" onclick="deleteCurrentStudioCode()" style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#ef4444; padding:7px 12px; font-weight:600; display:none; align-items:center; gap:6px;">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                            <span>حذف این قالب</span>
+                        </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="downloadCurrentStudioCode()" style="padding:7px 12px; display:inline-flex; align-items:center; gap:6px;">
                             <i data-lucide="download" style="width:14px; height:14px;"></i>
                             <span>دانلود فایل سورس</span>
@@ -1271,6 +1356,13 @@
                         <i data-lucide="code" style="width:15px; height:15px; color:#f43f5e;"></i>
                         <span>Custom Script</span>
                         <span class="gas-token-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; font-size:10px;">سفارشی</span>
+                    </button>
+                    <!-- User Custom Templates Container -->
+                    <span id="gas-custom-tmpl-tabs-container" style="display:contents;"></span>
+                    <!-- Add Custom Template Button -->
+                    <button type="button" class="gas-tmpl-tab" onclick="openNewGasTemplateModal()" style="border:1px dashed rgba(66,133,244,0.7); background:rgba(66,133,244,0.08); color:#60a5fa;">
+                        <i data-lucide="plus-circle" style="width:15px; height:15px;"></i>
+                        <span>➕ ساخت قالب جدید</span>
                     </button>
                 </div>
 
@@ -1428,62 +1520,158 @@
         <!-- SUBTAB 3: Server Configuration -->
         <!-- ============================================================== -->
         <div id="gas-subtab-server" class="gas-subtab-content" style="display:none;">
-            <div class="glass-card config-card">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:16px;">
-                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                        <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+            
+            <!-- Server Config Main Card -->
+            <div class="glass-card config-card" style="margin-bottom:20px; border:1px solid rgba(245,158,11,0.35);">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:38px; height:38px; border-radius:12px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                            <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:16.5px; font-weight:700;">پیکربندی سرور خروجی تونل (VPS Exit Relay Server)</h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                تنظیم آدرس URL، پورت شنود دیمن، کلید امنیتی و مقصد ارسال بسته‌ها
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h4 style="margin:0; font-size:16px; font-weight:700;">پیکربندی سرور خروجی تونل (Exit Relay Server)</h4>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                            تنظیم پورت شنود دیمن روی VPS، کلید احراز هویت و مقصد هدایت بسته‌ها
-                        </p>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="testGasLocalHealth()" style="padding:6px 12px; display:inline-flex; align-items:center; gap:5px;">
+                            <i data-lucide="activity" style="width:14px; height:14px; color:#10b981;"></i>
+                            <span>تست سلامت دیمن (/health)</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="controlGasService('restart')" style="padding:6px 12px; display:inline-flex; align-items:center; gap:5px;">
+                            <i data-lucide="rotate-ccw" style="width:14px; height:14px;"></i>
+                            <span>ری‌استارت سرویس</span>
+                        </button>
                     </div>
                 </div>
 
+                <!-- 1. TUNNEL_SERVER_URL Selector Box -->
+                <div style="background:rgba(0,0,0,0.25); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:16px; margin-bottom:18px;">
+                    <label style="font-size:13px; font-weight:700; color:#fbbf24; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <i data-lucide="globe" style="width:15px; height:15px;"></i>
+                        <span>آدرس پایه سرور خروجی جهت تزریق به اسکریپت گوگل (TUNNEL_SERVER_URL):</span>
+                    </label>
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 12px 0;">
+                        این آدرسی است که اسکریپت گوگل ترافیک را از طریق شبکه جهانی به آن فوروارد می‌کند. گزینه دامنه امن SSL به دلیل استفاده از پورت استاندارد ۴۴۳ آپاچی تضمین پایداری بسیار بالاتری دارد.
+                    </p>
+
+                    <!-- Radio Presets for Server URL -->
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:12px;">
+                        <label style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); padding:10px 14px; border-radius:8px; cursor:pointer;">
+                            <input type="radio" name="gas_server_url_type" id="gas-url-type-domain" value="domain" onchange="onGasServerUrlTypeChange('domain')" checked style="accent-color:#10b981; width:16px; height:16px;">
+                            <div style="min-width:0; flex:1;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <strong style="color:#34d399; font-size:13px; font-family:'JetBrains Mono', monospace;">https://mhpanel.kigaping.com</strong>
+                                    <span class="gas-token-badge gas-token-badge-green" style="font-size:10px;">دامنه امن SSL (پیش‌نهادی)</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:2px;">
+                                    پراکسی معکوس امن پورت ۴۴۳ به دیمن تونل با گواهی معتبر Let's Encrypt (بدون نیاز به پورت خاص)
+                                </span>
+                            </div>
+                        </label>
+
+                        <label style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); padding:10px 14px; border-radius:8px; cursor:pointer;">
+                            <input type="radio" name="gas_server_url_type" id="gas-url-type-ip" value="ip" onchange="onGasServerUrlTypeChange('ip')" style="accent-color:#4285F4; width:16px; height:16px;">
+                            <div style="min-width:0; flex:1;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <strong style="color:#60a5fa; font-size:13px; font-family:'JetBrains Mono', monospace;" id="gas-url-ip-preview">http://212.227.143.16:8448</strong>
+                                    <span class="gas-token-badge gas-token-badge-blue" style="font-size:10px;">آی‌پی مستقیم</span>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:2px;">
+                                    ارتباط مستقیم با آی‌پی سرور مجازی روی پورت دیمن (نیازمند باز بودن پورت ۸۴۴۸ در فایروال)
+                                </span>
+                            </div>
+                        </label>
+
+                        <label style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); padding:10px 14px; border-radius:8px; cursor:pointer;">
+                            <input type="radio" name="gas_server_url_type" id="gas-url-type-custom" value="custom" onchange="onGasServerUrlTypeChange('custom')" style="accent-color:#f59e0b; width:16px; height:16px;">
+                            <div style="min-width:0; flex:1;">
+                                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    <strong style="color:#fbbf24; font-size:13px;">آدرس سفارشی و دلخواه مدیر (Custom Domain / Host)</strong>
+                                </div>
+                                <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:2px;">
+                                    در صورتی که کلودفلر یا ساب‌دامین اختصاصی دیگری برای این نود در نظر دارید
+                                </span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Custom URL Input Field -->
+                    <div id="gas-custom-url-field" style="display:none; margin-top:10px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin-bottom:4px; display:block;">آدرس کامل سفارشی (با http:// یا https://):</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-cfg-tunnel-server-url" placeholder="https://tunnel.mydomain.com" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Parameters Grid -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:16px; margin-bottom:16px;">
-                    <div class="form-group">
-                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">پورت سرور خروجی (Exit Server Port)</label>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">پورت محلی سرور دیمن (Local Daemon Port)</label>
                         <div class="gas-input-composite">
                             <input type="number" id="gas-cfg-port" value="8448" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
                         </div>
-                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">پورت TCP شنود سرور خروجی (پیش‌فرض: 8448)</small>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">پورت شنود پروسه Rust روی لوکال‌هاست سرور (پیش‌فرض: 8448)</small>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between;">
-                            <span>کلید امنیتی احراز هویت (Secret Key)</span>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>کلید احراز هویت تونل (Auth Secret Key)</span>
                             <a href="javascript:void(0)" onclick="generateGasSecret()" style="font-size:11.5px; color:#4285F4; text-decoration:none;">تولید تصادفی 🎲</a>
                         </label>
                         <div class="gas-input-composite">
                             <input type="text" id="gas-cfg-secret" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                            <div class="gas-input-tools">
+                                <button type="button" class="gas-tool-btn" onclick="copyGasText('gas-cfg-secret', null)" title="کپی کلید">
+                                    <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                                </button>
+                            </div>
                         </div>
-                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">کلید ارسالی در هدر X-Auth-Key جهت امنیت تونل</small>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">کلید ارسالی در هدر X-Auth-Key جهت امنیت و جلوگیری از سوءاستفاده</small>
                     </div>
 
-                    <div class="form-group">
-                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">مقصد هسته سینگ‌باکس (Sing-box Inbound)</label>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">مقصد هسته سینگ‌باکس (Sing-box Detour Target)</label>
                         <div class="gas-input-composite">
                             <input type="text" id="gas-cfg-singbox-target" value="127.0.0.1:20443" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
                         </div>
-                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آدرس اینباند سینگ‌باکس در حالت Sing-box Detour</small>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آدرس اینباند سینگ‌باکس در حالت مستقیم Sing-box Detour</small>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group" style="margin-bottom:0;">
                         <label style="font-size:12.5px; font-weight:600; margin-bottom:6px;">آی‌پی عمومی سرور (Public IP)</label>
                         <div class="gas-input-composite">
                             <input type="text" id="gas-cfg-server-ip" readonly style="font-family:'JetBrains Mono', monospace; direction:ltr; background:rgba(0,0,0,0.15);">
                         </div>
-                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آی‌پی شناسایی شده سرور مجازی جهت تزریق به اسکریپت</small>
+                        <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">آی‌پی اصلی سرور جهت تزریق خودکار متغیرها</small>
                     </div>
                 </div>
 
+                <!-- Diagnostic Mode Toggle Box -->
+                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px 16px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div>
+                        <strong style="font-size:13px; color:var(--text-main); display:block;">حالت خطایابی و لاگ تفصیلی پکت‌ها (MHRV_DIAGNOSTIC Mode)</strong>
+                        <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:2px;">
+                            در صورت فعال بودن، هر نشست و بسته‌های دریافتی به طور کامل در لاگ سرویس ثبت می‌شوند (جهت عیب‌یابی قطعی‌ها)
+                        </span>
+                    </div>
+                    <label style="position:relative; display:inline-block; width:44px; height:24px; margin:0; cursor:pointer;">
+                        <input type="checkbox" id="gas-cfg-diagnostic" style="opacity:0; width:0; height:0;">
+                        <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0; background:#334155; transition:.3s; border-radius:24px;" class="gas-toggle-slider"></span>
+                    </label>
+                </div>
+
+                <!-- Submit Bar -->
                 <div class="gas-submit-bar">
-                    <button type="button" class="btn btn-secondary" onclick="fetchGoogleScriptConfig();" style="width:auto; padding:8px 18px;">
+                    <button type="button" class="btn btn-secondary" onclick="fetchGoogleScriptConfig();" style="width:auto; padding:9px 20px;">
                         انصراف / لغو تغییرات
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="saveGoogleScriptServerConfig();" style="width:auto; padding:8px 24px; font-weight:700;">
-                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> ذخیره و اعمال تغییرات سرور
+                    <button type="button" class="btn btn-primary" onclick="saveGoogleScriptServerConfig();" style="width:auto; padding:10px 28px; font-weight:700; background:#f59e0b; border-color:#f59e0b; color:#000; display:inline-flex; align-items:center; gap:6px;">
+                        <i data-lucide="check" style="width:16px; height:16px;"></i>
+                        <span>💾 ذخیره تنظیمات سرور و اعمال روی دیمن</span>
                     </button>
                 </div>
             </div>
@@ -1571,13 +1759,33 @@
                         ۳. آدرس <strong>Apps Script URL</strong> و <strong>Auth Key</strong> زیر را وارد کرده و اتصال را روشن کنید.
                     </div>
 
-                    <!-- Access Permission Critical Tip -->
-                    <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:11.5px; color:var(--text-muted); line-height:1.5;">
-                        <strong style="color:#f59e0b; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-                            <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i>
-                            <span>نکته حیاتی برای عبور ترافیک (حل مشکل رد و بدل نشدن داده‌ها):</span>
-                        </strong>
-                        در تنظیمات استقرار وب‌اپ گوگل (Deploy > Manage deployments)، گزینه <strong>Who has access</strong> باید حتماً روی <strong>Anyone</strong> (همه افراد - ناشناس) باشد. اگر روی «Anyone with a Google account» باشد، گوگل درخواست کلاینت mhrv-rs را رد کرده و ترافیک برقرار نمی‌شود.
+                    <!-- Access Permission & Traffic Routing Troubleshooting Guide -->
+                    <div style="background:linear-gradient(145deg, rgba(245,158,11,0.09) 0%, rgba(15,23,42,0.85) 100%); border:1px solid rgba(245,158,11,0.4); border-radius:10px; padding:14px 16px; margin-bottom:14px;">
+                        <div style="display:flex; align-items:center; gap:8px; color:#fbbf24; font-weight:700; font-size:13px; margin-bottom:8px;">
+                            <i data-lucide="help-circle" style="width:16px; height:16px;"></i>
+                            <span>چرا ترافیک رد و بدل نمی‌شود و بایت ارسالی/دریافتی صفر (0B) است؟ (۴ نکته کلیدی)</span>
+                        </div>
+                        <ol style="margin:0; padding-right:18px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                            <li>
+                                <strong style="color:#e2e8f0;">فعال‌سازی پروکسی سیستم در ویندوز/دسکتاپ:</strong>
+                                نرم‌افزار mhrv-rs در ویندوز یک پروکسی محلی روی <code style="color:#60a5fa;">127.0.0.1:1080</code> (SOCKS5) و <code style="color:#60a5fa;">127.0.0.1:8123</code> (HTTP) ایجاد می‌کند. جهت عبور کل سیستم باید گزینه <strong>Enable System Proxy</strong> را در نرم‌افزار فعال کنید یا در مرورگر/تلگرام پروکسی را روی پورت ۱۰۸۰ لوکال‌هاست بگذارید.
+                            </li>
+                            <li>
+                                <strong style="color:#e2e8f0;">دسترسی وب‌اپ در گوگل (Who has access):</strong>
+                                در کنسول گوگل (<a href="https://script.google.com/home" target="_blank" style="color:#4285F4; text-decoration:underline;">script.google.com</a>) در بخش <strong>Deploy > Manage deployments</strong>، مقدار <strong>Who has access</strong> حتماً باید روی <strong>Anyone</strong> (همه افراد بدون لاگین) باشد. در غیر این صورت گوگل ترافیک را مسدود می‌کند.
+                            </li>
+                            <li>
+                                <strong style="color:#e2e8f0;">تنظیم حالت در کلاینت (Relay Mode):</strong>
+                                در نرم‌افزار mhrv-rs در بخش Relay Mode گزینه را دقیقاً روی <strong>Full</strong> قرار دهید (نه MasterHttp یا Raw).
+                            </li>
+                            <li>
+                                <strong style="color:#e2e8f0;">تست سریع در ترمینال یا PowerShell:</strong>
+                                برای اطمینان از عبور ترافیک، دستور زیر را در ترمینال کلاینت اجرا کنید تا آی‌پی خروجی سرور را ببینید:
+                                <div style="background:#070a12; padding:6px 10px; border-radius:6px; margin-top:4px; font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#34d399; direction:ltr;">
+                                    curl -x socks5://127.0.0.1:1080 https://ipinfo.io
+                                </div>
+                            </li>
+                        </ol>
                     </div>
 
                     <!-- Parameters Quick Table -->
@@ -1740,6 +1948,74 @@
             <button type="button" class="btn btn-secondary" onclick="closeGasQrModal()" style="width:100%; font-weight:600;">
                 بستن پنجره
             </button>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- NEW CUSTOM TEMPLATE MODAL -->
+    <!-- ============================================================== -->
+    <div id="gas-new-template-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.75); z-index:99999; backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="max-width:520px; width:100%; border:1px solid rgba(66,133,244,0.4); padding:24px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+            <button type="button" onclick="closeNewGasTemplateModal()" style="position:absolute; top:14px; left:14px; background:transparent; border:none; color:var(--text-muted); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                <i data-lucide="x" style="width:18px; height:18px;"></i>
+            </button>
+
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+                <div style="width:38px; height:38px; border-radius:10px; background:rgba(66,133,244,0.15); color:#4285F4; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                    <i data-lucide="plus-circle" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">ساخت قالب سفارشی جدید (New Custom Template)</h4>
+                    <span style="font-size:11.5px; color:var(--text-muted);">یک تب و اسکریپت اختصاصی با نام دلخواه به استودیو اضافه کنید</span>
+                </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:5px;">عنوان نمایشی قالب (Name) <span style="color:#ef4444;">*</span></label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-newtpl-name" placeholder="مثال: قالب اختصاصی DoH همراه با کش..." style="direction:rtl;">
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:5px;">شناسه یکتا لاتین (Key) <span style="color:#ef4444;">*</span></label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-newtpl-key" placeholder="my_custom_v1" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:5px;">نام فایل سورس (File)</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-newtpl-file" placeholder="MyScript.gs" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:5px;">توضیحات کوتاه</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-newtpl-desc" placeholder="توضیح عملکرد این اسکریپت جهت یادآوری..." style="direction:rtl;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:5px;">کد اولیه قالب</label>
+                    <select id="gas-newtpl-starter" style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:10px; color:var(--text-main); padding:9px 12px; width:100%; font-size:12.5px;">
+                        <option value="current">کپی از محتوای فعلی ادیتور استودیو (Clone Editor)</option>
+                        <option value="full_tunnel">پروتکل استاندارد Full Tunnel (CodeFull.gs)</option>
+                        <option value="empty">کد خام و خالی (Empty Template)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeNewGasTemplateModal()" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="submitNewGasTemplate()" style="background:#4285F4; border-color:#4285F4; padding:8px 22px; font-weight:700;">
+                    <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ایجاد و بارگذاری در استودیو
+                </button>
+            </div>
         </div>
     </div>
 

@@ -20575,19 +20575,223 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (document.getElementById("gas-cfg-secret")) document.getElementById("gas-cfg-secret").value = data.secret || "";
             if (document.getElementById("gas-cfg-singbox-target")) document.getElementById("gas-cfg-singbox-target").value = data.singbox_target || "127.0.0.1:20443";
             if (document.getElementById("gas-cfg-server-ip")) document.getElementById("gas-cfg-server-ip").value = data.server_ip || "";
+            if (document.getElementById("gas-cfg-diagnostic")) document.getElementById("gas-cfg-diagnostic").checked = !!data.diagnostic_mode;
+
+            // Handle server URL selector
+            const serverUrl = (data.tunnel_server_url || "").trim();
+            const ipPreview = document.getElementById("gas-url-ip-preview");
+            if (ipPreview) ipPreview.textContent = `http://${data.server_ip}:${data.port || 8448}`;
+            
+            if (serverUrl === "https://mhpanel.kigaping.com") {
+                onGasServerUrlTypeChange('domain');
+            } else if (serverUrl === `http://${data.server_ip}:${data.port || 8448}`) {
+                onGasServerUrlTypeChange('ip');
+            } else if (serverUrl) {
+                onGasServerUrlTypeChange('custom');
+                if (document.getElementById("gas-cfg-tunnel-server-url")) {
+                    document.getElementById("gas-cfg-tunnel-server-url").value = serverUrl;
+                }
+            } else {
+                onGasServerUrlTypeChange('domain');
+            }
 
             // Fill deploy title input
             if (document.getElementById("gas-input-title") && data.google_project_title) {
                 document.getElementById("gas-input-title").value = data.google_project_title;
             }
 
-            // Refresh templates & client configs
+            // Refresh deployments list, templates & client configs
+            fetchGasDeployments();
             fetchGasTemplates();
             fetchGasClientConfigs();
 
             if (window.lucide) lucide.createIcons();
         } catch (e) {
             console.error("fetchGoogleScriptConfig error:", e);
+        }
+    }
+
+    function onGasServerUrlTypeChange(type) {
+        const domainRadio = document.getElementById('gas-url-type-domain');
+        const ipRadio = document.getElementById('gas-url-type-ip');
+        const customRadio = document.getElementById('gas-url-type-custom');
+        const customField = document.getElementById('gas-custom-url-field');
+
+        if (domainRadio) domainRadio.checked = (type === 'domain');
+        if (ipRadio) ipRadio.checked = (type === 'ip');
+        if (customRadio) customRadio.checked = (type === 'custom');
+
+        if (customField) {
+            customField.style.display = (type === 'custom') ? 'block' : 'none';
+        }
+    }
+
+    async function fetchGasDeployments(showToastFeedback = false) {
+        const tbody = document.getElementById("gas-deployments-tbody");
+        if (!tbody) return;
+
+        try {
+            const res = await fetch("/api/google_script/deployments");
+            const data = await res.json();
+            if (!data.success) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطا در دریافت لیست استقرارها: ${data.error || 'ناشناخته'}</td></tr>`;
+                return;
+            }
+
+            const deps = data.deployments || [];
+            if (deps.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ استقراری یافت نشد. می‌توانید با فرم زیر اولین استقرار را انجام دهید.</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            deps.forEach(dep => {
+                const isActive = !!dep.is_active;
+                const vNum = dep.version_number ? `v${dep.version_number}` : 'HEAD';
+                const desc = dep.description || 'MHPanel Deployment';
+                const depId = dep.deployment_id;
+                const webappUrl = dep.webapp_url || `https://script.google.com/macros/s/${depId}/exec`;
+                const dateStr = dep.update_time ? dep.update_time.replace('T', ' ').substring(0, 19) : '-';
+
+                const statusBadge = isActive 
+                    ? `<span class="gas-token-badge gas-token-badge-green" style="display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active"></span> فعال (Active)</span>`
+                    : `<span class="gas-token-badge" style="opacity:0.7;">سایر نگارش‌ها</span>`;
+
+                const activateBtn = isActive
+                    ? `<button type="button" class="btn btn-sm btn-secondary" disabled style="opacity:0.5; padding:4px 8px; font-size:11px;">فعال است</button>`
+                    : `<button type="button" class="btn btn-sm btn-secondary" onclick="activateGasDeployment('${depId}', '${webappUrl}')" style="color:#10b981; border-color:rgba(16,185,129,0.4); padding:4px 10px; font-size:11px; font-weight:600;">✅ فعال‌سازی</button>`;
+
+                html += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${isActive ? 'background:rgba(16,185,129,0.04);' : ''}">
+                        <td style="padding:10px 8px;">
+                            <div style="font-weight:700; color:${isActive ? '#34d399' : '#e2e8f0'}; display:flex; align-items:center; gap:6px;">
+                                <span class="gas-token-badge ${isActive ? 'gas-token-badge-green' : 'gas-token-badge-blue'}" style="font-size:10px;">${vNum}</span>
+                                <span>${desc}</span>
+                            </div>
+                        </td>
+                        <td style="padding:10px 8px; font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#60a5fa;">
+                            ${depId}
+                        </td>
+                        <td style="padding:10px 8px; color:var(--text-muted); font-size:11px; direction:ltr; text-align:right;">
+                            ${dateStr}
+                        </td>
+                        <td style="padding:10px 8px; text-align:center;">
+                            ${statusBadge}
+                        </td>
+                        <td style="padding:10px 8px; text-align:left;">
+                            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+                                ${activateBtn}
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="testGasSpecificDeployment('${webappUrl}')" title="تست زنده اتصال" style="padding:4px 8px; font-size:11px;">
+                                    <i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i>
+                                    <span>تست</span>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTextValue('${webappUrl}', 'آدرس وب‌اپ گوگل')" title="کپی آدرس کامل" style="padding:4px 8px;">
+                                    <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasDeployment('${depId}', '${vNum}')" title="حذف دائمی از گوگل" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
+                                    <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+            if (showToastFeedback) {
+                showToast(`لیست استقرارها بروزرسانی شد (${deps.length} استقرار).`, "success");
+            }
+        } catch (e) {
+            console.error("fetchGasDeployments error:", e);
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطای شبکه در دریافت لیست استقرارها</td></tr>`;
+        }
+    }
+
+    async function activateGasDeployment(depId, webappUrl) {
+        toggleLoading(true, "در حال فعال‌سازی این استقرار...");
+        try {
+            const res = await fetch(`/api/google_script/deployments/${depId}/activate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ webapp_url: webappUrl })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("استقرار با موفقیت به عنوان استقرار فعال انتخاب شد!", "success");
+                fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در فعال‌سازی استقرار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
+
+    async function deleteGasDeployment(depId, versionStr) {
+        if (!confirm(`آیا از حذف استقرار (${versionStr} / ${depId}) از روی سرورهای گوگل اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`)) {
+            return;
+        }
+
+        toggleLoading(true, "در حال حذف استقرار از پروژه گوگل...");
+        try {
+            const res = await fetch(`/api/google_script/deployments/${depId}/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("استقرار با موفقیت از گوگل حذف شد.", "success");
+                fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در حذف استقرار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در حذف استقرار", "error");
+        }
+    }
+
+    async function testGasSpecificDeployment(url) {
+        if (!url) return;
+        toggleLoading(true, "در حال ارسال پکت آزمایشی به گوگل اسکریپت...");
+        try {
+            const res = await fetch("/api/google_script/test-endpoint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ url: url })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(`✅ پاسخ از گوگل در ${data.latency_ms}ms با کد ${data.status_code}`, "success");
+            } else {
+                showToast(data.error || "خطا در برقراری ارتباط با وب‌اپ گوگل", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای اتصال در انجام تست پینگ", "error");
+        }
+    }
+
+    async function testGasLocalHealth() {
+        const port = document.getElementById("gas-cfg-port").value || 8448;
+        toggleLoading(true, `در حال تست اندپوینت http://127.0.0.1:${port}/health ...`);
+        try {
+            const res = await fetch("/api/google_script/status");
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.server_health === "online") {
+                showToast(`✅ دیمن سرور با موفقیت پاسخ داد: online (${data.backend_engine})`, "success");
+            } else {
+                showToast(`⚠️ وضعیت سرور: ${data.server_health} (سرویس دیمن پاسخ نداد)`, "warning");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطا در بررسی وضعیت دیمن", "error");
         }
     }
 
@@ -20612,6 +20816,25 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }
             if (document.getElementById("gas-status-target-url")) {
                 document.getElementById("gas-status-target-url").textContent = `http://${data.server_ip}:${data.port}/tunnel`;
+            }
+
+            // Render custom template tabs
+            const customTabsContainer = document.getElementById("gas-custom-tmpl-tabs-container");
+            if (customTabsContainer) {
+                let cTabsHtml = "";
+                Object.keys(gasCachedTemplates).forEach(k => {
+                    const t = gasCachedTemplates[k];
+                    if (t.is_custom) {
+                        cTabsHtml += `
+                            <button type="button" class="gas-tmpl-tab ${k === gasCurrentTemplateKey ? 'active' : ''}" data-tmpl="${k}" onclick="selectGasStudioTemplate('${k}')">
+                                <i data-lucide="file-code" style="width:15px; height:15px; color:#38bdf8;"></i>
+                                <span>${t.name || k}</span>
+                                <span class="gas-token-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px;">سفارشی</span>
+                            </button>
+                        `;
+                    }
+                });
+                customTabsContainer.innerHTML = cTabsHtml;
             }
 
             selectGasStudioTemplate(gasCurrentTemplateKey || 'full_tunnel');
@@ -20658,8 +20881,160 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             descText.textContent = tpl.description || '';
         }
 
+        const deleteBtn = document.getElementById('btn-delete-studio-code');
+        if (deleteBtn) {
+            deleteBtn.style.display = (tpl && tpl.is_custom) ? 'inline-flex' : 'none';
+        }
+
         updateGasEditorMetrics();
         if (window.lucide) lucide.createIcons();
+    }
+
+    function openNewGasTemplateModal() {
+        const modal = document.getElementById('gas-new-template-modal');
+        if (modal) {
+            modal.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
+            const input = document.getElementById('gas-newtpl-name');
+            if (input) input.focus();
+        }
+    }
+
+    function closeNewGasTemplateModal() {
+        const modal = document.getElementById('gas-new-template-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async function submitNewGasTemplate() {
+        const name = (document.getElementById('gas-newtpl-name').value || '').trim();
+        let key = (document.getElementById('gas-newtpl-key').value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+        const file = (document.getElementById('gas-newtpl-file').value || '').trim();
+        const desc = (document.getElementById('gas-newtpl-desc').value || '').trim();
+        const starter = document.getElementById('gas-newtpl-starter').value;
+
+        if (!name) {
+            showToast("لطفاً یک عنوان برای قالب وارد کنید.", "warning");
+            document.getElementById('gas-newtpl-name').focus();
+            return;
+        }
+        if (!key) {
+            key = 'custom_' + Date.now();
+        }
+
+        let starterCode = "";
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (starter === 'current' && editor) {
+            starterCode = editor.value;
+        } else if (starter === 'full_tunnel' && gasCachedTemplates && gasCachedTemplates['full_tunnel']) {
+            starterCode = gasCachedTemplates['full_tunnel'].google_code || "";
+        }
+
+        toggleLoading(true, "در حال ایجاد قالب جدید...");
+        try {
+            const res = await fetch("/api/google_script/save-template", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: key,
+                    name: name,
+                    file_name: file || `${key}.gs`,
+                    description: desc || "قالب سفارشی ایجاد شده توسط مدیر",
+                    code: starterCode
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                closeNewGasTemplateModal();
+                showToast(data.message || "قالب جدید با موفقیت اضافه شد!", "success");
+                gasCurrentTemplateKey = key;
+                await fetchGasTemplates();
+            } else {
+                showToast(data.error || "خطا در ایجاد قالب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ایجاد قالب", "error");
+        }
+    }
+
+    async function saveCurrentStudioCode() {
+        const editor = document.getElementById('gas-code-gs-editor');
+        if (!editor) return;
+        const code = editor.value;
+        const key = gasCurrentTemplateKey || 'custom';
+
+        // If built-in template, offer to save as custom
+        if (['full_tunnel', 'singbox_detour', 'master_http', 'manifest'].includes(key)) {
+            if (confirm(`قالب «${key}» یک قالب سیستمی پیش‌فرض است. آیا مایلید تغییرات را به عنوان یک «قالب سفارشی جدید» ذخیره کنید؟`)) {
+                openNewGasTemplateModal();
+                const starterSelect = document.getElementById('gas-newtpl-starter');
+                if (starterSelect) starterSelect.value = 'current';
+                return;
+            }
+            return;
+        }
+
+        const tpl = (gasCachedTemplates && gasCachedTemplates[key]) || {};
+        toggleLoading(true, "در حال ذخیره تغییرات قالب...");
+        try {
+            const res = await fetch("/api/google_script/save-template", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    key: key,
+                    name: tpl.name || key,
+                    file_name: tpl.file_name || `${key}.gs`,
+                    description: tpl.description || "",
+                    code: code
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "قالب با موفقیت ذخیره شد!", "success");
+                await fetchGasTemplates();
+            } else {
+                showToast(data.error || "خطا در ذخیره قالب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ذخیره قالب", "error");
+        }
+    }
+
+    async function deleteCurrentStudioCode() {
+        const key = gasCurrentTemplateKey;
+        if (!key || ['full_tunnel', 'singbox_detour', 'master_http', 'manifest', 'custom'].includes(key)) {
+            showToast("قالب‌های اصلی پیش‌فرض سیستم قابل حذف نیستند.", "warning");
+            return;
+        }
+
+        const tpl = (gasCachedTemplates && gasCachedTemplates[key]) || {};
+        if (!confirm(`آیا از حذف دائم قالب سفارشی «${tpl.name || key}» اطمینان دارید؟`)) {
+            return;
+        }
+
+        toggleLoading(true, "در حال حذف قالب سفارشی...");
+        try {
+            const res = await fetch("/api/google_script/delete-template", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key: key })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "قالب حذف گردید.", "success");
+                gasCurrentTemplateKey = 'full_tunnel';
+                await fetchGasTemplates();
+            } else {
+                showToast(data.error || "خطا در حذف قالب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در حذف قالب", "error");
+        }
     }
 
     function updateGasEditorMetrics() {
@@ -20785,6 +21160,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
         const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
         const codeGs = (document.getElementById("gas-code-gs-editor").value || "").trim();
+        const targetTypeRadio = document.querySelector('input[name="gas_deploy_target_type"]:checked');
+        const forceNewProject = (targetTypeRadio && targetTypeRadio.value === 'force_new');
 
         const alertContainer = document.getElementById("gas-deploy-alert-container");
         if (alertContainer) {
@@ -20807,7 +21184,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     access_token: token,
                     title: title,
                     mode: mode,
-                    code_gs: codeGs
+                    code_gs: codeGs,
+                    force_new_project: forceNewProject
                 })
             });
             const data = await res.json();
@@ -20825,6 +21203,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 }
                 showToast(`🎉 استقرار در گوگل با موفقیت انجام شد! شناسه توکن: ${data.deployment_id.substring(0, 15)}...`, "success");
                 fetchGoogleScriptConfig();
+                fetchGasDeployments();
                 switchGasSubTab('deploy');
             } else {
                 const errMsg = data.error || "خطا در استقرار پروژه در گوگل";
@@ -21007,6 +21386,19 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const port = document.getElementById("gas-cfg-port").value;
         const secret = document.getElementById("gas-cfg-secret").value;
         const singboxTarget = document.getElementById("gas-cfg-singbox-target").value;
+        const diagnosticMode = document.getElementById("gas-cfg-diagnostic") ? document.getElementById("gas-cfg-diagnostic").checked : false;
+
+        let tunnelServerUrl = "";
+        const urlType = (document.querySelector('input[name="gas_server_url_type"]:checked') || {}).value || 'domain';
+        const serverIp = (document.getElementById("gas-cfg-server-ip") || {}).value || "";
+        
+        if (urlType === 'domain') {
+            tunnelServerUrl = "https://mhpanel.kigaping.com";
+        } else if (urlType === 'ip') {
+            tunnelServerUrl = `http://${serverIp}:${port}`;
+        } else {
+            tunnelServerUrl = (document.getElementById("gas-cfg-tunnel-server-url") || {}).value || "";
+        }
 
         toggleLoading(true, "در حال ذخیره و راه‌اندازی مجدد سرور خروجی...");
         try {
@@ -21016,13 +21408,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 body: JSON.stringify({
                     port: port,
                     secret: secret,
-                    singbox_target: singboxTarget
+                    singbox_target: singboxTarget,
+                    tunnel_server_url: tunnelServerUrl,
+                    diagnostic_mode: diagnosticMode
                 })
             });
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast("تنظیمات سرور ذخیره شد و دیمن با پورت جدید راه‌اندازی گردید.", "success");
+                showToast("تنظیمات سرور خروجی با موفقیت ذخیره و دیمن به‌روز شد.", "success");
                 fetchGoogleScriptConfig();
             } else {
                 showToast(data.error || "خطا در ذخیره تنظیمات سرور", "error");

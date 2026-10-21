@@ -21075,11 +21075,29 @@ def api_decoy_wp_remove():
 # =====================================================================
 
 GAS_CONFIG_FILE = "/etc/vpnpanel/google_script.json"
+GAS_CUSTOM_TEMPLATES_FILE = "/etc/vpnpanel/gas_custom_templates.json"
+
+def load_gas_custom_templates():
+    if os.path.exists(GAS_CUSTOM_TEMPLATES_FILE):
+        try:
+            with open(GAS_CUSTOM_TEMPLATES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_gas_custom_templates(templates):
+    os.makedirs(os.path.dirname(GAS_CUSTOM_TEMPLATES_FILE), exist_ok=True)
+    with open(GAS_CUSTOM_TEMPLATES_FILE, "w", encoding="utf-8") as f:
+        json.dump(templates, f, indent=2, ensure_ascii=False)
+
 GAS_DEFAULT_CONFIG = {
     "enabled": True,
     "port": 8448,
     "secret": "mhpanel_gas_secret_key_2026",
     "mode": "full_tunnel", # "full_tunnel" | "singbox_detour" | "master_http" | "custom"
+    "tunnel_server_url": "",
+    "diagnostic_mode": False,
     "singbox_target": "127.0.0.1:20443",
     "default_upstream": "127.0.0.1:20443",
     "session_timeout": 60,
@@ -21114,8 +21132,9 @@ def save_gas_config(cfg, restart_service=True):
         env_file = "/etc/vpnpanel/gas_tunnel.env"
         port = cfg.get("port", 8448)
         secret = cfg.get("secret", "mhpanel_gas_secret_key_2026")
+        diag = "1" if cfg.get("diagnostic_mode") else "0"
         with open(env_file, "w", encoding="utf-8") as f:
-            f.write(f"PORT={port}\nTUNNEL_AUTH_KEY={secret}\nMHRV_DIAGNOSTIC=0\n")
+            f.write(f"PORT={port}\nTUNNEL_AUTH_KEY={secret}\nMHRV_DIAGNOSTIC={diag}\n")
     except Exception:
         pass
     if restart_service:
@@ -21126,8 +21145,11 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
     Returns pre-configured templates for both Server side and Google Apps Script side.
     100% compliant with MasterHttpRelayVPN-RUST (ghcr.io/therealaleph/mhrv-tunnel-node & CodeFull.gs).
     """
+    cfg = get_gas_config()
+    custom_url = cfg.get("tunnel_server_url", "").strip()
     has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
-    tunnel_node_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}"
+    default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}"
+    tunnel_node_url = custom_url or default_url
 
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
     full_tunnel_gas = ""
@@ -21276,32 +21298,50 @@ function doPost(e) {{
 # Endpoints: POST /tunnel, POST /tunnel/batch, GET /health
 '''
 
-    return {
+    templates = {
         "full_tunnel": {
             "name": "مستر اچ‌تی‌تی‌پی فول‌تانل رله (MasterHttpRelayVPN-RUST Full Tunnel)",
             "description": "پروتکل رسمی فول‌تانل بر پایه mhrv-tunnel-node و CodeFull.gs با پشتیبانی کامل از Batching چند اتصاله، استریم TCP/UDP (تلگرام، اینستاگرام، وب)، کش محلی DoH در Google Edge و سازگاری ۱۰۰٪ با کلاینت‌های mhrv-rs و کانتینر ghcr.io/therealaleph/mhrv-tunnel-node.",
+            "file_name": "CodeFull.gs",
             "google_code": full_tunnel_gas,
             "server_code": server_daemon_snippet
         },
         "singbox_detour": {
             "name": "پل مستقیم به سینگ‌باکس (Sing-box Core Detour)",
             "description": "هدایت خودکار و بی‌واسطه پکت‌های رله شده از گوگل اسکریپت به پورت هسته سینگ‌باکس (VLESS Reality / Trojan / Shadowsocks) روی سرور.",
+            "file_name": "SingboxDetour.gs",
             "google_code": singbox_gas,
             "server_code": server_daemon_snippet
         },
         "master_http": {
             "name": "مستر اچ‌تی‌تی‌پی رله (MasterHttpRelay Universal)",
             "description": "پروتکل سازگار با نرم‌افزارهای MasterHttpRelay و پروکسی‌های کلاینتی وب با پشتیبانی از واکشی داینامیک URL و بسته‌بندی HTTP.",
+            "file_name": "MasterHttp.gs",
             "google_code": master_http_gas,
             "server_code": server_daemon_snippet
         },
         "custom": {
             "name": "اسکریپت سفارشی مدیر (Custom Script)",
             "description": "امکان نوشتن و تزریق کد کاملاً اختصاصی مدیر برای سمت سرور مجازی و سمت گوگل اپس اسکریپت با استقرار خودکار بر روی گوگل.",
-            "google_code": full_tunnel_gas,
+            "file_name": "CustomCode.gs",
+            "google_code": cfg.get("custom_google_script") or full_tunnel_gas,
             "server_code": server_daemon_snippet
         }
     }
+
+    # Merge user-defined custom templates
+    custom_tpls = load_gas_custom_templates()
+    for k, v in custom_tpls.items():
+        templates[k] = {
+            "name": v.get("name", k),
+            "description": v.get("description", "قالب سفارشی مدیر"),
+            "file_name": v.get("file_name", f"{k}.gs"),
+            "google_code": v.get("google_code", ""),
+            "server_code": v.get("server_code", ""),
+            "is_custom": True
+        }
+
+    return templates
 
 def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_script_id=None):
     """
@@ -21510,7 +21550,9 @@ def api_google_script_status():
         "google_script_id": cfg.get("google_script_id", ""),
         "google_deployment_id": cfg.get("google_deployment_id", ""),
         "google_webapp_url": cfg.get("google_webapp_url", ""),
-        "last_deploy_time": cfg.get("last_deploy_time", "")
+        "last_deploy_time": cfg.get("last_deploy_time", ""),
+        "tunnel_server_url": cfg.get("tunnel_server_url", ""),
+        "diagnostic_mode": cfg.get("diagnostic_mode", False)
     })
 
 @app.route("/api/google_script/config", methods=["GET", "POST"])
@@ -21539,6 +21581,10 @@ def api_google_script_config():
         cfg["singbox_target"] = str(data["singbox_target"]).strip()
     if "default_upstream" in data:
         cfg["default_upstream"] = str(data["default_upstream"]).strip()
+    if "tunnel_server_url" in data:
+        cfg["tunnel_server_url"] = str(data["tunnel_server_url"]).strip()
+    if "diagnostic_mode" in data:
+        cfg["diagnostic_mode"] = bool(data["diagnostic_mode"])
     if "google_project_title" in data:
         cfg["google_project_title"] = str(data["google_project_title"]).strip()
     if "google_access_token" in data:
@@ -21632,7 +21678,8 @@ def api_google_script_deploy():
         selected_tpl = templates.get(mode, templates["full_tunnel"])
         code_gs = selected_tpl["google_code"]
 
-    existing_script_id = cfg.get("google_script_id") if data.get("update_existing") else None
+    force_new = bool(data.get("force_new_project", False))
+    existing_script_id = None if force_new else (data.get("script_id") or cfg.get("google_script_id"))
     
     success, res = deploy_gas_to_google(access_token, script_title, code_gs, existing_script_id)
     if not success:
@@ -21692,6 +21739,167 @@ def api_google_script_save_manual():
         "deployment_id": cfg["google_deployment_id"],
         "webapp_url": cfg["google_webapp_url"]
     })
+
+@app.route("/api/google_script/deployments", methods=["GET"])
+def api_google_script_list_deployments():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    token = cfg.get("google_access_token", "").strip()
+    script_id = cfg.get("google_script_id", "").strip()
+    current_dep_id = cfg.get("google_deployment_id", "").strip()
+    
+    deployments_list = []
+    
+    if token and script_id:
+        try:
+            headers = {"Authorization": f"Bearer {token}"}
+            req = urllib.request.Request(f"https://script.googleapis.com/v1/projects/{script_id}/deployments", headers=headers)
+            with urllib.request.urlopen(req, timeout=12) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                for d in data.get("deployments", []):
+                    dep_id = d.get("deploymentId")
+                    cfg_obj = d.get("deploymentConfig", {})
+                    entry_points = d.get("entryPoints", [])
+                    webapp_url = ""
+                    for ep in entry_points:
+                        if ep.get("entryPointType") == "WEB_APP" and "webApp" in ep:
+                            webapp_url = ep["webApp"].get("url", "")
+                            break
+                    if not webapp_url and dep_id:
+                        webapp_url = f"https://script.google.com/macros/s/{dep_id}/exec"
+                    
+                    deployments_list.append({
+                        "deployment_id": dep_id,
+                        "version_number": cfg_obj.get("versionNumber", 1),
+                        "description": cfg_obj.get("description", "بدون توضیح"),
+                        "update_time": d.get("updateTime", ""),
+                        "webapp_url": webapp_url,
+                        "is_active": (dep_id == current_dep_id)
+                    })
+        except Exception:
+            pass
+
+    if not deployments_list and current_dep_id:
+        deployments_list.append({
+            "deployment_id": current_dep_id,
+            "version_number": 1,
+            "description": cfg.get("google_project_title", "MHPanel-GAS-FullTunnel"),
+            "update_time": cfg.get("last_deploy_time", ""),
+            "webapp_url": cfg.get("google_webapp_url", f"https://script.google.com/macros/s/{current_dep_id}/exec"),
+            "is_active": True
+        })
+
+    return jsonify({
+        "success": True,
+        "deployments": deployments_list,
+        "current_deployment_id": current_dep_id,
+        "script_id": script_id
+    })
+
+@app.route("/api/google_script/deployments/<dep_id>/activate", methods=["POST"])
+def api_google_script_activate_deployment(dep_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    cfg["google_deployment_id"] = dep_id
+    data = request.json or {}
+    webapp_url = data.get("webapp_url", "").strip() or f"https://script.google.com/macros/s/{dep_id}/exec"
+    cfg["google_webapp_url"] = webapp_url
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({
+        "success": True,
+        "message": f"استقرار با موفقیت به عنوان استقرار فعال انتخاب شد.",
+        "deployment_id": dep_id,
+        "webapp_url": webapp_url
+    })
+
+@app.route("/api/google_script/deployments/<dep_id>/delete", methods=["POST"])
+def api_google_script_delete_deployment(dep_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    token = cfg.get("google_access_token", "").strip()
+    script_id = cfg.get("google_script_id", "").strip()
+    
+    if not token or not script_id:
+        return jsonify({"success": False, "error": "توکن یا شناسه اسکریپت یافت نشد."}), 400
+    
+    try:
+        headers = {"Authorization": f"Bearer {token}"}
+        req = urllib.request.Request(
+            f"https://script.googleapis.com/v1/projects/{script_id}/deployments/{dep_id}",
+            headers=headers,
+            method="DELETE"
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            pass
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode("utf-8", errors="ignore")
+        return jsonify({"success": False, "error": f"خطای گوگل (کد {e.code}): {err_body}"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"خطا در ارتباط با گوگل: {str(e)}"}), 500
+
+    if cfg.get("google_deployment_id") == dep_id:
+        cfg["google_deployment_id"] = ""
+        cfg["google_webapp_url"] = ""
+        save_gas_config(cfg, restart_service=False)
+
+    return jsonify({"success": True, "message": "استقرار با موفقیت از گوگل حذف شد."})
+
+@app.route("/api/google_script/save-template", methods=["POST"])
+def api_google_script_save_template():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    key = data.get("key", "").strip()
+    code = data.get("code", "")
+    name = data.get("name", "").strip()
+    desc = data.get("description", "").strip()
+    file_name = data.get("file_name", "").strip()
+
+    if not key:
+        return jsonify({"success": False, "error": "شناسه قالب الزامی است."}), 400
+
+    if key == "custom":
+        cfg = get_gas_config()
+        cfg["custom_google_script"] = code
+        save_gas_config(cfg, restart_service=False)
+        return jsonify({"success": True, "message": "کد قالب سفارشی (Custom Script) با موفقیت ذخیره گردید."})
+    
+    customs = load_gas_custom_templates()
+    customs[key] = {
+        "name": name or key,
+        "description": desc or "قالب سفارشی ایجاد شده توسط مدیر",
+        "file_name": file_name or f"{key}.gs",
+        "google_code": code,
+        "server_code": "",
+        "is_custom": True
+    }
+    save_gas_custom_templates(customs)
+    return jsonify({"success": True, "message": f"قالب «{name or key}» با موفقیت ذخیره شد."})
+
+@app.route("/api/google_script/delete-template", methods=["POST"])
+def api_google_script_delete_template():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    key = data.get("key", "").strip()
+    if not key:
+        return jsonify({"success": False, "error": "شناسه قالب الزامی است."}), 400
+    
+    if key in ["full_tunnel", "singbox_detour", "master_http", "manifest"]:
+        return jsonify({"success": False, "error": "قالب‌های پیش‌فرض اصلی قابل حذف نیستند."}), 400
+        
+    customs = load_gas_custom_templates()
+    if key in customs:
+        del customs[key]
+        save_gas_custom_templates(customs)
+        return jsonify({"success": True, "message": "قالب سفارشی با موفقیت حذف گردید."})
+    return jsonify({"success": False, "error": "قالب یافت نشد."}), 404
 
 @app.route("/api/google_script/test-endpoint", methods=["POST"])
 def api_google_script_test_endpoint():
