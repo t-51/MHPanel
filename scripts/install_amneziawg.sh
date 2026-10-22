@@ -56,8 +56,20 @@ if 'KERNEL_VERSION(7, 0, 0)' not in c:
         dkms autoinstall -k "${KERNEL_VER}" 2>/dev/null || true
         depmod -a 2>/dev/null || true
         modprobe amneziawg 2>/dev/null || {
-            echo "[!] Could not insert amneziawg kernel module. Skipping service activation."
-            exit 0
+            echo "[!] Kernel module amneziawg not available. Falling back to userspace amneziawg-go..."
+            for bdir in /www/wwwroot/mhpanel/bin /usr/local/bin /usr/bin; do
+                if [ -f "${bdir}/amneziawg-go" ]; then
+                    cp -f "${bdir}/amneziawg-go" /usr/local/bin/amneziawg-go 2>/dev/null || true
+                    chmod +x /usr/local/bin/amneziawg-go 2>/dev/null || true
+                    cp -f "${bdir}/amneziawg-go" /usr/bin/amneziawg-go 2>/dev/null || true
+                    chmod +x /usr/bin/amneziawg-go 2>/dev/null || true
+                    break
+                fi
+            done
+            if [ ! -x /usr/local/bin/amneziawg-go ] && [ ! -x /usr/bin/amneziawg-go ]; then
+                echo "[!] Could not insert amneziawg kernel module nor find amneziawg-go. Skipping service activation."
+                exit 0
+            fi
         }
     }
 fi

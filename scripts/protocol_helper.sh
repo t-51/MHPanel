@@ -521,6 +521,12 @@ install_ocserv() {
 
     apt-get update -y && apt-get install -y ocserv libradcli4
     generate_certs
+
+    # Ensure ocserv system user and directory exist
+    getent group ocserv >/dev/null || groupadd -r ocserv
+    getent passwd ocserv >/dev/null || useradd -r -g ocserv -d /var/lib/ocserv -s /usr/sbin/nologin ocserv
+    mkdir -p /var/lib/ocserv/run /var/lib/ocserv
+    chown -R ocserv:ocserv /var/lib/ocserv
     
     # Write Default Configuration
     cat > /etc/ocserv/ocserv.conf <<EOF
@@ -1079,7 +1085,7 @@ install_pptp() {
 option /etc/ppp/options.pptpd
 logwtmp
 localip ${localip}
-remoteip ${remotestart}-${remoteend}
+remoteip ${remotestart}-${remoteend##*.}
 EOF
 
     # PPP options for PPTP
@@ -2616,8 +2622,16 @@ install_tor() {
     local or_port=${1:-9001}
     local bridge_port=${2:-9002}
     export DEBIAN_FRONTEND=noninteractive
+
+    local codename=$(lsb_release -cs 2>/dev/null || grep -oP '(?<=VERSION_CODENAME=)[a-z]+' /etc/os-release 2>/dev/null || echo "focal")
+    if [ ! -f /etc/apt/sources.list.d/tor.list ] && { [ "$codename" = "focal" ] || [ "$codename" = "bionic" ]; }; then
+        mkdir -p /usr/share/keyrings
+        curl -fsSL https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor -o /usr/share/keyrings/tor-archive-keyring.gpg 2>/dev/null || true
+        echo "deb [signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org ${codename} main" > /etc/apt/sources.list.d/tor.list
+    fi
+
     apt-get update -y >/dev/null 2>&1 || true
-    apt-get install -y tor obfs4proxy >/dev/null 2>&1 || apt-get install -y tor lyrebird >/dev/null 2>&1 || true
+    apt-get install -y tor tor-geoipdb obfs4proxy >/dev/null 2>&1 || apt-get install -y tor tor-geoipdb lyrebird >/dev/null 2>&1 || true
 
     # Stop default distro tor service to prevent conflict on port 9050
     systemctl stop tor tor@default 2>/dev/null || true
@@ -2656,6 +2670,7 @@ ExecStart=${tor_bin} -f /etc/tor/torrc
 ExecReload=/bin/kill -HUP \$MAINPID
 KillSignal=SIGINT
 TimeoutSec=60
+TimeoutStopSec=5
 Restart=on-failure
 RestartSec=3
 LimitNOFILE=65535

@@ -358,8 +358,25 @@ protocol_service_status() {
         http) svc="mhpanel-http-proxy" ;;
         socks) svc="mhpanel-socks-proxy" ;;
         shadowsocks) svc="mhpanel-shadowsocks" ;;
-        tuic) svc="mhpanel-tuic"; systemctl is-active --quiet "$svc" 2>/dev/null || svc="tuic-server" ;;
-        mtproto) svc="mhpanel-mtproto" ;;
+        tuic)
+            for s in mhpanel-tuic tuic-server tuic; do
+                if systemctl is-active --quiet "$s" 2>/dev/null; then
+                    svc="$s"
+                    break
+                fi
+            done
+            [ -z "$svc" ] && svc="mhpanel-tuic"
+            ;;
+        mtproto)
+            local mt_active=$(systemctl list-units --type=service --state=running 'mhpanel-mtproto@*' 2>/dev/null | grep -oE 'mhpanel-mtproto@[0-9]+' | head -n1)
+            if [ -n "$mt_active" ]; then
+                svc="$mt_active"
+            else
+                local mt_port=$(protocol_current_port mtproto 2>/dev/null)
+                [ -z "$mt_port" ] && mt_port="4433"
+                svc="mhpanel-mtproto@${mt_port}"
+            fi
+            ;;
         pptp)
             for s in pptpd mhpanel-pptp; do
                 if systemctl is-active --quiet "$s" 2>/dev/null; then
@@ -370,13 +387,13 @@ protocol_service_status() {
             [ -z "$svc" ] && svc="pptpd"
             ;;
         badvpn)
-            for s in videocall badvpn; do
+            for s in badvpn videocall badvpn-udpgw; do
                 if systemctl is-active --quiet "$s" 2>/dev/null; then
                     svc="$s"
                     break
                 fi
             done
-            [ -z "$svc" ] && svc="videocall"
+            [ -z "$svc" ] && svc="badvpn"
             ;;
         dnstt) svc="mhpanel-dnstt" ;;
         vaydns) svc="mhpanel-vaydns" ;;
@@ -748,7 +765,7 @@ install_panel_web_ui() {
                 "cryptography>=3.4.8" \
                 "pyOpenSSL" \
                 "requests" \
-                "flask-compress" \
+                "flask-compress>=1.14,<1.15" \
                 "brotli" --quiet
         fi
     else

@@ -505,85 +505,151 @@
 <!-- SUB-TAB 6: TUNNEL PACKET TAMPER & DROP SHIELD (REQUIREMENT 3) -->
 <!-- ========================================================================= -->
 <div class="tun-subpane" id="tun-pane-shield" style="display:none; flex-direction:column; gap:20px;">
-    <div class="glass-card" style="padding: 24px; border: 1px solid rgba(239,68,68,0.25); background: linear-gradient(135deg, rgba(254, 242, 242, 0.4) 0%, var(--bg-surface) 100%);">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:38px; height:38px; border-radius:10px; background:rgba(239, 68, 68, 0.12); color:#dc2626; display:flex; align-items:center; justify-content:center;">
-                    <i data-lucide="shield-alert" style="width:20px; height:20px;"></i>
+    <div class="glass-card" style="padding: 24px; border: 1px solid var(--border-glow); background: var(--bg-surface); position: relative; overflow: hidden; border-radius: 16px;">
+        
+        <!-- Header & Action Toolbar -->
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:22px; padding-bottom:18px; border-bottom:1px solid var(--border-glow);">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div id="shield-header-icon-box" style="width:44px; height:44px; border-radius:12px; background:rgba(239, 68, 68, 0.12); color:#ef4444; display:flex; align-items:center; justify-content:center; box-shadow:0 0 15px rgba(239, 68, 68, 0.2);">
+                    <i data-lucide="shield-alert" id="shield-main-lucide" style="width:24px; height:24px;"></i>
                 </div>
                 <div>
-                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0;" data-i18n="tun_shield_title">
-                        مرکز هوشمند پایش دستکاری و دراپ پکت‌های تونل (Tunnel Packet Tamper &amp; Drop Shield)
-                    </h3>
-                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;" data-i18n="tun_shield_desc">
-                        پایش بلادرنگ تزریق پکت‌های جعلی RST توسط DPI، دراپ شدید پکت‌های UDP و خطاهای انتقال اینترفیس‌های فعال سرور
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin: 0;" data-i18n="tun_shield_title">
+                            مرکز هوشمند پایش دستکاری و افت پکت‌ها (Tunnel Packet &amp; Tamper Shield)
+                        </h3>
+                        <span id="shield-global-status-badge" class="badge-pill" style="font-size:11px; padding:3px 10px; border-radius:999px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:700;">
+                            <span class="pulse-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block; margin-inline-end:4px;"></span>
+                            <span id="shield-global-status-text">شبکه پایدار و امن</span>
+                        </span>
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;" data-i18n="tun_shield_desc">
+                        پایش بلادرنگ تزریق پکت‌های جعلی RST فایروال DPI، شمارنده‌های افت پکت (Drop Rate) و سلامت تبادل داده در اینترفیس‌ها
                     </p>
                 </div>
             </div>
+            
             <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <button type="button" class="btn btn-primary btn-sm" onclick="runTunnelIntegrityAudit()" style="padding:8px 14px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                    <i data-lucide="refresh-cw" id="tun-audit-icon" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_audit">ارزیابی فوری پکت‌ها</span>
+                <button type="button" class="btn btn-primary btn-sm" onclick="runTunnelIntegrityAudit()" style="padding:8px 16px; background:linear-gradient(135deg, #ef4444 0%, #dc2626 100%); border:none; box-shadow:0 2px 10px rgba(239,68,68,0.3); display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="refresh-cw" id="tun-audit-icon" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_audit">ارزیابی فوری شبکه</span>
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadTunnelAlertsReport()" style="padding:8px 12px;" title="دانلود فایل گزارش رسمی">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadTunnelAlertsReport()" style="padding:8px 14px; display:inline-flex; align-items:center; gap:6px;" title="دانلود فایل گزارش رسمی">
                     <i data-lucide="download" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_report">دانلود گزارش</span>
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="clearTunnelAlerts()" style="padding:8px 12px; color:#dc2626;" title="پاکسازی هشدارهای خوانده شده">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="clearTunnelAlerts()" style="padding:8px 14px; color:#ef4444; display:inline-flex; align-items:center; gap:6px;" title="بایگانی و پاکسازی هشدارهای خوانده شده">
                     <i data-lucide="check-check" style="width:14px; height:14px;"></i> <span data-i18n="tun_shield_btn_clear">پاکسازی هشدارها</span>
                 </button>
             </div>
         </div>
 
-        <!-- 3 Quick Integrity Metric Gauges -->
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:14px; margin-bottom:18px;">
-            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(239,68,68,0.25); background:rgba(254, 242, 242, 0.7);">
-                <div style="font-size:11.5px; color:#991b1b; font-weight:700;" data-i18n="tun_shield_stat_active">هشدارهای فعال امنیتی:</div>
-                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
-                    <span id="shield-active-alerts-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#dc2626;">0</span>
-                    <span style="font-size:11.5px; font-weight:600; color:#991b1b;" data-i18n="tun_shield_case">مورد بحرانی</span>
+        <!-- 4 Premium KPI Stat Widgets -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:22px;">
+            <!-- Widget 1: Active Alerts -->
+            <div class="glass-card" style="padding:16px 18px; border:1px solid var(--border-glow); background:var(--bg-card); border-radius:14px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:700;" data-i18n="tun_shield_stat_active">هشدارهای فعال امنیتی</span>
+                    <div style="width:30px; height:30px; border-radius:8px; background:rgba(239,68,68,0.12); color:#ef4444; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="alert-triangle" style="width:16px; height:16px;"></i>
+                    </div>
                 </div>
+                <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                    <span id="shield-active-alerts-count" style="font-size:30px; font-weight:800; font-family:'JetBrains Mono', monospace; color:#ef4444;">0</span>
+                    <span id="shield-active-status-badge" class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.15); color:#10b981; font-weight:600;">بدون هشدار</span>
+                </div>
+                <div id="shield-active-alerts-subtext" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">تمامی مسیرها بدون رخداد بحرانی</div>
             </div>
-            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(217,119,6,0.25); background:rgba(254, 243, 199, 0.7);">
-                <div style="font-size:11.5px; color:#92400e; font-weight:700;" data-i18n="tun_shield_stat_rst">پکت‌های Reset نامتعارف (DPI):</div>
-                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
-                    <span id="shield-rst-aborts-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#d97706;">--</span>
-                    <span style="font-size:11.5px; font-weight:600; color:#92400e;">پکت تزریقی</span>
+
+            <!-- Widget 2: Packet Drops & Rate -->
+            <div class="glass-card" style="padding:16px 18px; border:1px solid var(--border-glow); background:var(--bg-card); border-radius:14px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:700;" data-i18n="tun_shield_stat_drops">پکت‌های از دست رفته (Drops)</span>
+                    <div style="width:30px; height:30px; border-radius:8px; background:rgba(245,158,11,0.12); color:#f59e0b; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="trending-down" style="width:16px; height:16px;"></i>
+                    </div>
                 </div>
+                <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                    <span id="shield-total-drops-count" style="font-size:28px; font-weight:800; font-family:'JetBrains Mono', monospace; color:#f59e0b;">0</span>
+                    <span id="shield-avg-drop-rate" class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(245,158,11,0.15); color:#f59e0b; font-weight:600;">0.0% Rate</span>
+                </div>
+                <div id="shield-drop-subtext" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">افت پکت تجمیعی اینترفیس‌ها</div>
             </div>
-            <div class="glass-card" style="padding:14px 18px; border:1px solid rgba(79,70,229,0.25); background:rgba(238, 242, 255, 0.7);">
-                <div style="font-size:11.5px; color:#3730a3; font-weight:700;" data-i18n="tun_shield_stat_interfaces">اینترفیس‌های تحت پایش:</div>
-                <div style="display:flex; align-items:baseline; gap:6px; margin-top:4px;">
-                    <span id="shield-monitored-ifaces-count" style="font-size:26px; font-weight:800; font-family:'JetBrains Mono'; color:#4f46e5;">--</span>
-                    <span style="font-size:11.5px; font-weight:600; color:#3730a3;">اینترفیس فعال</span>
+
+            <!-- Widget 3: DPI TCP RST Injections -->
+            <div class="glass-card" style="padding:16px 18px; border:1px solid var(--border-glow); background:var(--bg-card); border-radius:14px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:700;" data-i18n="tun_shield_stat_rst">تزریق پکت RST فایروال DPI</span>
+                    <div style="width:30px; height:30px; border-radius:8px; background:rgba(139,92,246,0.12); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="zap-off" style="width:16px; height:16px;"></i>
+                    </div>
                 </div>
+                <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                    <span id="shield-rst-aborts-count" style="font-size:28px; font-weight:800; font-family:'JetBrains Mono', monospace; color:#8b5cf6;">--</span>
+                    <span class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(139,92,246,0.15); color:#8b5cf6; font-weight:600;">لایه ۴ TCP</span>
+                </div>
+                <div style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">قطعی ناگهانی تبادل سشن‌ها</div>
+            </div>
+
+            <!-- Widget 4: Monitored Interfaces & Health Score -->
+            <div class="glass-card" style="padding:16px 18px; border:1px solid var(--border-glow); background:var(--bg-card); border-radius:14px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <span style="font-size:12px; color:var(--text-muted); font-weight:700;" data-i18n="tun_shield_stat_interfaces">اینترفیس‌ها و شاخص سلامت</span>
+                    <div style="width:30px; height:30px; border-radius:8px; background:rgba(16,185,129,0.12); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="activity" style="width:16px; height:16px;"></i>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                    <span id="shield-monitored-ifaces-count" style="font-size:28px; font-weight:800; font-family:'JetBrains Mono', monospace; color:#10b981;">--</span>
+                    <span id="shield-health-score-badge" class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.15); color:#10b981; font-weight:600;">100% سلامت</span>
+                </div>
+                <div id="shield-ifaces-summary" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">اینترفیس‌های فعال کارت و تونل</div>
             </div>
         </div>
 
-        <!-- Real-time Alerts Table -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <strong style="font-size:13.5px; color:var(--text-main);" data-i18n="tun_shield_incidents_title">لاگ حوادث و گزارش هشدارهای پکت‌های تونل:</strong>
-            <span id="shield-last-audit-time" style="font-size:11px; color:#64748b;">آخرین پایش: لحظاتی پیش</span>
+        <!-- Per-Interface Live Telemetry Matrix -->
+        <div style="margin-bottom:24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="cpu" style="width:16px; height:16px; color:var(--color-primary);"></i>
+                    <strong style="font-size:13.5px; color:var(--text-main);" data-i18n="tun_shield_ifaces_matrix">پایش زنده وضعیت اینترفیس‌های فعال شبکه و تانل‌ها:</strong>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-dim);" id="shield-iface-filter-hint">بر اساس شمارنده‌های آماری هسته لینوکس</span>
+            </div>
+            <div id="shield-ifaces-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap:12px;">
+                <!-- Dynamically populated interface cards -->
+            </div>
         </div>
-        <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-glow); border-radius:12px;">
+
+        <!-- Real-time Alerts / Incidents Table -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="history" style="width:16px; height:16px; color:var(--text-muted);"></i>
+                <strong style="font-size:13.5px; color:var(--text-main);" data-i18n="tun_shield_incidents_title">لاگ حوادث و گزارش هشدارهای پکت‌های تونل:</strong>
+            </div>
+            <span id="shield-last-audit-time" style="font-size:11.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">آخرین پایش: لحظاتی پیش</span>
+        </div>
+        
+        <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-glow); border-radius:12px; background:var(--bg-card);">
             <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:right;">
                 <thead>
-                    <tr style="background:var(--bg-base); border-bottom:1px solid var(--border-glow); color:#475569;">
-                        <th style="padding:12px 14px; width:70px; text-align:center;" data-i18n="tun_col_severity">شدت</th>
-                        <th style="padding:12px 14px; width:140px;" data-i18n="tun_col_time">زمان رخداد</th>
-                        <th style="padding:12px 14px;" data-i18n="tun_col_iface">اینترفیس / مسیر</th>
-                        <th style="padding:12px 14px;" data-i18n="tun_col_tamper_title">نوع دستکاری / دراپ پکت</th>
-                        <th style="padding:12px 14px;" data-i18n="tun_col_details">جزئیات تشخیصی سیستم</th>
-                        <th style="padding:12px 14px;" data-i18n="tun_col_rec">راهکار پیشنهادی رفع اختلال</th>
+                    <tr style="background:var(--bg-base); border-bottom:1px solid var(--border-glow); color:var(--text-muted);">
+                        <th style="padding:12px 14px; width:80px; text-align:center;" data-i18n="tun_col_severity">سطح</th>
+                        <th style="padding:12px 14px; width:150px;" data-i18n="tun_col_time">زمان رخداد</th>
+                        <th style="padding:12px 14px; width:130px;" data-i18n="tun_col_iface">اینترفیس</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_tamper_title">نوع دستکاری / هشدار</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_details">جزئیات تشخیصی</th>
+                        <th style="padding:12px 14px;" data-i18n="tun_col_rec">راهکار پیشنهادی سیستم</th>
                     </tr>
                 </thead>
                 <tbody id="tun-shield-tbody">
                     <tr>
-                        <td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted);" data-i18n="tun_shield_loading">
+                        <td colspan="6" style="text-align:center; padding:32px; color:var(--text-muted);" data-i18n="tun_shield_loading">
                             در حال ارزیابی سلامت پکت‌ها و اینترفیس‌های تونل...
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
+
     </div>
 </div>
 
