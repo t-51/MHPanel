@@ -751,7 +751,7 @@
                 }
             });
 
-            const dict = I18N_TRANSLATIONS[lang];
+            const dict = I18N_TRANSLATIONS[lang] || I18N_TRANSLATIONS.fa || {};
             // HTML elements
             document.querySelectorAll("[data-i18n-html]").forEach(el => {
                 const key = el.getAttribute("data-i18n-html");
@@ -762,7 +762,7 @@
 
             document.querySelectorAll("[data-i18n]").forEach(el => {
                 const key = el.getAttribute("data-i18n");
-                if (dict[key]) {
+                if (dict && dict[key]) {
                     if (el.children.length === 0) {
                         el.textContent = dict[key];
                     } else {
@@ -900,92 +900,89 @@
     }
 
     // Handle Login
-    const loginForm = document.getElementById("login-form");
-    if (loginForm) {
-        loginForm.addEventListener("submit", async (e) => {
+    async function handleLoginSubmit(e) {
+        if (e) {
             e.preventDefault();
-            const usernameInput = document.getElementById("username-input");
-            const passwordInput = document.getElementById("password-input");
-            const errDiv = document.getElementById("login-error");
-            const loginBtn = document.getElementById("login-btn");
-            
-            const username = (usernameInput?.value || "").trim();
-            const password = passwordInput?.value || "";
+            e.stopPropagation();
+        }
+        const usernameInput = document.getElementById("username-input");
+        const passwordInput = document.getElementById("password-input");
+        const errDiv = document.getElementById("login-error");
+        const loginBtn = document.getElementById("login-btn");
+        
+        const username = (usernameInput?.value || "").trim();
+        const password = passwordInput?.value || "";
 
-            if (!username || !password) {
+        if (!username || !password) {
+            const emptyMsg = (typeof window.t === "function") ? window.t("login_error_empty", "لطفاً نام کاربری و رمز عبور را وارد فرمایید.") : "لطفاً نام کاربری و رمز عبور را وارد فرمایید.";
+            if (errDiv) {
+                errDiv.innerText = emptyMsg;
+                errDiv.style.color = "var(--color-rose)";
+                errDiv.style.display = "block";
+            }
+            if (typeof showToast === "function") {
+                showToast(emptyMsg, "warning");
+            }
+            return false;
+        }
+
+        if (errDiv) errDiv.style.display = "none";
+        const originalBtnHtml = loginBtn ? loginBtn.innerHTML : "";
+        if (loginBtn) {
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i data-lucide="loader-2" class="btn-icon spin" style="width:16px; height:16px;"></i> <span>در حال بررسی و ورود...</span>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+        
+        const totpInput = document.getElementById("totp-input");
+        const totpCode = (totpInput?.value || "").trim();
+
+        const payload = { username, password };
+        if (totpCode) {
+            payload.totp_code = totpCode;
+        }
+        
+        try {
+            const res = await fetch("/api/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok && data.require_2fa) {
+                const twofaGroup = document.getElementById("login-2fa-group");
+                if (twofaGroup) twofaGroup.style.display = "block";
+                if (totpInput) {
+                    totpInput.focus();
+                }
+                const msg2fa = (typeof window.t === "function") ? window.t("login_2fa_enter", "کد ۶ رقمی نرم‌افزار Authenticator را وارد نمایید.") : "کد ۶ رقمی نرم‌افزار Authenticator را وارد نمایید.";
                 if (errDiv) {
-                    errDiv.innerText = "لطفاً نام کاربری و رمز عبور را وارد فرمایید.";
+                    errDiv.innerText = msg2fa;
+                    errDiv.style.color = "var(--color-primary)";
                     errDiv.style.display = "block";
                 }
-                return;
-            }
-
-            if (errDiv) errDiv.style.display = "none";
-            const originalBtnHtml = loginBtn ? loginBtn.innerHTML : "";
-            if (loginBtn) {
-                loginBtn.disabled = true;
-                loginBtn.innerHTML = '<i data-lucide="loader-2" class="btn-icon spin" style="width:16px; height:16px;"></i> <span>در حال بررسی و ورود...</span>';
-                if (typeof lucide !== 'undefined') lucide.createIcons();
-            }
-            
-            const totpInput = document.getElementById("totp-input");
-            const totpCode = (totpInput?.value || "").trim();
-
-            const payload = { username, password };
-            if (totpCode) {
-                payload.totp_code = totpCode;
-            }
-            
-            try {
-                const res = await fetch("/api/login", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json().catch(() => ({}));
-
-                if (res.ok && data.require_2fa) {
-                    const twofaGroup = document.getElementById("login-2fa-group");
-                    if (twofaGroup) twofaGroup.style.display = "block";
-                    if (totpInput) {
-                        totpInput.focus();
-                    }
-                    if (errDiv) {
-                        errDiv.innerText = "کد ۶ رقمی نرم‌افزار Authenticator را وارد نمایید.";
-                        errDiv.style.color = "var(--color-primary)";
-                        errDiv.style.display = "block";
-                    }
-                    if (loginBtn) {
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = '<i data-lucide="shield-check" class="btn-icon" style="width:16px; height:16px;"></i> <span>تایید کد و ورود</span>';
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                    }
-                    return;
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '<i data-lucide="shield-check" class="btn-icon" style="width:16px; height:16px;"></i> <span>تایید کد و ورود</span>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
+                return false;
+            }
 
-                if (res.ok && data.success) {
-                    if (loginBtn) {
-                        loginBtn.innerHTML = '<i data-lucide="check" class="btn-icon" style="width:16px; height:16px;"></i> <span>ورود موفق!</span>';
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                    }
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 200);
-                } else {
-                    if (errDiv) {
-                        errDiv.innerText = data.error || "نام کاربری یا رمز عبور اشتباه است.";
-                        errDiv.style.color = "var(--color-rose)";
-                        errDiv.style.display = "block";
-                    }
-                    if (loginBtn) {
-                        loginBtn.disabled = false;
-                        loginBtn.innerHTML = originalBtnHtml;
-                        if (typeof lucide !== 'undefined') lucide.createIcons();
-                    }
+            if (res.ok && data.success) {
+                if (loginBtn) {
+                    loginBtn.innerHTML = '<i data-lucide="check" class="btn-icon" style="width:16px; height:16px;"></i> <span>ورود موفق!</span>';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
-            } catch (err) {
+                setTimeout(() => {
+                    window.location.reload();
+                }, 200);
+            } else {
+                const errMsg = data.error || ((typeof window.t === "function") ? window.t("login_error", "نام کاربری یا رمز عبور اشتباه است.") : "نام کاربری یا رمز عبور اشتباه است.");
                 if (errDiv) {
-                    errDiv.innerText = "خطا در برقراری ارتباط با سرور: " + (err.message || "");
+                    errDiv.innerText = errMsg;
+                    errDiv.style.color = "var(--color-rose)";
                     errDiv.style.display = "block";
                 }
                 if (loginBtn) {
@@ -993,8 +990,43 @@
                     loginBtn.innerHTML = originalBtnHtml;
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
-                showToast("خطا در برقراری ارتباط با سرور", "error");
+                if (typeof showToast === "function") {
+                    showToast(errMsg, "error");
+                }
             }
+        } catch (err) {
+            const netErr = "خطا در برقراری ارتباط با سرور: " + (err.message || "");
+            if (errDiv) {
+                errDiv.innerText = netErr;
+                errDiv.style.color = "var(--color-rose)";
+                errDiv.style.display = "block";
+            }
+            if (loginBtn) {
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = originalBtnHtml;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            if (typeof showToast === "function") {
+                showToast(netErr, "error");
+            }
+        }
+        return false;
+    }
+
+    window.handleLoginSubmit = handleLoginSubmit;
+
+    const loginForm = document.getElementById("login-form");
+    if (loginForm) {
+        loginForm.addEventListener("submit", handleLoginSubmit);
+    }
+    const loginBtnEl = document.getElementById("login-btn");
+    if (loginBtnEl) {
+        loginBtnEl.addEventListener("click", (e) => {
+            if (loginForm && !loginForm.checkValidity()) {
+                loginForm.reportValidity();
+                return;
+            }
+            handleLoginSubmit(e);
         });
     }
 
@@ -20858,13 +20890,6 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         } catch (e) {
             toggleLoading(false);
             showToast("خطای ارتباط با سرور", "error");
-        }
-    }
-                showToast(data.error || "خطا در حذف استقرار", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در حذف استقرار", "error");
         }
     }
 

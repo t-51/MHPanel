@@ -34,11 +34,21 @@
                     </svg>
                     <span>RU</span>
                 </button>
+                <button type="button" class="lang-pill" data-lang="ar" onclick="changeLanguage('ar')" title="العربية">
+                    <svg width="15" height="11" viewBox="0 0 18 13" fill="none" style="border-radius:2px; display:inline-block; vertical-align:middle; flex-shrink:0;">
+                        <rect width="18" height="4.33" fill="#007A3D"/>
+                        <rect y="4.33" width="18" height="4.33" fill="#FFFFFF"/>
+                        <rect y="8.67" width="18" height="4.33" fill="#000000"/>
+                        <polygon points="0,0 6,6.5 0,13" fill="#CE1126"/>
+                    </svg>
+                    <span>AR</span>
+                </button>
             </div>
             <select id="login-lang-select" style="display:none;" onchange="changeLanguage(this.value)">
                 <option value="fa" data-i18n="sys_item_2">فارسی</option>
                 <option value="en">English</option>
                 <option value="ru">Русский</option>
+                <option value="ar">العربية</option>
             </select>
         </div>
 
@@ -52,7 +62,7 @@
             نام کاربری یا رمز عبور اشتباه است.
         </div>
 
-        <form id="login-form">
+        <form id="login-form" method="POST" onsubmit="return handleLoginSubmit(event);">
             <div class="form-group" style="margin-bottom:16px;">
                 <label class="form-label" for="username-input" data-i18n="login_username">نام کاربری</label>
                 <div class="input-wrapper">
@@ -87,3 +97,12 @@
         </form>
     </div>
 </div>
+<script>
+    (function() {
+        var curLang = localStorage.getItem("panel_language") || "fa";
+        document.querySelectorAll(".lang-pill").forEach(function(pill) {
+            if (pill.getAttribute("data-lang") === curLang) pill.classList.add("active");
+            else pill.classList.remove("active");
+        });
+    })();
+</script>

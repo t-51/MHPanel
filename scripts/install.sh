@@ -731,6 +731,49 @@ EOF
     systemctl restart mhpanel
     sleep 2
 
+    # Setup Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/google_script.json ]; then
+        local rand_gas_sec
+        rand_gas_sec=$(openssl rand -hex 16 2>/dev/null || echo "mhpanel_gas_$(date +%s)")
+        cat > /etc/vpnpanel/google_script.json <<GEO
+{
+  "enabled": true,
+  "port": 8448,
+  "secret": "${rand_gas_sec}",
+  "mode": "full_tunnel",
+  "singbox_target": "127.0.0.1:20443",
+  "default_upstream": "127.0.0.1:20443",
+  "session_timeout": 60,
+  "read_timeout": 1.2,
+  "google_project_title": "MHPanel-GAS-FullTunnel",
+  "google_script_id": "",
+  "google_deployment_id": "",
+  "google_webapp_url": "",
+  "last_deploy_time": ""
+}
+GEO
+    fi
+    cat > /etc/systemd/system/mhpanel-gas-tunnel.service <<GEO
+[Unit]
+Description=MHPanel Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+After=network.target sing-box.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/mhpanel-gas-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+GEO
+    systemctl daemon-reload
+    systemctl enable mhpanel-gas-tunnel >/dev/null 2>&1
+    systemctl restart mhpanel-gas-tunnel >/dev/null 2>&1
+
     if systemctl is-active --quiet mhpanel; then
         echo -e "    ${GREEN}[✓] MH Panel Web UI service is active and running.${NC}"
     else
@@ -1271,18 +1314,24 @@ show_panel_access_info() {
         is_active="${RED}Stopped / Inactive${NC}"
     fi
 
+    local custom_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+    [ -n "$custom_path" ] && [ "${custom_path:0:1}" != "/" ] && custom_path="/${custom_path}"
+
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
     echo -e "${WHITE}${BOLD}              MH Panel - Panel Access & Login Credentials               ${NC}"
     echo -e "${CYAN}${BOLD}========================================================================${NC}"
     echo -e "  ⚡ ${BOLD}Service Status:${NC}         ${is_active}"
-    echo -e "  🌐 ${BOLD}Web Panel URL (IPv4):${NC}   ${CYAN}${BOLD}https://${srv_ip}:${panel_port}/${NC}"
+    echo -e "  🌐 ${BOLD}Web Panel URL (IPv4):${NC}   ${CYAN}${BOLD}https://${srv_ip}:${panel_port}${custom_path}/${NC}"
     if [ -n "$srv_ipv6" ]; then
-        echo -e "  🌐 ${BOLD}Web Panel URL (IPv6):${NC}   ${CYAN}${BOLD}https://[${srv_ipv6}]:${panel_port}/${NC}"
+        echo -e "  🌐 ${BOLD}Web Panel URL (IPv6):${NC}   ${CYAN}${BOLD}https://[${srv_ipv6}]:${panel_port}${custom_path}/${NC}"
     fi
     if [ -n "$domain" ]; then
-        echo -e "  🌐 ${BOLD}Custom Domain URL:${NC}      ${CYAN}${BOLD}https://${domain}:${panel_port}/${NC}"
+        echo -e "  🌐 ${BOLD}Custom Domain URL:${NC}      ${CYAN}${BOLD}https://${domain}:${panel_port}${custom_path}/${NC}"
     fi
     echo -e "  🔌 ${BOLD}Web Panel Port:${NC}        ${YELLOW}${BOLD}${panel_port}${NC}"
+    if [ -n "$custom_path" ]; then
+        echo -e "  🔒 ${BOLD}Secret URL Path:${NC}       ${CYAN}${BOLD}${custom_path}${NC}"
+    fi
     echo -e "  👤 ${BOLD}Admin Username:${NC}        ${GREEN}${BOLD}${user}${NC}"
     echo -e "  🔑 ${BOLD}Admin Password:${NC}        ${GREEN}${BOLD}${pass}${NC}"
     echo -e "  🛡️  ${BOLD}Public API Key:${NC}         ${DIM}${api_key}${NC}"
@@ -1306,13 +1355,18 @@ show_final_summary() {
         pass=$(grep -Ei '^password=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
     fi
     local api_key=$(cat "${PANEL_DIR}/api_key.txt" 2>/dev/null || echo "N/A")
+    local custom_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+    [ -n "$custom_path" ] && [ "${custom_path:0:1}" != "/" ] && custom_path="/${custom_path}"
 
     echo -e "\n${GREEN}${BOLD}========================================================================${NC}"
     echo -e "${GREEN}${BOLD}   ✓ MH Panel Setup Completed Successfully!${NC}"
     echo -e "${GREEN}${BOLD}========================================================================${NC}"
-    echo -e "  🌐 ${BOLD}Web Panel URL (IPv4):${NC}       ${CYAN}https://${srv_ip}:${panel_port}/${NC}"
+    echo -e "  🌐 ${BOLD}Web Panel URL (IPv4):${NC}       ${CYAN}https://${srv_ip}:${panel_port}${custom_path}/${NC}"
     if [ -n "$srv_ipv6" ]; then
-        echo -e "  🌐 ${BOLD}Web Panel URL (IPv6):${NC}       ${CYAN}https://[${srv_ipv6}]:${panel_port}/${NC}"
+        echo -e "  🌐 ${BOLD}Web Panel URL (IPv6):${NC}       ${CYAN}https://[${srv_ipv6}]:${panel_port}${custom_path}/${NC}"
+    fi
+    if [ -n "$custom_path" ]; then
+        echo -e "  🔒 ${BOLD}Secret URL Path:${NC}            ${CYAN}${custom_path}${NC}"
     fi
     echo -e "  👤 ${BOLD}Admin Username:${NC}             ${BOLD}${user}${NC}"
     echo -e "  🔑 ${BOLD}Admin Password:${NC}             ${BOLD}${pass}${NC}"
@@ -1572,10 +1626,249 @@ menu_tunnel_tools() {
     esac
 }
 
+# ==============================================================================
+# CREDENTIALS & PANEL ADDRESS CONTROLLERS
+# ==============================================================================
+
+change_admin_username() {
+    local user="admin"
+    local pass=""
+    if [ -f "${PANEL_DIR}/admin_credentials.txt" ]; then
+        user=$(grep -Ei '^username=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+        pass=$(grep -Ei '^password=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+    fi
+    local nu="$1"
+    if [ -z "$nu" ]; then
+        echo -e "\n${YELLOW}${BOLD}=== Change Admin Username ===${NC}"
+        echo -e "Current Username: ${CYAN}${user}${NC}"
+        read -p "Enter new admin username: " nu
+    fi
+    nu=$(echo "$nu" | tr -d '[:space:]')
+    if [ -z "$nu" ]; then
+        echo -e "${RED}Error: Username cannot be empty.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    if ! [[ "$nu" =~ ^[a-zA-Z0-9_.-]+$ ]]; then
+        echo -e "${RED}Error: Username can only contain letters, numbers, dots, hyphens, and underscores.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    echo -e "username=${nu}\npassword=${pass}" > "${PANEL_DIR}/admin_credentials.txt"
+    chmod 600 "${PANEL_DIR}/admin_credentials.txt"
+    mkdir -p /etc/vpnpanel
+    echo -e "username=${nu}\npassword=${pass}" > "/etc/vpnpanel/admin_credentials.txt"
+    chmod 600 "/etc/vpnpanel/admin_credentials.txt"
+    systemctl restart mhpanel 2>/dev/null || true
+    echo -e "\n${GREEN}${BOLD}✓ Admin username updated to: ${CYAN}${nu}${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
+change_admin_password() {
+    local user="admin"
+    if [ -f "${PANEL_DIR}/admin_credentials.txt" ]; then
+        user=$(grep -Ei '^username=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+    fi
+    local np="$1"
+    if [ -z "$np" ]; then
+        echo -e "\n${YELLOW}${BOLD}=== Change Admin Password ===${NC}"
+        echo -e "Admin Username: ${CYAN}${user}${NC}"
+        echo -e "Options: Type a new password, or type ${BOLD}'g'${NC} to generate a strong random password."
+        read -p "Enter new admin password [or 'g']: " np
+    fi
+    if [ "$np" = "g" ] || [ "$np" = "G" ]; then
+        np=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+        echo -e "Generated secure password: ${GREEN}${BOLD}${np}${NC}"
+    fi
+    np=$(echo "$np" | tr -d '[:space:]')
+    if [ -z "$np" ]; then
+        echo -e "${RED}Error: Password cannot be empty.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    if [ ${#np} -lt 4 ]; then
+        echo -e "${RED}Error: Password must be at least 4 characters.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    echo -e "username=${user}\npassword=${np}" > "${PANEL_DIR}/admin_credentials.txt"
+    chmod 600 "${PANEL_DIR}/admin_credentials.txt"
+    mkdir -p /etc/vpnpanel
+    echo -e "username=${user}\npassword=${np}" > "/etc/vpnpanel/admin_credentials.txt"
+    chmod 600 "/etc/vpnpanel/admin_credentials.txt"
+    systemctl restart mhpanel 2>/dev/null || true
+    echo -e "\n${GREEN}${BOLD}✓ Admin password updated successfully!${NC}"
+    echo -e "Username: ${CYAN}${user}${NC}"
+    echo -e "Password: ${GREEN}${BOLD}${np}${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
+change_admin_credentials() {
+    local cur_u="admin"
+    local cur_p=""
+    if [ -f "${PANEL_DIR}/admin_credentials.txt" ]; then
+        cur_u=$(grep -Ei '^username=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+        cur_p=$(grep -Ei '^password=' "${PANEL_DIR}/admin_credentials.txt" | cut -d= -f2-)
+    fi
+    local nu="$1"
+    local np="$2"
+    if [ -z "$nu" ] || [ -z "$np" ]; then
+        echo -e "\n${YELLOW}${BOLD}=== Change Admin Username & Password ===${NC}"
+        echo -e "Current Username: ${CYAN}${cur_u}${NC}"
+        read -p "Enter new username [Default: ${cur_u}]: " input_u
+        nu=${input_u:-$cur_u}
+        echo -e "Type a new password, or type ${BOLD}'g'${NC} to generate a strong random password."
+        read -p "Enter new password: " input_p
+        np="$input_p"
+    fi
+    if [ "$np" = "g" ] || [ "$np" = "G" ]; then
+        np=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+        echo -e "Generated secure password: ${GREEN}${BOLD}${np}${NC}"
+    fi
+    nu=$(echo "$nu" | tr -d '[:space:]')
+    np=$(echo "$np" | tr -d '[:space:]')
+    if [ -z "$nu" ] || [ -z "$np" ]; then
+        echo -e "${RED}Error: Username and Password cannot be empty.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    echo -e "username=${nu}\npassword=${np}" > "${PANEL_DIR}/admin_credentials.txt"
+    chmod 600 "${PANEL_DIR}/admin_credentials.txt"
+    mkdir -p /etc/vpnpanel
+    echo -e "username=${nu}\npassword=${np}" > "/etc/vpnpanel/admin_credentials.txt"
+    chmod 600 "/etc/vpnpanel/admin_credentials.txt"
+    systemctl restart mhpanel 2>/dev/null || true
+    echo -e "\n${GREEN}${BOLD}✓ Admin credentials updated successfully!${NC}"
+    echo -e "  Username: ${CYAN}${BOLD}${nu}${NC}"
+    echo -e "  Password: ${GREEN}${BOLD}${np}${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
+change_panel_port() {
+    local cur_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || cat "/etc/vpnpanel/panel_port.txt" 2>/dev/null || echo "9090")
+    local nport="$1"
+    if [ -z "$nport" ]; then
+        echo -e "\n${YELLOW}${BOLD}=== Change Web Panel Port ===${NC}"
+        echo -e "Current Web Port: ${CYAN}${cur_port}${NC}"
+        read -p "Enter new port (1-65535) [Current: ${cur_port}]: " nport
+    fi
+    nport=$(echo "$nport" | tr -d '[:space:]')
+    if ! [[ "$nport" =~ ^[0-9]+$ ]] || [ "$nport" -lt 1 ] || [ "$nport" -gt 65535 ]; then
+        echo -e "${RED}Error: Invalid port number. Must be between 1 and 65535.${NC}"
+        [ -z "$1" ] && read -p "Press Enter to continue..."
+        return 1
+    fi
+    echo "$nport" > "${PANEL_DIR}/panel_port.txt"
+    mkdir -p /etc/vpnpanel
+    echo "$nport" > "/etc/vpnpanel/panel_port.txt"
+    if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
+        ufw allow "${nport}/tcp" >/dev/null 2>&1 || true
+    fi
+    if command -v iptables >/dev/null; then
+        iptables -I INPUT -p tcp --dport "$nport" -j ACCEPT 2>/dev/null || true
+    fi
+    systemctl restart mhpanel 2>/dev/null || true
+    local srv_ip=$(get_public_ipv4)
+    local custom_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+    [ -n "$custom_path" ] && [ "${custom_path:0:1}" != "/" ] && custom_path="/${custom_path}"
+    echo -e "\n${GREEN}${BOLD}✓ Web Panel port changed to: ${YELLOW}${BOLD}${nport}${NC}"
+    echo -e "New Panel URL: ${CYAN}https://${srv_ip}:${nport}${custom_path}/${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
+change_panel_path() {
+    local cur_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+    [ -n "$cur_path" ] && [ "${cur_path:0:1}" != "/" ] && custom_path="/${cur_path}"
+    local npath="$1"
+    if [ -z "$npath" ]; then
+        echo -e "\n${YELLOW}${BOLD}=== Change Panel Secret Path (Address URL) ===${NC}"
+        echo -e "Current Secret Path: ${CYAN}${cur_path:-/(default root)}${NC}"
+        echo -e "Enter a secret path (e.g. ${BOLD}/myadmin${NC} or ${BOLD}/secret_portal${NC})."
+        echo -e "To reset to default root (/), type ${BOLD}'none'${NC} or leave blank."
+        read -p "Enter new path: " npath
+    fi
+    npath=$(echo "$npath" | tr -d '[:space:]')
+    if [ "$npath" = "none" ] || [ "$npath" = "root" ] || [ "$npath" = "/" ] || [ -z "$npath" ]; then
+        rm -f /etc/vpnpanel/panel_path.txt "${PANEL_DIR}/panel_path.txt" 2>/dev/null || true
+        npath=""
+        echo -e "${GREEN}Panel path reset to default root (/).${NC}"
+    else
+        [ "${npath:0:1}" != "/" ] && npath="/${npath}"
+        npath="${npath%/}"
+        mkdir -p /etc/vpnpanel
+        echo "$npath" > /etc/vpnpanel/panel_path.txt
+        echo "$npath" > "${PANEL_DIR}/panel_path.txt"
+        echo -e "${GREEN}Panel secret path set to: ${CYAN}${npath}${NC}"
+    fi
+    systemctl restart mhpanel 2>/dev/null || true
+    local srv_ip=$(get_public_ipv4)
+    local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || cat "/etc/vpnpanel/panel_port.txt" 2>/dev/null || echo "9090")
+    echo -e "\n${GREEN}${BOLD}✓ Web Panel Address updated!${NC}"
+    echo -e "New URL: ${CYAN}https://${srv_ip}:${panel_port}${npath}/${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
+change_panel_address() {
+    echo -e "\n${YELLOW}${BOLD}=== Configure Panel Address (Port & Secret Path) ===${NC}"
+    local cur_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || cat "/etc/vpnpanel/panel_port.txt" 2>/dev/null || echo "9090")
+    local cur_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+    [ -n "$cur_path" ] && [ "${cur_path:0:1}" != "/" ] && cur_path="/${cur_path}"
+    local srv_ip=$(get_public_ipv4)
+    echo -e "Current Access URL: ${CYAN}https://${srv_ip}:${cur_port}${cur_path}/${NC}\n"
+
+    local p_in="$1"
+    local path_in="$2"
+    if [ -z "$p_in" ]; then
+        read -p "Enter new port (1-65535) [Current: ${cur_port}]: " p_in
+        p_in=${p_in:-$cur_port}
+    fi
+    if [ -z "$path_in" ]; then
+        echo -e "Enter new secret path (e.g. /secure_panel, or press Enter to keep '${cur_path:-/}'):"
+        read -p "Path: " path_in
+        path_in=${path_in:-$cur_path}
+    fi
+
+    # Update port
+    p_in=$(echo "$p_in" | tr -d '[:space:]')
+    if [[ "$p_in" =~ ^[0-9]+$ ]] && [ "$p_in" -ge 1 ] && [ "$p_in" -le 65535 ]; then
+        echo "$p_in" > "${PANEL_DIR}/panel_port.txt"
+        mkdir -p /etc/vpnpanel
+        echo "$p_in" > "/etc/vpnpanel/panel_port.txt"
+        if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
+            ufw allow "${p_in}/tcp" >/dev/null 2>&1 || true
+        fi
+        if command -v iptables >/dev/null; then
+            iptables -I INPUT -p tcp --dport "$p_in" -j ACCEPT 2>/dev/null || true
+        fi
+    fi
+
+    # Update path
+    path_in=$(echo "$path_in" | tr -d '[:space:]')
+    if [ "$path_in" = "none" ] || [ "$path_in" = "/" ] || [ -z "$path_in" ]; then
+        rm -f /etc/vpnpanel/panel_path.txt "${PANEL_DIR}/panel_path.txt" 2>/dev/null || true
+        path_in=""
+    else
+        [ "${path_in:0:1}" != "/" ] && path_in="/${path_in}"
+        path_in="${path_in%/}"
+        mkdir -p /etc/vpnpanel
+        echo "$path_in" > /etc/vpnpanel/panel_path.txt
+        echo "$path_in" > "${PANEL_DIR}/panel_path.txt"
+    fi
+
+    systemctl restart mhpanel 2>/dev/null || true
+    echo -e "\n${GREEN}${BOLD}✓ Panel Address & Port updated successfully!${NC}"
+    echo -e "  Port: ${YELLOW}${BOLD}${p_in}${NC}"
+    echo -e "  Path: ${CYAN}${BOLD}${path_in:-/(root)}${NC}"
+    echo -e "  New Access URL: ${CYAN}${BOLD}https://${srv_ip}:${p_in}${path_in}/${NC}"
+    [ -z "$1" ] && read -p "Press Enter to continue..."
+}
+
 menu_web_ui_settings() {
     while true; do
         clear 2>/dev/null || true
-        local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || echo "9090")
+        local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || cat "/etc/vpnpanel/panel_port.txt" 2>/dev/null || echo "9090")
+        local custom_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+        [ -n "$custom_path" ] && [ "${custom_path:0:1}" != "/" ] && custom_path="/${custom_path}"
         local user="admin"
         local pass="admin"
         if [ -f "${PANEL_DIR}/admin_credentials.txt" ]; then
@@ -1588,55 +1881,42 @@ menu_web_ui_settings() {
         echo -e "  Admin Username: ${CYAN}${user}${NC}"
         echo -e "  Admin Password: ${CYAN}${pass}${NC}"
         echo -e "  Dashboard Port: ${CYAN}${panel_port}${NC}"
-        echo -e "  Dashboard URL:  ${CYAN}https://${srv_ip}:${panel_port}/${NC}\n"
+        echo -e "  Custom Path:    ${CYAN}${custom_path:-/(root)}${NC}"
+        echo -e "  Dashboard URL:  ${CYAN}https://${srv_ip}:${panel_port}${custom_path}/${NC}\n"
 
         echo -e "  [1] View Panel Access & Login Credentials"
-        echo -e "  [2] Restart Web Panel Service (Restart mhpanel)"
-        echo -e "  [3] View Live Web Panel Logs"
-        echo -e "  [4] Change Admin Username & Password"
+        echo -e "  [2] Change Admin Username"
+        echo -e "  [3] Change Admin Password"
+        echo -e "  [4] Change Both Username & Password"
         echo -e "  [5] Change Web Dashboard Port"
-        echo -e "  [6] Regenerate Public API Key"
-        echo -e "  ${RED}${BOLD}[7] Uninstall MH Panel from Server${NC}"
+        echo -e "  [6] Change Panel URL Secret Path (Address)"
+        echo -e "  [7] Change Full Panel Address (Port & Path)"
+        echo -e "  [8] Restart Web Panel Service (Restart mhpanel)"
+        echo -e "  [9] View Live Web Panel Logs"
+        echo -e "  [10] Regenerate Public API Key"
+        echo -e "  ${RED}${BOLD}[11] Uninstall MH Panel from Server${NC}"
         echo -e "  [0] Back"
         echo ""
-        read -p "Select option [0-7]: " ui_act
+        read -p "Select option [0-11]: " ui_act
         case "$ui_act" in
             1) show_panel_access_info ;;
-            2)
+            2) change_admin_username ;;
+            3) change_admin_password ;;
+            4) change_admin_credentials ;;
+            5) change_panel_port ;;
+            6) change_panel_path ;;
+            7) change_panel_address ;;
+            8)
                 systemctl restart mhpanel
                 echo -e "${GREEN}Web panel service restarted.${NC}"
                 read -p "Press Enter to continue..."
                 ;;
-            3)
+            9)
                 echo -e "${YELLOW}Showing last 50 log lines:${NC}"
                 journalctl -u mhpanel -n 50 --no-pager
                 read -p "Press Enter to continue..."
                 ;;
-            4)
-                read -p "Enter new username [Default: ${user}]: " nu
-                nu=${nu:-$user}
-                read -p "Enter new password: " np
-                if [ -n "$np" ]; then
-                    echo -e "username=${nu}\npassword=${np}" > "${PANEL_DIR}/admin_credentials.txt"
-                    chmod 600 "${PANEL_DIR}/admin_credentials.txt"
-                    systemctl restart mhpanel
-                    echo -e "${GREEN}Admin credentials updated successfully.${NC}"
-                fi
-                read -p "Press Enter to continue..."
-                ;;
-            5)
-                read -p "Enter new port [Current: ${panel_port}]: " nport
-                if [[ "$nport" =~ ^[0-9]+$ ]] && [ "$nport" -ge 1 ] && [ "$nport" -le 65535 ]; then
-                    echo "$nport" > "${PANEL_DIR}/panel_port.txt"
-                    if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
-                        ufw allow "${nport}/tcp" >/dev/null 2>&1 || true
-                    fi
-                    systemctl restart mhpanel
-                    echo -e "${GREEN}Web dashboard port changed to ${nport}.${NC}"
-                fi
-                read -p "Press Enter to continue..."
-                ;;
-            6)
+            10)
                 local nkey=$(openssl rand -hex 16)
                 echo "$nkey" > "${PANEL_DIR}/api_key.txt"
                 chmod 600 "${PANEL_DIR}/api_key.txt"
@@ -1644,7 +1924,7 @@ menu_web_ui_settings() {
                 echo -e "${GREEN}New API Key generated: ${CYAN}${nkey}${NC}"
                 read -p "Press Enter to continue..."
                 ;;
-            7)
+            11)
                 uninstall_mhpanel
                 ;;
             0) break ;;
@@ -1794,6 +2074,7 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/stuntls-server" -o "${PANEL_DIR}/scripts/daemons/stuntls-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/ssh-ws-proxy.py" -o "${PANEL_DIR}/scripts/daemons/ssh-ws-proxy.py" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/mhpanel-gas-server" -o "${PANEL_DIR}/scripts/daemons/mhpanel-gas-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
@@ -1802,6 +2083,8 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true
+        mkdir -p "${PANEL_DIR}/templates/gas"
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/gas/CodeFull.gs" -o "${PANEL_DIR}/templates/gas/CodeFull.gs" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/scripts.html" -o "${PANEL_DIR}/templates/partials/scripts.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/translations.html" -o "${PANEL_DIR}/templates/partials/translations.html" 2>/dev/null || true
@@ -1867,9 +2150,10 @@ update_panel_repo() {
         "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || true
     fi
 
-    echo -e "${YELLOW}>>> [4/4] Reloading systemd and restarting MH Panel Web UI...${NC}"
+    echo -e "${YELLOW}>>> [4/4] Reloading systemd and restarting MH Panel Web UI & Services...${NC}"
     systemctl daemon-reload
     systemctl restart mhpanel 2>/dev/null || true
+    systemctl restart mhpanel-gas-tunnel 2>/dev/null || true
 
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"
@@ -1963,10 +2247,12 @@ main_menu() {
     while true; do
         show_banner
         local srv_ip=$(get_public_ipv4)
-        local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || echo "9090")
+        local panel_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || cat "/etc/vpnpanel/panel_port.txt" 2>/dev/null || echo "9090")
+        local custom_path=$(cat /etc/vpnpanel/panel_path.txt 2>/dev/null || cat "${PANEL_DIR}/panel_path.txt" 2>/dev/null || echo "")
+        [ -n "$custom_path" ] && [ "${custom_path:0:1}" != "/" ] && custom_path="/${custom_path}"
         local is_online="${RED}Stopped${NC}"
         if systemctl is-active --quiet mhpanel 2>/dev/null; then
-            is_online="${GREEN}Online (${srv_ip}:${panel_port})${NC}"
+            is_online="${GREEN}Online (${srv_ip}:${panel_port}${custom_path}/)${NC}"
         fi
 
         echo -e "  Web Panel Status: ${is_online} | Quick Terminal Command: ${CYAN}mhpanel${NC}"
@@ -1976,33 +2262,37 @@ main_menu() {
         echo -e "  ${WHITE}${BOLD}[3]  Install Lightweight Web UI Only${NC}"
         echo -e "${DIM}  ----------------------------------------------------------------------${NC}"
         echo -e "  ${GREEN}${BOLD}[4]  View Panel Access URL & Login Info${NC}"
-        echo -e "  [5]  Live System & Service Diagnostic Report"
-        echo -e "  [6]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
-        echo -e "  [7]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
-        echo -e "  [8]  Web Dashboard Settings (Credentials, Port, Logs & Restart)"
-        echo -e "  [9]  SSL Certificate Management (Let's Encrypt & IP SAN)"
-        echo -e "  [10] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
-        echo -e "  [11] Backup & Restore Panel Configurations"
-        echo -e "  [12] Update Script & Panel"
-        echo -e "  ${RED}${BOLD}[13] Uninstall MH Panel from Server${NC}"
+        echo -e "  ${YELLOW}${BOLD}[5]  Change Admin Username & Password (تغییر نام کاربری و رمز عبور)${NC}"
+        echo -e "  ${YELLOW}${BOLD}[6]  Change Panel Address, Port & Path (تغییر پورت و آدرس پنل)${NC}"
+        echo -e "  [7]  Live System & Service Diagnostic Report"
+        echo -e "  [8]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
+        echo -e "  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
+        echo -e "  [10] Web Dashboard Settings (Logs, Restart, 2FA & API Key)"
+        echo -e "  [11] SSL Certificate Management (Let's Encrypt & IP SAN)"
+        echo -e "  [12] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
+        echo -e "  [13] Backup & Restore Panel Configurations"
+        echo -e "  [14] Update Script & Panel"
+        echo -e "  ${RED}${BOLD}[15] Uninstall MH Panel from Server${NC}"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
-        read -p "Please select an option [0-13]: " opt
+        read -p "Please select an option [0-15]: " opt
 
         case "$opt" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;
             3) wizard_web_ui_only ;;
             4) show_panel_access_info ;;
-            5) menu_diagnostic_status ;;
-            6) menu_vpn_protocols ;;
-            7) menu_tunnel_tools ;;
-            8) menu_web_ui_settings ;;
-            9) menu_ssl_management ;;
-            10) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
-            11) backup_restore ;;
-            12) update_panel_repo ;;
-            13) uninstall_mhpanel ;;
+            5) change_admin_credentials ;;
+            6) change_panel_address ;;
+            7) menu_diagnostic_status ;;
+            8) menu_vpn_protocols ;;
+            9) menu_tunnel_tools ;;
+            10) menu_web_ui_settings ;;
+            11) menu_ssl_management ;;
+            12) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
+            13) backup_restore ;;
+            14) update_panel_repo ;;
+            15) uninstall_mhpanel ;;
             0)
                 echo -e "\n${GREEN}Exiting MH Panel CLI. Have a great day!${NC}"
                 echo -e "Reminder: You can return to this menu at any time by typing ${CYAN}mhpanel${NC}\n"
@@ -2027,6 +2317,18 @@ elif [ "$1" = "--status" ]; then
     menu_diagnostic_status
 elif [ "$1" = "--info" ] || [ "$1" = "info" ] || [ "$1" = "--access" ]; then
     show_panel_access_info
+elif [ "$1" = "--user" ] || [ "$1" = "user" ] || [ "$1" = "--username" ]; then
+    change_admin_username "$2"
+elif [ "$1" = "--pass" ] || [ "$1" = "pass" ] || [ "$1" = "--password" ]; then
+    change_admin_password "$2"
+elif [ "$1" = "--credentials" ] || [ "$1" = "credentials" ]; then
+    change_admin_credentials "$2" "$3"
+elif [ "$1" = "--port" ] || [ "$1" = "port" ]; then
+    change_panel_port "$2"
+elif [ "$1" = "--path" ] || [ "$1" = "path" ]; then
+    change_panel_path "$2"
+elif [ "$1" = "--address" ] || [ "$1" = "address" ]; then
+    change_panel_address "$2" "$3"
 elif [ "$1" = "--uninstall" ] || [ "$1" = "uninstall" ] || [ "$1" = "-u" ]; then
     uninstall_mhpanel
 else
@@ -2037,17 +2339,21 @@ else
         echo -e "  [2] Step-by-Step Custom Wizard"
         echo -e "  [3] Lightweight Web UI Only"
         echo -e "  [4] View Panel Access & Login Info"
-        echo -e "  ${RED}[5] Uninstall Panel & Purge Leftovers${NC}"
+        echo -e "  [5] Change Panel Admin Credentials (Username & Password)"
+        echo -e "  [6] Change Panel Address & Port"
+        echo -e "  ${RED}[7] Uninstall Panel & Purge Leftovers${NC}"
         echo -e "  [0] Exit"
         echo ""
-        read -p "Select installation mode [0-5] (Default: 1): " init_choice
+        read -p "Select installation mode [0-7] (Default: 1): " init_choice
         init_choice=${init_choice:-1}
         case "$init_choice" in
             1) wizard_full_automated ;;
             2) wizard_step_by_step ;;
             3) wizard_web_ui_only ;;
             4) show_panel_access_info ;;
-            5) uninstall_mhpanel ;;
+            5) change_admin_credentials ;;
+            6) change_panel_address ;;
+            7) uninstall_mhpanel ;;
             *) exit 0 ;;
         esac
     else
