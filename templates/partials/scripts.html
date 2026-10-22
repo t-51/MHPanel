@@ -5857,6 +5857,9 @@
             fetchProtocolUsers('stuntls');
         } else if (tabId === "google-script") {
             fetchGoogleScriptConfig();
+            if (typeof setupHorizontalNavScroll === "function") {
+                setTimeout(setupHorizontalNavScroll, 100);
+            }
         } else if (tabId === "tor") {
             fetchTorConfig();
         } else if (tabId === "dns-management") {
@@ -20398,6 +20401,39 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     let gasCachedTemplates = null;
     let gasCachedConfig = null;
 
+    function scrollGasSubtabs(amount) {
+        const nav = document.getElementById("gas-main-subtabs-nav");
+        if (!nav) return;
+        nav.scrollBy({ left: amount, behavior: "smooth" });
+    }
+
+    function setupHorizontalNavScroll() {
+        const ids = ["gas-main-subtabs-nav"];
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.dataset.wheelBound) {
+                el.dataset.wheelBound = "1";
+                el.addEventListener("wheel", (e) => {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        el.scrollLeft += (e.deltaY * 1.2);
+                    }
+                }, { passive: false });
+            }
+        });
+        document.querySelectorAll(".gas-client-nav").forEach(el => {
+            if (el && !el.dataset.wheelBound) {
+                el.dataset.wheelBound = "1";
+                el.addEventListener("wheel", (e) => {
+                    if (e.deltaY !== 0) {
+                        e.preventDefault();
+                        el.scrollLeft += (e.deltaY * 1.2);
+                    }
+                }, { passive: false });
+            }
+        });
+    }
+
     function switchGasSubTab(subtab) {
         document.querySelectorAll('.gas-subtab-content').forEach(el => el.style.display = 'none');
         document.querySelectorAll('[id^="gas-subtab-btn-"]').forEach(btn => btn.classList.remove('active'));
@@ -20405,7 +20441,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const target = document.getElementById(`gas-subtab-${subtab}`);
         const btn = document.getElementById(`gas-subtab-btn-${subtab}`);
         if (target) target.style.display = 'block';
-        if (btn) btn.classList.add('active');
+        if (btn) {
+            btn.classList.add('active');
+            try {
+                btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            } catch (e) {}
+        }
+
+        setupHorizontalNavScroll();
 
         if (subtab === 'scripts' && !gasCachedTemplates) {
             fetchGasTemplates();

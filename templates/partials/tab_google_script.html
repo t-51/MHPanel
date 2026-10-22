@@ -13,16 +13,69 @@
     gap: 20px;
 }
 
+.gas-subtabs-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 4px 0;
+}
+
+.gas-subtabs-scroll-btn {
+    width: 32px;
+    height: 40px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-glow);
+    border-radius: 8px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+.gas-subtabs-scroll-btn:hover {
+    background: rgba(66, 133, 244, 0.25);
+    border-color: #4285F4;
+    color: #fff;
+    transform: scale(1.05);
+}
+
 .gas-subtabs-nav {
     display: flex;
     gap: 8px;
-    border-bottom: 1px solid var(--border-glow);
-    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 12px;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #4285F4 rgba(255, 255, 255, 0.05);
+    scroll-behavior: smooth;
+    flex: 1;
+    min-width: 0;
 }
-.gas-subtabs-nav::-webkit-scrollbar { display: none; }
+
+/* High Visibility Sleek Horizontal Scrollbar */
+.gas-subtabs-nav::-webkit-scrollbar {
+    height: 6px;
+}
+.gas-subtabs-nav::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+.gas-subtabs-nav::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #4285F4, #f97316);
+    border-radius: 6px;
+    box-shadow: 0 0 6px rgba(66, 133, 244, 0.5);
+}
+.gas-subtabs-nav::-webkit-scrollbar-thumb:hover {
+    background: #f97316;
+}
 
 .gas-subtab-btn {
     white-space: nowrap;
@@ -585,12 +638,28 @@ input:checked + .gas-toggle-slider:before {
     display: flex;
     gap: 8px;
     overflow-x: auto;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 8px;
+    padding-bottom: 10px;
     margin-bottom: 16px;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #a855f7 rgba(255, 255, 255, 0.05);
+    scroll-behavior: smooth;
 }
-.gas-client-nav::-webkit-scrollbar { display: none; }
+.gas-client-nav::-webkit-scrollbar {
+    height: 6px;
+}
+.gas-client-nav::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+.gas-client-nav::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #a855f7, #38bdf8);
+    border-radius: 6px;
+}
+.gas-client-nav::-webkit-scrollbar-thumb:hover {
+    background: #a855f7;
+}
 
 .gas-client-nav-btn {
     display: inline-flex;
@@ -904,32 +973,41 @@ input:checked + .gas-toggle-slider:before {
         </div>
 
         <!-- ============================================================== -->
-        <!-- SUBTABS NAVIGATION (TOUCH SCROLLABLE) -->
+        <!-- SUBTABS NAVIGATION (TOUCH SCROLLABLE WITH CHEVRONS)            -->
         <!-- ============================================================== -->
-        <div class="gas-subtabs-nav">
-            <button type="button" class="btn btn-secondary gas-subtab-btn active" id="gas-subtab-btn-deploy" onclick="switchGasSubTab('deploy');">
-                <i data-lucide="rocket" style="width:15px; height:15px; color:#4285F4;"></i>
-                <span data-i18n="gas_tab_deploy">استقرار خودکار در گوگل (Auto-Deploy)</span>
+        <div class="gas-subtabs-container">
+            <button type="button" class="gas-subtabs-scroll-btn" onclick="scrollGasSubtabs(-240);" title="اسکرول به راست (تب‌های قبل)">
+                <i data-lucide="chevron-right" style="width:16px; height:16px;"></i>
             </button>
-            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-scripts" onclick="switchGasSubTab('scripts');">
-                <i data-lucide="code-2" style="width:15px; height:15px; color:#10b981;"></i>
-                <span data-i18n="gas_tab_scripts">کدها و تمپلت‌ها (Templates)</span>
-            </button>
-            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-server" onclick="switchGasSubTab('server');">
-                <i data-lucide="sliders" style="width:15px; height:15px; color:#f59e0b;"></i>
-                <span data-i18n="gas_tab_server">تنظیمات سرور خروجی (Server)</span>
-            </button>
-            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-client" onclick="switchGasSubTab('client');">
-                <i data-lucide="share-2" style="width:15px; height:15px; color:#a855f7;"></i>
-                <span data-i18n="gas_tab_client">لینک اتصال کلاینت‌ها (Client Configs)</span>
-            </button>
-            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-usage" onclick="switchGasSubTab('usage');">
-                <i data-lucide="bar-chart-3" style="width:15px; height:15px; color:#38bdf8;"></i>
-                <span data-i18n="gas_tab_usage">مصرف و تایم‌لاین (Usage & Timeline)</span>
-            </button>
-            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-cloudflare" onclick="switchGasSubTab('cloudflare');">
-                <i data-lucide="cloud-lightning" style="width:15px; height:15px; color:#f97316;"></i>
-                <span data-i18n="gas_tab_cloudflare">ورکر کلودفلر (Cloudflare Worker)</span>
+            <div class="gas-subtabs-nav" id="gas-main-subtabs-nav">
+                <button type="button" class="btn btn-secondary gas-subtab-btn active" id="gas-subtab-btn-deploy" onclick="switchGasSubTab('deploy');">
+                    <i data-lucide="rocket" style="width:15px; height:15px; color:#4285F4;"></i>
+                    <span data-i18n="gas_tab_deploy">استقرار خودکار در گوگل (Auto-Deploy)</span>
+                </button>
+                <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-scripts" onclick="switchGasSubTab('scripts');">
+                    <i data-lucide="code-2" style="width:15px; height:15px; color:#10b981;"></i>
+                    <span data-i18n="gas_tab_scripts">کدها و تمپلت‌ها (Templates)</span>
+                </button>
+                <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-server" onclick="switchGasSubTab('server');">
+                    <i data-lucide="sliders" style="width:15px; height:15px; color:#f59e0b;"></i>
+                    <span data-i18n="gas_tab_server">تنظیمات سرور خروجی (Server)</span>
+                </button>
+                <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-client" onclick="switchGasSubTab('client');">
+                    <i data-lucide="share-2" style="width:15px; height:15px; color:#a855f7;"></i>
+                    <span data-i18n="gas_tab_client">لینک اتصال کلاینت‌ها (Client Configs)</span>
+                </button>
+                <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-usage" onclick="switchGasSubTab('usage');">
+                    <i data-lucide="bar-chart-3" style="width:15px; height:15px; color:#38bdf8;"></i>
+                    <span data-i18n="gas_tab_usage">مصرف و تایم‌لاین (Usage & Timeline)</span>
+                </button>
+                <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-cloudflare" onclick="switchGasSubTab('cloudflare');" style="border:1px solid rgba(249, 115, 22, 0.4); background:linear-gradient(135deg, rgba(249,115,22,0.12) 0%, rgba(234,88,12,0.08) 100%);">
+                    <i data-lucide="cloud-lightning" style="width:15px; height:15px; color:#f97316;"></i>
+                    <span data-i18n="gas_tab_cloudflare" style="font-weight:700;">ورکر کلودفلر (Cloudflare Worker)</span>
+                    <span style="font-size:10px; background:#f97316; color:#fff; padding:1px 6px; border-radius:10px; margin-right:4px;">NEW</span>
+                </button>
+            </div>
+            <button type="button" class="gas-subtabs-scroll-btn" onclick="scrollGasSubtabs(240);" title="اسکرول به چپ (تب‌های بعد)">
+                <i data-lucide="chevron-left" style="width:16px; height:16px;"></i>
             </button>
         </div>
 
