@@ -3684,33 +3684,53 @@
         color: inherit !important;
     }
 
-    /* RADIUS Sub-Tabs & Segmented Controller */
+    /* RADIUS Sub-Tabs & Segmented Controller (Smooth Horizontal Scrollable) */
+    .rad-tab-nav-wrapper {
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+    }
     .rad-tab-nav {
         display: flex;
+        align-items: center;
         gap: 8px;
         background: var(--bg-card);
-        padding: 6px;
-        border-radius: 14px;
+        padding: 8px;
+        border-radius: 16px;
         border: 1px solid var(--border-glow);
         overflow-x: auto;
+        overflow-y: hidden;
         flex-wrap: nowrap;
-        scrollbar-width: none;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
         -webkit-overflow-scrolling: touch;
+        box-sizing: border-box;
+        width: 100%;
     }
     .rad-tab-nav::-webkit-scrollbar {
-        display: none;
+        height: 6px;
+    }
+    .rad-tab-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .rad-tab-nav::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.3);
+        border-radius: 10px;
+    }
+    .rad-tab-nav::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.6);
     }
     .rad-tab-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 9px 18px;
-        border-radius: 10px;
+        padding: 10px 18px;
+        border-radius: 12px;
         border: 1px solid transparent;
         background: transparent;
         color: var(--text-muted);
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 13.5px;
+        font-weight: 700;
         cursor: pointer;
         transition: all 0.2s ease;
         white-space: nowrap;
@@ -3726,7 +3746,7 @@
         color: #ffffff !important;
         font-weight: 700;
         border-color: var(--color-primary) !important;
-        box-shadow: 0 3px 12px var(--color-primary-glow) !important;
+        box-shadow: 0 4px 14px var(--color-primary-glow) !important;
     }
     .rad-tab-btn.active i {
         color: #ffffff !important;
@@ -3760,6 +3780,11 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
         border-color: rgba(99, 102, 241, 0.3);
     }
+    [data-theme="dark"] .group-card {
+        background: var(--bg-surface);
+        border-color: var(--border-color);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
 
     /* Modern Table Checkbox Styling */
     .rad-table-check {
@@ -3775,8 +3800,7 @@
        ========================================================================= */
     .rad-users-table {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
+        border-collapse: collapse;
         font-size: 13px;
         text-align: right;
     }
@@ -3785,97 +3809,148 @@
         color: #64748b;
         font-size: 12px;
         font-weight: 700;
-        padding: 14px 16px;
+        padding: 12px 14px;
         border-bottom: 2px solid var(--border-glow);
         white-space: nowrap;
         user-select: none;
     }
     .rad-user-row {
-        border-bottom: 1px solid var(--border-glow);
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.15s ease;
     }
     .rad-user-row:hover {
-        background: rgba(99, 102, 241, 0.035) !important;
+        background-color: rgba(99, 102, 241, 0.035) !important;
     }
     .rad-user-row.selected {
-        background: rgba(99, 102, 241, 0.08) !important;
+        background-color: rgba(99, 102, 241, 0.08) !important;
     }
 
-    /* User Identity Cell */
-    .rad-user-identity {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-    }
-    .rad-user-avatar {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        font-size: 13.5px;
-        flex-shrink: 0;
-        position: relative;
-        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(14, 165, 233, 0.15));
-        color: var(--color-primary);
-        border: 1px solid rgba(99, 102, 241, 0.2);
-    }
-    .rad-avatar-status {
-        position: absolute;
-        bottom: -2px;
-        right: -2px;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        border: 2px solid #ffffff;
-    }
-    .rad-avatar-status.online { background: #10b981; box-shadow: 0 0 6px #10b981; }
-    .rad-avatar-status.active { background: #0284c7; }
-    .rad-avatar-status.disabled { background: #dc2626; }
-
-    .rad-user-meta {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        min-width: 0;
-    }
-    .rad-username-title {
-        font-size: 13.5px;
-        font-weight: 700;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .rad-user-submeta {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
-    }
-    .badge-group-pill {
-        background: rgba(99, 102, 241, 0.1);
-        color: #4f46e5;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 600;
-    }
-    .rad-user-passbox {
+    /* Table Badges & Progress Bars */
+    .rad-badge-pkg {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
-        background: rgba(148, 163, 184, 0.08);
-        border: 1px solid rgba(148, 163, 184, 0.2);
-        padding: 2px 7px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-family: 'JetBrains Mono', monospace;
-        color: var(--text-muted);
+        gap: 4px;
+        background: rgba(99, 102, 241, 0.08);
+        color: #4f46e5;
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        padding: 3px 9px;
+        border-radius: 8px;
+        font-size: 11.5px;
+        font-weight: 700;
+        white-space: nowrap;
     }
+    [data-theme="dark"] .rad-badge-pkg {
+        background: rgba(99, 102, 241, 0.15);
+        color: #a5b4fc;
+        border-color: rgba(99, 102, 241, 0.3);
+    }
+
+    .rad-progress-track-clean {
+        width: 100%;
+        height: 5px;
+        background: rgba(148, 163, 184, 0.2);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .rad-progress-bar-clean {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    .rad-progress-bar-clean.safe {
+        background: linear-gradient(90deg, #10b981, #059669);
+    }
+    .rad-progress-bar-clean.warning {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+    .rad-progress-bar-clean.danger {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .rad-badge-speed {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        font-family: 'JetBrains Mono', monospace;
+        white-space: nowrap;
+    }
+    .rad-badge-speed.limited {
+        background: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    [data-theme="dark"] .rad-badge-speed.limited {
+        background: rgba(245, 158, 11, 0.15);
+        color: #fbbf24;
+    }
+    .rad-badge-speed.unlimited {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    [data-theme="dark"] .rad-badge-speed.unlimited {
+        background: rgba(16, 185, 129, 0.15);
+        color: #34d399;
+    }
+
+    .rad-badge-expire {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11.5px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .rad-badge-expire.active {
+        background: rgba(16, 185, 129, 0.1);
+        color: #059669;
+    }
+    .rad-badge-expire.expired {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+    }
+    .rad-badge-expire.forever {
+        background: rgba(99, 102, 241, 0.1);
+        color: #4f46e5;
+    }
+
+    .rad-actions-row {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .rad-mini-action-btn {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--border-color);
+        background: var(--bg-surface);
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+        padding: 0;
+    }
+    .rad-mini-action-btn:hover {
+        border-color: var(--color-primary);
+        color: var(--color-primary);
+        background: rgba(99, 102, 241, 0.08);
+        transform: translateY(-1px);
+    }
+    .rad-mini-action-btn.danger:hover {
+        border-color: #ef4444;
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.08);
+    }
+
     .btn-copy-inline, .btn-reveal-inline {
         background: transparent;
         border: none;
@@ -3888,155 +3963,6 @@
     }
     .btn-copy-inline:hover, .btn-reveal-inline:hover {
         color: var(--color-primary);
-    }
-
-    /* Traffic Meter Cell */
-    .rad-traffic-box {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        min-width: 230px;
-    }
-    .rad-traffic-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-    }
-    .rad-traffic-total {
-        font-weight: 700;
-        color: var(--text-main);
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .rad-traffic-pct {
-        font-size: 10.5px;
-        font-weight: 800;
-        padding: 2px 7px;
-        border-radius: 6px;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .rad-traffic-pct.safe { background: rgba(16, 185, 129, 0.12); color: #059669; }
-    .rad-traffic-pct.warning { background: rgba(245, 158, 11, 0.12); color: #d97706; }
-    .rad-traffic-pct.danger { background: rgba(239, 68, 68, 0.12); color: #dc2626; }
-
-    .rad-progress-track {
-        width: 100%;
-        height: 7px;
-        background: rgba(148, 163, 184, 0.18);
-        border-radius: 999px;
-        overflow: hidden;
-        display: flex;
-    }
-    .rad-progress-bar-dl {
-        height: 100%;
-        background: linear-gradient(90deg, #0284c7, #38bdf8);
-        transition: width 0.3s ease;
-    }
-    .rad-progress-bar-ul {
-        height: 100%;
-        background: linear-gradient(90deg, #d97706, #fbbf24);
-        transition: width 0.3s ease;
-    }
-
-    .rad-traffic-chips {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 11px;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .rad-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        padding: 2px 7px;
-        border-radius: 5px;
-        font-weight: 600;
-    }
-    .rad-chip.dl {
-        background: rgba(2, 132, 199, 0.08);
-        color: #0284c7;
-        border: 1px solid rgba(2, 132, 199, 0.2);
-    }
-    .rad-chip.ul {
-        background: rgba(217, 119, 6, 0.08);
-        color: #b45309;
-        border: 1px solid rgba(217, 119, 6, 0.2);
-    }
-
-    /* Rate Limit Badge */
-    .rad-rate-badge {
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        padding: 5px 12px;
-        border-radius: 8px;
-        font-family: 'JetBrains Mono', monospace;
-        font-weight: 700;
-        font-size: 12px;
-        background: rgba(147, 51, 234, 0.08);
-        color: #7e22ce;
-        border: 1px solid rgba(147, 51, 234, 0.2);
-    }
-    .rad-rate-badge.unlimited {
-        background: rgba(100, 116, 139, 0.08);
-        color: #475569;
-        border: 1px solid rgba(100, 116, 139, 0.2);
-        font-size: 11px;
-    }
-
-    /* Expiry & Timing Box */
-    .rad-expire-box {
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-        font-size: 11.5px;
-    }
-    .rad-expire-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 6px;
-        font-size: 11px;
-        width: fit-content;
-    }
-    .rad-expire-badge.active { background: rgba(16, 185, 129, 0.1); color: #059669; }
-    .rad-expire-badge.expired { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
-    .rad-expire-badge.forever { background: rgba(99, 102, 241, 0.1); color: #4f46e5; }
-
-    /* Action Button Group */
-    .rad-action-btn-group {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--bg-base);
-        padding: 3px;
-        border-radius: 8px;
-        border: 1px solid var(--border-glow);
-    }
-    .rad-action-btn {
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 6px;
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        color: var(--text-muted);
-        transition: all 0.15s ease;
-    }
-    .rad-action-btn:hover {
-        background: rgba(99, 102, 241, 0.12);
-        color: var(--color-primary);
-    }
-    .rad-action-btn.danger:hover {
-        background: rgba(239, 68, 68, 0.15);
-        color: #dc2626;
     }
 
     /* Dark Mode Overrides for Radius Table */

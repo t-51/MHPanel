@@ -3265,7 +3265,7 @@
         if (filteredUsernames.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 48px 20px; color: #94a3b8;">
+                    <td colspan="8" style="text-align: center; padding: 48px 20px; color: #94a3b8;">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="user-x" style="width: 36px; height: 36px; opacity: 0.5;"></i>
                             <p style="margin: 0; font-size: 14px; font-weight:600;">کاربری با این مشخصات یافت نشد</p>
@@ -3288,71 +3288,12 @@
             const onlineCount = u.online_count || 0;
             const simLimit = u.simultaneous_use || 2;
             const isActive = (u.active !== false) && !isExpired;
-
-            // 1. Connection indicator
-            let connBadge = "";
-            if (onlineCount > 0) {
-                connBadge = `<span style="display:inline-flex; align-items:center; gap:4px; font-weight:700; color:#059669; background:rgba(16,185,129,0.12); padding:2px 7px; border-radius:6px; font-size:11px;">
-                    <span class="status-dot active"></span> ${onlineCount} / ${simLimit} اتصال
-                </span>`;
-            } else {
-                connBadge = `<span style="display:inline-flex; align-items:center; gap:4px; color:#64748b; background:rgba(148,163,184,0.12); padding:2px 7px; border-radius:6px; font-size:11px;">
-                    0 / ${simLimit} اتصال
-                </span>`;
-            }
-
-            // 2. Status badge
-            const statusHtml = isActive 
-                ? `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #059669; display:inline-flex; align-items:center; gap:4px;">
-                    <span class="status-dot active"></span> فعال
-                   </span>`
-                : `<span style="padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: rgba(239, 68, 68, 0.12); color: #dc2626; display:inline-flex; align-items:center; gap:4px;">
-                    <span class="status-dot inactive"></span> ${isExpired ? "منقضی" : "غیرفعال"}
-                   </span>`;
-
-            // 3. User Identity Cell
-            const initials = uname.slice(0, 2).toUpperCase();
-            let avatarStatusClass = "disabled";
-            if (onlineCount > 0) avatarStatusClass = "online";
-            else if (isActive) avatarStatusClass = "active";
-
-            const grpName = u.group_name || (currentRadiusGroups[u.group] ? currentRadiusGroups[u.group].name : "پکیج استاندارد");
+            const grpName = u.group_name || (currentRadiusGroups[u.group] ? currentRadiusGroups[u.group].name : (u.group || "پیش‌فرض"));
             const passDisplay = isRevealed ? escapeHtml(u.password) : "••••••";
 
-            const userCellHtml = `
-                <div class="rad-user-identity">
-                    <div class="rad-user-avatar" title="${onlineCount > 0 ? 'آنلاین' : (isActive ? 'فعال' : 'غیرفعال')}">
-                        <span>${initials}</span>
-                        <span class="rad-avatar-status ${avatarStatusClass}"></span>
-                    </div>
-                    <div class="rad-user-meta">
-                        <div class="rad-username-title">
-                            <span>${escapeHtml(uname)}</span>
-                            <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(uname)}', 'نام کاربری کپی شد')" title="کپی نام کاربری">
-                                <i data-lucide="copy" style="width:12px; height:12px;"></i>
-                            </button>
-                        </div>
-                        <div class="rad-user-submeta">
-                            <span class="badge-group-pill">${escapeHtml(grpName)}</span>
-                            ${connBadge}
-                        </div>
-                        <div class="rad-user-passbox" title="رمز عبور">
-                            <i data-lucide="key" style="width:10px; height:10px; opacity:0.7;"></i>
-                            <span style="letter-spacing:${isRevealed ? 'normal' : '1.5px'}; font-size:11px;">${passDisplay}</span>
-                            <button type="button" class="btn-reveal-inline" onclick="toggleRevealRadiusPassword('${uname}')" title="${isRevealed ? 'مخفی کردن' : 'نمایش رمز'}">
-                                <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" style="width:11px; height:11px;"></i>
-                            </button>
-                            <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(u.password)}', 'رمز عبور کپی شد')" title="کپی رمز">
-                                <i data-lucide="copy" style="width:10px; height:10px;"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // 4. Traffic Usage & Quotas (Modern Visual Meter)
-            const rxBytes = Number(u.upload_bytes || (u.used_upload_gb ? u.used_upload_gb * (1024**3) : 0));
-            const txBytes = Number(u.download_bytes || (u.used_download_gb ? u.used_download_gb * (1024**3) : 0));
+            // Traffic calculation
+            const rxBytes = Number(u.upload_bytes || (u.used_upload_gb ? u.used_upload_gb * (1024**3) : (u.rx || 0)));
+            const txBytes = Number(u.download_bytes || (u.used_download_gb ? u.used_download_gb * (1024**3) : (u.tx || 0)));
             const totBytes = rxBytes + txBytes;
 
             const rxFmt = formatTrafficBytes(rxBytes);
@@ -3360,184 +3301,147 @@
             const totFmt = formatTrafficBytes(totBytes);
 
             const totalLimitGb = (u.limit_gb && u.limit_gb > 0) ? Number(u.limit_gb) : null;
-            const dlLimitGb = (u.download_limit_gb && u.download_limit_gb > 0) ? Number(u.download_limit_gb) : null;
-            const ulLimitGb = (u.upload_limit_gb && u.upload_limit_gb > 0) ? Number(u.upload_limit_gb) : null;
-
             let pct = 0;
             let pctClass = "safe";
-            let dlWidthPct = 0;
-            let ulWidthPct = 0;
-
             if (totalLimitGb) {
                 const totalLimitBytes = totalLimitGb * (1024 ** 3);
                 pct = Math.min(100, Math.round((totBytes / totalLimitBytes) * 100));
-                dlWidthPct = Math.min(100, Math.round((txBytes / totalLimitBytes) * 100));
-                ulWidthPct = Math.min(100 - dlWidthPct, Math.round((rxBytes / totalLimitBytes) * 100));
                 if (pct >= 90) pctClass = "danger";
                 else if (pct >= 75) pctClass = "warning";
                 else pctClass = "safe";
-            } else {
-                if (totBytes > 0) {
-                    dlWidthPct = Math.round((txBytes / totBytes) * 100);
-                    ulWidthPct = 100 - dlWidthPct;
-                }
             }
-
             const limitText = totalLimitGb ? `${totalLimitGb} GB` : "نامحدود";
             const pctBadge = totalLimitGb 
-                ? `<span class="rad-traffic-pct ${pctClass}">${pct}%</span>` 
-                : `<span class="rad-traffic-pct safe">∞</span>`;
+                ? `<span style="font-size:11px; font-weight:700; color:${pct >= 90 ? '#ef4444' : (pct >= 75 ? '#f59e0b' : '#10b981')};">${pct}%</span>` 
+                : `<span style="font-size:11px; color:#10b981; font-weight:700;">∞</span>`;
 
-            let progressBarHtml = "";
-            if (totalLimitGb) {
-                progressBarHtml = `
-                    <div class="rad-progress-track" title="مصرف ترافیک: ${pct}% (دانلود: ${txFmt} / آپلود: ${rxFmt})">
-                        <div class="rad-progress-bar-dl" style="width: ${dlWidthPct}%;"></div>
-                        <div class="rad-progress-bar-ul" style="width: ${ulWidthPct}%;"></div>
-                    </div>
-                `;
-            } else if (totBytes > 0) {
-                progressBarHtml = `
-                    <div class="rad-progress-track" title="نسبت ترافیک: ${dlWidthPct}% دانلود / ${ulWidthPct}% آپلود">
-                        <div class="rad-progress-bar-dl" style="width: ${dlWidthPct}%;"></div>
-                        <div class="rad-progress-bar-ul" style="width: ${ulWidthPct}%;"></div>
-                    </div>
-                `;
-            } else {
-                progressBarHtml = `
-                    <div class="rad-progress-track" title="بدون مصرف ترافیک">
-                        <div style="width: 0%; height: 100%;"></div>
-                    </div>
-                `;
-            }
-
-            let dlChipText = txFmt;
-            if (dlLimitGb) dlChipText += ` <small style="opacity:0.75">/ ${dlLimitGb}GB</small>`;
-
-            let ulChipText = rxFmt;
-            if (ulLimitGb) ulChipText += ` <small style="opacity:0.75">/ ${ulLimitGb}GB</small>`;
-
-            const trafficCellHtml = `
-                <div class="rad-traffic-box">
-                    <div class="rad-traffic-header">
-                        <span class="rad-traffic-total">${totFmt} <span style="font-weight:400; color:#64748b; font-size:11px;">/ ${limitText}</span></span>
-                        ${pctBadge}
-                    </div>
-                    ${progressBarHtml}
-                    <div class="rad-traffic-chips">
-                        <span class="rad-chip dl" title="حجم دانلود شده"><i data-lucide="arrow-down" style="width:11px; height:11px;"></i> دانلود: <strong>${dlChipText}</strong></span>
-                        <span class="rad-chip ul" title="حجم آپلود شده"><i data-lucide="arrow-up" style="width:11px; height:11px;"></i> آپلود: <strong>${ulChipText}</strong></span>
-                    </div>
-                </div>
-            `;
-
-            // 5. Bandwidth / Rate Limit Cell (MikroTik User Manager Style)
-            let rateLimitHtml = "";
-            if (u.rate_limit && u.rate_limit.trim()) {
-                const parts = u.rate_limit.trim().split("/");
-                const rxRate = parts[0] || u.rate_limit;
-                const txRate = parts[1] || parts[0] || "";
-                rateLimitHtml = `
-                    <div class="rad-rate-badge" title="محدودیت سرعت پهنای باند">
-                        <span style="display:flex; align-items:center; gap:3px;"><i data-lucide="zap" style="width:12px; height:12px; color:#d97706;"></i> ${escapeHtml(u.rate_limit)}</span>
-                        <span style="font-size:9.5px; opacity:0.85; font-weight:600;">⬇ ${rxRate} | ⬆ ${txRate}</span>
-                    </div>
-                `;
-            } else {
-                rateLimitHtml = `
-                    <div class="rad-rate-badge unlimited" title="سرعت نامحدود">
-                        <span>⚡ نامحدود</span>
-                        <span style="font-size:9.5px; opacity:0.75;">Full Speed</span>
-                    </div>
-                `;
-            }
-
-            // 6. Expiration & Schedule Cell
-            let schedText = "24/7";
-            if (u.start_time && u.end_time && (u.start_time !== "00:00" || u.end_time !== "24:00")) {
-                schedText = `${u.start_time}-${u.end_time}`;
-            }
-            if (u.allowed_days === "weekdays") schedText += " (کاری)";
-            else if (u.allowed_days === "weekends") schedText += " (تعطیل)";
-
+            // Expiry
             let expireBadgeHtml = "";
             if (isExpired) {
-                expireBadgeHtml = `<span class="rad-expire-badge expired"><i data-lucide="alert-circle" style="width:11px; height:11px;"></i> منقضی شده</span>`;
+                expireBadgeHtml = `<span class="rad-badge-expire expired"><i data-lucide="alert-circle" style="width:11px; height:11px;"></i> منقضی</span>`;
             } else if (u.expire_date) {
                 const expDate = new Date(u.expire_date);
                 const now = new Date();
                 const diffDays = Math.ceil((expDate - now) / (1000 * 60 * 60 * 24));
                 if (diffDays >= 0) {
-                    expireBadgeHtml = `<span class="rad-expire-badge active"><i data-lucide="clock" style="width:11px; height:11px;"></i> ${diffDays} روز مانده</span>`;
+                    expireBadgeHtml = `<span class="rad-badge-expire active"><i data-lucide="clock" style="width:11px; height:11px;"></i> ${diffDays} روز</span>`;
                 } else {
-                    expireBadgeHtml = `<span class="rad-expire-badge expired"><i data-lucide="alert-circle" style="width:11px; height:11px;"></i> منقضی شده</span>`;
+                    expireBadgeHtml = `<span class="rad-badge-expire expired"><i data-lucide="alert-circle" style="width:11px; height:11px;"></i> منقضی</span>`;
                 }
             } else {
-                expireBadgeHtml = `<span class="rad-expire-badge forever"><i data-lucide="infinity" style="width:11px; height:11px;"></i> مادام‌العمر</span>`;
+                expireBadgeHtml = `<span class="rad-badge-expire forever"><i data-lucide="infinity" style="width:11px; height:11px;"></i> مادام‌العمر</span>`;
             }
 
-            const expireCellHtml = `
-                <div class="rad-expire-box">
-                    ${expireBadgeHtml}
-                    <div style="font-size:11px; font-family:'JetBrains Mono'; color:#64748b; margin-top:2px;">
-                        ${u.expire_date ? u.expire_date : 'بدون انقضا'}
-                    </div>
-                    <div style="font-size:10px; color:#94a3b8; display:flex; align-items:center; gap:3px;">
-                        <i data-lucide="calendar" style="width:10px; height:10px;"></i> ${schedText}
-                    </div>
-                </div>
-            `;
-
-            // 7. Actions & Subscription Cell
             const subUrl = u.sub_url || `https://${window.location.host}/sub/${u.sub_token || ''}`;
-
-            const actionsCellHtml = `
-                <div style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-                    <div style="display:flex; align-items:center; gap:5px;">
-                        ${statusHtml}
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyRadiusUserSubLink('${escapeHtml(subUrl)}')" style="padding:2px 7px; font-size:11px; height:24px; gap:4px; display:inline-flex; align-items:center; border-color:rgba(99,102,241,0.3); color:#4f46e5; background:rgba(99,102,241,0.06);" title="کپی لینک صفحه اشتراک">
-                            <i data-lucide="link" style="width:11px; height:11px;"></i> ساب
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="showRadiusUserSubModal('${uname}')" style="padding:2px 6px; font-size:11px; height:24px; border-color:#e2e8f0;" title="نمایش بارکد QR ساب">
-                            <i data-lucide="qr-code" style="width:11px; height:11px;"></i>
-                        </button>
-                    </div>
-                    <div class="rad-action-btn-group">
-                        <button type="button" class="rad-action-btn" onclick="toggleRadiusUser('${uname}')" title="${isActive ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}" style="color:${isActive ? '#059669' : '#dc2626'};">
-                            <i data-lucide="${isActive ? 'power' : 'check'}" style="width:13px; height:13px;"></i>
-                        </button>
-                        <button type="button" class="rad-action-btn" onclick="editSingleRadiusUser('${uname}')" title="ویرایش کاربر و حجم">
-                            <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
-                        </button>
-                        <button type="button" class="rad-action-btn" onclick="changeRadiusUserPassword('${uname}')" title="تغییر رمز عبور">
-                            <i data-lucide="key" style="width:13px; height:13px;"></i>
-                        </button>
-                        <button type="button" class="rad-action-btn danger" onclick="deleteRadiusUser('${uname}')" title="حذف کاربر">
-                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
 
             html += `
                 <tr class="rad-user-row ${isChecked ? 'selected' : ''}">
-                    <td style="padding: 12px 14px; text-align: center; vertical-align: middle;">
+                    <!-- 1. Checkbox -->
+                    <td style="padding: 10px 14px; text-align: center; vertical-align: middle;">
                         <input type="checkbox" class="rad-table-check rad-user-cb" value="${uname}" onchange="toggleSelectRadiusUser('${uname}', this.checked)" ${isChecked ? 'checked' : ''}>
                     </td>
-                    <td style="padding: 12px 16px; vertical-align: middle;">
-                        ${userCellHtml}
+
+                    <!-- 2. Username & Status -->
+                    <td style="padding: 10px 14px; vertical-align: middle;">
+                        <div style="display: flex; align-items: center; gap: 7px; flex-wrap: nowrap;">
+                            <span class="status-dot ${isActive ? 'active' : 'inactive'}" style="flex-shrink:0;"></span>
+                            <span style="font-weight: 700; font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-main); white-space: nowrap;">${escapeHtml(uname)}</span>
+                            <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(uname)}', 'نام کاربری کپی شد')" title="کپی نام کاربری">
+                                <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                            </button>
+                            <span style="color: var(--border-glow); font-size: 11px;">|</span>
+                            <span style="font-size: 11px; font-family: 'JetBrains Mono'; color: #64748b; white-space: nowrap;">${passDisplay}</span>
+                            <button type="button" class="btn-reveal-inline" onclick="toggleRevealRadiusPassword('${uname}')" title="${isRevealed ? 'مخفی کردن' : 'نمایش رمز'}">
+                                <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" style="width:12px; height:12px;"></i>
+                            </button>
+                            <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(u.password)}', 'رمز عبور کپی شد')" title="کپی رمز">
+                                <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                            </button>
+                        </div>
+                        ${u.note ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(u.note)}</div>` : ''}
                     </td>
-                    <td style="padding: 12px 16px; vertical-align: middle;">
-                        ${trafficCellHtml}
+
+                    <!-- 3. Package / Plan -->
+                    <td style="padding: 10px 14px; vertical-align: middle;">
+                        <span class="rad-badge-pkg">
+                            <i data-lucide="layers" style="width: 12px; height: 12px;"></i>
+                            <span>${escapeHtml(grpName)}</span>
+                        </span>
                     </td>
-                    <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">
-                        ${rateLimitHtml}
+
+                    <!-- 4. Traffic Usage -->
+                    <td style="padding: 10px 14px; vertical-align: middle;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 11.5px;">
+                            <span style="font-weight: 700; font-family: 'JetBrains Mono'; color: var(--text-main);">${totFmt} <span style="font-weight: 400; color: #64748b; font-size: 10.5px;">/ ${limitText}</span></span>
+                            ${pctBadge}
+                        </div>
+                        <div class="rad-progress-track-clean" title="مصرف ترافیک: ${pct}%">
+                            <div class="rad-progress-bar-clean ${pctClass}" style="width: ${totalLimitGb ? pct : (totBytes > 0 ? 100 : 0)}%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 3px; font-family: 'JetBrains Mono';">
+                            <span>⬇ ${txFmt}</span>
+                            <span>⬆ ${rxFmt}</span>
+                        </div>
                     </td>
-                    <td style="padding: 12px 16px; vertical-align: middle;">
-                        ${expireCellHtml}
+
+                    <!-- 5. Speed (Rate Limit) -->
+                    <td style="padding: 10px 14px; text-align: center; vertical-align: middle;">
+                        ${(u.rate_limit && u.rate_limit.trim()) ? `
+                            <span class="rad-badge-speed limited" title="محدودیت سرعت پهنای باند">
+                                <i data-lucide="zap" style="width: 11px; height: 11px;"></i>
+                                <span>${escapeHtml(u.rate_limit)}</span>
+                            </span>
+                        ` : `
+                            <span class="rad-badge-speed unlimited" title="سرعت نامحدود">
+                                <i data-lucide="zap-off" style="width: 11px; height: 11px;"></i>
+                                <span>نامحدود</span>
+                            </span>
+                        `}
                     </td>
-                    <td style="padding: 12px 16px; text-align: center; vertical-align: middle;">
-                        ${actionsCellHtml}
+
+                    <!-- 6. Expiration / Validity -->
+                    <td style="padding: 10px 14px; vertical-align: middle;">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            ${expireBadgeHtml}
+                            <span style="font-size: 10.5px; font-family: 'JetBrains Mono'; color: #64748b;">${u.expire_date ? u.expire_date : 'بدون انقضا'}</span>
+                        </div>
+                    </td>
+
+                    <!-- 7. Connection Status -->
+                    <td style="padding: 10px 14px; text-align: center; vertical-align: middle;">
+                        ${onlineCount > 0 ? `
+                            <span style="display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: #059669; background: rgba(16,185,129,0.12); padding: 3px 8px; border-radius: 6px; font-size: 11px;">
+                                <span class="status-dot active"></span> ${onlineCount} / ${simLimit} آنلاین
+                            </span>
+                        ` : `
+                            <span style="display: inline-flex; align-items: center; gap: 4px; color: #64748b; background: rgba(148,163,184,0.1); padding: 3px 8px; border-radius: 6px; font-size: 11px;">
+                                0 / ${simLimit} اتصال
+                            </span>
+                        `}
+                    </td>
+
+                    <!-- 8. Actions -->
+                    <td style="padding: 10px 14px; text-align: center; vertical-align: middle;">
+                        <div class="rad-actions-row">
+                            <button type="button" class="rad-mini-action-btn" onclick="copyRadiusUserSubLink('${escapeHtml(subUrl)}')" title="کپی لینک صفحه اشتراک">
+                                <i data-lucide="link" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="rad-mini-action-btn" onclick="showRadiusUserSubModal('${uname}')" title="نمایش بارکد QR اشتراک">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="rad-mini-action-btn" onclick="toggleRadiusUser('${uname}')" title="${isActive ? 'غیرفعال‌سازی کاربر' : 'فعال‌سازی کاربر'}" style="color:${isActive ? '#059669' : '#dc2626'};">
+                                <i data-lucide="${isActive ? 'power' : 'check'}" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="rad-mini-action-btn" onclick="editSingleRadiusUser('${uname}')" title="ویرایش کاربر">
+                                <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="rad-mini-action-btn" onclick="changeRadiusUserPassword('${uname}')" title="تغییر رمز عبور">
+                                <i data-lucide="key" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="rad-mini-action-btn danger" onclick="deleteSingleRadiusUser('${uname}')" title="حذف کاربر">
+                                <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             `;
@@ -3691,11 +3595,27 @@
             document.getElementById("radius-user-form-title").innerText = "مشخصات کاربر جدید ردیوس";
             document.getElementById("new-rad-user").removeAttribute("readonly");
             document.getElementById("form-add-radius-user").reset();
+            const overridesBox = document.getElementById("user-custom-overrides-box");
+            if (overridesBox) overridesBox.style.display = "none";
+            const overridesLabel = document.getElementById("toggle-overrides-label");
+            if (overridesLabel) overridesLabel.innerText = "تغییر دستی سهمیه این کاربر (اختیاری)";
+            
             populateRadiusGroupDropdowns();
             onSingleUserGroupSelect(document.getElementById("new-rad-group")?.value);
             document.getElementById("new-rad-user")?.focus();
         }
         if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleUserAdvancedOverrides() {
+        const box = document.getElementById("user-custom-overrides-box");
+        const label = document.getElementById("toggle-overrides-label");
+        if (!box) return;
+        const isHidden = box.style.display === "none" || !box.style.display;
+        box.style.display = isHidden ? "block" : "none";
+        if (label) {
+            label.innerText = isHidden ? "بستن بخش سفارشی‌سازی" : "تغییر دستی سهمیه این کاربر (اختیاری)";
+        }
     }
 
     function generateRandomPassForInput(inputId) {
@@ -3709,22 +3629,45 @@
     }
 
     function onSingleUserGroupSelect(groupId) {
+        if (!groupId && document.getElementById("new-rad-group")) {
+            groupId = document.getElementById("new-rad-group").value;
+        }
         const grp = currentRadiusGroups[groupId];
-        if (!grp) return;
-        const simInput = document.getElementById("new-rad-sim-use");
-        if (simInput && !simInput.value) simInput.value = grp.simultaneous_use || 2;
+        const previewEl = document.getElementById("preview-pkg-specs");
+        const expireInput = document.getElementById("new-rad-expire");
+
+        if (!grp) {
+            if (previewEl) previewEl.innerText = "بسته نامشخص";
+            return;
+        }
+
+        // Auto-calculate expiration date based on package validity days
+        const validityDays = parseInt(grp.validity_days || 30);
+        const expDate = new Date();
+        expDate.setDate(expDate.getDate() + validityDays);
+        const expDateStr = expDate.toISOString().slice(0, 10);
+        if (expireInput && (!expireInput.value || expireInput.dataset.autoCalculated === "true")) {
+            expireInput.value = expDateStr;
+            expireInput.dataset.autoCalculated = "true";
+        }
+
+        // Update specs preview
+        const trafficStr = (grp.traffic_gb && grp.traffic_gb > 0) ? `${grp.traffic_gb} گیگابایت` : 'نامحدود';
+        const speedStr = grp.rate_limit ? `سرعت: ${grp.rate_limit}` : 'سرعت: نامحدود';
+        const simStr = `${grp.simultaneous_use || 2} کاربر`;
+        const validityStr = `${validityDays} روز اعتبار`;
+
+        if (previewEl) {
+            previewEl.innerHTML = `<strong style="color:var(--color-primary);">${grp.name}</strong> (${trafficStr} | ${speedStr} | ${simStr} | ${validityStr})`;
+        }
+
+        // Set placeholders for optional overrides
         const limitInput = document.getElementById("new-rad-limit");
-        if (limitInput && !limitInput.value && grp.traffic_gb) limitInput.value = grp.traffic_gb;
-        if (grp.download_gb && document.getElementById("new-rad-download-limit")) document.getElementById("new-rad-download-limit").value = grp.download_gb;
-        if (grp.upload_gb && document.getElementById("new-rad-upload-limit")) document.getElementById("new-rad-upload-limit").value = grp.upload_gb;
-        if (grp.rate_limit && document.getElementById("new-rad-rate-limit")) document.getElementById("new-rad-rate-limit").value = grp.rate_limit;
-        if (grp.framed_pool && document.getElementById("new-rad-pool")) document.getElementById("new-rad-pool").value = grp.framed_pool;
-        const daysSelect = document.getElementById("new-rad-days");
-        if (daysSelect && grp.allowed_days) daysSelect.value = grp.allowed_days;
-        const stInput = document.getElementById("new-rad-start-time");
-        if (stInput && grp.start_time) stInput.value = grp.start_time;
-        const etInput = document.getElementById("new-rad-end-time");
-        if (etInput && grp.end_time) etInput.value = grp.end_time;
+        if (limitInput) limitInput.placeholder = grp.traffic_gb ? `${grp.traffic_gb} GB` : "نامحدود";
+        const simInput = document.getElementById("new-rad-sim-use");
+        if (simInput) simInput.placeholder = `${grp.simultaneous_use || 2} کاربر`;
+        const rateInput = document.getElementById("new-rad-rate-limit");
+        if (rateInput) rateInput.placeholder = grp.rate_limit || "نامحدود";
     }
 
     async function submitSingleRadiusUser(e) {
@@ -3732,18 +3675,20 @@
         const username = document.getElementById("new-rad-user").value.trim();
         const password = document.getElementById("new-rad-pass").value.trim();
         const group = document.getElementById("new-rad-group").value;
-        const simultaneous_use = parseInt(document.getElementById("new-rad-sim-use").value || 2);
         const expire_date = document.getElementById("new-rad-expire").value || null;
-        const limit_gb = document.getElementById("new-rad-limit").value ? parseFloat(document.getElementById("new-rad-limit").value) : null;
-        const download_limit_gb = document.getElementById("new-rad-download-limit").value ? parseFloat(document.getElementById("new-rad-download-limit").value) : null;
-        const upload_limit_gb = document.getElementById("new-rad-upload-limit").value ? parseFloat(document.getElementById("new-rad-upload-limit").value) : null;
-        const rate_limit = (document.getElementById("new-rad-rate-limit")?.value || "").trim();
-        const framed_pool = (document.getElementById("new-rad-pool")?.value || "").trim();
-        const static_ip = (document.getElementById("new-rad-static-ip")?.value || "").trim();
-        const address_list = (document.getElementById("new-rad-address-list")?.value || "").trim();
-        const allowed_days = document.getElementById("new-rad-days").value;
-        const start_time = document.getElementById("new-rad-start-time").value || "00:00";
-        const end_time = document.getElementById("new-rad-end-time").value || "24:00";
+        const active = document.getElementById("new-rad-status")?.value !== "disabled";
+        const note = (document.getElementById("new-rad-note")?.value || "").trim();
+
+        // Check optional overrides (if user left them empty, pass null/undefined so backend inherits from group)
+        const grp = currentRadiusGroups[group] || {};
+        const limitVal = document.getElementById("new-rad-limit")?.value;
+        const limit_gb = (limitVal !== "" && limitVal !== undefined && limitVal !== null) ? parseFloat(limitVal) : (grp.traffic_gb || null);
+
+        const simVal = document.getElementById("new-rad-sim-use")?.value;
+        const simultaneous_use = simVal ? parseInt(simVal) : (grp.simultaneous_use || 2);
+
+        const rateVal = (document.getElementById("new-rad-rate-limit")?.value || "").trim();
+        const rate_limit = rateVal !== "" ? rateVal : (grp.rate_limit || "");
 
         if (!username || !password) {
             showToast("نام کاربری و رمز عبور الزامی است", "warning");
@@ -3757,15 +3702,13 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     username, password, group, simultaneous_use,
-                    expire_date, limit_gb, download_limit_gb, upload_limit_gb, rate_limit,
-                    framed_pool, static_ip, address_list,
-                    allowed_days, start_time, end_time
+                    expire_date, limit_gb, rate_limit, active, note
                 })
             });
             const data = await res.json();
             toggleLoading(false);
             if (res.ok) {
-                showToast(`کاربر ${username} با سقف ${simultaneous_use} اتصال در ردیوس فعال شد!`, "success");
+                showToast(`کاربر ${username} در ردیوس ثبت و فعال شد!`, "success");
                 toggleAddRadiusUserBox(false);
                 fetchRadiusData();
             } else {
@@ -3788,18 +3731,24 @@
         userInput.setAttribute("readonly", "true");
         document.getElementById("new-rad-pass").value = u.password || "";
         if (u.group) document.getElementById("new-rad-group").value = u.group;
-        document.getElementById("new-rad-sim-use").value = u.simultaneous_use || 2;
-        document.getElementById("new-rad-expire").value = u.expire_date || "";
-        document.getElementById("new-rad-limit").value = u.limit_gb || "";
-        document.getElementById("new-rad-download-limit").value = u.download_limit_gb || "";
-        document.getElementById("new-rad-upload-limit").value = u.upload_limit_gb || "";
-        document.getElementById("new-rad-rate-limit").value = u.rate_limit || "";
-        if (document.getElementById("new-rad-pool")) document.getElementById("new-rad-pool").value = u.framed_pool || "";
-        if (document.getElementById("new-rad-static-ip")) document.getElementById("new-rad-static-ip").value = u.static_ip || "";
-        if (document.getElementById("new-rad-address-list")) document.getElementById("new-rad-address-list").value = u.address_list || "";
-        if (u.allowed_days) document.getElementById("new-rad-days").value = u.allowed_days;
-        if (u.start_time) document.getElementById("new-rad-start-time").value = u.start_time;
-        if (u.end_time) document.getElementById("new-rad-end-time").value = u.end_time;
+        onSingleUserGroupSelect(u.group);
+
+        const expireInput = document.getElementById("new-rad-expire");
+        if (expireInput) {
+            expireInput.value = u.expire_date || "";
+            expireInput.dataset.autoCalculated = "false";
+        }
+        if (document.getElementById("new-rad-status")) {
+            document.getElementById("new-rad-status").value = (u.active !== false) ? "active" : "disabled";
+        }
+        if (document.getElementById("new-rad-note")) {
+            document.getElementById("new-rad-note").value = u.note || "";
+        }
+
+        // Fill overrides if they exist
+        if (document.getElementById("new-rad-limit")) document.getElementById("new-rad-limit").value = u.limit_gb || "";
+        if (document.getElementById("new-rad-sim-use")) document.getElementById("new-rad-sim-use").value = u.simultaneous_use || "";
+        if (document.getElementById("new-rad-rate-limit")) document.getElementById("new-rad-rate-limit").value = u.rate_limit || "";
     }
 
     function deleteSingleRadiusUser(username) {
@@ -4092,6 +4041,55 @@
         if (window.lucide) lucide.createIcons();
     }
 
+    function setGrpTrafficPreset(val, unit) {
+        const input = document.getElementById("rad-grp-traffic");
+        const unitEl = document.getElementById("rad-grp-traffic-unit");
+        if (input) input.value = val;
+        if (unitEl) unitEl.value = unit || "GB";
+    }
+
+    function setGrpSpeedPreset(down, up, unit) {
+        const downInput = document.getElementById("rad-grp-down-speed");
+        const upInput = document.getElementById("rad-grp-up-speed");
+        const downUnit = document.getElementById("rad-grp-down-speed-unit");
+        const upUnit = document.getElementById("rad-grp-up-speed-unit");
+        const rateLimitInput = document.getElementById("rad-grp-rate-limit");
+        if (downInput) downInput.value = down > 0 ? down : "";
+        if (upInput) upInput.value = up > 0 ? up : "";
+        if (unit) {
+            if (downUnit) downUnit.value = unit;
+            if (upUnit) upUnit.value = unit;
+        }
+        if (rateLimitInput) {
+            if (down > 0 && up > 0) {
+                rateLimitInput.value = `${up}${unit || 'M'}/${down}${unit || 'M'}`;
+            } else if (down > 0) {
+                rateLimitInput.value = `${down}${unit || 'M'}`;
+            } else {
+                rateLimitInput.value = "";
+            }
+        }
+    }
+
+    function updateGrpRateLimitString() {
+        const downVal = (document.getElementById("rad-grp-down-speed")?.value || "").trim();
+        const upVal = (document.getElementById("rad-grp-up-speed")?.value || "").trim();
+        const downUnit = document.getElementById("rad-grp-down-speed-unit")?.value || "M";
+        const upUnit = document.getElementById("rad-grp-up-speed-unit")?.value || "M";
+        const rateLimitInput = document.getElementById("rad-grp-rate-limit");
+        if (!rateLimitInput) return;
+
+        if (downVal && upVal) {
+            rateLimitInput.value = `${upVal}${upUnit}/${downVal}${downUnit}`;
+        } else if (downVal) {
+            rateLimitInput.value = `${downVal}${downUnit}/${downVal}${downUnit}`;
+        } else if (upVal) {
+            rateLimitInput.value = `${upVal}${upUnit}/${upVal}${upUnit}`;
+        } else {
+            rateLimitInput.value = "";
+        }
+    }
+
     function openAddRadiusGroupModal(groupId) {
         const modal = document.getElementById("radius-group-modal");
         if (!modal) return;
@@ -4106,10 +4104,45 @@
             idInput.value = groupId;
             idInput.setAttribute("readonly", "true");
             document.getElementById("rad-grp-name").value = g.name;
+
+            // Traffic
             document.getElementById("rad-grp-traffic").value = g.traffic_gb || 0;
+            if (document.getElementById("rad-grp-traffic-unit")) document.getElementById("rad-grp-traffic-unit").value = "GB";
             document.getElementById("rad-grp-download").value = g.download_gb || 0;
+            if (document.getElementById("rad-grp-download-unit")) document.getElementById("rad-grp-download-unit").value = "GB";
             document.getElementById("rad-grp-upload").value = g.upload_gb || 0;
+            if (document.getElementById("rad-grp-upload-unit")) document.getElementById("rad-grp-upload-unit").value = "GB";
+
+            // Speed
             document.getElementById("rad-grp-rate-limit").value = g.rate_limit || "";
+            if (g.rate_limit) {
+                const parts = g.rate_limit.split("/");
+                if (parts.length === 2) {
+                    const matchUp = parts[0].match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z])?/);
+                    const matchDown = parts[1].match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z])?/);
+                    if (matchUp && document.getElementById("rad-grp-up-speed")) {
+                        document.getElementById("rad-grp-up-speed").value = matchUp[1];
+                        document.getElementById("rad-grp-up-speed-unit").value = (matchUp[2] && matchUp[2].toLowerCase() === 'k') ? 'k' : 'M';
+                    }
+                    if (matchDown && document.getElementById("rad-grp-down-speed")) {
+                        document.getElementById("rad-grp-down-speed").value = matchDown[1];
+                        document.getElementById("rad-grp-down-speed-unit").value = (matchDown[2] && matchDown[2].toLowerCase() === 'k') ? 'k' : 'M';
+                    }
+                } else {
+                    const m = g.rate_limit.match(/^(\d+(?:\.\d+)?)\s*([a-zA-Z])?/);
+                    if (m) {
+                        if (document.getElementById("rad-grp-down-speed")) document.getElementById("rad-grp-down-speed").value = m[1];
+                        if (document.getElementById("rad-grp-up-speed")) document.getElementById("rad-grp-up-speed").value = m[1];
+                        const u = (m[2] && m[2].toLowerCase() === 'k') ? 'k' : 'M';
+                        if (document.getElementById("rad-grp-down-speed-unit")) document.getElementById("rad-grp-down-speed-unit").value = u;
+                        if (document.getElementById("rad-grp-up-speed-unit")) document.getElementById("rad-grp-up-speed-unit").value = u;
+                    }
+                }
+            } else {
+                if (document.getElementById("rad-grp-down-speed")) document.getElementById("rad-grp-down-speed").value = "";
+                if (document.getElementById("rad-grp-up-speed")) document.getElementById("rad-grp-up-speed").value = "";
+            }
+
             document.getElementById("rad-grp-validity").value = g.validity_days || 30;
             document.getElementById("rad-grp-sim-use").value = g.simultaneous_use || 2;
             if (g.allowed_days) document.getElementById("rad-grp-days").value = g.allowed_days;
@@ -4122,10 +4155,13 @@
             if (document.getElementById("rad-grp-starts-at")) document.getElementById("rad-grp-starts-at").value = g.starts_at || "creation";
             if (document.getElementById("rad-grp-price")) document.getElementById("rad-grp-price").value = g.price || "";
         } else {
-            titleEl.innerText = "تعریف بسته / گروه کاربری جدید";
+            titleEl.innerText = "تعریف بسته و پروفایل کاربری جدید (Service Profile)";
             form.reset();
             idInput.removeAttribute("readonly");
             idInput.value = "";
+            if (document.getElementById("rad-grp-down-speed")) document.getElementById("rad-grp-down-speed").value = "";
+            if (document.getElementById("rad-grp-up-speed")) document.getElementById("rad-grp-up-speed").value = "";
+            if (document.getElementById("rad-grp-rate-limit")) document.getElementById("rad-grp-rate-limit").value = "";
         }
 
         modal.classList.add("active");
@@ -4141,16 +4177,27 @@
         e.preventDefault();
         const id = document.getElementById("rad-grp-id").value.trim().toLowerCase();
         const name = document.getElementById("rad-grp-name").value.trim();
-        const traffic_gb = parseFloat(document.getElementById("rad-grp-traffic").value || 0);
-        const download_gb = parseFloat(document.getElementById("rad-grp-download")?.value || 0);
-        const upload_gb = parseFloat(document.getElementById("rad-grp-upload")?.value || 0);
+        
+        let traffic_gb = parseFloat(document.getElementById("rad-grp-traffic")?.value || 0);
+        const trafficUnit = document.getElementById("rad-grp-traffic-unit")?.value || "GB";
+        if (trafficUnit === "MB") traffic_gb = traffic_gb / 1024;
+        else if (trafficUnit === "TB") traffic_gb = traffic_gb * 1024;
+
+        let download_gb = parseFloat(document.getElementById("rad-grp-download")?.value || 0);
+        const dlUnit = document.getElementById("rad-grp-download-unit")?.value || "GB";
+        if (dlUnit === "MB") download_gb = download_gb / 1024;
+
+        let upload_gb = parseFloat(document.getElementById("rad-grp-upload")?.value || 0);
+        const ulUnit = document.getElementById("rad-grp-upload-unit")?.value || "GB";
+        if (ulUnit === "MB") upload_gb = upload_gb / 1024;
+
         const rate_limit = (document.getElementById("rad-grp-rate-limit")?.value || "").trim();
-        const validity_days = parseInt(document.getElementById("rad-grp-validity").value || 30);
-        const simultaneous_use = parseInt(document.getElementById("rad-grp-sim-use").value || 2);
-        const allowed_days = document.getElementById("rad-grp-days").value;
-        const start_time = document.getElementById("rad-grp-start-time").value || "00:00";
-        const end_time = document.getElementById("rad-grp-end-time").value || "24:00";
-        const description = document.getElementById("rad-grp-desc").value.trim();
+        const validity_days = parseInt(document.getElementById("rad-grp-validity")?.value || 30);
+        const simultaneous_use = parseInt(document.getElementById("rad-grp-sim-use")?.value || 2);
+        const allowed_days = document.getElementById("rad-grp-days")?.value || "all";
+        const start_time = document.getElementById("rad-grp-start-time")?.value || "00:00";
+        const end_time = document.getElementById("rad-grp-end-time")?.value || "24:00";
+        const description = (document.getElementById("rad-grp-desc")?.value || "").trim();
         const framed_pool = (document.getElementById("rad-grp-pool")?.value || "").trim();
         const mikrotik_group = (document.getElementById("rad-grp-mikrotik-group")?.value || "").trim();
         const session_timeout = parseInt(document.getElementById("rad-grp-session-timeout")?.value || 0) || null;

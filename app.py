@@ -4267,6 +4267,7 @@ def api_radius_add_user():
         "framed_ip": (data.get("framed_ip") or "").strip(),
         "session_timeout": int(data.get("session_timeout", 0)),
         "custom_attributes": data.get("custom_attributes", []),
+        "note": (data.get("note") or "").strip(),
         "created_at": users.get(username, {}).get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M"),
         "protocols": data.get("protocols", ["all"]),
         "rx": users.get(username, {}).get("rx", 0),

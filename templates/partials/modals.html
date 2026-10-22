@@ -446,11 +446,11 @@
 </div>
 <!-- Create/Edit RADIUS Group Profile Modal (مدیریت پکیج و گروه مثل میکروتیک) -->
 <div class="modal" id="radius-group-modal">
-<div class="modal-card" style="max-width: 580px; border-radius: 16px;">
+<div class="modal-card" style="max-width: 680px; border-radius: 16px;">
 <header class="modal-header">
-<h3 class="modal-title">
+<h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
 <i data-lucide="layers" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
-<span data-i18n="modal_define_package_new_user_group" id="radius-group-modal-title">تعریف بسته / گروه کاربری جدید</span>
+<span id="radius-group-modal-title">تعریف بسته و پروفایل کاربری جدید (Service Profile)</span>
 </h3>
 <button class="modal-close" onclick="closeRadiusGroupModal()"><i data-lucide="x"></i></button>
 </header>
@@ -458,114 +458,183 @@
 <form id="form-radius-group" onsubmit="submitRadiusGroup(event)">
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_group_id_english_group_id">شناسه گروه (Group ID انگلیسی)</label>
-<input class="form-input" data-i18n-placeholder="modal_vip" id="rad-grp-id" placeholder="مثال: vip" required="" style="padding-left:14px;" type="text"/>
+<label class="form-label">شناسه بسته (ID انگلیسی منحصر‌به‌فرد):</label>
+<input class="form-input" id="rad-grp-id" placeholder="مثال: vip یا 10m" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_display_name_package">نام نمایشی پکیج</label>
-<input class="form-input" data-i18n-placeholder="modal_example_special_vip_package" id="rad-grp-name" placeholder="مثال: پکیج ویژه VIP" required="" style="padding-left:14px;" type="text"/>
+<label class="form-label">نام نمایشی پکیج:</label>
+<input class="form-input" id="rad-grp-name" placeholder="مثال: پکیج طلایی ۵۰ گیگابایت" required="" style="padding-left:14px;" type="text"/>
 </div>
 </div>
-<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+
+<!-- Section: Traffic Quotas & Units -->
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+<div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="database" style="width:16px; height:16px; color:#10b981;"></i>
+        <span>سهمیه ترافیک و حجم مجاز (Traffic Quota)</span>
+    </div>
+    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpTrafficPreset(10, 'GB')" style="padding:2px 7px; font-size:11px;">10GB</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpTrafficPreset(30, 'GB')" style="padding:2px 7px; font-size:11px;">30GB</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpTrafficPreset(50, 'GB')" style="padding:2px 7px; font-size:11px;">50GB</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpTrafficPreset(100, 'GB')" style="padding:2px 7px; font-size:11px;">100GB</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpTrafficPreset(0, 'GB')" style="padding:2px 7px; font-size:11px;">نامحدود</button>
+    </div>
+</div>
+<div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px;">
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">سقف کل ترافیک (0 = نامحدود):</label>
+        <div style="display:flex; gap:4px;">
+            <input class="form-input" id="rad-grp-traffic" min="0" step="0.5" style="padding-left:10px; font-family:'JetBrains Mono';" type="number" value="50"/>
+            <select class="form-select" id="rad-grp-traffic-unit" style="width: auto; font-size: 11px; padding: 4px 6px;">
+                <option value="GB" selected>GB (گیگ)</option>
+                <option value="MB">MB (مگابایت)</option>
+                <option value="TB">TB (ترابایت)</option>
+            </select>
+        </div>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">سقف مجاز دانلود:</label>
+        <div style="display:flex; gap:4px;">
+            <input class="form-input" id="rad-grp-download" min="0" step="0.5" placeholder="0 = نامحدود" style="padding-left:10px; font-family:'JetBrains Mono';" type="number" value="0"/>
+            <select class="form-select" id="rad-grp-download-unit" style="width: auto; font-size: 11px; padding: 4px 6px;">
+                <option value="GB" selected>GB</option>
+                <option value="MB">MB</option>
+            </select>
+        </div>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">سقف مجاز آپلود:</label>
+        <div style="display:flex; gap:4px;">
+            <input class="form-input" id="rad-grp-upload" min="0" step="0.5" placeholder="0 = نامحدود" style="padding-left:10px; font-family:'JetBrains Mono';" type="number" value="0"/>
+            <select class="form-select" id="rad-grp-upload-unit" style="width: auto; font-size: 11px; padding: 4px 6px;">
+                <option value="GB" selected>GB</option>
+                <option value="MB">MB</option>
+            </select>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Section: Speed & Bandwidth Limit with Units -->
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+<div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between;">
+    <div style="display:flex; align-items:center; gap:6px;">
+        <i data-lucide="zap" style="width:16px; height:16px; color:#f59e0b;"></i>
+        <span>محدودیت سرعت پهنای باند (Rate Limit)</span>
+    </div>
+    <div style="display:flex; gap:4px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpSpeedPreset(5, 5, 'M')" style="padding:2px 7px; font-size:11px;">5M</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpSpeedPreset(10, 10, 'M')" style="padding:2px 7px; font-size:11px;">10M</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpSpeedPreset(20, 20, 'M')" style="padding:2px 7px; font-size:11px;">20M</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpSpeedPreset(50, 50, 'M')" style="padding:2px 7px; font-size:11px;">50M</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="setGrpSpeedPreset(0, 0, '')" style="padding:2px 7px; font-size:11px;">نامحدود</button>
+    </div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 10px;">
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">سرعت دانلود (0 = نامحدود):</label>
+        <div style="display:flex; gap:4px;">
+            <input class="form-input" id="rad-grp-down-speed" min="0" oninput="updateGrpRateLimitString()" placeholder="مثال: 10" style="padding-left:10px; font-family:'JetBrains Mono';" type="number"/>
+            <select class="form-select" id="rad-grp-down-speed-unit" onchange="updateGrpRateLimitString()" style="width: auto; font-size: 11px; padding: 4px 6px;">
+                <option value="M" selected>Mbps (مگابیت)</option>
+                <option value="k">Kbps (کیلوبیت)</option>
+            </select>
+        </div>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">سرعت آپلود (0 = نامحدود):</label>
+        <div style="display:flex; gap:4px;">
+            <input class="form-input" id="rad-grp-up-speed" min="0" oninput="updateGrpRateLimitString()" placeholder="مثال: 5" style="padding-left:10px; font-family:'JetBrains Mono';" type="number"/>
+            <select class="form-select" id="rad-grp-up-speed-unit" onchange="updateGrpRateLimitString()" style="width: auto; font-size: 11px; padding: 4px 6px;">
+                <option value="M" selected>Mbps (مگابیت)</option>
+                <option value="k">Kbps (کیلوبیت)</option>
+            </select>
+        </div>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b; font-weight:600;">رشته نهایی Rate-Limit:</label>
+        <input class="form-input" id="rad-grp-rate-limit" placeholder="مثال: 10M/5M" style="font-family:'JetBrains Mono'; font-size:12px; direction:ltr; padding-left:10px;" type="text"/>
+    </div>
+</div>
+</div>
+
+<!-- Section: Validity, Simultaneous, Price & Expiration Type -->
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_allowed_size_gb">سقف کل ترافیک (GB)</label>
-<input class="form-input" id="rad-grp-traffic" min="0" style="padding-left:14px;" type="number" value="50"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_validity_period_days">مدت اعتبار (روز)</label>
+<label class="form-label">مدت اعتبار (روز):</label>
 <input class="form-input" id="rad-grp-validity" min="1" style="padding-left:14px;" type="number" value="30"/>
 </div>
 <div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="modal_simultaneous_connection_limit">اتصال همزمان (Limit)</label>
+<label class="form-label">سقف اتصال همزمان (دستگاه):</label>
 <input class="form-input" id="rad-grp-sim-use" max="100" min="1" style="padding-left:14px;" type="number" value="2"/>
 </div>
-</div>
-<!-- MikroTik User Manager Style: Separate Upload & Download Quotas and Rate-Limit -->
-<div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 12px; margin-bottom: 16px; background:var(--bg-base); padding:14px; border-radius:10px; border:1px solid var(--border-glow);">
 <div class="form-group" style="margin: 0;">
-<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_down_gb">سقف مجاز دانلود (GB):</label>
-<input class="form-input" id="rad-grp-download" min="0" placeholder="0 = نامحدود" style="padding-left:12px; font-size:12.5px;" type="number" value="0"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_up_gb">سقف مجاز آپلود (GB):</label>
-<input class="form-input" id="rad-grp-upload" min="0" placeholder="0 = نامحدود" style="padding-left:12px; font-size:12.5px;" type="number" value="0"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" style="font-size:11.5px; font-weight:700;" data-i18n="modal_grp_rate_limit">پهنای باند / Rate Limit:</label>
-<div style="display:flex; gap:4px;">
-<input class="form-input" id="rad-grp-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; font-size:12px; direction:ltr; padding-left:8px;" type="text"/>
-<select class="form-select" onchange="if(this.value) document.getElementById('rad-grp-rate-limit').value = this.value;" style="width:auto; font-size:11px; padding:2px 6px;">
-<option value="">انتخاب...</option>
-<option value="5M/5M">5M</option>
-<option value="10M/10M">10M</option>
-<option value="20M/20M">20M</option>
-<option value="50M/50M">50M</option>
-<option value="">نامحدود</option>
-</select>
+<label class="form-label">قیمت پکیج (تومان / اختیاری):</label>
+<input class="form-input" id="rad-grp-price" placeholder="مثال: 150000" style="padding-left:14px;" type="number"/>
 </div>
 </div>
-</div>
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
 <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
-    <i data-lucide="router" style="width:16px; height:16px; color:#6366f1;"></i> مشخصات پیشرفته میکروتیک (MikroTik Userman Attributes)
+    <i data-lucide="network" style="width:16px; height:16px; color:#6366f1;"></i> تنظیمات شبکه و فایروال (Network & Access Policy)
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
     <div>
-        <label style="font-size: 11px; color: #64748b;">استخر IP میکروتیک (Framed-Pool):</label>
+        <label style="font-size: 11px; color: #64748b;">استخر آی‌پی (IP Pool):</label>
         <input class="form-input" id="rad-grp-pool" placeholder="مثال: vpn-pool" style="padding: 7px 8px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
     </div>
     <div>
-        <label style="font-size: 11px; color: #64748b;">گروه فایروال (Mikrotik-Group):</label>
-        <input class="form-input" id="rad-grp-mikrotik-group" placeholder="مثال: vip-users" style="padding: 7px 8px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+        <label style="font-size: 11px; color: #64748b;">گروه فایروال (Firewall Group / List):</label>
+        <input class="form-input" id="rad-grp-mikrotik-group" placeholder="مثال: vip-clients" style="padding: 7px 8px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
     </div>
     <div>
-        <label style="font-size: 11px; color: #64748b;">حداکثر نشست (Session-Timeout ثانیه):</label>
+        <label style="font-size: 11px; color: #64748b;">حداکثر زمان هر نشست (Session-Timeout ثانیه):</label>
         <input class="form-input" id="rad-grp-session-timeout" placeholder="0 = نامحدود (پیشفرض 86400)" style="padding: 7px 8px; font-size: 12px;" type="number"/>
     </div>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
     <div>
-        <label style="font-size: 11px; color: #64748b;">شروع انقضا (Starts At):</label>
+        <label style="font-size: 11px; color: #64748b;">نحوه شروع محاسبه انقضا:</label>
         <select class="form-select" id="rad-grp-starts-at" style="padding: 7px 10px; font-size: 12px;">
-            <option value="creation">از زمان ساخت کارت / اکانت</option>
+            <option value="creation">از زمان ساخت اکانت (Creation Date)</option>
             <option value="first_login">از زمان اولین اتصال کاربر (First Login)</option>
         </select>
     </div>
     <div>
-        <label style="font-size: 11px; color: #64748b;">قیمت پکیج (تومان / اختیاری):</label>
-        <input class="form-input" id="rad-grp-price" placeholder="مثال: 150000" style="padding: 7px 8px; font-size: 12px;" type="number"/>
+        <label style="font-size: 11px; color: #64748b;">توضیحات پکیج (اختیاری):</label>
+        <input class="form-input" id="rad-grp-desc" placeholder="مثلاً: مناسب کاربران اداری با پینگ پایین" style="padding: 7px 10px; font-size: 12px;" type="text"/>
     </div>
 </div>
 </div>
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-<div data-i18n="modal_setting_allowed_connection_times_freera" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
+
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+<div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">زمان‌بندی مجاز اتصال (FreeRADIUS Login-Time)</div>
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
 <div>
-<label data-i18n="modal_active_days" style="font-size: 11px; color: #64748b;">روزهای فعال:</label>
+<label style="font-size: 11px; color: #64748b;">روزهای فعال:</label>
 <select class="form-select" id="rad-grp-days" style="padding: 7px 10px; font-size: 12px;">
-<option data-i18n="rad_24_7" value="all">تمام روزهای هفته (24/7)</option>
-<option data-i18n="modal_office_working_days_monday_friday" value="weekdays">روزهای اداری/کاری (دوشنبه تا جمعه)</option>
-<option data-i18n="rad_item_7" value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>
+<option value="all">تمام روزهای هفته (24/7)</option>
+<option value="weekdays">روزهای کاری (دوشنبه تا جمعه)</option>
+<option value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>
 </select>
 </div>
 <div>
-<label data-i18n="rad_start_time" style="font-size: 11px; color: #64748b;">ساعت شروع:</label>
+<label style="font-size: 11px; color: #64748b;">ساعت شروع:</label>
 <input class="form-input" id="rad-grp-start-time" style="padding: 7px 8px; font-size: 12px;" type="time" value="00:00"/>
 </div>
 <div>
-<label data-i18n="rad_end_time" style="font-size: 11px; color: #64748b;">ساعت پایان:</label>
+<label style="font-size: 11px; color: #64748b;">ساعت پایان:</label>
 <input class="form-input" id="rad-grp-end-time" style="padding: 7px 8px; font-size: 12px;" type="time" value="24:00"/>
 </div>
 </div>
 </div>
-<div class="form-group" style="margin-bottom: 20px;">
-<label class="form-label" data-i18n="modal_item_21">توضیحات بسته (اختیاری)</label>
-<input class="form-input" data-i18n-placeholder="modal_example_suitable_gaming_users_low" id="rad-grp-desc" placeholder="مثلاً: مناسب کاربران گیمینگ با پینگ پایین" style="padding-left:14px;" type="text"/>
-</div>
+
 <div style="display: flex; gap: 12px; justify-content: flex-end;">
-<button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="closeRadiusGroupModal()" type="button">انصراف</button>
-<button class="btn btn-primary" type="submit">
-<i class="btn-icon" data-lucide="check"></i> <span data-i18n="modal_save_package">ذخیره بسته</span>
+<button class="btn btn-secondary" onclick="closeRadiusGroupModal()" type="button">انصراف</button>
+<button class="btn btn-primary" type="submit" style="padding: 0 24px;">
+<i class="btn-icon" data-lucide="check"></i> <span>ذخیره پکیج</span>
 </button>
 </div>
 </form>
