@@ -20379,6 +20379,10 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             fetchGasTemplates();
         } else if (subtab === 'client') {
             fetchGasClientConfigs();
+        } else if (subtab === 'usage') {
+            fetchGasTrafficStats();
+        } else if (subtab === 'cloudflare') {
+            fetchGasCloudflareConfig();
         }
     }
 
@@ -21556,13 +21560,41 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    let gasClientRelayMode = 'direct'; // 'direct' or 'cloudflare'
+
+    function setGasClientRelayMode(mode) {
+        gasClientRelayMode = mode;
+        const btnDirect = document.getElementById("gas-client-mode-btn-direct");
+        const btnCf = document.getElementById("gas-client-mode-btn-cf");
+        const ind = document.getElementById("gas-client-cf-indicator");
+        
+        if (mode === 'cloudflare') {
+            if (btnDirect) { btnDirect.classList.remove("btn-primary"); btnDirect.classList.add("btn-secondary"); }
+            if (btnCf) { btnCf.classList.remove("btn-secondary"); btnCf.classList.add("btn-primary"); }
+            if (ind) ind.style.display = "inline-flex";
+        } else {
+            if (btnDirect) { btnDirect.classList.remove("btn-secondary"); btnDirect.classList.add("btn-primary"); }
+            if (btnCf) { btnCf.classList.remove("btn-primary"); btnCf.classList.add("btn-secondary"); }
+            if (ind) ind.style.display = "none";
+        }
+        const sel = document.getElementById("gas-client-acc-select");
+        fetchGasClientConfigs(sel ? sel.value : null);
+    }
+
     async function fetchGasClientConfigs(accountId = null) {
         try {
             const accId = accountId || (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            const url = accId ? `/api/google_script/client-configs?account_id=${encodeURIComponent(accId)}` : "/api/google_script/client-configs";
+            let url = accId ? `/api/google_script/client-configs?account_id=${encodeURIComponent(accId)}` : "/api/google_script/client-configs";
+            if (gasClientRelayMode === 'cloudflare') {
+                url += (url.includes('?') ? '&' : '?') + 'use_cloudflare=1';
+            }
             const res = await fetch(url);
             const data = await res.json();
             if (!data.success) return;
+
+            if (gasClientRelayMode === 'cloudflare' && !data.using_cloudflare) {
+                showToast("ورکر کلودفلر هنوز مستقر نشده است. لطفاً در تب «ورکر کلودفلر» آن را مستقر نمایید.", "warning");
+            }
 
             // Populate account selector in client tab
             const clientAccSelect = document.getElementById("gas-client-acc-select");
@@ -22033,6 +22065,345 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
     function copyGasField(elementId) {
         copyGasText(elementId, null);
+    }
+
+    // =====================================================================
+    // GAS TRAFFIC & CONSUMPTION TIMELINE
+    // =====================================================================
+    let gasCurrentStatsFilter = 'all';
+
+    function onGasStatsAccountFilterChanged(accId) {
+        gasCurrentStatsFilter = accId;
+        fetchGasTrafficStats();
+    }
+
+    async function fetchGasTrafficStats() {
+        try {
+            const res = await fetch(`/api/google_script/stats?account_id=${encodeURIComponent(gasCurrentStatsFilter)}`);
+            const data = await res.json();
+            if (!data.success) return;
+
+            // 1. Update filter dropdown
+            const filterSel = document.getElementById("gas-stats-account-filter");
+            if (filterSel && data.accounts_summary) {
+                const curVal = gasCurrentStatsFilter;
+                let optHtml = `<option value="all" ${curVal === 'all' ? 'selected' : ''}>📊 مجموع کل حساب‌ها (All Accounts)</option>`;
+                data.accounts_summary.forEach(a => {
+                    const sel = (curVal === a.id) ? 'selected' : '';
+                    optHtml += `<option value="${a.id}" ${sel}>${escapeHtml(a.name || a.email)} (${escapeHtml(a.email || a.id)})</option>`;
+                });
+                filterSel.innerHTML = optHtml;
+            }
+
+            // 2. Update Top Metric Cards
+            const totals = data.totals || {};
+            const formatDataBytes = (b) => (typeof formatBytes === 'function' ? formatBytes(b) : ((b || 0) + ' B'));
+            
+            if (document.getElementById("gas-stat-total-bytes")) {
+                document.getElementById("gas-stat-total-bytes").textContent = formatDataBytes(totals.total_bytes || 0);
+            }
+            if (document.getElementById("gas-stat-total-tx")) {
+                document.getElementById("gas-stat-total-tx").textContent = formatDataBytes(totals.total_tx || 0);
+            }
+            if (document.getElementById("gas-stat-total-rx")) {
+                document.getElementById("gas-stat-total-rx").textContent = formatDataBytes(totals.total_rx || 0);
+            }
+            if (document.getElementById("gas-stat-total-requests")) {
+                document.getElementById("gas-stat-total-requests").textContent = (totals.requests_total || 0).toLocaleString();
+            }
+            if (document.getElementById("gas-stat-total-batch")) {
+                document.getElementById("gas-stat-total-batch").textContent = (totals.requests_batch || 0).toLocaleString();
+            }
+            if (document.getElementById("gas-stat-success-rate")) {
+                const sRate = totals.success_rate !== undefined ? totals.success_rate : 100.0;
+                const rateEl = document.getElementById("gas-stat-success-rate");
+                rateEl.textContent = `${sRate}%`;
+                rateEl.style.color = sRate >= 95 ? '#10b981' : (sRate >= 80 ? '#f59e0b' : '#ef4444');
+            }
+            if (document.getElementById("gas-stat-success-count")) {
+                document.getElementById("gas-stat-success-count").textContent = (totals.requests_success || 0).toLocaleString();
+            }
+            if (document.getElementById("gas-stat-failed-count")) {
+                document.getElementById("gas-stat-failed-count").textContent = (totals.requests_failed || 0).toLocaleString();
+            }
+            if (document.getElementById("gas-stat-last-time")) {
+                let lastTime = "-";
+                if (data.accounts_summary) {
+                    const times = data.accounts_summary.map(a => a.last_request_time).filter(t => t && t !== "-");
+                    if (times.length > 0) times.sort();
+                    if (times.length > 0) lastTime = times[times.length - 1];
+                }
+                document.getElementById("gas-stat-last-time").textContent = lastTime;
+            }
+
+            // 3. Populate Accounts Grid
+            const accGrid = document.getElementById("gas-accounts-stats-grid");
+            if (accGrid && data.accounts_summary) {
+                if (data.accounts_summary.length === 0) {
+                    accGrid.innerHTML = `<div style="grid-column:1/-1; color:var(--text-muted); font-size:12px; padding:12px;">هنوز اکانتی ثبت نشده است.</div>`;
+                } else {
+                    accGrid.innerHTML = data.accounts_summary.map(a => {
+                        const totB = formatDataBytes(a.total_bytes || 0);
+                        const rxB = formatDataBytes(a.total_rx || 0);
+                        const txB = formatDataBytes(a.total_tx || 0);
+                        const rateColor = a.success_rate >= 95 ? '#10b981' : (a.success_rate >= 80 ? '#f59e0b' : '#ef4444');
+                        const isAct = a.is_active ? `<span class="gas-token-badge gas-token-badge-green">فعال</span>` : `<span class="gas-token-badge gas-token-badge-blue">رزرو</span>`;
+                        return `
+                            <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.2); border:1px solid var(--border-glow); border-radius:12px;">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                                    <div style="min-width:0;">
+                                        <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(a.name || a.email)}</div>
+                                        <div style="font-size:11px; font-family:'JetBrains Mono', monospace; color:#60a5fa; direction:ltr; text-align:right;">${escapeHtml(a.email || a.id)}</div>
+                                    </div>
+                                    <div>${isAct}</div>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px;">
+                                    <span style="color:var(--text-muted);">کل مصرف:</span>
+                                    <strong style="color:#38bdf8; font-family:'JetBrains Mono', monospace;">${totB}</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+                                    <span>دانلود: <strong style="color:#10b981; font-family:'JetBrains Mono', monospace;">${txB}</strong></span>
+                                    <span>آپلود: <strong style="color:#60a5fa; font-family:'JetBrains Mono', monospace;">${rxB}</strong></span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border-glow); padding-top:8px; font-size:11.5px;">
+                                    <span>درخواست‌ها: <strong>${a.requests_total.toLocaleString()}</strong></span>
+                                    <span style="color:${rateColor}; font-weight:700; font-family:'JetBrains Mono', monospace;">${a.success_rate}% موفق</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // 4. Populate Timeline Table
+            const tbody = document.getElementById("gas-stats-timeline-tbody");
+            if (tbody) {
+                const timeline = data.timeline || [];
+                if (timeline.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">هنوز اطلاعاتی برای این بازه زمانی ثبت نشده است. با آغاز اتصال ترافیک، این جدول لحظه‌ای بروز می‌شود.</td></tr>`;
+                } else {
+                    tbody.innerHTML = timeline.map(row => {
+                        const rateColor = row.success_rate >= 95 ? '#10b981' : (row.success_rate >= 80 ? '#f59e0b' : '#ef4444');
+                        return `
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                <td style="padding:10px 12px; font-weight:700; font-family:'JetBrains Mono', monospace; text-align:right; color:var(--text-main);">${escapeHtml(row.date)}</td>
+                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#10b981;">${formatDataBytes(row.tx || 0)}</td>
+                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#60a5fa;">${formatDataBytes(row.rx || 0)}</td>
+                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; font-weight:700; color:#38bdf8;">${formatDataBytes(row.total || 0)}</td>
+                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace;">${(row.requests || 0).toLocaleString()}</td>
+                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#c084fc;">${(row.batch || 0).toLocaleString()}</td>
+                                <td style="padding:10px 12px;">
+                                    <span style="background:rgba(255,255,255,0.05); color:${rateColor}; font-weight:700; padding:2px 8px; border-radius:6px; font-size:11px; font-family:'JetBrains Mono', monospace;">
+                                        ${row.success_rate}%
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            console.error("fetchGasTrafficStats error:", e);
+        }
+    }
+
+    async function resetGasTrafficStats() {
+        const targetText = gasCurrentStatsFilter === 'all' ? "تمام حساب‌ها" : "حساب انتخاب شده";
+        if (!confirm(`آیا از بازنشانی و ریست کردن آمار مصرف ${targetText} اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال بازنشانی آمار...");
+        try {
+            const res = await fetch("/api/google_script/stats/reset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ account_id: gasCurrentStatsFilter })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("آمار مصرف با موفقیت ریست گردید.", "success");
+                await fetchGasTrafficStats();
+            } else {
+                showToast(data.error || "خطا در ریست آمار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // =====================================================================
+    // CLOUDFLARE WORKER ACCELERATOR & RELAY
+    // =====================================================================
+    async function fetchGasCloudflareConfig() {
+        try {
+            const res = await fetch("/api/google_script/cloudflare/config");
+            const data = await res.json();
+            if (!data.success) return;
+
+            const cf = data.config || {};
+            const tokenInput = document.getElementById("gas-cf-api-token");
+            const accInput = document.getElementById("gas-cf-account-id");
+            const nameInput = document.getElementById("gas-cf-worker-name");
+            const mbCb = document.getElementById("gas-cf-multi-balance");
+            const codeView = document.getElementById("gas-cf-worker-code-view");
+            const liveUrlEl = document.getElementById("gas-cf-live-url");
+            const statusDot = document.getElementById("gas-cf-status-dot");
+            const statusTitle = document.getElementById("gas-cf-status-title");
+            const lastBadge = document.getElementById("gas-cf-last-deploy-badge");
+
+            if (tokenInput && cf.api_token) tokenInput.value = cf.api_token;
+            if (accInput) accInput.value = cf.account_id || "";
+            if (nameInput) nameInput.value = cf.worker_name || "mhpanel-gas-relay";
+            if (mbCb) mbCb.checked = (cf.multi_account_balance !== false);
+            if (codeView) codeView.value = data.worker_code || "";
+
+            if (liveUrlEl) {
+                liveUrlEl.textContent = cf.worker_url || "هنوز مستقر نشده (Not Deployed)";
+            }
+            if (statusDot && statusTitle) {
+                if (cf.worker_url) {
+                    statusDot.style.background = "#10b981";
+                    statusTitle.textContent = "وضعیت ورکر: مستقر شده و فعال (Deployed)";
+                } else {
+                    statusDot.style.background = "#f59e0b";
+                    statusTitle.textContent = "وضعیت ورکر: در انتظار استقرار (Pending)";
+                }
+            }
+            if (lastBadge && cf.last_deploy_time) {
+                lastBadge.textContent = `آخرین استقرار: ${cf.last_deploy_time}`;
+            }
+
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            console.error("fetchGasCloudflareConfig error:", e);
+        }
+    }
+
+    async function saveGasCloudflareConfig() {
+        const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
+        const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
+        const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
+
+        toggleLoading(true, "در حال ذخیره تنظیمات کلودفلر...");
+        try {
+            const res = await fetch("/api/google_script/cloudflare/config", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_token, account_id, worker_name, multi_account_balance })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("تنظیمات کلودفلر با موفقیت ذخیره شد.", "success");
+                await fetchGasCloudflareConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function deployGasCloudflareWorker() {
+        const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
+        const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
+        const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
+
+        if (!api_token || !account_id) {
+            showToast("لطفاً API Token و Account ID کلودفلر را تکمیل فرمایید.", "warning");
+            return;
+        }
+
+        const deployBtn = document.getElementById("gas-cf-deploy-btn");
+        if (deployBtn) {
+            deployBtn.disabled = true;
+            deployBtn.innerHTML = `<span class="loading-spinner"></span> در حال استقرار روی Cloudflare API...`;
+        }
+        toggleLoading(true, "در حال استقرار خودکار روی شبکه لبه کلودفلر...");
+
+        try {
+            const res = await fetch("/api/google_script/cloudflare/deploy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_token, account_id, worker_name, multi_account_balance })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (deployBtn) {
+                deployBtn.disabled = false;
+                deployBtn.innerHTML = `<i data-lucide="cloud-lightning" style="width:15px; height:15px; margin-left:4px;"></i> استقرار مجدد ورکر روی کلودفلر`;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            if (res.ok && data.success) {
+                showToast(data.message || "ورکر با موفقیت مستقر گردید!", "success");
+                await fetchGasCloudflareConfig();
+                await fetchGasClientConfigs();
+            } else {
+                showToast(data.error || "خطا در استقرار ورکر روی کلودفلر", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            if (deployBtn) {
+                deployBtn.disabled = false;
+                deployBtn.innerHTML = `استقرار خودکار ورکر روی کلودفلر`;
+            }
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    function copyGasCloudflareWorkerUrl() {
+        const urlEl = document.getElementById("gas-cf-live-url");
+        if (!urlEl || !urlEl.textContent || urlEl.textContent.includes("هنوز مستقر نشده")) {
+            showToast("هنوز آدرس ورکری برای کپی وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(urlEl.textContent.trim()).then(() => {
+            showToast("آدرس ورکر کلودفلر کپی شد!", "success");
+        }).catch(() => {
+            showToast("خطا در کپی کلیپ‌بورد", "error");
+        });
+    }
+
+    function copyGasCloudflareWorkerCode() {
+        const view = document.getElementById("gas-cf-worker-code-view");
+        if (!view || !view.value) return;
+        view.select();
+        navigator.clipboard.writeText(view.value).then(() => {
+            showToast("سورس‌کد جاوااسکریپت ورکر کپی شد!", "success");
+        }).catch(() => {
+            document.execCommand('copy');
+            showToast("کپی انجام شد.", "success");
+        });
+    }
+
+    async function testGasCloudflareWorker() {
+        const urlEl = document.getElementById("gas-cf-live-url");
+        const url = urlEl ? urlEl.textContent.trim() : "";
+        if (!url || url.includes("هنوز مستقر نشده") || !url.startsWith("http")) {
+            showToast("لطفاً ابتدا ورکر را مستقر نمایید.", "warning");
+            return;
+        }
+        toggleLoading(true, "در حال ارسال درخواست تست به لبه ورکر کلودفلر...");
+        const t0 = performance.now();
+        try {
+            const res = await fetch(`${url}/health`, { method: "GET", mode: "cors" });
+            const lat = Math.round(performance.now() - t0);
+            toggleLoading(false);
+            if (res.ok) {
+                showToast(`✅ ورکر کلودفلر آنلاین است! تاخیر: ${lat}ms`, "success");
+            } else {
+                showToast(`پاسخ از ورکر دریافت شد اما وضعیت غیر از ۲۰۰ است (کد ${res.status}).`, "warning");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast(`تست مستقیم به دلیل محدودیت CORS مرورگر یا فیلترینگ اینترنت انجام نشد. ورکر در بستر کلاینت فعال است.`, "info");
+        }
     }
 
 

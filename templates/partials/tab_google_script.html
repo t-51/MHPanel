@@ -923,6 +923,14 @@ input:checked + .gas-toggle-slider:before {
                 <i data-lucide="share-2" style="width:15px; height:15px; color:#a855f7;"></i>
                 <span data-i18n="gas_tab_client">لینک اتصال کلاینت‌ها (Client Configs)</span>
             </button>
+            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-usage" onclick="switchGasSubTab('usage');">
+                <i data-lucide="bar-chart-3" style="width:15px; height:15px; color:#38bdf8;"></i>
+                <span data-i18n="gas_tab_usage">مصرف و تایم‌لاین (Usage & Timeline)</span>
+            </button>
+            <button type="button" class="btn btn-secondary gas-subtab-btn" id="gas-subtab-btn-cloudflare" onclick="switchGasSubTab('cloudflare');">
+                <i data-lucide="cloud-lightning" style="width:15px; height:15px; color:#f97316;"></i>
+                <span data-i18n="gas_tab_cloudflare">ورکر کلودفلر (Cloudflare Worker)</span>
+            </button>
         </div>
 
         <!-- ============================================================== -->
@@ -1803,6 +1811,28 @@ input:checked + .gas-toggle-slider:before {
                         </div>
                         <textarea id="gas-all-urls-textarea" readonly style="width:100%; height:75px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text-main); font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:8px 10px; resize:none; direction:ltr;" spellcheck="false"></textarea>
                     </div>
+
+                    <!-- Direct GAS vs Cloudflare Worker Route Selector -->
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border-glow);">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px; font-weight:700; color:var(--text-muted); display:inline-flex; align-items:center; gap:5px;">
+                                <i data-lucide="route" style="width:14px; height:14px; color:#f59e0b;"></i>
+                                <span>مسیر ارتباطی کلاینت:</span>
+                            </span>
+                            <div class="btn-group" role="group" style="display:inline-flex; background:rgba(0,0,0,0.3); border-radius:8px; padding:2px; border:1px solid var(--border-glow);">
+                                <button type="button" class="btn btn-sm btn-primary" id="gas-client-mode-btn-direct" onclick="setGasClientRelayMode('direct');" style="padding:4px 10px; font-size:11.5px; border-radius:6px; font-weight:600;">
+                                    <i data-lucide="globe" style="width:12px; height:12px; margin-left:3px;"></i> گوگل اسکریپت مستقیم (Direct)
+                                </button>
+                                <button type="button" class="btn btn-sm btn-secondary" id="gas-client-mode-btn-cf" onclick="setGasClientRelayMode('cloudflare');" style="padding:4px 10px; font-size:11.5px; border-radius:6px; font-weight:600;">
+                                    <i data-lucide="cloud-lightning" style="width:12px; height:12px; color:#f97316; margin-left:3px;"></i> شتاب‌دهنده کلودفلر (Worker)
+                                </button>
+                            </div>
+                        </div>
+                        <div id="gas-client-cf-indicator" style="font-size:11px; color:#10b981; display:none; align-items:center; gap:4px;">
+                            <i data-lucide="shield-check" style="width:13px; height:13px;"></i>
+                            <span id="gas-client-cf-indicator-text">ترافیک از لبه Cloudflare عبور خواهد کرد</span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Client Filter Category Pills -->
@@ -2020,6 +2050,289 @@ input:checked + .gas-toggle-slider:before {
                         </button>
                     </div>
                     <pre id="gas-client-masterhttp" style="display:none;"></pre>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 5: Per-Account Traffic & Timeline (Usage Monitoring)     -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-usage" class="gas-subtab-content" style="display:none;">
+            <div class="glass-card config-card" style="margin-bottom:20px; border: 1px solid rgba(56, 189, 248, 0.35);">
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, rgba(56,189,248,0.2) 0%, rgba(59,130,246,0.2) 100%); color:#38bdf8; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(56,189,248,0.3);">
+                            <i data-lucide="bar-chart-3" style="width:22px; height:22px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:16.5px; font-weight:700; display:flex; align-items:center; gap:8px;">
+                                <span>رهگیری مصرف و درخواست‌های اکانت‌ها (Usage & Traffic Timeline)</span>
+                                <span class="gas-token-badge gas-token-badge-blue">Live Metrics</span>
+                            </h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.5;">
+                                آمار دقیق حجم دانلود و آپلود، نرخ موفقیت پاسخ‌ها و تایم‌لاین مصرف روزانه به تفکیک هر حساب جیمیل
+                            </p>
+                        </div>
+                    </div>
+                    <!-- Actions & Filters -->
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <select id="gas-stats-account-filter" onchange="onGasStatsAccountFilterChanged(this.value);" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); font-size:12.5px; font-weight:600; padding:6px 12px; height:36px; outline:none;">
+                            <option value="all">📊 مجموع کل حساب‌ها (All Accounts)</option>
+                        </select>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchGasTrafficStats();" title="به‌روزرسانی آمار" style="height:36px; display:inline-flex; align-items:center; gap:5px;">
+                            <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
+                            <span>تازه‌سازی</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="resetGasTrafficStats();" title="ریست کردن آمار مصرف" style="height:36px; display:inline-flex; align-items:center; gap:5px; color:#ef4444; border-color:rgba(239,68,68,0.3);">
+                            <i data-lucide="trash-2" style="width:14px; height:14px;"></i>
+                            <span>ریست آمار</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top Metrics Summary Grid -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:20px;">
+                    <!-- Total Traffic Card -->
+                    <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.25); border:1px solid rgba(56,189,248,0.25); border-radius:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:11.5px; font-weight:600; color:var(--text-muted);">مجموع مصرف ترافیک</span>
+                            <i data-lucide="database" style="width:15px; height:15px; color:#38bdf8;"></i>
+                        </div>
+                        <div id="gas-stat-total-bytes" style="font-size:20px; font-weight:800; color:#38bdf8; font-family:'JetBrains Mono', monospace; direction:ltr; text-align:right;">0 B</div>
+                        <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px; color:var(--text-muted); border-top:1px dashed var(--border-glow); padding-top:6px;">
+                            <span>دانلود (TX): <strong id="gas-stat-total-tx" style="color:#10b981; font-family:'JetBrains Mono', monospace;">0 B</strong></span>
+                            <span>آپلود (RX): <strong id="gas-stat-total-rx" style="color:#60a5fa; font-family:'JetBrains Mono', monospace;">0 B</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Total Requests Card -->
+                    <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.25); border:1px solid rgba(168,85,247,0.25); border-radius:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:11.5px; font-weight:600; color:var(--text-muted);">تعداد کل درخواست‌ها</span>
+                            <i data-lucide="send" style="width:15px; height:15px; color:#c084fc;"></i>
+                        </div>
+                        <div id="gas-stat-total-requests" style="font-size:20px; font-weight:800; color:#c084fc; font-family:'JetBrains Mono', monospace; direction:ltr; text-align:right;">0</div>
+                        <div style="font-size:11px; margin-top:8px; color:var(--text-muted); border-top:1px dashed var(--border-glow); padding-top:6px;">
+                            <span>بسته‌های چندتایی (Batch): <strong id="gas-stat-total-batch" style="color:#a855f7; font-family:'JetBrains Mono', monospace;">0</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Success Rate Card -->
+                    <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.25); border:1px solid rgba(16,185,129,0.25); border-radius:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:11.5px; font-weight:600; color:var(--text-muted);">نرخ پاسخ‌های موفق</span>
+                            <i data-lucide="check-circle" style="width:15px; height:15px; color:#10b981;"></i>
+                        </div>
+                        <div id="gas-stat-success-rate" style="font-size:20px; font-weight:800; color:#10b981; font-family:'JetBrains Mono', monospace; direction:ltr; text-align:right;">100%</div>
+                        <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:8px; color:var(--text-muted); border-top:1px dashed var(--border-glow); padding-top:6px;">
+                            <span>موفق: <strong id="gas-stat-success-count" style="color:#10b981; font-family:'JetBrains Mono', monospace;">0</strong></span>
+                            <span>ناموفق (429/5xx): <strong id="gas-stat-failed-count" style="color:#ef4444; font-family:'JetBrains Mono', monospace;">0</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Last Activity Card -->
+                    <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.25); border:1px solid rgba(245,158,11,0.25); border-radius:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <span style="font-size:11.5px; font-weight:600; color:var(--text-muted);">آخرین تبادل داده</span>
+                            <i data-lucide="clock" style="width:15px; height:15px; color:#f59e0b;"></i>
+                        </div>
+                        <div id="gas-stat-last-time" style="font-size:13.5px; font-weight:700; color:#fbbf24; font-family:'JetBrains Mono', monospace; direction:ltr; text-align:right; margin-top:4px;">-</div>
+                        <div style="font-size:11px; margin-top:11px; color:var(--text-muted); border-top:1px dashed var(--border-glow); padding-top:6px;">
+                            <span>وضعیت تونل: <strong style="color:#10b981;">شنود فعال</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Per-Account Breakdown Cards Grid -->
+                <div style="margin-bottom:22px;">
+                    <h5 style="font-size:13.5px; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="users" style="width:15px; height:15px; color:#60a5fa;"></i>
+                        <span>وضعیت مصرف به تفکیک اکانت‌های گوگل</span>
+                    </h5>
+                    <div id="gas-accounts-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px;">
+                        <!-- Dynamically filled with account cards -->
+                    </div>
+                </div>
+
+                <!-- Daily Timeline Table Section -->
+                <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <h5 style="font-size:13.5px; font-weight:700; margin:0; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="calendar" style="width:15px; height:15px; color:#38bdf8;"></i>
+                            <span>تایم‌لاین مصرف روزانه (Daily Traffic Timeline - 30 Days)</span>
+                        </h5>
+                    </div>
+                    <div style="overflow-x:auto; border:1px solid var(--border-glow); border-radius:12px; background:rgba(0,0,0,0.2);">
+                        <table style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:center;">
+                            <thead>
+                                <tr style="background:rgba(255,255,255,0.04); border-bottom:1px solid var(--border-glow); color:var(--text-muted); font-size:11.5px;">
+                                    <th style="padding:10px 12px; text-align:right;">تاریخ</th>
+                                    <th style="padding:10px 12px;">دانلود (TX)</th>
+                                    <th style="padding:10px 12px;">آپلود (RX)</th>
+                                    <th style="padding:10px 12px;">مجموع مصرف</th>
+                                    <th style="padding:10px 12px;">تعداد درخواست</th>
+                                    <th style="padding:10px 12px;">بسته‌های Batch</th>
+                                    <th style="padding:10px 12px;">نرخ موفقیت</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gas-stats-timeline-tbody">
+                                <tr>
+                                    <td colspan="7" style="padding:24px; text-align:center; color:var(--text-muted);">در حال دریافت اطلاعات مصرف...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
+        <!-- SUBTAB 6: Cloudflare Worker Accelerator & Relay                -->
+        <!-- ============================================================== -->
+        <div id="gas-subtab-cloudflare" class="gas-subtab-content" style="display:none;">
+            <div class="glass-card config-card" style="margin-bottom:20px; border: 1px solid rgba(249, 115, 22, 0.35);">
+                <!-- Header -->
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                        <div style="width:42px; height:42px; border-radius:12px; background:linear-gradient(135deg, rgba(249,115,22,0.2) 0%, rgba(234,88,12,0.2) 100%); color:#f97316; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(249,115,22,0.3);">
+                            <i data-lucide="cloud-lightning" style="width:22px; height:22px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:16.5px; font-weight:700; display:flex; align-items:center; gap:8px;">
+                                <span>شتاب‌دهنده و ورکر کلودفلر (Cloudflare Worker Relay)</span>
+                                <span class="gas-token-badge gas-token-badge-amber">Edge Accelerator</span>
+                            </h4>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:3px; line-height:1.5;">
+                                استقرار ورکر لبه ابری در کلودفلر جهت کاهش درخواست‌ها، دور زدن محدودیت‌های 429 گوگل، توزیع بار Round-Robin و افزایش سرعت اتصال
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="fetchGasCloudflareConfig();" style="display:inline-flex; align-items:center; gap:5px; height:34px;">
+                            <i data-lucide="refresh-cw" style="width:13px; height:13px;"></i>
+                            <span>تازه‌سازی</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Worker Status Banner -->
+                <div id="gas-cf-status-box" style="background:rgba(0,0,0,0.25); border:1px solid var(--border-glow); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                            <span id="gas-cf-status-dot" class="gas-pulse-dot" style="background:#10b981;"></span>
+                            <span style="font-size:12.5px; font-weight:700;" id="gas-cf-status-title">وضعیت ورکر: پیکربندی شده</span>
+                            <span id="gas-cf-last-deploy-badge" style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">-</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:11.5px; color:var(--text-muted);">آدرس لبه ورکر:</span>
+                            <code id="gas-cf-live-url" style="color:#f97316; font-family:'JetBrains Mono', monospace; font-size:12px; background:rgba(249,115,22,0.1); padding:2px 8px; border-radius:6px; direction:ltr;">-</code>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="gas-cf-copy-live-url-btn" onclick="copyGasCloudflareWorkerUrl();" style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی آدرس ورکر
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="testGasCloudflareWorker();" style="display:inline-flex; align-items:center; gap:4px; font-size:12px;">
+                            <i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i> تست اتصال (Ping)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1-Click Auto Deploy Form -->
+                <div class="glass-card" style="padding:16px; background:rgba(0,0,0,0.15); border:1px solid rgba(249,115,22,0.25); border-radius:12px; margin-bottom:18px;">
+                    <h5 style="font-size:13.5px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="rocket" style="width:15px; height:15px; color:#f97316;"></i>
+                        <span>استقرار خودکار روی حساب کلودفلر شما (1-Click Auto-Deploy)</span>
+                    </h5>
+                    
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:16px;">
+                        <!-- API Token -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>کلید Cloudflare API Token <span style="color:#ef4444;">*</span></span>
+                                <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" style="font-size:11px; color:#f97316; text-decoration:none;">ساخت توکن ↗</a>
+                            </label>
+                            <div class="gas-input-composite">
+                                <input type="password" id="gas-cf-api-token" placeholder="توکن با دسترسی Workers Scripts: Edit" style="font-family:'JetBrains Mono', monospace; direction:ltr; font-size:12px;">
+                                <div class="gas-input-tools">
+                                    <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-cf-api-token')">
+                                        <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <span style="font-size:10.5px; color:var(--text-muted); display:block; margin-top:3px;">از تمپلت "Edit Cloudflare Workers" با دسترسی Edit بسازید.</span>
+                        </div>
+
+                        <!-- Account ID -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>شناسه حساب (Account ID) <span style="color:#ef4444;">*</span></span>
+                                <span style="font-size:10.5px; color:var(--text-muted);">در آدرس داشبورد یا Overview</span>
+                            </label>
+                            <div class="gas-input-composite">
+                                <input type="text" id="gas-cf-account-id" placeholder="مثال: 9a7b8c... (رشته ۳۲ رقمی)" style="font-family:'JetBrains Mono', monospace; direction:ltr; font-size:12px;">
+                            </div>
+                            <span style="font-size:10.5px; color:var(--text-muted); display:block; margin-top:3px;">شناسه ۳۲ حرفی اکانت شما در داشبورد کلودفلر.</span>
+                        </div>
+
+                        <!-- Worker Script Name -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:block;">
+                                <span>نام ورکر (Worker Name)</span>
+                            </label>
+                            <div class="gas-input-composite">
+                                <input type="text" id="gas-cf-worker-name" value="mhpanel-gas-relay" placeholder="mhpanel-gas-relay" style="font-family:'JetBrains Mono', monospace; direction:ltr; font-size:12px;">
+                            </div>
+                            <span style="font-size:10.5px; color:var(--text-muted); display:block; margin-top:3px;">آدرس شما به صورت name.subdomain.workers.dev خواهد بود.</span>
+                        </div>
+                    </div>
+
+                    <!-- Options -->
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+                        <input type="checkbox" id="gas-cf-multi-balance" checked style="width:16px; height:16px; accent-color:#f97316; cursor:pointer;">
+                        <label for="gas-cf-multi-balance" style="font-size:12px; font-weight:600; cursor:pointer; margin:0;">
+                            توزیع بار چندگانه و هوشمند (Round-Robin & Rate-Limit Failover بین تمام جیمیل‌های مستقر شده)
+                        </label>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-secondary" onclick="saveGasCloudflareConfig();" style="padding:8px 18px; font-size:12.5px;">
+                            <i data-lucide="save" style="width:14px; height:14px; margin-left:4px;"></i> فقط ذخیره تنظیمات
+                        </button>
+                        <button type="button" class="btn btn-primary" id="gas-cf-deploy-btn" onclick="deployGasCloudflareWorker();" style="background:#f97316; border-color:#f97316; padding:8px 24px; font-size:12.5px; font-weight:700;">
+                            <i data-lucide="cloud-lightning" style="width:15px; height:15px; margin-left:4px;"></i>
+                            <span>استقرار خودکار ورکر روی کلودفلر (Auto Deploy)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Deployment & Code Box -->
+                <div class="glass-card" style="padding:16px; background:rgba(0,0,0,0.15); border:1px solid var(--border-glow); border-radius:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <h5 style="font-size:13px; font-weight:700; margin:0; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="code-2" style="width:14px; height:14px; color:#10b981;"></i>
+                            <span>کد جاوااسکریپت تولید شده برای ورکر (Worker JavaScript Code)</span>
+                        </h5>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasCloudflareWorkerCode();" style="display:inline-flex; align-items:center; gap:4px; font-size:11.5px;">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                            <span>کپی کامل سورس‌کد ورکر</span>
+                        </button>
+                    </div>
+                    <textarea id="gas-cf-worker-code-view" readonly style="width:100%; height:180px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:vertical; direction:ltr;" spellcheck="false"></textarea>
+                    
+                    <div style="margin-top:12px; padding:10px 14px; background:rgba(255,255,255,0.02); border-radius:8px; font-size:11.5px; color:var(--text-muted); line-height:1.6;">
+                        <strong style="color:var(--text-main);">راهنمای استقرار دستی در داشبورد کلودفلر:</strong>
+                        <ol style="margin:6px 0 0 16px; padding:0;">
+                            <li>وارد بخش <strong>Workers & Pages</strong> در <a href="https://dash.cloudflare.com" target="_blank" style="color:#f97316;">dash.cloudflare.com</a> شوید.</li>
+                            <li>روی <strong>Create application</strong> و سپس <strong>Create Worker</strong> کلیک نمایید.</li>
+                            <li>گزینه <strong>Deploy</strong> را بزنید، سپس وارد <strong>Edit Code</strong> شده و کد بالا را درون ویرایشگر جایگزین کنید.</li>
+                            <li>دکمه <strong>Save and Deploy</strong> را کلیک کنید؛ سپس آدرس اختصاصی ورکر را کپی کرده و در فیلد بالا قرار دهید.</li>
+                        </ol>
+                    </div>
                 </div>
 
             </div>

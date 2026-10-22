@@ -21267,6 +21267,20 @@ def get_gas_config():
         cfg["google_project_title"] = act.get("project_title", cfg.get("google_project_title", ""))
         cfg["last_deploy_time"] = act.get("last_deploy_time", "")
 
+    # Ensure Cloudflare configuration structure
+    if "cloudflare" not in cfg or not isinstance(cfg["cloudflare"], dict):
+        cfg["cloudflare"] = {
+            "enabled": False,
+            "api_token": "",
+            "account_id": "",
+            "worker_name": "mhpanel-gas-relay",
+            "worker_url": "",
+            "route_pattern": "",
+            "multi_account_balance": True,
+            "last_deploy_time": "",
+            "status": "idle"
+        }
+
     return cfg
 
 def save_gas_config(cfg, restart_service=True):
@@ -21298,12 +21312,311 @@ def save_gas_config(cfg, restart_service=True):
     if restart_service:
         subprocess.run(["systemctl", "restart", "mhpanel-gas-tunnel"], check=False)
 
-def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443"):
+# --- GAS Traffic & Consumption Tracking Engine ---
+GAS_STATS_FILE = "/etc/vpnpanel/gas_traffic_stats.json"
+_gas_stats_lock = threading.RLock()
+_gas_stats_cache = None
+_gas_stats_dirty = False
+_gas_stats_last_save = 0
+
+def load_gas_stats():
+    global _gas_stats_cache
+    with _gas_stats_lock:
+        if _gas_stats_cache is not None:
+            return _gas_stats_cache
+        stats = {
+            "accounts": {},
+            "global": {
+                "total_rx": 0,
+                "total_tx": 0,
+                "requests_total": 0,
+                "requests_success": 0,
+                "requests_failed": 0,
+                "requests_batch": 0,
+                "last_request_time": "",
+                "daily": {}
+            }
+        }
+        if os.path.exists(GAS_STATS_FILE):
+            try:
+                with open(GAS_STATS_FILE, "r", encoding="utf-8") as f:
+                    saved = json.load(f)
+                    if isinstance(saved, dict):
+                        stats.update(saved)
+            except Exception:
+                pass
+        _gas_stats_cache = stats
+        return _gas_stats_cache
+
+def flush_gas_stats_to_disk(force=False):
+    global _gas_stats_dirty, _gas_stats_last_save
+    now = time.time()
+    with _gas_stats_lock:
+        if not _gas_stats_dirty and not force:
+            return
+        if not force and (now - _gas_stats_last_save < 4.0):
+            return
+        if _gas_stats_cache is None:
+            return
+        try:
+            os.makedirs(os.path.dirname(GAS_STATS_FILE), exist_ok=True)
+            with open(GAS_STATS_FILE, "w", encoding="utf-8") as f:
+                json.dump(_gas_stats_cache, f, indent=2, ensure_ascii=False)
+            _gas_stats_dirty = False
+            _gas_stats_last_save = now
+        except Exception:
+            pass
+
+def record_gas_request(account_id, rx_bytes, tx_bytes, status_code=200, is_batch=False):
+    global _gas_stats_dirty
+    stats = load_gas_stats()
+    cfg = get_gas_config()
+    target_id = account_id or cfg.get("active_account_id") or "acc_primary"
+    
+    now_dt = time.strftime("%Y-%m-%d %H:%M:%S")
+    today = time.strftime("%Y-%m-%d")
+    hour = time.strftime("%H")
+    is_success = (200 <= status_code < 400)
+    
+    with _gas_stats_lock:
+        # 1. Update Account Bucket
+        if target_id not in stats["accounts"]:
+            stats["accounts"][target_id] = {
+                "total_rx": 0,
+                "total_tx": 0,
+                "requests_total": 0,
+                "requests_success": 0,
+                "requests_failed": 0,
+                "requests_batch": 0,
+                "last_request_time": "",
+                "daily": {}
+            }
+        acc_s = stats["accounts"][target_id]
+        acc_s["total_rx"] += rx_bytes
+        acc_s["total_tx"] += tx_bytes
+        acc_s["requests_total"] += 1
+        if is_success:
+            acc_s["requests_success"] += 1
+        else:
+            acc_s["requests_failed"] += 1
+        if is_batch:
+            acc_s["requests_batch"] += 1
+        acc_s["last_request_time"] = now_dt
+        
+        # Account Daily
+        if today not in acc_s["daily"]:
+            acc_s["daily"][today] = {
+                "rx": 0, "tx": 0, "total": 0,
+                "requests": 0, "success": 0, "failed": 0, "batch": 0,
+                "hourly": {}
+            }
+        d_acc = acc_s["daily"][today]
+        d_acc["rx"] += rx_bytes
+        d_acc["tx"] += tx_bytes
+        d_acc["total"] += (rx_bytes + tx_bytes)
+        d_acc["requests"] += 1
+        if is_success: d_acc["success"] += 1
+        else: d_acc["failed"] += 1
+        if is_batch: d_acc["batch"] += 1
+        
+        if hour not in d_acc["hourly"]:
+            d_acc["hourly"][hour] = {"rx": 0, "tx": 0, "requests": 0}
+        d_acc["hourly"][hour]["rx"] += rx_bytes
+        d_acc["hourly"][hour]["tx"] += tx_bytes
+        d_acc["hourly"][hour]["requests"] += 1
+
+        # 2. Update Global Bucket
+        g_s = stats["global"]
+        g_s["total_rx"] += rx_bytes
+        g_s["total_tx"] += tx_bytes
+        g_s["requests_total"] += 1
+        if is_success: g_s["requests_success"] += 1
+        else: g_s["requests_failed"] += 1
+        if is_batch: g_s["requests_batch"] += 1
+        g_s["last_request_time"] = now_dt
+        
+        if today not in g_s["daily"]:
+            g_s["daily"][today] = {
+                "rx": 0, "tx": 0, "total": 0,
+                "requests": 0, "success": 0, "failed": 0, "batch": 0,
+                "hourly": {}
+            }
+        d_g = g_s["daily"][today]
+        d_g["rx"] += rx_bytes
+        d_g["tx"] += tx_bytes
+        d_g["total"] += (rx_bytes + tx_bytes)
+        d_g["requests"] += 1
+        if is_success: d_g["success"] += 1
+        else: d_g["failed"] += 1
+        if is_batch: d_g["batch"] += 1
+        
+        if hour not in d_g["hourly"]:
+            d_g["hourly"][hour] = {"rx": 0, "tx": 0, "requests": 0}
+        d_g["hourly"][hour]["rx"] += rx_bytes
+        d_g["hourly"][hour]["tx"] += tx_bytes
+        d_g["hourly"][hour]["requests"] += 1
+
+        _gas_stats_dirty = True
+
+    flush_gas_stats_to_disk(force=False)
+
+
+def generate_cloudflare_worker_code(cfg):
+    """
+    Generates a high-performance Cloudflare Worker script that:
+    - Load-balances requests across all active GAS WebApp URLs (multi-account)
+    - Automatically fails over if any Google Apps Script returns 429 or 5xx
+    - Handles CORS and keeps alive TCP connections to Google
+    - Supports DoH / Edge DNS caching
+    """
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
+    default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}:{port}"
+    custom_url = cfg.get("tunnel_server_url", "").strip()
+    vps_url = custom_url or default_url
+
+    targets = []
+    # Collect all deployed accounts
+    for a_id, a in cfg.get("accounts", {}).items():
+        w_url = a.get("webapp_url") or (f"https://script.google.com/macros/s/{a.get('deployment_id')}/exec" if a.get("deployment_id") else "")
+        if w_url and w_url not in targets:
+            targets.append(w_url)
+    
+    # Fallback to top-level if no accounts
+    if not targets and cfg.get("google_webapp_url"):
+        targets.append(cfg["google_webapp_url"])
+    elif not targets and cfg.get("google_deployment_id"):
+        targets.append(f"https://script.google.com/macros/s/{cfg['google_deployment_id']}/exec")
+
+    targets_js = json.dumps(targets, indent=2)
+
+    worker_code = f'''/**
+ * Cloudflare Worker Relay & Accelerator for Google Apps Script (MHPanel)
+ * Generated automatically by MHPanel.
+ * Features:
+ *   - Edge Connection Pooling & Fronting
+ *   - Multi-Account Round-Robin & Automatic Failover
+ *   - Active Rate-Limit Bypass (429 detection & retry)
+ *   - CORS support for Web/App Clients
+ */
+
+const GAS_TARGETS = {targets_js};
+const VPS_TUNNEL_URL = "{vps_url}";
+const SECRET_KEY = "{secret}";
+
+addEventListener("fetch", (event) => {{
+  event.respondWith(handleRequest(event.request, event));
+}});
+
+async function handleRequest(request, event) {{
+  if (request.method === "OPTIONS") {{
+    return new Response(null, {{
+      status: 204,
+      headers: {{
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+        "Access-Control-Allow-Headers": "*",
+        "Access-Control-Max-Age": "86400"
+      }}
+    }});
+  }}
+
+  const url = new URL(request.url);
+  if (url.pathname === "/health" || url.pathname === "/ping") {{
+    return new Response(JSON.stringify({{
+      status: "online",
+      relay: "Cloudflare-Worker",
+      targets_count: GAS_TARGETS.length,
+      time: new Date().toISOString()
+    }}), {{
+      headers: {{ "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
+    }});
+  }}
+
+  if (GAS_TARGETS.length === 0 && !VPS_TUNNEL_URL) {{
+    return new Response(JSON.stringify({{ error: "No Google Apps Script targets configured in Worker" }}), {{
+      status: 502,
+      headers: {{ "Content-Type": "application/json" }}
+    }});
+  }}
+
+  const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+  // Shuffle targets for random load balancing across all deployed Gmail accounts
+  const pool = [...GAS_TARGETS].sort(() => 0.5 - Math.random());
+  let lastResponse = null;
+  let lastErr = null;
+
+  for (let i = 0; i < pool.length; i++) {{
+    const targetUrl = pool[i];
+    try {{
+      const forwardHeaders = new Headers(request.headers);
+      forwardHeaders.set("User-Agent", "MHPanel-CF-Worker/2.0");
+      forwardHeaders.delete("Host");
+
+      const reqInit = {{
+        method: request.method,
+        headers: forwardHeaders,
+        body: bodyBuffer ? bodyBuffer.slice(0) : undefined,
+        redirect: "follow"
+      }};
+
+      const resp = await fetch(targetUrl, reqInit);
+      
+      // If 200 OK, return immediately
+      if (resp.status === 200) {{
+        const outHeaders = new Headers(resp.headers);
+        outHeaders.set("Access-Control-Allow-Origin", "*");
+        outHeaders.set("X-Accelerated-By", "Cloudflare-Worker-MHPanel");
+        outHeaders.set("X-Target-GAS", targetUrl.substring(0, 48) + "...");
+        return new Response(resp.body, {{
+          status: resp.status,
+          headers: outHeaders
+        }});
+      }}
+
+      // Rate limit or server error, record and try next target
+      lastResponse = resp;
+    }} catch (e) {{
+      lastErr = e;
+    }}
+  }}
+
+  // Fallback to VPS direct if available
+  if (VPS_TUNNEL_URL && VPS_TUNNEL_URL.startsWith("http")) {{
+    try {{
+      const vpsFull = VPS_TUNNEL_URL + url.pathname + url.search;
+      const vpsResp = await fetch(vpsFull, {{
+        method: request.method,
+        headers: request.headers,
+        body: bodyBuffer,
+        redirect: "follow"
+      }});
+      return vpsResp;
+    }} catch (e) {{}}
+  }}
+
+  if (lastResponse) return lastResponse;
+  return new Response(JSON.stringify({{
+    error: "All Google Apps Script targets failed",
+    details: String(lastErr)
+  }}), {{
+    status: 502,
+    headers: {{ "Content-Type": "application/json" }}
+  }});
+}}
+'''
+    return worker_code
+
+def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443", account_id=None):
     """
     Returns pre-configured templates for both Server side and Google Apps Script side.
     100% compliant with MasterHttpRelayVPN-RUST (ghcr.io/therealaleph/mhrv-tunnel-node & CodeFull.gs).
     """
     cfg = get_gas_config()
+    acc_id = account_id or cfg.get("active_account_id") or "acc_primary"
     custom_url = cfg.get("tunnel_server_url", "").strip()
     has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
     default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}"
@@ -21317,7 +21630,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
                 full_tunnel_gas = f.read()
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const AUTH_KEY = "CHANGE_ME_TO_A_STRONG_SECRET";',
-                f'const AUTH_KEY = "{secret}";'
+                f'const AUTH_KEY = "{secret}";\nconst GAS_ACCOUNT_ID = "{acc_id}";'
             )
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const TUNNEL_SERVER_URL = "https://YOUR_TUNNEL_NODE_URL";',
@@ -21338,24 +21651,27 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443")
 const AUTH_KEY = "{secret}";
 const TUNNEL_SERVER_URL = "{tunnel_node_url}";
 const TUNNEL_AUTH_KEY = "{secret}";
+const GAS_ACCOUNT_ID = "{acc_id}";
 const ENABLE_EDGE_DNS_CACHE = true;
 
 function doPost(e) {{
   var req = JSON.parse(e.postData.contents);
   if (req.k !== AUTH_KEY) return ContentService.createTextOutput("404 Not Found");
   if (req.t === "batch") {{
-    var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel/batch", {{
+    var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel/batch?aid=" + encodeURIComponent(GAS_ACCOUNT_ID), {{
       method: "post",
       contentType: "application/json",
-      payload: JSON.stringify({{ k: TUNNEL_AUTH_KEY, ops: req.ops, zc: req.zc }}),
+      headers: {{ "X-GAS-Account": GAS_ACCOUNT_ID }},
+      payload: JSON.stringify({{ k: TUNNEL_AUTH_KEY, ops: req.ops, zc: req.zc, aid: GAS_ACCOUNT_ID }}),
       muteHttpExceptions: true
     }});
     return ContentService.createTextOutput(resp.getContentText()).setMimeType(ContentService.MimeType.JSON);
   }}
-  var payload = {{ k: TUNNEL_AUTH_KEY, op: req.t, host: req.h, port: req.p, sid: req.sid, data: req.d }};
-  var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel", {{
+  var payload = {{ k: TUNNEL_AUTH_KEY, op: req.t, host: req.h, port: req.p, sid: req.sid, data: req.d, aid: GAS_ACCOUNT_ID }};
+  var resp = UrlFetchApp.fetch(TUNNEL_SERVER_URL + "/tunnel?aid=" + encodeURIComponent(GAS_ACCOUNT_ID), {{
     method: "post",
     contentType: "application/json",
+    headers: {{ "X-GAS-Account": GAS_ACCOUNT_ID }},
     payload: JSON.stringify(payload),
     muteHttpExceptions: true
   }});
@@ -21367,13 +21683,15 @@ function doPost(e) {{
  * MHPanel - Sing-box Core Direct Detour Relay
  * Direct multiplexed bridge to Sing-box inbound on VPS ({singbox_target}).
  */
-const VPS_TUNNEL_URL = "http://{server_ip}:{port}/tunnel";
+const VPS_TUNNEL_URL = "http://{server_ip}:{port}/tunnel?aid={acc_id}";
 const SECRET_KEY = "{secret}";
 const SINGBOX_INBOUND = "{singbox_target}";
+const GAS_ACCOUNT_ID = "{acc_id}";
 
 function doPost(e) {{
   try {{
     let payloadObj = JSON.parse(e.postData.contents || "{{}}");
+    payloadObj.aid = GAS_ACCOUNT_ID;
     if (payloadObj.action === "open" && !payloadObj.target) {{
       payloadObj.target = SINGBOX_INBOUND;
     }}
@@ -21382,7 +21700,8 @@ function doPost(e) {{
       method: "post",
       contentType: "application/json",
       headers: {{
-        "X-Auth-Key": SECRET_KEY
+        "X-Auth-Key": SECRET_KEY,
+        "X-GAS-Account": GAS_ACCOUNT_ID
       }},
       payload: JSON.stringify(payloadObj),
       muteHttpExceptions: true
@@ -21403,6 +21722,7 @@ function doGet(e) {{
   return ContentService.createTextOutput(JSON.stringify({{
     status: "online",
     relay: "Singbox-Detour",
+    account: GAS_ACCOUNT_ID,
     target: SINGBOX_INBOUND,
     time: new Date().toISOString()
   }})).setMimeType(ContentService.MimeType.JSON);
@@ -21413,8 +21733,9 @@ function doGet(e) {{
  * MasterHttpRelay - Universal Google Apps Script Proxy
  * Supports dynamic URL fetching and base64 HTTP tunneling.
  */
-const VPS_RELAY_URL = "http://{server_ip}:{port}/relay";
+const VPS_RELAY_URL = "http://{server_ip}:{port}/relay?aid={acc_id}";
 const SECRET_KEY = "{secret}";
+const GAS_ACCOUNT_ID = "{acc_id}";
 
 function doGet(e) {{
   const target = e.parameter.url;
@@ -21434,7 +21755,7 @@ function doPost(e) {{
     const res = UrlFetchApp.fetch(VPS_RELAY_URL, {{
       method: "post",
       payload: e.postData.contents,
-      headers: {{ "X-Auth-Key": SECRET_KEY }},
+      headers: {{ "X-Auth-Key": SECRET_KEY, "X-GAS-Account": GAS_ACCOUNT_ID }},
       muteHttpExceptions: true
     }});
     return ContentService.createTextOutput(res.getContentText())
@@ -21633,6 +21954,7 @@ def deploy_gas_to_google(access_token, project_title, code_gs_content, existing_
 # --- Google Apps Script / mhrv-tunnel-node Reverse Proxy Endpoint ---
 @app.route("/tunnel", methods=["GET", "POST"])
 @app.route("/tunnel/<path:subpath>", methods=["GET", "POST"])
+@app.route("/relay", methods=["GET", "POST"])
 def proxy_gas_tunnel(subpath=""):
     cfg = get_gas_config()
     target_port = cfg.get("port", 8448)
@@ -21640,21 +21962,48 @@ def proxy_gas_tunnel(subpath=""):
     if subpath:
         url += f"/{subpath}"
     
+    # Extract account ID and request metadata for stats tracking
+    acc_id = request.headers.get("X-GAS-Account") or request.args.get("aid") or request.args.get("account_id")
+    req_data = request.get_data()
+    rx_bytes = len(req_data) if req_data else 0
+    is_batch = (subpath == "batch")
+
+    if not acc_id and req_data:
+        try:
+            body_json = json.loads(req_data.decode("utf-8", errors="ignore"))
+            if isinstance(body_json, dict):
+                acc_id = body_json.get("aid") or body_json.get("account_id")
+                if not is_batch and (body_json.get("t") == "batch" or "ops" in body_json):
+                    is_batch = True
+        except Exception:
+            pass
+
+    if not acc_id:
+        acc_id = cfg.get("active_account_id") or "acc_primary"
+
     headers = {k: v for k, v in request.headers if k.lower() not in ["host", "content-length"]}
     try:
         req = urllib.request.Request(
             url,
-            data=request.get_data(),
+            data=req_data if req_data else None,
             headers=headers,
             method=request.method
         )
         with urllib.request.urlopen(req, timeout=35) as resp:
             content = resp.read()
+            tx_bytes = len(content) if content else 0
+            record_gas_request(acc_id, rx_bytes, tx_bytes, resp.status, is_batch)
+            flush_gas_stats_to_disk()
             resp_headers = [(k, v) for k, v in resp.headers.items() if k.lower() not in ["content-length", "transfer-encoding", "content-encoding"]]
             return Response(content, status=resp.status, headers=resp_headers)
     except urllib.error.HTTPError as e:
-        return Response(e.read(), status=e.code)
+        err_body = e.read()
+        record_gas_request(acc_id, rx_bytes, len(err_body) if err_body else 0, e.code, is_batch)
+        flush_gas_stats_to_disk()
+        return Response(err_body, status=e.code)
     except Exception as e:
+        record_gas_request(acc_id, rx_bytes, 0, 502, is_batch)
+        flush_gas_stats_to_disk()
         return jsonify({"error": str(e)}), 502
 
 @app.route("/api/google_script/status", methods=["GET"])
@@ -22352,6 +22701,280 @@ def api_google_script_service(action):
         return jsonify({"success": True, "message": f"سرویس با موفقیت {action} گردید."})
     return jsonify({"success": False, "error": res.stderr}), 500
 
+@app.route("/api/google_script/stats", methods=["GET"])
+def api_google_script_stats():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    stats = load_gas_stats()
+    account_filter = request.args.get("account_id", "all")
+    
+    accounts_cfg = cfg.get("accounts", {})
+    
+    # Build list of accounts summary
+    accounts_summary = []
+    all_acc_ids = set(accounts_cfg.keys()) | set(stats.get("accounts", {}).keys())
+    if not all_acc_ids:
+        all_acc_ids = ["acc_primary"]
+        
+    for a_id in sorted(all_acc_ids):
+        acc_info = accounts_cfg.get(a_id, {})
+        acc_stat = stats.get("accounts", {}).get(a_id, {
+            "total_rx": 0, "total_tx": 0,
+            "requests_total": 0, "requests_success": 0, "requests_failed": 0, "requests_batch": 0,
+            "last_request_time": "-", "daily": {}
+        })
+        tot_req = acc_stat.get("requests_total", 0)
+        succ_req = acc_stat.get("requests_success", 0)
+        s_rate = round((succ_req / tot_req * 100), 1) if tot_req > 0 else 100.0
+        
+        accounts_summary.append({
+            "id": a_id,
+            "name": acc_info.get("name") or (f"اکانت {a_id}" if a_id != "acc_primary" else "اکانت اصلی"),
+            "email": acc_info.get("email") or "",
+            "is_active": (a_id == cfg.get("active_account_id")),
+            "total_rx": acc_stat.get("total_rx", 0),
+            "total_tx": acc_stat.get("total_tx", 0),
+            "total_bytes": acc_stat.get("total_rx", 0) + acc_stat.get("total_tx", 0),
+            "requests_total": tot_req,
+            "requests_success": succ_req,
+            "requests_failed": acc_stat.get("requests_failed", 0),
+            "requests_batch": acc_stat.get("requests_batch", 0),
+            "success_rate": s_rate,
+            "last_request_time": acc_stat.get("last_request_time", "-")
+        })
+
+    # Prepare timeline (last 30 days)
+    timeline = []
+    if account_filter != "all" and account_filter in stats.get("accounts", {}):
+        daily_source = stats["accounts"][account_filter].get("daily", {})
+    else:
+        daily_source = stats.get("global", {}).get("daily", {})
+        
+    sorted_dates = sorted(daily_source.keys(), reverse=True)[:30]
+    for d in sorted_dates:
+        row = daily_source[d]
+        d_req = row.get("requests", 0)
+        d_succ = row.get("success", 0)
+        d_rate = round((d_succ / d_req * 100), 1) if d_req > 0 else 100.0
+        timeline.append({
+            "date": d,
+            "rx": row.get("rx", 0),
+            "tx": row.get("tx", 0),
+            "total": row.get("total", row.get("rx", 0) + row.get("tx", 0)),
+            "requests": d_req,
+            "success": d_succ,
+            "failed": row.get("failed", 0),
+            "batch": row.get("batch", 0),
+            "success_rate": d_rate,
+            "hourly": row.get("hourly", {})
+        })
+        
+    # Totals for the active filter
+    if account_filter != "all" and account_filter in stats.get("accounts", {}):
+        curr_acc = stats["accounts"][account_filter]
+        tot_req = curr_acc.get("requests_total", 0)
+        succ_req = curr_acc.get("requests_success", 0)
+        totals = {
+            "total_rx": curr_acc.get("total_rx", 0),
+            "total_tx": curr_acc.get("total_tx", 0),
+            "total_bytes": curr_acc.get("total_rx", 0) + curr_acc.get("total_tx", 0),
+            "requests_total": tot_req,
+            "requests_success": succ_req,
+            "requests_failed": curr_acc.get("requests_failed", 0),
+            "requests_batch": curr_acc.get("requests_batch", 0),
+            "success_rate": round((succ_req / tot_req * 100), 1) if tot_req > 0 else 100.0
+        }
+    else:
+        glob = stats.get("global", {})
+        tot_req = glob.get("requests_total", 0)
+        succ_req = glob.get("requests_success", 0)
+        totals = {
+            "total_rx": glob.get("total_rx", 0),
+            "total_tx": glob.get("total_tx", 0),
+            "total_bytes": glob.get("total_rx", 0) + glob.get("total_tx", 0),
+            "requests_total": tot_req,
+            "requests_success": succ_req,
+            "requests_failed": glob.get("requests_failed", 0),
+            "requests_batch": glob.get("requests_batch", 0),
+            "success_rate": round((succ_req / tot_req * 100), 1) if tot_req > 0 else 100.0
+        }
+
+    return jsonify({
+        "success": True,
+        "selected_account": account_filter,
+        "totals": totals,
+        "timeline": timeline,
+        "accounts_summary": accounts_summary
+    })
+
+@app.route("/api/google_script/stats/reset", methods=["POST"])
+def api_google_script_stats_reset():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.get_json(silent=True) or {}
+    target = data.get("account_id", "all")
+    
+    global _gas_stats_dirty, _gas_stats_cache
+    with _gas_stats_lock:
+        if _gas_stats_cache is None:
+            load_gas_stats()
+        if target == "all":
+            _gas_stats_cache = {
+                "accounts": {},
+                "global": {
+                    "total_rx": 0, "total_tx": 0,
+                    "requests_total": 0, "requests_success": 0, "requests_failed": 0, "requests_batch": 0,
+                    "last_request_time": "",
+                    "daily": {}
+                }
+            }
+        elif target in _gas_stats_cache.get("accounts", {}):
+            del _gas_stats_cache["accounts"][target]
+        _gas_stats_dirty = True
+        
+    flush_gas_stats_to_disk(force=True)
+    return jsonify({"success": True, "message": "آمار مصرف با موفقیت بازنشانی شد."})
+
+@app.route("/api/google_script/cloudflare/config", methods=["GET", "POST"])
+def api_google_script_cloudflare_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    cf = cfg.get("cloudflare", {})
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        cf["api_token"] = data.get("api_token", cf.get("api_token", "")).strip()
+        cf["account_id"] = data.get("account_id", cf.get("account_id", "")).strip()
+        cf["worker_name"] = data.get("worker_name", cf.get("worker_name", "mhpanel-gas-relay")).strip()
+        cf["worker_url"] = data.get("worker_url", cf.get("worker_url", "")).strip()
+        cf["route_pattern"] = data.get("route_pattern", cf.get("route_pattern", "")).strip()
+        cf["multi_account_balance"] = bool(data.get("multi_account_balance", True))
+        cf["enabled"] = bool(data.get("enabled", cf.get("enabled", False)))
+        cfg["cloudflare"] = cf
+        save_gas_config(cfg, restart_service=False)
+        return jsonify({"success": True, "message": "تنظیمات کلودفلر ذخیره شد."})
+
+    worker_code = generate_cloudflare_worker_code(cfg)
+    return jsonify({
+        "success": True,
+        "config": {
+            "api_token": cf.get("api_token", ""),
+            "account_id": cf.get("account_id", ""),
+            "worker_name": cf.get("worker_name", "mhpanel-gas-relay"),
+            "worker_url": cf.get("worker_url", ""),
+            "route_pattern": cf.get("route_pattern", ""),
+            "multi_account_balance": cf.get("multi_account_balance", True),
+            "enabled": cf.get("enabled", False),
+            "status": cf.get("status", "idle"),
+            "last_deploy_time": cf.get("last_deploy_time", "")
+        },
+        "worker_code": worker_code
+    })
+
+@app.route("/api/google_script/cloudflare/deploy", methods=["POST"])
+def api_google_script_cloudflare_deploy():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    cf = cfg.get("cloudflare", {})
+    data = request.get_json(silent=True) or {}
+    
+    api_token = data.get("api_token", cf.get("api_token", "")).strip()
+    account_id = data.get("account_id", cf.get("account_id", "")).strip()
+    worker_name = data.get("worker_name", cf.get("worker_name", "mhpanel-gas-relay")).strip() or "mhpanel-gas-relay"
+    multi_balance = bool(data.get("multi_account_balance", True))
+    
+    if not api_token or not account_id:
+        return jsonify({"success": False, "error": "لطفاً API Token و Account ID کلودفلر را وارد کنید."}), 400
+        
+    cf["api_token"] = api_token
+    cf["account_id"] = account_id
+    cf["worker_name"] = worker_name
+    cf["multi_account_balance"] = multi_balance
+    cfg["cloudflare"] = cf
+
+    # 1. Generate Worker JS code
+    worker_script = generate_cloudflare_worker_code(cfg)
+    
+    # 2. Upload script to Cloudflare API v4
+    cf_headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/javascript"
+    }
+    
+    script_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts/{worker_name}"
+    try:
+        req = urllib.request.Request(
+            script_url,
+            data=worker_script.encode("utf-8"),
+            headers=cf_headers,
+            method="PUT"
+        )
+        with urllib.request.urlopen(req, timeout=25) as r:
+            res_body = json.loads(r.read().decode("utf-8"))
+            if not res_body.get("success"):
+                err_msg = "; ".join([e.get("message", "") for e in res_body.get("errors", [])])
+                return jsonify({"success": False, "error": f"خطای کلودفلر: {err_msg}"}), 400
+    except urllib.error.HTTPError as e:
+        err_content = e.read().decode("utf-8", errors="ignore")
+        try:
+            err_json = json.loads(err_content)
+            err_msg = "; ".join([x.get("message", "") for x in err_json.get("errors", [])])
+        except Exception:
+            err_msg = err_content
+        return jsonify({"success": False, "error": f"خطا در ارتباط با Cloudflare (کد {e.code}): {err_msg}"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"خطای شبکه: {str(e)}"}), 500
+
+    # 3. Retrieve or verify workers.dev subdomain
+    subdomain = ""
+    try:
+        sub_req = urllib.request.Request(
+            f"https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/subdomain",
+            headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
+            method="GET"
+        )
+        with urllib.request.urlopen(sub_req, timeout=15) as r:
+            sub_res = json.loads(r.read().decode("utf-8"))
+            if sub_res.get("success"):
+                subdomain = sub_res.get("result", {}).get("subdomain", "")
+    except Exception:
+        pass
+
+    # 4. Enable workers.dev subdomain route for this script
+    if subdomain:
+        try:
+            enable_req = urllib.request.Request(
+                f"https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts/{worker_name}/subdomain",
+                data=json.dumps({"enabled": True}).encode("utf-8"),
+                headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
+                method="POST"
+            )
+            urllib.request.urlopen(enable_req, timeout=15)
+        except Exception:
+            pass
+            
+    worker_url = f"https://{worker_name}.{subdomain}.workers.dev" if subdomain else cf.get("worker_url", "")
+    cf["worker_url"] = worker_url
+    cf["enabled"] = True
+    cf["status"] = "deployed"
+    cf["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+    cfg["cloudflare"] = cf
+    save_gas_config(cfg, restart_service=False)
+
+    return jsonify({
+        "success": True,
+        "worker_url": worker_url,
+        "subdomain": subdomain,
+        "message": f"ورکر '{worker_name}' با موفقیت در کلودفلر مستقر و فعال شد!"
+    })
+
 @app.route("/api/google_script/client-configs", methods=["GET"])
 def api_google_script_client_configs():
     if not check_login():
@@ -22367,7 +22990,15 @@ def api_google_script_client_configs():
     deployment_id = target_acc.get("deployment_id") or cfg.get("google_deployment_id", "")
     webapp_url = target_acc.get("webapp_url") or cfg.get("google_webapp_url", "")
     
-    actual_webapp_url = webapp_url or (f"https://script.google.com/macros/s/{deployment_id}/exec" if deployment_id else "")
+    # Check Cloudflare Worker routing preference
+    use_cf = (request.args.get("use_cloudflare") == "1" or request.args.get("use_cf") == "1")
+    cf_info = cfg.get("cloudflare", {})
+    cf_url = cf_info.get("worker_url", "").strip()
+    
+    if use_cf and cf_url:
+        actual_webapp_url = cf_url
+    else:
+        actual_webapp_url = webapp_url or (f"https://script.google.com/macros/s/{deployment_id}/exec" if deployment_id else "")
     
     # Collect all deployed accounts for multi-relay configs
     all_accounts = []
@@ -22393,7 +23024,8 @@ def api_google_script_client_configs():
         "local_socks5": "127.0.0.1:1080",
         "local_http": "127.0.0.1:8123",
         "batch_mode": True,
-        "edge_dns_cache": True
+        "edge_dns_cache": True,
+        "via_cloudflare": bool(use_cf and cf_url)
     }
 
     goose_uri = f"goose://{deployment_id or 'AKfycb_YOUR_DEPLOYMENT_ID'}@{server_ip}:{port}?secret={secret}&mode=full"
@@ -22403,7 +23035,8 @@ def api_google_script_client_configs():
         "secret": secret,
         "mode": cfg.get("mode", "full_tunnel"),
         "local_socks": "127.0.0.1:10808",
-        "local_http": "127.0.0.1:10809"
+        "local_http": "127.0.0.1:10809",
+        "via_cloudflare": bool(use_cf and cf_url)
     }
 
     singbox_outbound = {
@@ -22417,18 +23050,19 @@ def api_google_script_client_configs():
         "app": "MasterHttpRelay",
         "web_app_url": actual_webapp_url,
         "auth_key": secret,
-        "listen_port": 1080
+        "listen_port": 1080,
+        "via_cloudflare": bool(use_cf and cf_url)
     }
 
     python_client = f'''# MHPanel GAS Full Tunnel Local Client (Run on your PC/Phone)
-# Provides SOCKS5 Proxy on 127.0.0.1:1080 via Google Apps Script Relay
+# Provides SOCKS5 Proxy on 127.0.0.1:1080 via {"Cloudflare Worker Accelerator" if (use_cf and cf_url) else "Google Apps Script Relay"}
 import socket, threading, json, base64, urllib.request, time
 
-GAS_URL = "{actual_webapp_url}"
+RELAY_URL = "{actual_webapp_url}"
 SECRET = "{secret}"
 LOCAL_PORT = 1080
 
-print(f"Connecting to GAS Relay: {{GAS_URL}}")
+print(f"Connecting to Relay: {{RELAY_URL}}")
 '''
 
     return jsonify({
@@ -22441,11 +23075,15 @@ print(f"Connecting to GAS Relay: {{GAS_URL}}")
         "python_client": python_client,
         "deployment_id": deployment_id,
         "webapp_url": webapp_url,
+        "actual_relay_url": actual_webapp_url,
         "account_id": account_id,
         "account_name": target_acc.get("name", ""),
         "account_email": target_acc.get("email", ""),
         "all_accounts": all_accounts,
-        "all_webapp_urls": all_webapp_urls
+        "all_webapp_urls": all_webapp_urls,
+        "cloudflare_worker_url": cf_url,
+        "cloudflare_enabled": bool(cf_url),
+        "using_cloudflare": bool(use_cf and cf_url)
     })
 
 
