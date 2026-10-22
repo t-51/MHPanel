@@ -735,18 +735,22 @@ install_panel_web_ui() {
             rm -rf "${PANEL_DIR}/venv"
             python3 -m venv "${PANEL_DIR}/venv"
         fi
-        "${PANEL_DIR}/venv/bin/pip" install --upgrade pip --quiet 2>/dev/null || true
+        "${PANEL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel --quiet 2>/dev/null || true
         echo "    Installing Python dependencies (Flask, Cryptography, PyOpenSSL, Requests, Psutil)..."
-        "${PANEL_DIR}/venv/bin/pip" install \
-            "Flask>=2.0.0" \
-            "psutil>=5.8.0" \
-            "pyrad>=2.4" \
-            "cryptography>=3.4.8" \
-            "pyOpenSSL" \
-            "requests" \
-            "flask-compress" \
-            "brotli" \
-            "backports.zstd" --quiet
+        if [ -f "${PANEL_DIR}/requirements.txt" ]; then
+            "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || \
+            "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt"
+        else
+            "${PANEL_DIR}/venv/bin/pip" install \
+                "Flask>=2.0.0" \
+                "psutil>=5.8.0" \
+                "pyrad>=2.4" \
+                "cryptography>=3.4.8" \
+                "pyOpenSSL" \
+                "requests" \
+                "flask-compress" \
+                "brotli" --quiet
+        fi
     else
         echo -e "    ${GREEN}[✓] Python virtual environment and dependencies already exist.${NC}"
     fi
@@ -1173,12 +1177,18 @@ install_tunnel_tools() {
     # FRP
     if [ ! -x /usr/local/bin/frps ] || [ ! -x /usr/local/bin/frpc ]; then
         echo "    Downloading FRP (frps & frpc)..."
-        curl -fsSL https://github.com/fatedier/frp/releases/download/v0.58.1/frp_0.58.1_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-        if [ -d /tmp/frp_0.58.1_linux_amd64 ]; then
-            mv /tmp/frp_0.58.1_linux_amd64/frps /usr/local/bin/ 2>/dev/null || true
-            mv /tmp/frp_0.58.1_linux_amd64/frpc /usr/local/bin/ 2>/dev/null || true
-            chmod +x /usr/local/bin/frps /usr/local/bin/frpc 2>/dev/null || true
-            rm -rf /tmp/frp*
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/frps -o /usr/local/bin/frps 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/frpc -o /usr/local/bin/frpc 2>/dev/null || true
+        if [ ! -x /usr/local/bin/frps ] || [ ! -x /usr/local/bin/frpc ]; then
+            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/fatedier/frp/releases/download/v0.58.1/frp_0.58.1_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
+            if [ -d /tmp/frp_0.58.1_linux_amd64 ]; then
+                mv /tmp/frp_0.58.1_linux_amd64/frps /usr/local/bin/ 2>/dev/null || true
+                mv /tmp/frp_0.58.1_linux_amd64/frpc /usr/local/bin/ 2>/dev/null || true
+                rm -rf /tmp/frp*
+            fi
+        fi
+        chmod +x /usr/local/bin/frps /usr/local/bin/frpc 2>/dev/null || true
+        if [ -x /usr/local/bin/frps ] && [ -x /usr/local/bin/frpc ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download FRP. Check server internet access.${NC}"
@@ -1188,11 +1198,10 @@ install_tunnel_tools() {
     # UDP2Raw
     if [ ! -x /usr/local/bin/udp2raw ]; then
         echo "    Downloading UDP2Raw..."
-        curl -fsSL https://github.com/wangyu-/udp2raw/releases/download/20230207.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-        if [ -f /tmp/udp2raw_amd64 ]; then
-            mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null || true
-            chmod +x /usr/local/bin/udp2raw 2>/dev/null || true
-            rm -rf /tmp/udp2raw*
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/udp2raw -o /usr/local/bin/udp2raw 2>/dev/null || \
+        (curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && rm -rf /tmp/udp2raw* || true)
+        chmod +x /usr/local/bin/udp2raw 2>/dev/null || true
+        if [ -x /usr/local/bin/udp2raw ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download UDP2Raw. Check server internet access.${NC}"
@@ -1202,11 +1211,17 @@ install_tunnel_tools() {
     # Phantun
     if [ ! -x /usr/local/bin/phantun-server ]; then
         echo "    Downloading Phantun..."
-        curl -fsSL https://github.com/dndx/phantun/releases/download/v0.6.0/phantun-x86_64-unknown-linux-musl.zip -o /tmp/phantun.zip 2>/dev/null || true
-        if [ -f /tmp/phantun.zip ]; then
-            unzip -o /tmp/phantun.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
-            chmod +x /usr/local/bin/phantun* 2>/dev/null || true
-            rm -f /tmp/phantun.zip
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/phantun-server -o /usr/local/bin/phantun-server 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/phantun-client -o /usr/local/bin/phantun-client 2>/dev/null || true
+        if [ ! -x /usr/local/bin/phantun-server ]; then
+            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/dndx/phantun/releases/download/v0.8.1/phantun_x86_64-unknown-linux-musl.zip -o /tmp/phantun.zip 2>/dev/null || true
+            if [ -f /tmp/phantun.zip ]; then
+                unzip -o /tmp/phantun.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
+                rm -f /tmp/phantun.zip
+            fi
+        fi
+        chmod +x /usr/local/bin/phantun* 2>/dev/null || true
+        if [ -x /usr/local/bin/phantun-server ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download Phantun. Check server internet access.${NC}"
@@ -1251,11 +1266,10 @@ install_tunnel_tools() {
     # Kcptun
     if [ ! -x /usr/local/bin/kcptun-server ]; then
         echo "    Downloading Kcptun..."
-        curl -fsSL https://github.com/xtaci/kcptun/releases/download/v20231012/kcptun-linux-amd64-20231012.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ server_linux_amd64 client_linux_amd64 2>/dev/null || true
-        if [ -f /usr/local/bin/server_linux_amd64 ]; then
-            mv /usr/local/bin/server_linux_amd64 /usr/local/bin/kcptun-server 2>/dev/null || true
-            mv /usr/local/bin/client_linux_amd64 /usr/local/bin/kcptun-client 2>/dev/null || true
-            chmod +x /usr/local/bin/kcptun-* 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/kcptun-server -o /usr/local/bin/kcptun-server 2>/dev/null || true
+        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/kcptun-client -o /usr/local/bin/kcptun-client 2>/dev/null || true
+        chmod +x /usr/local/bin/kcptun-* 2>/dev/null || true
+        if [ -x /usr/local/bin/kcptun-server ]; then
             count_downloaded=$((count_downloaded + 1))
         else
             echo -e "    ${RED}[!] Warning: Failed to download Kcptun. Check server internet access.${NC}"
@@ -2292,17 +2306,27 @@ EOF
     echo -e "${RED}${BOLD}========================================================================${NC}"
     echo -e "${YELLOW}WARNING: This operation will completely uninstall MH Panel from this server.${NC}\n"
 
-    read -p "Are you sure you want to proceed with uninstallation? (yes/no) [no]: " confirm_un
-    if [ "$confirm_un" != "yes" ] && [ "$confirm_un" != "y" ] && [ "$confirm_un" != "YES" ]; then
-        echo -e "${GREEN}Uninstallation cancelled.${NC}"
-        read -p "Press Enter to return to main menu..."
-        return 0
-    fi
+    local confirm_un="no"
+    local rm_protos="n"
+    local purge_conf="n"
 
-    echo ""
-    echo -e "${CYAN}--- Configuration & Protocols Removal Options ---${NC}"
-    read -p "Do you want to stop and uninstall ALL active VPN protocols & tunnels? [y/N]: " rm_protos
-    read -p "Do you want to purge configuration files & SSL certs (/etc/vpnpanel, /etc/mhpanel)? [y/N]: " purge_conf
+    if [ "$1" = "--force" ] || [ "$1" = "-f" ] || [ "$2" = "--force" ] || [ "$2" = "-f" ]; then
+        confirm_un="yes"
+        rm_protos="y"
+        purge_conf="y"
+    else
+        read -p "Are you sure you want to proceed with uninstallation? (yes/no) [no]: " confirm_un
+        if [ "$confirm_un" != "yes" ] && [ "$confirm_un" != "y" ] && [ "$confirm_un" != "YES" ]; then
+            echo -e "${GREEN}Uninstallation cancelled.${NC}"
+            read -p "Press Enter to return to main menu..."
+            return 0
+        fi
+
+        echo ""
+        echo -e "${CYAN}--- Configuration & Protocols Removal Options ---${NC}"
+        read -p "Do you want to stop and uninstall ALL active VPN protocols & tunnels? [y/N]: " rm_protos
+        read -p "Do you want to purge configuration files & SSL certs (/etc/vpnpanel, /etc/mhpanel)? [y/N]: " purge_conf
+    fi
 
     echo -e "\n${YELLOW}>>> [1/5] Stopping and removing MH Panel systemd service...${NC}"
     systemctl stop mhpanel.service vpnpanel.service 2>/dev/null || true
@@ -2440,7 +2464,7 @@ elif [ "$1" = "--path" ] || [ "$1" = "path" ]; then
 elif [ "$1" = "--address" ] || [ "$1" = "address" ]; then
     change_panel_address "$2" "$3"
 elif [ "$1" = "--uninstall" ] || [ "$1" = "uninstall" ] || [ "$1" = "-u" ]; then
-    uninstall_mhpanel
+    uninstall_mhpanel "$2" "$3"
 else
     if [ ! -f "${PANEL_DIR}/app.py" ] && [ ! -f "/etc/systemd/system/mhpanel.service" ]; then
         show_banner
