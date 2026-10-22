@@ -482,7 +482,7 @@ EOF
         firewall_pkg="iptables-persistent"
     fi
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip; do
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -514,46 +514,156 @@ EOF
     fi
 }
 
+is_container_env() {
+    if [ -f /.dockerenv ] || [ -f /run/.containerenv ]; then
+        return 0
+    fi
+    if command -v systemd-detect-virt >/dev/null 2>&1; then
+        local virt
+        virt=$(systemd-detect-virt --container 2>/dev/null || true)
+        if [ -n "$virt" ] && [ "$virt" != "none" ]; then
+            return 0
+        fi
+    fi
+    if [ -f /proc/1/environ ] && grep -qaE 'container=(lxc|docker|podman|containerd)' /proc/1/environ 2>/dev/null; then
+        return 0
+    fi
+    if [ -f /proc/1/cgroup ] && grep -qE '(lxc|docker|kubepods|containerd)' /proc/1/cgroup 2>/dev/null; then
+        return 0
+    fi
+    if [ -d /proc/vz ] && [ ! -d /proc/vz/vzaquota ]; then
+        return 0
+    fi
+    return 1
+}
+
 enable_bbr_and_sysctl() {
     echo -e "\n${YELLOW}>>> [2/6] Enabling TCP BBR, packet forwarding & IPv6 tunnel modules...${NC}"
 
-    modprobe ip_gre 2>/dev/null || true
-    modprobe ip6_gre 2>/dev/null || true
-    modprobe ipip 2>/dev/null || true
-    modprobe ip6_tunnel 2>/dev/null || true
-    modprobe sit 2>/dev/null || true
-    modprobe wireguard 2>/dev/null || true
+    mkdir -p /etc/sysctl.d /etc/modules-load.d
 
-    mkdir -p /etc/modules-load.d
-    cat > /etc/modules-load.d/mh-tunnels.conf <<EOF
-ip_gre
-ip6_gre
-ipip
-ip6_tunnel
-sit
-wireguard
-EOF
+    local in_container=0
+    if is_container_env; then
+        in_container=1
+    fi
 
+    # Kernel Modules Loading (only on VM / Bare Metal or if modprobe is operational)
+    local available_modules=()
+    local tunnel_modules=("ip_gre" "ip6_gre" "ipip" "ip6_tunnel" "sit" "wireguard")
+
+    if [ "$in_container" -eq 0 ] && command -v modprobe >/dev/null 2>&1; then
+        for mod in "${tunnel_modules[@]}"; do
+            if [ -d "/sys/module/${mod//-/_}" ]; then
+                available_modules+=("$mod")
+            elif modprobe "$mod" >/dev/null 2>&1; then
+                available_modules+=("$mod")
+            fi
+        done
+
+        if [ ${#available_modules[@]} -gt 0 ]; then
+            printf "%s\n" "${available_modules[@]}" > /etc/modules-load.d/mh-tunnels.conf 2>/dev/null || true
+        else
+            rm -f /etc/modules-load.d/mh-tunnels.conf 2>/dev/null || true
+        fi
+    else
+        # In containers, do not maintain mh-tunnels.conf to avoid systemd-modules-load failures
+        rm -f /etc/modules-load.d/mh-tunnels.conf 2>/dev/null || true
+    fi
+
+    # Test BBR support
+    if command -v modprobe >/dev/null 2>&1; then
+        modprobe tcp_bbr >/dev/null 2>&1 || true
+    fi
+
+    local bbr_supported=0
+    local avail_cc=""
+    if [ -f /proc/sys/net/ipv4/tcp_available_congestion_control ]; then
+        avail_cc=$(cat /proc/sys/net/ipv4/tcp_available_congestion_control 2>/dev/null || true)
+    elif command -v sysctl >/dev/null 2>&1; then
+        avail_cc=$(sysctl -n net.ipv4.tcp_available_congestion_control 2>/dev/null || true)
+    fi
+
+    if echo "$avail_cc" | grep -qw "bbr"; then
+        bbr_supported=1
+    fi
+
+    # Test IPv6 support
+    local ipv6_supported=0
+    if [ -d /proc/sys/net/ipv6 ] && [ -f /proc/sys/net/ipv6/conf/all/forwarding ]; then
+        ipv6_supported=1
+    fi
+
+    # Construct /etc/sysctl.d/99-mhpanel.conf tailored to environment capabilities
     cat > /etc/sysctl.d/99-mhpanel.conf <<EOF
-net.core.default_qdisc=fq
-net.ipv4.tcp_congestion_control=bbr
+# MH Panel Kernel & Network Optimization
 net.ipv4.ip_forward=1
-net.ipv6.conf.all.forwarding=1
-net.ipv6.conf.default.forwarding=1
-fs.file-max=1000000
-fs.inotify.max_user_instances=8192
 net.ipv4.tcp_fastopen=3
-net.core.somaxconn=32768
-net.ipv4.tcp_max_syn_backlog=16384
 net.ipv4.tcp_fin_timeout=15
 net.ipv4.tcp_tw_reuse=1
 net.ipv4.ip_local_port_range=1024 65535
 EOF
+
+    if [ "$bbr_supported" -eq 1 ]; then
+        cat >> /etc/sysctl.d/99-mhpanel.conf <<EOF
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
+    fi
+
+    if [ "$ipv6_supported" -eq 1 ]; then
+        cat >> /etc/sysctl.d/99-mhpanel.conf <<EOF
+net.ipv6.conf.all.forwarding=1
+net.ipv6.conf.default.forwarding=1
+EOF
+    fi
+
+    if [ "$in_container" -eq 0 ]; then
+        cat >> /etc/sysctl.d/99-mhpanel.conf <<EOF
+fs.file-max=1000000
+fs.inotify.max_user_instances=8192
+net.core.somaxconn=32768
+net.ipv4.tcp_max_syn_backlog=16384
+EOF
+    fi
+
+    # Apply sysctl settings safely without fatal errors
+    if [ -f /etc/sysctl.d/99-mhpanel.conf ]; then
+        while IFS='=' read -r key val; do
+            [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+            key=$(echo "$key" | tr -d '[:space:]')
+            val=$(echo "$val" | tr -d '[:space:]')
+            [ -n "$key" ] && sysctl -w "${key}=${val}" >/dev/null 2>&1 || true
+        done < /etc/sysctl.d/99-mhpanel.conf
+    fi
+
     touch /etc/sysctl.conf 2>/dev/null || true
     grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf 2>/dev/null || true
-    grep -qxF 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf 2>/dev/null || true
+    if [ "$ipv6_supported" -eq 1 ]; then
+        grep -qxF 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf 2>/dev/null || true
+    fi
+
     sysctl --system >/dev/null 2>&1 || sysctl -p /etc/sysctl.d/99-mhpanel.conf >/dev/null 2>&1 || true
-    echo -e "    ${GREEN}[✓] TCP BBR, Kernel limits, IPv4 and IPv6 forwarding successfully configured.${NC}"
+
+    # Informative output for user
+    if [ "$bbr_supported" -eq 1 ]; then
+        echo -e "    ${GREEN}[✓] TCP BBR congestion control successfully enabled.${NC}"
+    else
+        local current_cc
+        current_cc=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null || echo "cubic")
+        echo -e "    ${YELLOW}[i] TCP BBR is not supported by current kernel/environment (using: ${current_cc}).${NC}"
+    fi
+
+    if [ "$ipv6_supported" -eq 1 ]; then
+        echo -e "    ${GREEN}[✓] IPv4 and IPv6 packet forwarding successfully enabled.${NC}"
+    else
+        echo -e "    ${GREEN}[✓] IPv4 packet forwarding enabled (IPv6 disabled or not present on host).${NC}"
+    fi
+
+    if [ ${#available_modules[@]} -gt 0 ]; then
+        echo -e "    ${GREEN}[✓] Network tunnel kernel modules loaded: ${available_modules[*]}${NC}"
+    elif [ "$in_container" -eq 1 ]; then
+        echo -e "    ${CYAN}[i] Container environment detected (modules managed by container host).${NC}"
+    fi
 }
 
 install_panel_web_ui() {

@@ -1283,8 +1283,9 @@ install_l2tpv3() {
     fi
 
     # Load kernel module
-    modprobe l2tp_eth || true
-    modprobe l2tp_netlink || true
+    modprobe l2tp_eth >/dev/null 2>&1 || true
+    modprobe l2tp_netlink >/dev/null 2>&1 || true
+    mkdir -p /etc/modules-load.d
     echo "l2tp_eth" >> /etc/modules-load.d/l2tpv3.conf 2>/dev/null || true
 
     # Create tunnel and session
