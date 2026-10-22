@@ -12681,10 +12681,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 const srvIpEl = document.getElementById("stat-server-public-ip");
                 if (srvIpEl) {
                     if (data.server_ipv6) {
-                        srvIpEl.innerHTML = `${data.server_ip || '--'}<br><span style="font-size:11px; color:#475569; font-weight:600;">IPv6: ${data.server_ipv6}</span>`;
+                        srvIpEl.innerHTML = `${data.server_ip || '--'}<br><span style="font-size:11px; color:var(--text-muted); font-weight:600;">IPv6: ${data.server_ipv6}</span>`;
                     } else {
                         srvIpEl.innerText = data.server_ip || "--";
                     }
+                }
+                const testSrcIp = document.getElementById("tun-test-src-ip");
+                if (testSrcIp && (!testSrcIp.value || testSrcIp.value === "212.227.143.16") && data.server_ip) {
+                    testSrcIp.value = data.server_ip;
                 }
 
                 // Traffic Bandwidth
@@ -12813,43 +12817,43 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const txStr = formatTrafficBytes(tun.tx_bytes || 0);
 
             html += `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
+            <tr style="border-bottom: 1px solid var(--border-glow);">
                 <td style="padding: 12px 14px; text-align:center;">${flagBadge}</td>
                 <td style="padding: 12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <strong style="color:#0f172a; font-family:'JetBrains Mono'; font-size:13.5px;">${escapeHtml(tun.name)}</strong>
+                        <strong style="color:var(--text-main); font-family:'JetBrains Mono', monospace; font-size:13px;">${escapeHtml(tun.name)}</strong>
                         <span style="font-size:10.5px; background:${tColor.bg}; color:${tColor.text}; padding:2px 7px; border-radius:5px; font-weight:700;">${tColor.label}</span>
                     </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:2px;">ایجاد: ${escapeHtml(tun.created_at || "")}</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">ایجاد: ${escapeHtml(tun.created_at || "")}</div>
                 </td>
                 <td style="padding: 12px 14px;">
                     ${portBadge}
                 </td>
                 <td style="padding: 12px 14px;">
-                    <code style="font-family:'JetBrains Mono'; font-size:12px; color:#1e293b;">${escapeHtml(tun.local_ip || serverIp || "N/A")}</code>
+                    <code style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-main); background:var(--bg-base); padding:2px 6px; border-radius:4px; border:1px solid var(--border-glow);">${escapeHtml(tun.local_ip || serverIp || "N/A")}</code>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <code style="font-family:'JetBrains Mono'; font-size:12px; color:#2563eb; font-weight:600;">${escapeHtml(tun.remote_ip || "Dynamic / Any")}</code>
+                    <code style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#2563eb; font-weight:700; background:rgba(37,99,235,0.08); padding:2px 6px; border-radius:4px; border:1px solid rgba(37,99,235,0.2);">${escapeHtml(tun.remote_ip || "Dynamic / Any")}</code>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <div style="font-family:'JetBrains Mono'; font-size:12px; color:#0f172a;">
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-main);">
                         این سرور: <strong style="color:#059669;">${escapeHtml(tun.tunnel_local_ip || "")}</strong>
                     </div>
-                    <div style="font-family:'JetBrains Mono'; font-size:11px; color:#64748b; margin-top:2px;">
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:10.5px; color:var(--text-dim); margin-top:2px;">
                         مقابل: <strong>${escapeHtml(tun.tunnel_remote_ip || "")}</strong>
                     </div>
                 </td>
-                <td style="padding: 12px 14px; font-family:'JetBrains Mono'; font-size:12px; color:#475569;">
+                <td style="padding: 12px 14px; font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted);">
                     ${tun.mtu || 1476}
                 </td>
                 <td style="padding: 12px 14px;">
-                    <div style="font-size:11.5px; font-family:'JetBrains Mono';">
+                    <div style="font-size:11.5px; font-family:'JetBrains Mono', monospace;">
                         <span style="color:#059669;">↓ ${rxStr}</span> / <span style="color:#2563eb;">↑ ${txStr}</span>
                     </div>
                 </td>
                 <td style="padding: 12px 14px; text-align:center;">
-                    <div id="ping-res-${tun.id}" style="margin-bottom:4px; font-size:11.5px; font-family:'JetBrains Mono';">
-                        <span style="color:#64748b;">تست نشده</span>
+                    <div id="ping-res-${tun.id}" style="margin-bottom:4px; font-size:11.5px; font-family:'JetBrains Mono', monospace;">
+                        <span style="color:var(--text-dim);">تست نشده</span>
                     </div>
                     <button type="button" class="btn btn-secondary btn-sm" id="btn-ping-${tun.id}" onclick="pingTunnel('${tun.id}')" style="padding:2px 8px; font-size:11px;">
                         <i data-lucide="zap" style="width:11px; height:11px;"></i> تست پینگ
@@ -12886,11 +12890,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (!advTunnels || advTunnels.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
+                    <td colspan="9" style="text-align: center; padding: 36px 20px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:10px;">
                             <i data-lucide="shield-check" style="width:36px; height:36px; color:#10b981;"></i>
-                            <span style="font-size:14px; font-weight:600; color:#475569;">هنوز هیچ تونل ضد فیلتر فعالی ثبت نشده است.</span>
-                            <span style="font-size:12px; color:#64748b;">برای ایجاد تونل با GOST (WSS)، RTT، WSTunnel، Chisel، FRP، UDP2Raw یا Kcptun، روی «راه‌اندازی تونل ضد فیلتر جدید» بزنید.</span>
+                            <span style="font-size:14px; font-weight:600; color:var(--text-main);">هنوز هیچ تونل ضد فیلتر فعالی ثبت نشده است.</span>
+                            <span style="font-size:12px; color:var(--text-muted);">برای ایجاد تونل با GOST (WSS)، RTT، WSTunnel، Chisel، FRP، UDP2Raw یا Kcptun، روی «راه‌اندازی تونل ضد فیلتر جدید» بزنید.</span>
                         </div>
                     </td>
                 </tr>`;
@@ -12925,46 +12929,46 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (flag === "R") {
                 flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#dcfce7; color:#15803d; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Active / سرویس فعال است">R</span>`;
             } else if (flag === "X") {
-                flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#f1f5f9; color:#94a3b8; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Disabled / غیرفعال">X</span>`;
+                flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:var(--bg-base); color:var(--text-dim); font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Disabled / غیرفعال">X</span>`;
             } else {
                 flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#fee2e2; color:#b91c1c; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Inactive / خطا یا متوقف">I</span>`;
             }
 
-            const tBadge = toolBadges[adv.tool] || { bg: "#f1f5f9", text: "#475569", label: adv.tool.toUpperCase() };
+            const tBadge = toolBadges[adv.tool] || { bg: "var(--bg-base)", text: "var(--text-main)", label: adv.tool.toUpperCase() };
             const isServer = adv.role === "server";
             const roleBadge = isServer 
                 ? `<span style="font-size:11px; background:#ecfdf5; color:#065f46; padding:3px 8px; border-radius:6px; font-weight:700;">سرور مقصد (خارج)</span>`
                 : `<span style="font-size:11px; background:#eff6ff; color:#1d4ed8; padding:3px 8px; border-radius:6px; font-weight:700;">سرور مبدا (ایران)</span>`;
 
             html += `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
+            <tr style="border-bottom: 1px solid var(--border-glow);">
                 <td style="padding: 12px 14px; text-align:center;">${flagBadge}</td>
                 <td style="padding: 12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <strong style="color:#0f172a; font-family:'JetBrains Mono'; font-size:13.5px;">${escapeHtml(adv.name)}</strong>
+                        <strong style="color:var(--text-main); font-family:'JetBrains Mono', monospace; font-size:13px;">${escapeHtml(adv.name)}</strong>
                         <span style="font-size:10.5px; background:${tBadge.bg}; color:${tBadge.text}; padding:2px 7px; border-radius:5px; font-weight:700;">${tBadge.label}</span>
                     </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:2px;">ایجاد: ${escapeHtml(adv.created_at || "")}</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">ایجاد: ${escapeHtml(adv.created_at || "")}</div>
                 </td>
                 <td style="padding: 12px 14px;">${roleBadge}</td>
                 <td style="padding: 12px 14px;">
-                    <div style="font-family:'JetBrains Mono'; font-size:12.5px; color:#0f172a; font-weight:700;">
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12.5px; color:var(--text-main); font-weight:700;">
                         Port ${adv.listen_port}
                     </div>
-                    ${!isServer && adv.remote_ip ? `<div style="font-size:11px; color:#2563eb; font-family:'JetBrains Mono';">خارج: ${escapeHtml(adv.remote_ip)}:${adv.remote_port || adv.listen_port}</div>` : ''}
+                    ${!isServer && adv.remote_ip ? `<div style="font-size:11px; color:#2563eb; font-family:'JetBrains Mono', monospace;">خارج: ${escapeHtml(adv.remote_ip)}:${adv.remote_port || adv.listen_port}</div>` : ''}
                 </td>
                 <td style="padding: 12px 14px;">
-                    <code style="font-family:'JetBrains Mono'; font-size:12px; color:#047857; font-weight:600;">${escapeHtml(adv.target_addr || "127.0.0.1:443")}</code>
+                    <code style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#059669; font-weight:600; background:rgba(16,185,129,0.08); padding:2px 6px; border-radius:4px; border:1px solid rgba(16,185,129,0.2);">${escapeHtml(adv.target_addr || "127.0.0.1:443")}</code>
                 </td>
                 <td style="padding: 12px 14px;">
                     <div style="display:flex; flex-direction:column; gap:2px;">
-                        <span style="font-size:11px; color:#475569; font-weight:700;">${(adv.transport || "TCP").toUpperCase()}</span>
-                        ${adv.sni ? `<span style="font-size:10.5px; color:#64748b; font-family:'JetBrains Mono';">SNI: ${escapeHtml(adv.sni)}</span>` : ''}
+                        <span style="font-size:11px; color:var(--text-main); font-weight:700;">${(adv.transport || "TCP").toUpperCase()}</span>
+                        ${adv.sni ? `<span style="font-size:10.5px; color:var(--text-dim); font-family:'JetBrains Mono', monospace;">SNI: ${escapeHtml(adv.sni)}</span>` : ''}
                     </div>
                 </td>
                 <td style="padding: 12px 14px; text-align:center;">
                     <div style="display:flex; align-items:center; justify-content:center; gap:6px;">
-                        <span class="badge" id="adv-probe-badge-${adv.id}" style="font-family:'JetBrains Mono'; font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(0,0,0,0.06); color:#475569;">
+                        <span class="badge" id="adv-probe-badge-${adv.id}" style="font-family:'JetBrains Mono', monospace; font-size:11px; padding:3px 8px; border-radius:6px; background:var(--bg-base); border:1px solid var(--border-glow); color:var(--text-main);">
                             -- ms
                         </span>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="probeAdvTunnel('${adv.id}')" style="padding:4px 7px;" title="تست پینگ و تاخیر">
@@ -12973,7 +12977,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                     </div>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <span style="font-size:11px; font-family:'JetBrains Mono'; color:${adv.is_active ? '#059669' : '#94a3b8'};">
+                    <span style="font-size:11px; font-family:'JetBrains Mono', monospace; color:${adv.is_active ? '#059669' : 'var(--text-dim)'};">
                         mhtun_${adv.id}.service
                     </span>
                 </td>
@@ -13019,21 +13023,21 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         relays.forEach(r => {
             const protoBadge = r.proto === "both" ? "TCP & UDP" : r.proto.toUpperCase();
             html += `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
+            <tr style="border-bottom: 1px solid var(--border-glow);">
                 <td style="padding: 12px 14px;">
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <strong style="color:#0f172a; font-family:'JetBrains Mono'; font-size:13px;">Port ${r.listen_port}</strong>
+                        <strong style="color:var(--text-main); font-family:'JetBrains Mono', monospace; font-size:13px;">Port ${r.listen_port}</strong>
                     </div>
-                    <div style="font-size:11px; color:#64748b; margin-top:2px;">${escapeHtml(r.desc || "")}</div>
+                    <div style="font-size:11px; color:var(--text-dim); margin-top:2px;">${escapeHtml(r.desc || "")}</div>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <span style="font-size:11px; background:#f1f5f9; color:#334155; padding:2px 7px; border-radius:4px; font-family:'JetBrains Mono'; font-weight:700;">${protoBadge}</span>
+                    <span style="font-size:11px; background:var(--bg-base); color:var(--text-main); border:1px solid var(--border-glow); padding:2px 7px; border-radius:4px; font-family:'JetBrains Mono', monospace; font-weight:700;">${protoBadge}</span>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <code style="font-family:'JetBrains Mono'; font-size:12.5px; color:#2563eb; font-weight:600;">${escapeHtml(r.target_ip)}:${r.target_port}</code>
+                    <code style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#2563eb; font-weight:600; background:rgba(37,99,235,0.08); padding:2px 6px; border-radius:4px; border:1px solid rgba(37,99,235,0.2);">${escapeHtml(r.target_ip)}:${r.target_port}</code>
                 </td>
                 <td style="padding: 12px 14px;">
-                    <span style="font-size:11.5px; color:#475569; font-family:'JetBrains Mono';">${escapeHtml(r.tunnel_name || "همه")}</span>
+                    <span style="font-size:11.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">${escapeHtml(r.tunnel_name || "همه")}</span>
                 </td>
                 <td style="padding: 12px 14px;">
                     <span class="sidebar-badge sidebar-badge-green" style="font-size:11px; padding:2px 8px;">DNAT + Masquerade فعال</span>
@@ -13050,6 +13054,41 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 </td>
             </tr>`;
         });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Client-side quick filter functions for Tunnel Hub tables
+    function filterMikrotikTunnels(query) {
+        const q = (query || "").toLowerCase().trim();
+        const rows = document.querySelectorAll("#tunnels-table-body tr");
+        rows.forEach(r => {
+            if (!q) { r.style.display = ""; return; }
+            const text = r.innerText.toLowerCase();
+            r.style.display = text.includes(q) ? "" : "none";
+        });
+    }
+
+    function filterAdvTunnels(query) {
+        const q = (query || "").toLowerCase().trim();
+        const rows = document.querySelectorAll("#adv-tunnels-table-body tr");
+        rows.forEach(r => {
+            if (!q) { r.style.display = ""; return; }
+            const text = r.innerText.toLowerCase();
+            r.style.display = text.includes(q) ? "" : "none";
+        });
+    }
+
+    function filterTunnelTools(query) {
+        const q = (query || "").toLowerCase().trim();
+        const rows = document.querySelectorAll("#tunnel-tools-table-body tr");
+        rows.forEach(r => {
+            if (!q) { r.style.display = ""; return; }
+            const text = r.innerText.toLowerCase();
+            r.style.display = text.includes(q) ? "" : "none";
+        });
+    }
 
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();

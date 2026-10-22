@@ -3688,35 +3688,48 @@
     .rad-tab-nav {
         display: flex;
         gap: 8px;
-        background: #f1f5f9;
+        background: var(--bg-card);
         padding: 6px;
-        border-radius: 12px;
-        border: 1px solid rgba(0, 0, 0, 0.06);
-        flex-wrap: wrap;
+        border-radius: 14px;
+        border: 1px solid var(--border-glow);
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+    }
+    .rad-tab-nav::-webkit-scrollbar {
+        display: none;
     }
     .rad-tab-btn {
         display: inline-flex;
         align-items: center;
         gap: 8px;
         padding: 9px 18px;
-        border-radius: 9px;
-        border: none;
+        border-radius: 10px;
+        border: 1px solid transparent;
         background: transparent;
-        color: #64748b;
-        font-size: 13.5px;
+        color: var(--text-muted);
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
+        white-space: nowrap;
+        flex-shrink: 0;
     }
     .rad-tab-btn:hover {
-        color: #0f172a;
-        background: rgba(255, 255, 255, 0.6);
+        color: var(--text-main);
+        background: var(--bg-surface);
+        border-color: var(--border-glow);
     }
     .rad-tab-btn.active {
-        background: #ffffff;
-        color: #4f46e5;
+        background: var(--color-primary) !important;
+        color: #ffffff !important;
         font-weight: 700;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 3px 12px var(--color-primary-glow) !important;
+    }
+    .rad-tab-btn.active i {
+        color: #ffffff !important;
     }
     .rad-tab-btn .badge-pill {
         font-size: 11px;
@@ -3724,6 +3737,10 @@
         border-radius: 12px;
         background: rgba(79, 70, 229, 0.1);
         color: #4f46e5;
+    }
+    .rad-tab-btn.active .badge-pill {
+        background: rgba(255, 255, 255, 0.25) !important;
+        color: #ffffff !important;
     }
 
     /* RADIUS Group Cards */
