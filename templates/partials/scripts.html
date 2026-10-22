@@ -3341,45 +3341,44 @@
                         <input type="checkbox" class="rad-table-check rad-user-cb" value="${uname}" onchange="toggleSelectRadiusUser('${uname}', this.checked)" ${isChecked ? 'checked' : ''}>
                     </td>
 
-                    <!-- 2. Username & Status -->
-                    <td style="padding: 10px 14px; vertical-align: middle;">
+                    <!-- 2. Username (Clickable -> Details Popup) & Copy Password Key Icon -->
+                    <td style="padding: 12px 14px; vertical-align: middle;">
                         <div style="display: flex; align-items: center; gap: 7px; flex-wrap: nowrap;">
                             <span class="status-dot ${isActive ? 'active' : 'inactive'}" style="flex-shrink:0;"></span>
-                            <span style="font-weight: 700; font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-main); white-space: nowrap;">${escapeHtml(uname)}</span>
+                            <a href="javascript:void(0)" onclick="openRadiusUserDetailsModal('${escapeHtml(uname)}')" 
+                               style="font-weight: 700; font-family: 'JetBrains Mono'; font-size: 13.5px; color: var(--color-primary); text-decoration: none; cursor: pointer; white-space: nowrap;"
+                               title="مشاهده اطلاعات کامل کاربر">
+                                ${escapeHtml(uname)}
+                            </a>
+                            <button type="button" class="rad-mini-action-btn" onclick="copyRadiusPassword('${escapeHtml(u.password)}')" 
+                                    title="کپی رمز عبور" style="width: 24px; height: 24px; border-radius: 6px;">
+                                <i data-lucide="key" style="width: 12px; height: 12px; color: #64748b;"></i>
+                            </button>
                             <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(uname)}', 'نام کاربری کپی شد')" title="کپی نام کاربری">
-                                <i data-lucide="copy" style="width:12px; height:12px;"></i>
-                            </button>
-                            <span style="color: var(--border-glow); font-size: 11px;">|</span>
-                            <span style="font-size: 11px; font-family: 'JetBrains Mono'; color: #64748b; white-space: nowrap;">${passDisplay}</span>
-                            <button type="button" class="btn-reveal-inline" onclick="toggleRevealRadiusPassword('${uname}')" title="${isRevealed ? 'مخفی کردن' : 'نمایش رمز'}">
-                                <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" style="width:12px; height:12px;"></i>
-                            </button>
-                            <button type="button" class="btn-copy-inline" onclick="copyTextToClipboard('${escapeHtml(u.password)}', 'رمز عبور کپی شد')" title="کپی رمز">
-                                <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                <i data-lucide="copy" style="width: 11px; height: 11px;"></i>
                             </button>
                         </div>
-                        ${u.note ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 2px;">${escapeHtml(u.note)}</div>` : ''}
+                        ${u.note ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 3px;">${escapeHtml(u.note)}</div>` : ''}
                     </td>
 
                     <!-- 3. Package / Plan -->
-                    <td style="padding: 10px 14px; vertical-align: middle;">
+                    <td style="padding: 12px 14px; vertical-align: middle;">
                         <span class="rad-badge-pkg">
                             <i data-lucide="layers" style="width: 12px; height: 12px;"></i>
                             <span>${escapeHtml(grpName)}</span>
                         </span>
                     </td>
 
-                    <!-- 4. Traffic Usage -->
-                    <td style="padding: 10px 14px; vertical-align: middle;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; font-size: 11.5px;">
-                            <span style="font-weight: 700; font-family: 'JetBrains Mono'; color: var(--text-main);">${totFmt} <span style="font-weight: 400; color: #64748b; font-size: 10.5px;">/ ${limitText}</span></span>
+                    <!-- 4. Traffic Usage (Clean Numbers, NO Bar!) -->
+                    <td style="padding: 12px 14px; vertical-align: middle;">
+                        <div style="display: flex; align-items: baseline; gap: 5px; font-family: 'JetBrains Mono'; font-size: 12.5px;">
+                            <span style="font-weight: 800; color: var(--text-main);">${totFmt}</span>
+                            <span style="font-size: 11px; color: #64748b;">/ ${limitText}</span>
                             ${pctBadge}
                         </div>
-                        <div class="rad-progress-track-clean" title="مصرف ترافیک: ${pct}%">
-                            <div class="rad-progress-bar-clean ${pctClass}" style="width: ${totalLimitGb ? pct : (totBytes > 0 ? 100 : 0)}%;"></div>
-                        </div>
-                        <div style="display: flex; justify-content: space-between; font-size: 10px; color: #94a3b8; margin-top: 3px; font-family: 'JetBrains Mono';">
+                        <div style="display: flex; gap: 8px; font-size: 10.5px; color: #94a3b8; margin-top: 3px; font-family: 'JetBrains Mono';">
                             <span>⬇ ${txFmt}</span>
+                            <span style="opacity:0.4;">•</span>
                             <span>⬆ ${rxFmt}</span>
                         </div>
                     </td>
@@ -3456,6 +3455,237 @@
     function copyRadiusUserSubLink(url) {
         if (!url) return;
         copyTextToClipboard(url, "لینک صفحه اشتراک کاربر کپی شد.");
+    }
+
+    function copyRadiusPassword(pass) {
+        if (!pass) {
+            showToast("رمز عبور یافت نشد", "warning");
+            return;
+        }
+        copyTextToClipboard(pass, "رمز عبور با موفقیت کپی شد");
+    }
+
+    let currentDetailUser = "";
+    let isDetailPasswordRevealed = false;
+
+    function openRadiusUserDetailsModal(uname) {
+        const u = currentRadiusUsers[uname];
+        if (!u) return;
+        currentDetailUser = uname;
+        isDetailPasswordRevealed = false;
+
+        const modal = document.getElementById("radius-user-details-modal");
+        if (!modal) return;
+
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const isExpired = u.expire_date && u.expire_date < todayStr;
+        const onlineCount = u.online_count || 0;
+        const simLimit = u.simultaneous_use || 2;
+        const isActive = (u.active !== false) && !isExpired;
+        const grp = currentRadiusGroups[u.group] || {};
+        const grpName = u.group_name || grp.name || u.group || "پیش‌فرض";
+
+        // Avatar & Header
+        const avatarEl = document.getElementById("rud-avatar-badge");
+        if (avatarEl) {
+            avatarEl.innerText = uname.slice(0, 2).toUpperCase();
+            if (onlineCount > 0) {
+                avatarEl.style.background = "rgba(16, 185, 129, 0.15)";
+                avatarEl.style.color = "#059669";
+            } else if (isActive) {
+                avatarEl.style.background = "rgba(99, 102, 241, 0.12)";
+                avatarEl.style.color = "#4f46e5";
+            } else {
+                avatarEl.style.background = "rgba(239, 68, 68, 0.12)";
+                avatarEl.style.color = "#dc2626";
+            }
+        }
+
+        const titleEl = document.getElementById("rud-title");
+        if (titleEl) titleEl.innerText = uname;
+
+        const subTitleEl = document.getElementById("rud-status-subtitle");
+        if (subTitleEl) {
+            if (onlineCount > 0) {
+                subTitleEl.innerHTML = `<span style="color:#059669; font-weight:700;"><span class="status-dot active"></span> آنلاین (${onlineCount} از ${simLimit} اتصال فعال)</span>`;
+            } else if (isActive) {
+                subTitleEl.innerHTML = `<span style="color:#059669; font-weight:700;"><span class="status-dot active"></span> کاربر فعال و مجاز</span>`;
+            } else if (isExpired) {
+                subTitleEl.innerHTML = `<span style="color:#dc2626; font-weight:700;"><span class="status-dot inactive"></span> حساب کاربری منقضی شده</span>`;
+            } else {
+                subTitleEl.innerHTML = `<span style="color:#dc2626; font-weight:700;"><span class="status-dot inactive"></span> حساب کاربری مسدود / غیرفعال</span>`;
+            }
+        }
+
+        // Password
+        const passDisplay = document.getElementById("rud-password-display");
+        if (passDisplay) {
+            passDisplay.innerText = "••••••••";
+            passDisplay.dataset.password = u.password || "";
+            passDisplay.style.letterSpacing = "1.5px";
+        }
+        const eyeIcon = document.getElementById("rud-password-eye-icon");
+        if (eyeIcon) eyeIcon.setAttribute("data-lucide", "eye");
+
+        // Plan
+        const pkgNameEl = document.getElementById("rud-pkg-name");
+        if (pkgNameEl) pkgNameEl.innerText = grpName;
+        const pkgDetailsEl = document.getElementById("rud-pkg-details");
+        if (pkgDetailsEl) pkgDetailsEl.innerText = `سقف ${simLimit} اتصال همزمان`;
+
+        // Speed
+        const speedEl = document.getElementById("rud-speed-limit");
+        if (speedEl) speedEl.innerText = u.rate_limit || (grp.rate_limit || "نامحدود (Full Speed)");
+
+        // Traffic
+        const rxBytes = Number(u.upload_bytes || (u.used_upload_gb ? u.used_upload_gb * (1024**3) : (u.rx || 0)));
+        const txBytes = Number(u.download_bytes || (u.used_download_gb ? u.used_download_gb * (1024**3) : (u.tx || 0)));
+        const totBytes = rxBytes + txBytes;
+        const rxFmt = formatTrafficBytes(rxBytes);
+        const txFmt = formatTrafficBytes(txBytes);
+        const totFmt = formatTrafficBytes(totBytes);
+        const limitGb = (u.limit_gb && u.limit_gb > 0) ? Number(u.limit_gb) : (grp.traffic_gb || null);
+        const limitText = limitGb ? `${limitGb} GB` : "نامحدود";
+
+        const trafSummary = document.getElementById("rud-traffic-summary");
+        if (trafSummary) trafSummary.innerText = `${totFmt} / ${limitText}`;
+        const trafSubtext = document.getElementById("rud-traffic-subtext");
+        if (trafSubtext) trafSubtext.innerText = `⬇ دانلود: ${txFmt} • ⬆ آپلود: ${rxFmt}`;
+
+        // Expiration
+        const expSummary = document.getElementById("rud-expire-summary");
+        if (expSummary) expSummary.innerText = u.expire_date || "بدون انقضا";
+        const expDays = document.getElementById("rud-expire-days");
+        if (expDays) {
+            if (isExpired) {
+                expDays.innerText = "منقضی شده";
+                expDays.style.color = "#dc2626";
+            } else if (u.expire_date) {
+                const diffDays = Math.ceil((new Date(u.expire_date) - new Date()) / (1000 * 60 * 60 * 24));
+                expDays.innerText = `${diffDays} روز باقیمانده`;
+                expDays.style.color = "#10b981";
+            } else {
+                expDays.innerText = "مادام‌العمر";
+                expDays.style.color = "#4f46e5";
+            }
+        }
+
+        // Online Sessions
+        const onlineSec = document.getElementById("rud-online-section");
+        const onlineDetails = document.getElementById("rud-online-details");
+        const userSessions = (currentOnlineSessions || []).filter(s => s.username === uname);
+        if (onlineSec && onlineDetails) {
+            if (userSessions.length > 0) {
+                onlineSec.style.display = "block";
+                document.getElementById("rud-online-count").innerText = `${userSessions.length} نشست فعال`;
+                onlineDetails.innerHTML = userSessions.map(s => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 4px 0; border-bottom: 1px dashed rgba(16,185,129,0.2);">
+                        <span><strong>${s.protocol}</strong>: IP عمومی: ${s.client_ip} | VPN IP: ${s.vpn_ip || '-'}</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="kickRadiusSession('${uname}', '${s.protocol}', '${s.session_id}')" style="padding:1px 6px; font-size:10.5px; color:#dc2626;">قطع</button>
+                    </div>
+                `).join("");
+            } else {
+                onlineSec.style.display = "none";
+            }
+        }
+
+        // Note
+        const noteBox = document.getElementById("rud-note-box");
+        const noteText = document.getElementById("rud-note-text");
+        if (noteBox && noteText) {
+            if (u.note && u.note.trim()) {
+                noteBox.style.display = "block";
+                noteText.innerText = u.note;
+            } else {
+                noteBox.style.display = "none";
+            }
+        }
+
+        // Subscription Link
+        const subUrl = u.sub_url || `https://${window.location.host}/sub/${u.sub_token || ''}`;
+        const subInput = document.getElementById("rud-sub-url-input");
+        if (subInput) subInput.value = subUrl;
+
+        // Toggle Active Button Text
+        const toggleBtn = document.getElementById("rud-toggle-btn");
+        if (toggleBtn) {
+            toggleBtn.innerText = isActive ? "غیرفعال‌سازی کاربر" : "فعال‌سازی مجدد";
+            toggleBtn.style.color = isActive ? "#dc2626" : "#059669";
+        }
+
+        modal.classList.add("active");
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeRadiusUserDetailsModal() {
+        const modal = document.getElementById("radius-user-details-modal");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function toggleUserDetailsPassword() {
+        const passDisplay = document.getElementById("rud-password-display");
+        const eyeIcon = document.getElementById("rud-password-eye-icon");
+        if (!passDisplay) return;
+        isDetailPasswordRevealed = !isDetailPasswordRevealed;
+        if (isDetailPasswordRevealed) {
+            passDisplay.innerText = passDisplay.dataset.password || "";
+            passDisplay.style.letterSpacing = "normal";
+            if (eyeIcon) eyeIcon.setAttribute("data-lucide", "eye-off");
+        } else {
+            passDisplay.innerText = "••••••••";
+            passDisplay.style.letterSpacing = "1.5px";
+            if (eyeIcon) eyeIcon.setAttribute("data-lucide", "eye");
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function copyCurrentUserDetailsPassword() {
+        const u = currentRadiusUsers[currentDetailUser];
+        if (u && u.password) {
+            copyTextToClipboard(u.password, "رمز عبور با موفقیت کپی شد");
+        }
+    }
+
+    function changeCurrentUserDetailsPassword() {
+        if (!currentDetailUser) return;
+        changeRadiusUserPassword(currentDetailUser);
+    }
+
+    function toggleCurrentUserDetails() {
+        if (!currentDetailUser) return;
+        toggleRadiusUser(currentDetailUser);
+        closeRadiusUserDetailsModal();
+    }
+
+    function editCurrentUserDetails() {
+        if (!currentDetailUser) return;
+        const uname = currentDetailUser;
+        closeRadiusUserDetailsModal();
+        editSingleRadiusUser(uname);
+    }
+
+    function copyUserDetailsSubLink() {
+        const subInput = document.getElementById("rud-sub-url-input");
+        if (subInput && subInput.value) {
+            copyTextToClipboard(subInput.value, "لینک صفحه اشتراک کاربر کپی شد");
+        }
+    }
+
+    function showUserDetailsQR() {
+        if (!currentDetailUser) return;
+        showRadiusUserSubModal(currentDetailUser);
+    }
+
+    function toggleGrpAdvancedOptions() {
+        const box = document.getElementById("grp-advanced-options-box");
+        const chevron = document.getElementById("grp-advanced-chevron");
+        if (!box) return;
+        const isHidden = box.style.display === "none" || !box.style.display;
+        box.style.display = isHidden ? "block" : "none";
+        if (chevron) {
+            chevron.style.transform = isHidden ? "rotate(180deg)" : "rotate(0deg)";
+        }
+        if (window.lucide) lucide.createIcons();
     }
 
     function copyTextToClipboard(text, successMsg) {
@@ -4097,6 +4327,11 @@
         const titleEl = document.getElementById("radius-group-modal-title");
         const idInput = document.getElementById("rad-grp-id");
         const form = document.getElementById("form-radius-group");
+
+        const advBox = document.getElementById("grp-advanced-options-box");
+        if (advBox) advBox.style.display = "none";
+        const chevron = document.getElementById("grp-advanced-chevron");
+        if (chevron) chevron.style.transform = "rotate(0deg)";
 
         if (groupId && currentRadiusGroups[groupId]) {
             const g = currentRadiusGroups[groupId];
