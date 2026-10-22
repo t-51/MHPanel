@@ -2850,23 +2850,27 @@ def api_mtproto_ad_tag():
     return jsonify({"success": True, "ad_tag": ad_tag})
 
 def get_ikev2_service_name():
-    for s in ["strongswan", "strongswan-swanctl", "strongswan-starter"]:
+    for s in ["strongswan-starter", "strongswan", "strongswan-swanctl"]:
         res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
         if res.returncode == 0:
             return s
-    for s in ["strongswan", "strongswan-swanctl", "strongswan-starter"]:
+    for s in ["strongswan-starter", "strongswan", "strongswan-swanctl"]:
         for prefix in ["/usr/lib/systemd/system", "/lib/systemd/system", "/etc/systemd/system"]:
             if os.path.exists(f"{prefix}/{s}.service"):
                 return s
-    return "strongswan"
+    return "strongswan-starter"
 
 def restart_ikev2_service():
     svc = get_ikev2_service_name()
     res = subprocess.run(["systemctl", "restart", svc], capture_output=True, text=True)
+    for extra in ["strongswan-starter", "strongswan"]:
+        if extra != svc:
+            subprocess.run(["systemctl", "restart", extra], capture_output=True, text=True)
+    if subprocess.run(["which", "ipsec"], capture_output=True).returncode == 0:
+        subprocess.run(["ipsec", "reload"], capture_output=True)
+        subprocess.run(["ipsec", "update"], capture_output=True)
     if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
         subprocess.run(["swanctl", "--load-all"], capture_output=True)
-    if subprocess.run(["which", "ipsec"], capture_output=True).returncode == 0:
-        subprocess.run(["ipsec", "update"], capture_output=True)
     return res
 
 def unit_file_exists(service):
@@ -3082,7 +3086,7 @@ def api_protocols_advanced_logs(protocol):
     if protocol == "ssh": services = ["mhpanel-ssh", "ssh-ws", "sshd_vpn", "ssh", "sshd"]
     elif protocol == "openvpn": services = ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]
     elif protocol == "ocserv": services = ["ocserv"]
-    elif protocol == "ikev2": services = [get_ikev2_service_name()]
+    elif protocol == "ikev2": services = ["strongswan-starter", "strongswan", "strongswan-swanctl"]
     elif protocol == "sstp": services = ["sstpd", "accel-ppp", "vpnserver"]
     elif protocol == "l2tp": services = ["xl2tpd"]
     elif protocol == "pptp": services = ["pptpd", "mhpanel-pptp"]
@@ -3095,10 +3099,21 @@ def api_protocols_advanced_logs(protocol):
         if not services:
             return jsonify({"error": "Unknown protocol"}), 400
     
-    cmd = ["journalctl"]
-    for svc in services:
-        cmd.extend(["-u", svc])
-    cmd.extend(["-n", "300", "--no-pager", "-o", "json"])
+    if protocol == "ikev2":
+        cmd = [
+            "journalctl",
+            "_SYSTEMD_UNIT=strongswan-starter.service",
+            "+", "_SYSTEMD_UNIT=strongswan.service",
+            "+", "_SYSTEMD_UNIT=strongswan-swanctl.service",
+            "+", "SYSLOG_IDENTIFIER=charon",
+            "+", "_COMM=charon",
+            "-n", "600", "--no-pager", "-o", "json"
+        ]
+    else:
+        cmd = ["journalctl"]
+        for svc in services:
+            cmd.extend(["-u", svc])
+        cmd.extend(["-n", "300", "--no-pager", "-o", "json"])
     
     try:
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
@@ -3117,6 +3132,10 @@ def api_protocols_advanced_logs(protocol):
                     except:
                         message = str(message)
                 
+                # Filter out frequent internal vici client polling noise from web panel
+                if protocol == "ikev2" and ("vici client" in message or "registered for: list-sa" in message):
+                    continue
+
                 logs.append({
                     "timestamp": timestamp,
                     "message": message,
@@ -12491,6 +12510,7 @@ def save_l2tp_full_config(data):
     leftcert=server-cert.pem
     leftsendcert=always
     leftsubnet=0.0.0.0/0
+    leftauth=pubkey
     right=%any
     rightid=%any
     rightauth=eap-radius
@@ -12498,8 +12518,8 @@ def save_l2tp_full_config(data):
     rightdns=8.8.8.8,1.1.1.1
     rightsendcert=never
     eap_identity=%identity
-    ike=aes256-sha256-curve25519,aes128-sha256-curve25519,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!
-    esp=aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1!"""
+    ike=aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!
+    esp=aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp2048,aes128-sha1-modp2048,aes256gcm128,aes256gcm16!"""
 
     l2tp_block = f"""conn L2TP-PSK
     auto=add
@@ -12519,7 +12539,7 @@ def save_l2tp_full_config(data):
     esp={esp}"""
 
     new_ipsec = f"""config setup
-    charondebug="ike 2, knl 1, cfg 2, enc 2"
+    charondebug="ike 2, knl 1, cfg 1, enc 1"
     uniqueids=no
 
 conn %default
@@ -12527,7 +12547,6 @@ conn %default
     keylife=20m
     rekeymargin=3m
     keyingtries=1
-    authby=secret
 
 {existing_ikev2.strip()}
 
@@ -13382,12 +13401,12 @@ def api_ikev2_config_get():
 
     conf_path = "/etc/ipsec.conf"
     config = {
-        "leftid": "212.227.143.16",
+        "leftid": get_server_public_ip(),
         "rightsourceip": "10.10.10.10-10.10.10.250",
         "rightdns": "8.8.8.8,1.1.1.1",
         "rightauth": "eap-radius",
-        "ike": "aes256-sha256-ecp256,aes128-sha256-ecp256,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024!",
-        "esp": "aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1!",
+        "ike": "aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!",
+        "esp": "aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp2048,aes128-sha1-modp2048,aes256gcm128,aes256gcm16!",
         "fragmentation": "yes",
         "forceencaps": "yes",
         "dpdaction": "clear",
@@ -13416,12 +13435,12 @@ def api_ikev2_config_set():
         return jsonify({"error": "Unauthorized"}), 401
 
     data = request.json or {}
-    leftid = data.get("leftid", "212.227.143.16").strip()
+    leftid = data.get("leftid", get_server_public_ip()).strip()
     rightsourceip = data.get("rightsourceip", "10.10.10.10-10.10.10.250").strip()
     rightdns = data.get("rightdns", "8.8.8.8,1.1.1.1").strip()
     rightauth = data.get("rightauth", "eap-radius").strip()
-    ike = data.get("ike", "aes256-sha256-ecp256,aes128-sha256-ecp256,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024!").strip()
-    esp = data.get("esp", "aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1!").strip()
+    ike = data.get("ike", "aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!").strip()
+    esp = data.get("esp", "aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp2048,aes128-sha1-modp2048,aes256gcm128,aes256gcm16!").strip()
     fragmentation = data.get("fragmentation", "yes").strip()
     forceencaps = data.get("forceencaps", "yes").strip()
     dpdaction = data.get("dpdaction", "clear").strip()
@@ -13456,7 +13475,7 @@ def api_ikev2_config_set():
     esp=aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1,3des-sha1!"""
 
     new_conf = f"""config setup
-    charondebug="ike 1, knl 1, cfg 0"
+    charondebug="ike 2, knl 1, cfg 1, enc 1"
     uniqueids=no
 
 conn %default
@@ -13464,7 +13483,6 @@ conn %default
     keylife=20m
     rekeymargin=3m
     keyingtries=1
-    authby=secret
 
 conn ikev2-vpn
     auto=add
@@ -13481,6 +13499,7 @@ conn ikev2-vpn
     leftcert=server-cert.pem
     leftsendcert=always
     leftsubnet=0.0.0.0/0
+    leftauth=pubkey
     right=%any
     rightid=%any
     rightauth={rightauth}

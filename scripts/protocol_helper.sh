@@ -639,13 +639,13 @@ install_ikev2() {
     rekey=no
     dpdaction=clear
     dpddelay=30s
-    ike=aes256-sha1-ecp384,aes128-sha1-ecp256,aes256-sha256-modp2048,aes256-sha256-modp1024,aes256-sha1-modp2048,aes256-sha1-modp1024,aes128-sha256-modp2048,aes128-sha1-modp1024,3des-sha256-modp2048,3des-sha1-modp1024!
-    esp=aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha256,3des-sha1!"
+    ike=aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,3des-sha1-modp1024!
+    esp=aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1!"
     fi
 
     cat > /etc/ipsec.conf <<EOF
 config setup
-    charondebug="ike 1, knl 1, cfg 0"
+    charondebug="ike 2, knl 1, cfg 1, enc 1"
     uniqueids=no
 
 conn %default
@@ -653,7 +653,6 @@ conn %default
     keylife=20m
     rekeymargin=3m
     keyingtries=1
-    authby=secret
 
 conn ikev2-vpn
     auto=add
@@ -670,6 +669,7 @@ conn ikev2-vpn
     leftcert=server-cert.pem
     leftsendcert=always
     leftsubnet=0.0.0.0/0
+    leftauth=pubkey
     right=%any
     rightid=%any
     rightauth=eap-radius
@@ -677,8 +677,8 @@ conn ikev2-vpn
     rightdns=${dns1},${dns2}
     rightsendcert=never
     eap_identity=%identity
-    ike=aes256-sha256-curve25519,aes128-sha256-curve25519,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!
-    esp=aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1!
+    ike=aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!
+    esp=aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp2048,aes128-sha1-modp2048,aes256gcm128,aes256gcm16!
 
 ${existing_l2tp}
 EOF
