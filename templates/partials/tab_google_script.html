@@ -2218,6 +2218,48 @@ input:checked + .gas-toggle-slider:before {
                     </div>
                 </div>
 
+                <!-- Architecture Visual Pipeline -->
+                <div style="background:linear-gradient(135deg, rgba(249,115,22,0.08) 0%, rgba(15,23,42,0.65) 100%); border:1px solid rgba(249,115,22,0.3); border-radius:12px; padding:16px; margin-bottom:18px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+                        <span style="font-size:12.5px; font-weight:700; color:#f97316; display:inline-flex; align-items:center; gap:6px;">
+                            <i data-lucide="network" style="width:16px; height:16px;"></i>
+                            <span>معماری و مسیر عبور جریان ترافیک (Traffic Routing Pipeline):</span>
+                        </span>
+                        <span id="gas-cf-routing-badge" class="gas-token-badge gas-token-badge-amber" style="font-size:11px;">مسیر: Worker ➔ GAS ➔ VPS</span>
+                    </div>
+                    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:11px; direction:ltr; text-align:center;">
+                        <div style="flex:1; min-width:110px; background:rgba(0,0,0,0.35); padding:10px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+                            <i data-lucide="smartphone" style="width:16px; height:16px; color:#38bdf8; margin:0 auto 4px auto; display:block;"></i>
+                            <strong style="color:#38bdf8; display:block;">Client App</strong>
+                            <span style="color:var(--text-muted); font-size:10px;">mhrv / Goose</span>
+                        </div>
+                        <span style="color:#f97316; font-size:14px; font-weight:bold;">➔</span>
+                        <div style="flex:1.2; min-width:125px; background:rgba(249,115,22,0.15); padding:10px 8px; border-radius:8px; border:1px solid rgba(249,115,22,0.35);">
+                            <i data-lucide="cloud-lightning" style="width:16px; height:16px; color:#f97316; margin:0 auto 4px auto; display:block;"></i>
+                            <strong style="color:#f97316; display:block;">CF Worker</strong>
+                            <span style="color:var(--text-muted); font-size:10px;">Edge Rate-Bypass</span>
+                        </div>
+                        <span style="color:#f97316; font-size:14px; font-weight:bold;">➔</span>
+                        <div id="gas-pipeline-node-gas" style="flex:1.2; min-width:125px; background:rgba(66,133,244,0.15); padding:10px 8px; border-radius:8px; border:1px solid rgba(66,133,244,0.35);">
+                            <i data-lucide="globe" style="width:16px; height:16px; color:#60a5fa; margin:0 auto 4px auto; display:block;"></i>
+                            <strong style="color:#60a5fa; display:block;">Google Apps Script</strong>
+                            <span style="color:var(--text-muted); font-size:10px;">Multi-Gmail Relay</span>
+                        </div>
+                        <span style="color:#f97316; font-size:14px; font-weight:bold;">➔</span>
+                        <div style="flex:1.2; min-width:125px; background:rgba(16,185,129,0.15); padding:10px 8px; border-radius:8px; border:1px solid rgba(16,185,129,0.35);">
+                            <i data-lucide="server" style="width:16px; height:16px; color:#34d399; margin:0 auto 4px auto; display:block;"></i>
+                            <strong style="color:#34d399; display:block;">MHPanel Server</strong>
+                            <span style="color:var(--text-muted); font-size:10px;">Exit Node (8448)</span>
+                        </div>
+                        <span style="color:#f97316; font-size:14px; font-weight:bold;">➔</span>
+                        <div style="flex:1; min-width:110px; background:rgba(168,85,247,0.15); padding:10px 8px; border-radius:8px; border:1px solid rgba(168,85,247,0.35);">
+                            <i data-lucide="shield-check" style="width:16px; height:16px; color:#c084fc; margin:0 auto 4px auto; display:block;"></i>
+                            <strong style="color:#c084fc; display:block;">Sing-box</strong>
+                            <span style="color:var(--text-muted); font-size:10px;">Internet Gateway</span>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Live Worker Status Banner -->
                 <div id="gas-cf-status-box" style="background:rgba(0,0,0,0.25); border:1px solid var(--border-glow); border-radius:12px; padding:14px 18px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <div>
@@ -2245,14 +2287,45 @@ input:checked + .gas-toggle-slider:before {
                 <div class="glass-card" style="padding:16px; background:rgba(0,0,0,0.15); border:1px solid rgba(249,115,22,0.25); border-radius:12px; margin-bottom:18px;">
                     <h5 style="font-size:13.5px; font-weight:700; margin-bottom:14px; display:flex; align-items:center; gap:6px;">
                         <i data-lucide="rocket" style="width:15px; height:15px; color:#f97316;"></i>
-                        <span>استقرار خودکار روی حساب کلودفلر شما (1-Click Auto-Deploy)</span>
+                        <span>اطلاعات و تنظیمات اتصال ورکر کلودفلر (Cloudflare Worker Setup)</span>
                     </h5>
+                    
+                    <!-- Routing Mode Selector (Where does Worker forward traffic?) -->
+                    <div style="background:rgba(0,0,0,0.2); border:1px solid var(--border-glow); border-radius:10px; padding:12px 14px; margin-bottom:16px;">
+                        <label style="font-size:12px; font-weight:700; color:var(--text-main); margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="git-fork" style="width:14px; height:14px; color:#f97316;"></i>
+                            <span>نحوه هدایت ترافیک توسط ورکر کلودفلر (Worker Routing Target):</span>
+                        </label>
+                        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:10px;">
+                            <label style="display:flex; align-items:flex-start; gap:8px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-glow); border-radius:8px; cursor:pointer;" onclick="onGasCfRoutingModeChange('gas_relay');">
+                                <input type="radio" name="gas-cf-routing-mode" id="gas-cf-mode-gas" value="gas_relay" checked style="margin-top:2px; accent-color:#f97316;">
+                                <div style="font-size:11.5px; line-height:1.4;">
+                                    <strong style="color:var(--text-main); display:block; margin-bottom:2px;">ورکر ➔ گوگل اسکریپت ➔ سرور (استاندارد)</strong>
+                                    <span style="color:var(--text-muted); font-size:11px;">ترافیک ابتدا به ورکر می‌رود و ورکر بار را بین جیمیل‌ها توزیع می‌کند تا از طریق گوگل به سرور برسد.</span>
+                                </div>
+                            </label>
+                            <label style="display:flex; align-items:flex-start; gap:8px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-glow); border-radius:8px; cursor:pointer;" onclick="onGasCfRoutingModeChange('direct_vps');">
+                                <input type="radio" name="gas-cf-routing-mode" id="gas-cf-mode-vps" value="direct_vps" style="margin-top:2px; accent-color:#f97316;">
+                                <div style="font-size:11.5px; line-height:1.4;">
+                                    <strong style="color:var(--text-main); display:block; margin-bottom:2px;">ورکر ➔ مستقیم سرور (Direct CDN)</strong>
+                                    <span style="color:var(--text-muted); font-size:11px;">ورکر مستقیماً به سرور پنل وصل می‌شود بدون درگیر شدن گوگل (مفید در زمان اختلال گوگل).</span>
+                                </div>
+                            </label>
+                            <label style="display:flex; align-items:flex-start; gap:8px; padding:10px; background:rgba(255,255,255,0.02); border:1px solid var(--border-glow); border-radius:8px; cursor:pointer;" onclick="onGasCfRoutingModeChange('hybrid');">
+                                <input type="radio" name="gas-cf-routing-mode" id="gas-cf-mode-hybrid" value="hybrid" style="margin-top:2px; accent-color:#f97316;">
+                                <div style="font-size:11.5px; line-height:1.4;">
+                                    <strong style="color:var(--text-main); display:block; margin-bottom:2px;">ترکیبی هوشمند (Hybrid Failover)</strong>
+                                    <span style="color:var(--text-muted); font-size:11px;">اولویت با گوگل اسکریپت، و در صورت ریت‌لیمیت ۴۲۹ یا خطای شبکه، فال‌بک خودکار به سرور.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
                     
                     <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; margin-bottom:16px;">
                         <!-- API Token -->
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>کلید Cloudflare API Token <span style="color:#ef4444;">*</span></span>
+                                <span>کلید Cloudflare API Token <span style="font-size:11px; color:var(--text-muted);">(جهت استقرار خودکار)</span></span>
                                 <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" style="font-size:11px; color:#f97316; text-decoration:none;">ساخت توکن ↗</a>
                             </label>
                             <div class="gas-input-composite">
@@ -2269,7 +2342,7 @@ input:checked + .gas-toggle-slider:before {
                         <!-- Account ID -->
                         <div class="form-group" style="margin-bottom:0;">
                             <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
-                                <span>شناسه حساب (Account ID) <span style="color:#ef4444;">*</span></span>
+                                <span>شناسه حساب (Account ID) <span style="font-size:11px; color:var(--text-muted);">(جهت استقرار خودکار)</span></span>
                                 <span style="font-size:10.5px; color:var(--text-muted);">در آدرس داشبورد یا Overview</span>
                             </label>
                             <div class="gas-input-composite">
@@ -2288,6 +2361,18 @@ input:checked + .gas-toggle-slider:before {
                             </div>
                             <span style="font-size:10.5px; color:var(--text-muted); display:block; margin-top:3px;">آدرس شما به صورت name.subdomain.workers.dev خواهد بود.</span>
                         </div>
+
+                        <!-- Worker Custom / Live URL (Manual or Auto-Fetched) -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:12px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>آدرس ورکر / دامنه‌ی شخصی (Worker URL / Custom Domain)</span>
+                                <span style="font-size:10.5px; color:var(--text-muted);">دستی یا خودکار</span>
+                            </label>
+                            <div class="gas-input-composite">
+                                <input type="text" id="gas-cf-worker-url" placeholder="https://mhpanel-gas-relay.subdomain.workers.dev" style="font-family:'JetBrains Mono', monospace; direction:ltr; font-size:12px;">
+                            </div>
+                            <span style="font-size:10.5px; color:var(--text-muted); display:block; margin-top:3px;">در صورت استقرار دستی یا دامنه اختصاصی، آدرس را اینجا پیست و ذخیره فرمایید.</span>
+                        </div>
                     </div>
 
                     <!-- Options -->
@@ -2301,7 +2386,7 @@ input:checked + .gas-toggle-slider:before {
                     <!-- Buttons -->
                     <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap;">
                         <button type="button" class="btn btn-secondary" onclick="saveGasCloudflareConfig();" style="padding:8px 18px; font-size:12.5px;">
-                            <i data-lucide="save" style="width:14px; height:14px; margin-left:4px;"></i> فقط ذخیره تنظیمات
+                            <i data-lucide="save" style="width:14px; height:14px; margin-left:4px;"></i> ذخیره اطلاعات و آدرس ورکر
                         </button>
                         <button type="button" class="btn btn-primary" id="gas-cf-deploy-btn" onclick="deployGasCloudflareWorker();" style="background:#f97316; border-color:#f97316; padding:8px 24px; font-size:12.5px; font-weight:700;">
                             <i data-lucide="cloud-lightning" style="width:15px; height:15px; margin-left:4px;"></i>

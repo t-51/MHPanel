@@ -21464,7 +21464,11 @@ def record_gas_request(account_id, rx_bytes, tx_bytes, status_code=200, is_batch
 def generate_cloudflare_worker_code(cfg):
     """
     Generates a high-performance Cloudflare Worker script that:
-    - Load-balances requests across all active GAS WebApp URLs (multi-account)
+    - Routing mode:
+        1. 'gas_relay': Client -> Cloudflare Worker -> Google Apps Script -> VPS Tunnel Node -> Sing-box
+        2. 'direct_vps': Client -> Cloudflare Worker -> VPS Tunnel Node -> Sing-box (Direct CDN)
+        3. 'hybrid': Tries Google Apps Script first; fails over to VPS Tunnel Node on 429/quota error
+    - Load-balances requests across all active GAS WebApp URLs (multi-account round-robin)
     - Automatically fails over if any Google Apps Script returns 429 or 5xx
     - Handles CORS and keeps alive TCP connections to Google
     - Supports DoH / Edge DNS caching
@@ -21476,6 +21480,9 @@ def generate_cloudflare_worker_code(cfg):
     default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}:{port}"
     custom_url = cfg.get("tunnel_server_url", "").strip()
     vps_url = custom_url or default_url
+
+    cf = cfg.get("cloudflare", {})
+    routing_mode = cf.get("routing_mode", "gas_relay").strip() or "gas_relay"
 
     targets = []
     # Collect all deployed accounts
@@ -21495,6 +21502,10 @@ def generate_cloudflare_worker_code(cfg):
     worker_code = f'''/**
  * Cloudflare Worker Relay & Accelerator for Google Apps Script (MHPanel)
  * Generated automatically by MHPanel.
+ * 
+ * Configured Routing Pipeline:
+ *   Mode: {routing_mode}
+ *   {"[Client] -> [CF Worker] -> [Google Apps Script Multi-Account] -> [VPS Tunnel Server (Port " + str(port) + ")] -> [Sing-box]" if routing_mode == "gas_relay" else ("[Client] -> [CF Worker] -> [VPS Tunnel Server (Port " + str(port) + ")] -> [Sing-box]" if routing_mode == "direct_vps" else "[Client] -> [CF Worker] -> [Google Apps Script (with VPS Failover)] -> [Sing-box]")}
  * Features:
  *   - Edge Connection Pooling & Fronting
  *   - Multi-Account Round-Robin & Automatic Failover
@@ -21502,6 +21513,7 @@ def generate_cloudflare_worker_code(cfg):
  *   - CORS support for Web/App Clients
  */
 
+const ROUTING_MODE = "{routing_mode}"; // "gas_relay" | "direct_vps" | "hybrid"
 const GAS_TARGETS = {targets_js};
 const VPS_TUNNEL_URL = "{vps_url}";
 const SECRET_KEY = "{secret}";
@@ -21528,21 +21540,60 @@ async function handleRequest(request, event) {{
     return new Response(JSON.stringify({{
       status: "online",
       relay: "Cloudflare-Worker",
+      routing_mode: ROUTING_MODE,
       targets_count: GAS_TARGETS.length,
+      vps_target: VPS_TUNNEL_URL ? "configured" : "none",
       time: new Date().toISOString()
     }}), {{
       headers: {{ "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }}
     }});
   }}
 
+  const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+  // MODE 1: Direct VPS Server Proxy (Bypassing Google entirely)
+  if (ROUTING_MODE === "direct_vps") {{
+    if (!VPS_TUNNEL_URL || !VPS_TUNNEL_URL.startsWith("http")) {{
+      return new Response(JSON.stringify({{ error: "VPS_TUNNEL_URL not configured for direct mode" }}), {{
+        status: 502,
+        headers: {{ "Content-Type": "application/json" }}
+      }});
+    }}
+    try {{
+      const vpsFull = VPS_TUNNEL_URL + url.pathname + url.search;
+      const forwardHeaders = new Headers(request.headers);
+      forwardHeaders.set("User-Agent", "MHPanel-CF-Worker/2.0");
+      forwardHeaders.delete("Host");
+
+      const vpsResp = await fetch(vpsFull, {{
+        method: request.method,
+        headers: forwardHeaders,
+        body: bodyBuffer,
+        redirect: "follow"
+      }});
+
+      const outHeaders = new Headers(vpsResp.headers);
+      outHeaders.set("Access-Control-Allow-Origin", "*");
+      outHeaders.set("X-Accelerated-By", "Cloudflare-Worker-DirectVPS");
+      return new Response(vpsResp.body, {{
+        status: vpsResp.status,
+        headers: outHeaders
+      }});
+    }} catch (e) {{
+      return new Response(JSON.stringify({{ error: "Direct VPS connection failed", details: String(e) }}), {{
+        status: 502,
+        headers: {{ "Content-Type": "application/json" }}
+      }});
+    }}
+  }}
+
+  // MODE 2 & 3: GAS Relay (or Hybrid with VPS fallback)
   if (GAS_TARGETS.length === 0 && !VPS_TUNNEL_URL) {{
     return new Response(JSON.stringify({{ error: "No Google Apps Script targets configured in Worker" }}), {{
       status: 502,
       headers: {{ "Content-Type": "application/json" }}
     }});
   }}
-
-  const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
 
   // Shuffle targets for random load balancing across all deployed Gmail accounts
   const pool = [...GAS_TARGETS].sort(() => 0.5 - Math.random());
@@ -21577,24 +21628,35 @@ async function handleRequest(request, event) {{
         }});
       }}
 
-      // Rate limit or server error, record and try next target
+      // Rate limit (429) or server error, record and try next target
       lastResponse = resp;
     }} catch (e) {{
       lastErr = e;
     }}
   }}
 
-  // Fallback to VPS direct if available
-  if (VPS_TUNNEL_URL && VPS_TUNNEL_URL.startsWith("http")) {{
+  // Hybrid Mode Fallback to VPS direct if all GAS targets failed
+  if (ROUTING_MODE === "hybrid" && VPS_TUNNEL_URL && VPS_TUNNEL_URL.startsWith("http")) {{
     try {{
       const vpsFull = VPS_TUNNEL_URL + url.pathname + url.search;
+      const forwardHeaders = new Headers(request.headers);
+      forwardHeaders.set("User-Agent", "MHPanel-CF-Worker/2.0");
+      forwardHeaders.delete("Host");
+
       const vpsResp = await fetch(vpsFull, {{
         method: request.method,
-        headers: request.headers,
+        headers: forwardHeaders,
         body: bodyBuffer,
         redirect: "follow"
       }});
-      return vpsResp;
+
+      const outHeaders = new Headers(vpsResp.headers);
+      outHeaders.set("Access-Control-Allow-Origin", "*");
+      outHeaders.set("X-Accelerated-By", "Cloudflare-Worker-HybridFailover");
+      return new Response(vpsResp.body, {{
+        status: vpsResp.status,
+        headers: outHeaders
+      }});
     }} catch (e) {{}}
   }}
 
@@ -22852,9 +22914,10 @@ def api_google_script_cloudflare_config():
         cf["account_id"] = data.get("account_id", cf.get("account_id", "")).strip()
         cf["worker_name"] = data.get("worker_name", cf.get("worker_name", "mhpanel-gas-relay")).strip()
         cf["worker_url"] = data.get("worker_url", cf.get("worker_url", "")).strip()
+        cf["routing_mode"] = data.get("routing_mode", cf.get("routing_mode", "gas_relay")).strip() or "gas_relay"
         cf["route_pattern"] = data.get("route_pattern", cf.get("route_pattern", "")).strip()
         cf["multi_account_balance"] = bool(data.get("multi_account_balance", True))
-        cf["enabled"] = bool(data.get("enabled", cf.get("enabled", False)))
+        cf["enabled"] = bool(cf.get("worker_url")) or bool(data.get("enabled", cf.get("enabled", False)))
         cfg["cloudflare"] = cf
         save_gas_config(cfg, restart_service=False)
         return jsonify({"success": True, "message": "تنظیمات کلودفلر ذخیره شد."})
@@ -22867,6 +22930,7 @@ def api_google_script_cloudflare_config():
             "account_id": cf.get("account_id", ""),
             "worker_name": cf.get("worker_name", "mhpanel-gas-relay"),
             "worker_url": cf.get("worker_url", ""),
+            "routing_mode": cf.get("routing_mode", "gas_relay"),
             "route_pattern": cf.get("route_pattern", ""),
             "multi_account_balance": cf.get("multi_account_balance", True),
             "enabled": cf.get("enabled", False),
@@ -22888,6 +22952,8 @@ def api_google_script_cloudflare_deploy():
     api_token = data.get("api_token", cf.get("api_token", "")).strip()
     account_id = data.get("account_id", cf.get("account_id", "")).strip()
     worker_name = data.get("worker_name", cf.get("worker_name", "mhpanel-gas-relay")).strip() or "mhpanel-gas-relay"
+    worker_url_override = data.get("worker_url", "").strip()
+    routing_mode = data.get("routing_mode", cf.get("routing_mode", "gas_relay")).strip() or "gas_relay"
     multi_balance = bool(data.get("multi_account_balance", True))
     
     if not api_token or not account_id:
@@ -22896,7 +22962,10 @@ def api_google_script_cloudflare_deploy():
     cf["api_token"] = api_token
     cf["account_id"] = account_id
     cf["worker_name"] = worker_name
+    cf["routing_mode"] = routing_mode
     cf["multi_account_balance"] = multi_balance
+    if worker_url_override:
+        cf["worker_url"] = worker_url_override
     cfg["cloudflare"] = cf
 
     # 1. Generate Worker JS code

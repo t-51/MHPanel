@@ -22261,6 +22261,26 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // =====================================================================
     // CLOUDFLARE WORKER ACCELERATOR & RELAY
     // =====================================================================
+    function onGasCfRoutingModeChange(mode) {
+        const badge = document.getElementById("gas-cf-routing-badge");
+        const gasNode = document.getElementById("gas-pipeline-node-gas");
+        if (badge) {
+            if (mode === "direct_vps") {
+                badge.textContent = "مسیر: Worker ➔ VPS (Direct CDN)";
+                badge.className = "gas-token-badge gas-token-badge-blue";
+            } else if (mode === "hybrid") {
+                badge.textContent = "مسیر: Worker ➔ GAS (با Failover به VPS)";
+                badge.className = "gas-token-badge gas-token-badge-green";
+            } else {
+                badge.textContent = "مسیر: Worker ➔ GAS ➔ VPS";
+                badge.className = "gas-token-badge gas-token-badge-amber";
+            }
+        }
+        if (gasNode) {
+            gasNode.style.opacity = (mode === "direct_vps") ? "0.35" : "1";
+        }
+    }
+
     async function fetchGasCloudflareConfig() {
         try {
             const res = await fetch("/api/google_script/cloudflare/config");
@@ -22271,6 +22291,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const tokenInput = document.getElementById("gas-cf-api-token");
             const accInput = document.getElementById("gas-cf-account-id");
             const nameInput = document.getElementById("gas-cf-worker-name");
+            const urlInput = document.getElementById("gas-cf-worker-url");
             const mbCb = document.getElementById("gas-cf-multi-balance");
             const codeView = document.getElementById("gas-cf-worker-code-view");
             const liveUrlEl = document.getElementById("gas-cf-live-url");
@@ -22281,8 +22302,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (tokenInput && cf.api_token) tokenInput.value = cf.api_token;
             if (accInput) accInput.value = cf.account_id || "";
             if (nameInput) nameInput.value = cf.worker_name || "mhpanel-gas-relay";
+            if (urlInput) urlInput.value = cf.worker_url || "";
             if (mbCb) mbCb.checked = (cf.multi_account_balance !== false);
             if (codeView) codeView.value = data.worker_code || "";
+
+            // Routing Mode Radio
+            const rMode = cf.routing_mode || "gas_relay";
+            const radioEl = document.querySelector(`input[name="gas-cf-routing-mode"][value="${rMode}"]`);
+            if (radioEl) radioEl.checked = true;
+            onGasCfRoutingModeChange(rMode);
 
             if (liveUrlEl) {
                 liveUrlEl.textContent = cf.worker_url || "هنوز مستقر نشده (Not Deployed)";
@@ -22310,6 +22338,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
         const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
         const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const worker_url = (document.getElementById("gas-cf-worker-url")?.value || "").trim();
+        const routing_mode = (document.querySelector('input[name="gas-cf-routing-mode"]:checked')?.value || "gas_relay");
         const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
 
         toggleLoading(true, "در حال ذخیره تنظیمات کلودفلر...");
@@ -22317,13 +22347,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const res = await fetch("/api/google_script/cloudflare/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ api_token, account_id, worker_name, multi_account_balance })
+                body: JSON.stringify({ api_token, account_id, worker_name, worker_url, routing_mode, multi_account_balance })
             });
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast("تنظیمات کلودفلر با موفقیت ذخیره شد.", "success");
+                showToast("تنظیمات و آدرس ورکر کلودفلر با موفقیت ذخیره شد.", "success");
                 await fetchGasCloudflareConfig();
+                await fetchGasClientConfigs();
             } else {
                 showToast(data.error || "خطا در ذخیره تنظیمات", "error");
             }
@@ -22337,6 +22368,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
         const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
         const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const worker_url = (document.getElementById("gas-cf-worker-url")?.value || "").trim();
+        const routing_mode = (document.querySelector('input[name="gas-cf-routing-mode"]:checked')?.value || "gas_relay");
         const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
 
         if (!api_token || !account_id) {
@@ -22355,7 +22388,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const res = await fetch("/api/google_script/cloudflare/deploy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ api_token, account_id, worker_name, multi_account_balance })
+                body: JSON.stringify({ api_token, account_id, worker_name, worker_url, routing_mode, multi_account_balance })
             });
             const data = await res.json();
             toggleLoading(false);
