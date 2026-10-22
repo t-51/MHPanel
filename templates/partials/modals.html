@@ -506,6 +506,38 @@
 </div>
 </div>
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+<div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+    <i data-lucide="router" style="width:16px; height:16px; color:#6366f1;"></i> مشخصات پیشرفته میکروتیک (MikroTik Userman Attributes)
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+    <div>
+        <label style="font-size: 11px; color: #64748b;">استخر IP میکروتیک (Framed-Pool):</label>
+        <input class="form-input" id="rad-grp-pool" placeholder="مثال: vpn-pool" style="padding: 7px 8px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b;">گروه فایروال (Mikrotik-Group):</label>
+        <input class="form-input" id="rad-grp-mikrotik-group" placeholder="مثال: vip-users" style="padding: 7px 8px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b;">حداکثر نشست (Session-Timeout ثانیه):</label>
+        <input class="form-input" id="rad-grp-session-timeout" placeholder="0 = نامحدود (پیشفرض 86400)" style="padding: 7px 8px; font-size: 12px;" type="number"/>
+    </div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+    <div>
+        <label style="font-size: 11px; color: #64748b;">شروع انقضا (Starts At):</label>
+        <select class="form-select" id="rad-grp-starts-at" style="padding: 7px 10px; font-size: 12px;">
+            <option value="creation">از زمان ساخت کارت / اکانت</option>
+            <option value="first_login">از زمان اولین اتصال کاربر (First Login)</option>
+        </select>
+    </div>
+    <div>
+        <label style="font-size: 11px; color: #64748b;">قیمت پکیج (تومان / اختیاری):</label>
+        <input class="form-input" id="rad-grp-price" placeholder="مثال: 150000" style="padding: 7px 8px; font-size: 12px;" type="number"/>
+    </div>
+</div>
+</div>
+<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
 <div data-i18n="modal_setting_allowed_connection_times_freera" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">تنظیم زمان‌های مجاز اتصال (FreeRADIUS Login-Time)</div>
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
 <div>
@@ -2262,6 +2294,39 @@
         </div>
     </div>
 </div>
+
+<!-- MIKROTIK ROUTEROS CLI SCRIPT MODAL -->
+<div class="modal" id="mikrotik-script-modal">
+    <div class="modal-card" style="max-width: 680px; border-radius: 16px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="terminal" style="color: #0284c7; width: 20px; height: 20px;"></i>
+                <span id="mikrotik-modal-title">دستورات روتر میکروتیک (MikroTik RouterOS CLI)</span>
+            </h3>
+            <button class="modal-close" onclick="closeMikrotikScriptModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 24px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                دستورات زیر را کپی کرده و مستقیماً در کنسول <b>Terminal</b> روتر میکروتیک خود پیست (Paste) نمایید:
+            </p>
+            <div style="position: relative; margin-bottom: 16px;">
+                <textarea id="mikrotik-cli-code" readonly style="width: 100%; height: 260px; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6; direction: ltr; background: #0f172a; color: #38bdf8; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; resize: vertical;"></textarea>
+                <button type="button" onclick="copyMikrotikCliFromModal()" class="btn btn-secondary btn-sm" style="position: absolute; top: 10px; right: 10px; background: rgba(30, 41, 59, 0.85); border-color: #334155; color: #fff;">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                    <span>کپی دستورات</span>
+                </button>
+            </div>
+            <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: #0284c7; line-height: 1.6;">
+                <i data-lucide="info" style="width: 15px; height: 15px; display: inline-block; vertical-align: middle; margin-left: 6px;"></i>
+                نکته: در صورتی که فایروال روتر فعال است، مطمئن شوید پورت‌های <b>UDP 1812</b> و <b>UDP 1813</b> و درگاه قطع نشست <b>UDP 3799 / 1700</b> بین میکروتیک و این سرور مسدود نیستند.
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+                <button class="btn btn-primary" type="button" onclick="closeMikrotikScriptModal()">بستن پنجره</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 
 

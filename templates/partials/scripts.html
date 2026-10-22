@@ -3113,7 +3113,7 @@
     let revealedPasswords = new Set();
 
     function switchRadiusSubTab(subTabName) {
-        const subTabs = ['users', 'groups', 'online', 'server'];
+        const subTabs = ['users', 'groups', 'nas', 'online', 'vouchers', 'server'];
         subTabs.forEach(name => {
             const btn = document.getElementById(`subtab-btn-${name}`);
             const pane = document.getElementById(`rad-subpane-${name}`);
@@ -3121,7 +3121,11 @@
             if (pane) pane.style.display = (name === subTabName) ? 'flex' : 'none';
         });
 
-        if (subTabName === 'online') {
+        if (subTabName === 'nas') {
+            fetchRadiusNas();
+        } else if (subTabName === 'vouchers') {
+            populateVoucherGroupSelect();
+        } else if (subTabName === 'online') {
             fetchRadiusData(true);
         } else if (subTabName === 'server') {
             fetchRadiusConfig();
@@ -3711,6 +3715,10 @@
         if (simInput && !simInput.value) simInput.value = grp.simultaneous_use || 2;
         const limitInput = document.getElementById("new-rad-limit");
         if (limitInput && !limitInput.value && grp.traffic_gb) limitInput.value = grp.traffic_gb;
+        if (grp.download_gb && document.getElementById("new-rad-download-limit")) document.getElementById("new-rad-download-limit").value = grp.download_gb;
+        if (grp.upload_gb && document.getElementById("new-rad-upload-limit")) document.getElementById("new-rad-upload-limit").value = grp.upload_gb;
+        if (grp.rate_limit && document.getElementById("new-rad-rate-limit")) document.getElementById("new-rad-rate-limit").value = grp.rate_limit;
+        if (grp.framed_pool && document.getElementById("new-rad-pool")) document.getElementById("new-rad-pool").value = grp.framed_pool;
         const daysSelect = document.getElementById("new-rad-days");
         if (daysSelect && grp.allowed_days) daysSelect.value = grp.allowed_days;
         const stInput = document.getElementById("new-rad-start-time");
@@ -3730,6 +3738,9 @@
         const download_limit_gb = document.getElementById("new-rad-download-limit").value ? parseFloat(document.getElementById("new-rad-download-limit").value) : null;
         const upload_limit_gb = document.getElementById("new-rad-upload-limit").value ? parseFloat(document.getElementById("new-rad-upload-limit").value) : null;
         const rate_limit = (document.getElementById("new-rad-rate-limit")?.value || "").trim();
+        const framed_pool = (document.getElementById("new-rad-pool")?.value || "").trim();
+        const static_ip = (document.getElementById("new-rad-static-ip")?.value || "").trim();
+        const address_list = (document.getElementById("new-rad-address-list")?.value || "").trim();
         const allowed_days = document.getElementById("new-rad-days").value;
         const start_time = document.getElementById("new-rad-start-time").value || "00:00";
         const end_time = document.getElementById("new-rad-end-time").value || "24:00";
@@ -3746,7 +3757,9 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     username, password, group, simultaneous_use,
-                    expire_date, limit_gb, download_limit_gb, upload_limit_gb, rate_limit, allowed_days, start_time, end_time
+                    expire_date, limit_gb, download_limit_gb, upload_limit_gb, rate_limit,
+                    framed_pool, static_ip, address_list,
+                    allowed_days, start_time, end_time
                 })
             });
             const data = await res.json();
@@ -3781,6 +3794,9 @@
         document.getElementById("new-rad-download-limit").value = u.download_limit_gb || "";
         document.getElementById("new-rad-upload-limit").value = u.upload_limit_gb || "";
         document.getElementById("new-rad-rate-limit").value = u.rate_limit || "";
+        if (document.getElementById("new-rad-pool")) document.getElementById("new-rad-pool").value = u.framed_pool || "";
+        if (document.getElementById("new-rad-static-ip")) document.getElementById("new-rad-static-ip").value = u.static_ip || "";
+        if (document.getElementById("new-rad-address-list")) document.getElementById("new-rad-address-list").value = u.address_list || "";
         if (u.allowed_days) document.getElementById("new-rad-days").value = u.allowed_days;
         if (u.start_time) document.getElementById("new-rad-start-time").value = u.start_time;
         if (u.end_time) document.getElementById("new-rad-end-time").value = u.end_time;
@@ -4053,6 +4069,8 @@
                         <div><span style="color:#64748b;">سقف آپلود:</span> <strong style="color:#d97706;">${g.upload_gb ? g.upload_gb + ' GB' : 'نامحدود'}</strong></div>
                         <div><span style="color:#64748b;">پهنای باند:</span> <strong style="color:#b45309;">${g.rate_limit ? '⚡ ' + g.rate_limit : 'نامحدود'}</strong></div>
                         <div><span style="color:#64748b;">اعتبار:</span> <strong style="color:#0f172a;">${g.validity_days || 30} روز</strong></div>
+                        ${g.framed_pool ? `<div><span style="color:#64748b;">استخر IP:</span> <strong style="color:#6366f1; font-family:'JetBrains Mono';">${escapeHtml(g.framed_pool)}</strong></div>` : ''}
+                        ${g.price ? `<div><span style="color:#64748b;">قیمت:</span> <strong style="color:#059669;">${Number(g.price).toLocaleString()} تومان</strong></div>` : ''}
                         <div style="grid-column:1/-1;"><span style="color:#64748b;">ساعت مجاز:</span> <strong style="color:#0f172a; font-size:11px;">${schedLabel}</strong></div>
                     </div>
 
@@ -4098,6 +4116,11 @@
             if (g.start_time) document.getElementById("rad-grp-start-time").value = g.start_time;
             if (g.end_time) document.getElementById("rad-grp-end-time").value = g.end_time;
             document.getElementById("rad-grp-desc").value = g.description || "";
+            if (document.getElementById("rad-grp-pool")) document.getElementById("rad-grp-pool").value = g.framed_pool || "";
+            if (document.getElementById("rad-grp-mikrotik-group")) document.getElementById("rad-grp-mikrotik-group").value = g.mikrotik_group || "";
+            if (document.getElementById("rad-grp-session-timeout")) document.getElementById("rad-grp-session-timeout").value = g.session_timeout || "";
+            if (document.getElementById("rad-grp-starts-at")) document.getElementById("rad-grp-starts-at").value = g.starts_at || "creation";
+            if (document.getElementById("rad-grp-price")) document.getElementById("rad-grp-price").value = g.price || "";
         } else {
             titleEl.innerText = "تعریف بسته / گروه کاربری جدید";
             form.reset();
@@ -4128,6 +4151,11 @@
         const start_time = document.getElementById("rad-grp-start-time").value || "00:00";
         const end_time = document.getElementById("rad-grp-end-time").value || "24:00";
         const description = document.getElementById("rad-grp-desc").value.trim();
+        const framed_pool = (document.getElementById("rad-grp-pool")?.value || "").trim();
+        const mikrotik_group = (document.getElementById("rad-grp-mikrotik-group")?.value || "").trim();
+        const session_timeout = parseInt(document.getElementById("rad-grp-session-timeout")?.value || 0) || null;
+        const starts_at = document.getElementById("rad-grp-starts-at")?.value || "creation";
+        const price = parseFloat(document.getElementById("rad-grp-price")?.value || 0) || null;
 
         if (!id || !name) {
             showToast("شناسه و نام بسته الزامی است", "warning");
@@ -4141,8 +4169,9 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    id, name, traffic_gb, validity_days, simultaneous_use,
-                    allowed_days, start_time, end_time, description
+                    id, name, traffic_gb, download_gb, upload_gb, rate_limit,
+                    validity_days, simultaneous_use, allowed_days, start_time, end_time,
+                    description, framed_pool, mikrotik_group, session_timeout, starts_at, price
                 })
             });
             const data = await res.json();
@@ -4224,7 +4253,7 @@
                     </td>
                     <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:#334155;">${s.client_ip}</td>
                     <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:#64748b;">${s.vpn_ip || '-'}</td>
-                    <td style="padding: 12px 16px; font-size:12px; color:#475569;">${s.device || '-'}</td>
+                    <td style="padding: 12px 16px; font-size:12px; color:#475569;">${s.nas_ip || s.device || 'سرور محلی (Local)'}</td>
                     <td style="padding: 12px 16px; font-size:12px; font-family:'JetBrains Mono'; color:#64748b;">${s.connected_since || '-'}</td>
                     <td style="padding: 12px 16px; text-align: center;">
                         <button type="button" class="btn-proto-delete" onclick="kickRadiusSession('${s.username}', '${s.protocol}', '${s.session_id}')" style="padding: 5px 10px; font-size:11.5px;">
@@ -4271,6 +4300,487 @@
         });
     }
 
+    // CSV Export for RADIUS Users
+    function exportRadiusUsersCsv() {
+        const userKeys = Object.keys(currentRadiusUsers);
+        if (userKeys.length === 0) {
+            showToast("هیچ کاربری برای خروجی گرفتن وجود ندارد", "warning");
+            return;
+        }
+
+        let csv = "\uFEFFUsername,Password,Group,Traffic_GB,Download_GB,Upload_GB,Rate_Limit,Expire_Date,Simultaneous_Use,Status\n";
+        userKeys.forEach(uname => {
+            const u = currentRadiusUsers[uname];
+            const grp = u.group || "default";
+            const traffic = u.traffic_gb || "";
+            const dl = u.download_gb || "";
+            const ul = u.upload_gb || "";
+            const rate = u.rate_limit || "";
+            const exp = u.expire_date || "";
+            const sim = u.simultaneous_use || 2;
+            const status = u.active !== false ? "Active" : "Disabled";
+            csv += `"${uname}","${u.password || ''}","${grp}","${traffic}","${dl}","${ul}","${rate}","${exp}","${sim}","${status}"\n`;
+        });
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `mhpanel_radius_users_${new Date().toISOString().slice(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showToast("فایل CSV کاربران با موفقیت دانلود شد", "success");
+    }
+
+    // =========================================================================
+    // NAS Routers Management (MikroTik RouterOS 6/7, Cisco, FreeRADIUS NAS)
+    // =========================================================================
+    let currentRadiusNas = [];
+    let revealedNasSecrets = new Set();
+
+    async function fetchRadiusNas() {
+        try {
+            const res = await fetch("/api/radius/nas");
+            const data = await res.json();
+            if (res.ok) {
+                currentRadiusNas = data.nas_list || [];
+                const pillNas = document.getElementById("rad-pill-nas-count");
+                if (pillNas) pillNas.innerText = currentRadiusNas.length;
+                const statTotal = document.getElementById("stat-nas-total");
+                if (statTotal) statTotal.innerText = currentRadiusNas.length;
+                const mikrotikCount = currentRadiusNas.filter(n => (n.type || '').includes('mikrotik')).length;
+                const statMikrotik = document.getElementById("stat-nas-mikrotik");
+                if (statMikrotik) statMikrotik.innerText = mikrotikCount;
+                renderRadiusNasTable();
+            }
+        } catch (e) {
+            console.error("fetchRadiusNas error:", e);
+        }
+    }
+
+    function renderRadiusNasTable() {
+        const tbody = document.getElementById("radius-nas-tbody");
+        if (!tbody) return;
+        if (currentRadiusNas.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">هیچ روتر یا کلاینت NAS ثبت نشده است. برای اتصال روتر میکروتیک، از دکمه «افزودن روتر / NAS جدید» استفاده کنید.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        currentRadiusNas.forEach(nas => {
+            const typeLabel = nas.type === 'mikrotik_v7' ? 'MikroTik RouterOS 7' :
+                              nas.type === 'mikrotik_v6' ? 'MikroTik RouterOS 6' :
+                              nas.type === 'cisco' ? 'Cisco IOS / ASA' : 'Generic RFC 2865';
+            const coaPort = nas.coa_port || (nas.type === 'mikrotik_v6' ? 1700 : 3799);
+            const isRevealed = revealedNasSecrets.has(nas.id);
+            const secretDisplay = isRevealed ? escapeHtml(nas.secret) : '••••••••';
+
+            html += `
+                <tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding: 14px 16px; font-weight: 700; color: #0f172a;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="router" style="width:16px; height:16px; color:#6366f1;"></i>
+                            <span>${escapeHtml(nas.name)}</span>
+                        </div>
+                        ${nas.description ? `<div style="font-size:11px; color:#64748b; margin-top:2px;">${escapeHtml(nas.description)}</div>` : ''}
+                    </td>
+                    <td style="padding: 14px 16px; font-family:'JetBrains Mono'; font-weight:600; color:#0284c7;">${escapeHtml(nas.ip)}</td>
+                    <td style="padding: 14px 16px; font-family:'JetBrains Mono'; color:#334155;">
+                        <span id="nas-sec-${nas.id}">${secretDisplay}</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleRevealNasSecret('${nas.id}')" style="padding:1px 6px; font-size:10px; margin-right:6px;">
+                            <i data-lucide="${isRevealed ? 'eye-off' : 'eye'}" style="width:11px; height:11px;"></i>
+                        </button>
+                    </td>
+                    <td style="padding: 14px 16px;">
+                        <span style="background:rgba(99,102,241,0.1); color:#4f46e5; padding:3px 8px; border-radius:6px; font-size:11.5px; font-weight:600;">
+                            ${typeLabel}
+                        </span>
+                    </td>
+                    <td style="padding: 14px 16px; text-align:center; font-family:'JetBrains Mono'; font-weight:700; color:#10b981;">
+                        ${coaPort}
+                    </td>
+                    <td style="padding: 14px 16px; text-align:center;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showMikrotikNasCli('${nas.id}')" style="padding:4px 10px; font-size:11.5px; gap:4px; display:inline-flex; align-items:center;">
+                            <i data-lucide="terminal" style="width:12px; height:12px; color:#0284c7;"></i> اسکریپت میکروتیک
+                        </button>
+                    </td>
+                    <td style="padding: 14px 16px; text-align:center;">
+                        <button type="button" class="btn-proto-delete" onclick="deleteRadiusNas('${nas.id}', '${escapeHtml(nas.name)}')" style="padding:5px 10px; font-size:11.5px;">
+                            <i data-lucide="trash-2" style="width:12px; height:12px;"></i> حذف
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function toggleAddNasBox(forceState) {
+        const box = document.getElementById("add-nas-box");
+        if (!box) return;
+        const isShow = (forceState !== undefined) ? forceState : (box.style.display === "none");
+        box.style.display = isShow ? "block" : "none";
+        if (isShow && window.lucide) lucide.createIcons();
+    }
+
+    function onNasTypeChange(val) {
+        const coaInput = document.getElementById("new-nas-coa");
+        if (coaInput) {
+            coaInput.value = (val === 'mikrotik_v6') ? 1700 : 3799;
+        }
+    }
+
+    function toggleRevealNasSecret(nasId) {
+        if (revealedNasSecrets.has(nasId)) {
+            revealedNasSecrets.delete(nasId);
+        } else {
+            revealedNasSecrets.add(nasId);
+        }
+        renderRadiusNasTable();
+    }
+
+    async function submitAddNas(e) {
+        e.preventDefault();
+        const name = document.getElementById("new-nas-name").value.trim();
+        const ip = document.getElementById("new-nas-ip").value.trim();
+        const secret = document.getElementById("new-nas-secret").value.trim();
+        const type = document.getElementById("new-nas-type").value;
+        const coa_port = parseInt(document.getElementById("new-nas-coa").value || 3799);
+        const description = document.getElementById("new-nas-desc").value.trim();
+
+        if (!name || !ip || !secret) {
+            showToast("نام روتر، آدرس IP و کلید امنیتی الزامی است", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ثبت روتر NAS در هسته FreeRADIUS...");
+        try {
+            const res = await fetch("/api/radius/nas", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, ip, secret, type, coa_port, description })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok) {
+                showToast(`روتر ${name} با موفقیت در FreeRADIUS ثبت و همگام شد`, "success");
+                toggleAddNasBox(false);
+                document.getElementById("form-add-nas").reset();
+                fetchRadiusNas();
+            } else {
+                showToast(data.error || "خطا در ثبت روتر", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+    }
+
+    function deleteRadiusNas(nasId, nasName) {
+        openConfirmModal({
+            title: `حذف روتر NAS: ${nasName}`,
+            subtitle: `قطع دسترسی روتر از FreeRADIUS`,
+            message: `آیا از حذف روتر <strong>${nasName}</strong> اطمینان دارید؟ پس از حذف، این روتر اجازه احراز هویت نخواهد داشت.`,
+            isDanger: true,
+            confirmText: "بله، روتر را حذف کن",
+            cancelText: "انصراف (رد)",
+            onConfirm: async () => {
+                toggleLoading(true, `در حال حذف روتر ${nasName}...`);
+                try {
+                    const res = await fetch(`/api/radius/nas/${encodeURIComponent(nasId)}`, { method: "DELETE" });
+                    const data = await res.json();
+                    toggleLoading(false);
+                    if (res.ok) {
+                        showToast(`روتر ${nasName} با موفقیت حذف شد`, "success");
+                        fetchRadiusNas();
+                    } else {
+                        showToast(data.error || "خطا در حذف روتر", "error");
+                    }
+                } catch (e) {
+                    toggleLoading(false);
+                    showToast("خطا در ارتباط با سرور", "error");
+                }
+            }
+        });
+    }
+
+    function showMikrotikNasCli(nasId) {
+        const nas = currentRadiusNas.find(n => n.id === nasId);
+        if (!nas) return;
+        const serverIp = window.location.hostname || "SERVER_IP";
+        const authPort = document.getElementById("rad-auth-port")?.value || 1812;
+        const acctPort = document.getElementById("rad-acct-port")?.value || 1813;
+        const coaPort = nas.coa_port || (nas.type === 'mikrotik_v6' ? 1700 : 3799);
+
+        let cli = `# ========================================================\n`;
+        cli += `# MikroTik RouterOS Configuration for FreeRADIUS Hub\n`;
+        cli += `# Router: ${nas.name} (${nas.ip})\n`;
+        cli += `# ========================================================\n\n`;
+
+        if (nas.type === 'mikrotik_v6') {
+            cli += `# 1. Add FreeRADIUS Client to RouterOS v6\n`;
+            cli += `/radius add address=${serverIp} secret="${nas.secret}" service=ppp,hotspot,login,ipsec timeout=3000ms authentication-port=${authPort} accounting-port=${acctPort} comment="MHPanel FreeRADIUS"\n\n`;
+            cli += `# 2. Enable Incoming Disconnect (CoA / PoD) on port ${coaPort}\n`;
+            cli += `/radius incoming set accept=yes port=${coaPort}\n\n`;
+            cli += `# 3. Enable RADIUS AAA for PPP VPNs with interim accounting updates\n`;
+            cli += `/ppp aaa set use-radius=yes interim-update=1m\n`;
+        } else {
+            cli += `# 1. Add FreeRADIUS Client to RouterOS v7\n`;
+            cli += `/radius add address=${serverIp} secret="${nas.secret}" service=ppp,hotspot,login,ipsec timeout=3000ms authentication-port=${authPort} accounting-port=${acctPort} comment="MHPanel FreeRADIUS"\n\n`;
+            cli += `# 2. Enable Incoming Disconnect (CoA / PoD) on standard port ${coaPort}\n`;
+            cli += `/radius incoming set accept=yes port=${coaPort}\n\n`;
+            cli += `# 3. Enable RADIUS AAA for PPP VPNs with 1-minute interim accounting\n`;
+            cli += `/ppp aaa set use-radius=yes interim-update=1m\n`;
+        }
+
+        const modal = document.getElementById("mikrotik-script-modal");
+        const codeArea = document.getElementById("mikrotik-cli-code");
+        const titleEl = document.getElementById("mikrotik-modal-title");
+        if (titleEl) titleEl.innerText = `دستورات میکروتیک برای روتر: ${nas.name}`;
+        if (codeArea) codeArea.value = cli;
+        if (modal) modal.classList.add("active");
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeMikrotikScriptModal() {
+        const modal = document.getElementById("mikrotik-script-modal");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function copyMikrotikCliFromModal() {
+        const codeArea = document.getElementById("mikrotik-cli-code");
+        if (!codeArea) return;
+        copyTextToClipboard(codeArea.value, "دستورات روتر میکروتیک در حافظه کپی شد.");
+    }
+
+    // =========================================================================
+    // Vouchers Generator (MikroTik User Manager Vouchers)
+    // =========================================================================
+    let currentGeneratedVouchers = [];
+
+    function populateVoucherGroupSelect() {
+        const select = document.getElementById("voucher-group-select");
+        if (!select) return;
+        const entries = Object.entries(currentRadiusGroups);
+        select.innerHTML = entries.map(([id, g]) => `<option value="${id}">${g.name} (${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'} - ${g.validity_days || 30} روز)</option>`).join("");
+    }
+
+    async function generateVouchers() {
+        const group_id = document.getElementById("voucher-group-select")?.value || "default";
+        const count = parseInt(document.getElementById("voucher-count-select")?.value || 10);
+        const prefix = document.getElementById("voucher-prefix")?.value || "v-";
+        const length = parseInt(document.getElementById("voucher-length-select")?.value || 6);
+        const charset = document.getElementById("voucher-charset-select")?.value || "easy";
+        const passmode = document.getElementById("voucher-passmode-select")?.value || "same";
+
+        toggleLoading(true, `در حال تولید و ثبت ${count} کارت شارژ...`);
+        try {
+            const res = await fetch("/api/radius/vouchers/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ group_id, count, prefix, length, charset, passmode })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok) {
+                currentGeneratedVouchers = data.vouchers || [];
+                showToast(data.message || `${count} کارت شارژ با موفقیت تولید شد`, "success");
+                renderGeneratedVouchers(data.group, currentGeneratedVouchers);
+                fetchRadiusData(true);
+            } else {
+                showToast(data.error || "خطا در تولید کارت شارژ", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+    }
+
+    function renderGeneratedVouchers(group, vouchers) {
+        const container = document.getElementById("rad-printable-vouchers-container");
+        const btnPrint = document.getElementById("btn-print-vouchers");
+        const btnExport = document.getElementById("btn-export-vouchers");
+        if (!container) return;
+
+        if (!vouchers || vouchers.length === 0) {
+            container.style.display = "none";
+            if (btnPrint) btnPrint.style.display = "none";
+            if (btnExport) btnExport.style.display = "none";
+            return;
+        }
+
+        container.style.display = "grid";
+        if (btnPrint) btnPrint.style.display = "inline-flex";
+        if (btnExport) btnExport.style.display = "inline-flex";
+
+        const grpName = group ? group.name : 'اینترنت پرسرعت';
+        const trafficStr = group && group.traffic_gb > 0 ? `${group.traffic_gb} گیگابایت` : 'نامحدود';
+        const validityStr = group ? `${group.validity_days || 30} روز اعتبار` : '۳۰ روز';
+        const speedStr = group && group.rate_limit ? `سرعت: ${group.rate_limit}` : '';
+
+        let html = "";
+        vouchers.forEach((v, idx) => {
+            html += `
+                <div class="rad-voucher-card">
+                    <div class="rad-voucher-header">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="wifi" style="width:16px; height:16px; color:#4f46e5;"></i>
+                            <strong style="font-size:13px;">${escapeHtml(grpName)}</strong>
+                        </div>
+                        <span style="font-size:10.5px; color:#64748b; font-family:'JetBrains Mono';">#${idx + 1}</span>
+                    </div>
+                    <div style="background:rgba(241,245,249,0.7); padding:10px 12px; border-radius:8px; display:flex; flex-direction:column; gap:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; color:#64748b;">نام کاربری:</span>
+                            <span class="rad-voucher-code">${escapeHtml(v.username)}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; color:#64748b;">رمز عبور:</span>
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; font-size:13px; color:#0f172a;">${escapeHtml(v.password)}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#64748b; border-top:1px dashed rgba(100,116,139,0.2); padding-top:6px;">
+                        <span>حجم: <b>${trafficStr}</b></span>
+                        <span>اعتبار: <b>${validityStr}</b></span>
+                        ${speedStr ? `<span>${speedStr}</span>` : ''}
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function printVouchersCards() {
+        window.print();
+    }
+
+    function exportVouchersList() {
+        if (!currentGeneratedVouchers || currentGeneratedVouchers.length === 0) return;
+        let txt = "Username\tPassword\tExpires\n";
+        currentGeneratedVouchers.forEach(v => {
+            txt += `${v.username}\t${v.password}\t${v.expire_date}\n`;
+        });
+        copyTextToClipboard(txt, "لیست ووچرها در حافظه کپی شد.");
+    }
+
+    // =========================================================================
+    // External RADIUS Presets & Operating Mode Handlers
+    // =========================================================================
+    let currentRadiusOperatingMode = "internal";
+    let currentRadiusPreset = "mikrotik_v7";
+
+    const RADIUS_PRESET_GUIDES = {
+        mikrotik_v7: {
+            title: "راهنمای اتصال به MikroTik User Manager v7 (RouterOS 7)",
+            auth_port: 1812,
+            acct_port: 1813,
+            coa_port: 3799,
+            content: `
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <p style="margin:0;">برای اتصال پروتکل‌های این پنل به یوزر منیجر میکروتیک نسخه ۷:</p>
+                    <ol style="margin:0; padding-right:20px; line-height:1.7;">
+                        <li>در روتر میکروتیک وارد منوی <b>/user-manager/router</b> شده و یک Router جدید با IP همین پنل و یک Secret قوی ایجاد نمایید.</li>
+                        <li>در بخش CoA Port عدد <b>3799</b> را بررسی کنید.</li>
+                        <li>آدرس IP میکروتیک و Secret مشترک را در فرم زیر وارد کرده و دکمه <b>ذخیره و اعمال تغییرات</b> را بزنید.</li>
+                    </ol>
+                </div>
+            `
+        },
+        mikrotik_v6: {
+            title: "راهنمای اتصال به MikroTik User Manager v6 (RouterOS 6)",
+            auth_port: 1812,
+            acct_port: 1813,
+            coa_port: 1700,
+            content: `
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <p style="margin:0;">برای اتصال پروتکل‌های این پنل به یوزر منیجر میکروتیک نسخه ۶:</p>
+                    <ol style="margin:0; padding-right:20px; line-height:1.7;">
+                        <li>در روتر میکروتیک دستور <code>/tool user-manager router add ip-address=... shared-secret=... coa-port=1700</code> را اجرا فرمایید.</li>
+                        <li>پورت احراز هویت 1812، حسابداری 1813 و پورت قطع اتصال 1700 می‌باشد.</li>
+                    </ol>
+                </div>
+            `
+        },
+        ibsng: {
+            title: "راهنمای اتصال به اکانتینگ IBSng",
+            auth_port: 1812,
+            acct_port: 1813,
+            coa_port: 3799,
+            content: `
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <p style="margin:0;">برای اتصال پروتکل‌های سرور به اکانتینگ محبوب IBSng:</p>
+                    <ol style="margin:0; padding-right:20px; line-height:1.7;">
+                        <li>در پنل مدیریت IBSng وارد منوی <b>Setting -> RAS</b> شده و یک RAS جدید با IP عمومی این سرور و Radius Secret دلخواه تعریف کنید.</li>
+                        <li>نوع RAS را <code>Standard Radius</code> یا <code>Mikrotik</code> انتخاب نمایید.</li>
+                        <li>آدرس سرور IBSng و Secret را در فرم زیر قرار داده و پروتکل‌های مدنظر را فعال بفرمایید.</li>
+                    </ol>
+                </div>
+            `
+        },
+        cisco: {
+            title: "راهنمای اتصال به سرور Cisco ACS / ISE",
+            auth_port: 1812,
+            acct_port: 1813,
+            coa_port: 3799,
+            content: `
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <p style="margin:0;">اتصال به سرور احراز هویت سیسکو:</p>
+                    <p style="margin:0;">سرور سیسکو را به عنوان AAA Client با IP این پنل پیکربندی کرده و پروتکل MS-CHAPv2 یا PAP را فعال بفرمایید.</p>
+                </div>
+            `
+        },
+        custom: {
+            title: "اتصال به سرور ردیوس اختصاصی (Custom RFC 2865)",
+            auth_port: 1812,
+            acct_port: 1813,
+            coa_port: 3799,
+            content: `<p style="margin:0;">آدرس سرور، سکرت و پورت‌های دلخواه سرور FreeRADIUS یا Radiator را در فرم وارد نمایید.</p>`
+        }
+    };
+
+    function setRadiusOperatingMode(mode) {
+        currentRadiusOperatingMode = mode;
+        const cardInt = document.getElementById("mode-card-internal");
+        const cardExt = document.getElementById("mode-card-external");
+        const presetsBox = document.getElementById("external-presets-container");
+        const intDetailsCard = document.getElementById("internal-server-details-card");
+
+        if (mode === "internal") {
+            if (cardInt) cardInt.classList.add("active");
+            if (cardExt) cardExt.classList.remove("active");
+            if (presetsBox) presetsBox.style.display = "none";
+            if (intDetailsCard) intDetailsCard.style.display = "block";
+            document.getElementById("rad-ip").value = "127.0.0.1";
+        } else {
+            if (cardInt) cardInt.classList.remove("active");
+            if (cardExt) cardExt.classList.add("active");
+            if (presetsBox) presetsBox.style.display = "block";
+            if (intDetailsCard) intDetailsCard.style.display = "none";
+            selectRadiusPreset(currentRadiusPreset);
+        }
+    }
+
+    function selectRadiusPreset(preset) {
+        currentRadiusPreset = preset;
+        const cards = document.querySelectorAll(".rad-preset-card");
+        cards.forEach(c => c.classList.remove("active"));
+        const activeCard = document.getElementById(`preset-card-${preset}`);
+        if (activeCard) activeCard.classList.add("active");
+
+        const info = RADIUS_PRESET_GUIDES[preset] || RADIUS_PRESET_GUIDES.custom;
+        const titleEl = document.getElementById("preset-guide-title");
+        const contentEl = document.getElementById("preset-guide-content");
+        if (titleEl) titleEl.innerText = info.title;
+        if (contentEl) contentEl.innerHTML = info.content;
+
+        document.getElementById("rad-auth-port").value = info.auth_port;
+        document.getElementById("rad-acct-port").value = info.acct_port;
+        const coaInput = document.getElementById("rad-coa-port");
+        if (coaInput) coaInput.value = info.coa_port;
+    }
+
     // =========================================================================
     // RADIUS Core Server Configuration
     // =========================================================================
@@ -4286,6 +4796,7 @@
                 document.getElementById("rad-secret").value = data.shared_secret || "testing123";
                 document.getElementById("rad-auth-port").value = data.auth_port || 1812;
                 document.getElementById("rad-acct-port").value = data.acct_port || 1813;
+                if (document.getElementById("rad-coa-port")) document.getElementById("rad-coa-port").value = data.coa_port || 3799;
                 
                 document.getElementById("rad-toggle-ssh").checked = data.enabled_protocols.includes("ssh");
                 document.getElementById("rad-toggle-openvpn").checked = data.enabled_protocols.includes("openvpn");
@@ -4295,7 +4806,7 @@
                 if (document.getElementById("rad-toggle-l2tp")) document.getElementById("rad-toggle-l2tp").checked = data.enabled_protocols.includes("l2tp");
                 
                 const ipsEl = document.getElementById("rad-ips-display");
-                if (ipsEl) ipsEl.innerText = `127.0.0.1 / ${data.public_ip || '212.227.143.16'}`;
+                if (ipsEl) ipsEl.innerText = `127.0.0.1 / ${data.public_ip || '13.140.86.132'}`;
 
                 const secEl = document.getElementById("rad-secret-display");
                 if (secEl) secEl.innerText = data.shared_secret || 'testing123';
@@ -4321,6 +4832,12 @@
                         badge.style.color = "var(--color-rose)";
                     }
                 }
+
+                // Set mode & provider
+                const mode = data.mode || "internal";
+                const provider = data.provider || "mikrotik_v7";
+                currentRadiusPreset = provider;
+                setRadiusOperatingMode(mode);
             }
         } catch (err) {
             console.error(err);
@@ -4350,28 +4867,35 @@
         }
     });
 
-    // Test RADIUS Server
+    // Test RADIUS Server Link with Full Diagnostics
     document.getElementById("rad-test-btn")?.addEventListener("click", async () => {
         const server_ip = document.getElementById("rad-ip").value || "127.0.0.1";
         const shared_secret = document.getElementById("rad-secret").value || "testing123";
+        const auth_port = parseInt(document.getElementById("rad-auth-port").value) || 1812;
+        const outBox = document.getElementById("rad-test-output-box");
         
-        toggleLoading(true, "Testing RADIUS authentication link...");
+        toggleLoading(true, "در حال آزمایش احراز هویت RADIUS (RFC 2865 radtest)...");
         try {
             const res = await fetch("/api/radius/test", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ server_ip, shared_secret })
+                body: JSON.stringify({ server_ip, shared_secret, auth_port })
             });
             const data = await res.json();
+            toggleLoading(false);
+            if (outBox) {
+                outBox.style.display = "block";
+                outBox.innerText = `[RADIUS Diagnostic AAA Log - ${new Date().toLocaleTimeString()}]\nTarget: ${server_ip}:${auth_port}\nStatus: ${data.success ? 'SUCCESS (Access-Accept)' : 'REJECT / TIMEOUT'}\nMessage: ${data.message || data.error}\n\nRaw Trace:\n${data.output || 'No output'}`;
+            }
             if (data.success) {
                 showToast(data.message, "success");
             } else {
-                showToast(data.error, "error");
+                showToast(data.error || "خطا در ارتباط با سرور ردیوس", "error");
             }
         } catch (e) {
+            toggleLoading(false);
             showToast("Failed to test RADIUS connection", "error");
         }
-        toggleLoading(false);
     });
 
     // Save & Apply RADIUS config
@@ -4382,6 +4906,9 @@
         const shared_secret = document.getElementById("rad-secret").value || "testing123";
         const auth_port = parseInt(document.getElementById("rad-auth-port").value) || 1812;
         const acct_port = parseInt(document.getElementById("rad-acct-port").value) || 1813;
+        const coa_port = parseInt(document.getElementById("rad-coa-port")?.value || 3799);
+        const mode = currentRadiusOperatingMode || "internal";
+        const provider = currentRadiusPreset || "mikrotik_v7";
         
         const protocols = [];
         if (document.getElementById("rad-toggle-ssh")?.checked) protocols.push("ssh");
@@ -4391,14 +4918,18 @@
         if (document.getElementById("rad-toggle-sstp")?.checked) protocols.push("sstp");
         if (document.getElementById("rad-toggle-l2tp")?.checked) protocols.push("l2tp");
         
-        toggleLoading(true, "Saving configurations & restarting linked services...");
+        toggleLoading(true, "در حال ذخیره و راه‌اندازی مجدد پروتکل‌ها...");
         try {
             const res = await fetch("/api/radius", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ server_ip, shared_secret, auth_port, acct_port, protocols })
+                body: JSON.stringify({
+                    server_ip, shared_secret, auth_port, acct_port, coa_port,
+                    mode, provider, protocols
+                })
             });
             const data = await res.json();
+            toggleLoading(false);
             if (res.ok) {
                 showToast("تنظیمات ردیوس با موفقیت ذخیره و اعمال شد!", "success");
                 fetchRadiusConfig();
@@ -4407,9 +4938,9 @@
                 showToast("Failed to save configuration: " + data.error, "error");
             }
         } catch (err) {
+            toggleLoading(false);
             showToast("Error updating RADIUS parameters", "error");
         }
-        toggleLoading(false);
     });
 
 

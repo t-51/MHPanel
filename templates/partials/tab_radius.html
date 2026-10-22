@@ -1,422 +1,827 @@
 <div class="tab-pane" id="tab-radius">
-<div style="max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
-<!-- RADIUS Sub-Tabs Navigation Header -->
-<div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
-<div>
-<h2 style="font-size: 20px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin: 0;">
-<i data-lucide="database" style="color: #059669; width: 24px; height: 24px;"></i> <span data-i18n="radius_title">مدیریت یکپارچه ردیوس و کاربران سراسری (FreeRADIUS Hub)</span>
-</h2>
-<p data-i18n="rad_comprehensive_user_management_system_pack" style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">
-                    سیستم مدیریت جامع کاربران، بسته‌ها (مشابه میکروتیک User Manager)، نشست‌های آنلاین و احراز هویت مرکزی
+    <div style="max-width: 1250px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+        
+        <!-- RADIUS Master Header -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 style="font-size: 20px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <i data-lucide="router" style="color: #059669; width: 24px; height: 24px;"></i>
+                    <span data-i18n="radius_title">مدیریت ردیوس و یوزر منیجر میکروتیک (FreeRADIUS Hub)</span>
+                </h2>
+                <p style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">
+                    سامانه جامع یوزر منیجر (مشابه MikroTik User Manager v6/v7)، تعریف روترهای NAS، کارت شارژ (Vouchers)، نشست‌های آنلاین و درگاه اتصال به ردیوس‌های خارجی (IBSng / Cisco)
                 </p>
-</div>
-<!-- Segmented Sub-Tab Switcher -->
-<div class="rad-tab-nav" id="rad-subtab-nav">
-<button class="rad-tab-btn active" id="subtab-btn-users" onclick="switchRadiusSubTab('users')" type="button">
-<i data-lucide="users" style="width: 16px; height: 16px;"></i> <span data-i18n="rad_radius_users">کاربران ردیوس</span>
-<span class="badge-pill" id="rad-pill-users-count">0</span>
-</button>
-<button class="rad-tab-btn" id="subtab-btn-groups" onclick="switchRadiusSubTab('groups')" type="button">
-<i data-lucide="layers" style="width: 16px; height: 16px;"></i> <span data-i18n="rad_groups_packages_profiles">گروه‌ها و بسته‌ها (Profiles)</span>
-<span class="badge-pill" id="rad-pill-groups-count">0</span>
-</button>
-<button class="rad-tab-btn" id="subtab-btn-online" onclick="switchRadiusSubTab('online')" type="button">
-<i data-lucide="radio" style="width: 16px; height: 16px; color: #10b981;"></i> <span data-i18n="rad_online_meetings">نشست‌های متصل (Online)</span>
-<span class="badge-pill" id="rad-pill-online-count" style="background: rgba(16, 185, 129, 0.15); color: #059669;">0</span>
-</button>
-<button class="rad-tab-btn" id="subtab-btn-server" onclick="switchRadiusSubTab('server')" type="button">
-<i data-lucide="settings" style="width: 16px; height: 16px;"></i> <span data-i18n="rad_kernel_server_settings">هسته و تنظیمات سرور</span>
-</button>
-</div>
-</div>
-<!-- ========================================== -->
-<!-- SUB-TAB 1: USERS MANAGEMENT -->
-<!-- ========================================== -->
-<div class="rad-subpane" id="rad-subpane-users" style="display: flex; flex-direction: column; gap: 20px;">
-<!-- Quick Stats Cards Row -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
-<div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; ">
-<div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(79, 70, 229, 0.1); display: flex; align-items: center; justify-content: center; color: #4f46e5;">
-<i data-lucide="users" style="width: 22px; height: 22px;"></i>
-</div>
-<div>
-<div data-i18n="rad_all_radius_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کل کاربران ردیوس</div>
-<div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
-</div>
-</div>
-<div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; ">
-<div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-<i data-lucide="user-check" style="width: 22px; height: 22px;"></i>
-</div>
-<div>
-<div data-i18n="rad_authorized_active_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کاربران مجاز و فعال</div>
-<div id="stat-rad-active" style="font-size: 20px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono';">0</div>
-</div>
-</div>
-<div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; ">
-<div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(14, 165, 233, 0.1); display: flex; align-items: center; justify-content: center; color: #0284c7;">
-<i data-lucide="activity" style="width: 22px; height: 22px;"></i>
-</div>
-<div>
-<div data-i18n="rad_simultaneous_online_meetings" style="font-size: 11.5px; color: #64748b; font-weight: 600;">نشست‌های همزمان آنلاین</div>
-<div id="stat-rad-online" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono';">0</div>
-</div>
-</div>
-<div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px; ">
-<div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #dc2626;">
-<i data-lucide="user-x" style="width: 22px; height: 22px;"></i>
-</div>
-<div>
-<div data-i18n="rad_expired_blocked" style="font-size: 11.5px; color: #64748b; font-weight: 600;">منقضی یا مسدود</div>
-<div id="stat-rad-expired" style="font-size: 20px; font-weight: 800; color: #dc2626; font-family: 'JetBrains Mono';">0</div>
-</div>
-</div>
-</div>
-<!-- Toolbar & Actions Bar -->
-<div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
-<!-- Search Input -->
-<div style="position: relative; min-width: 220px;">
-<i data-lucide="search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8;"></i>
-<input class="form-input" data-i18n-placeholder="rad_item_9" id="search-rad-user" oninput="filterRadiusUsersTable()" placeholder="جستجوی نام کاربری..." style="padding-right: 36px; padding-left: 12px; height: 38px; font-size: 13px;" type="text"/>
-</div>
-<!-- Group Filter -->
-<select class="form-select" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 140px;">
-<option data-i18n="rad_all_packages_groups" value="">همه بسته‌ها / گروه‌ها</option>
-</select>
-<!-- Status Filter -->
-<select class="form-select" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 120px;">
-<option data-i18n="rad_all_situations" value="all">همه وضعیت‌ها</option>
-<option data-i18n="rad_active_only" value="active">فقط فعال</option>
-<option data-i18n="rad_inactive_expired_only" value="disabled">فقط غیرفعال/منقضی</option>
-<option data-i18n="rad_online_only" value="online">فقط آنلاین</option>
-</select>
-</div>
-<div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-<button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #dc2626 !important; background: rgba(254, 242, 242, 0.8);" type="button">
-<i class="btn-icon" data-lucide="trash-2" style="color:#dc2626;"></i> <span data-i18n="rad_mass_delete">حذف دسته‌جمعی (</span><span id="bulk-selected-count">0</span>)
+            </div>
+
+            <!-- Segmented Sub-Tab Switcher (6 Tabs) -->
+            <div class="rad-tab-nav" id="rad-subtab-nav">
+                <button class="rad-tab-btn active" id="subtab-btn-users" onclick="switchRadiusSubTab('users')" type="button">
+                    <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="rad_radius_users">کاربران ردیوس</span>
+                    <span class="badge-pill" id="rad-pill-users-count">0</span>
+                </button>
+                <button class="rad-tab-btn" id="subtab-btn-groups" onclick="switchRadiusSubTab('groups')" type="button">
+                    <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="rad_groups_packages_profiles">پروفایل‌ها و بسته‌ها</span>
+                    <span class="badge-pill" id="rad-pill-groups-count">0</span>
+                </button>
+                <button class="rad-tab-btn" id="subtab-btn-nas" onclick="switchRadiusSubTab('nas')" type="button">
+                    <i data-lucide="server" style="width: 16px; height: 16px; color: #6366f1;"></i>
+                    <span>روترها (NAS)</span>
+                    <span class="badge-pill" id="rad-pill-nas-count" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5;">0</span>
+                </button>
+                <button class="rad-tab-btn" id="subtab-btn-online" onclick="switchRadiusSubTab('online')" type="button">
+                    <i data-lucide="radio" style="width: 16px; height: 16px; color: #10b981;"></i>
+                    <span data-i18n="rad_online_meetings">نشست‌های آنلاین</span>
+                    <span class="badge-pill" id="rad-pill-online-count" style="background: rgba(16, 185, 129, 0.15); color: #059669;">0</span>
+                </button>
+                <button class="rad-tab-btn" id="subtab-btn-vouchers" onclick="switchRadiusSubTab('vouchers')" type="button">
+                    <i data-lucide="ticket" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                    <span>کارت شارژ (Vouchers)</span>
+                </button>
+                <button class="rad-tab-btn" id="subtab-btn-server" onclick="switchRadiusSubTab('server')" type="button">
+                    <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+                    <span data-i18n="rad_kernel_server_settings">هسته و درگاه ردیوس</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 1: USERS MANAGEMENT                -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-users" style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Quick Stats Cards Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(79, 70, 229, 0.1); display: flex; align-items: center; justify-content: center; color: #4f46e5;">
+                        <i data-lucide="users" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div data-i18n="rad_all_radius_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کل کاربران ردیوس</div>
+                        <div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                        <i data-lucide="user-check" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div data-i18n="rad_authorized_active_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کاربران مجاز و فعال</div>
+                        <div id="stat-rad-active" style="font-size: 20px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(14, 165, 233, 0.1); display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                        <i data-lucide="activity" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div data-i18n="rad_simultaneous_online_meetings" style="font-size: 11.5px; color: #64748b; font-weight: 600;">نشست‌های آنلاین</div>
+                        <div id="stat-rad-online" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #dc2626;">
+                        <i data-lucide="user-x" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div data-i18n="rad_expired_blocked" style="font-size: 11.5px; color: #64748b; font-weight: 600;">منقضی یا مسدود</div>
+                        <div id="stat-rad-expired" style="font-size: 20px; font-weight: 800; color: #dc2626; font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Toolbar & Actions Bar -->
+            <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+                    <!-- Search Input -->
+                    <div style="position: relative; min-width: 220px;">
+                        <i data-lucide="search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8;"></i>
+                        <input class="form-input" data-i18n-placeholder="rad_item_9" id="search-rad-user" oninput="filterRadiusUsersTable()" placeholder="جستجوی نام کاربری..." style="padding-right: 36px; padding-left: 12px; height: 38px; font-size: 13px;" type="text"/>
+                    </div>
+                    <!-- Group Filter -->
+                    <select class="form-select" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 140px;">
+                        <option data-i18n="rad_all_packages_groups" value="">همه بسته‌ها / گروه‌ها</option>
+                    </select>
+                    <!-- Status Filter -->
+                    <select class="form-select" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 120px;">
+                        <option data-i18n="rad_all_situations" value="all">همه وضعیت‌ها</option>
+                        <option data-i18n="rad_active_only" value="active">فقط فعال</option>
+                        <option data-i18n="rad_inactive_expired_only" value="disabled">فقط غیرفعال/منقضی</option>
+                        <option data-i18n="rad_online_only" value="online">فقط آنلاین</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #dc2626 !important; background: rgba(254, 242, 242, 0.8);" type="button">
+                        <i class="btn-icon" data-lucide="trash-2" style="color:#dc2626;"></i> <span data-i18n="rad_mass_delete">حذف دسته‌جمعی (</span><span id="bulk-selected-count">0</span>)
                     </button>
-<button class="btn btn-secondary" onclick="openBatchRadiusModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" type="button">
-<i class="btn-icon" data-lucide="users"></i> <span data-i18n="rad_batch_production">ساخت دسته‌جمعی (Batch)</span>
-</button>
-<button class="btn btn-secondary" data-i18n-title="rad_portal_settings_sub_page" onclick="openSubSettingsModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="تنظیمات پورتال و صفحه ساب" type="button">
-<i class="btn-icon" data-lucide="link" style="color: #6366f1;"></i> <span data-i18n="rad_sub_settings">تنظیمات ساب</span>
-</button>
-<button class="btn btn-primary" onclick="toggleAddRadiusUserBox()" style="height: 38px; padding: 0 16px; font-size: 12.5px;" type="button">
-<i class="btn-icon" data-lucide="user-plus"></i> <span data-i18n="ovpn_item_17">کاربر جدید</span>
-</button>
-</div>
-</div>
-<!-- Single User Add / Edit Collapsible Box -->
-<div id="add-radius-user-box" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-<h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
-<i data-lucide="user-plus" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
-<span data-i18n="rad_radius_new_user_profile" id="radius-user-form-title">مشخصات کاربر جدید ردیوس</span>
-</h4>
-<button class="modal-close" onclick="toggleAddRadiusUserBox(false)" type="button"><i data-lucide="x"></i></button>
-</div>
-<form id="form-add-radius-user" onsubmit="submitSingleRadiusUser(event)">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
-<input class="form-input" data-i18n-placeholder="rad_client1" id="new-rad-user" placeholder="مثال: client1" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
-<div style="display:flex; gap:6px;">
-<input class="form-input" data-i18n-placeholder="login_password" id="new-rad-pass" placeholder="رمز عبور" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
-<button class="btn btn-secondary" data-i18n-title="rad_random_password_generation" onclick="generateRandomPassForInput('new-rad-pass')" style="padding:0 10px; width:auto;" title="تولید رمز رندوم" type="button">
-<i data-lucide="key" style="width:14px; height:14px;"></i>
-</button>
-</div>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_mikrotik_profile">گروه / پکیج کاربری (Mikrotik Profile)</label>
-<select class="form-select" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)">
-</select>
-</div>
-</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_simultaneous_connection_simultaneous_use">اتصال همزمان (Simultaneous-Use)</label>
-<input class="form-input" id="new-rad-sim-use" max="100" min="1" style="padding-left:14px;" type="number" value="2"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_expiry_date">تاریخ انقضا (Expire Date)</label>
-<input class="form-input" id="new-rad-expire" style="padding-left:14px;" type="date"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_traffic_limit_gb">سقف کل حجم (GB)</label>
-<input class="form-input" data-i18n-placeholder="ssh_item_8" id="new-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_down_limit_gb">سقف مجاز دانلود (GB)</label>
-<input class="form-input" id="new-rad-download-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_up_limit_gb">سقف مجاز آپلود (GB)</label>
-<input class="form-input" id="new-rad-upload-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_rate_limit_label">محدودیت پهنای باند و سرعت (Rate Limit)</label>
-<div style="display:flex; gap:6px;">
-<input class="form-input" id="new-rad-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; padding-left:12px; font-size:12.5px; direction:ltr;" type="text"/>
-<select class="form-select" onchange="if(this.value) document.getElementById('new-rad-rate-limit').value = this.value;" style="width:auto; font-size:11.5px; padding:4px 8px;">
-<option value="">پرزیت سرعت...</option>
-<option value="2M/2M">۲ مگابیت (2M/2M)</option>
-<option value="5M/5M">۵ مگابیت (5M/5M)</option>
-<option value="10M/10M">۱۰ مگابیت (10M/10M)</option>
-<option value="20M/20M">۲۰ مگابیت (20M/20M)</option>
-<option value="50M/50M">۵۰ مگابیت (50M/50M)</option>
-<option value="100M/100M">۱۰۰ مگابیت (100M/100M)</option>
-<option value="">نامحدود</option>
-</select>
-</div>
-</div>
-</div>
-<!-- Login-Time schedule config -->
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
-<div data-i18n="rad_freeradius_login_time" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">محدودیت زمانی اتصال (FreeRADIUS Login-Time)</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-<div>
-<label data-i18n="rad_allowed_days" style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
-<select class="form-select" id="new-rad-days" style="padding: 7px 10px; font-size: 12.5px;">
-<option data-i18n="rad_24_7" value="all">تمام روزهای هفته (24/7)</option>
-<option data-i18n="rad_working_days_monday_friday" value="weekdays">روزهای کاری (دوشنبه تا جمعه)</option>
-<option data-i18n="rad_item_7" value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>
-</select>
-</div>
-<div>
-<label data-i18n="rad_start_time" style="font-size: 11px; color: #64748b;">ساعت شروع:</label>
-<input class="form-input" id="new-rad-start-time" style="padding: 7px 8px; font-size: 12.5px;" type="time" value="00:00"/>
-</div>
-<div>
-<label data-i18n="rad_end_time" style="font-size: 11px; color: #64748b;">ساعت پایان:</label>
-<input class="form-input" id="new-rad-end-time" style="padding: 7px 8px; font-size: 12.5px;" type="time" value="24:00"/>
-</div>
-</div>
-</div>
-<div style="display: flex; gap: 10px; justify-content: flex-end;">
-<button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="toggleAddRadiusUserBox(false)" type="button">انصراف</button>
-<button class="btn btn-primary" type="submit">
-<i class="btn-icon" data-lucide="check"></i> <span data-i18n="rad_item_2">ذخیره و همگام‌سازی کاربر</span>
-</button>
-</div>
-</form>
-</div>
-<!-- Users Interactive Table Card -->
-<div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow); box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03);">
-<div style="overflow-x: auto;">
-<table id="radius-users-table" class="rad-users-table">
-<thead>
-<tr>
-<th style="width: 44px; text-align: center;">
-<input class="rad-table-check" data-i18n-title="rad_select_all" id="check-select-all-rad" onchange="toggleSelectAllRadiusUsers(this.checked)" title="انتخاب همه" type="checkbox"/>
-</th>
-<th style="min-width: 220px;" data-i18n="rad_col_user_identity">کاربر و مشخصات حساب</th>
-<th style="min-width: 260px;" data-i18n="rad_col_traffic_quotas">مصرف ترافیک و سهمیه‌ها (دانلود / آپلود)</th>
-<th style="min-width: 130px; text-align: center;" data-i18n="rad_col_bandwidth">پهنای باند (Rate Limit)</th>
-<th style="min-width: 140px;" data-i18n="rad_col_expiration_schedule">اعتبار و زمان‌بندی</th>
-<th style="min-width: 170px; text-align: center;" data-i18n="rad_col_sub_actions">لینک ساب و عملیات</th>
-</tr>
-</thead>
-<tbody id="radius-users-tbody">
-<tr>
-<td colspan="6" data-i18n="rad_item_11" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <button class="btn btn-secondary" onclick="exportRadiusUsersCsv()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="خروجی فایل اکسل / CSV" type="button">
+                        <i class="btn-icon" data-lucide="download"></i> <span>خروجی CSV</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="openBatchRadiusModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" type="button">
+                        <i class="btn-icon" data-lucide="users"></i> <span data-i18n="rad_batch_production">ساخت دسته‌جمعی</span>
+                    </button>
+                    <button class="btn btn-secondary" data-i18n-title="rad_portal_settings_sub_page" onclick="openSubSettingsModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="تنظیمات پورتال و صفحه ساب" type="button">
+                        <i class="btn-icon" data-lucide="link" style="color: #6366f1;"></i> <span data-i18n="rad_sub_settings">تنظیمات ساب</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="toggleAddRadiusUserBox()" style="height: 38px; padding: 0 16px; font-size: 12.5px;" type="button">
+                        <i class="btn-icon" data-lucide="user-plus"></i> <span data-i18n="ovpn_item_17">کاربر جدید</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Single User Add / Edit Collapsible Box -->
+            <div id="add-radius-user-box" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.04);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i data-lucide="user-plus" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
+                        <span data-i18n="rad_radius_new_user_profile" id="radius-user-form-title">مشخصات کاربر جدید ردیوس</span>
+                    </h4>
+                    <button class="modal-close" onclick="toggleAddRadiusUserBox(false)" type="button"><i data-lucide="x"></i></button>
+                </div>
+                <form id="form-add-radius-user" onsubmit="submitSingleRadiusUser(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="servers_user_label">نام کاربری (Username)</label>
+                            <input class="form-input" data-i18n-placeholder="rad_client1" id="new-rad-user" placeholder="مثال: client1" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="servers_pass_label">رمز عبور (Password)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input class="form-input" data-i18n-placeholder="login_password" id="new-rad-pass" placeholder="رمز عبور" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                                <button class="btn btn-secondary" data-i18n-title="rad_random_password_generation" onclick="generateRandomPassForInput('new-rad-pass')" style="padding:0 10px; width:auto;" title="تولید رمز رندوم" type="button">
+                                    <i data-lucide="key" style="width:14px; height:14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_mikrotik_profile">گروه / پکیج کاربری (MikroTik Profile)</label>
+                            <select class="form-select" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)">
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_simultaneous_connection_simultaneous_use">اتصال همزمان (Simultaneous-Use)</label>
+                            <input class="form-input" id="new-rad-sim-use" max="100" min="1" style="padding-left:14px;" type="number" value="2"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_expiry_date">تاریخ انقضا (Expire Date)</label>
+                            <input class="form-input" id="new-rad-expire" style="padding-left:14px;" type="date"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_traffic_limit_gb">سقف کل حجم (GB)</label>
+                            <input class="form-input" data-i18n-placeholder="ssh_item_8" id="new-rad-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_down_limit_gb">سقف مجاز دانلود (GB)</label>
+                            <input class="form-input" id="new-rad-download-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_up_limit_gb">سقف مجاز آپلود (GB)</label>
+                            <input class="form-input" id="new-rad-upload-limit" placeholder="پیش‌فرض پکیج یا نامحدود" style="padding-left:14px;" type="number" step="0.1"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_rate_limit_label">محدودیت سرعت (MikroTik Rate-Limit)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input class="form-input" id="new-rad-rate-limit" placeholder="مثال: 10M/10M" style="font-family:'JetBrains Mono'; padding-left:12px; font-size:12.5px; direction:ltr;" type="text"/>
+                                <select class="form-select" onchange="if(this.value) document.getElementById('new-rad-rate-limit').value = this.value;" style="width:auto; font-size:11.5px; padding:4px 8px;">
+                                    <option value="">پرزیت سرعت...</option>
+                                    <option value="2M/2M">2M/2M</option>
+                                    <option value="5M/5M">5M/5M</option>
+                                    <option value="10M/10M">10M/10M</option>
+                                    <option value="20M/20M">20M/20M</option>
+                                    <option value="50M/50M">50M/50M</option>
+                                    <option value="100M/100M">100M/100M</option>
+                                    <option value="">نامحدود</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MikroTik Extra Attributes (Framed-Pool, Static IP, Mikrotik-Group) -->
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                        <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="cpu" style="width:16px; height:16px; color:#6366f1;"></i> مشخصات تخصصی روتر میکروتیک (اختیاری)
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                            <div>
+                                <label style="font-size: 11px; color: #64748b;">استخر IP میکروتیک (Framed-Pool):</label>
+                                <input class="form-input" id="new-rad-pool" placeholder="مثال: vpn-pool" style="padding: 7px 10px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #64748b;">آدرس IP ثابت کاربر (Framed-IP-Address):</label>
+                                <input class="form-input" id="new-rad-static-ip" placeholder="مثال: 10.10.10.50 (اختیاری)" style="padding: 7px 10px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+                            </div>
+                            <div>
+                                <label style="font-size: 11px; color: #64748b;">لیست فایروال میکروتik (Address-List):</label>
+                                <input class="form-input" id="new-rad-address-list" placeholder="مثال: VIP_Clients" style="padding: 7px 10px; font-size: 12px; font-family:'JetBrains Mono';" type="text"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Login-Time schedule config -->
+                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 20px;">
+                        <div data-i18n="rad_freeradius_login_time" style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px;">محدودیت زمانی اتصال (FreeRADIUS Login-Time)</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+                            <div>
+                                <label data-i18n="rad_allowed_days" style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
+                                <select class="form-select" id="new-rad-days" style="padding: 7px 10px; font-size: 12.5px;">
+                                    <option data-i18n="rad_24_7" value="all">تمام روزهای هفته (24/7)</option>
+                                    <option data-i18n="rad_working_days_monday_friday" value="weekdays">روزهای کاری (دوشنبه تا جمعه)</option>
+                                    <option data-i18n="rad_item_7" value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label data-i18n="rad_start_time" style="font-size: 11px; color: #64748b;">ساعت شروع:</label>
+                                <input class="form-input" id="new-rad-start-time" style="padding: 7px 8px; font-size: 12.5px;" type="time" value="00:00"/>
+                            </div>
+                            <div>
+                                <label data-i18n="rad_end_time" style="font-size: 11px; color: #64748b;">ساعت پایان:</label>
+                                <input class="form-input" id="new-rad-end-time" style="padding: 7px 8px; font-size: 12.5px;" type="time" value="24:00"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" data-i18n="modal_btn_cancel" onclick="toggleAddRadiusUserBox(false)" type="button">انصراف</button>
+                        <button class="btn btn-primary" type="submit">
+                            <i class="btn-icon" data-lucide="check"></i> <span data-i18n="rad_item_2">ذخیره و اعمال کاربر</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Users Interactive Table Card -->
+            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow); box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03);">
+                <div style="overflow-x: auto;">
+                    <table id="radius-users-table" class="rad-users-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 44px; text-align: center;">
+                                    <input class="rad-table-check" data-i18n-title="rad_select_all" id="check-select-all-rad" onchange="toggleSelectAllRadiusUsers(this.checked)" title="انتخاب همه" type="checkbox"/>
+                                </th>
+                                <th style="min-width: 220px;" data-i18n="rad_col_user_identity">کاربر و مشخصات حساب</th>
+                                <th style="min-width: 260px;" data-i18n="rad_col_traffic_quotas">مصرف ترافیک و سهمیه‌ها (دانلود / آپلود)</th>
+                                <th style="min-width: 130px; text-align: center;" data-i18n="rad_col_bandwidth">پهنای باند (Rate Limit)</th>
+                                <th style="min-width: 140px;" data-i18n="rad_col_expiration_schedule">اعتبار و زمان‌بندی</th>
+                                <th style="min-width: 170px; text-align: center;" data-i18n="rad_col_sub_actions">لینک ساب و عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="radius-users-tbody">
+                            <tr>
+                                <td colspan="6" data-i18n="rad_item_11" style="text-align: center; padding: 40px; color: #94a3b8;">
                                     در حال بارگذاری کاربران ردیوس...
                                 </td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<!-- ========================================== -->
-<!-- SUB-TAB 2: GROUPS & PACKAGES (PROFILES) -->
-<!-- ========================================== -->
-<div class="rad-subpane" id="rad-subpane-groups" style="display: none; flex-direction: column; gap: 20px;">
-<div class="glass-card" style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-<div>
-<h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
-<i data-lucide="layers" style="color: var(--color-primary); width:20px; height:20px;"></i> <span data-i18n="rad_mikrotik_user_manager">تعریف بسته‌ها و گروه‌ها (مشابه Mikrotik User Manager)</span>
-</h3>
-<p data-i18n="rad_each_group_you_can_set" style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
-                        می‌توانید برای هر گروه میزان حجم مجاز، روزهای اعتبار، سقف اتصال همزمان و ساعت‌های مجاز روز را تعیین نمایید.
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 2: GROUPS & PACKAGES (PROFILES)   -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-groups" style="display: none; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="layers" style="color: var(--color-primary); width:20px; height:20px;"></i>
+                        <span>بسته‌ها و پروفایل‌های کاربری (MikroTik Profiles & Limitations)</span>
+                    </h3>
+                    <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                        تعریف سهمیه ترافیک، سرعت (Rate-Limit)، مدت اعتبار، شروع محاسبه زمان از اولین ورود، و اتصال خودکار به استخرهای IP میکروتیک
                     </p>
-</div>
-<button class="btn btn-primary" onclick="openAddRadiusGroupModal()" style="padding: 9px 18px; font-size: 13px;" type="button">
-<i class="btn-icon" data-lucide="plus-circle"></i> <span data-i18n="rad_define_new_package">تعریف بسته جدید</span>
-</button>
-</div>
-<!-- Group Cards Grid -->
-<div id="radius-groups-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 16px;">
-<!-- Injected via JavaScript -->
-</div>
-</div>
-<!-- ========================================== -->
-<!-- SUB-TAB 3: ONLINE SESSIONS -->
-<!-- ========================================== -->
-<div class="rad-subpane" id="rad-subpane-online" style="display: none; flex-direction: column; gap: 20px;">
-<div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-<div style="display: flex; align-items: center; gap: 10px;">
-<span class="status-dot active"></span>
-<strong data-i18n="rad_active_connected_sessions_across_server" style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور</strong>
-<span class="badge-pill" data-i18n="rad_0_connection" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;">0 اتصال</span>
-</div>
-<button class="btn btn-secondary" onclick="fetchRadiusData(true)" style="padding: 8px 16px; font-size: 12.5px;" type="button">
-<i class="btn-icon" data-lucide="refresh-cw"></i> <span data-i18n="rad_instant_update">بروزرسانی لحظه‌ای</span>
-</button>
-</div>
-<div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
-<div style="overflow-x: auto;">
-<table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
-<thead>
-<tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
-<th data-i18n="login_username" style="padding: 14px 16px;">نام کاربری</th>
-<th data-i18n="rad_connection_protocol" style="padding: 14px 16px;">پروتکل اتصال</th>
-<th data-i18n="rad_ip_address_client" style="padding: 14px 16px;">آدرس IP کلاینت</th>
-<th data-i18n="rad_network_virtual_ip" style="padding: 14px 16px;">IP مجازی شبکه</th>
-<th data-i18n="rad_item_6" style="padding: 14px 16px;">دستگاه / نشست</th>
-<th data-i18n="rad_item_12" style="padding: 14px 16px;">زمان اتصال</th>
-<th data-i18n="servers_col_actions" style="padding: 14px 16px; text-align: center; width: 110px;">عملیات</th>
-</tr>
-</thead>
-<tbody id="radius-online-tbody">
-<tr>
-<td colspan="7" data-i18n="rad_item_5" style="text-align: center; padding: 40px; color: #94a3b8;">
+                </div>
+                <button class="btn btn-primary" onclick="openAddRadiusGroupModal()" style="padding: 9px 18px; font-size: 13px;" type="button">
+                    <i class="btn-icon" data-lucide="plus-circle"></i> <span data-i18n="rad_define_new_package">تعریف بسته جدید</span>
+                </button>
+            </div>
+
+            <!-- Group Cards Grid -->
+            <div id="radius-groups-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 16px;">
+                <!-- Injected via JavaScript -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 3: NAS MANAGEMENT (ROUTERS)       -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-nas" style="display: none; flex-direction: column; gap: 20px;">
+            <!-- NAS Stats Row -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: #6366f1;">
+                        <i data-lucide="server" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">روترهای متصل (NAS Routers)</div>
+                        <div id="stat-nas-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(2, 132, 199, 0.1); display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                        <i data-lucide="router" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">روترهای میکروتیک RouterOS</div>
+                        <div id="stat-nas-mikrotik" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono';">0</div>
+                    </div>
+                </div>
+
+                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 16px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                        <i data-lucide="zap" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">درگاه CoA / PoD قطع نشست</div>
+                        <div style="font-size: 14px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono';">UDP 3799 / 1700</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NAS Toolbar -->
+            <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div>
+                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="network" style="color: #6366f1; width:20px; height:20px;"></i>
+                        <span>روترها و کلاینت‌های مجاز (Network Access Servers - NAS)</span>
+                    </h3>
+                    <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">
+                        روترهای میکروتیک، سیسکو یا سرورهای لینوکسی که اجازه دارند درخواست احراز هویت به این سرور FreeRADIUS ارسال نمایند
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="fetchRadiusNas()" style="padding: 8px 16px; font-size: 12.5px;" type="button">
+                        <i class="btn-icon" data-lucide="refresh-cw"></i> <span>بروزرسانی روترها</span>
+                    </button>
+                    <button class="btn btn-primary" onclick="toggleAddNasBox()" style="padding: 8px 16px; font-size: 12.5px;" type="button">
+                        <i class="btn-icon" data-lucide="plus-circle"></i> <span>افزودن روتر / NAS جدید</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Collapsible Box: Add NAS Form -->
+            <div id="add-nas-box" style="display: none; background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 16px; padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <i data-lucide="plus" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                        <span>مشخصات روتر / NAS مجاز جدید</span>
+                    </h4>
+                    <button class="modal-close" onclick="toggleAddNasBox(false)" type="button"><i data-lucide="x"></i></button>
+                </div>
+                <form id="form-add-nas" onsubmit="submitAddNas(event)">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">نام یا شناسه روتر (Router Name):</label>
+                            <input class="form-input" id="new-nas-name" placeholder="مثال: Tehran-CCR1036" required="" style="padding-left:14px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">آدرس IP روتر (یا ساب‌نت مثلاً 10.0.0.0/24):</label>
+                            <input class="form-input" id="new-nas-ip" placeholder="مثال: 192.168.88.1 یا 0.0.0.0/0" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">کلید مشترک امنیتی (Secret):</label>
+                            <div style="display:flex; gap:6px;">
+                                <input class="form-input" id="new-nas-secret" placeholder="رمز امنیتی ردیوس" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="testing123"/>
+                                <button class="btn btn-secondary" onclick="generateRandomPassForInput('new-nas-secret')" style="padding:0 10px;" title="تولید رمز رندوم" type="button">
+                                    <i data-lucide="key" style="width:14px; height:14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">نوع دستگاه / سیستم‌عامل (Type):</label>
+                            <select class="form-select" id="new-nas-type" onchange="onNasTypeChange(this.value)">
+                                <option value="mikrotik_v7">MikroTik RouterOS 7 (CoA: 3799)</option>
+                                <option value="mikrotik_v6">MikroTik RouterOS 6 (CoA: 1700)</option>
+                                <option value="cisco">Cisco IOS / ASA Router</option>
+                                <option value="other">سایر سرورها / Generic RFC 2865</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">درگاه قطع نشست (CoA / PoD Port):</label>
+                            <input class="form-input" id="new-nas-coa" style="padding-left:14px; font-family:'JetBrains Mono';" type="number" value="3799"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">یادداشت / توضیحات:</label>
+                            <input class="form-input" id="new-nas-desc" placeholder="مثلاً: روتر اصلی شعبه تهران" style="padding-left:14px;" type="text"/>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button class="btn btn-secondary" onclick="toggleAddNasBox(false)" type="button">انصراف</button>
+                        <button class="btn btn-primary" type="submit" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                            <i class="btn-icon" data-lucide="check"></i> <span>ذخیره روتر و همگام‌سازی FreeRADIUS</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- NAS Table Card -->
+            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                        <thead>
+                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
+                                <th style="padding: 14px 16px;">نام / برچسب روتر</th>
+                                <th style="padding: 14px 16px;">آدرس IP / Subnet</th>
+                                <th style="padding: 14px 16px;">کلید امنیتی (Secret)</th>
+                                <th style="padding: 14px 16px;">سیستم‌عامل / مدل</th>
+                                <th style="padding: 14px 16px; text-align: center;">پورت CoA</th>
+                                <th style="padding: 14px 16px; text-align: center;">کانفیگ میکروتیک</th>
+                                <th style="padding: 14px 16px; text-align: center; width: 100px;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="radius-nas-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                    در حال بارگذاری لیست روترهای NAS...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 4: ONLINE SESSIONS & COA          -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-online" style="display: none; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="status-dot active"></span>
+                    <strong style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور و روترها</strong>
+                    <span class="badge-pill" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;">0 اتصال</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary" onclick="fetchRadiusData(true)" style="padding: 8px 16px; font-size: 12.5px;" type="button">
+                        <i class="btn-icon" data-lucide="refresh-cw"></i> <span>بروزرسانی لحظه‌ای</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                        <thead>
+                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
+                                <th style="padding: 14px 16px;">نام کاربری</th>
+                                <th style="padding: 14px 16px;">پروتکل / منبع</th>
+                                <th style="padding: 14px 16px;">آدرس IP کلاینت</th>
+                                <th style="padding: 14px 16px;">IP مجازی تخصیص یافته</th>
+                                <th style="padding: 14px 16px;">روتر / NAS</th>
+                                <th style="padding: 14px 16px;">زمان اتصال</th>
+                                <th style="padding: 14px 16px; text-align: center; width: 120px;">قطع نشست (CoA)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="radius-online-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
                                     هیچ کاربری در حال حاضر متصل نیست
                                 </td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
-</div>
-<!-- ========================================== -->
-<!-- SUB-TAB 4: CORE CONFIG & PROTOCOLS -->
-<!-- ========================================== -->
-<div class="rad-subpane" id="rad-subpane-server" style="display: none; flex-direction: column; gap: 20px;">
-<!-- Core FreeRADIUS Card -->
-<div class="glass-card config-card" style="border: 1px solid rgba(16, 185, 129, 0.25); ">
-<div class="config-header" style="margin-bottom: 16px;">
-<h3 class="config-title" style="color: var(--color-emerald); font-size: 16px;">
-<i data-lucide="cpu" style="color: #10b981; width: 22px; height: 22px;"></i> <span data-i18n="rad_internal_freeradius_engine">موتور ردیوس محلی (Internal FreeRADIUS Engine)</span>
-</h3>
-<span data-i18n-html="elem_tab_radius_43" id="radius-internal-status-badge" style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
-<span class="status-dot active"></span> سرویس FreeRADIUS فعال و آماده است
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 5: VOUCHERS GENERATOR             -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-vouchers" style="display: none; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 20px 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+                    <div>
+                        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="ticket" style="color: #f59e0b; width:22px; height:22px;"></i>
+                            <span>تولید کارت شارژ و ووچر (MikroTik User Manager Vouchers)</span>
+                        </h3>
+                        <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                            تولید دسته‌ای کارت‌های اعتباری یا ووچرهای ورود برای هات‌اسپات، وایرگارد، سیسکو و پروتکل‌های وی‌پی‌ان با قابلیت پرینت و خروجی اکسل
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Generator Controls -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">انتخاب بسته / پروفایل:</label>
+                        <select class="form-select" id="voucher-group-select">
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">تعداد کارت شارژ:</label>
+                        <select class="form-select" id="voucher-count-select">
+                            <option value="5">۵ عدد</option>
+                            <option value="10" selected>۱۰ عدد</option>
+                            <option value="20">۲۰ عدد</option>
+                            <option value="50">۵۰ عدد</option>
+                            <option value="100">۱۰۰ عدد</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">پیشوند کدهای کاربری:</label>
+                        <input class="form-input" id="voucher-prefix" placeholder="مثلاً: NET- یا v-" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="v-"/>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">طول کد تصادفی:</label>
+                        <select class="form-select" id="voucher-length-select">
+                            <option value="6" selected>۶ کاراکتر (استاندارد)</option>
+                            <option value="8">۸ کاراکتر (امن‌تر)</option>
+                            <option value="10">۱۰ کاراکتر</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">نوع کاراکترهای کد:</label>
+                        <select class="form-select" id="voucher-charset-select">
+                            <option value="numbers">فقط ارقام عددی (ساده برای تایپ در موبایل)</option>
+                            <option value="easy" selected>حروف و ارقام خوانا (بدون کاراکترهای مشابه O/0 و l/1)</option>
+                            <option value="alphanumeric">حروف بزرگ و ارقام</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">حالت رمز عبور:</label>
+                        <select class="form-select" id="voucher-passmode-select">
+                            <option value="same" selected>رمز عبور مشابه نام کاربری (استاندارد ووچر میکروتیک)</option>
+                            <option value="distinct">تولید رمز عبور مجزا و امن</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="generateVouchers()" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #f59e0b, #d97706);" type="button">
+                        <i class="btn-icon" data-lucide="ticket"></i> <span>تولید و ثبت کارت‌های شارژ</span>
+                    </button>
+                    <button class="btn btn-secondary" id="btn-print-vouchers" onclick="printVouchersCards()" style="display: none;" type="button">
+                        <i class="btn-icon" data-lucide="printer"></i> <span>چاپ کارت‌ها (Print Vouchers)</span>
+                    </button>
+                    <button class="btn btn-secondary" id="btn-export-vouchers" onclick="exportVouchersList()" style="display: none;" type="button">
+                        <i class="btn-icon" data-lucide="copy"></i> <span>کپی لیست کارت‌ها</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vouchers Printable Container Grid -->
+            <div id="rad-printable-vouchers-container" class="rad-voucher-grid" style="display: none;">
+                <!-- Dynamically injected voucher cards -->
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SUB-TAB 6: CORE ENGINE & EXTERNAL GATEWAY -->
+        <!-- ========================================== -->
+        <div class="rad-subpane" id="rad-subpane-server" style="display: none; flex-direction: column; gap: 24px;">
+            
+            <!-- Operating Mode Selector -->
+            <div class="glass-card" style="padding: 20px 24px;">
+                <div style="margin-bottom: 14px;">
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="shuffle" style="color: var(--color-primary); width:20px; height:20px;"></i>
+                        <span>حالت کاری سامانه ردیوس (Operating Mode)</span>
+                    </h3>
+                    <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                        مشخص کنید آیا این سرور به عنوان سرور ردیوس مستقل عمل کند یا به عنوان درگاه به یک سیستم اکانتینگ خارجی (IBSng یا User Manager) متصل گردد
+                    </p>
+                </div>
+
+                <div style="display: flex; gap: 14px; flex-wrap: wrap;">
+                    <div class="rad-mode-card active" id="mode-card-internal" onclick="setRadiusOperatingMode('internal')">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <i data-lucide="server" style="color: #10b981; width: 22px; height: 22px;"></i>
+                            <strong style="color: var(--text-main); font-size: 14px;">سرور مستقل FreeRADIUS و یوزر منیجر داخلی</strong>
+                        </div>
+                        <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+                            تمام کاربران، بسته‌ها و روترهای NAS مستقیماً روی همین سرور ذخیره و مدیریت می‌شوند. روترهای میکروتیک به این سرور وصل می‌شوند.
+                        </p>
+                    </div>
+
+                    <div class="rad-mode-card" id="mode-card-external" onclick="setRadiusOperatingMode('external')">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+                            <i data-lucide="external-link" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                            <strong style="color: var(--text-main); font-size: 14px;">درگاه اتصال به ردیوس خارجی (External RADIUS Gateway)</strong>
+                        </div>
+                        <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+                            پروتکل‌های این پنل (OpenVPN, Cisco AnyConnect, IKEv2, SSTP, SSH) برای بررسی نام کاربری و رمز به MikroTik Userman یا IBSng خارجی متصل می‌شوند.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- External Provider Presets (Visible when mode is external) -->
+            <div id="external-presets-container" class="glass-card" style="display: none; padding: 20px 24px;">
+                <div style="margin-bottom: 14px;">
+                    <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="layers" style="color: #6366f1; width:18px; height:18px;"></i>
+                        <span>انتخاب الگوی اتصال ردیوس خارجی (Preset Provider)</span>
+                    </h4>
+                    <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">
+                        با کلیک روی هر الگو، پورت‌ها و پارامترهای استاندارد به همراه راهنمای تنظیم مرحله‌به‌مرحله آماده خواهد شد
+                    </p>
+                </div>
+
+                <div class="rad-preset-grid">
+                    <div class="rad-preset-card active" id="preset-card-mikrotik_v7" onclick="selectRadiusPreset('mikrotik_v7')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="router" style="color: #0284c7; width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 13px; color: var(--text-main);">MikroTik User Manager v7</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b;">RouterOS 7 (Auth: 1812, CoA: 3799)</span>
+                    </div>
+
+                    <div class="rad-preset-card" id="preset-card-mikrotik_v6" onclick="selectRadiusPreset('mikrotik_v6')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="router" style="color: #0284c7; width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 13px; color: var(--text-main);">MikroTik User Manager v6</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b;">RouterOS 6 (Auth: 1812, CoA: 1700)</span>
+                    </div>
+
+                    <div class="rad-preset-card" id="preset-card-ibsng" onclick="selectRadiusPreset('ibsng')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="database" style="color: #10b981; width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 13px; color: var(--text-main);">IBSng Accounting Server</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b;">اکانتینگ IBSng بر پایه پورت‌های 1812/1813</span>
+                    </div>
+
+                    <div class="rad-preset-card" id="preset-card-cisco" onclick="selectRadiusPreset('cisco')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="shield" style="color: #6366f1; width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 13px; color: var(--text-main);">Cisco ACS / ISE</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b;">سیسکو AAA و احراز هویت انترپرایز</span>
+                    </div>
+
+                    <div class="rad-preset-card" id="preset-card-custom" onclick="selectRadiusPreset('custom')">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="sliders" style="color: #f59e0b; width: 18px; height: 18px;"></i>
+                            <strong style="font-size: 13px; color: var(--text-main);">Custom FreeRADIUS</strong>
+                        </div>
+                        <span style="font-size: 11px; color: #64748b;">سفارشی بر پایه RFC 2865 / 2866</span>
+                    </div>
+                </div>
+
+                <!-- Provider Setup Instruction Box -->
+                <div id="preset-instruction-box" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="book-open" style="width:16px; height:16px; color:#6366f1;"></i>
+                        <span id="preset-guide-title">راهنمای اتصال به میکروتیک یوزر منیجر نسخه ۷</span>
+                    </div>
+                    <div id="preset-guide-content" style="font-size: 12px; color: #64748b; line-height: 1.6;">
+                        <!-- Injected via JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Core FreeRADIUS Engine Card (Internal Mode) -->
+            <div id="internal-server-details-card" class="glass-card config-card" style="border: 1px solid rgba(16, 185, 129, 0.25);">
+                <div class="config-header" style="margin-bottom: 16px;">
+                    <h3 class="config-title" style="color: var(--color-emerald); font-size: 16px;">
+                        <i data-lucide="cpu" style="color: #10b981; width: 22px; height: 22px;"></i> <span data-i18n="rad_internal_freeradius_engine">موتور ردیوس محلی (Internal FreeRADIUS Engine)</span>
+                    </h3>
+                    <span id="radius-internal-status-badge" style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                        <span class="status-dot active"></span> سرویس FreeRADIUS فعال و آماده است
                     </span>
-</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-<div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div data-i18n="rad_item_4" style="color: #64748b; font-size: 11px; font-weight: 600;">پورت احراز هویت / اکانتینگ</div>
-<div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">UDP 1812 / UDP 1813</div>
-</div>
-<div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div data-i18n="rad_address_local_radius_server" style="color: #64748b; font-size: 11px; font-weight: 600;">آدرس سرور ردیوس محلی</div>
-<div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">127.0.0.1 / localhost</div>
-</div>
-<div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div data-i18n="rad_secret" style="color: #64748b; font-size: 11px; font-weight: 600;">کلید امنیتی اشتراکی (Secret)</div>
-<div id="rad-secret-display" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">testing123</div>
-</div>
-<div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-<div data-i18n="rad_integrated_user_bank" style="color: #64748b; font-size: 11px; font-weight: 600;">بانک کاربران یکپارچه</div>
-<div data-i18n="rad_0_users" id="rad-total-users" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">0 کاربر</div>
-</div>
-</div>
-<div style="display: flex; gap: 12px; flex-wrap: wrap;">
-<button class="btn" id="rad-init-internal-btn" style="flex: 1; min-width: 260px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);" type="button">
-<i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_item_10">اتصال خودکار و یکپارچه‌سازی تمام پروتکل‌ها به ردیوس</span>
-</button>
-</div>
-</div>
-<!-- Custom RADIUS Server & Protocols Settings Card -->
-<div class="glass-card config-card" style="border: 1px solid var(--border-glow);">
-<div class="config-header" style="margin-bottom: 20px;">
-<h3 class="config-title" style="font-size: 15px;">
-<i data-lucide="sliders" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="rad_radius_server_connection_configuration_ac">پیکربندی اتصال سرور ردیوس و پروتکل‌های فعال</span>
-</h3>
-<span data-i18n-html="elem_tab_radius_44" id="radius-connection-badge" style="font-size: 13px; font-weight:600; color: #10b981; display:flex; align-items:center; gap:6px;">
-<span class="status-dot active"></span> متصل
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                        <div data-i18n="rad_item_4" style="color: #64748b; font-size: 11px; font-weight: 600;">پورت احراز هویت / اکانتینگ</div>
+                        <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">UDP 1812 / UDP 1813</div>
+                    </div>
+                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                        <div data-i18n="rad_address_local_radius_server" style="color: #64748b; font-size: 11px; font-weight: 600;">آدرس سرور ردیوس محلی</div>
+                        <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">127.0.0.1 / localhost</div>
+                    </div>
+                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                        <div data-i18n="rad_secret" style="color: #64748b; font-size: 11px; font-weight: 600;">کلید امنیتی اشتراکی (Secret)</div>
+                        <div id="rad-secret-display" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">testing123</div>
+                    </div>
+                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                        <div data-i18n="rad_integrated_user_bank" style="color: #64748b; font-size: 11px; font-weight: 600;">بانک کاربران یکپارچه</div>
+                        <div id="rad-total-users" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">0 کاربر</div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button class="btn" id="rad-init-internal-btn" style="flex: 1; min-width: 260px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);" type="button">
+                        <i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_item_10">اتصال خودکار و یکپارچه‌سازی تمام پروتکل‌ها به ردیوس</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RADIUS Connection & Protocols Form Card -->
+            <div class="glass-card config-card" style="border: 1px solid var(--border-glow);">
+                <div class="config-header" style="margin-bottom: 20px;">
+                    <h3 class="config-title" style="font-size: 15px;">
+                        <i data-lucide="sliders" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                        <span data-i18n="rad_radius_server_connection_configuration_ac">پیکربندی اتصال سرور ردیوس و پروتکل‌های فعال</span>
+                    </h3>
+                    <span id="radius-connection-badge" style="font-size: 13px; font-weight:600; color: #10b981; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> متصل
                     </span>
-</div>
-<form id="radius-form">
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_radius_server_address_host_ip">آدرس سرور ردیوس (Host/IP)</label>
-<input class="form-input" id="rad-ip" placeholder="127.0.0.1" style="padding-left:16px;" type="text"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_shared_security_key_shared_secret">کلید امنیتی مشترک (Shared Secret)</label>
-<input class="form-input" id="rad-secret" placeholder="testing123" style="padding-left:16px;" type="password"/>
-</div>
-</div>
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_authentication_port">پورت احراز هویت (Authentication Port)</label>
-<input class="form-input" id="rad-auth-port" style="padding-left:16px;" type="number" value="1812"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="rad_accounting_port">پورت حسابداری (Accounting Port)</label>
-<input class="form-input" id="rad-acct-port" style="padding-left:16px;" type="number" value="1813"/>
-</div>
-</div>
-<h4 class="form-label" data-i18n="rad_item_3" style="margin-bottom: 12px;">پروتکل‌های متصل به هسته احراز هویت ردیوس:</h4>
-<div class="toggle-grid">
-<div class="toggle-item">
-<span class="toggle-item-label">SSH Tunnel</span>
-<label class="switch">
-<input id="rad-toggle-ssh" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-<div class="toggle-item">
-<span class="toggle-item-label">OpenVPN</span>
-<label class="switch">
-<input id="rad-toggle-openvpn" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-<div class="toggle-item">
-<span class="toggle-item-label">Ocserv (Cisco AnyConnect)</span>
-<label class="switch">
-<input id="rad-toggle-ocserv" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-<div class="toggle-item">
-<span class="toggle-item-label">IKEv2 (StrongSwan)</span>
-<label class="switch">
-<input id="rad-toggle-ikev2" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-<div class="toggle-item">
-<span class="toggle-item-label">SSTP</span>
-<label class="switch">
-<input id="rad-toggle-sstp" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-<div class="toggle-item">
-<span class="toggle-item-label">L2TP / IPsec</span>
-<label class="switch">
-<input id="rad-toggle-l2tp" type="checkbox"/>
-<span class="slider"></span>
-</label>
-</div>
-</div>
-<div style="display: flex; gap: 12px; margin-top: 20px;">
-<button class="btn btn-secondary" id="rad-test-btn" style="flex:1;" type="button">
-<i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_test_link">تست ارتباط با ردیوس (Test Link)</span>
-</button>
-<button class="btn" id="rad-save-btn" style="flex:1;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="proto_action_save">ذخیره و اعمال تغییرات</span>
-</button>
-</div>
-</form>
-</div>
-</div>
-</div>
+                </div>
+                <form id="radius-form">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_radius_server_address_host_ip">آدرس سرور ردیوس (Host/IP)</label>
+                            <input class="form-input" id="rad-ip" placeholder="127.0.0.1" style="padding-left:16px; font-family:'JetBrains Mono';" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_shared_security_key_shared_secret">کلید امنیتی مشترک (Shared Secret)</label>
+                            <input class="form-input" id="rad-secret" placeholder="testing123" style="padding-left:16px; font-family:'JetBrains Mono';" type="password"/>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_authentication_port">پورت احراز هویت (Auth Port)</label>
+                            <input class="form-input" id="rad-auth-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="1812"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label" data-i18n="rad_accounting_port">پورت حسابداری (Acct Port)</label>
+                            <input class="form-input" id="rad-acct-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="1813"/>
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label class="form-label">درگاه قطع اتصال (CoA Port):</label>
+                            <input class="form-input" id="rad-coa-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="3799"/>
+                        </div>
+                    </div>
+
+                    <h4 class="form-label" data-i18n="rad_item_3" style="margin-bottom: 12px;">پروتکل‌های متصل به هسته احراز هویت ردیوس:</h4>
+                    <div class="toggle-grid">
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">SSH Tunnel</span>
+                            <label class="switch">
+                                <input id="rad-toggle-ssh" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">OpenVPN</span>
+                            <label class="switch">
+                                <input id="rad-toggle-openvpn" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">Ocserv (Cisco AnyConnect)</span>
+                            <label class="switch">
+                                <input id="rad-toggle-ocserv" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">IKEv2 (StrongSwan)</span>
+                            <label class="switch">
+                                <input id="rad-toggle-ikev2" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">SSTP</span>
+                            <label class="switch">
+                                <input id="rad-toggle-sstp" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="toggle-item">
+                            <span class="toggle-item-label">L2TP / IPsec</span>
+                            <label class="switch">
+                                <input id="rad-toggle-l2tp" type="checkbox"/>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="rad-test-btn" style="flex:1; min-width: 220px;" type="button">
+                            <i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_test_link">تست ارتباط با ردیوس (Test Link)</span>
+                        </button>
+                        <button class="btn btn-primary" id="rad-save-btn" style="flex:1; min-width: 220px;" type="submit">
+                            <i class="btn-icon" data-lucide="save"></i> <span data-i18n="proto_action_save">ذخیره و اعمال تغییرات</span>
+                        </button>
+                    </div>
+
+                    <!-- Diagnostic radtest output box -->
+                    <div id="rad-test-output-box" style="display: none; margin-top: 18px; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; color: #38bdf8; max-height: 220px; overflow-y: auto;">
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
 </div>

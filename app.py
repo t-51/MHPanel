@@ -17,6 +17,8 @@ import shutil
 import urllib.request
 import urllib.error
 import urllib.parse
+import random
+import string
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session, render_template, send_from_directory, Response
 
@@ -3150,7 +3152,72 @@ def api_protocols_advanced_logs(protocol):
 # --- MH Panel Internal FreeRADIUS & Unified Multi-Protocol Management ---
 RADIUS_USERS_FILE = "/www/wwwroot/mhpanel/radius_users.json"
 RADIUS_GROUPS_FILE = "/www/wwwroot/mhpanel/radius_groups.json"
+RADIUS_NAS_FILE = "/www/wwwroot/mhpanel/radius_nas.json"
 FREERADIUS_USERS_FILE = "/etc/freeradius/3.0/mhpanel_users"
+
+def get_radius_nas_data():
+    if os.path.exists(RADIUS_NAS_FILE):
+        try:
+            with open(RADIUS_NAS_FILE, "r") as f:
+                data = json.load(f)
+                if isinstance(data, list):
+                    return data
+        except Exception:
+            pass
+    return []
+
+def sync_freeradius_nas():
+    nas_list = get_radius_nas_data()
+    conf_dir, _, service, user, group, _ = get_freeradius_info()
+    os.makedirs(conf_dir, exist_ok=True)
+    nas_conf_path = os.path.join(conf_dir, "mhpanel_nas.conf")
+    
+    lines = ["# MH Panel Managed Network Access Servers (MikroTik / Cisco / IBSng / Linux)\n\n"]
+    for nas in nas_list:
+        if not nas.get("active", True):
+            continue
+        nas_id = re.sub(r'[^a-zA-Z0-9_\-]', '_', str(nas.get("id") or nas.get("name") or "nas"))
+        ip = nas.get("ip", "127.0.0.1").strip()
+        secret = nas.get("secret", "testing123").strip()
+        shortname = re.sub(r'[^a-zA-Z0-9_\-]', '_', nas.get("name", nas_id).strip())
+        nas_type = nas.get("type", "other")
+        
+        lines.append(f"""client {nas_id} {{
+    ipaddr = {ip}
+    secret = {secret}
+    shortname = {shortname}
+    nas_type = {nas_type}
+    require_message_authenticator = no
+}}
+""")
+    
+    try:
+        with open(nas_conf_path, "w") as f:
+            f.writelines(lines)
+        import shutil
+        shutil.chown(nas_conf_path, user=user, group=group)
+        os.chmod(nas_conf_path, 0o640)
+    except Exception:
+        pass
+        
+    clients_conf = os.path.join(conf_dir, "clients.conf")
+    if os.path.exists(clients_conf):
+        try:
+            with open(clients_conf, "r") as f:
+                c_content = f.read()
+            inc_line = f"$INCLUDE {nas_conf_path}"
+            if inc_line not in c_content and "$INCLUDE /etc/freeradius/3.0/mhpanel_nas.conf" not in c_content and "$INCLUDE /etc/raddb/mhpanel_nas.conf" not in c_content:
+                with open(clients_conf, "a") as f:
+                    f.write(f"\n{inc_line}\n")
+        except Exception:
+            pass
+            
+    subprocess.run(["systemctl", "reload-or-restart", service], capture_output=True)
+
+def save_radius_nas_data(nas_list):
+    with open(RADIUS_NAS_FILE, "w") as f:
+        json.dump(nas_list, f, indent=2)
+    sync_freeradius_nas()
 
 def get_freeradius_info():
     """
@@ -3570,6 +3637,38 @@ def sync_freeradius_users():
                 t_bytes = int(float(limit_gb) * (1024**3))
                 reply_items.append(f'Mikrotik-Total-Limit := {min(t_bytes, 4294967295)}')
 
+            # MikroTik User Manager advanced attributes
+            framed_pool = data.get("framed_pool") or group_data.get("framed_pool")
+            if framed_pool:
+                reply_items.append(f'Framed-Pool := "{framed_pool}"')
+                reply_items.append(f'Mikrotik-Address-List := "{framed_pool}"')
+
+            mikrotik_group = data.get("mikrotik_group") or group_data.get("mikrotik_group")
+            if mikrotik_group:
+                reply_items.append(f'Mikrotik-Group := "{mikrotik_group}"')
+
+            framed_ip = data.get("framed_ip") or group_data.get("framed_ip")
+            if framed_ip:
+                reply_items.append(f'Framed-IP-Address := {framed_ip}')
+
+            session_timeout = data.get("session_timeout") or group_data.get("session_timeout")
+            if session_timeout and int(session_timeout) > 0:
+                reply_items.append(f'Session-Timeout := {int(session_timeout)}')
+
+            reply_items.append('Acct-Interim-Interval := 60')
+
+            # Custom Attributes
+            custom_attrs = data.get("custom_attributes") or group_data.get("custom_attributes") or []
+            if isinstance(custom_attrs, list):
+                for ca in custom_attrs:
+                    if isinstance(ca, dict) and ca.get("key") and ca.get("value"):
+                        op = ca.get("op", ":=")
+                        attr_type = ca.get("type", "reply")
+                        if attr_type == "check":
+                            attr_items.append(f'{ca["key"]} {op} {ca["value"]}')
+                        else:
+                            reply_items.append(f'{ca["key"]} {op} {ca["value"]}')
+
             rep_str = ("\n\t" + ",\n\t".join(reply_items)) if reply_items else ""
             lines.append(f'"{username}" ' + ", ".join(attr_items) + rep_str + "\n\n")
             if username != username.lower():
@@ -3674,19 +3773,26 @@ def sync_freeradius_users():
     # 5. Reload/restart FreeRADIUS
     subprocess.run(["systemctl", "reload-or-restart", service], capture_output=True)
 
-def apply_internal_radius_system(server_ip="127.0.0.1", shared_secret="testing123", auth_port=1812, acct_port=1813, protocols=None):
+def apply_internal_radius_system(server_ip="127.0.0.1", shared_secret="testing123", auth_port=1812, acct_port=1813, protocols=None, mode="internal", provider="generic", coa_port=3799):
     if protocols is None:
         protocols = ["openvpn", "ocserv", "ikev2", "l2tp", "sstp", "ssh"]
 
     os.makedirs("/etc/vpnpanel", exist_ok=True)
     with open("/etc/vpnpanel/radius_config.json", "w") as f:
         json.dump({
+            "mode": mode,
+            "provider": provider,
             "server_ip": server_ip,
             "shared_secret": shared_secret,
             "auth_port": auth_port,
             "acct_port": acct_port,
+            "coa_port": coa_port,
             "enabled_protocols": protocols
         }, f, indent=2)
+
+    # Ensure FreeRADIUS service is running if in internal mode
+    if mode == "internal":
+        subprocess.run(["systemctl", "enable", "--now", "freeradius"], capture_output=True)
 
     # Ensure FreeRADIUS clients.conf allows localhost & 0.0.0.0/0
     conf_dir, _, _, _, _, _ = get_freeradius_info()
@@ -3712,6 +3818,9 @@ client vpn_network {{
                     f.write(c_data)
         except Exception:
             pass
+
+    # Sync managed NAS routers
+    sync_freeradius_nas()
 
     # 1. pam_radius_auth.conf
     os.makedirs("/etc", exist_ok=True)
@@ -3893,20 +4002,26 @@ def api_radius_get():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
+    mode = "internal"
+    provider = "generic"
     server_ip = "127.0.0.1"
     shared_secret = "testing123"
     auth_port = 1812
     acct_port = 1813
+    coa_port = 3799
     enabled_protocols = []
     
     if os.path.exists("/etc/vpnpanel/radius_config.json"):
         try:
             with open("/etc/vpnpanel/radius_config.json", "r") as f:
                 rdata = json.load(f)
+                mode = rdata.get("mode", "internal")
+                provider = rdata.get("provider", "generic")
                 server_ip = rdata.get("server_ip", "127.0.0.1")
                 shared_secret = rdata.get("shared_secret", "testing123")
                 auth_port = rdata.get("auth_port", 1812)
                 acct_port = rdata.get("acct_port", 1813)
+                coa_port = rdata.get("coa_port", 3799)
                 enabled_protocols = rdata.get("enabled_protocols", [])
         except Exception:
             pass
@@ -3927,14 +4042,22 @@ def api_radius_get():
         except Exception:
             pass
 
+    nas_list = get_radius_nas_data()
+    groups = get_radius_groups_data()
+
     return jsonify({
+        "mode": mode,
+        "provider": provider,
         "server_ip": server_ip,
         "shared_secret": shared_secret,
         "auth_port": auth_port,
         "acct_port": acct_port,
+        "coa_port": coa_port,
         "enabled_protocols": enabled_protocols,
         "internal_running": rad_running,
         "user_count": user_count,
+        "nas_count": len(nas_list),
+        "group_count": len(groups),
         "public_ip": get_server_public_ip()
     })
 
@@ -3943,15 +4066,18 @@ def api_radius_set():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
         
-    data = request.json
-    server_ip = data.get("server_ip", "127.0.0.1")
-    shared_secret = data.get("shared_secret", "testing123")
-    auth_port = data.get("auth_port", 1812)
-    acct_port = data.get("acct_port", 1813)
+    data = request.json or {}
+    mode = data.get("mode", "internal")
+    provider = data.get("provider", "generic")
+    server_ip = data.get("server_ip", "127.0.0.1").strip() or "127.0.0.1"
+    shared_secret = data.get("shared_secret", "testing123").strip() or "testing123"
+    auth_port = int(data.get("auth_port", 1812))
+    acct_port = int(data.get("acct_port", 1813))
+    coa_port = int(data.get("coa_port", 3799))
     protocols = data.get("protocols", [])
     
     try:
-        apply_internal_radius_system(server_ip, shared_secret, auth_port, acct_port, protocols)
+        apply_internal_radius_system(server_ip, shared_secret, auth_port, acct_port, protocols, mode, provider, coa_port)
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -3962,7 +4088,7 @@ def api_radius_internal_init():
         return jsonify({"error": "Unauthorized"}), 401
     try:
         subprocess.run(["systemctl", "enable", "--now", "freeradius"], capture_output=True)
-        apply_internal_radius_system("127.0.0.1", "testing123", 1812, 1813, ["openvpn", "ocserv", "ikev2", "l2tp", "sstp", "ssh"])
+        apply_internal_radius_system("127.0.0.1", "testing123", 1812, 1813, ["openvpn", "ocserv", "ikev2", "l2tp", "sstp", "ssh"], mode="internal", provider="generic")
         return jsonify({"success": True, "message": "All protocols linked to internal FreeRADIUS successfully!"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -4123,8 +4249,8 @@ def api_radius_add_user():
 
     users[username] = {
         "password": password,
-        "active": True,
-        "sub_token": secrets.token_urlsafe(12),
+        "active": data.get("active", True),
+        "sub_token": users.get(username, {}).get("sub_token") or secrets.token_urlsafe(12),
         "group": group_id,
         "simultaneous_use": simultaneous_use,
         "allowed_days": allowed_days,
@@ -4136,8 +4262,15 @@ def api_radius_add_user():
         "download_limit_gb": download_limit_gb,
         "upload_limit_gb": upload_limit_gb,
         "rate_limit": rate_limit,
-        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "protocols": ["all"]
+        "framed_pool": (data.get("framed_pool") or "").strip(),
+        "mikrotik_group": (data.get("mikrotik_group") or "").strip(),
+        "framed_ip": (data.get("framed_ip") or "").strip(),
+        "session_timeout": int(data.get("session_timeout", 0)),
+        "custom_attributes": data.get("custom_attributes", []),
+        "created_at": users.get(username, {}).get("created_at") or datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "protocols": data.get("protocols", ["all"]),
+        "rx": users.get(username, {}).get("rx", 0),
+        "tx": users.get(username, {}).get("tx", 0)
     }
 
     with open(RADIUS_USERS_FILE, "w") as f:
@@ -4466,20 +4599,32 @@ def api_radius_save_group():
     except Exception: upload_gb = 0
     rate_limit = (data.get("rate_limit") or "").strip()
 
+    try: price = float(data.get("price", 0))
+    except Exception: price = 0
+    try: session_timeout = int(data.get("session_timeout", 0))
+    except Exception: session_timeout = 0
+
     groups[group_id] = {
         "id": group_id,
         "name": name,
+        "price": price,
         "traffic_gb": traffic_gb,
         "download_gb": download_gb,
         "upload_gb": upload_gb,
         "rate_limit": rate_limit,
+        "burst_rate": (data.get("burst_rate") or "").strip(),
         "validity_days": validity_days,
+        "starts_at": data.get("starts_at", "first_login"),
         "simultaneous_use": sim_use,
+        "framed_pool": (data.get("framed_pool") or "").strip(),
+        "mikrotik_group": (data.get("mikrotik_group") or "").strip(),
+        "session_timeout": session_timeout,
         "allowed_days": data.get("allowed_days", "all"),
         "custom_days": data.get("custom_days", []),
         "start_time": data.get("start_time", "00:00"),
         "end_time": data.get("end_time", "24:00"),
-        "description": data.get("description", "")
+        "description": data.get("description", ""),
+        "custom_attributes": data.get("custom_attributes", [])
     }
 
     with open(RADIUS_GROUPS_FILE, "w") as f:
@@ -4503,7 +4648,192 @@ def api_radius_delete_group(group_id):
         return jsonify({"success": True})
     return jsonify({"error": "Group not found"}), 404
 
-# --- Online Active Sessions APIs ---
+# --- NAS (Network Access Server / MikroTik / Cisco) Management APIs ---
+@app.route("/api/radius/nas", methods=["GET"])
+def api_radius_get_nas():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    nas_list = get_radius_nas_data()
+    return jsonify({
+        "nas": nas_list,
+        "nas_list": nas_list,
+        "count": len(nas_list),
+        "server_ip": get_server_public_ip()
+    })
+
+@app.route("/api/radius/nas", methods=["POST"])
+def api_radius_save_nas():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    nas_id = data.get("id", "").strip().lower()
+    name = data.get("name", "").strip()
+    ip = data.get("ip", "").strip()
+    secret = data.get("secret", "").strip() or "testing123"
+    nas_type = data.get("type", "mikrotik_v7").strip()
+    coa_port = int(data.get("coa_port", 3799 if nas_type == "mikrotik_v7" else 1700))
+    description = data.get("description", "").strip()
+
+    if not name or not ip:
+        return jsonify({"error": "Router name and IP address are required"}), 400
+
+    if not nas_id:
+        nas_id = "nas_" + secrets.token_hex(4)
+
+    nas_list = get_radius_nas_data()
+    updated = False
+    for n in nas_list:
+        if n.get("id") == nas_id:
+            n.update({
+                "name": name,
+                "ip": ip,
+                "secret": secret,
+                "type": nas_type,
+                "coa_port": coa_port,
+                "description": description,
+                "active": data.get("active", True),
+                "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+            updated = True
+            break
+
+    if not updated:
+        nas_list.append({
+            "id": nas_id,
+            "name": name,
+            "ip": ip,
+            "secret": secret,
+            "type": nas_type,
+            "coa_port": coa_port,
+            "description": description,
+            "active": True,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+        })
+
+    save_radius_nas_data(nas_list)
+    return jsonify({"success": True, "nas_id": nas_id, "id": nas_id})
+
+@app.route("/api/radius/nas/<nas_id>", methods=["DELETE"])
+def api_radius_delete_nas(nas_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    nas_list = get_radius_nas_data()
+    new_list = [n for n in nas_list if n.get("id") != nas_id]
+    if len(new_list) != len(nas_list):
+        save_radius_nas_data(new_list)
+        return jsonify({"success": True})
+    return jsonify({"error": "NAS not found"}), 404
+
+# --- Vouchers & Cards Batch Generator API ---
+@app.route("/api/radius/vouchers/generate", methods=["POST"])
+def api_radius_vouchers_generate():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    try: count = min(max(int(data.get("count", 10)), 1), 200)
+    except Exception: count = 10
+    group_id = data.get("group_id", "default")
+    prefix = (data.get("prefix") or "").strip()
+    try: user_len = int(data.get("length") or data.get("user_length") or 6)
+    except Exception: user_len = 6
+    try: pass_len = int(data.get("pass_length") or user_len)
+    except Exception: pass_len = user_len
+    
+    passmode = data.get("passmode", "same")
+    charset = data.get("charset") or data.get("pass_type") or "easy"
+    
+    digits = "0123456789"
+    if charset == "numbers":
+        char_pool = digits
+    elif charset == "alphanumeric":
+        char_pool = string.ascii_letters + string.digits
+    else: # easy
+        char_pool = "23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ"
+
+    groups = get_radius_groups_data()
+    group_data = groups.get(group_id, {})
+    try: validity_days = int(data.get("validity_days") or group_data.get("validity_days") or 30)
+    except Exception: validity_days = 30
+    traffic_gb = data.get("traffic_gb") or group_data.get("traffic_gb")
+    
+    expire_date = (datetime.now() + timedelta(days=validity_days)).strftime("%Y-%m-%d")
+    
+    users = {}
+    if os.path.exists(RADIUS_USERS_FILE):
+        try:
+            with open(RADIUS_USERS_FILE, "r") as f:
+                users = json.load(f)
+        except Exception:
+            pass
+            
+    created_vouchers = []
+    
+    for i in range(count):
+        while True:
+            rand_suffix = "".join(random.choices(char_pool, k=user_len))
+            uname = f"{prefix}{rand_suffix}"
+            if uname not in users:
+                break
+                
+        if passmode == "same":
+            pwd = uname
+        else:
+            pwd = "".join(random.choices(char_pool, k=pass_len))
+            
+        sub_tok = secrets.token_urlsafe(12)
+        
+        u_info = {
+            "password": pwd,
+            "active": True,
+            "group": group_id,
+            "limit_gb": float(traffic_gb) if traffic_gb else None,
+            "expire_date": expire_date,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "protocols": ["all"],
+            "sub_token": sub_tok,
+            "simultaneous_use": int(group_data.get("simultaneous_use", 1)),
+            "rate_limit": group_data.get("rate_limit", ""),
+            "download_limit_gb": group_data.get("download_gb"),
+            "upload_limit_gb": group_data.get("upload_gb"),
+            "framed_pool": group_data.get("framed_pool", "")
+        }
+        users[uname] = u_info
+        
+        sub_url = f"https://{request.host}/sub/{sub_tok}"
+        created_vouchers.append({
+            "username": uname,
+            "password": pwd,
+            "group_name": group_data.get("name", "پکیج استاندارد"),
+            "traffic_gb": traffic_gb if traffic_gb else "نامحدود",
+            "rate_limit": group_data.get("rate_limit") or "نامحدود",
+            "validity_days": validity_days,
+            "expire_date": expire_date,
+            "sub_url": sub_url
+        })
+        
+    try:
+        with open(RADIUS_USERS_FILE, "w") as f:
+            json.dump(users, f, indent=2)
+    except Exception as e:
+        return jsonify({"error": f"Failed to save users: {e}"}), 500
+        
+    sync_freeradius_users()
+    
+    return jsonify({
+        "success": True,
+        "count": len(created_vouchers),
+        "vouchers": created_vouchers,
+        "group": group_data,
+        "message": f"{len(created_vouchers)} کارت شارژ با موفقیت تولید و در FreeRADIUS فعال شد."
+    })
+        
+    with open(RADIUS_USERS_FILE, "w") as f:
+        json.dump(users, f, indent=2)
+        
+    sync_freeradius_users()
+    return jsonify({"success": True, "count": len(created_vouchers), "vouchers": created_vouchers})
+
+# --- Online Active Sessions APIs with RFC 3576 / 5176 CoA Kick ---
 @app.route("/api/radius/online", methods=["GET"])
 def api_radius_get_online_sessions():
     if not check_login():
@@ -4519,49 +4849,131 @@ def api_radius_disconnect_session():
     username = data.get("username", "")
     proto = data.get("protocol", "").lower()
     session_id = str(data.get("session_id", ""))
+    client_ip = data.get("client_ip", "")
+    nas_ip = data.get("nas_ip", "")
+    coa_port = int(data.get("coa_port", 3799))
+    secret = data.get("secret", "testing123")
 
     if not username and not session_id:
         return jsonify({"error": "Username or Session ID required"}), 400
 
+    results = []
+    # 1. Local Process Terminations
     try:
         if "cisco" in proto or "ocserv" in proto:
             if session_id and session_id.isdigit():
                 subprocess.run(["occtl", "disconnect", "id", session_id], capture_output=True)
             elif username:
                 subprocess.run(["occtl", "disconnect", "user", username], capture_output=True)
+            results.append("Ocserv disconnected")
         elif "ssh" in proto:
             if session_id and session_id.isdigit():
                 subprocess.run(["kill", "-9", session_id], capture_output=True)
             elif username:
                 subprocess.run(f"pkill -u '{username}' sshd", shell=True, capture_output=True)
+            results.append("SSH session terminated")
         elif "openvpn" in proto:
             subprocess.run(f"pkill -f 'openvpn.*{username}'", shell=True, capture_output=True)
-        
-        return jsonify({"success": True, "message": "Disconnect signal sent"})
+            results.append("OpenVPN session killed")
+        elif "ikev2" in proto:
+            if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
+                subprocess.run(["swanctl", "--terminate", "--ike", username], capture_output=True)
+            results.append("IKEv2 session terminated")
+        elif "l2tp" in proto or "sstp" in proto or "pptp" in proto:
+            if session_id.startswith("ppp"):
+                subprocess.run(["poff", session_id], capture_output=True)
+            else:
+                subprocess.run(f"pkill -f 'pppd.*{username}'", shell=True, capture_output=True)
+            results.append("PPP tunnel disconnected")
     except Exception as e:
-        return jsonify({"success": False, "error": str(e)}), 500
+        results.append(f"Local error: {e}")
 
+    # 2. RADIUS CoA / PoD Disconnect-Request (RFC 3576 / RFC 5176) to external NAS / MikroTik
+    if not nas_ip:
+        nas_list = get_radius_nas_data()
+        for n in nas_list:
+            if n.get("ip") == client_ip:
+                nas_ip = n.get("ip")
+                secret = n.get("secret", secret)
+                coa_port = int(n.get("coa_port", coa_port))
+                break
+
+    if nas_ip and subprocess.run(["which", "radclient"], capture_output=True).returncode == 0:
+        try:
+            pod_input = f"User-Name = \"{username}\"\n"
+            if session_id:
+                pod_input += f"Acct-Session-Id = \"{session_id}\"\n"
+            proc = subprocess.run(
+                ["radclient", "-r", "2", "-t", "2", f"{nas_ip}:{coa_port}", "disconnect", secret],
+                input=pod_input,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if "Disconnect-ACK" in proc.stdout or proc.returncode == 0:
+                results.append(f"MikroTik CoA Disconnect-ACK from {nas_ip}:{coa_port}")
+            else:
+                results.append(f"CoA packet sent to {nas_ip}:{coa_port}")
+        except Exception as e:
+            results.append(f"CoA error: {e}")
+
+    return jsonify({"success": True, "message": " | ".join(results) or "Disconnect signal executed"})
+
+# --- Live Diagnostic RADIUS Tester API ---
 @app.route("/api/radius/test", methods=["POST"])
 def api_radius_test():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
         
-    data = request.json
-    server_ip = data.get("server_ip", "127.0.0.1")
-    shared_secret = data.get("shared_secret", "testing123")
+    data = request.json or {}
+    server_ip = data.get("server_ip", "127.0.0.1").strip() or "127.0.0.1"
+    shared_secret = data.get("shared_secret", "testing123").strip() or "testing123"
+    auth_port = int(data.get("auth_port", 1812))
+    username = data.get("username", "testuser").strip() or "testuser"
+    password = data.get("password", "testpass").strip() or "testpass"
+    provider = data.get("provider", "generic")
     
     try:
-        cmd = ["radtest", "testuser", "testpass", server_ip, "10", shared_secret]
-        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=5)
-        if "Access-Reject" in res.stdout or "Access-Accept" in res.stdout:
-            return jsonify({"success": True, "message": "Successfully communicated with RADIUS server (Received Access-Reject/Accept)"})
-        elif "No reply from server" in res.stdout or "timeout" in res.stdout.lower() or res.stderr:
-            return jsonify({"success": False, "error": "No reply from RADIUS server. Check IP, port, firewall or secret."})
-        return jsonify({"success": False, "error": res.stdout})
+        cmd = ["radtest", username, password, f"{server_ip}:{auth_port}", "1", shared_secret]
+        res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, timeout=6)
+        out = res.stdout + res.stderr
+        
+        if "Access-Accept" in out:
+            attrs = []
+            for line in out.splitlines():
+                if "=" in line and not line.startswith("Sending") and not line.startswith("rad_recv"):
+                    attrs.append(line.strip())
+            return jsonify({
+                "success": True,
+                "status": "accept",
+                "message": f"ارتباط با ردیوس ({server_ip}:{auth_port}) کاملاً موفق است! پاسخ تاییدیه (Access-Accept) دریافت شد.",
+                "reply_attributes": attrs[:12],
+                "raw": out
+            })
+        elif "Access-Reject" in out:
+            return jsonify({
+                "success": True,
+                "status": "reject",
+                "message": f"ارتباط با ردیوس ({server_ip}:{auth_port}) و کلید Secret تایید شد! پاسخ (Access-Reject) به دلیل تستی بودن کاربر صادر شد.",
+                "raw": out
+            })
+        elif "No reply from server" in out or "timeout" in out.lower():
+            return jsonify({
+                "success": False,
+                "status": "timeout",
+                "error": f"عدم پاسخ از سرور ردیوس ({server_ip}:{auth_port}). لطفاً آدرس، پورت فایروال و کلید اشتراکی را بررسی کنید.",
+                "raw": out
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "status": "error",
+                "error": out.strip() or "خطای نامشخص در ارتباط با سرور ردیوس"
+            })
     except subprocess.TimeoutExpired:
-        return jsonify({"success": False, "error": "Connection timed out. RADIUS server is unreachable."})
+        return jsonify({"success": False, "status": "timeout", "error": f"زمان انتظار به پایان رسید (Timeout). سرور ردیوس {server_ip}:{auth_port} در دسترس نیست."})
     except Exception as e:
-        return jsonify({"success": False, "error": f"Failed to run radtest: {str(e)}"})
+        return jsonify({"success": False, "status": "exception", "error": f"خطا در اجرای تست: {str(e)}"})
 
 
 # --- Customizable Protocol Settings & Client Profiles API ---
