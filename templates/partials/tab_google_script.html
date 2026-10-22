@@ -840,6 +840,70 @@ input:checked + .gas-toggle-slider:before {
         </div>
 
         <!-- ============================================================== -->
+        <!-- GMAIL MULTI-ACCOUNT HUB (مدیریت چند حسابه جیمیل و استقرارها) -->
+        <!-- ============================================================== -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(66, 133, 244, 0.4); background: linear-gradient(135deg, rgba(66, 133, 244, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+                    <div style="width:42px; height:42px; border-radius:12px; background:rgba(66, 133, 244, 0.2); color:#4285F4; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px solid rgba(66, 133, 244, 0.35);">
+                        <i data-lucide="mail" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div style="min-width:0;">
+                        <h4 style="margin:0; font-size:16px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span>مرکز حساب‌های جیمیل (Gmail Multi-Account Hub)</span>
+                            <span class="gas-token-badge gas-token-badge-blue" id="gas-accounts-count-badge">1 حساب</span>
+                        </h4>
+                        <span style="font-size:12px; color:var(--text-muted); margin-top:2px; display:block;">
+                            مدیریت و استقرار چند حسابه در گوگل؛ هر جیمیل توکن دسترسی و وب‌اپ اختصاصی خود را دارد
+                        </span>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openGasAddAccountModal();" style="background:#4285F4; border-color:#4285F4; display:inline-flex; align-items:center; gap:5px; padding:6px 14px; font-weight:600;">
+                        <i data-lucide="user-plus" style="width:14px; height:14px;"></i>
+                        <span>افزودن جیمیل جدید</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openGasBatchDeployModal();" style="display:inline-flex; align-items:center; gap:5px; padding:6px 14px; color:#10b981; border-color:rgba(16,185,129,0.35);">
+                        <i data-lucide="zap" style="width:14px; height:14px;"></i>
+                        <span>استقرار همگانی (Batch Deploy)</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openGasManageAccountsModal();" style="display:inline-flex; align-items:center; gap:5px; padding:6px 12px;">
+                        <i data-lucide="settings-2" style="width:14px; height:14px;"></i>
+                        <span>مدیریت حساب‌ها</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Account Quick Switcher & Summary Card -->
+            <div style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:12px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+                <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:260px;">
+                    <label style="font-size:12.5px; font-weight:700; color:var(--text-muted); margin:0; white-space:nowrap; display:flex; align-items:center; gap:5px;">
+                        <i data-lucide="check-circle-2" style="width:14px; height:14px; color:#10b981;"></i>
+                        <span>حساب فعال جاری:</span>
+                    </label>
+                    <select id="gas-account-select" onchange="onGasAccountSelectChanged(this.value);" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); font-size:13px; font-weight:600; padding:6px 12px; height:38px; flex:1; min-width:200px; outline:none;">
+                        <!-- Dynamically populated -->
+                    </select>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                        <span style="color:var(--text-muted);">ایمیل:</span>
+                        <span id="gas-cur-acc-email" style="font-family:'JetBrains Mono', monospace; color:#4285F4; font-weight:700;">-</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:6px; font-size:12px;">
+                        <span style="color:var(--text-muted);">وضعیت:</span>
+                        <span id="gas-cur-acc-status" class="gas-token-badge gas-token-badge-blue">-</span>
+                    </div>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openGasEditAccountModal();" style="padding:4px 10px; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;">
+                        <i data-lucide="edit-3" style="width:12px; height:12px;"></i>
+                        <span>ویرایش توکن و اطلاعات</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================== -->
         <!-- SUBTABS NAVIGATION (TOUCH SCROLLABLE) -->
         <!-- ============================================================== -->
         <div class="gas-subtabs-nav">
@@ -1015,6 +1079,15 @@ input:checked + .gas-toggle-slider:before {
                             کافیست توکن دسترسی گوگل را وارد کنید؛ پنل تمام مراحل ساخت پروژه، بارگذاری کد و فعال‌سازی وب‌اپ Anyone را انجام داده و توکن استقرار را به شما تحویل می‌دهد.
                         </p>
                     </div>
+                </div>
+
+                <!-- Active Account Context Banner -->
+                <div style="background:rgba(66, 133, 244, 0.08); border:1px solid rgba(66, 133, 244, 0.25); border-radius:10px; padding:9px 14px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; font-size:12.5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="info" style="width:16px; height:16px; color:#4285F4; flex-shrink:0;"></i>
+                        <span>استقرار برای حساب جاری: <strong id="gas-deploy-target-acc-name" style="color:var(--text-main);">-</strong> (<span id="gas-deploy-target-acc-email" style="font-family:'JetBrains Mono', monospace; color:#4285F4;">-</span>)</span>
+                    </div>
+                    <span style="font-size:11.5px; color:var(--text-muted);">جهت تغییر حساب، از کادر بالا حساب موردنظر را انتخاب نمایید</span>
                 </div>
 
                 <!-- Main Form Inputs: Responsive Grid -->
@@ -1701,6 +1774,37 @@ input:checked + .gas-toggle-slider:before {
                     </div>
                 </div>
 
+                <!-- Multi-Gmail Client Selection & Multi-URL Pool -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:12px; padding:12px 16px; margin-bottom:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+                        <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:260px;">
+                            <label style="font-size:12.5px; font-weight:700; color:var(--text-muted); margin:0; white-space:nowrap; display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="mail" style="width:14px; height:14px; color:#4285F4;"></i>
+                                <span>نمایش کانفیگ برای حساب:</span>
+                            </label>
+                            <select id="gas-client-acc-select" onchange="onGasClientAccSelectChanged(this.value);" style="background:rgba(0,0,0,0.3); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); font-size:12.5px; font-weight:600; padding:6px 12px; height:36px; flex:1; min-width:180px; outline:none;">
+                                <!-- Dynamically populated with all Gmail accounts -->
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleGasMultiUrlPool();" style="display:inline-flex; align-items:center; gap:5px; padding:5px 12px; font-size:12px;">
+                            <i data-lucide="layers" style="width:13px; height:13px; color:#10b981;"></i>
+                            <span id="gas-multi-url-toggle-btn">نمایش همه آدرس‌های وب‌اپ (Multi-Relay Pool) ▾</span>
+                        </button>
+                    </div>
+
+                    <!-- Collapsible Multi-URL Pool Container -->
+                    <div id="gas-multi-url-pool-box" style="display:none; border-top:1px solid var(--border-glow); padding-top:10px; margin-top:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="font-size:12px; font-weight:700; color:#10b981;">فهرست وب‌اپ تمام جیمیل‌های مستقر شده:</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasAllWebappUrls();" style="padding:2px 8px; font-size:11px; display:inline-flex; align-items:center; gap:4px;">
+                                <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                <span>کپی یکجای همه لینک‌ها</span>
+                            </button>
+                        </div>
+                        <textarea id="gas-all-urls-textarea" readonly style="width:100%; height:75px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:var(--text-main); font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:8px 10px; resize:none; direction:ltr;" spellcheck="false"></textarea>
+                    </div>
+                </div>
+
                 <!-- Client Filter Category Pills -->
                 <div class="gas-client-nav" id="gas-client-filter-nav">
                     <button type="button" class="gas-client-nav-btn active" data-client-filter="all" onclick="filterGasClientCards('all')">
@@ -2014,6 +2118,264 @@ input:checked + .gas-toggle-slider:before {
                 <button type="button" class="btn btn-secondary" onclick="closeNewGasTemplateModal()" style="padding:8px 16px;">انصراف</button>
                 <button type="button" class="btn btn-primary" onclick="submitNewGasTemplate()" style="background:#4285F4; border-color:#4285F4; padding:8px 22px; font-weight:700;">
                     <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ایجاد و بارگذاری در استودیو
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 1: ADD GMAIL ACCOUNT -->
+    <!-- ============================================================== -->
+    <div id="gas-add-account-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="width:100%; max-width:540px; border:1px solid rgba(66,133,244,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-glow); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(66,133,244,0.18); color:#4285F4; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="user-plus" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">افزودن حساب جیمیل جدید (New Gmail Account)</h4>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasAddAccountModal();" style="width:30px; height:30px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:18px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">عنوان / برچسب نمایشی</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-newacc-name" placeholder="مثلاً: جیمیل کاری ۲ یا حساب شخصی..." style="direction:rtl;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">آدرس ایمیل گوگل (Gmail) <span style="color:#ef4444;">*</span></label>
+                    <div class="gas-input-composite">
+                        <input type="email" id="gas-newacc-email" placeholder="example@gmail.com" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>توکن دسترسی گوگل (OAuth Bearer Token ya29)</span>
+                        <a href="https://developers.google.com/oauthplayground" target="_blank" style="font-size:11px; color:#4285F4; text-decoration:none;">دریافت توکن از Playground ↗</a>
+                    </label>
+                    <div class="gas-input-composite">
+                        <input type="password" id="gas-newacc-token" placeholder="ya29.a0AX..." style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        <div class="gas-input-tools">
+                            <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-newacc-token')">
+                                <i data-lucide="eye" style="width:15px; height:15px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <small style="color:var(--text-muted); font-size:11px; margin-top:4px; display:block;">
+                        توکن موقت با اسکوپ‌های script.projects و script.deployments
+                    </small>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">عنوان پروژه در گوگل</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-newacc-title" value="MHPanel-GAS-FullTunnel" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                    </div>
+                </div>
+
+                <label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; margin-top:4px;">
+                    <input type="checkbox" id="gas-newacc-set-active" checked style="accent-color:#4285F4; width:16px; height:16px;">
+                    <span>پس از ایجاد، بلافاصله به عنوان حساب فعال انتخاب شود</span>
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasAddAccountModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="submitGasAddAccount();" style="background:#4285F4; border-color:#4285F4; padding:8px 22px; font-weight:700;">
+                    <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ذخیره حساب جیمیل
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2: MANAGE ALL GMAIL ACCOUNTS -->
+    <!-- ============================================================== -->
+    <div id="gas-manage-accounts-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="width:100%; max-width:840px; max-height:85vh; display:flex; flex-direction:column; border:1px solid rgba(66,133,244,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-glow); padding-bottom:12px; flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(66,133,244,0.18); color:#4285F4; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="settings-2" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">مدیریت حساب‌های جیمیل متصل (Gmail Accounts Manager)</h4>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="closeGasManageAccountsModal(); openGasAddAccountModal();" style="background:#4285F4; border-color:#4285F4; padding:5px 12px; font-size:12px;">
+                        <i data-lucide="plus" style="width:13px; height:13px; margin-left:3px;"></i> افزودن حساب جدید
+                    </button>
+                    <button type="button" class="gas-tool-btn" onclick="closeGasManageAccountsModal();" style="width:30px; height:30px;">
+                        <i data-lucide="x" style="width:16px; height:16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Container (Scrollable) -->
+            <div style="overflow-x:auto; overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; margin-bottom:14px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:700px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.08); color:var(--text-muted); text-align:right;">
+                            <th style="padding:10px 8px;">نام و ایمیل حساب</th>
+                            <th style="padding:10px 8px;">وضعیت توکن</th>
+                            <th style="padding:10px 8px;">شناسه استقرار وب‌اپ</th>
+                            <th style="padding:10px 8px;">آخرین استقرار</th>
+                            <th style="padding:10px 8px; text-align:left;">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="gas-manage-accounts-tbody">
+                        <!-- Dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-shrink:0;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasManageAccountsModal();" style="padding:8px 18px;">بستن پنجره</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: BATCH DEPLOY ACROSS MULTIPLE GMAILS -->
+    <!-- ============================================================== -->
+    <div id="gas-batch-deploy-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="width:100%; max-width:640px; max-height:88vh; display:flex; flex-direction:column; border:1px solid rgba(16,185,129,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-glow); padding-bottom:12px; flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.18); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">استقرار همگانی جیمیل‌ها (Batch Deployment)</h4>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasBatchDeployModal();" style="width:30px; height:30px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <div style="overflow-y:auto; flex:1; -webkit-overflow-scrolling:touch; margin-bottom:16px;">
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                    با استقرار همگانی، کدهای رله به صورت خودکار بر روی تک‌تک جیمیل‌های انتخاب‌شده آپلود و دیپلوی می‌شوند تا در صورت اختلال در یک اکانت، باقی اکانت‌ها بدون وقفه پاسخگوی اتصالات باشند.
+                </p>
+
+                <div style="margin-bottom:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label style="font-size:12.5px; font-weight:700; margin:0;">انتخاب حساب‌های جیمیل هدف:</label>
+                        <div style="display:flex; gap:8px; font-size:11.5px;">
+                            <a href="javascript:void(0)" onclick="toggleSelectAllGasBatch(true)" style="color:#4285F4; text-decoration:none;">انتخاب همه</a>
+                            <span style="color:var(--text-muted);">|</span>
+                            <a href="javascript:void(0)" onclick="toggleSelectAllGasBatch(false)" style="color:var(--text-muted); text-decoration:none;">لغو همه</a>
+                        </div>
+                    </div>
+                    <div id="gas-batch-accounts-list" style="max-height:170px; overflow-y:auto; border:1px solid var(--border-glow); border-radius:10px; padding:8px; background:rgba(0,0,0,0.25); display:flex; flex-direction:column; gap:6px;">
+                        <!-- Dynamically populated checkboxes -->
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px;">
+                    <div>
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">قالب استقرار:</label>
+                        <select id="gas-batch-mode-select" style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); padding:7px 10px; width:100%; font-size:12px;">
+                            <option value="full_tunnel">فول‌تانل (CodeFull.gs)</option>
+                            <option value="singbox_detour">پل سینگ‌باکس (CodeSingbox.gs)</option>
+                            <option value="master_http">مستر اچ‌تی‌تی‌پی رله (CodeRelay.gs)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">نحوه نسخه گذاری:</label>
+                        <select id="gas-batch-versioning" style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); padding:7px 10px; width:100%; font-size:12px;">
+                            <option value="update">ثبت نسخه جدید در پروژه موجود</option>
+                            <option value="new_project">ساخت پروژه کاملاً جدید (New Script)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Live Progress & Results Output Box -->
+                <div id="gas-batch-results-box" style="display:none; margin-top:12px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; background:rgba(0,0,0,0.35);">
+                    <div style="font-size:12px; font-weight:700; color:#10b981; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                        <span class="gas-pulse-dot"></span>
+                        <span id="gas-batch-progress-title">در حال استقرار بر روی حساب‌های جیمیل...</span>
+                    </div>
+                    <div id="gas-batch-results-log" style="font-size:11.5px; font-family:'JetBrains Mono', monospace; max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; line-height:1.6;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-shrink:0;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasBatchDeployModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" id="gas-batch-start-btn" onclick="executeGasBatchDeploy();" style="background:#10b981; border-color:#10b981; padding:8px 22px; font-weight:700;">
+                    <i data-lucide="rocket" style="width:14px; height:14px; margin-left:4px;"></i> شروع استقرار همگانی
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 4: EDIT GMAIL ACCOUNT -->
+    <!-- ============================================================== -->
+    <div id="gas-edit-account-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(6px); z-index:9999; align-items:center; justify-content:center; padding:16px;">
+        <div class="glass-card" style="width:100%; max-width:540px; border:1px solid rgba(66,133,244,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-glow); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(66,133,244,0.18); color:#4285F4; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="edit-3" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">ویرایش حساب جیمیل (Edit Account)</h4>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasEditAccountModal();" style="width:30px; height:30px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <input type="hidden" id="gas-editacc-id">
+
+            <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:18px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">عنوان / برچسب نمایشی</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-editacc-name" style="direction:rtl;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">آدرس ایمیل گوگل (Gmail) <span style="color:#ef4444;">*</span></label>
+                    <div class="gas-input-composite">
+                        <input type="email" id="gas-editacc-email" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:flex; justify-content:space-between; align-items:center;">
+                        <span>توکن دسترسی گوگل (OAuth Bearer Token ya29)</span>
+                        <a href="https://developers.google.com/oauthplayground" target="_blank" style="font-size:11px; color:#4285F4; text-decoration:none;">Playground ↗</a>
+                    </label>
+                    <div class="gas-input-composite">
+                        <input type="password" id="gas-editacc-token" placeholder="یا پیست کنید (ya29...)" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                        <div class="gas-input-tools">
+                            <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-editacc-token')">
+                                <i data-lucide="eye" style="width:15px; height:15px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12.5px; font-weight:600; margin-bottom:5px; display:block;">عنوان پروژه در گوگل</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-editacc-title" style="font-family:'JetBrains Mono', monospace; direction:ltr;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasEditAccountModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="submitGasEditAccount();" style="background:#4285F4; border-color:#4285F4; padding:8px 22px; font-weight:700;">
+                    <i data-lucide="check" style="width:14px; height:14px; margin-left:4px;"></i> ذخیره تغییرات
                 </button>
             </div>
         </div>

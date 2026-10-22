@@ -20,10 +20,32 @@
             .replace(/'/g, '&#039;');
     }
 
-    // Init Lucide Icons
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
+    // Performance: Debounced Lucide icon renderer to prevent layout thrashing & stuttering
+    (function() {
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            const _origCreateIcons = lucide.createIcons.bind(lucide);
+            let _lucideRaf = null;
+            lucide.createIcons = function(options) {
+                if (_lucideRaf) cancelAnimationFrame(_lucideRaf);
+                _lucideRaf = requestAnimationFrame(() => {
+                    try { _origCreateIcons(options); } catch (e) {}
+                    _lucideRaf = null;
+                });
+            };
+            lucide.createIcons();
+        }
+    })();
+
+    // Performance: Background tab throttling for polling loops
+    window._panelIsTabHidden = false;
+    document.addEventListener("visibilitychange", () => {
+        window._panelIsTabHidden = document.hidden;
+        if (!document.hidden) {
+            // Trigger quick refresh on tab restore
+            if (typeof fetchStats === 'function') fetchStats();
+            if (typeof fetchProtocols === 'function') fetchProtocols();
+        }
+    });
 
     // --- Dark / Light Theme Engine ---
     function initTheme() {
@@ -1561,7 +1583,14 @@
     };
 
     // Fetch metrics stats
+    let _hiddenStatsCounter = 0;
     async function fetchStats() {
+        if (window._panelIsTabHidden) {
+            _hiddenStatsCounter++;
+            if (_hiddenStatsCounter % 8 !== 0) return; // Throttle to ~16s when tab is hidden
+        } else {
+            _hiddenStatsCounter = 0;
+        }
         try {
             const res = await fetch("/api/stats");
             if (!res.ok) return;
@@ -1992,7 +2021,14 @@
     }
 
     // Fetch all Protocols
+    let _hiddenProtoCounter = 0;
     async function fetchProtocols() {
+        if (window._panelIsTabHidden) {
+            _hiddenProtoCounter++;
+            if (_hiddenProtoCounter % 5 !== 0) return; // Throttle to ~30s when tab is hidden
+        } else {
+            _hiddenProtoCounter = 0;
+        }
         try {
             const res = await fetch("/api/protocols");
             if (!res.ok) return;
@@ -20521,6 +20557,64 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
             gasCachedConfig = data;
 
+            // 1. Multi-Account Hub rendering
+            const accounts = data.accounts || [];
+            const activeAccId = data.active_account_id || "";
+            const activeAcc = data.active_account || accounts.find(a => a.id === activeAccId) || {};
+
+            if (document.getElementById("gas-accounts-count-badge")) {
+                document.getElementById("gas-accounts-count-badge").textContent = `${accounts.length} حساب`;
+            }
+
+            const accSelect = document.getElementById("gas-account-select");
+            if (accSelect) {
+                if (accounts.length === 0) {
+                    accSelect.innerHTML = `<option value="">(هیچ حسابی ثبت نشده است)</option>`;
+                } else {
+                    accSelect.innerHTML = accounts.map(a => {
+                        const isSel = a.id === activeAccId ? 'selected' : '';
+                        const hasDeploy = !!(a.webapp_url || a.deployment_id);
+                        const hasTok = !!a.access_token;
+                        const icon = hasDeploy ? '🌐' : (hasTok ? '🔑' : '⚪');
+                        return `<option value="${a.id}" ${isSel}>${icon} ${escapeHtml(a.name || a.email)} (${escapeHtml(a.email)})</option>`;
+                    }).join('');
+                }
+            }
+
+            if (document.getElementById("gas-cur-acc-email")) {
+                document.getElementById("gas-cur-acc-email").textContent = activeAcc.email || '-';
+            }
+
+            if (document.getElementById("gas-cur-acc-status")) {
+                const hasUrl = !!(activeAcc.webapp_url || activeAcc.deployment_id);
+                const hasTok = !!activeAcc.access_token;
+                const statusBadge = document.getElementById("gas-cur-acc-status");
+                if (hasUrl) {
+                    statusBadge.className = "gas-token-badge gas-token-badge-green";
+                    statusBadge.textContent = "مستقر شده (Online)";
+                } else if (hasTok) {
+                    statusBadge.className = "gas-token-badge gas-token-badge-blue";
+                    statusBadge.textContent = "آماده استقرار";
+                } else {
+                    statusBadge.className = "gas-token-badge";
+                    statusBadge.textContent = "فاقد توکن";
+                }
+            }
+
+            if (document.getElementById("gas-deploy-target-acc-name")) {
+                document.getElementById("gas-deploy-target-acc-name").textContent = activeAcc.name || 'حساب جاری';
+            }
+            if (document.getElementById("gas-deploy-target-acc-email")) {
+                document.getElementById("gas-deploy-target-acc-email").textContent = activeAcc.email || '-';
+            }
+
+            // Sync token input with active account if not dirty
+            const tokenInput = document.getElementById("gas-input-token");
+            if (tokenInput && (!tokenInput.value || tokenInput.dataset.accId !== activeAccId)) {
+                tokenInput.value = activeAcc.access_token || "";
+                tokenInput.dataset.accId = activeAccId;
+            }
+
             // Update Status Badge
             const badge = document.getElementById("gas-status-badge");
             if (badge) {
@@ -20553,17 +20647,20 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const deployedBanner = document.getElementById("gas-deployed-banner");
             const deployIdSub = document.getElementById("gas-pipe-deploy-id");
 
-            if (data.google_deployment_id) {
-                if (deployStat) deployStat.innerHTML = `<span style="color:#10b981;">مستقر در گوگل (${data.google_deployment_id.substring(0, 10)}...)</span>`;
-                if (deployIdSub) deployIdSub.textContent = data.google_deployment_id.substring(0, 12) + "...";
+            const curDepId = activeAcc.deployment_id || data.google_deployment_id;
+            const curWebappUrl = activeAcc.webapp_url || data.google_webapp_url;
+
+            if (curDepId) {
+                if (deployStat) deployStat.innerHTML = `<span style="color:#10b981;">مستقر در گوگل (${curDepId.substring(0, 10)}...)</span>`;
+                if (deployIdSub) deployIdSub.textContent = curDepId.substring(0, 12) + "...";
                 if (deployedBanner) {
                     deployedBanner.style.display = 'block';
-                    document.getElementById("gas-deployed-id-val").textContent = data.google_deployment_id;
-                    document.getElementById("gas-deployed-url-val").textContent = data.google_webapp_url || `https://script.google.com/macros/s/${data.google_deployment_id}/exec`;
-                    document.getElementById("gas-last-deploy-text").textContent = `آخرین استقرار: ${data.last_deploy_time || 'اخیراً'}`;
+                    document.getElementById("gas-deployed-id-val").textContent = curDepId;
+                    document.getElementById("gas-deployed-url-val").textContent = curWebappUrl || `https://script.google.com/macros/s/${curDepId}/exec`;
+                    document.getElementById("gas-last-deploy-text").textContent = `آخرین استقرار: ${activeAcc.last_deploy_time || data.last_deploy_time || 'اخیراً'}`;
                 }
                 const manualInput = document.getElementById("gas-manual-input");
-                if (manualInput && !manualInput.value) manualInput.value = data.google_deployment_id;
+                if (manualInput && !manualInput.value) manualInput.value = curDepId;
             } else {
                 if (deployStat) deployStat.innerHTML = `<span style="color:#f59e0b;">آماده استقرار</span>`;
                 if (deployIdSub) deployIdSub.textContent = "هنوز مستقر نشده";
@@ -20596,8 +20693,8 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }
 
             // Fill deploy title input
-            if (document.getElementById("gas-input-title") && data.google_project_title) {
-                document.getElementById("gas-input-title").value = data.google_project_title;
+            if (document.getElementById("gas-input-title")) {
+                document.getElementById("gas-input-title").value = activeAcc.project_title || data.google_project_title || "MHPanel-GAS-FullTunnel";
             }
 
             // Refresh deployments list, templates & client configs
@@ -20631,7 +20728,9 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         if (!tbody) return;
 
         try {
-            const res = await fetch("/api/google_script/deployments");
+            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
+            const url = accId ? `/api/google_script/deployments?account_id=${encodeURIComponent(accId)}` : "/api/google_script/deployments";
+            const res = await fetch(url);
             const data = await res.json();
             if (!data.success) {
                 tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطا در دریافت لیست استقرارها: ${data.error || 'ناشناخته'}</td></tr>`;
@@ -20640,7 +20739,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
             const deps = data.deployments || [];
             if (deps.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ استقراری یافت نشد. می‌توانید با فرم زیر اولین استقرار را انجام دهید.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ استقراری برای این حساب یافت نشد. می‌توانید با فرم زیر اولین استقرار را انجام دهید.</td></tr>`;
                 return;
             }
 
@@ -20711,10 +20810,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     async function activateGasDeployment(depId, webappUrl) {
         toggleLoading(true, "در حال فعال‌سازی این استقرار...");
         try {
+            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
             const res = await fetch(`/api/google_script/deployments/${depId}/activate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ webapp_url: webappUrl })
+                body: JSON.stringify({ webapp_url: webappUrl, account_id: accId })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -20737,9 +20837,11 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         toggleLoading(true, "در حال حذف استقرار از پروژه گوگل...");
         try {
+            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
             const res = await fetch(`/api/google_script/deployments/${depId}/delete`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" }
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ account_id: accId })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -20747,6 +20849,13 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 showToast("استقرار با موفقیت از گوگل حذف شد.", "success");
                 fetchGoogleScriptConfig();
             } else {
+                showToast(data.error || "خطا در حذف استقرار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
                 showToast(data.error || "خطا در حذف استقرار", "error");
             }
         } catch (e) {
@@ -21177,10 +21286,12 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         toggleLoading(true, "در حال ایجاد پروژه در Google Apps Script و استقرار وب‌اپ...");
 
         try {
+            const curAccId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
             const res = await fetch("/api/google_script/deploy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    account_id: curAccId,
                     access_token: token,
                     title: title,
                     mode: mode,
@@ -21445,11 +21556,29 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
-    async function fetchGasClientConfigs() {
+    async function fetchGasClientConfigs(accountId = null) {
         try {
-            const res = await fetch("/api/google_script/client-configs");
+            const accId = accountId || (gasCachedConfig && gasCachedConfig.active_account_id) || "";
+            const url = accId ? `/api/google_script/client-configs?account_id=${encodeURIComponent(accId)}` : "/api/google_script/client-configs";
+            const res = await fetch(url);
             const data = await res.json();
             if (!data.success) return;
+
+            // Populate account selector in client tab
+            const clientAccSelect = document.getElementById("gas-client-acc-select");
+            if (clientAccSelect && data.all_accounts) {
+                const curSelected = accountId || data.account_id;
+                clientAccSelect.innerHTML = data.all_accounts.map(a => {
+                    const isSel = a.id === curSelected ? 'selected' : '';
+                    return `<option value="${a.id}" ${isSel}>${escapeHtml(a.name || a.email)} (${escapeHtml(a.email)})</option>`;
+                }).join('');
+            }
+
+            // Populate all URLs textarea
+            const allUrlsBox = document.getElementById("gas-all-urls-textarea");
+            if (allUrlsBox && data.all_webapp_urls) {
+                allUrlsBox.value = data.all_webapp_urls.join("\n");
+            }
 
             // mhrv-rs parameters
             if (document.getElementById("gas-param-mhrv-url")) {
@@ -21484,6 +21613,378 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             if (window.lucide) lucide.createIcons();
         } catch (e) {
             console.error("fetchGasClientConfigs error:", e);
+        }
+    }
+
+    async function onGasAccountSelectChanged(accId) {
+        if (!accId) return;
+        toggleLoading(true, "در حال تغییر حساب فعال...");
+        try {
+            const res = await fetch(`/api/google_script/accounts/${accId}/set-active`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(`حساب فعال با موفقیت تغییر یافت.`, "success");
+                const tokenInput = document.getElementById("gas-input-token");
+                if (tokenInput) tokenInput.value = "";
+                await fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در تغییر حساب فعال", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function openGasAddAccountModal() {
+        const nameEl = document.getElementById("gas-newacc-name");
+        const emailEl = document.getElementById("gas-newacc-email");
+        const tokenEl = document.getElementById("gas-newacc-token");
+        const titleEl = document.getElementById("gas-newacc-title");
+        if (nameEl) nameEl.value = "";
+        if (emailEl) emailEl.value = "";
+        if (tokenEl) tokenEl.value = "";
+        if (titleEl) titleEl.value = "MHPanel-GAS-FullTunnel";
+        const m = document.getElementById("gas-add-account-modal");
+        if (m) m.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeGasAddAccountModal() {
+        const m = document.getElementById("gas-add-account-modal");
+        if (m) m.style.display = "none";
+    }
+
+    async function submitGasAddAccount() {
+        const email = (document.getElementById("gas-newacc-email")?.value || "").trim();
+        const name = (document.getElementById("gas-newacc-name")?.value || "").trim();
+        const token = (document.getElementById("gas-newacc-token")?.value || "").trim();
+        const title = (document.getElementById("gas-newacc-title")?.value || "").trim();
+        const setActive = document.getElementById("gas-newacc-set-active")?.checked ?? true;
+
+        if (!email) {
+            showToast("لطفاً آدرس جیمیل را وارد نمایید.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ثبت حساب جدید...");
+        try {
+            const res = await fetch("/api/google_script/accounts/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, name, access_token: token, project_title: title, set_active: setActive })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("حساب جیمیل با موفقیت اضافه شد!", "success");
+                closeGasAddAccountModal();
+                const tokenInput = document.getElementById("gas-input-token");
+                if (tokenInput && setActive) tokenInput.value = token;
+                await fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در افزودن حساب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function openGasManageAccountsModal() {
+        const tbody = document.getElementById("gas-manage-accounts-tbody");
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">در حال دریافت اطلاعات حساب‌ها...</td></tr>`;
+        const m = document.getElementById("gas-manage-accounts-modal");
+        if (m) m.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch("/api/google_script/accounts");
+            const data = await res.json();
+            if (!data.success || !tbody) return;
+
+            const accs = data.accounts || [];
+            const activeId = data.active_account_id;
+
+            if (accs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ حساب جیمیلی وجود ندارد. روی دکمه «افزودن حساب جدید» کلیک کنید.</td></tr>`;
+                return;
+            }
+
+            let html = "";
+            accs.forEach(acc => {
+                const isActive = (acc.id === activeId);
+                const hasTok = !!acc.access_token;
+                const tokenBadge = hasTok 
+                    ? `<span class="gas-token-badge gas-token-badge-green">دارای توکن (${acc.access_token.substring(0, 8)}...)</span>`
+                    : `<span class="gas-token-badge" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">فاقد توکن</span>`;
+
+                const deployBadge = acc.webapp_url 
+                    ? `<a href="${acc.webapp_url}" target="_blank" class="gas-token-badge gas-token-badge-blue" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;"><span>${(acc.deployment_id || 'لینک وب‌اپ').substring(0, 12)}...</span> <i data-lucide="external-link" style="width:11px; height:11px;"></i></a>`
+                    : `<span style="color:var(--text-muted); font-size:11px;">مستقر نشده</span>`;
+
+                const activeBtn = isActive
+                    ? `<span class="gas-token-badge gas-token-badge-green" style="font-size:11px;">⭐ حساب فعال</span>`
+                    : `<button type="button" class="btn btn-secondary btn-sm" onclick="setGasAccountActiveFromModal('${acc.id}')" style="padding:4px 8px; font-size:11px;">انتخاب فعال</button>`;
+
+                html += `
+                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${isActive ? 'background:rgba(66,133,244,0.04);' : ''}">
+                        <td style="padding:10px 8px;">
+                            <div style="font-weight:700; color:var(--text-main);">${escapeHtml(acc.name || acc.email)}</div>
+                            <div style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#60a5fa;">${escapeHtml(acc.email)}</div>
+                        </td>
+                        <td style="padding:10px 8px;">${tokenBadge}</td>
+                        <td style="padding:10px 8px;">${deployBadge}</td>
+                        <td style="padding:10px 8px; color:var(--text-muted); font-size:11px;">${acc.last_deploy_time || '-'}</td>
+                        <td style="padding:10px 8px; text-align:left;">
+                            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
+                                ${activeBtn}
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openGasEditAccountModal('${acc.id}')" title="ویرایش" style="padding:4px 8px;">
+                                    <i data-lucide="edit-2" style="width:12px; height:12px;"></i>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasAccount('${acc.id}', '${escapeHtml(acc.name || acc.email)}')" title="حذف حساب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
+                                    <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطای شبکه در دریافت حساب‌ها</td></tr>`;
+        }
+    }
+
+    function closeGasManageAccountsModal() {
+        const m = document.getElementById("gas-manage-accounts-modal");
+        if (m) m.style.display = "none";
+    }
+
+    async function setGasAccountActiveFromModal(accId) {
+        await onGasAccountSelectChanged(accId);
+        openGasManageAccountsModal();
+    }
+
+    function openGasEditAccountModal(accId = null) {
+        const targetId = accId || (gasCachedConfig && gasCachedConfig.active_account_id);
+        const accounts = (gasCachedConfig && gasCachedConfig.accounts) || [];
+        const acc = accounts.find(a => a.id === targetId) || (gasCachedConfig && gasCachedConfig.active_account) || {};
+
+        document.getElementById("gas-editacc-id").value = targetId || "";
+        document.getElementById("gas-editacc-name").value = acc.name || "";
+        document.getElementById("gas-editacc-email").value = acc.email || "";
+        document.getElementById("gas-editacc-token").value = acc.access_token || "";
+        document.getElementById("gas-editacc-title").value = acc.project_title || "MHPanel-GAS-FullTunnel";
+
+        const m = document.getElementById("gas-edit-account-modal");
+        if (m) m.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeGasEditAccountModal() {
+        const m = document.getElementById("gas-edit-account-modal");
+        if (m) m.style.display = "none";
+    }
+
+    async function submitGasEditAccount() {
+        const accId = document.getElementById("gas-editacc-id").value;
+        const name = (document.getElementById("gas-editacc-name").value || "").trim();
+        const email = (document.getElementById("gas-editacc-email").value || "").trim();
+        const token = (document.getElementById("gas-editacc-token").value || "").trim();
+        const title = (document.getElementById("gas-editacc-title").value || "").trim();
+
+        if (!accId) return;
+        toggleLoading(true, "در حال ذخیره تغییرات حساب...");
+        try {
+            const res = await fetch(`/api/google_script/accounts/${accId}/edit`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, access_token: token, project_title: title })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("اطلاعات حساب بروزرسانی شد.", "success");
+                closeGasEditAccountModal();
+                await fetchGoogleScriptConfig();
+                const manageModal = document.getElementById("gas-manage-accounts-modal");
+                if (manageModal && manageModal.style.display === "flex") {
+                    openGasManageAccountsModal();
+                }
+            } else {
+                showToast(data.error || "خطا در ویرایش حساب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function deleteGasAccount(accId, name) {
+        if (!confirm(`آیا از حذف حساب جیمیل «${name}» اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال حذف حساب...");
+        try {
+            const res = await fetch(`/api/google_script/accounts/${accId}/delete`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("حساب با موفقیت حذف شد.", "success");
+                await fetchGoogleScriptConfig();
+                openGasManageAccountsModal();
+            } else {
+                showToast(data.error || "خطا در حذف حساب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function openGasBatchDeployModal() {
+        const accounts = (gasCachedConfig && gasCachedConfig.accounts) || [];
+        const container = document.getElementById("gas-batch-accounts-list");
+        if (container) {
+            if (accounts.length === 0) {
+                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:10px;">هیچ حسابی ثبت نشده است. ابتدا حساب جیمیل اضافه نمایید.</div>`;
+            } else {
+                container.innerHTML = accounts.map(a => {
+                    const hasTok = !!a.access_token;
+                    const warn = !hasTok ? `<span style="color:#ef4444; font-size:10.5px;">(فاقد توکن)</span>` : '';
+                    return `
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer; padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.03);">
+                            <input type="checkbox" class="gas-batch-acc-cb" value="${a.id}" ${hasTok ? 'checked' : ''} style="accent-color:#10b981; width:16px; height:16px;">
+                            <span style="font-weight:600;">${escapeHtml(a.name || a.email)}</span>
+                            <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#4285F4;">(${escapeHtml(a.email)})</span>
+                            ${warn}
+                        </label>
+                    `;
+                }).join('');
+            }
+        }
+
+        const resBox = document.getElementById("gas-batch-results-box");
+        if (resBox) resBox.style.display = "none";
+
+        const m = document.getElementById("gas-batch-deploy-modal");
+        if (m) m.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeGasBatchDeployModal() {
+        const m = document.getElementById("gas-batch-deploy-modal");
+        if (m) m.style.display = "none";
+    }
+
+    function toggleSelectAllGasBatch(selectAll) {
+        document.querySelectorAll(".gas-batch-acc-cb").forEach(cb => {
+            cb.checked = selectAll;
+        });
+    }
+
+    async function executeGasBatchDeploy() {
+        const cbs = Array.from(document.querySelectorAll(".gas-batch-acc-cb:checked"));
+        const targetIds = cbs.map(cb => cb.value);
+
+        if (targetIds.length === 0) {
+            showToast("لطفاً حداقل یک حساب جیمیل را برای استقرار انتخاب نمایید.", "warning");
+            return;
+        }
+
+        const mode = document.getElementById("gas-batch-mode-select")?.value || "full_tunnel";
+        const versioning = document.getElementById("gas-batch-versioning")?.value || "update";
+        const forceNew = (versioning === "new_project");
+
+        const startBtn = document.getElementById("gas-batch-start-btn");
+        if (startBtn) {
+            startBtn.disabled = true;
+            startBtn.innerHTML = `<span class="loading-spinner"></span> در حال استقرار همگانی...`;
+        }
+
+        const resBox = document.getElementById("gas-batch-results-box");
+        const logBox = document.getElementById("gas-batch-results-log");
+        const titleEl = document.getElementById("gas-batch-progress-title");
+        if (resBox) resBox.style.display = "block";
+        if (logBox) logBox.innerHTML = `<div style="color:var(--text-muted);">در حال ارسال درخواست استقرار به Google API برای ${targetIds.length} حساب...</div>`;
+
+        try {
+            const res = await fetch("/api/google_script/batch-deploy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    account_ids: targetIds,
+                    mode: mode,
+                    force_new_project: forceNew
+                })
+            });
+            const data = await res.json();
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.innerHTML = `<i data-lucide="rocket" style="width:14px; height:14px; margin-left:4px;"></i> شروع مجدد استقرار همگانی`;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            if (res.ok && data.success) {
+                if (titleEl) titleEl.textContent = `پایان استقرار: ${data.success_count} حساب موفق، ${data.fail_count} ناموفق`;
+                let logHtml = "";
+                (data.results || []).forEach(r => {
+                    if (r.success) {
+                        logHtml += `<div style="color:#10b981;">✅ <strong>${escapeHtml(r.email)}</strong>: استقرار موفق! URL: <a href="${r.webapp_url}" target="_blank" style="color:#60a5fa; text-decoration:none;">${r.deployment_id.substring(0, 15)}... ↗</a></div>`;
+                    } else {
+                        logHtml += `<div style="color:#ef4444;">❌ <strong>${escapeHtml(r.email)}</strong>: خطا: ${escapeHtml(r.error)}</div>`;
+                    }
+                });
+                if (logBox) logBox.innerHTML = logHtml;
+                showToast(data.message, data.fail_count === 0 ? "success" : "warning");
+                await fetchGoogleScriptConfig();
+            } else {
+                if (logBox) logBox.innerHTML = `<div style="color:#ef4444;">خطا: ${data.error || 'ناشناخته'}</div>`;
+                showToast(data.error || "خطا در استقرار همگانی", "error");
+            }
+        } catch (e) {
+            if (startBtn) {
+                startBtn.disabled = false;
+                startBtn.innerHTML = `شروع استقرار همگانی`;
+            }
+            if (logBox) logBox.innerHTML = `<div style="color:#ef4444;">خطای شبکه در ارتباط با سرور</div>`;
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function onGasClientAccSelectChanged(accId) {
+        fetchGasClientConfigs(accId);
+    }
+
+    function toggleGasMultiUrlPool() {
+        const box = document.getElementById("gas-multi-url-pool-box");
+        const btnText = document.getElementById("gas-multi-url-toggle-btn");
+        if (!box) return;
+        const isHidden = (box.style.display === "none" || !box.style.display);
+        box.style.display = isHidden ? "block" : "none";
+        if (btnText) {
+            btnText.textContent = isHidden ? "مخفی کردن لیست وب‌اپ‌ها ▴" : "نمایش همه آدرس‌های وب‌اپ (Multi-Relay Pool) ▾";
+        }
+    }
+
+    function copyGasAllWebappUrls() {
+        const textarea = document.getElementById("gas-all-urls-textarea");
+        if (textarea && textarea.value) {
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast("تمام آدرس‌های وب‌اپ با موفقیت در کلیپ‌بورد کپی شد!", "success");
+            }).catch(() => {
+                textarea.select();
+                document.execCommand('copy');
+                showToast("کپی انجام شد.", "success");
+            });
         }
     }
 

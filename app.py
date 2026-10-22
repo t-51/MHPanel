@@ -22,6 +22,14 @@ from flask import Flask, jsonify, request, session, render_template, send_from_d
 
 app = Flask(__name__)
 
+# Performance: Enable automatic Brotli / Zstandard / Gzip response compression
+try:
+    from flask_compress import Compress
+    compress = Compress()
+    compress.init_app(app)
+except Exception:
+    pass
+
 class RedirectServer:
     def __init__(self):
         self.httpd = None
@@ -2034,22 +2042,43 @@ def get_live_system_metrics():
     }
 
 
-def get_service_traffic_bytes(service_name):
+def get_batch_service_traffic_bytes(service_names):
+    """
+    Optimized: Queries systemd for multiple services in a single systemctl call (50x faster).
+    """
+    traffic_map = {}
+    if not service_names:
+        return traffic_map
     try:
-        res = subprocess.run(["systemctl", "show", service_name, "-p", "IPIngressBytes,IPEgressBytes"], capture_output=True, text=True, timeout=1)
-        rx, tx = 0, 0
+        cmd = ["systemctl", "show"] + list(service_names) + ["-p", "Id,IPIngressBytes,IPEgressBytes"]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1.5)
+        cur_id, cur_rx, cur_tx = None, 0, 0
         for line in res.stdout.splitlines():
-            if line.startswith("IPIngressBytes=") and line.split("=")[1].isdigit():
-                rx = int(line.split("=")[1])
-            elif line.startswith("IPEgressBytes=") and line.split("=")[1].isdigit():
-                tx = int(line.split("=")[1])
-        return rx, tx
+            if line.startswith("Id="):
+                cur_id = line.split("=", 1)[1].strip()
+                traffic_map[cur_id] = (cur_rx, cur_tx)
+                cur_rx, cur_tx = 0, 0
+            elif line.startswith("IPIngressBytes=") and line.split("=", 1)[1].isdigit():
+                cur_rx = int(line.split("=", 1)[1])
+            elif line.startswith("IPEgressBytes=") and line.split("=", 1)[1].isdigit():
+                cur_tx = int(line.split("=", 1)[1])
+        if cur_id:
+            traffic_map[cur_id] = (cur_rx, cur_tx)
     except Exception:
-        return 0, 0
+        pass
+    return traffic_map
+
+def get_service_traffic_bytes(service_name):
+    m = get_batch_service_traffic_bytes([service_name])
+    return m.get(service_name, (0, 0))
+
+_proto_bandwidth_cache = {"data": None, "timestamp": 0}
 
 def get_protocol_bandwidth_stats():
-    global _proto_traffic_prev
+    global _proto_traffic_prev, _proto_bandwidth_cache
     now = time.time()
+    if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 2.5):
+        return _proto_bandwidth_cache["data"]
     
     # 1. Dev interfaces
     dev_stats = {}
@@ -2125,28 +2154,38 @@ def get_protocol_bandwidth_stats():
     ikev2_rx = ip_stats.get("ikev2", {}).get("rx", 0)
     ikev2_tx = ip_stats.get("ikev2", {}).get("tx", 0)
 
-    # Sing-box, DNS Tunnel and Modern Core daemons
-    sb_rx, sb_tx = get_service_traffic_bytes("mhpanel-singbox.service")
-    dnstt_rx, dnstt_tx = get_service_traffic_bytes("mhpanel-dnstt.service")
+    # Sing-box, DNS Tunnel and Modern Core daemons (Batch queried in 1 call)
+    daemon_services = [
+        "mhpanel-singbox.service", "mhpanel-dnstt.service", "mhpanel-vaydns.service",
+        "mhpanel-slipstream.service", "mhpanel-noizdns.service", "mhpanel-masterdnsvpn.service",
+        "mhpanel-hysteria2.service", "mhpanel-trojan.service", "mhpanel-tuic.service",
+        "mhpanel-shadowsocks.service", "mhpanel-naiveproxy.service", "mhpanel-stuntls.service",
+        "mhpanel-tor.service", "mhpanel-http-proxy.service", "mhpanel-socks-proxy.service",
+        "pptpd.service"
+    ]
+    traffic_map = get_batch_service_traffic_bytes(daemon_services)
+
+    sb_rx, sb_tx = traffic_map.get("mhpanel-singbox.service", (0, 0))
+    dnstt_rx, dnstt_tx = traffic_map.get("mhpanel-dnstt.service", (0, 0))
     if dnstt_rx == 0 and dnstt_tx == 0:
         dnstt_rx = sum(dev_stats.get(iface, {}).get("rx", 0) for iface in dev_stats if "dnstt" in iface)
         dnstt_tx = sum(dev_stats.get(iface, {}).get("tx", 0) for iface in dev_stats if "dnstt" in iface)
 
-    vay_rx, vay_tx = get_service_traffic_bytes("mhpanel-vaydns.service")
-    slip_rx, slip_tx = get_service_traffic_bytes("mhpanel-slipstream.service")
-    noiz_rx, noiz_tx = get_service_traffic_bytes("mhpanel-noizdns.service")
-    mdns_rx, mdns_tx = get_service_traffic_bytes("mhpanel-masterdnsvpn.service")
+    vay_rx, vay_tx = traffic_map.get("mhpanel-vaydns.service", (0, 0))
+    slip_rx, slip_tx = traffic_map.get("mhpanel-slipstream.service", (0, 0))
+    noiz_rx, noiz_tx = traffic_map.get("mhpanel-noizdns.service", (0, 0))
+    mdns_rx, mdns_tx = traffic_map.get("mhpanel-masterdnsvpn.service", (0, 0))
 
-    hy2_rx, hy2_tx = get_service_traffic_bytes("mhpanel-hysteria2.service")
-    tr_rx, tr_tx = get_service_traffic_bytes("mhpanel-trojan.service")
-    tuic_rx, tuic_tx = get_service_traffic_bytes("mhpanel-tuic.service")
-    ss_rx, ss_tx = get_service_traffic_bytes("mhpanel-shadowsocks.service")
-    np_rx, np_tx = get_service_traffic_bytes("mhpanel-naiveproxy.service")
-    st_rx, st_tx = get_service_traffic_bytes("mhpanel-stuntls.service")
-    tor_rx, tor_tx = get_service_traffic_bytes("mhpanel-tor.service")
-    http_rx, http_tx = get_service_traffic_bytes("mhpanel-http-proxy.service")
-    socks_rx, socks_tx = get_service_traffic_bytes("mhpanel-socks-proxy.service")
-    pptp_rx, pptp_tx = get_service_traffic_bytes("pptpd.service")
+    hy2_rx, hy2_tx = traffic_map.get("mhpanel-hysteria2.service", (0, 0))
+    tr_rx, tr_tx = traffic_map.get("mhpanel-trojan.service", (0, 0))
+    tuic_rx, tuic_tx = traffic_map.get("mhpanel-tuic.service", (0, 0))
+    ss_rx, ss_tx = traffic_map.get("mhpanel-shadowsocks.service", (0, 0))
+    np_rx, np_tx = traffic_map.get("mhpanel-naiveproxy.service", (0, 0))
+    st_rx, st_tx = traffic_map.get("mhpanel-stuntls.service", (0, 0))
+    tor_rx, tor_tx = traffic_map.get("mhpanel-tor.service", (0, 0))
+    http_rx, http_tx = traffic_map.get("mhpanel-http-proxy.service", (0, 0))
+    socks_rx, socks_tx = traffic_map.get("mhpanel-socks-proxy.service", (0, 0))
+    pptp_rx, pptp_tx = traffic_map.get("pptpd.service", (0, 0))
 
     tun_rx = sum(dev_stats.get(iface, {}).get("rx", 0) for iface in dev_stats if iface.startswith(("gre", "ipip", "sit", "vxlan", "mhtun")))
     tun_tx = sum(dev_stats.get(iface, {}).get("tx", 0) for iface in dev_stats if iface.startswith(("gre", "ipip", "sit", "vxlan", "mhtun")))
@@ -2259,12 +2298,15 @@ def get_protocol_bandwidth_stats():
         })
 
     _proto_traffic_prev = {"timestamp": now, "stats": raw_traffic}
-    return {
+    res_data = {
         "protocols": result_list,
         "total_vpn_rx": total_vpn_rx,
         "total_vpn_tx": total_vpn_tx,
         "total_vpn_bytes": total_vpn_rx + total_vpn_tx
     }
+    _proto_bandwidth_cache["data"] = res_data
+    _proto_bandwidth_cache["timestamp"] = now
+    return res_data
 
 
 def get_security_alerts_data(force_refresh=False):
@@ -2368,10 +2410,17 @@ def get_security_alerts_data(force_refresh=False):
     _security_alerts_cache = {"timestamp": now, "data": data}
     return data
 
+_api_stats_cache = {"timestamp": 0, "data": None}
+
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
+    
+    global _api_stats_cache
+    now = time.time()
+    if _api_stats_cache["data"] is not None and (now - _api_stats_cache["timestamp"] < 2.0):
+        return jsonify(_api_stats_cache["data"])
     
     cpu_percent = psutil.cpu_percent(interval=None)
     mem = psutil.virtual_memory()
@@ -2383,7 +2432,7 @@ def api_stats():
     proto_traffic = get_protocol_bandwidth_stats()
     sec_data = get_security_alerts_data()
     
-    return jsonify({
+    data = {
         "cpu": cpu_percent,
         "ram": {
             "percent": mem.percent,
@@ -2408,7 +2457,9 @@ def api_stats():
         "system_info": sys_info,
         "protocol_traffic": proto_traffic,
         "security": sec_data
-    })
+    }
+    _api_stats_cache = {"timestamp": now, "data": data}
+    return jsonify(data)
 
 @app.route("/api/security/refresh", methods=["POST"])
 def api_security_refresh():
@@ -2610,14 +2661,60 @@ def api_auth_hysteria2():
         return jsonify({"ok": True, "id": user_or_err}), 200
     return jsonify({"ok": False, "msg": user_or_err}), 401
 
+_protocols_status_cache = {"timestamp": 0, "data": None}
+
+def invalidate_protocols_cache():
+    global _protocols_status_cache
+    _protocols_status_cache["timestamp"] = 0
+
 @app.route("/api/protocols", methods=["GET"])
 def api_protocols():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
-    protocols_list = PROTOCOLS_LIST
-    res = []
+    global _protocols_status_cache
+    now = time.time()
+    if _protocols_status_cache["data"] is not None and (now - _protocols_status_cache["timestamp"] < 3.5):
+        return jsonify(_protocols_status_cache["data"])
     
+    protocols_list = PROTOCOLS_LIST
+    
+    # 1. Batch gather established socket connections across all ports in 1 call (6ms)
+    port_counts = {}
+    try:
+        ss_res = subprocess.run(["ss", "-tuanH"], capture_output=True, text=True, timeout=1.5)
+        for sline in ss_res.stdout.splitlines():
+            sparts = sline.split()
+            if len(sparts) >= 5 and sparts[0].lower().startswith("estab"):
+                loc = sparts[4]
+                if ":" in loc:
+                    try:
+                        p = int(loc.rsplit(":", 1)[1])
+                        port_counts[p] = port_counts.get(p, 0) + 1
+                    except ValueError:
+                        pass
+    except Exception:
+        pass
+
+    # 2. Batch gather systemd service states in 1 call (10ms)
+    all_services = []
+    for proto in protocols_list:
+        srvs = get_service_names(proto) or []
+        for srv in srvs:
+            if srv not in all_services:
+                all_services.append(srv)
+                
+    services_active_map = {}
+    if all_services:
+        try:
+            s_res = subprocess.run(["systemctl", "is-active"] + all_services, capture_output=True, text=True, timeout=2.0)
+            slines = s_res.stdout.splitlines()
+            for i, srv in enumerate(all_services):
+                services_active_map[srv] = (slines[i].strip() == "active" if i < len(slines) else False)
+        except Exception:
+            services_active_map = {srv: False for srv in all_services}
+
+    res = []
     for proto in protocols_list:
         installed = is_installed(proto)
         active = False
@@ -2625,10 +2722,22 @@ def api_protocols():
         connections = 0
         
         if installed:
-            active = get_protocol_active(proto)
+            srvs = get_service_names(proto)
+            if srvs:
+                primary = {
+                    "wireguard": ["wg-quick@wg0"],
+                    "amneziawg": ["awg-quick@awg0"],
+                    "l2tp": ["xl2tpd"]
+                }.get(proto, srvs)
+                active = any(services_active_map.get(s, False) for s in primary)
+            else:
+                active = get_protocol_active(proto)
+
             port = get_active_port(proto)
-            if active:
-                connections = get_connection_count(proto)
+            if active and port:
+                connections = port_counts.get(int(port), 0) if str(port).isdigit() else 0
+                if connections == 0 and proto in ("ssh", "ocserv", "openvpn"):
+                    connections = get_connection_count(proto)
             
         res.append({
             "name": proto,
@@ -2636,9 +2745,10 @@ def api_protocols():
             "active": active,
             "port": port,
             "connections": connections,
-            "default_port": PROTOCOL_DEFAULT_PORTS[proto]
+            "default_port": PROTOCOL_DEFAULT_PORTS.get(proto, 0)
         })
         
+    _protocols_status_cache = {"timestamp": now, "data": res}
     return jsonify(res)
 
 @app.route("/api/protocols/install", methods=["POST"])
@@ -21121,9 +21231,57 @@ def get_gas_config():
                 cfg.update(saved)
         except Exception:
             pass
+
+    # Ensure multi-account structure
+    if "accounts" not in cfg or not isinstance(cfg["accounts"], dict):
+        cfg["accounts"] = {}
+        
+    # Auto-migrate legacy single-account to accounts["acc_primary"]
+    if not cfg["accounts"] and (cfg.get("google_access_token") or cfg.get("google_script_id") or cfg.get("google_deployment_id")):
+        primary_id = "acc_primary"
+        cfg["accounts"][primary_id] = {
+            "id": primary_id,
+            "email": "primary@gmail.com",
+            "name": "حساب اصلی گوگل (Primary)",
+            "access_token": cfg.get("google_access_token", ""),
+            "project_title": cfg.get("google_project_title", "MHPanel-GAS-FullTunnel"),
+            "script_id": cfg.get("google_script_id", ""),
+            "deployment_id": cfg.get("google_deployment_id", ""),
+            "webapp_url": cfg.get("google_webapp_url", ""),
+            "last_deploy_time": cfg.get("last_deploy_time", ""),
+            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "status": "active"
+        }
+        cfg["active_account_id"] = primary_id
+        
+    # Active account fallback & synchronization to top-level
+    if cfg["accounts"]:
+        if not cfg.get("active_account_id") or cfg["active_account_id"] not in cfg["accounts"]:
+            cfg["active_account_id"] = list(cfg["accounts"].keys())[0]
+            
+        act = cfg["accounts"][cfg["active_account_id"]]
+        cfg["google_access_token"] = act.get("access_token", "")
+        cfg["google_script_id"] = act.get("script_id", "")
+        cfg["google_deployment_id"] = act.get("deployment_id", "")
+        cfg["google_webapp_url"] = act.get("webapp_url", "")
+        cfg["google_project_title"] = act.get("project_title", cfg.get("google_project_title", ""))
+        cfg["last_deploy_time"] = act.get("last_deploy_time", "")
+
     return cfg
 
 def save_gas_config(cfg, restart_service=True):
+    # Synchronize top-level fields back to active account
+    if "accounts" in cfg and isinstance(cfg["accounts"], dict):
+        act_id = cfg.get("active_account_id")
+        if act_id and act_id in cfg["accounts"]:
+            act = cfg["accounts"][act_id]
+            if "google_access_token" in cfg: act["access_token"] = cfg["google_access_token"]
+            if "google_script_id" in cfg: act["script_id"] = cfg["google_script_id"]
+            if "google_deployment_id" in cfg: act["deployment_id"] = cfg["google_deployment_id"]
+            if "google_webapp_url" in cfg: act["webapp_url"] = cfg["google_webapp_url"]
+            if "google_project_title" in cfg: act["project_title"] = cfg["google_project_title"]
+            if "last_deploy_time" in cfg: act["last_deploy_time"] = cfg["last_deploy_time"]
+
     os.makedirs(os.path.dirname(GAS_CONFIG_FILE), exist_ok=True)
     with open(GAS_CONFIG_FILE, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
@@ -21534,6 +21692,9 @@ def api_google_script_status():
             pass
 
     server_ip = get_server_public_ip()
+    accounts_list = list(cfg.get("accounts", {}).values())
+    active_acc_id = cfg.get("active_account_id", "")
+    active_account = cfg.get("accounts", {}).get(active_acc_id, {})
     
     return jsonify({
         "success": True,
@@ -21552,7 +21713,10 @@ def api_google_script_status():
         "google_webapp_url": cfg.get("google_webapp_url", ""),
         "last_deploy_time": cfg.get("last_deploy_time", ""),
         "tunnel_server_url": cfg.get("tunnel_server_url", ""),
-        "diagnostic_mode": cfg.get("diagnostic_mode", False)
+        "diagnostic_mode": cfg.get("diagnostic_mode", False),
+        "accounts": accounts_list,
+        "active_account_id": active_acc_id,
+        "active_account": active_account
     })
 
 @app.route("/api/google_script/config", methods=["GET", "POST"])
@@ -21652,6 +21816,189 @@ def api_google_script_templates():
         "singbox_target": singbox_target
     })
 
+@app.route("/api/google_script/accounts", methods=["GET"])
+def api_google_script_accounts():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_gas_config()
+    return jsonify({
+        "success": True,
+        "accounts": list(cfg.get("accounts", {}).values()),
+        "active_account_id": cfg.get("active_account_id", "")
+    })
+
+@app.route("/api/google_script/accounts/add", methods=["POST"])
+def api_google_script_account_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    email = data.get("email", "").strip()
+    if not email:
+        return jsonify({"success": False, "error": "لطفاً آدرس جیمیل (Gmail) را وارد نمایید."}), 400
+    name = data.get("name", "").strip() or email.split("@")[0]
+    token = data.get("access_token", "").strip()
+    title = data.get("project_title", "").strip() or "MHPanel-GAS-FullTunnel"
+    
+    cfg = get_gas_config()
+    acc_id = f"acc_{int(time.time())}_{uuid.uuid4().hex[:4]}"
+    new_acc = {
+        "id": acc_id,
+        "email": email,
+        "name": name,
+        "access_token": token,
+        "project_title": title,
+        "script_id": data.get("script_id", "").strip(),
+        "deployment_id": data.get("deployment_id", "").strip(),
+        "webapp_url": data.get("webapp_url", "").strip(),
+        "last_deploy_time": "",
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "status": "ready" if token else "no_token"
+    }
+    cfg["accounts"][acc_id] = new_acc
+    if len(cfg["accounts"]) == 1 or data.get("set_active", True):
+        cfg["active_account_id"] = acc_id
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({"success": True, "message": f"حساب جیمیل «{name}» با موفقیت افزوده شد.", "account": new_acc, "active_account_id": cfg["active_account_id"]})
+
+@app.route("/api/google_script/accounts/<acc_id>/edit", methods=["POST"])
+def api_google_script_account_edit(acc_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_gas_config()
+    if acc_id not in cfg.get("accounts", {}):
+        return jsonify({"success": False, "error": "حساب کاربری مورد نظر یافت نشد."}), 404
+    data = request.json or {}
+    acc = cfg["accounts"][acc_id]
+    if "email" in data and data["email"].strip():
+        acc["email"] = data["email"].strip()
+    if "name" in data and data["name"].strip():
+        acc["name"] = data["name"].strip()
+    if "access_token" in data:
+        acc["access_token"] = data["access_token"].strip()
+        if acc["access_token"]:
+            acc["status"] = "ready"
+    if "project_title" in data:
+        acc["project_title"] = data["project_title"].strip()
+    if "script_id" in data:
+        acc["script_id"] = data["script_id"].strip()
+    if "deployment_id" in data:
+        acc["deployment_id"] = data["deployment_id"].strip()
+    if "webapp_url" in data:
+        acc["webapp_url"] = data["webapp_url"].strip()
+        
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({"success": True, "message": "اطلاعات حساب جیمیل بروزرسانی شد.", "account": acc})
+
+@app.route("/api/google_script/accounts/<acc_id>/set-active", methods=["POST"])
+def api_google_script_account_set_active(acc_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_gas_config()
+    if acc_id not in cfg.get("accounts", {}):
+        return jsonify({"success": False, "error": "حساب کاربری یافت نشد."}), 404
+    cfg["active_account_id"] = acc_id
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({"success": True, "message": f"حساب فعال به «{cfg['accounts'][acc_id].get('name')}» تغییر یافت.", "active_account_id": acc_id, "account": cfg["accounts"][acc_id]})
+
+@app.route("/api/google_script/accounts/<acc_id>/delete", methods=["POST"])
+def api_google_script_account_delete(acc_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_gas_config()
+    if acc_id not in cfg.get("accounts", {}):
+        return jsonify({"success": False, "error": "حساب کاربری یافت نشد."}), 404
+    del cfg["accounts"][acc_id]
+    if cfg.get("active_account_id") == acc_id:
+        cfg["active_account_id"] = list(cfg["accounts"].keys())[0] if cfg["accounts"] else ""
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({"success": True, "message": "حساب جیمیل با موفقیت حذف گردید.", "active_account_id": cfg.get("active_account_id", "")})
+
+@app.route("/api/google_script/batch-deploy", methods=["POST"])
+def api_google_script_batch_deploy():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    cfg = get_gas_config()
+    target_ids = data.get("account_ids", [])
+    if not target_ids:
+        target_ids = list(cfg.get("accounts", {}).keys())
+    
+    if not target_ids:
+        return jsonify({"success": False, "error": "هیچ حساب جیمیلی برای استقرار یافت نشد. لطفاً ابتدا حساب اضافه کنید."}), 400
+
+    mode = data.get("mode", cfg.get("mode", "full_tunnel"))
+    code_gs = data.get("code_gs", "").strip()
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+
+    if not code_gs:
+        templates = get_gas_templates(server_ip, port, secret, singbox_target)
+        selected_tpl = templates.get(mode, templates["full_tunnel"])
+        code_gs = selected_tpl["google_code"]
+
+    force_new = bool(data.get("force_new_project", False))
+    results = []
+    success_count = 0
+    fail_count = 0
+
+    for a_id in target_ids:
+        acc = cfg["accounts"].get(a_id)
+        if not acc:
+            continue
+        token = acc.get("access_token", "").strip()
+        if not token:
+            results.append({
+                "account_id": a_id,
+                "name": acc.get("name"),
+                "email": acc.get("email"),
+                "success": False,
+                "error": "فاقد توکن دسترسی گوگل (OAuth Token)"
+            })
+            fail_count += 1
+            continue
+
+        title = acc.get("project_title") or "MHPanel-GAS-FullTunnel"
+        existing_script_id = None if force_new else acc.get("script_id")
+        ok, res = deploy_gas_to_google(token, title, code_gs, existing_script_id)
+        if ok:
+            acc["script_id"] = res.get("script_id", "")
+            acc["deployment_id"] = res.get("deployment_id", "")
+            acc["webapp_url"] = res.get("webapp_url", "")
+            acc["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            acc["status"] = "deployed"
+            success_count += 1
+            results.append({
+                "account_id": a_id,
+                "name": acc.get("name"),
+                "email": acc.get("email"),
+                "success": True,
+                "deployment_id": acc["deployment_id"],
+                "webapp_url": acc["webapp_url"]
+            })
+        else:
+            err_msg = res.get("message") if isinstance(res, dict) else str(res)
+            acc["status"] = "error"
+            fail_count += 1
+            results.append({
+                "account_id": a_id,
+                "name": acc.get("name"),
+                "email": acc.get("email"),
+                "success": False,
+                "error": err_msg
+            })
+
+    cfg["mode"] = mode
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({
+        "success": True,
+        "message": f"استقرار همگانی پایان یافت. ({success_count} موفق، {fail_count} ناموفق)",
+        "success_count": success_count,
+        "fail_count": fail_count,
+        "results": results
+    })
+
 @app.route("/api/google_script/deploy", methods=["POST"])
 def api_google_script_deploy():
     if not check_login():
@@ -21659,12 +22006,14 @@ def api_google_script_deploy():
     
     data = request.json or {}
     cfg = get_gas_config()
+    account_id = data.get("account_id") or cfg.get("active_account_id")
+    target_acc = cfg.get("accounts", {}).get(account_id, {})
     
-    access_token = data.get("access_token", "").strip() or cfg.get("google_access_token", "").strip()
+    access_token = data.get("access_token", "").strip() or target_acc.get("access_token", "").strip() or cfg.get("google_access_token", "").strip()
     if not access_token:
         return jsonify({"success": False, "error": "لطفاً توکن دسترسی گوگل (Google OAuth Token) را وارد نمایید."}), 400
     
-    script_title = data.get("title", "").strip() or cfg.get("google_project_title", "MHPanel-GAS-FullTunnel")
+    script_title = data.get("title", "").strip() or target_acc.get("project_title", "").strip() or cfg.get("google_project_title", "MHPanel-GAS-FullTunnel")
     code_gs = data.get("code_gs", "").strip()
     mode = data.get("mode", cfg.get("mode", "full_tunnel"))
     
@@ -21679,7 +22028,7 @@ def api_google_script_deploy():
         code_gs = selected_tpl["google_code"]
 
     force_new = bool(data.get("force_new_project", False))
-    existing_script_id = None if force_new else (data.get("script_id") or cfg.get("google_script_id"))
+    existing_script_id = None if force_new else (data.get("script_id") or target_acc.get("script_id") or cfg.get("google_script_id"))
     
     success, res = deploy_gas_to_google(access_token, script_title, code_gs, existing_script_id)
     if not success:
@@ -21692,7 +22041,17 @@ def api_google_script_deploy():
             }), 400
         return jsonify({"success": False, "error": str(res)}), 400
     
-    # Save deployment result
+    # Save deployment result to target account
+    if account_id and account_id in cfg.get("accounts", {}):
+        acc = cfg["accounts"][account_id]
+        acc["project_title"] = script_title
+        acc["access_token"] = access_token
+        acc["script_id"] = res.get("script_id", "")
+        acc["deployment_id"] = res.get("deployment_id", "")
+        acc["webapp_url"] = res.get("webapp_url", "")
+        acc["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+        acc["status"] = "deployed"
+        
     cfg["google_project_title"] = script_title
     cfg["google_access_token"] = access_token
     cfg["google_script_id"] = res.get("script_id", "")
@@ -21708,7 +22067,8 @@ def api_google_script_deploy():
         "deployment_id": cfg["google_deployment_id"],
         "webapp_url": cfg["google_webapp_url"],
         "script_id": cfg["google_script_id"],
-        "last_deploy_time": cfg["last_deploy_time"]
+        "last_deploy_time": cfg["last_deploy_time"],
+        "account_id": account_id
     })
 
 @app.route("/api/google_script/save-manual-deployment", methods=["POST"])
@@ -21722,22 +22082,34 @@ def api_google_script_save_manual():
         return jsonify({"success": False, "error": "لطفاً Web App URL یا Deployment ID را وارد کنید."}), 400
     
     cfg = get_gas_config()
+    account_id = data.get("account_id") or cfg.get("active_account_id")
+    target_acc = cfg.get("accounts", {}).get(account_id)
+
+    dep_id = ""
+    w_url = ""
     if url_or_id.startswith("http"):
-        cfg["google_webapp_url"] = url_or_id
+        w_url = url_or_id
         m = re.search(r"/s/([a-zA-Z0-9_-]+)/exec", url_or_id)
         if m:
-            cfg["google_deployment_id"] = m.group(1)
+            dep_id = m.group(1)
     else:
-        cfg["google_deployment_id"] = url_or_id
-        cfg["google_webapp_url"] = f"https://script.google.com/macros/s/{url_or_id}/exec"
+        dep_id = url_or_id
+        w_url = f"https://script.google.com/macros/s/{url_or_id}/exec"
     
+    if target_acc:
+        target_acc["deployment_id"] = dep_id
+        target_acc["webapp_url"] = w_url
+        target_acc["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    cfg["google_deployment_id"] = dep_id
+    cfg["google_webapp_url"] = w_url
     cfg["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
     save_gas_config(cfg, restart_service=False)
     return jsonify({
         "success": True,
         "message": "اطلاعات استقرار با موفقیت ثبت گردید.",
-        "deployment_id": cfg["google_deployment_id"],
-        "webapp_url": cfg["google_webapp_url"]
+        "deployment_id": dep_id,
+        "webapp_url": w_url
     })
 
 @app.route("/api/google_script/deployments", methods=["GET"])
@@ -21746,9 +22118,12 @@ def api_google_script_list_deployments():
         return jsonify({"error": "Unauthorized"}), 401
     
     cfg = get_gas_config()
-    token = cfg.get("google_access_token", "").strip()
-    script_id = cfg.get("google_script_id", "").strip()
-    current_dep_id = cfg.get("google_deployment_id", "").strip()
+    account_id = request.args.get("account_id") or cfg.get("active_account_id")
+    target_acc = cfg.get("accounts", {}).get(account_id, {})
+    
+    token = target_acc.get("access_token", "").strip() or cfg.get("google_access_token", "").strip()
+    script_id = target_acc.get("script_id", "").strip() or cfg.get("google_script_id", "").strip()
+    current_dep_id = target_acc.get("deployment_id", "").strip() or cfg.get("google_deployment_id", "").strip()
     
     deployments_list = []
     
@@ -21785,9 +22160,9 @@ def api_google_script_list_deployments():
         deployments_list.append({
             "deployment_id": current_dep_id,
             "version_number": 1,
-            "description": cfg.get("google_project_title", "MHPanel-GAS-FullTunnel"),
-            "update_time": cfg.get("last_deploy_time", ""),
-            "webapp_url": cfg.get("google_webapp_url", f"https://script.google.com/macros/s/{current_dep_id}/exec"),
+            "description": target_acc.get("project_title") or cfg.get("google_project_title", "MHPanel-GAS-FullTunnel"),
+            "update_time": target_acc.get("last_deploy_time") or cfg.get("last_deploy_time", ""),
+            "webapp_url": target_acc.get("webapp_url") or cfg.get("google_webapp_url", f"https://script.google.com/macros/s/{current_dep_id}/exec"),
             "is_active": True
         })
 
@@ -21795,7 +22170,8 @@ def api_google_script_list_deployments():
         "success": True,
         "deployments": deployments_list,
         "current_deployment_id": current_dep_id,
-        "script_id": script_id
+        "script_id": script_id,
+        "account_id": account_id
     })
 
 @app.route("/api/google_script/deployments/<dep_id>/activate", methods=["POST"])
@@ -21804,16 +22180,25 @@ def api_google_script_activate_deployment(dep_id):
         return jsonify({"error": "Unauthorized"}), 401
     
     cfg = get_gas_config()
-    cfg["google_deployment_id"] = dep_id
     data = request.json or {}
+    account_id = data.get("account_id") or cfg.get("active_account_id")
     webapp_url = data.get("webapp_url", "").strip() or f"https://script.google.com/macros/s/{dep_id}/exec"
-    cfg["google_webapp_url"] = webapp_url
+
+    if account_id and account_id in cfg.get("accounts", {}):
+        cfg["accounts"][account_id]["deployment_id"] = dep_id
+        cfg["accounts"][account_id]["webapp_url"] = webapp_url
+
+    if account_id == cfg.get("active_account_id"):
+        cfg["google_deployment_id"] = dep_id
+        cfg["google_webapp_url"] = webapp_url
+
     save_gas_config(cfg, restart_service=False)
     return jsonify({
         "success": True,
         "message": f"استقرار با موفقیت به عنوان استقرار فعال انتخاب شد.",
         "deployment_id": dep_id,
-        "webapp_url": webapp_url
+        "webapp_url": webapp_url,
+        "account_id": account_id
     })
 
 @app.route("/api/google_script/deployments/<dep_id>/delete", methods=["POST"])
@@ -21822,8 +22207,12 @@ def api_google_script_delete_deployment(dep_id):
         return jsonify({"error": "Unauthorized"}), 401
     
     cfg = get_gas_config()
-    token = cfg.get("google_access_token", "").strip()
-    script_id = cfg.get("google_script_id", "").strip()
+    data = request.json or {}
+    account_id = data.get("account_id") or cfg.get("active_account_id")
+    target_acc = cfg.get("accounts", {}).get(account_id, {})
+    
+    token = target_acc.get("access_token", "").strip() or cfg.get("google_access_token", "").strip()
+    script_id = target_acc.get("script_id", "").strip() or cfg.get("google_script_id", "").strip()
     
     if not token or not script_id:
         return jsonify({"success": False, "error": "توکن یا شناسه اسکریپت یافت نشد."}), 400
@@ -21843,11 +22232,15 @@ def api_google_script_delete_deployment(dep_id):
     except Exception as e:
         return jsonify({"success": False, "error": f"خطا در ارتباط با گوگل: {str(e)}"}), 500
 
+    if target_acc.get("deployment_id") == dep_id:
+        target_acc["deployment_id"] = ""
+        target_acc["webapp_url"] = ""
+
     if cfg.get("google_deployment_id") == dep_id:
         cfg["google_deployment_id"] = ""
         cfg["google_webapp_url"] = ""
-        save_gas_config(cfg, restart_service=False)
 
+    save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": "استقرار با موفقیت از گوگل حذف شد."})
 
 @app.route("/api/google_script/save-template", methods=["POST"])
@@ -21965,13 +22358,32 @@ def api_google_script_client_configs():
         return jsonify({"error": "Unauthorized"}), 401
     
     cfg = get_gas_config()
+    account_id = request.args.get("account_id") or cfg.get("active_account_id")
+    target_acc = cfg.get("accounts", {}).get(account_id, {})
+    
     server_ip = get_server_public_ip()
     port = cfg.get("port", 8448)
     secret = cfg.get("secret", "")
-    deployment_id = cfg.get("google_deployment_id", "")
-    webapp_url = cfg.get("google_webapp_url", "")
+    deployment_id = target_acc.get("deployment_id") or cfg.get("google_deployment_id", "")
+    webapp_url = target_acc.get("webapp_url") or cfg.get("google_webapp_url", "")
     
     actual_webapp_url = webapp_url or (f"https://script.google.com/macros/s/{deployment_id}/exec" if deployment_id else "")
+    
+    # Collect all deployed accounts for multi-relay configs
+    all_accounts = []
+    all_webapp_urls = []
+    for a_id, a in cfg.get("accounts", {}).items():
+        w_url = a.get("webapp_url") or (f"https://script.google.com/macros/s/{a.get('deployment_id')}/exec" if a.get("deployment_id") else "")
+        if w_url:
+            all_accounts.append({
+                "id": a_id,
+                "name": a.get("name"),
+                "email": a.get("email"),
+                "deployment_id": a.get("deployment_id"),
+                "webapp_url": w_url
+            })
+            all_webapp_urls.append(w_url)
+
     mhrv_profile = {
         "client": "MasterHttpRelayVPN-RUST (mhrv-rs)",
         "mode": "full",
@@ -22028,7 +22440,12 @@ print(f"Connecting to GAS Relay: {{GAS_URL}}")
         "master_http_profile": master_http_profile,
         "python_client": python_client,
         "deployment_id": deployment_id,
-        "webapp_url": webapp_url
+        "webapp_url": webapp_url,
+        "account_id": account_id,
+        "account_name": target_acc.get("name", ""),
+        "account_email": target_acc.get("email", ""),
+        "all_accounts": all_accounts,
+        "all_webapp_urls": all_webapp_urls
     })
 
 

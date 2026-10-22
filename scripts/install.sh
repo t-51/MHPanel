@@ -633,7 +633,10 @@ install_panel_web_ui() {
             "pyrad>=2.4" \
             "cryptography>=3.4.8" \
             "pyOpenSSL" \
-            "requests" --quiet
+            "requests" \
+            "flask-compress" \
+            "brotli" \
+            "backports.zstd" --quiet
     else
         echo -e "    ${GREEN}[✓] Python virtual environment and dependencies already exist.${NC}"
     fi
@@ -705,6 +708,8 @@ WorkingDirectory=${PANEL_DIR}
 ExecStart=${PANEL_DIR}/venv/bin/python app.py
 Restart=always
 RestartSec=3
+LimitNOFILE=1048576
+LimitNPROC=512000
 Environment=PATH=${PANEL_DIR}/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Environment=PYTHONUNBUFFERED=1
 Environment=LANG=en_US.UTF-8

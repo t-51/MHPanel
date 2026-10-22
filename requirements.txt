@@ -4,3 +4,6 @@ pyrad>=2.4
 cryptography>=3.4.8
 pyOpenSSL>=21.0.0
 requests>=2.25.0
+flask-compress>=1.14
+brotli>=1.1.0
+backports.zstd>=1.0.0
