@@ -1465,7 +1465,9 @@ show_panel_access_info() {
     echo -e "     Click ${BOLD}Advanced${NC} and select ${BOLD}Proceed to ... (unsafe)${NC}."
     echo -e "     You can configure a free Let's Encrypt SSL certificate anytime from the menu."
     echo -e "${CYAN}${BOLD}========================================================================${NC}\n"
-    read -p "Press Enter to return to main menu..."
+    if [ -t 0 ]; then
+        read -p "Press Enter to return to main menu..." || true
+    fi
 }
 
 show_final_summary() {
@@ -1500,7 +1502,9 @@ show_final_summary() {
     echo -e "  You can reopen this management hub anytime from your server terminal by running:"
     echo -e "  Command: ${CYAN}${BOLD}mhpanel${NC} (or ${CYAN}hmpanel${NC})"
     echo -e "${GREEN}${BOLD}========================================================================${NC}\n"
-    read -p "Press Enter to return to main menu..."
+    if [ -t 0 ]; then
+        read -p "Press Enter to return to main menu..." || true
+    fi
 }
 
 # ==============================================================================
@@ -1556,7 +1560,9 @@ menu_diagnostic_status() {
     done
 
     echo -e "\n${CYAN}========================================================================${NC}"
-    read -p "Press Enter to return to main menu..."
+    if [ -t 0 ]; then
+        read -p "Press Enter to return to main menu..." || true
+    fi
 }
 
 menu_vpn_protocols() {
