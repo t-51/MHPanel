@@ -243,39 +243,37 @@ def add_protocol_user(protocol, username, password, auth_mode="dual", traffic_li
         """, (protocol, username, password, auth_mode, traffic_limit_gb, upload_limit_gb, download_limit_gb, expire_date, active, now, now))
     conn.close()
 
-    # Also register in FreeRADIUS if auth_mode is radius or dual
-    if auth_mode in ["radius", "dual"]:
-        r_users = get_radius_users_raw()
-        if username not in r_users:
-            r_users[username] = {
-                "password": password,
-                "active": bool(active),
-                "expire_date": expire_date,
-                "limit_gb": traffic_limit_gb if traffic_limit_gb > 0 else None,
-                "upload_limit_gb": upload_limit_gb if upload_limit_gb > 0 else None,
-                "download_limit_gb": download_limit_gb if download_limit_gb > 0 else None,
-                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "protocols": [protocol, "all"],
-                "sub_token": secrets.token_urlsafe(12)
-            }
-        else:
-            r_users[username]["password"] = password
-            r_users[username]["active"] = bool(active)
-            r_users[username]["expire_date"] = expire_date
-            if traffic_limit_gb > 0: r_users[username]["limit_gb"] = traffic_limit_gb
-            if upload_limit_gb > 0: r_users[username]["upload_limit_gb"] = upload_limit_gb
-            if download_limit_gb > 0: r_users[username]["download_limit_gb"] = download_limit_gb
-            protos = set(r_users[username].get("protocols", []))
-            protos.add(protocol)
-            r_users[username]["protocols"] = list(protos)
+    # Register in central radius_users.json and sync FreeRADIUS & local fallbacks
+    r_users = get_radius_users_raw()
+    if username not in r_users:
+        r_users[username] = {
+            "password": password,
+            "active": bool(active),
+            "expire_date": expire_date,
+            "limit_gb": traffic_limit_gb if traffic_limit_gb > 0 else None,
+            "upload_limit_gb": upload_limit_gb if upload_limit_gb > 0 else None,
+            "download_limit_gb": download_limit_gb if download_limit_gb > 0 else None,
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "protocols": [protocol, "all"],
+            "sub_token": secrets.token_urlsafe(12)
+        }
+    else:
+        r_users[username]["password"] = password
+        r_users[username]["active"] = bool(active)
+        r_users[username]["expire_date"] = expire_date
+        if traffic_limit_gb > 0: r_users[username]["limit_gb"] = traffic_limit_gb
+        if upload_limit_gb > 0: r_users[username]["upload_limit_gb"] = upload_limit_gb
+        if download_limit_gb > 0: r_users[username]["download_limit_gb"] = download_limit_gb
+        protos = set(r_users[username].get("protocols", []))
+        protos.add(protocol)
+        r_users[username]["protocols"] = list(protos)
 
-        save_radius_users_raw(r_users)
-        # Trigger freeradius file sync
-        try:
-            from app import sync_freeradius_users
-            sync_freeradius_users()
-        except Exception:
-            pass
+    save_radius_users_raw(r_users)
+    try:
+        from app import sync_freeradius_users
+        sync_freeradius_users()
+    except Exception:
+        pass
 
     sync_daemon_users(protocol)
     return True, "کاربر با موفقیت ثبت و ذخیره شد."

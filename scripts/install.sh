@@ -499,7 +499,10 @@ EOF
         firewall_pkg="iptables-persistent"
     fi
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps; do
+    # Remove broken third-party repos that can break apt-get update
+    rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
+
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -796,7 +799,48 @@ install_panel_web_ui() {
     for f in wg_users.json awg_users.json ssh_users.json l2tp_users.json ikev2_users.json ovpn_users.json sstp_users.json radius_users.json ocserv_users.json singbox_users.json; do
         if [ ! -f "${PANEL_DIR}/${f}" ]; then echo "{}" > "${PANEL_DIR}/${f}"; fi
     done
-    if [ ! -f "${PANEL_DIR}/radius_groups.json" ]; then echo "[]" > "${PANEL_DIR}/radius_groups.json"; fi
+    if [ ! -f "${PANEL_DIR}/radius_groups.json" ] || [ "$(cat "${PANEL_DIR}/radius_groups.json" 2>/dev/null)" = "[]" ]; then
+        cat > "${PANEL_DIR}/radius_groups.json" <<'EOF'
+{
+  "default": {
+    "id": "default",
+    "name": "پکیج استاندارد (Standard)",
+    "traffic_gb": 0,
+    "validity_days": 30,
+    "simultaneous_use": 2,
+    "allowed_days": "all",
+    "custom_days": [],
+    "start_time": "00:00",
+    "end_time": "24:00",
+    "description": "پکیج استاندارد با ۲ کاربر همزمان و ترافیک نامحدود"
+  },
+  "vip": {
+    "id": "vip",
+    "name": "پکیج ویژه (VIP)",
+    "traffic_gb": 100,
+    "validity_days": 30,
+    "simultaneous_use": 5,
+    "allowed_days": "all",
+    "custom_days": [],
+    "start_time": "00:00",
+    "end_time": "24:00",
+    "description": "پکیج حرفه‌ای با ۵ اتصال همزمان و ۱۰۰ گیگابایت حجم"
+  },
+  "night": {
+    "id": "night",
+    "name": "بسته شبانه (Nightly)",
+    "traffic_gb": 50,
+    "validity_days": 30,
+    "simultaneous_use": 2,
+    "allowed_days": "all",
+    "custom_days": [],
+    "start_time": "01:00",
+    "end_time": "08:00",
+    "description": "فعال فقط از ۱ بامداد تا ۸ صبح"
+  }
+}
+EOF
+    fi
     if [ ! -f "${PANEL_DIR}/servers.json" ]; then echo "[]" > "${PANEL_DIR}/servers.json"; fi
     if [ ! -f "${PANEL_DIR}/traffic_stats.json" ]; then echo "{}" > "${PANEL_DIR}/traffic_stats.json"; fi
     if [ ! -f "${PANEL_DIR}/sub_settings.json" ]; then echo "{}" > "${PANEL_DIR}/sub_settings.json"; fi
@@ -909,6 +953,140 @@ GEO
         echo -e "    ${GREEN}[✓] MH Panel Web UI service is active and running.${NC}"
     else
         echo -e "    ${RED}[!] MH Panel service is not active yet. Check journalctl logs.${NC}"
+    fi
+
+    setup_freeradius
+}
+
+setup_freeradius() {
+    echo -e "    ${CYAN}--> Setting up FreeRADIUS Authentication & Multi-Protocol Accounting Server...${NC}"
+
+    local rad_conf_dir="/etc/freeradius/3.0"
+    local rad_service="freeradius"
+    local rad_user="freerad"
+    local rad_group="freerad"
+    local auth_file="${rad_conf_dir}/mods-config/files/authorize"
+
+    if [ -f /etc/debian_version ] || command -v apt-get >/dev/null 2>&1; then
+        export DEBIAN_FRONTEND=noninteractive
+        rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
+        if ! command -v freeradius >/dev/null 2>&1 || [ ! -d "${rad_conf_dir}" ]; then
+            apt-get update -y >/dev/null 2>&1 || true
+            apt-get install -y --no-install-recommends freeradius freeradius-utils freeradius-config libpam-radius-auth libradcli4 >/dev/null 2>&1 || \
+            apt-get install -y freeradius freeradius-utils libpam-radius-auth >/dev/null 2>&1 || true
+        fi
+        rad_conf_dir="/etc/freeradius/3.0"
+        rad_service="freeradius"
+        rad_user="freerad"
+        rad_group="freerad"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+    elif [ -f /etc/redhat-release ] || command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+        local pkg_mgr="yum"
+        command -v dnf >/dev/null 2>&1 && pkg_mgr="dnf"
+        $pkg_mgr install -y epel-release >/dev/null 2>&1 || true
+        $pkg_mgr install -y freeradius freeradius-utils pam_radius radcli >/dev/null 2>&1 || true
+        rad_conf_dir="/etc/raddb"
+        rad_service="radiusd"
+        rad_user="radiusd"
+        rad_group="radiusd"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+        [ ! -f "$auth_file" ] && auth_file="${rad_conf_dir}/users"
+    fi
+
+    # Ensure reciprocal directory symlinks for full cross-distro compatibility
+    if [ -d "/etc/freeradius/3.0" ] && [ ! -d "/etc/raddb" ] && [ ! -L "/etc/raddb" ]; then
+        ln -sf /etc/freeradius/3.0 /etc/raddb 2>/dev/null || true
+    elif [ -d "/etc/raddb" ] && [ ! -d "/etc/freeradius/3.0" ] && [ ! -L "/etc/freeradius/3.0" ]; then
+        mkdir -p /etc/freeradius 2>/dev/null || true
+        ln -sf /etc/raddb /etc/freeradius/3.0 2>/dev/null || true
+    fi
+
+    mkdir -p "${rad_conf_dir}" /etc/radcli
+
+    local mh_users="${rad_conf_dir}/mhpanel_users"
+    if [ ! -f "$mh_users" ]; then
+        echo "# MH Panel Unified RADIUS Database" > "$mh_users"
+    fi
+
+    if [ -f "$auth_file" ]; then
+        if ! grep -q "mhpanel_users" "$auth_file" 2>/dev/null; then
+            sed -i "1s|^|\$INCLUDE ${mh_users}\n|" "$auth_file" 2>/dev/null || true
+        fi
+    fi
+
+    local clients_conf="${rad_conf_dir}/clients.conf"
+    if [ -f "$clients_conf" ]; then
+        if ! grep -q "vpn_network" "$clients_conf" 2>/dev/null; then
+            cat >> "$clients_conf" <<'EOF'
+
+client localhost_ipv6 {
+	ipv6addr	= ::1
+	secret		= testing123
+}
+
+client vpn_network {
+    ipaddr = 0.0.0.0/0
+    secret = testing123
+    require_message_authenticator = no
+}
+EOF
+        fi
+        sed -i 's/require_message_authenticator = yes/require_message_authenticator = no/g' "$clients_conf" 2>/dev/null || true
+    fi
+
+    cat > /etc/radcli/radiusclient.conf <<'EOF'
+authserver 127.0.0.1:1812
+acctserver 127.0.0.1:1813
+servers /etc/radcli/servers
+dictionary /etc/radcli/dictionary
+default_realm
+radius_timeout 3
+radius_retries 3
+bindaddr *
+seqfile /var/run/radius.seq
+mapfile /etc/radcli/port-id-map
+nologin /etc/nologin
+EOF
+    echo "127.0.0.1 testing123" > /etc/radcli/servers
+    chmod 600 /etc/radcli/servers /etc/radcli/radiusclient.conf 2>/dev/null || true
+    [ ! -L "/etc/radiusclient" ] && [ ! -d "/etc/radiusclient" ] && ln -sf /etc/radcli /etc/radiusclient 2>/dev/null || true
+
+    cat > /etc/pam_radius_auth.conf <<'EOF'
+# RADIUS Server configuration generated by MH Panel
+127.0.0.1:1812 testing123 3
+EOF
+    chmod 600 /etc/pam_radius_auth.conf 2>/dev/null || true
+
+    if id "$rad_user" >/dev/null 2>&1; then
+        chown -R "${rad_user}:${rad_group}" "${rad_conf_dir}" 2>/dev/null || true
+    fi
+    chmod 640 "$mh_users" 2>/dev/null || true
+
+    if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
+        ufw allow 1812/udp >/dev/null 2>&1 || true
+        ufw allow 1813/udp >/dev/null 2>&1 || true
+    fi
+
+    systemctl unmask "$rad_service" 2>/dev/null || true
+    systemctl enable "$rad_service" 2>/dev/null || true
+    systemctl restart "$rad_service" 2>/dev/null || true
+
+    # Synchronize users from MH Panel database
+    if [ -f "${PANEL_DIR}/app.py" ] && [ -x "${PANEL_DIR}/venv/bin/python" ]; then
+        ${PANEL_DIR}/venv/bin/python -c "
+import sys; sys.path.insert(0, '${PANEL_DIR}')
+try:
+    from app import sync_freeradius_users
+    sync_freeradius_users()
+except Exception:
+    pass
+" 2>/dev/null || true
+    fi
+
+    if systemctl is-active --quiet "$rad_service"; then
+        echo -e "    ${GREEN}[✓] FreeRADIUS authentication service is active on UDP 1812/1813.${NC}"
+    else
+        echo -e "    ${YELLOW}[!] FreeRADIUS service not active yet. Check systemctl status ${rad_service}.${NC}"
     fi
 }
 

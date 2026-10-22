@@ -441,6 +441,15 @@ install_openvpn() {
         chmod 600 /etc/openvpn/tls-crypt.key
     fi
     
+    local pam_plugin=""
+    for p in /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so \
+             /usr/lib/aarch64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so \
+             /usr/lib64/openvpn/plugins/openvpn-plugin-auth-pam.so \
+             /usr/lib/openvpn/plugins/openvpn-plugin-auth-pam.so; do
+        if [ -f "$p" ]; then pam_plugin="$p"; break; fi
+    done
+    [ -z "$pam_plugin" ] && pam_plugin="openvpn-plugin-auth-pam.so"
+
     # Write Server Configuration
     cat > /etc/openvpn/server.conf <<EOF
 port ${port}
@@ -465,7 +474,7 @@ persist-tun
 status /var/log/openvpn-status.log
 verb 3
 explicit-exit-notify 1
-plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so openvpn
+plugin ${pam_plugin} openvpn
 username-as-common-name
 verify-client-cert none
 EOF
@@ -475,11 +484,11 @@ EOF
     fi
 
     cat > /etc/pam.d/openvpn <<EOF
-auth sufficient pam_radius_auth.so
-account sufficient pam_radius_auth.so
-session sufficient pam_radius_auth.so
-auth required pam_unix.so
-account required pam_unix.so
+auth [success=done default=ignore] pam_radius_auth.so
+auth [success=done default=die] pam_unix.so try_first_pass
+account [success=done default=ignore] pam_radius_auth.so
+account [success=done default=die] pam_unix.so
+session sufficient pam_permit.so
 session required pam_unix.so
 EOF
 
@@ -1272,6 +1281,141 @@ uninstall_l2tp() {
         systemctl restart strongswan-starter || true
     fi
     rm -f /etc/xl2tpd/xl2tpd.conf /etc/ppp/options.xl2tpd
+}
+
+# ----------------- FREERADIUS SERVER -----------------
+install_freeradius() {
+    local secret=${1:-"testing123"}
+    export DEBIAN_FRONTEND=noninteractive
+
+    local rad_conf_dir="/etc/freeradius/3.0"
+    local rad_service="freeradius"
+    local rad_user="freerad"
+    local rad_group="freerad"
+    local auth_file="${rad_conf_dir}/mods-config/files/authorize"
+
+    if [ -f /etc/debian_version ] || command -v apt-get >/dev/null 2>&1; then
+        rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
+        apt-get update -y >/dev/null 2>&1 || true
+        apt-get install -y --no-install-recommends freeradius freeradius-utils freeradius-config libpam-radius-auth libradcli4 >/dev/null 2>&1 || \
+        apt-get install -y freeradius freeradius-utils libpam-radius-auth >/dev/null 2>&1 || true
+        rad_conf_dir="/etc/freeradius/3.0"
+        rad_service="freeradius"
+        rad_user="freerad"
+        rad_group="freerad"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+    elif [ -f /etc/redhat-release ] || command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+        local pkg_mgr="yum"
+        command -v dnf >/dev/null 2>&1 && pkg_mgr="dnf"
+        $pkg_mgr install -y epel-release >/dev/null 2>&1 || true
+        $pkg_mgr install -y freeradius freeradius-utils pam_radius radcli >/dev/null 2>&1 || true
+        rad_conf_dir="/etc/raddb"
+        rad_service="radiusd"
+        rad_user="radiusd"
+        rad_group="radiusd"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+        [ ! -f "$auth_file" ] && auth_file="${rad_conf_dir}/users"
+    fi
+
+    # Ensure reciprocal directory symlinks for full cross-distro compatibility
+    if [ -d "/etc/freeradius/3.0" ] && [ ! -d "/etc/raddb" ] && [ ! -L "/etc/raddb" ]; then
+        ln -sf /etc/freeradius/3.0 /etc/raddb 2>/dev/null || true
+    elif [ -d "/etc/raddb" ] && [ ! -d "/etc/freeradius/3.0" ] && [ ! -L "/etc/freeradius/3.0" ]; then
+        mkdir -p /etc/freeradius 2>/dev/null || true
+        ln -sf /etc/raddb /etc/freeradius/3.0 2>/dev/null || true
+    fi
+
+    mkdir -p "${rad_conf_dir}" /etc/radcli
+
+    local mh_users="${rad_conf_dir}/mhpanel_users"
+    if [ ! -f "$mh_users" ]; then
+        echo "# MH Panel Unified RADIUS Database" > "$mh_users"
+    fi
+
+    if [ -f "$auth_file" ]; then
+        if ! grep -q "mhpanel_users" "$auth_file" 2>/dev/null; then
+            sed -i "1s|^|\$INCLUDE ${mh_users}\n|" "$auth_file" 2>/dev/null || true
+        fi
+    fi
+
+    local clients_conf="${rad_conf_dir}/clients.conf"
+    if [ -f "$clients_conf" ]; then
+        if ! grep -q "vpn_network" "$clients_conf" 2>/dev/null; then
+            cat >> "$clients_conf" <<EOF
+
+client localhost_ipv6 {
+	ipv6addr	= ::1
+	secret		= ${secret}
+}
+
+client vpn_network {
+    ipaddr = 0.0.0.0/0
+    secret = ${secret}
+    require_message_authenticator = no
+}
+EOF
+        fi
+        sed -i 's/require_message_authenticator = yes/require_message_authenticator = no/g' "$clients_conf" 2>/dev/null || true
+    fi
+
+    cat > /etc/radcli/radiusclient.conf <<EOF
+authserver 127.0.0.1:1812
+acctserver 127.0.0.1:1813
+servers /etc/radcli/servers
+dictionary /etc/radcli/dictionary
+default_realm
+radius_timeout 3
+radius_retries 3
+bindaddr *
+seqfile /var/run/radius.seq
+mapfile /etc/radcli/port-id-map
+nologin /etc/nologin
+EOF
+    echo "127.0.0.1 ${secret}" > /etc/radcli/servers
+    chmod 600 /etc/radcli/servers /etc/radcli/radiusclient.conf 2>/dev/null || true
+    [ ! -L "/etc/radiusclient" ] && [ ! -d "/etc/radiusclient" ] && ln -sf /etc/radcli /etc/radiusclient 2>/dev/null || true
+
+    cat > /etc/pam_radius_auth.conf <<EOF
+# RADIUS Server configuration generated by MH Panel
+127.0.0.1:1812 ${secret} 3
+EOF
+    chmod 600 /etc/pam_radius_auth.conf 2>/dev/null || true
+
+    if id "$rad_user" >/dev/null 2>&1; then
+        chown -R "${rad_user}:${rad_group}" "${rad_conf_dir}" 2>/dev/null || true
+    fi
+    chmod 640 "$mh_users" 2>/dev/null || true
+
+    allow_port "1812" "udp"
+    allow_port "1813" "udp"
+
+    systemctl unmask "$rad_service" 2>/dev/null || true
+    systemctl enable "$rad_service" 2>/dev/null || true
+    systemctl restart "$rad_service" 2>/dev/null || true
+
+    # Synchronize users from MH Panel database
+    if [ -f "/www/wwwroot/mhpanel/app.py" ]; then
+        ${PANEL_PYTHON:-python3} -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+try:
+    from app import sync_freeradius_users
+    sync_freeradius_users()
+except Exception:
+    pass
+" 2>/dev/null || true
+    fi
+
+    echo "✓ FreeRADIUS installed and configured on UDP 1812/1813"
+}
+
+uninstall_freeradius() {
+    local rad_service="freeradius"
+    systemctl is-active radiusd >/dev/null 2>&1 && rad_service="radiusd"
+    systemctl stop "$rad_service" 2>/dev/null || true
+    systemctl disable "$rad_service" 2>/dev/null || true
+    deny_port "1812" "udp"
+    deny_port "1813" "udp"
+    echo "✓ FreeRADIUS service stopped and disabled"
 }
 
 install_l2tpv3() {
@@ -2623,13 +2767,7 @@ install_tor() {
     local bridge_port=${2:-9002}
     export DEBIAN_FRONTEND=noninteractive
 
-    local codename=$(lsb_release -cs 2>/dev/null || grep -oP '(?<=VERSION_CODENAME=)[a-z]+' /etc/os-release 2>/dev/null || echo "focal")
-    if [ ! -f /etc/apt/sources.list.d/tor.list ] && { [ "$codename" = "focal" ] || [ "$codename" = "bionic" ]; }; then
-        mkdir -p /usr/share/keyrings
-        curl -fsSL https://deb.torproject.org/torproject.org/A3C4F0F979CAA22CDBA8F512EE8CBC9E886DDD89.asc | gpg --dearmor -o /usr/share/keyrings/tor-archive-keyring.gpg 2>/dev/null || true
-        echo "deb [signed-by=/usr/share/keyrings/tor-archive-keyring.gpg] https://deb.torproject.org/torproject.org ${codename} main" > /etc/apt/sources.list.d/tor.list
-    fi
-
+    rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
     apt-get update -y >/dev/null 2>&1 || true
     apt-get install -y tor tor-geoipdb obfs4proxy >/dev/null 2>&1 || apt-get install -y tor tor-geoipdb lyrebird >/dev/null 2>&1 || true
 
@@ -3224,6 +3362,7 @@ case "${ACTION}" in
             noizdns) install_noizdns "$ARG3" ;;
             masterdnsvpn) install_masterdnsvpn "$ARG3" ;;
             tor) install_tor "$ARG3" "$ARG4" ;;
+            freeradius|radius) install_freeradius "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -3254,6 +3393,7 @@ case "${ACTION}" in
             noizdns) uninstall_noizdns ;;
             masterdnsvpn) uninstall_masterdnsvpn ;;
             tor) uninstall_tor ;;
+            freeradius|radius) uninstall_freeradius ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -3438,6 +3578,7 @@ case "${ACTION}" in
             noizdns) service_status mhpanel-noizdns ;;
             masterdnsvpn) service_status mhpanel-masterdnsvpn ;;
             tor) service_status mhpanel-tor ;;
+            freeradius|radius) service_status freeradius radiusd ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -3472,6 +3613,7 @@ case "${ACTION}" in
             noizdns) journalctl -u mhpanel-noizdns -n 100 --no-pager ;;
             masterdnsvpn) journalctl -u mhpanel-masterdnsvpn -n 100 --no-pager ;;
             tor) journalctl -u mhpanel-tor -n 100 --no-pager ;;
+            freeradius|radius) journalctl -u freeradius -u radiusd -n 100 --no-pager ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;

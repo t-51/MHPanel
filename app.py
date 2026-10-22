@@ -1744,29 +1744,28 @@ def sync_default_test_user(username, password):
 
     # 1. Update FreeRADIUS (mhpanel_users & radius_users.json)
     rad_users_file = "/www/wwwroot/mhpanel/radius_users.json"
-    rad_users = []
+    rad_users = {}
     if os.path.exists(rad_users_file):
         try:
             with open(rad_users_file, "r") as f:
-                rad_users = json.load(f)
+                content = json.load(f)
+                if isinstance(content, dict):
+                    rad_users = content
+                elif isinstance(content, list):
+                    for u in content:
+                        if isinstance(u, dict) and u.get("username"):
+                            rad_users[u["username"]] = u
         except Exception:
-            rad_users = []
-    found = False
-    for u in rad_users:
-        if u.get("is_default") or u.get("username", "").upper() == username.upper() or u.get("username", "").upper() == "NPU":
-            u["username"] = username
-            u["password"] = password
-            u["is_default"] = True
-            found = True
-            break
-    if not found:
-        rad_users.append({
-            "username": username,
-            "password": password,
-            "traffic_limit": 0,
-            "expire_date": "never",
-            "is_default": True
-        })
+            rad_users = {}
+
+    rad_users[username] = {
+        "password": password,
+        "active": True,
+        "traffic_limit": 0,
+        "expire_date": None,
+        "is_default": True,
+        "protocols": ["all"]
+    }
     try:
         with open(rad_users_file, "w") as f:
             json.dump(rad_users, f, indent=2)
@@ -1774,16 +1773,7 @@ def sync_default_test_user(username, password):
         pass
 
     try:
-        lines = ["# FreeRADIUS MH Panel Users"]
-        for u in rad_users:
-            un = u.get("username")
-            pw = u.get("password")
-            if un and pw:
-                lines.append(f'"{un}" Cleartext-Password := "{pw}"')
-        os.makedirs("/etc/freeradius/3.0", exist_ok=True)
-        with open("/etc/freeradius/3.0/mhpanel_users", "w") as f:
-            f.write("\n".join(lines) + "\n")
-        subprocess.run(["systemctl", "reload", "freeradius"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        sync_freeradius_users()
     except Exception:
         pass
 
@@ -3143,57 +3133,103 @@ RADIUS_USERS_FILE = "/www/wwwroot/mhpanel/radius_users.json"
 RADIUS_GROUPS_FILE = "/www/wwwroot/mhpanel/radius_groups.json"
 FREERADIUS_USERS_FILE = "/etc/freeradius/3.0/mhpanel_users"
 
+def get_freeradius_info():
+    """
+    Returns (conf_dir, users_file, service_name, rad_user, rad_group, auth_file)
+    supporting Ubuntu/Debian (/etc/freeradius/3.0/) and RHEL/CentOS/AlmaLinux (/etc/raddb/).
+    Ensures reciprocal symlinks so paths match across all distros.
+    """
+    if os.path.exists("/etc/freeradius/3.0"):
+        conf_dir = "/etc/freeradius/3.0"
+        auth_file = "/etc/freeradius/3.0/mods-config/files/authorize"
+        service = "freeradius"
+        user = "freerad"
+        if not os.path.exists("/etc/raddb"):
+            try: os.symlink("/etc/freeradius/3.0", "/etc/raddb")
+            except Exception: pass
+    elif os.path.exists("/etc/raddb"):
+        conf_dir = "/etc/raddb"
+        auth_file = "/etc/raddb/mods-config/files/authorize" if os.path.exists("/etc/raddb/mods-config/files/authorize") else "/etc/raddb/users"
+        service = "radiusd"
+        user = "radiusd"
+        if not os.path.exists("/etc/freeradius/3.0"):
+            try:
+                os.makedirs("/etc/freeradius", exist_ok=True)
+                os.symlink("/etc/raddb", "/etc/freeradius/3.0")
+            except Exception: pass
+    else:
+        conf_dir = "/etc/freeradius/3.0"
+        auth_file = "/etc/freeradius/3.0/mods-config/files/authorize"
+        service = "freeradius"
+        user = "freerad"
+    
+    users_file = os.path.join(conf_dir, "mhpanel_users")
+    return conf_dir, users_file, service, user, user, auth_file
+
 def get_radius_groups_data():
-    if not os.path.exists(RADIUS_GROUPS_FILE):
-        default_groups = {
-            "default": {
-                "id": "default",
-                "name": "پکیج استاندارد (Standard)",
-                "traffic_gb": 0,
-                "validity_days": 30,
-                "simultaneous_use": 2,
-                "allowed_days": "all",
-                "custom_days": [],
-                "start_time": "00:00",
-                "end_time": "24:00",
-                "description": "پکیج استاندارد با ۲ کاربر همزمان و ترافیک نامحدود"
-            },
-            "vip": {
-                "id": "vip",
-                "name": "پکیج ویژه (VIP)",
-                "traffic_gb": 100,
-                "validity_days": 30,
-                "simultaneous_use": 5,
-                "allowed_days": "all",
-                "custom_days": [],
-                "start_time": "00:00",
-                "end_time": "24:00",
-                "description": "پکیج حرفه‌ای با ۵ اتصال همزمان و ۱۰۰ گیگابایت حجم"
-            },
-            "night": {
-                "id": "night",
-                "name": "بسته شبانه (Nightly)",
-                "traffic_gb": 50,
-                "validity_days": 30,
-                "simultaneous_use": 2,
-                "allowed_days": "all",
-                "custom_days": [],
-                "start_time": "01:00",
-                "end_time": "08:00",
-                "description": "فعال فقط از ۱ بامداد تا ۸ صبح"
-            }
+    default_groups = {
+        "default": {
+            "id": "default",
+            "name": "پکیج استاندارد (Standard)",
+            "traffic_gb": 0,
+            "validity_days": 30,
+            "simultaneous_use": 2,
+            "allowed_days": "all",
+            "custom_days": [],
+            "start_time": "00:00",
+            "end_time": "24:00",
+            "description": "پکیج استاندارد با ۲ کاربر همزمان و ترافیک نامحدود"
+        },
+        "vip": {
+            "id": "vip",
+            "name": "پکیج ویژه (VIP)",
+            "traffic_gb": 100,
+            "validity_days": 30,
+            "simultaneous_use": 5,
+            "allowed_days": "all",
+            "custom_days": [],
+            "start_time": "00:00",
+            "end_time": "24:00",
+            "description": "پکیج حرفه‌ای با ۵ اتصال همزمان و ۱۰۰ گیگابایت حجم"
+        },
+        "night": {
+            "id": "night",
+            "name": "بسته شبانه (Nightly)",
+            "traffic_gb": 50,
+            "validity_days": 30,
+            "simultaneous_use": 2,
+            "allowed_days": "all",
+            "custom_days": [],
+            "start_time": "01:00",
+            "end_time": "08:00",
+            "description": "فعال فقط از ۱ بامداد تا ۸ صبح"
         }
+    }
+    if not os.path.exists(RADIUS_GROUPS_FILE):
         try:
             with open(RADIUS_GROUPS_FILE, "w") as f:
                 json.dump(default_groups, f, indent=2)
-            return default_groups
         except Exception:
-            return default_groups
+            pass
+        return default_groups
     try:
         with open(RADIUS_GROUPS_FILE, "r") as f:
-            return json.load(f)
+            data = json.load(f)
+            if isinstance(data, dict) and data:
+                return data
+            elif isinstance(data, list) and data:
+                converted = {}
+                for item in data:
+                    if isinstance(item, dict) and "id" in item:
+                        converted[item["id"]] = item
+                if converted:
+                    return converted
+            # If empty dict or list, rewrite default_groups
+            with open(RADIUS_GROUPS_FILE, "w") as f:
+                json.dump(default_groups, f, indent=2)
+            return default_groups
     except Exception:
-        return {}
+        return default_groups
 
 def format_freeradius_login_time(allowed_days="all", custom_days=None, start_time="00:00", end_time="24:00"):
     if not start_time: start_time = "00:00"
@@ -3388,26 +3424,58 @@ def get_radius_traffic_accounting():
             pass
     return traffic_by_user
 
+def find_openvpn_pam_plugin():
+    candidates = [
+        "/usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so",
+        "/usr/lib/aarch64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so",
+        "/usr/lib64/openvpn/plugins/openvpn-plugin-auth-pam.so",
+        "/usr/lib/openvpn/plugins/openvpn-plugin-auth-pam.so",
+        "/usr/lib/openvpn/openvpn-plugin-auth-pam.so"
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    try:
+        res = subprocess.run(["find", "/usr/lib", "/usr/lib64", "-name", "openvpn-plugin-auth-pam.so"], capture_output=True, text=True)
+        if res.stdout.strip():
+            return res.stdout.strip().splitlines()[0]
+    except Exception:
+        pass
+    return "openvpn-plugin-auth-pam.so"
+
 def sync_freeradius_users():
+    conf_dir, users_file, service, user, group, auth_file = get_freeradius_info()
+    os.makedirs(conf_dir, exist_ok=True)
+
     users = {}
     if os.path.exists(RADIUS_USERS_FILE):
         try:
             with open(RADIUS_USERS_FILE, "r") as f:
-                users = json.load(f)
+                raw_u = json.load(f)
+                if isinstance(raw_u, dict):
+                    users = raw_u
+                elif isinstance(raw_u, list):
+                    for u in raw_u:
+                        if isinstance(u, dict) and u.get("username"):
+                            users[u["username"]] = u
         except Exception:
             users = {}
 
     groups = get_radius_groups_data()
-
-    lines = ["# MH Panel Unified RADIUS Database\n"]
     now_str = datetime.now().strftime("%Y-%m-%d")
     radacct_stats = get_radius_traffic_accounting()
+
+    lines = ["# MH Panel Unified RADIUS Database\n"]
+    valid_auth_users = {}
+
     for username, data in users.items():
+        if not isinstance(data, dict):
+            continue
         password = data.get("password", "")
         active = data.get("active", True)
         expire_date = data.get("expire_date")
         group_id = data.get("group", "default")
-        group_data = groups.get(group_id, {})
+        group_data = groups.get(group_id, {}) if isinstance(groups, dict) else {}
 
         if expire_date and now_str > expire_date:
             active = False
@@ -3443,7 +3511,10 @@ def sync_freeradius_users():
         if not active:
             msg = quota_reason or "Account is disabled or expired by administrator"
             lines.append(f'"{username}" Auth-Type := Reject\n\tReply-Message := "{msg}"\n\n')
+            if username != username.lower():
+                lines.append(f'"{username.lower()}" Auth-Type := Reject\n\tReply-Message := "{msg}"\n\n')
         else:
+            valid_auth_users[username] = password
             sim_use = data.get("simultaneous_use") or group_data.get("simultaneous_use") or 2
             try: sim_use = int(sim_use)
             except Exception: sim_use = 2
@@ -3452,7 +3523,6 @@ def sync_freeradius_users():
             custom_days = data.get("custom_days") or group_data.get("custom_days", [])
             start_time = data.get("start_time") or group_data.get("start_time", "00:00")
             end_time = data.get("end_time") or group_data.get("end_time", "24:00")
-
             login_time = data.get("login_time_raw") or format_freeradius_login_time(allowed_days, custom_days, start_time, end_time)
 
             attr_items = [f'Cleartext-Password := "{password}"']
@@ -3462,7 +3532,6 @@ def sync_freeradius_users():
                 attr_items.append(f'Login-Time := "{login_time}"')
 
             reply_items = []
-            # Rate-Limit & Bandwidth Control (MikroTik Rate-Limit & WISPr)
             rate_lim = data.get("rate_limit") or group_data.get("rate_limit")
             if rate_lim:
                 reply_items.append(f'Mikrotik-Rate-Limit := "{rate_lim}"')
@@ -3472,7 +3541,6 @@ def sync_freeradius_users():
                 if down_bps > 0:
                     reply_items.append(f'WISPr-Bandwidth-Max-Down := {down_bps}')
 
-            # Recv (Download) & Xmit (Upload) Limits
             if download_limit_gb and float(download_limit_gb) > 0:
                 d_bytes = int(float(download_limit_gb) * (1024**3))
                 reply_items.append(f'Mikrotik-Recv-Limit := {min(d_bytes, 4294967295)}')
@@ -3483,45 +3551,40 @@ def sync_freeradius_users():
                 t_bytes = int(float(limit_gb) * (1024**3))
                 reply_items.append(f'Mikrotik-Total-Limit := {min(t_bytes, 4294967295)}')
 
-            if reply_items:
-                lines.append(f'"{username}" ' + ", ".join(attr_items) + "\n\t" + ",\n\t".join(reply_items) + "\n\n")
-            else:
-                lines.append(f'"{username}" ' + ", ".join(attr_items) + "\n\n")
+            rep_str = ("\n\t" + ",\n\t".join(reply_items)) if reply_items else ""
+            lines.append(f'"{username}" ' + ", ".join(attr_items) + rep_str + "\n\n")
+            if username != username.lower():
+                lines.append(f'"{username.lower()}" ' + ", ".join(attr_items) + rep_str + "\n\n")
 
-    os.makedirs("/etc/freeradius/3.0", exist_ok=True)
-    with open(FREERADIUS_USERS_FILE, "w") as f:
+    with open(users_file, "w") as f:
         f.writelines(lines)
 
     try:
         import shutil
-        shutil.chown(FREERADIUS_USERS_FILE, user="freerad", group="freerad")
-        os.chmod(FREERADIUS_USERS_FILE, 0o640)
+        shutil.chown(users_file, user=user, group=group)
+        os.chmod(users_file, 0o640)
     except Exception:
         pass
 
-    auth_file = "/etc/freeradius/3.0/mods-config/files/authorize"
     if os.path.exists(auth_file):
         try:
             with open(auth_file, "r") as f:
                 content = f.read()
-            if "$INCLUDE /etc/freeradius/3.0/mhpanel_users" not in content:
+            include_line = f"$INCLUDE {users_file}"
+            if include_line not in content and "$INCLUDE /etc/freeradius/3.0/mhpanel_users" not in content and "$INCLUDE /etc/raddb/mhpanel_users" not in content:
                 with open(auth_file, "w") as f:
-                    f.write("$INCLUDE /etc/freeradius/3.0/mhpanel_users\n" + content)
+                    f.write(include_line + "\n" + content)
         except Exception:
             pass
 
-    # Mirror to /etc/ppp/chap-secrets and /etc/ppp/pap-secrets as direct fallback
+    # 1. Mirror to /etc/ppp/chap-secrets and /etc/ppp/pap-secrets (PPTP, L2TP, SSTP)
     try:
         os.makedirs("/etc/ppp", exist_ok=True)
-        ppp_lines = ["# MH Panel Unified Users for PPP / L2TP\n"]
-        for username, data in users.items():
-            p = data.get("password", "")
-            act = data.get("active", True)
-            exp = data.get("expire_date")
-            if exp and now_str > exp:
-                act = False
-            prefix = "" if act else "#"
-            ppp_lines.append(f'{prefix}"{username}" * "{p}" *\n')
+        ppp_lines = ["# MH Panel Unified Users for PPP / L2TP / PPTP / SSTP\n"]
+        for u, p in valid_auth_users.items():
+            ppp_lines.append(f'"{u}" * "{p}" *\n')
+            if u != u.lower():
+                ppp_lines.append(f'"{u.lower()}" * "{p}" *\n')
         with open("/etc/ppp/chap-secrets", "w") as f:
             f.writelines(ppp_lines)
         with open("/etc/ppp/pap-secrets", "w") as f:
@@ -3531,18 +3594,14 @@ def sync_freeradius_users():
     except Exception:
         pass
 
-    # Mirror to /etc/swanctl/conf.d/users.conf for strongSwan local EAP fallback
+    # 2. Mirror to /etc/swanctl/conf.d/users.conf and /etc/ipsec.secrets (strongSwan IKEv2 fallback)
     try:
         os.makedirs("/etc/swanctl/conf.d", exist_ok=True)
         swan_lines = ["secrets {\n  eap-dynamic {\n"]
-        for username, data in users.items():
-            p = data.get("password", "")
-            act = data.get("active", True)
-            exp = data.get("expire_date")
-            if exp and now_str > exp:
-                act = False
-            prefix = "    " if act else "    #"
-            swan_lines.append(f'{prefix}{username} : EAP "{p}"\n')
+        for u, p in valid_auth_users.items():
+            swan_lines.append(f'    {u} : EAP "{p}"\n')
+            if u != u.lower():
+                swan_lines.append(f'    {u.lower()} : EAP "{p}"\n')
         swan_lines.append("  }\n}\n")
         with open("/etc/swanctl/conf.d/users.conf", "w") as f:
             f.writelines(swan_lines)
@@ -3550,7 +3609,51 @@ def sync_freeradius_users():
     except Exception:
         pass
 
-    subprocess.run(["systemctl", "restart", "freeradius"], capture_output=True)
+    try:
+        ipsec_sec_path = "/etc/ipsec.secrets"
+        sec_header = ""
+        if os.path.exists(ipsec_sec_path):
+            with open(ipsec_sec_path, "r") as f:
+                lines_exist = f.readlines()
+            sec_header = "".join([l for l in lines_exist if ": RSA" in l or ": PSK" in l])
+        if not sec_header:
+            sec_header = ': RSA server-key.pem\n: PSK "VpnSecret123"\n%any %any : PSK "VpnSecret123"\n'
+        ipsec_sec_lines = [sec_header.strip() + "\n"]
+        for u, p in valid_auth_users.items():
+            ipsec_sec_lines.append(f'{u} : EAP "{p}"\n')
+            ipsec_sec_lines.append(f'{u} : XAUTH "{p}"\n')
+            if u != u.lower():
+                ipsec_sec_lines.append(f'{u.lower()} : EAP "{p}"\n')
+                ipsec_sec_lines.append(f'{u.lower()} : XAUTH "{p}"\n')
+        with open(ipsec_sec_path, "w") as f:
+            f.writelines(ipsec_sec_lines)
+        subprocess.run(["ipsec", "rereadsecrets"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+    # 3. System Accounts & Linux PAM (OpenVPN, SSH, Ocserv PAM fallback)
+    for u, p in valid_auth_users.items():
+        try:
+            res = subprocess.run(["id", u], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if res.returncode != 0:
+                subprocess.run(["useradd", "-M", "-s", "/usr/sbin/nologin", u], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            proc = subprocess.Popen(["chpasswd"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+            proc.communicate(f"{u}:{p}\n")
+        except Exception:
+            pass
+
+    # 4. Ocserv ocpasswd fallback
+    if os.path.exists("/etc/ocserv") or os.path.exists("/usr/sbin/ocserv"):
+        try:
+            os.makedirs("/etc/ocserv", exist_ok=True)
+            for u, p in valid_auth_users.items():
+                proc = subprocess.Popen(["ocpasswd", "-c", "/etc/ocserv/ocpasswd", u], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+                proc.communicate(f"{p}\n{p}\n")
+        except Exception:
+            pass
+
+    # 5. Reload/restart FreeRADIUS
+    subprocess.run(["systemctl", "reload-or-restart", service], capture_output=True)
 
 def apply_internal_radius_system(server_ip="127.0.0.1", shared_secret="testing123", auth_port=1812, acct_port=1813, protocols=None):
     if protocols is None:
@@ -3565,6 +3668,31 @@ def apply_internal_radius_system(server_ip="127.0.0.1", shared_secret="testing12
             "acct_port": acct_port,
             "enabled_protocols": protocols
         }, f, indent=2)
+
+    # Ensure FreeRADIUS clients.conf allows localhost & 0.0.0.0/0
+    conf_dir, _, _, _, _, _ = get_freeradius_info()
+    clients_conf = os.path.join(conf_dir, "clients.conf")
+    if os.path.exists(clients_conf):
+        try:
+            with open(clients_conf, "r") as f:
+                c_data = f.read()
+            if "vpn_network" not in c_data:
+                c_data += f"""
+client localhost_ipv6 {{
+\tipv6addr\t= ::1
+\tsecret\t\t= {shared_secret}
+}}
+
+client vpn_network {{
+    ipaddr = 0.0.0.0/0
+    secret = {shared_secret}
+    require_message_authenticator = no
+}}
+"""
+                with open(clients_conf, "w") as f:
+                    f.write(c_data)
+        except Exception:
+            pass
 
     # 1. pam_radius_auth.conf
     os.makedirs("/etc", exist_ok=True)
@@ -3630,22 +3758,30 @@ nologin /etc/nologin
         except Exception:
             pass
 
-    # 3. OpenVPN PAM
+    # 3. OpenVPN PAM (dual fallback: FreeRADIUS + local unix shadow)
     os.makedirs("/etc/pam.d", exist_ok=True)
     with open("/etc/pam.d/openvpn", "w") as f:
-        f.write("auth sufficient pam_radius_auth.so\nauth required pam_unix.so try_first_pass\naccount sufficient pam_permit.so\naccount required pam_unix.so\nsession sufficient pam_permit.so\nsession required pam_unix.so\n")
+        f.write("""auth [success=done default=ignore] pam_radius_auth.so
+auth [success=done default=die] pam_unix.so try_first_pass
+account [success=done default=ignore] pam_radius_auth.so
+account [success=done default=die] pam_unix.so
+session sufficient pam_permit.so
+session required pam_unix.so
+""")
 
     ovpn_conf = "/etc/openvpn/server/server.conf"
     if os.path.exists(ovpn_conf):
         with open(ovpn_conf, "r") as f:
             lines = f.readlines()
         clean = [l for l in lines if not any(k in l for k in ["openvpn-plugin-auth-pam", "verify-client-cert", "username-as-common-name"])]
+        pam_plugin = find_openvpn_pam_plugin()
         if "openvpn" in protocols:
-            clean.append("plugin /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so openvpn\n")
+            clean.append(f"plugin {pam_plugin} openvpn\n")
             clean.append("verify-client-cert none\n")
             clean.append("username-as-common-name\n")
         with open(ovpn_conf, "w") as f:
             f.writelines(clean)
+        subprocess.run(["systemctl", "restart", "openvpn-server@server"], capture_output=True)
         subprocess.run(["systemctl", "restart", "openvpn-server@server"], capture_output=True)
 
     # 4. Ocserv
@@ -3940,9 +4076,13 @@ def api_radius_add_user():
         except Exception:
             pass
 
-    # Ensure system account exists for SSH PAM
+    # Ensure system account exists with shadow password for PAM/SSH
     try:
-        subprocess.run(["useradd", "-M", "-s", "/usr/sbin/nologin", "-g", "nogroup", username], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        res = subprocess.run(["id", username], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if res.returncode != 0:
+            subprocess.run(["useradd", "-M", "-s", "/usr/sbin/nologin", username], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.Popen(["chpasswd"], stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, text=True)
+        proc.communicate(f"{username}:{password}\n")
     except Exception:
         pass
 
