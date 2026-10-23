@@ -380,8 +380,10 @@
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_ppp_tunnel_encryption_microsoft_mppe">رمزنگاری تونل PPP (مایکروسافت MPPE)</label>
                                 <select class="form-input" id="sstp-cfg-mppe" style="padding-left:14px; font-weight:600;">
+                                    <option value="adaptive" selected>سازگار خودکار با تمام نسخه‌های ویندوز (Adaptive / TLS Native)</option>
                                     <option value="require-mppe-128" data-i18n="sstp_128_bit_mandatory_require_mppe">اجباری ۱۲۸ بیتی (Require MPPE 128-bit) [استاندارد امنیت بالا]</option>
                                     <option value="mppe-stateful" data-i18n="sstp_mppe_stateful">تطبیقی حالت‌دار (MPPE Stateful) [حداکثر پایداری اتصال]</option>
+                                    <option value="none">بدون MPPE (اتکای کامل به رمزنگاری TLS)</option>
                                 </select>
                             </div>
                         </div>

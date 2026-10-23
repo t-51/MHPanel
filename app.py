@@ -12107,7 +12107,7 @@ def get_sstp_config():
         "mru": 1400,
         "cipher_preset": "all_aes_sha",
         "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4",
-        "mppe_mode": "require-mppe-128",
+        "mppe_mode": "adaptive",
         "auth_mode": "radius_and_chap"
     }
     if os.path.exists(SSTP_CONFIG_FILE):
@@ -12265,7 +12265,14 @@ def api_save_sstp_config():
     with open(SSTP_CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
         
-    mppe_directive = "require-mppe-128\nmppe-stateful" if mppe_mode == "require-mppe-128" else "mppe-stateful"
+    if mppe_mode == "require-mppe-128":
+        mppe_directive = "require-mppe-128\nmppe-stateful"
+    elif mppe_mode == "mppe-stateful":
+        mppe_directive = "mppe-stateful"
+    elif mppe_mode == "none":
+        mppe_directive = "nomppe"
+    else:  # adaptive / auto
+        mppe_directive = "# Adaptive MPPE mode (SSL/TLS native encryption)"
     ppp_options = f"""name sstpd
 debug
 ipcp-accept-local

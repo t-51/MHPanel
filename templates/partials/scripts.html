@@ -12026,7 +12026,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 document.getElementById("sstp-cfg-cipher-preset").value = cfg.cipher_preset || "all_aes_sha";
             }
             if (document.getElementById("sstp-cfg-mppe")) {
-                document.getElementById("sstp-cfg-mppe").value = cfg.mppe_mode || "require-mppe-128";
+                document.getElementById("sstp-cfg-mppe").value = cfg.mppe_mode || "adaptive";
             }
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -12078,7 +12078,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 dns2: document.getElementById("sstp-cfg-dns2")?.value.trim() || "1.1.1.1",
                 cipher_preset: document.getElementById("sstp-cfg-cipher-preset")?.value || "all_aes_sha",
                 ciphers: document.getElementById("sstp-cfg-ciphers")?.value.trim() || SSTP_CIPHER_PRESETS["all_aes_sha"],
-                mppe_mode: document.getElementById("sstp-cfg-mppe")?.value || "require-mppe-128"
+                mppe_mode: document.getElementById("sstp-cfg-mppe")?.value || "adaptive"
             };
 
             const res = await fetch("/api/sstp/config", {
