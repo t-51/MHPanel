@@ -28,15 +28,15 @@
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_1_sstp_direct_port">روش ۱: پورت مستقیم SSTP</div>
-                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port" data-i18n="sstp_4443_5555">4443 (یا 5555)</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-direct-port">4443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_2_share_port_443">روش ۲: اشتراک پورت ۴۴۳ (SNI)</div>
-                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-sni">sstp.kigaping.com:443</div>
+                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-sni">sstp.example.com:443</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_method_3_auxiliary_tls_ports">روش ۳: پورت‌های TLS کمکی (Stunnel)</div>
-                    <div style="font-weight: 700; color: #059669; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="sstp-stat-stunnel-ports">9443, 2087</div>
+                    <div style="color: var(--text-muted); font-size: 11px;">سرتفیکیت سرور</div>
+                    <div style="font-weight: 700; color: #059669; font-size: 12px; margin-top: 3px;" id="sstp-top-cert-status">فعال و معتبر (Root CA)</div>
                 </div>
                 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
                     <div style="color: var(--text-muted); font-size: 11px;" data-i18n="sstp_authentication_radius">احراز هویت و ردیوس</div>
@@ -55,6 +55,124 @@
                 <button type="button" class="btn btn-secondary btn-sm" onclick="viewLogs('sstp')" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="terminal" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="proto_action_logs">مشاهده لاگ‌های زنده</span> SSTP
                 </button>
+            </div>
+        </div>
+
+        <!-- Certificates & Server Identity Section -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(16, 185, 129, 0.25);">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="award" style="color: #059669; width: 22px; height: 22px;"></i> <span>مرکز مدیریت سرتفیکیت‌های SSTP (Root CA & Certificates Hub)</span>
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+                        دانلود سرتفیکیت ریشه در فرمت‌های سازگار با ویندوز و اندروید و صدور مجدد بر اساس دامنه یا آی‌پی جدید
+                    </p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <a href="/api/sstp/ca.crt" download="sstp-ca.crt" class="btn btn-secondary btn-sm" style="width:auto; text-decoration:none;">
+                        <i data-lucide="download" class="btn-icon"></i> <span>دانلود sstp-ca.crt (ویندوز / اندروید)</span>
+                    </a>
+                    <a href="/api/sstp/ca.pem" download="sstp-ca.pem" class="btn btn-secondary btn-sm" style="width:auto; text-decoration:none;">
+                        <i data-lucide="download" class="btn-icon"></i> <span>دانلود sstp-ca.pem (مک / لینوکس)</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Cert Details Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
+                    <div style="color:var(--text-muted); font-size:11px;">موضوع گواهی (Subject / CN)</div>
+                    <div id="sstp-cert-subject-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;">-</div>
+                </div>
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
+                    <div style="color:var(--text-muted); font-size:11px;">نام‌های جایگزین (SAN - SubjectAltName)</div>
+                    <div id="sstp-cert-san-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; margin-top:3px;">-</div>
+                </div>
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
+                    <div style="color:var(--text-muted); font-size:11px;">صادرکننده (Root CA)</div>
+                    <div id="sstp-cert-issuer-display" style="font-weight:700; color:var(--text-main); font-size:12px; margin-top:3px;">-</div>
+                </div>
+                <div style="background: var(--bg-base); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-glow);">
+                    <div style="color:var(--text-muted); font-size:11px;">تاریخ انقضا</div>
+                    <div id="sstp-cert-expiry-display" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono'; font-size:12px; margin-top:3px;">-</div>
+                </div>
+            </div>
+
+            <!-- Issue New Cert Box -->
+            <div style="background: var(--bg-base); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
+                <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
+                    صدور مجدد سرتفیکیت بر اساس دامنه یا آی‌پی جدید (Issue / Renew Certificate)
+                </h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                    جهت اتصال بدون خطای امنیتی در ویندوز و اندروید، دامنه اختصاصی یا آی‌پی سرور را وارد کنید تا گواهی معتبر با استاندارد <code>serverAuth</code> و شناسه SAN صادر و اعمال شود.
+                </p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <input type="text" id="sstp-new-cert-domain" class="form-input" placeholder="مثال: sstp.example.com یا 192.168.1.1" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';">
+                    <button type="button" class="btn btn-primary" onclick="renewSstpCertificate()" style="width:auto; padding:10px 20px;">
+                        <i data-lucide="sparkles" class="btn-icon"></i> <span>صدور و اعمال سرتفیکیت جدید</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- OS Profiles & Client Connection Guide -->
+        <div class="glass-card config-card">
+            <div class="config-header" style="margin-bottom: 20px;">
+                <div>
+                    <h3 class="config-title">
+                        <i data-lucide="smartphone" style="color: #0ea5e9; width: 22px; height: 22px;"></i> <span>پروفایل‌ها و ابزارهای اتصال کلاینت با سرتیفیکیت (Client Quick Setup)</span>
+                    </h3>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">دانلود ابزارهای راه‌اندازی خودکار به تفکیک سیستم‌عامل برای اتصال ۱۰۰٪ بدون خطای سرتیفیکیت</p>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                <!-- Windows Card -->
+                <div style="background: var(--bg-base); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
+                            <h4 style="font-size:14px; font-weight:700; margin:0; color:#0369a1;">ویندوز و اسکریپت ۱-کلیک (PowerShell)</h4>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                            اسکریپت پاورشل اتوماتیک که ابتدا گواهی ریشه <code>sstp-ca.crt</code> را در مخزن <code>Trusted Root</code> ویندوز نصب کرده، رجیستری <code>NoCertRevocationCheck</code> را تنظیم می‌کند و کانکشن SSTP را بدون ارور ایجاد می‌نماید:
+                        </p>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('direct')" style="width:100%;">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span>دانلود اسکریپت پورت مستقیم (Direct)</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadSstpScript('sni')" style="width:100%;">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span>دانلود اسکریپت پورت ۴۴۳ (SNI Multiplex)</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-top:14px; font-size:11px; color:var(--text-muted); background:var(--bg-main); padding:8px; border-radius:6px; text-align:center;">
+                        💡 فایل ps1 را با راست‌کلیک و گزینه <strong>Run with PowerShell</strong> (یا دسترسی ادمین) اجرا کنید.
+                    </div>
+                </div>
+
+                <!-- Android Card -->
+                <div style="background: var(--bg-base); border: 1px solid rgba(22, 163, 74, 0.2); border-radius: 12px; padding: 18px; display:flex; flex-direction:column; justify-content:space-between;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                            <i data-lucide="smartphone" style="width:20px; height:20px; color:#16a34a;"></i>
+                            <h4 style="font-size:14px; font-weight:700; margin:0; color:#166534;">اندروید و تنظیمات سرتیفیکیت</h4>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+                            در اندروید با اپلیکیشن <strong>SSTP VPN</strong> (از گوگل‌پلی):
+                            گواهی CA را دانلود کرده و در پروفایل اپلیکیشن ایمپورت کنید، یا در تنظیمات پروفایل گزینه <strong>Trust all certificates</strong> را فعال نمایید:
+                        </p>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:12px;">
+                            <a href="/api/sstp/ca.crt" download="sstp-ca.crt" class="btn btn-secondary btn-sm" style="text-decoration:none; display:flex; justify-content:center; padding:9px;">
+                                <i data-lucide="download" class="btn-icon"></i> <span>دانلود گواهی sstp-ca.crt برای اندروید</span>
+                            </a>
+                        </div>
+                    </div>
+                    <div style="margin-top:14px; font-size:11px; color:var(--text-muted); background:var(--bg-main); padding:8px; border-radius:6px; text-align:center;">
+                        آدرس سرور: <strong id="sstp-android-server-display">sstp.example.com</strong> | پورت: <strong id="sstp-android-port-display">4443</strong> | متد: MS-CHAPv2
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -81,17 +199,17 @@
                             <span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">Port 4443 / 5555</span>
                         </div>
                         <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_tls_let_s_encrypt">
-                            اتصال بومی کلاینت ویندوز، مک و اندروید با رمزنگاری TLS و گواهی رسمی معتبر Let's Encrypt بدون اخطار امنیتی.
+                            اتصال بومی کلاینت ویندوز، مک و اندروید با رمزنگاری TLS و گواهی رسمی معتبر Let's Encrypt یا Root CA بدون اخطار امنیتی.
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-direct-target">
-                            vpn.kigaping.com:4443
+                            example.com:4443
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('direct')" style="width:100%;">
                             <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_powershell">دانلود اسکریپت ۱-کلیک ویندوز (PowerShell)</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:4443', 'آدرس پورت مستقیم SSTP')" style="width:100%;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpDirectTarget()" style="width:100%;">
                             <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_copy_server_address">کپی آدرس سرور</span>
                         </button>
                     </div>
@@ -105,17 +223,17 @@
                             <span style="font-size:11px; background:#dcfce7; color:#166534; padding:2px 8px; border-radius:6px; font-weight:600;">Port 443 Multiplex</span>
                         </div>
                         <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_standard_web_port_sharing_https">
-                            اشتراک پورت استاندارد وب (HTTPS 443) بدون تداخل با سیسکو یا SSH، مخفی‌سازی کامل در ترافیک نرمال TLS جهت عبور از DPI.
+                            اشتراک پورت استاندارد وب (HTTPS 443) بدون تداخل با سیسکو یا SSH، تفکیک ترافیک با نام دامنه در هدر TLS (مانند <code>sstp.example.com</code>).
                         </p>
                         <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-sni-target">
-                            sstp.kigaping.com:443
+                            sstp.example.com:443
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
                         <button type="button" class="btn btn-primary btn-sm" onclick="downloadSstpScript('sni')" style="width:100%;">
                             <i data-lucide="download" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_download_script_1_click_port">دانلود اسکریپت ۱-کلیک پورت ۴۴۳ (PowerShell)</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('sstp.kigaping.com', 'دامنه SNI پورت ۴۴۳')" style="width:100%;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpSniTarget()" style="width:100%;">
                             <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_sni_proprietary_domain_copy">کپی دامنه اختصاصی SNI</span>
                         </button>
                     </div>
@@ -131,12 +249,12 @@
                         <p style="font-size:12px; color:var(--text-muted); margin:0 0 10px 0; line-height:1.5;" data-i18n="sstp_cloudflare_compatible_ports_tls_tunnelin">
                             پورت‌های سازگار با کلودفلر و تونل TLS (۹۴۴۳ و ۲۰۸۷) برای عبور از اختلالات مقطعی اپراتورها روی پورت‌های متداول.
                         </p>
-                        <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            Host: vpn.kigaping.com | Ports: 9443, 2087
+                        <div style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;" id="sstp-box-stunnel-target">
+                            Host: example.com | Ports: 9443, 2087
                         </div>
                     </div>
                     <div style="display:flex; gap:8px; flex-direction:column;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpText('vpn.kigaping.com:2087', 'پورت TLS کمکی')" style="width:100%;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpStunnelTarget()" style="width:100%;">
                             <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="sstp_copy_address_port_2087">کپی آدرس و پورت ۲۰۸۷</span>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySstpAllDetails()" style="width:100%;">
@@ -188,7 +306,7 @@
                     <!-- SNI Domain for Port 443 -->
                     <div class="form-group" style="margin:0;">
                         <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_port_443_sni_resolution_range">دامنه تفکیک SNI پورت ۴۴۳</label>
-                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-sni" placeholder="sstp.kigaping.com" required>
+                        <input class="form-input" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace;" type="text" id="sstp-cfg-sni" placeholder="sstp.example.com" required>
                     </div>
 
                     <!-- MTU / MRU -->

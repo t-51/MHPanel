@@ -828,6 +828,47 @@ install_sstp() {
     apt-get install -y ppp curl git libpam-radius-auth iproute2 python3-pip >/dev/null 2>&1 || true
     generate_certs
 
+    # Ensure dedicated SSTP Root CA and Server certificate with SAN & serverAuth exist
+    mkdir -p /etc/sstp-ca
+    if [ ! -f "/etc/sstp-ca/ca.crt" ] || [ ! -f "/etc/sstp-ca/ca.key" ]; then
+        openssl req -x509 -newkey rsa:4096 -days 3650 -nodes -keyout /etc/sstp-ca/ca.key -out /etc/sstp-ca/ca.crt -subj "/CN=MH Panel SSTP Root CA" >/dev/null 2>&1 || true
+        cp -f /etc/sstp-ca/ca.crt /etc/sstp-ca/ca.pem 2>/dev/null || true
+        chmod 600 /etc/sstp-ca/ca.key 2>/dev/null || true
+        chmod 644 /etc/sstp-ca/ca.crt /etc/sstp-ca/ca.pem 2>/dev/null || true
+    fi
+
+    if [ ! -f "/etc/sstp-ca/sstp-server.crt" ] || [ ! -f "/etc/sstp-ca/sstp-server.key" ]; then
+        local srv_host="$(get_public_ipv4 2>/dev/null || echo 'sstp.example.com')"
+        srv_host=${srv_host:-sstp.example.com}
+        local cnf_path="/etc/sstp-ca/sstp_cert.cnf"
+        cat > "${cnf_path}" <<EOF
+[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+CN = ${srv_host}
+
+[v3_req]
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = ${srv_host}
+DNS.2 = *.${srv_host}
+DNS.3 = localhost
+IP.1 = 127.0.0.1
+EOF
+        openssl genrsa -out /etc/sstp-ca/sstp-server.key 2048 >/dev/null 2>&1 || true
+        chmod 600 /etc/sstp-ca/sstp-server.key 2>/dev/null || true
+        openssl req -new -key /etc/sstp-ca/sstp-server.key -out /etc/sstp-ca/sstp_server.csr -config "${cnf_path}" >/dev/null 2>&1 || true
+        openssl x509 -req -in /etc/sstp-ca/sstp_server.csr -CA /etc/sstp-ca/ca.crt -CAkey /etc/sstp-ca/ca.key -CAcreateserial -out /etc/sstp-ca/sstp-server.crt -days 3650 -extfile "${cnf_path}" -extensions v3_req >/dev/null 2>&1 || true
+        chmod 644 /etc/sstp-ca/sstp-server.crt 2>/dev/null || true
+        rm -f "${cnf_path}" /etc/sstp-ca/sstp_server.csr
+    fi
+
     mkdir -p /etc/accel-ppp /var/log/accel-ppp /etc/ppp/ip-up.d /etc/ppp/ip-down.d
 
     cat > /etc/ppp/options.sstpd <<EOF
@@ -862,6 +903,13 @@ EOF
         pip3 install sstp-server --break-system-packages >/dev/null 2>&1 || pip install sstp-server >/dev/null 2>&1 || true
     fi
 
+    local sstp_cert_path="/etc/sstp-ca/sstp-server.crt"
+    local sstp_key_path="/etc/sstp-ca/sstp-server.key"
+    if [ ! -f "${sstp_cert_path}" ] || [ ! -f "${sstp_key_path}" ]; then
+        sstp_cert_path="${SERVER_CERT}"
+        sstp_key_path="${SERVER_KEY}"
+    fi
+
     if [ -x /usr/local/bin/sstpd ]; then
         cat > /etc/systemd/system/sstpd.service <<EOF
 [Unit]
@@ -871,7 +919,7 @@ Wants=freeradius.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p ${port} -c ${SERVER_CERT} -k ${SERVER_KEY} --local ${local_ip} --remote ${subnet%.*}.0/24 --range ${remote_start}-${remote_end} --pppd-config /etc/ppp/options.sstpd --ciphers "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4"
+ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p ${port} -c ${sstp_cert_path} -k ${sstp_key_path} --local ${local_ip} --remote ${subnet%.*}.0/24 --range ${remote_start}-${remote_end} --pppd-config /etc/ppp/options.sstpd --ciphers "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4"
 Restart=always
 RestartSec=3
 LimitNOFILE=65535

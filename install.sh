@@ -851,6 +851,29 @@ EOF
     if [ ! -f "${PANEL_DIR}/multiplexer_config.json" ]; then
         echo '{"enabled":false,"listen_ports":[443],"web_server_type":"internal","default_backend":"web","protocols":[],"custom_rules":[],"udp_multiports":[]}' > "${PANEL_DIR}/multiplexer_config.json"
     fi
+    if [ ! -f "${PANEL_DIR}/sstp_config.json" ]; then
+        cat > "${PANEL_DIR}/sstp_config.json" <<'EOF'
+{
+  "engine": "sstpd",
+  "port": 4443,
+  "sni": "sstp.example.com",
+  "haproxy_443": true,
+  "stunnel_multiport": true,
+  "stunnel_ports": [9443, 2087],
+  "local_ip": "10.20.20.1",
+  "remote_subnet": "10.20.20.0/24",
+  "ip_range": "10.20.20.10-250",
+  "dns1": "8.8.8.8",
+  "dns2": "1.1.1.1",
+  "mtu": 1400,
+  "mru": 1400,
+  "cipher_preset": "all_aes_sha",
+  "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4",
+  "mppe_mode": "require-mppe-128",
+  "auth_mode": "radius_and_chap"
+}
+EOF
+    fi
 
     # Install daemon microservices scripts
     if [ -d "${PANEL_DIR}/scripts/daemons" ]; then

@@ -11904,12 +11904,186 @@ def api_toggle_ocserv_user(username):
     return jsonify({"success": True})
 
 SSTP_CONFIG_FILE = "/www/wwwroot/mhpanel/sstp_config.json"
+SSTP_CA_DIR = "/etc/sstp-ca"
+SSTP_CA_CERT = "/etc/sstp-ca/ca.crt"
+SSTP_CA_PEM = "/etc/sstp-ca/ca.pem"
+SSTP_CA_KEY = "/etc/sstp-ca/ca.key"
+SSTP_SERVER_CERT = "/etc/sstp-ca/sstp-server.crt"
+SSTP_SERVER_KEY = "/etc/sstp-ca/sstp-server.key"
+
+def ensure_sstp_ca():
+    os.makedirs(SSTP_CA_DIR, exist_ok=True)
+    if not (os.path.exists(SSTP_CA_CERT) and os.path.exists(SSTP_CA_KEY)):
+        if os.path.exists("/root/sstp_ca.crt") and os.path.exists("/etc/vpn-ca/ca.key"):
+            shutil.copyfile("/root/sstp_ca.crt", SSTP_CA_CERT)
+            shutil.copyfile("/root/sstp_ca.crt", SSTP_CA_PEM)
+            shutil.copyfile("/etc/vpn-ca/ca.key", SSTP_CA_KEY)
+        else:
+            subprocess.run(
+                f'openssl req -x509 -newkey rsa:4096 -days 3650 -nodes -keyout {SSTP_CA_KEY} -out {SSTP_CA_CERT} -subj "/CN=MH Panel SSTP Root CA"',
+                shell=True, check=True
+            )
+            shutil.copyfile(SSTP_CA_CERT, SSTP_CA_PEM)
+        os.chmod(SSTP_CA_KEY, 0o600)
+        os.chmod(SSTP_CA_CERT, 0o644)
+        os.chmod(SSTP_CA_PEM, 0o644)
+    elif not os.path.exists(SSTP_CA_PEM):
+        shutil.copyfile(SSTP_CA_CERT, SSTP_CA_PEM)
+        os.chmod(SSTP_CA_PEM, 0o644)
+
+def get_sstp_cert_details():
+    ensure_sstp_ca()
+    info = {
+        "installed": False,
+        "ca_installed": os.path.exists(SSTP_CA_CERT),
+        "subject": "تنظیم نشده",
+        "san": "ندارد",
+        "issuer": "تنظیم نشده",
+        "expiry": "نامشخص",
+        "cert_type": "اختصاصی پنل (Root CA)",
+        "cert_path": SSTP_SERVER_CERT,
+        "key_path": SSTP_SERVER_KEY
+    }
+    
+    target_cert = None
+    if os.path.exists(SSTP_SERVER_CERT):
+        target_cert = SSTP_SERVER_CERT
+    elif os.path.exists("/etc/systemd/system/sstpd.service"):
+        try:
+            with open("/etc/systemd/system/sstpd.service", "r") as f:
+                s_txt = f.read()
+            m = re.search(r'-c\s+([^\s]+)', s_txt)
+            if m and os.path.exists(m.group(1)):
+                target_cert = m.group(1)
+        except Exception:
+            pass
+            
+    if not target_cert:
+        d = get_server_domain()
+        if d and os.path.exists(f"/etc/letsencrypt/live/{d}/fullchain.pem"):
+            target_cert = f"/etc/letsencrypt/live/{d}/fullchain.pem"
+        elif os.path.exists(VPN_SERVER_CERT):
+            target_cert = VPN_SERVER_CERT
+            
+    if target_cert and os.path.exists(target_cert):
+        info["installed"] = True
+        info["cert_path"] = target_cert
+        try:
+            res = subprocess.run(["openssl", "x509", "-in", target_cert, "-noout", "-subject", "-issuer", "-dates", "-ext", "subjectAltName"], capture_output=True, text=True)
+            out = res.stdout
+            for line in out.splitlines():
+                line = line.strip()
+                if line.startswith("subject="):
+                    info["subject"] = line.replace("subject=", "").strip()
+                elif line.startswith("issuer="):
+                    info["issuer"] = line.replace("issuer=", "").strip()
+                elif line.startswith("notAfter="):
+                    info["expiry"] = line.replace("notAfter=", "").strip()
+                elif "DNS:" in line or "IP Address:" in line:
+                    info["san"] = line
+            if "Let's Encrypt" in info.get("issuer", ""):
+                info["cert_type"] = "گواهی رسمی Let's Encrypt"
+            elif "Root CA" in info.get("issuer", "") or "SSTP" in info.get("issuer", "") or "MH Panel" in info.get("issuer", ""):
+                info["cert_type"] = "گواهی امضا شده توسط Root CA"
+        except Exception:
+            pass
+            
+    return info
+
+def generate_or_renew_sstp_cert(domain_or_ip):
+    ensure_sstp_ca()
+    domain_or_ip = (domain_or_ip or "").strip()
+    if not domain_or_ip:
+        domain_or_ip = get_server_domain() or get_server_public_ip() or "sstp.example.com"
+        
+    is_ip = bool(re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', domain_or_ip))
+    cnf_path = f"{SSTP_CA_DIR}/sstp_cert.cnf"
+    csr_path = f"{SSTP_CA_DIR}/sstp_server.csr"
+    
+    alt_names = []
+    if is_ip:
+        alt_names.append(f"IP.1 = {domain_or_ip}")
+        alt_names.append("IP.2 = 127.0.0.1")
+        alt_names.append("DNS.1 = localhost")
+    else:
+        alt_names.append(f"DNS.1 = {domain_or_ip}")
+        alt_names.append(f"DNS.2 = *.{domain_or_ip}")
+        alt_names.append("DNS.3 = localhost")
+        alt_names.append("IP.1 = 127.0.0.1")
+        pub_ip = get_server_public_ip()
+        if pub_ip:
+            alt_names.append(f"IP.2 = {pub_ip}")
+            
+    alt_names_block = "\n".join(alt_names)
+    
+    cnf_content = f"""[req]
+distinguished_name = req_distinguished_name
+req_extensions = v3_req
+prompt = no
+
+[req_distinguished_name]
+CN = {domain_or_ip}
+
+[v3_req]
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+{alt_names_block}
+"""
+    with open(cnf_path, "w") as f:
+        f.write(cnf_content)
+        
+    subprocess.run(f"openssl genrsa -out {SSTP_SERVER_KEY} 2048", shell=True, check=True)
+    os.chmod(SSTP_SERVER_KEY, 0o600)
+    
+    subprocess.run(f"openssl req -new -key {SSTP_SERVER_KEY} -out {csr_path} -config {cnf_path}", shell=True, check=True)
+    
+    subprocess.run(
+        f"openssl x509 -req -in {csr_path} -CA {SSTP_CA_CERT} -CAkey {SSTP_CA_KEY} -CAcreateserial -out {SSTP_SERVER_CERT} -days 3650 -extfile {cnf_path} -extensions v3_req",
+        shell=True, check=True
+    )
+    os.chmod(SSTP_SERVER_CERT, 0o644)
+    
+    if os.path.exists(csr_path): os.unlink(csr_path)
+    if os.path.exists(cnf_path): os.unlink(cnf_path)
+    
+    # Update sstpd.service file
+    cfg = get_sstp_config()
+    port = cfg.get("port", 4443)
+    local_ip = cfg.get("local_ip", "10.20.20.1")
+    remote_subnet = cfg.get("remote_subnet", "10.20.20.0/24")
+    ip_range = cfg.get("ip_range", "10.20.20.10-250")
+    ciphers = cfg.get("ciphers", "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4")
+    
+    service_content = f"""[Unit]
+Description=SSTP Server Daemon (sstpd)
+After=network.target freeradius.service
+Wants=freeradius.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p {port} -c {SSTP_SERVER_CERT} -k {SSTP_SERVER_KEY} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+"""
+    with open("/etc/systemd/system/sstpd.service", "w") as f:
+        f.write(service_content)
+    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+    subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
+    
+    return get_sstp_cert_details()
 
 def get_sstp_config():
     default_cfg = {
         "engine": "sstpd",
         "port": 4443,
-        "sni": "sstp.kigaping.com",
+        "sni": "sstp.example.com",
         "haproxy_443": True,
         "stunnel_multiport": True,
         "stunnel_ports": [9443, 2087],
@@ -11932,6 +12106,9 @@ def get_sstp_config():
                 default_cfg.update(data)
         except Exception:
             pass
+    if default_cfg.get("sni") == "sstp.kigaping.com":
+        d = get_server_domain()
+        default_cfg["sni"] = f"sstp.{d}" if d else "sstp.example.com"
     return default_cfg
 
 def get_sstp_traffic():
@@ -12009,8 +12186,9 @@ def api_get_sstp_config():
     vpnserver_active = check_unit("vpnserver")
     haproxy_active = check_unit("haproxy")
     
-    cert_path = "/etc/letsencrypt/live/vpn.kigaping.com/fullchain.pem"
-    cert_valid = os.path.exists(cert_path)
+    cert_details = get_sstp_cert_details()
+    pub_ip = get_server_public_ip()
+    srv_domain = get_server_domain() or pub_ip
     
     return jsonify({
         "config": cfg,
@@ -12020,12 +12198,13 @@ def api_get_sstp_config():
             "haproxy": haproxy_active
         },
         "cert": {
-            "valid": cert_valid,
-            "domain": "vpn.kigaping.com"
+            "valid": cert_details.get("installed", False),
+            "domain": cert_details.get("subject", srv_domain)
         },
-        "server_ip": "212.227.143.16",
-        "domain": "vpn.kigaping.com",
-        "sni": cfg.get("sni", "sstp.kigaping.com")
+        "cert_details": cert_details,
+        "server_ip": pub_ip,
+        "domain": srv_domain,
+        "sni": cfg.get("sni", f"sstp.{srv_domain}" if srv_domain else "sstp.example.com")
     })
 
 @app.route("/api/sstp/config", methods=["POST"])
@@ -12038,7 +12217,7 @@ def api_save_sstp_config():
     
     engine = data.get("engine", cfg.get("engine", "sstpd"))
     port = int(data.get("port", cfg.get("port", 4443)))
-    sni = data.get("sni", cfg.get("sni", "sstp.kigaping.com")).strip()
+    sni = data.get("sni", cfg.get("sni", "sstp.example.com")).strip()
     haproxy_443 = bool(data.get("haproxy_443", True))
     stunnel_multiport = bool(data.get("stunnel_multiport", True))
     local_ip = data.get("local_ip", cfg.get("local_ip", "10.20.20.1")).strip()
@@ -12106,19 +12285,15 @@ radius-config-file /etc/radcli/radiusclient.conf
     except Exception:
         pass
         
-    sstp_cert = get_protocol_certificate("sstp")
-    sstp_c_path = sstp_cert.get("cert_path")
-    sstp_k_path = sstp_cert.get("key_path")
-    if not (sstp_c_path and sstp_k_path and os.path.exists(sstp_c_path) and os.path.exists(sstp_k_path)):
-        for cp, kp in [
-            ("/etc/letsencrypt/live/vpn.kigaping.com/fullchain.pem", "/etc/letsencrypt/live/vpn.kigaping.com/privkey.pem"),
-            ("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem", "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem"),
-            (VPN_SERVER_CERT, VPN_SERVER_KEY),
-            (PANEL_CERT, PANEL_KEY)
-        ]:
-            if os.path.exists(cp) and os.path.exists(kp):
-                sstp_c_path, sstp_k_path = cp, kp
-                break
+    ensure_sstp_ca()
+    sstp_c_path = SSTP_SERVER_CERT
+    sstp_k_path = SSTP_SERVER_KEY
+    if not (os.path.exists(sstp_c_path) and os.path.exists(sstp_k_path)):
+        try:
+            d_val = sni if (sni and sni != "sstp.example.com") else (get_server_domain() or get_server_public_ip() or "sstp.example.com")
+            generate_or_renew_sstp_cert(d_val)
+        except Exception:
+            pass
 
     service_content = f"""[Unit]
 Description=SSTP Server Daemon (sstpd)
@@ -12155,6 +12330,40 @@ WantedBy=multi-user.target
     subprocess.run(f"iptables -t nat -C POSTROUTING -s {remote_subnet} -o ens6 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {remote_subnet} -o ens6 -j MASQUERADE", shell=True)
     
     return jsonify({"success": True, "message": "تنظیمات SSTP ذخیره و اعمال شد."})
+
+@app.route("/api/sstp/ca.crt", methods=["GET"])
+def api_sstp_download_ca_crt():
+    ensure_sstp_ca()
+    if not os.path.exists(SSTP_CA_CERT):
+        return "SSTP CA Certificate not found", 404
+    from flask import send_file
+    return send_file(SSTP_CA_CERT, as_attachment=True, download_name="sstp-ca.crt", mimetype="application/x-x509-ca-cert")
+
+@app.route("/api/sstp/ca.pem", methods=["GET"])
+def api_sstp_download_ca_pem():
+    ensure_sstp_ca()
+    if not os.path.exists(SSTP_CA_PEM):
+        return "SSTP CA Certificate not found", 404
+    from flask import send_file
+    return send_file(SSTP_CA_PEM, as_attachment=True, download_name="sstp-ca.pem", mimetype="application/x-x509-ca-cert")
+
+@app.route("/api/sstp/cert/renew", methods=["POST"])
+def api_sstp_cert_renew():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    domain_or_ip = data.get("domain_or_ip", "").strip()
+    if not domain_or_ip:
+        return jsonify({"error": "Domain or IP address is required"}), 400
+    try:
+        cert_info = generate_or_renew_sstp_cert(domain_or_ip)
+        return jsonify({
+            "success": True,
+            "message": f"گواهینامه امنیتی SSTP برای «{domain_or_ip}» با موفقیت صادر و بر روی سرویس اعمال گردید.",
+            "cert": cert_info
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/sstp/service/restart", methods=["POST"])
 def api_restart_sstp_services():
@@ -12267,15 +12476,20 @@ def api_kill_sstp_session():
 def api_get_sstp_powershell_script():
     cfg = get_sstp_config()
     script_type = request.args.get("type", "direct")
-    server_addr = "vpn.kigaping.com"
+    
+    pub_ip = get_server_public_ip()
+    srv_domain = get_server_domain() or pub_ip
     port = cfg.get("port", 4443)
+    
+    panel_host = request.host
+    ca_url = f"https://{panel_host}/api/sstp/ca.crt"
     
     if script_type == "sni":
         vpn_name = "MHPanel SSTP (Port 443 SNI)"
-        target = cfg.get("sni", "sstp.kigaping.com")
+        target = cfg.get("sni", f"sstp.{srv_domain}" if srv_domain else "sstp.example.com")
     else:
         vpn_name = f"MHPanel SSTP (Port {port})"
-        target = f"{server_addr}:{port}"
+        target = f"{srv_domain}:{port}"
         
     ps_content = f"""# =========================================================
 # MHPanel SSTP Windows 1-Click Auto Configuration Script
@@ -12283,19 +12497,57 @@ def api_get_sstp_powershell_script():
 # Run with PowerShell (Run as Administrator)
 # =========================================================
 
+Write-Host "==========================================================" -ForegroundColor Cyan
+Write-Host "   MHPanel - Automated SSTP Windows VPN Setup" -ForegroundColor White
+Write-Host "==========================================================" -ForegroundColor Cyan
+
 $VpnName = "{vpn_name}"
 $ServerAddress = "{target}"
+$CaUrl = "{ca_url}"
+$TempCa = "$env:TEMP\\sstp-ca.crt"
 
-Write-Host ">>> Configuring Secure SSTP VPN Connection: $VpnName" -ForegroundColor Cyan
-Write-Host ">>> Destination Server: $ServerAddress" -ForegroundColor Cyan
+# 1. Download Root CA Certificate
+Write-Host "`n[1/4] Downloading SSTP Root CA Certificate..." -ForegroundColor Yellow
+try {{
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
+    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{$true}}
+    Invoke-WebRequest -Uri $CaUrl -OutFile $TempCa -UseBasicParsing
+    Write-Host "  -> Root CA downloaded successfully." -ForegroundColor Green
+}} catch {{
+    Write-Host "  -> Warning: Could not download CA from panel URL ($CaUrl). If using self-signed cert, import ca.crt manually." -ForegroundColor Gray
+}}
 
-# 1. Remove existing connection if it exists
+# 2. Install Root CA into Windows Trusted Root Store
+Write-Host "`n[2/4] Installing Root CA into Windows Trusted Root Store..." -ForegroundColor Yellow
+if (Test-Path $TempCa) {{
+    try {{
+        Import-Certificate -FilePath $TempCa -CertStoreLocation "Cert:\\LocalMachine\\Root" | Out-Null
+        Write-Host "  -> SSTP Root CA successfully trusted on this PC!" -ForegroundColor Green
+    }} catch {{
+        Write-Host "  -> Note: Administrator privileges required to trust CA certificate." -ForegroundColor Red
+    }}
+}}
+
+# 3. Registry Optimization: Ignore Certificate Revocation Check (Fallback for Self-Signed)
+Write-Host "`n[3/4] Optimizing SSTP Registry settings (NoCertRevocationCheck)..." -ForegroundColor Yellow
+try {{
+    $RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SstpSvc\\Parameters"
+    if (-not (Test-Path $RegPath)) {{
+        New-Item -Path $RegPath -Force | Out-Null
+    }}
+    Set-ItemProperty -Path $RegPath -Name "NoCertRevocationCheck" -Value 1 -Type DWord -Force
+    Write-Host "  -> Registry successfully tuned for zero-error SSTP connection." -ForegroundColor Green
+}} catch {{
+    Write-Host "  -> Registry notice: Administrator privileges required to write registry key." -ForegroundColor Gray
+}}
+
+# 4. Create or Update SSTP VPN Profile
+Write-Host "`n[4/4] Creating and configuring SSTP connection '$VpnName'..." -ForegroundColor Yellow
 if (Get-VpnConnection -Name $VpnName -ErrorAction SilentlyContinue) {{
-    Write-Host "Existing VPN profile found. Removing to ensure clean setup..." -ForegroundColor Yellow
+    Write-Host "  -> Removing existing connection '$VpnName'..." -ForegroundColor Gray
     Remove-VpnConnection -Name $VpnName -Force -Confirm:$false
 }}
 
-# 2. Add new SSTP VPN Connection
 Add-VpnConnection -Name $VpnName `
     -ServerAddress $ServerAddress `
     -TunnelType Sstp `
@@ -12304,19 +12556,25 @@ Add-VpnConnection -Name $VpnName `
     -RememberCredential $true `
     -SplitTunneling $false
 
-# 3. Optimize connection parameters
 Set-VpnConnection -Name $VpnName `
     -TunnelType Sstp `
     -EncryptionLevel Required `
     -AuthenticationMethod MSChapv2
 
-Write-Host ""
-Write-Host "SUCCESS! The SSTP VPN profile has been added to Windows Settings." -ForegroundColor Green
-Write-Host "You can now connect directly from Windows Network Flyout / Settings." -ForegroundColor Green
-Write-Host "Press any key to exit..."
-[Console]::ReadKey() | Out-Null
+Write-Host "`n==========================================================" -ForegroundColor Green
+Write-Host " [SUCCESS] SSTP VPN Profile '$VpnName' is ready!" -ForegroundColor Green
+Write-Host " Destination Server: $ServerAddress" -ForegroundColor White
+Write-Host "==========================================================" -ForegroundColor Green
+Write-Host "You can now connect from Windows Settings -> Network & Internet -> VPN" -ForegroundColor White
+Write-Host "Enter your Username and Password when prompted.`n" -ForegroundColor White
+
+pause
 """
-    return Response(ps_content, mimetype="text/plain; charset=utf-8", headers={"Content-Disposition": f"attachment; filename=Setup_{script_type}_SSTP.ps1"})
+    return Response(
+        ps_content,
+        mimetype="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=Setup_{script_type}_SSTP.ps1"}
+    )
 
 @app.route("/api/sstp/users", methods=["GET"])
 def api_get_sstp_users():

@@ -11959,9 +11959,34 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                 }
             }
 
+            const certDetails = data.cert_details || {};
+            const topCertStatus = document.getElementById("sstp-top-cert-status");
+            if (topCertStatus) {
+                if (certDetails.installed) {
+                    topCertStatus.textContent = certDetails.cert_type || "فعال و معتبر (Root CA)";
+                    topCertStatus.style.color = "#059669";
+                } else {
+                    topCertStatus.textContent = "تنظیم نشده";
+                    topCertStatus.style.color = "#d97706";
+                }
+            }
+
+            if (document.getElementById("sstp-cert-subject-display")) {
+                document.getElementById("sstp-cert-subject-display").textContent = certDetails.subject || "-";
+            }
+            if (document.getElementById("sstp-cert-san-display")) {
+                document.getElementById("sstp-cert-san-display").textContent = certDetails.san || "-";
+            }
+            if (document.getElementById("sstp-cert-issuer-display")) {
+                document.getElementById("sstp-cert-issuer-display").textContent = certDetails.issuer || "-";
+            }
+            if (document.getElementById("sstp-cert-expiry-display")) {
+                document.getElementById("sstp-cert-expiry-display").textContent = certDetails.expiry || "-";
+            }
+
             const pPort = cfg.port || 4443;
-            const pSni = cfg.sni || "sstp.kigaping.com";
-            const domain = data.domain || "vpn.kigaping.com";
+            const domain = data.domain || data.server_ip || "sstp.example.com";
+            const pSni = cfg.sni || (domain ? `sstp.${domain}` : "sstp.example.com");
 
             if (document.getElementById("sstp-stat-direct-port")) {
                 document.getElementById("sstp-stat-direct-port").innerText = pPort;
@@ -11974,6 +11999,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }
             if (document.getElementById("sstp-box-sni-target")) {
                 document.getElementById("sstp-box-sni-target").innerText = `${pSni}:443`;
+            }
+            if (document.getElementById("sstp-box-stunnel-target")) {
+                document.getElementById("sstp-box-stunnel-target").innerText = `Host: ${domain} | Ports: 9443, 2087`;
+            }
+            if (document.getElementById("sstp-android-server-display")) {
+                document.getElementById("sstp-android-server-display").innerText = domain;
+            }
+            if (document.getElementById("sstp-android-port-display")) {
+                document.getElementById("sstp-android-port-display").innerText = pPort;
             }
 
             // Populate form
@@ -11999,6 +12033,33 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         }
     }
 
+    async function renewSstpCertificate() {
+        const domain = document.getElementById("sstp-new-cert-domain")?.value.trim();
+        if (!domain) {
+            showToast("لطفاً نام دامنه یا آی‌پی سرور را وارد کنید", "error");
+            return;
+        }
+
+        toggleLoading(true, `در حال تولید کلید و صدور سرتفیکیت جدید SSTP برای ${domain}...`);
+        try {
+            const res = await fetch("/api/sstp/cert/renew", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domain_or_ip: domain })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(data.message || "سرتفیکیت با موفقیت صادر و بر روی SSTP اعمال شد.", "success");
+                fetchSstpConfig();
+            } else {
+                showToast(`خطا در صدور سرتفیکیت: ${data.error}`, "error");
+            }
+        } catch (err) {
+            showToast("خطا در برقراری ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
     async function saveSstpConfig(e) {
         if (e && e.preventDefault) e.preventDefault();
         toggleLoading(true, "در حال ذخیره و اعمال تغییرات سرور SSTP...");
@@ -12006,7 +12067,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             const payload = {
                 engine: document.getElementById("sstp-cfg-engine")?.value || "sstpd",
                 port: parseInt(document.getElementById("sstp-cfg-port")?.value || "4443", 10),
-                sni: document.getElementById("sstp-cfg-sni")?.value.trim() || "sstp.kigaping.com",
+                sni: document.getElementById("sstp-cfg-sni")?.value.trim() || "sstp.example.com",
                 mtu: parseInt(document.getElementById("sstp-cfg-mtu")?.value || "1400", 10),
                 mru: parseInt(document.getElementById("sstp-cfg-mtu")?.value || "1400", 10),
                 local_ip: document.getElementById("sstp-cfg-local-ip")?.value.trim() || "10.20.20.1",
@@ -12067,10 +12128,26 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         });
     }
 
+    function copySstpDirectTarget() {
+        const target = document.getElementById("sstp-box-direct-target")?.innerText.trim() || "";
+        copySstpText(target, "آدرس پورت مستقیم SSTP");
+    }
+
+    function copySstpSniTarget() {
+        const target = document.getElementById("sstp-box-sni-target")?.innerText.trim() || "";
+        copySstpText(target, "دامنه تفکیک SNI پورت ۴۴۳");
+    }
+
+    function copySstpStunnelTarget() {
+        const domain = document.getElementById("sstp-android-server-display")?.innerText.trim() || "server";
+        copySstpText(`${domain}:2087`, "پورت TLS کمکی");
+    }
+
     function copySstpAllDetails() {
         const port = document.getElementById("sstp-cfg-port")?.value || "4443";
-        const sni = document.getElementById("sstp-cfg-sni")?.value || "sstp.kigaping.com";
-        const text = `=== مشخصات کامل اتصال SSTP ===\nدامنه اصلی سرور: vpn.kigaping.com\nپورت مستقیم SSTP: ${port}\nاشتراک پورت ۴۴۳ (SNI): ${sni}:443\nپورت‌های کمکی TLS Stunnel: 9443, 2087\nپروتکل احراز هویت: FreeRADIUS + MS-CHAPv2\nسوییت رمزنگاری: HIGH:!aNULL:!MD5:!RC4`;
+        const sni = document.getElementById("sstp-cfg-sni")?.value || "sstp.example.com";
+        const domain = document.getElementById("sstp-android-server-display")?.innerText.trim() || "example.com";
+        const text = `=== مشخصات کامل اتصال SSTP ===\nدامنه اصلی سرور: ${domain}\nپورت مستقیم SSTP: ${port}\nاشتراک پورت ۴۴۳ (SNI): ${sni}:443\nپورت‌های کمکی TLS Stunnel: 9443, 2087\nپروتکل احراز هویت: FreeRADIUS + MS-CHAPv2\nسوییت رمزنگاری: HIGH:!aNULL:!MD5:!RC4`;
         copySstpText(text, "اطلاعات کامل اتصال SSTP");
     }
 
