@@ -12046,6 +12046,17 @@ subjectAltName = @alt_names
     )
     os.chmod(SSTP_SERVER_CERT, 0o644)
     
+    fullchain_path = f"{SSTP_CA_DIR}/sstp-fullchain.crt"
+    try:
+        with open(fullchain_path, "wb") as f_out:
+            with open(SSTP_SERVER_CERT, "rb") as f_c:
+                f_out.write(f_c.read())
+            with open(SSTP_CA_CERT, "rb") as f_ca:
+                f_out.write(f_ca.read())
+        os.chmod(fullchain_path, 0o644)
+    except Exception:
+        fullchain_path = SSTP_SERVER_CERT
+    
     if os.path.exists(csr_path): os.unlink(csr_path)
     if os.path.exists(cnf_path): os.unlink(cnf_path)
     
@@ -12064,7 +12075,7 @@ Wants=freeradius.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p {port} -c {SSTP_SERVER_CERT} -k {SSTP_SERVER_KEY} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
+ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p {port} -c {fullchain_path} -k {SSTP_SERVER_KEY} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -12286,12 +12297,15 @@ radius-config-file /etc/radcli/radiusclient.conf
         pass
         
     ensure_sstp_ca()
-    sstp_c_path = SSTP_SERVER_CERT
+    fullchain_path = f"{SSTP_CA_DIR}/sstp-fullchain.crt"
+    sstp_c_path = fullchain_path if os.path.exists(fullchain_path) else SSTP_SERVER_CERT
     sstp_k_path = SSTP_SERVER_KEY
     if not (os.path.exists(sstp_c_path) and os.path.exists(sstp_k_path)):
         try:
             d_val = sni if (sni and sni != "sstp.example.com") else (get_server_domain() or get_server_public_ip() or "sstp.example.com")
             generate_or_renew_sstp_cert(d_val)
+            if os.path.exists(fullchain_path):
+                sstp_c_path = fullchain_path
         except Exception:
             pass
 
