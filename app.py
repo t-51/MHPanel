@@ -12580,7 +12580,31 @@ Add-VpnConnection -Name $VpnName `
 Set-VpnConnection -Name $VpnName `
     -TunnelType Sstp `
     -EncryptionLevel Required `
-    -AuthenticationMethod MSChapv2
+    -AuthenticationMethod MSChapv2 `
+    -SplitTunneling $false
+
+# 5. Network Routing, DNS & Proxy Fixes
+Write-Host "`n[5/5] Configuring Routing, DNS and Disabling Proxy Conflicts..." -ForegroundColor Yellow
+try {{
+    # Disable leftover system proxy (prevents conflict with v2rayN/Hiddify/Clash)
+    Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -Name ProxyEnable -Value 0 -Force
+    # Disable Smart Multi-Homed Name Resolution (prevents local Iranian ISP DNS hijacking)
+    $DnsPolicy = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
+    if (-not (Test-Path $DnsPolicy)) {{ New-Item -Path $DnsPolicy -Force | Out-Null }}
+    Set-ItemProperty -Path $DnsPolicy -Name "DisableSmartNameResolution" -Value 1 -Type DWord -Force
+    # Prioritize VPN route metric in phonebook
+    $pbk = "$env:APPDATA\\Microsoft\\Network\\Connections\\Pbk\\rasphone.pbk"
+    if (Test-Path $pbk) {{
+        $txt = Get-Content $pbk -Raw
+        $txt = $txt -replace 'IpPrioritizeRemote=0', 'IpPrioritizeRemote=1'
+        $txt = $txt -replace 'IpInterfaceMetric=\\d+', 'IpInterfaceMetric=1'
+        Set-Content -Path $pbk -Value $txt -NoNewline
+    }}
+    Clear-DnsClientCache
+    Write-Host "  -> System proxy disabled & DNS leak protection enabled." -ForegroundColor Green
+}} catch {{
+    Write-Host "  -> Note: Non-critical tuning skipped." -ForegroundColor Gray
+}}
 
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host " [SUCCESS] SSTP VPN Profile '$VpnName' is ready!" -ForegroundColor Green
@@ -13777,8 +13801,10 @@ Add-VpnConnection -Name $VpnName `
     -L2tpPsk $PresharedKey `
     -AuthenticationMethod MSChapv2 `
     -EncryptionLevel Required `
+    -RememberCredential $true `
+    -SplitTunneling $false `
     -Force
-Write-Host "[2/3] VPN Connection profile created." -ForegroundColor Green
+Write-Host "[2/4] VPN Connection profile created." -ForegroundColor Green
 
 # 3. Configure IPsec parameters
 try {{
@@ -13791,7 +13817,30 @@ try {{
         -DHGroup Group14 `
         -PassThru -Force
 }} catch {{}}
-Write-Host "[3/3] High-security IPsec proposals bound." -ForegroundColor Green
+Write-Host "[3/4] High-security IPsec proposals bound." -ForegroundColor Green
+
+# 4. Network Routing, DNS & Proxy Fixes
+Write-Host "`n[4/4] Configuring Routing, DNS and Disabling Proxy Conflicts..." -ForegroundColor Yellow
+try {{
+    # Disable leftover system proxy (prevents conflict with v2rayN/Hiddify/Clash)
+    Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -Name ProxyEnable -Value 0 -Force
+    # Disable Smart Multi-Homed Name Resolution (prevents local Iranian ISP DNS hijacking)
+    $DnsPolicy = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
+    if (-not (Test-Path $DnsPolicy)) {{ New-Item -Path $DnsPolicy -Force | Out-Null }}
+    Set-ItemProperty -Path $DnsPolicy -Name "DisableSmartNameResolution" -Value 1 -Type DWord -Force
+    # Prioritize VPN route metric in phonebook
+    $pbk = "$env:APPDATA\\Microsoft\\Network\\Connections\\Pbk\\rasphone.pbk"
+    if (Test-Path $pbk) {{
+        $txt = Get-Content $pbk -Raw
+        $txt = $txt -replace 'IpPrioritizeRemote=0', 'IpPrioritizeRemote=1'
+        $txt = $txt -replace 'IpInterfaceMetric=\\d+', 'IpInterfaceMetric=1'
+        Set-Content -Path $pbk -Value $txt -NoNewline
+    }}
+    Clear-DnsClientCache
+    Write-Host "  -> System proxy disabled & DNS leak protection enabled." -ForegroundColor Green
+}} catch {{
+    Write-Host "  -> Note: Non-critical tuning skipped." -ForegroundColor Gray
+}}
 
 Write-Host "`nSUCCESS: L2TP VPN is ready to connect!" -ForegroundColor Yellow
 Write-Host "Please open Network Settings or System Tray to connect using your username & password." -ForegroundColor White
@@ -14449,7 +14498,8 @@ Add-VpnConnection -Name $ConnectionName `
     -TunnelType Ikev2 `
     -AuthenticationMethod EAP `
     -EncryptionLevel Maximum `
-    -RememberCredential
+    -RememberCredential `
+    -SplitTunneling $false
 
 # Apply IPsec Security Policies (DH Group 14 + AES256-SHA256)
 Set-VpnConnectionIPsecConfiguration -ConnectionName $ConnectionName `
@@ -14460,6 +14510,31 @@ Set-VpnConnectionIPsecConfiguration -ConnectionName $ConnectionName `
     -PfsGroup None `
     -DHGroup Group14 `
     -PassThru -Force | Out-Null
+
+Set-VpnConnection -Name $ConnectionName -SplitTunneling $false
+
+# 4. Network Routing, DNS & Proxy Fixes
+Write-Host "`n[4/4] Configuring Routing, DNS and Disabling Proxy Conflicts..." -ForegroundColor Yellow
+try {{
+    # Disable leftover system proxy (prevents conflict with v2rayN/Hiddify/Clash)
+    Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -Name ProxyEnable -Value 0 -Force
+    # Disable Smart Multi-Homed Name Resolution (prevents local Iranian ISP DNS hijacking)
+    $DnsPolicy = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
+    if (-not (Test-Path $DnsPolicy)) {{ New-Item -Path $DnsPolicy -Force | Out-Null }}
+    Set-ItemProperty -Path $DnsPolicy -Name "DisableSmartNameResolution" -Value 1 -Type DWord -Force
+    # Prioritize VPN route metric in phonebook
+    $pbk = "$env:APPDATA\\Microsoft\\Network\\Connections\\Pbk\\rasphone.pbk"
+    if (Test-Path $pbk) {{
+        $txt = Get-Content $pbk -Raw
+        $txt = $txt -replace 'IpPrioritizeRemote=0', 'IpPrioritizeRemote=1'
+        $txt = $txt -replace 'IpInterfaceMetric=\\d+', 'IpInterfaceMetric=1'
+        Set-Content -Path $pbk -Value $txt -NoNewline
+    }}
+    Clear-DnsClientCache
+    Write-Host "  -> System proxy disabled & DNS leak protection enabled." -ForegroundColor Green
+}} catch {{
+    Write-Host "  -> Note: Non-critical tuning skipped." -ForegroundColor Gray
+}}
 
 Write-Host "`n==========================================================" -ForegroundColor Green
 Write-Host " [SUCCESS] Connection '$ConnectionName' is completely ready!" -ForegroundColor Green
