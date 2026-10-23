@@ -3084,24 +3084,26 @@ def api_protocols_advanced_logs(protocol):
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
+    protocol = (protocol or "").lower()
     services = []
-    if protocol == "ssh": services = ["mhpanel-ssh", "ssh-ws", "sshd_vpn", "ssh", "sshd"]
-    elif protocol == "openvpn": services = ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]
+    if protocol in ["ssh", "sshd"]: services = ["mhpanel-ssh", "ssh-ws", "sshd_vpn", "ssh", "sshd"]
+    elif protocol in ["openvpn", "openvpn-server"]: services = ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]
     elif protocol == "ocserv": services = ["ocserv"]
-    elif protocol == "ikev2": services = ["strongswan-starter", "strongswan", "strongswan-swanctl"]
-    elif protocol == "sstp": services = ["sstpd", "accel-ppp", "vpnserver"]
-    elif protocol == "l2tp": services = ["xl2tpd"]
-    elif protocol == "pptp": services = ["pptpd", "mhpanel-pptp"]
+    elif protocol in ["ikev2", "strongswan", "ipsec"]: services = ["strongswan-starter", "strongswan", "strongswan-swanctl"]
+    elif protocol in ["sstp", "sstpd"]: services = ["sstpd", "accel-ppp", "vpnserver"]
+    elif protocol in ["l2tp", "xl2tpd"]: services = ["xl2tpd"]
+    elif protocol in ["pptp", "pptpd"]: services = ["pptpd", "mhpanel-pptp"]
     elif protocol == "badvpn": services = ["videocall", "badvpn"]
-    elif protocol == "wireguard": services = ["wg-quick@wg0"]
-    elif protocol == "amneziawg": services = ["awg-quick@awg0"]
+    elif protocol in ["wireguard", "wg"]: services = ["wg-quick@wg0"]
+    elif protocol in ["amneziawg", "awg"]: services = ["awg-quick@awg0"]
     elif protocol == "mtproto": services = ["mhpanel-mtproto*"]
+    elif protocol in ["freeradius", "radius"]: services = ["freeradius"]
     else:
         services = get_service_names(protocol)
         if not services:
             return jsonify({"error": "Unknown protocol"}), 400
     
-    if protocol == "ikev2":
+    if protocol in ["ikev2", "strongswan", "ipsec"]:
         cmd = [
             "journalctl",
             "_SYSTEMD_UNIT=strongswan-starter.service",
@@ -3109,6 +3111,37 @@ def api_protocols_advanced_logs(protocol):
             "+", "_SYSTEMD_UNIT=strongswan-swanctl.service",
             "+", "SYSLOG_IDENTIFIER=charon",
             "+", "_COMM=charon",
+            "-n", "600", "--no-pager", "-o", "json"
+        ]
+    elif protocol in ["l2tp", "xl2tpd"]:
+        cmd = [
+            "journalctl",
+            "_SYSTEMD_UNIT=xl2tpd.service",
+            "+", "SYSLOG_IDENTIFIER=xl2tpd",
+            "+", "_COMM=xl2tpd",
+            "+", "SYSLOG_IDENTIFIER=pppd",
+            "+", "_COMM=pppd",
+            "-n", "600", "--no-pager", "-o", "json"
+        ]
+    elif protocol in ["pptp", "pptpd"]:
+        cmd = [
+            "journalctl",
+            "_SYSTEMD_UNIT=pptpd.service",
+            "+", "SYSLOG_IDENTIFIER=pptpd",
+            "+", "_COMM=pptpd",
+            "+", "SYSLOG_IDENTIFIER=pppd",
+            "+", "_COMM=pppd",
+            "-n", "600", "--no-pager", "-o", "json"
+        ]
+    elif protocol in ["sstp", "sstpd"]:
+        cmd = [
+            "journalctl",
+            "_SYSTEMD_UNIT=sstpd.service",
+            "+", "SYSLOG_IDENTIFIER=sstpd",
+            "+", "_COMM=sstpd",
+            "+", "SYSLOG_IDENTIFIER=pppd",
+            "+", "_COMM=pppd",
+            "+", "_SYSTEMD_UNIT=accel-ppp.service",
             "-n", "600", "--no-pager", "-o", "json"
         ]
     else:
@@ -3127,6 +3160,7 @@ def api_protocols_advanced_logs(protocol):
                 timestamp = int(j.get("__REALTIME_TIMESTAMP", 0)) / 1000000
                 message = j.get("MESSAGE", "")
                 priority = int(j.get("PRIORITY", 6))
+                ident = j.get("SYSLOG_IDENTIFIER", "")
                 
                 if isinstance(message, list):
                     try:
@@ -3135,8 +3169,11 @@ def api_protocols_advanced_logs(protocol):
                         message = str(message)
                 
                 # Filter out frequent internal vici client polling noise from web panel
-                if protocol == "ikev2" and ("vici client" in message or "registered for: list-sa" in message):
+                if protocol in ["ikev2", "strongswan", "ipsec"] and ("vici client" in message or "registered for: list-sa" in message):
                     continue
+
+                if ident and ident in ["pppd", "xl2tpd", "pptpd", "sstpd", "charon"] and not message.startswith(f"[{ident}]"):
+                    message = f"[{ident}] {message}"
 
                 logs.append({
                     "timestamp": timestamp,
@@ -12041,14 +12078,14 @@ def api_save_sstp_config():
     mppe_directive = "require-mppe-128\nmppe-stateful" if mppe_mode == "require-mppe-128" else "mppe-stateful"
     ppp_options = f"""name sstpd
 debug
-dump
-logfd 2
 ipcp-accept-local
 ipcp-accept-remote
 idle 1800
 mtu {mtu}
 mru {mru}
 proxyarp
+nodeflate
+nobsdcomp
 lcp-echo-failure 4
 lcp-echo-interval 30
 ms-dns {dns1}
@@ -13051,14 +13088,14 @@ length bit = yes
 
     ppp_content = f"""name l2tpd
 debug
-dump
-logfd 2
 ipcp-accept-local
 ipcp-accept-remote
 idle 1800
 mtu {mtu}
 mru {mru}
 proxyarp
+nodeflate
+nobsdcomp
 lcp-echo-failure 4
 lcp-echo-interval 30
 ms-dns {dns1}

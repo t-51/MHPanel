@@ -833,14 +833,14 @@ install_sstp() {
     cat > /etc/ppp/options.sstpd <<EOF
 name sstpd
 debug
-dump
-logfd 2
 ipcp-accept-local
 ipcp-accept-remote
 idle 1800
 mtu 1400
 mru 1400
 proxyarp
+nodeflate
+nobsdcomp
 lcp-echo-failure 4
 lcp-echo-interval 30
 ms-dns ${dns1}
