@@ -14634,15 +14634,15 @@ def get_default_multiplexer_config():
         "enabled": True,
         "listen_ports": [443],
         "default_backend": "web",
-        "web_server_type": "apache",
+        "web_server_type": "internal",
         "protocols": [
             {
                 "id": "web",
                 "name": "وب سرور و پنل مدیریت (Web / MHPanel)",
                 "enabled": True,
-                "sni": "mhpanel.kigaping.com, kigaping.com, *.kigaping.com",
+                "sni": "panel.example.com, example.com, *.example.com",
                 "backend_ip": "127.0.0.1",
-                "backend_port": 8444,
+                "backend_port": 9090,
                 "is_default": True,
                 "protocol_type": "web",
                 "desc": "ترافیک وب‌سایت‌ها، آپاچی/انجین‌یکس و پنل مدیریت"
@@ -14651,7 +14651,7 @@ def get_default_multiplexer_config():
                 "id": "ocserv",
                 "name": "سیسکو AnyConnect (Cisco OCServ)",
                 "enabled": True,
-                "sni": "vpn.kigaping.com, 212.227.143.16",
+                "sni": "vpn.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 10443,
                 "is_default": False,
@@ -14662,7 +14662,7 @@ def get_default_multiplexer_config():
                 "id": "ssh",
                 "name": "تونل SSH (مستقیم و TLS)",
                 "enabled": True,
-                "sni": "ssh.kigaping.com",
+                "sni": "ssh.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 22,
                 "is_default": False,
@@ -14673,7 +14673,7 @@ def get_default_multiplexer_config():
                 "id": "openvpn",
                 "name": "اوپن‌وی‌پی‌ان (OpenVPN TCP)",
                 "enabled": True,
-                "sni": "ovpn.kigaping.com",
+                "sni": "ovpn.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 1194,
                 "is_default": False,
@@ -14682,9 +14682,9 @@ def get_default_multiplexer_config():
             },
             {
                 "id": "sstp",
-                "name": "پروتکل SSTP ویندوز (Accel-PPP)",
-                "enabled": False,
-                "sni": "sstp.kigaping.com",
+                "name": "پروتکل SSTP ویندوز (MS-SSTP / sstpd)",
+                "enabled": True,
+                "sni": "sstp.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 4443,
                 "is_default": False,
@@ -14695,7 +14695,7 @@ def get_default_multiplexer_config():
                 "id": "singbox",
                 "name": "هسته جامع سینگ‌باکس (Sing-box Core)",
                 "enabled": True,
-                "sni": "sb.kigaping.com,vless.kigaping.com",
+                "sni": "sb.example.com,vless.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 20443,
                 "is_default": False,
@@ -14712,21 +14712,15 @@ def get_multiplexer_config():
         try:
             with open(MULTIPLEXER_CONFIG_FILE, "r") as f:
                 cfg = json.load(f)
-                # Auto-merge singbox protocol if missing
                 protocols = cfg.get("protocols", [])
                 proto_ids = [p.get("id") for p in protocols]
-                if "singbox" not in proto_ids:
-                    protocols.append({
-                        "id": "singbox",
-                        "name": "هسته جامع سینگ‌باکس (Sing-box Core)",
-                        "enabled": True,
-                        "sni": "sb.kigaping.com,vless.kigaping.com",
-                        "backend_ip": "127.0.0.1",
-                        "backend_port": 20443,
-                        "is_default": False,
-                        "protocol_type": "singbox",
-                        "desc": "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
-                    })
+                default_protos = get_default_multiplexer_config().get("protocols", [])
+                changed = False
+                for dp in default_protos:
+                    if dp.get("id") not in proto_ids:
+                        protocols.append(dp)
+                        changed = True
+                if changed:
                     cfg["protocols"] = protocols
                     save_multiplexer_config(cfg)
                 return cfg
@@ -14751,6 +14745,7 @@ def check_listen_port_conflicts(ports):
         for p in psutil.process_iter(["pid", "name"]):
             if "haproxy" in (p.info.get("name") or "").lower():
                 haproxy_pids.add(p.info["pid"])
+        my_pid = os.getpid()
         for c in psutil.net_connections(kind="tcp"):
             if c.status == "LISTEN" and c.laddr.port in ports:
                 if c.pid not in haproxy_pids:
@@ -14759,7 +14754,10 @@ def check_listen_port_conflicts(ports):
                         pname = psutil.Process(c.pid).name()
                     except Exception:
                         pass
-                    conflicts.append(f"پورت {c.laddr.port} توسط پردازش {pname} (PID: {c.pid}) در حال استفاده است.")
+                    if c.pid == my_pid:
+                        conflicts.append(f"پورت {c.laddr.port} در حال حاضر توسط وب‌سرور پنل مدیریت (MHPanel PID: {c.pid}) در حال استفاده است. برای اینکه مالتی‌پلکسر HAProxy بتواند روی پورت ۴۴۳ قرار گیرد، ابتدا پورت پنل را از منوی تنظیمات سیستم به ۹۰۹۰ تغییر دهید تا این پورت آزاد شود.")
+                    else:
+                        conflicts.append(f"پورت {c.laddr.port} توسط پردازش {pname} (PID: {c.pid}) در حال استفاده است.")
     except Exception:
         pass
     return conflicts
@@ -14817,6 +14815,7 @@ def generate_haproxy_cfg(config):
     protocols = config.get("protocols", [])
     enabled_protos = {p.get("id"): p for p in protocols if p.get("enabled", False)}
     
+    backend_blocks = []
     if "ssh" in enabled_protos:
         lines.append("    use_backend ssh_raw_backend if is_ssh_raw")
         backend_blocks.append("backend ssh_raw_backend\n    mode tcp\n    server ssh_raw 127.0.0.1:22")
@@ -14828,7 +14827,6 @@ def generate_haproxy_cfg(config):
     
     acls = []
     use_backends = []
-    backend_blocks = backend_blocks
     default_backend_name = "web_backend"
     
     # Process non-default protocols first, and default/web last
@@ -14844,7 +14842,16 @@ def generate_haproxy_cfg(config):
         p_host = proto.get("backend_ip", "127.0.0.1").strip()
         p_port = proto.get("backend_port")
         if not p_port or (p_id == "ssh" and p_port == 22):
-            if p_id == "web": p_port = 8444
+            if p_id == "web":
+                web_srv = config.get("web_server_type", "internal")
+                if web_srv == "internal":
+                    p_port = get_panel_port()
+                    if p_port in listen_ports:
+                        p_port = 9090
+                elif web_srv == "nginx":
+                    p_port = 80
+                else:
+                    p_port = 8444
             elif p_id == "ocserv": p_port = 10443
             elif p_id == "ssh": p_port = 4444
             elif p_id == "openvpn": p_port = 1194
@@ -14889,6 +14896,14 @@ def generate_haproxy_cfg(config):
 
     if "web" in enabled_protos:
         backend_blocks.append("backend web_http_backend\n    mode tcp\n    server apache_http 127.0.0.1:80")
+
+    # Ensure default backend is always defined
+    has_default = any(f"backend {default_backend_name}" in b for b in backend_blocks)
+    if not has_default:
+        fallback_port = get_panel_port()
+        if fallback_port in listen_ports:
+            fallback_port = 9090
+        backend_blocks.append(f"backend {default_backend_name}\n    mode tcp\n    server {default_backend_name} 127.0.0.1:{fallback_port}")
 
     lines.extend(acls)
     if acls:
@@ -14942,6 +14957,7 @@ def api_multiplexer_config_get():
     haproxy_active = get_service_is_active("haproxy")
     apache_active = get_service_is_active("httpd") or get_service_is_active("apache2")
     nginx_active = get_service_is_active("nginx")
+    panel_port = get_panel_port()
     
     return jsonify({
         "success": True,
@@ -14950,7 +14966,8 @@ def api_multiplexer_config_get():
             "haproxy": haproxy_active,
             "apache": apache_active,
             "nginx": nginx_active,
-            "haproxy_installed": os.path.exists("/usr/sbin/haproxy")
+            "haproxy_installed": os.path.exists("/usr/sbin/haproxy"),
+            "panel_port": panel_port
         }
     })
 

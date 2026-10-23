@@ -6937,7 +6937,9 @@
         const select = document.getElementById("mpx-web-server-type");
         const targetInput = document.getElementById("mpx-proto-web-target");
         if (!select || !targetInput) return;
-        if (select.value === "apache") {
+        if (select.value === "internal") {
+            targetInput.value = "127.0.0.1:9090";
+        } else if (select.value === "apache") {
             targetInput.value = "127.0.0.1:8444";
         } else if (select.value === "nginx") {
             targetInput.value = "127.0.0.1:80";
@@ -7110,7 +7112,7 @@
                     id: "web",
                     name: "وب سرور و پنل مدیریت (Web / MHPanel)",
                     enabled: document.getElementById("mpx-proto-web-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-web-sni")?.value.trim() || "mhpanel.kigaping.com",
+                    sni: document.getElementById("mpx-proto-web-sni")?.value.trim() || "panel.example.com",
                     backend_ip: webTarget.host,
                     backend_port: webTarget.port,
                     is_default: true,
@@ -7120,7 +7122,7 @@
                     id: "ocserv",
                     name: "سیسکو AnyConnect (Cisco OCServ)",
                     enabled: document.getElementById("mpx-proto-ocserv-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-ocserv-sni")?.value.trim() || "vpn.kigaping.com",
+                    sni: document.getElementById("mpx-proto-ocserv-sni")?.value.trim() || "vpn.example.com",
                     backend_ip: ocservTarget.host,
                     backend_port: ocservTarget.port,
                     is_default: false,
@@ -7130,7 +7132,7 @@
                     id: "ssh",
                     name: "تونل امن SSH بر بستر TLS (Stunnel)",
                     enabled: document.getElementById("mpx-proto-ssh-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-ssh-sni")?.value.trim() || "ssh.kigaping.com",
+                    sni: document.getElementById("mpx-proto-ssh-sni")?.value.trim() || "ssh.example.com",
                     backend_ip: sshTarget.host,
                     backend_port: sshTarget.port,
                     is_default: false,
@@ -7140,7 +7142,7 @@
                     id: "openvpn",
                     name: "اوپن‌وی‌پی‌ان (OpenVPN TCP)",
                     enabled: document.getElementById("mpx-proto-openvpn-enabled")?.checked ?? false,
-                    sni: document.getElementById("mpx-proto-openvpn-sni")?.value.trim() || "ovpn.kigaping.com",
+                    sni: document.getElementById("mpx-proto-openvpn-sni")?.value.trim() || "ovpn.example.com",
                     backend_ip: openvpnTarget.host,
                     backend_port: openvpnTarget.port,
                     is_default: false,
@@ -7150,7 +7152,7 @@
                     id: "sstp",
                     name: "پروتکل SSTP ویندوز (Accel-PPP)",
                     enabled: document.getElementById("mpx-proto-sstp-enabled")?.checked ?? false,
-                    sni: document.getElementById("mpx-proto-sstp-sni")?.value.trim() || "sstp.kigaping.com",
+                    sni: document.getElementById("mpx-proto-sstp-sni")?.value.trim() || "sstp.example.com",
                     backend_ip: sstpTarget.host,
                     backend_port: sstpTarget.port,
                     is_default: false,
@@ -7160,7 +7162,7 @@
                     id: "singbox",
                     name: "هسته جامع سینگ‌باکس (Sing-box Core)",
                     enabled: document.getElementById("mpx-proto-singbox-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-singbox-sni")?.value.trim() || "sb.kigaping.com,vless.kigaping.com",
+                    sni: document.getElementById("mpx-proto-singbox-sni")?.value.trim() || "sb.example.com,vless.example.com",
                     backend_ip: singboxTarget.host,
                     backend_port: singboxTarget.port,
                     is_default: false,

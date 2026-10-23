@@ -134,7 +134,8 @@
 </div>
 <div style="display: flex; align-items: center; gap: 8px;">
 <span data-i18n="mpx_web_server_type" style="font-size: 12px; color: var(--text-muted);">نوع سرور وب:</span>
-<select class="form-input" id="mpx-web-server-type" onchange="handleWebServerTypeChange()" style="width: 140px; padding: 4px 8px; font-size: 12.5px; height: 32px;">
+<select class="form-input" id="mpx-web-server-type" onchange="handleWebServerTypeChange()" style="width: 160px; padding: 4px 8px; font-size: 12.5px; height: 32px;">
+<option value="internal">پنل داخلی MHPanel (پورت ۹۰۹۰)</option>
 <option data-i18n="mpx_apache" selected="" value="apache">آپاچی (Apache)</option>
 <option data-i18n="mpx_nginx" value="nginx">انجین‌یکس (Nginx)</option>
 <option data-i18n="mpx_item_6" value="custom">پورت دلخواه</option>
@@ -144,7 +145,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
 <div>
 <label class="form-label" data-i18n="mpx_web_panel_domain_sni_domain" style="font-size: 12px; margin-bottom: 4px;">دامنه وب‌پنل (SNI Domain):</label>
-<input class="form-input" id="mpx-proto-web-sni" placeholder="e.g. mhpanel.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="mhpanel.kigaping.com"/>
+<input class="form-input" id="mpx-proto-web-sni" placeholder="e.g. panel.example.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="panel.example.com"/>
 </div>
 <div>
 <label class="form-label" data-i18n="mpx_item_3" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی وب‌سرور:</label>
@@ -172,7 +173,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
 <div>
 <label class="form-label" data-i18n="mpx_cisco_exclusive_domain_sni_domain" style="font-size: 12px; margin-bottom: 4px;">دامنه اختصاصی سیسکو (SNI Domain):</label>
-<input class="form-input" id="mpx-proto-ocserv-sni" placeholder="e.g. vpn.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="vpn.kigaping.com"/>
+<input class="form-input" id="mpx-proto-ocserv-sni" placeholder="e.g. vpn.example.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="vpn.example.com"/>
 </div>
 <div>
 <label class="form-label" data-i18n="mpx_cisco_server_internal_address_port" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی سرور سیسکو:</label>
@@ -199,7 +200,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
 <div>
 <label class="form-label" data-i18n="mpx_ssh_connection_domain_sni_domain" style="font-size: 12px; margin-bottom: 4px;">دامنه اتصال SSH (SNI Domain):</label>
-<input class="form-input" id="mpx-proto-ssh-sni" placeholder="e.g. ssh.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="ssh.kigaping.com"/>
+<input class="form-input" id="mpx-proto-ssh-sni" placeholder="e.g. ssh.example.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="ssh.example.com"/>
 </div>
 <div>
 <label class="form-label" data-i18n="mpx_stunnel_internal_address_port" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی Stunnel:</label>
@@ -226,7 +227,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
 <div>
 <label class="form-label" data-i18n="mpx_openvpn_domain_sni_domain" style="font-size: 12px; margin-bottom: 4px;">دامنه OpenVPN (SNI Domain):</label>
-<input class="form-input" id="mpx-proto-openvpn-sni" placeholder="e.g. ovpn.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="ovpn.kigaping.com"/>
+<input class="form-input" id="mpx-proto-openvpn-sni" placeholder="e.g. ovpn.example.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="ovpn.example.com"/>
 </div>
 <div>
 <label class="form-label" data-i18n="mpx_openvpn_tcp_internal_address_port" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی OpenVPN TCP:</label>
@@ -281,7 +282,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; background: rgba(0,0,0,0.02); padding: 12px 14px; border-radius: 8px;">
 <div>
 <label class="form-label" data-i18n="mpx_singbox_sni" style="font-size: 12px; margin-bottom: 4px;">دامنه‌های SNI سینگ‌باکس (با ویرگول جدا کنید):</label>
-<input class="form-input" id="mpx-proto-singbox-sni" placeholder="e.g. sb.kigaping.com,vless.kigaping.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="sb.kigaping.com,vless.kigaping.com"/>
+<input class="form-input" id="mpx-proto-singbox-sni" placeholder="e.g. sb.example.com,vless.example.com" style="direction: ltr; font-family: monospace; font-size: 13px;" type="text" value="sb.example.com,vless.example.com"/>
 </div>
 <div>
 <label class="form-label" data-i18n="mpx_singbox_target" style="font-size: 12px; margin-bottom: 4px;">آدرس و پورت داخلی Sing-box Multiplexer:</label>
