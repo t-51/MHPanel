@@ -794,25 +794,23 @@ install_panel_web_ui() {
             rm -rf "${PANEL_DIR}/venv"
             python3 -m venv "${PANEL_DIR}/venv"
         fi
-        "${PANEL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel --quiet 2>/dev/null || true
-        echo "    Installing Python dependencies (Flask, Cryptography, PyOpenSSL, Requests, Psutil)..."
-        if [ -f "${PANEL_DIR}/requirements.txt" ]; then
-            "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || \
-            "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt"
-        else
-            "${PANEL_DIR}/venv/bin/pip" install \
-                "Flask>=2.0.0" \
-                "psutil>=5.8.0" \
-                "pyrad>=2.4" \
-                "cryptography>=3.4.8" \
-                "pyOpenSSL" \
-                "requests" \
-                "flask-compress>=1.14,<1.15" \
-                "brotli" --quiet
-        fi
-    else
-        echo -e "    ${GREEN}[✓] Python virtual environment and dependencies already exist.${NC}"
     fi
+
+    echo "    Ensuring and updating Python dependencies in virtual environment..."
+    "${PANEL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel --quiet 2>/dev/null || true
+    if [ -f "${PANEL_DIR}/requirements.txt" ]; then
+        "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || \
+        "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt"
+    fi
+    "${PANEL_DIR}/venv/bin/pip" install \
+        "Flask>=2.0.0" \
+        "psutil>=5.8.0" \
+        "pyrad>=2.4" \
+        "cryptography>=3.4.8" \
+        "pyOpenSSL" \
+        "requests" \
+        "flask-compress>=1.14,<1.15" \
+        "brotli" --quiet 2>/dev/null || true
 
     local port_file="${PANEL_DIR}/panel_port.txt"
     if [ ! -f "$port_file" ]; then echo "9090" > "$port_file"; fi
@@ -1639,6 +1637,65 @@ install_protocol_action() {
 # INSTALLATION WIZARDS
 # ==============================================================================
 
+protocol_ensure_active() {
+    local proto="$1"
+    local def_port="$(protocol_default_port "$proto")"
+    case "$proto" in
+        ssh) systemctl restart ssh sshd 2>/dev/null || true ;;
+        openvpn) systemctl restart openvpn openvpn@server openvpn@server-tcp 2>/dev/null || true ;;
+        ocserv) systemctl restart ocserv 2>/dev/null || true ;;
+        ikev2) systemctl restart strongswan-starter strongswan ipsec 2>/dev/null || true ;;
+        sstp)
+            if [ -f /etc/systemd/system/sstpd.service ]; then
+                systemctl daemon-reload
+                systemctl restart sstpd 2>/dev/null || true
+            else
+                install_protocol_action "sstp" "${def_port}"
+            fi
+            ;;
+        pptp) systemctl restart pptpd 2>/dev/null || true ;;
+        l2tp) systemctl restart strongswan-starter strongswan xl2tpd 2>/dev/null || true ;;
+        wireguard) systemctl restart wg-quick@wg0 2>/dev/null || true ;;
+        amneziawg)
+            if [ -f /etc/amnezia/amneziawg/awg0.conf ]; then
+                systemctl restart awg-quick@awg0 2>/dev/null || true
+            else
+                install_protocol_action "amneziawg" "${def_port}"
+            fi
+            ;;
+        http) systemctl restart mhpanel-http-proxy 2>/dev/null || true ;;
+        socks) systemctl restart mhpanel-socks-proxy 2>/dev/null || true ;;
+        shadowsocks) systemctl restart mhpanel-shadowsocks 2>/dev/null || true ;;
+        tuic) systemctl restart mhpanel-tuic 2>/dev/null || true ;;
+        mtproto) systemctl restart mhpanel-mtproto@4433 2>/dev/null || true ;;
+        badvpn)
+            if [ -f /etc/systemd/system/badvpn.service ]; then
+                systemctl restart badvpn 2>/dev/null || true
+            else
+                install_badvpn
+            fi
+            ;;
+        dnstt) systemctl restart mhpanel-dnstt 2>/dev/null || true ;;
+        vaydns) systemctl restart mhpanel-vaydns 2>/dev/null || true ;;
+        slipstream) systemctl restart mhpanel-slipstream 2>/dev/null || true ;;
+        hysteria2) systemctl restart mhpanel-hysteria2 2>/dev/null || true ;;
+        trojan) systemctl restart mhpanel-trojan 2>/dev/null || true ;;
+        naiveproxy) systemctl restart mhpanel-naiveproxy 2>/dev/null || true ;;
+        stuntls) systemctl restart mhpanel-stuntls 2>/dev/null || true ;;
+        noizdns) systemctl restart mhpanel-noizdns 2>/dev/null || true ;;
+        masterdnsvpn) systemctl restart mhpanel-masterdnsvpn 2>/dev/null || true ;;
+        tor) systemctl restart mhpanel-tor 2>/dev/null || true ;;
+        singbox)
+            if [ -f /etc/sing-box/config.json ] && [ -s /etc/sing-box/config.json ]; then
+                systemctl restart mhpanel-singbox 2>/dev/null || true
+            else
+                install_protocol_action "singbox" "${def_port}"
+            fi
+            ;;
+        google_script) systemctl restart mhpanel-gas-tunnel 2>/dev/null || true ;;
+    esac
+}
+
 wizard_full_automated() {
     show_banner
     echo -e "${WHITE}${BOLD}=== Full Automated Setup (All Packages & Services) ===${NC}"
@@ -1654,7 +1711,8 @@ wizard_full_automated() {
         local def_port="$(protocol_default_port "$proto")"
         local lbl="$(protocol_label "$proto")"
         if protocol_is_installed "$proto"; then
-            echo -e "    ${GREEN}[✓] ${lbl}${NC} is already installed (Skipped to preserve settings)."
+            echo -e "    ${GREEN}[✓] ${lbl}${NC} is already installed (Preserving settings & ensuring service is active)."
+            protocol_ensure_active "$proto"
         else
             install_protocol_action "$proto" "$def_port"
         fi
@@ -3147,9 +3205,9 @@ EOF
                 "$HELPER" uninstall "$p" 2>/dev/null || true
             done
         fi
-        systemctl stop mhpanel-* badvpn sstpd ocserv xl2tpd pptpd 2>/dev/null || true
-        systemctl disable mhpanel-* badvpn sstpd ocserv xl2tpd pptpd 2>/dev/null || true
-        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service
+        systemctl stop mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter ipsec openvpn openvpn@* wg-quick@* awg-quick@* 2>/dev/null || true
+        systemctl disable mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter openvpn wg-quick@* awg-quick@* 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service /etc/systemd/system/sstpd.service /etc/systemd/system/awg-quick@*.service
         systemctl daemon-reload
     else
         echo -e "${GREEN}>>> [2/5] Keeping VPN protocols intact as requested.${NC}"
@@ -3160,7 +3218,7 @@ EOF
 
     if [[ "$purge_conf" =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}>>> [4/5] Purging configuration directories and logs...${NC}"
-        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups 2>/dev/null || true
+        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups /etc/sing-box /etc/amnezia /etc/accel-ppp.conf /etc/ppp/options.sstpd /etc/pptpd.conf /etc/xl2tpd /etc/ocserv /etc/tor/torrc 2>/dev/null || true
     else
         echo -e "${GREEN}>>> [4/5] Preserving /etc/vpnpanel configurations for future reinstallation.${NC}"
     fi

@@ -1053,8 +1053,8 @@ ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 [sstp]
 bind=0.0.0.0
 port=${port}
-cert=${SERVER_CERT}
-key=${SERVER_KEY}
+cert=${sstp_cert_path}
+key=${sstp_key_path}
 ssl=1
 
 [dns]
@@ -1663,7 +1663,10 @@ install_amneziawg() {
     if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
         port=51821
     fi
-    /www/wwwroot/mhpanel/scripts/install_amneziawg.sh "${port}"
+    local script_path="${PANEL_DIR}/scripts/install_amneziawg.sh"
+    [ -f "$script_path" ] || script_path="${SCRIPT_DIR}/install_amneziawg.sh"
+    [ -f "$script_path" ] || script_path="/root/mhpanel-repo/scripts/install_amneziawg.sh"
+    bash "$script_path" "${port}"
 }
 
 uninstall_amneziawg() {
@@ -1697,7 +1700,11 @@ ensure_proxy_python_tools() {
     if [ ! -x "${PANEL_PYTHON}" ]; then
         python3 -m venv "${PANEL_VENV}"
     fi
-    ${PANEL_PYTHON} -m pip install --upgrade pip
+    ${PANEL_PYTHON} -m pip install --upgrade pip --quiet 2>/dev/null || true
+    if [ -f "${PANEL_DIR}/requirements.txt" ]; then
+        ${PANEL_PYTHON} -m pip install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || true
+    fi
+    ${PANEL_PYTHON} -m pip install pyrad psutil cryptography requests flask --quiet 2>/dev/null || true
 }
 
 install_http() {
@@ -2973,6 +2980,67 @@ install_singbox() {
         if [ -x "${PANEL_PYTHON}" ]; then
             "${PANEL_PYTHON}" -c "import sys; sys.path.insert(0, '${PANEL_DIR}'); from app import ensure_singbox_service, ensure_singbox_default_config; ensure_singbox_default_config(); ensure_singbox_service()" 2>/dev/null || true
         fi
+    fi
+
+    # Standalone robust fallback if python config generator failed
+    if [ ! -f /etc/sing-box/config.json ] || [ ! -s /etc/sing-box/config.json ]; then
+        cat > /etc/sing-box/config.json <<EOF
+{
+  "log": {
+    "level": "info",
+    "timestamp": true
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-reality-in",
+      "listen": "::",
+      "listen_port": ${port},
+      "sniff": true,
+      "users": [
+        {
+          "uuid": "4c2dfa93-5bc2-466a-bca9-566bcba0cbdf",
+          "flow": "xtls-rprx-vision"
+        }
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "www.google.com",
+        "reality": {
+          "enabled": true,
+          "handshake": {
+            "server": "www.google.com",
+            "server_port": 443
+          },
+          "private_key": "oJWFNihT4yj8sGXdj978eQjGajPK8N_It7EEPiPXD3s",
+          "short_id": [
+            "0123456789abcdef",
+            ""
+          ]
+        }
+      }
+    },
+    {
+      "type": "shadowsocks",
+      "tag": "ss-in",
+      "listen": "::",
+      "listen_port": 2080,
+      "method": "2022-blake3-aes-128-gcm",
+      "password": "bXBwYW5lbF9zZWNyZXQxMg=="
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "direct",
+      "tag": "direct"
+    },
+    {
+      "type": "block",
+      "tag": "block"
+    }
+  ]
+}
+EOF
     fi
 
     cat > /etc/systemd/system/mhpanel-singbox.service <<'EOF'

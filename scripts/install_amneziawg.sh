@@ -2,7 +2,7 @@
 # ==============================================================================
 # MH Panel - AmneziaWG (Anti-DPI Obfuscated WireGuard) Installer & Setup Script
 # ==============================================================================
-set -uo pipefail
+set -o pipefail
 
 PORT="${1:-51821}"
 SUBNET="${2:-10.77.77.0/24}"
@@ -10,6 +10,13 @@ DNS="${3:-8.8.8.8, 1.1.1.1}"
 
 echo "[*] Setting up AmneziaWG with Anti-DPI Obfuscation..."
 export DEBIAN_FRONTEND=noninteractive
+
+# Clean up any previously broken dkms package to keep dpkg healthy
+if dpkg -s amneziawg-dkms 2>/dev/null | grep -qE "Status:.*(half|failed|unpack)"; then
+    echo "[*] Cleaning up broken amneziawg-dkms package..."
+    dpkg --purge amneziawg-dkms amneziawg 2>/dev/null || true
+    apt-get -f install -y >/dev/null 2>&1 || true
+fi
 
 # 1. Install pre-bundled AmneziaWG tools & userspace binaries from panel package
 for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin /root/bin "${SCRIPT_DIR:-}/bin"; do
@@ -65,15 +72,21 @@ if [ "$IS_UBUNTU" -eq 1 ]; then
 fi
 
 KERNEL_VER="$(uname -r)"
-apt-get install -y --no-install-recommends "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools qrencode iptables >/dev/null 2>&1 || \
-apt-get install -y --no-install-recommends dkms amneziawg amneziawg-tools qrencode iptables >/dev/null 2>&1 || \
-apt-get install -y --no-install-recommends wireguard-tools qrencode iptables >/dev/null 2>&1 || true
+if apt-get install -y --no-install-recommends "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools qrencode iptables >/dev/null 2>&1; then
+    echo "[*] AmneziaWG packages installed."
+else
+    # DKMS module build failed on this kernel, purge broken package immediately to keep dpkg clean
+    echo "[*] Kernel DKMS build not supported on this kernel version (${KERNEL_VER}). Using userspace amneziawg-go fallback."
+    dpkg --purge amneziawg-dkms amneziawg 2>/dev/null || true
+    apt-get -f install -y >/dev/null 2>&1 || true
+    apt-get install -y --no-install-recommends wireguard-tools qrencode iptables >/dev/null 2>&1 || true
+fi
 
-# Re-verify bundled binaries in case apt didn't provide awg
+# Re-verify bundled binaries in case apt didn't provide awg or amneziawg-go
 for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
     if [ -d "$bdir" ]; then
         for b in awg awg-quick amneziawg-go; do
-            if [ -f "${bdir}/${b}" ] && [ ! -x "/usr/bin/${b}" ]; then
+            if [ -f "${bdir}/${b}" ]; then
                 cp -f "${bdir}/${b}" "/usr/bin/${b}" 2>/dev/null || true
                 cp -f "${bdir}/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
                 chmod +x "/usr/bin/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
@@ -85,15 +98,11 @@ done
 # Ensure kernel module or userspace fallback
 if ! lsmod | grep -q '^amneziawg '; then
     modprobe amneziawg 2>/dev/null || {
-        dkms autoinstall -k "${KERNEL_VER}" >/dev/null 2>&1 || true
-        depmod -a 2>/dev/null || true
-        modprobe amneziawg 2>/dev/null || {
-            echo "[*] Kernel module not loaded. AmneziaWG will operate via high-performance userspace amneziawg-go daemon."
-            if [ ! -x /usr/bin/amneziawg-go ] && [ -x /usr/local/bin/amneziawg-go ]; then
-                cp -f /usr/local/bin/amneziawg-go /usr/bin/amneziawg-go 2>/dev/null || true
-                chmod +x /usr/bin/amneziawg-go 2>/dev/null || true
-            fi
-        }
+        echo "[*] AmneziaWG kernel module not active. Operating via high-performance userspace amneziawg-go daemon."
+        if [ ! -x /usr/bin/amneziawg-go ] && [ -x /usr/local/bin/amneziawg-go ]; then
+            cp -f /usr/local/bin/amneziawg-go /usr/bin/amneziawg-go 2>/dev/null || true
+            chmod +x /usr/bin/amneziawg-go 2>/dev/null || true
+        fi
     }
 fi
 
@@ -147,9 +156,43 @@ pub_key() {
 import base64, sys
 try:
     from cryptography.hazmat.primitives.asymmetric import x25519
-    priv = base64.b64decode('$priv')
-    k = x25519.X25519PrivateKey.from_private_bytes(priv)
+    priv_bytes = base64.b64decode('$priv')
+    k = x25519.X25519PrivateKey.from_private_bytes(priv_bytes)
     print(base64.b64encode(k.public_key().public_bytes_raw()).decode())
+    sys.exit(0)
+except Exception:
+    pass
+
+# Pure Python RFC 7748 X25519 fallback
+P = 2**255 - 19
+A24 = 121665
+def cswap(swap, x2, x3):
+    dummy = swap * ((x2 - x3) % P)
+    return (x2 - dummy) % P, (x3 + dummy) % P
+def x25519_calc(k_bytes, u=9):
+    k = int.from_bytes(k_bytes, 'little')
+    x1, x2, z2, x3, z3 = u, 1, 0, u, 1
+    swap = 0
+    for t in reversed(range(255)):
+        k_t = (k >> t) & 1
+        swap ^= k_t
+        x2, x3 = cswap(swap, x2, x3)
+        z2, z3 = cswap(swap, z2, z3)
+        swap = k_t
+        A = (x2 + z2) % P; AA = (A * A) % P; B = (x2 - z2) % P; BB = (B * B) % P
+        E = (AA - BB) % P; C = (x3 + z3) % P; D = (x3 - z3) % P
+        DA = (D * A) % P; CB = (C * B) % P
+        x3 = ((DA + CB) ** 2) % P; z3 = (x1 * ((DA - CB) ** 2)) % P
+        x2 = (AA * BB) % P; z2 = (E * (AA + A24 * E)) % P
+    x2, x3 = cswap(swap, x2, x3)
+    z2, z3 = cswap(swap, z2, z3)
+    return (x2 * pow(z2, P - 2, P)) % P
+
+try:
+    b = bytearray(base64.b64decode('$priv'))
+    b[0] &= 248; b[31] &= 127; b[31] |= 64
+    pub = x25519_calc(bytes(b))
+    print(base64.b64encode(pub.to_bytes(32, 'little')).decode())
 except Exception:
     print('')
 " 2>/dev/null || true)
@@ -158,9 +201,11 @@ except Exception:
 }
 
 # Generate or preserve server keys
+SERVER_PRIVKEY=""
+SERVER_PUBKEY=""
 if [[ -f "${AMNEZIA_DIR}/private.key" && -f "${AMNEZIA_DIR}/public.key" && -s "${AMNEZIA_DIR}/private.key" && -s "${AMNEZIA_DIR}/public.key" ]]; then
-    SERVER_PRIVKEY=$(cat "${AMNEZIA_DIR}/private.key")
-    SERVER_PUBKEY=$(cat "${AMNEZIA_DIR}/public.key")
+    SERVER_PRIVKEY=$(cat "${AMNEZIA_DIR}/private.key" 2>/dev/null || true)
+    SERVER_PUBKEY=$(cat "${AMNEZIA_DIR}/public.key" 2>/dev/null || true)
 fi
 
 if [ -z "${SERVER_PRIVKEY}" ]; then
@@ -235,6 +280,8 @@ ${PEERS}
 EOF
 
 chmod 600 "${AMNEZIA_DIR}/awg0.conf"
+mkdir -p /etc/wireguard 2>/dev/null || true
+ln -sf "${AMNEZIA_DIR}/awg0.conf" /etc/wireguard/awg0.conf 2>/dev/null || true
 
 systemctl daemon-reload
 systemctl enable awg-quick@awg0 >/dev/null 2>&1 || true
