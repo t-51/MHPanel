@@ -55,6 +55,179 @@
 </div>
 </div>
 </section>
+
+<!-- Terminal Commands Quick Guide Card -->
+<section style="margin-top: 24px;">
+    <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+        <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom: 0;">
+            <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
+                <i data-lucide="command" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                <span data-i18n="cli_commands_guide_title">راهنمای جامع دستورات ترمینال سرور (CLI Commands & Shortcuts)</span>
+            </h3>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('mhpanel', 'دستور mhpanel کپی شد')" style="font-size:12px; padding:6px 12px; display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    <span data-i18n="copy_mhpanel_cmd">کپی دستور mhpanel</span>
+                </button>
+            </div>
+        </div>
+        <p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.6;" data-i18n="cli_commands_guide_desc">
+            تمامی ابزارها، پروتکل‌ها، تانل‌ها و بخش‌های امنیتی پنل علاوه بر وب‌سایت، مستقیماً از طریق خط فرمان سرور (SSH یا وب‌ترمینال بالا) در دسترس هستند:
+        </p>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; margin-top:4px;">
+            <!-- Category 1: Navigation & Status -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                <div style="font-weight:700; font-size:13px; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px;"></i>
+                    <span data-i18n="cli_cat_nav">منو و وضعیت زنده</span>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:var(--color-emerald); font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_mhpanel">منوی تعاملی کامل ترمینال</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:var(--color-emerald); font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --help</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_help">راهنمای خط فرمان و سوییچ‌ها</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --help'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --help'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:var(--color-emerald); font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --status</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_status">گزارش سلامت سرویس‌ها و پورت‌ها</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --status'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --status'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:var(--color-emerald); font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --info</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_info">مشاهده مشخصات ورود و پورت پنل</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --info'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --info'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 2: Features & Camouflage -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                <div style="font-weight:700; font-size:13px; color:#ea580c; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="shield-check" style="width:16px; height:16px;"></i>
+                    <span data-i18n="cli_cat_features">امکانات، اعلان‌ها و استتار</span>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#ea580c; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --tg</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_tg">تنظیم ربات تلگرام و مدیریت اعلان‌ها</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --tg'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --tg'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#ea580c; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --wp</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_wp">استتار ترافیک پشت وردپرس (Nginx/Apache)</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --wp'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --wp'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#ea580c; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel --tunnels</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_tunnels">مدیریت و نصب ۱۳ باینری تانل معکوس</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel --tunnels'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel --tunnels'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#ea580c; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel update</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_update">آپدیت سریع پنل از گیت‌هاب</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel update'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel update'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category 3: Protocol Control -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:10px;">
+                <div style="font-weight:700; font-size:13px; color:#3b82f6; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="cpu" style="width:16px; height:16px;"></i>
+                    <span data-i18n="cli_cat_protocols">کنترل پروتکل‌ها و سرویس</span>
+                </div>
+                
+                <div style="display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#3b82f6; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel protocol install &lt;proto&gt;</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_proto_install">نصب مستقیم (singbox, awg, hysteria2...)</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel protocol install singbox'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel protocol install singbox'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#3b82f6; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel protocol status &lt;proto&gt;</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_proto_status">بررسی وضعیت و پورت فعال پروتکل</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel protocol status singbox'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel protocol status singbox'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#3b82f6; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel protocol uninstall &lt;proto&gt;</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_proto_uninstall">حذف و آزادسازی پورت پروتکل</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel protocol uninstall singbox'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel protocol uninstall singbox'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:8px 10px; border-radius:6px;">
+                        <div>
+                            <code style="color:#3b82f6; font-weight:700; font-family:'JetBrains Mono',monospace;">mhpanel restart</code>
+                            <div style="color:var(--text-muted); font-size:11px;" data-i18n="cli_cmd_restart">راه‌اندازی مجدد وب‌سرویس پنل</div>
+                        </div>
+                        <button class="btn btn-secondary" onclick="copyToClipboard('mhpanel restart'); if(document.getElementById('terminal-input')) { document.getElementById('terminal-input').value='mhpanel restart'; document.getElementById('terminal-input').focus(); }" style="padding:4px 8px; font-size:11px; min-height:unset;" title="کپی و درج در ترمینال">
+                            <i data-lucide="corner-down-left" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 <!-- Cloudflare WARP & TCP BBR Optimization Section -->
 <section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
 <!-- Cloudflare WARP Management Card -->

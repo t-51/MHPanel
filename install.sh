@@ -3133,6 +3133,60 @@ EOF
     exit 0
 }
 
+show_cli_commands_guide() {
+    clear 2>/dev/null || true
+    echo -e "${CYAN}${BOLD}"
+    cat <<'EOF'
+  __  __ _    _   _____                  _ 
+ |  \/  | |  | | |  __ \                | |
+ | \  / | |__| | | |__) |_ _ _ __   ___| |
+ | |\/| |  __  | |  ___/ _` | '_ \ / _ \ |
+ | |  | | |  | | | |  | (_| | | | |  __/ |
+ |_|  |_|_|  |_| |_|   \__,_|_| |_|\___|_|
+EOF
+    echo -e "${WHITE}${BOLD}   راهنمای جامع دستورات ترمینال و میانبرهای خط فرمان MH Panel${NC}"
+    echo -e "${DIM}   Quick Terminal Commands & CLI Shortcuts Reference Manual${NC}"
+    echo -e "${BLUE}========================================================================${NC}\n"
+
+    echo -e "${GREEN}${BOLD}1. دستورات منو و دسترسی سریع (Quick Navigation):${NC}"
+    echo -e "  ${CYAN}mhpanel${NC}                    باز کردن منوی تعاملی و مدیریت کامل پنل"
+    echo -e "  ${CYAN}mhpanel --help${NC} (یا ${CYAN}help${NC})   نمایش همین راهنمای کامل دستورات"
+    echo -e "  ${CYAN}mhpanel --status${NC}           مشاهده گزارش وضعیت زنده تمام سرویس‌ها، پورت‌ها و تانل‌ها"
+    echo -e "  ${CYAN}mhpanel --info${NC}             نمایش آدرس وب پنل، پورت و مشخصات ورود مدیر"
+    echo -e "  ${CYAN}mhpanel --tg${NC}               ورود مستقیم به مدیریت ربات تلگرام و اعلان‌ها"
+    echo -e "  ${CYAN}mhpanel --wp${NC}               ورود مستقیم به هماهنگی با آپاچی/انجین‌یکس و استتار وردپرس"
+    echo -e "  ${CYAN}mhpanel --tunnels${NC}          ورود مستقیم به مرکز ابزارها و تانل‌های اسکریپتی"
+    echo ""
+
+    echo -e "${YELLOW}${BOLD}2. دستورات مدیریت امنیت و مشخصات دسترسی (Security & Credentials):${NC}"
+    echo -e "  ${CYAN}mhpanel --user <نام_جدید>${NC}       تغییر مستقیم نام کاربری مدیر"
+    echo -e "  ${CYAN}mhpanel --pass <رمز_جدید>${NC}       تغییر مستقیم رمز عبور مدیر"
+    echo -e "  ${CYAN}mhpanel --port <شماره_پورت>${NC}     تغییر پورت پنل مدیریت وب (پیش‌فرض: 9090)"
+    echo -e "  ${CYAN}mhpanel --path <مسیر_امن>${NC}      تغییر مسیر امن دسترسی پنل (مثلاً secret_panel)"
+    echo -e "  ${CYAN}mhpanel --address <ip> <port>${NC}  تغییر آدرس IP و پورت اتصال پنل"
+    echo ""
+
+    echo -e "${MAGENTA}${BOLD}3. دستورات خط فرمان مدیریت مستقیم پروتکل‌ها (Protocol Control):${NC}"
+    echo -e "  ${CYAN}mhpanel protocol status <نام>${NC}         مشاهده وضعیت پروتکل (active / inactive)"
+    echo -e "  ${CYAN}mhpanel protocol install <نام> [پورت]${NC}  نصب و راه‌اندازی مستقیم پروتکل"
+    echo -e "  ${CYAN}mhpanel protocol uninstall <نام>${NC}       حذف و توقف کامل پروتکل"
+    echo -e "  ${CYAN}mhpanel protocol set-port <نام> <پورت>${NC} تغییر پورت شنود پروتکل"
+    echo -e "  ${CYAN}mhpanel protocol logs <نام>${NC}           مشاهده لاگ‌های زنده با journalctl"
+    echo -e "  ${DIM}نام‌های معتبر: singbox, google_script, amneziawg, ssh, openvpn, ocserv, hysteria2, trojan, etc.${NC}"
+    echo ""
+
+    echo -e "${WHITE}${BOLD}4. دستورات مدیریت سرویس و بروزرسانی (Service Control & Maintenance):${NC}"
+    echo -e "  ${CYAN}mhpanel restart${NC}            راه‌اندازی مجدد سرویس پنل"
+    echo -e "  ${CYAN}mhpanel update${NC}             بروزرسانی مستقیم پنل از گیت‌هاب"
+    echo -e "  ${CYAN}mhpanel start / stop${NC}       روشن یا خاموش کردن سرویس پنل"
+    echo -e "  ${CYAN}mhpanel --auto${NC}             نصب خودکار تمام پیش‌نیازها و پروتکل‌های بدون کانفلیکت"
+    echo -e "  ${CYAN}mhpanel --step${NC}             نصب گام‌به‌گام و سفارشی با انتخاب کاربر"
+    echo -e "  ${CYAN}mhpanel --ui${NC}               نصب فوق سبک فقط وب پنل (مناسب سرور کلاینت/ایران)"
+    echo -e "  ${CYAN}mhpanel --uninstall${NC}        حذف کامل پنل، سرویس‌ها و پاکسازی سرور"
+    echo ""
+    echo -e "${BLUE}========================================================================${NC}"
+}
+
 # ==============================================================================
 # MAIN MENU CONTROLLER
 # ==============================================================================
@@ -3167,11 +3221,12 @@ main_menu() {
         echo -e "  [13] SSL Certificate Management (Let's Encrypt & IP SAN)"
         echo -e "  [14] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
         echo -e "  [15] Backup & Restore Panel Configurations"
-        echo -e "  [16] Update Script & Panel"
-        echo -e "  ${RED}${BOLD}[17] Uninstall MH Panel from Server${NC}"
+        echo -e "  ${GREEN}${BOLD}[16] Quick Terminal Commands Guide & Shortcuts (راهنمای جامع دستورات ترمینال و میانبرها)${NC}"
+        echo -e "  [17] Update Script & Panel"
+        echo -e "  ${RED}${BOLD}[18] Uninstall MH Panel from Server${NC}"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
-        read -p "Please select an option [0-17]: " opt
+        read -p "Please select an option [0-18]: " opt
 
         case "$opt" in
             1) wizard_full_automated ;;
@@ -3189,8 +3244,9 @@ main_menu() {
             13) menu_ssl_management ;;
             14) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
             15) backup_restore ;;
-            16) update_panel_repo ;;
-            17) uninstall_mhpanel ;;
+            16) show_cli_commands_guide; read -p "Press Enter to continue..." ;;
+            17) update_panel_repo ;;
+            18) uninstall_mhpanel ;;
             0)
                 echo -e "\n${GREEN}Exiting MH Panel CLI. Have a great day!${NC}"
                 echo -e "Reminder: You can return to this menu at any time by typing ${CYAN}mhpanel${NC}\n"
@@ -3215,6 +3271,16 @@ elif [ "$1" = "--status" ]; then
     menu_diagnostic_status
 elif [ "$1" = "--info" ] || [ "$1" = "info" ] || [ "$1" = "--access" ]; then
     show_panel_access_info
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] || [ "$1" = "--commands" ] || [ "$1" = "commands" ] || [ "$1" = "دستورات" ]; then
+    show_cli_commands_guide
+    exit 0
+elif [ "$1" = "protocol" ] || [ "$1" = "--protocol" ] || [ "$1" = "-p" ]; then
+    shift
+    if [ -x "$HELPER" ]; then
+        exec "$HELPER" "$@"
+    else
+        exec "${PANEL_DIR}/scripts/protocol_helper.sh" "$@"
+    fi
 elif [ "$1" = "--user" ] || [ "$1" = "user" ] || [ "$1" = "--username" ]; then
     change_admin_username "$2"
 elif [ "$1" = "--pass" ] || [ "$1" = "pass" ] || [ "$1" = "--password" ]; then
@@ -3235,6 +3301,17 @@ elif [ "$1" = "--tunnels" ] || [ "$1" = "tunnels" ]; then
     menu_tunnel_tools
 elif [ "$1" = "--uninstall" ] || [ "$1" = "uninstall" ] || [ "$1" = "-u" ]; then
     uninstall_mhpanel "$2" "$3"
+elif [ "$1" = "restart" ] || [ "$1" = "--restart" ]; then
+    systemctl restart mhpanel
+    echo -e "${GREEN}MH Panel service restarted successfully.${NC}"
+elif [ "$1" = "start" ] || [ "$1" = "--start" ]; then
+    systemctl start mhpanel
+    echo -e "${GREEN}MH Panel service started.${NC}"
+elif [ "$1" = "stop" ] || [ "$1" = "--stop" ]; then
+    systemctl stop mhpanel
+    echo -e "${YELLOW}MH Panel service stopped.${NC}"
+elif [ "$1" = "update" ] || [ "$1" = "--update" ]; then
+    update_panel_repo
 else
     if [ ! -f "${PANEL_DIR}/app.py" ] && [ ! -f "/etc/systemd/system/mhpanel.service" ]; then
         show_banner
