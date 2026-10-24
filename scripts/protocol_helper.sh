@@ -1221,21 +1221,16 @@ EOF
 EOF
 
     # systemd service
-    cat > /etc/systemd/system/mhpanel-pptp.service <<EOF
+    cat > /etc/systemd/system/pptpd.service <<EOF
 [Unit]
-Description=MHPanel PPTP VPN Server (Port ${port})
+Description=PoPToP Point to Point Tunneling Server (PPTP)
 After=network.target
-Wants=network.target
 
 [Service]
-Type=forking
-ExecStartPre=/usr/sbin/pptpd --check
-ExecStart=/usr/sbin/pptpd --fg --conf /etc/pptpd.conf
-ExecReload=/bin/kill -HUP \$MAINPID
-KillMode=process
-Restart=on-failure
+Type=simple
+ExecStart=/usr/sbin/pptpd --fg -c /etc/pptpd.conf
+Restart=always
 RestartSec=3
-PIDFile=/var/run/pptpd.pid
 
 [Install]
 WantedBy=multi-user.target
@@ -1249,9 +1244,10 @@ EOF
         mkdir -p /etc/iptables
         iptables-save > /etc/iptables/rules.v4
     fi
+    rm -f /etc/systemd/system/mhpanel-pptp.service
     systemctl daemon-reload
-    systemctl enable mhpanel-pptp
-    systemctl restart mhpanel-pptp
+    systemctl enable pptpd
+    systemctl restart pptpd
 
     # Install Global PPP Logging Scripts (covers PPTP, L2TP, SSTP)
     cat > /etc/ppp/ip-up.d/mhpanel-logging <<'EOF'
@@ -1300,11 +1296,11 @@ EOF
 }
 
 uninstall_pptp() {
-    systemctl stop mhpanel-pptp || true
-    systemctl disable mhpanel-pptp || true
-    local port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
+    systemctl stop pptpd mhpanel-pptp || true
+    systemctl disable pptpd mhpanel-pptp || true
+    local port=$(grep -oE 'Port [0-9]+' /etc/systemd/system/mhpanel-pptp.service /etc/systemd/system/pptpd.service 2>/dev/null | awk '{print $2}' | head -n1 || echo "1723")
     deny_port "${port}" "tcp"
-    rm -f /etc/pptpd.conf /etc/ppp/options.pptpd /etc/pam.d/pptpd /etc/systemd/system/mhpanel-pptp.service
+    rm -f /etc/pptpd.conf /etc/ppp/options.pptpd /etc/pam.d/pptpd /etc/systemd/system/mhpanel-pptp.service /etc/systemd/system/pptpd.service
     systemctl daemon-reload
 }
 
