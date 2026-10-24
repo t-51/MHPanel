@@ -54,6 +54,44 @@ get_public_ipv4() {
     hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1"
 }
 
+get_server_ip() {
+    get_public_ipv4 "$@"
+}
+
+ensure_apt_noninteractive() {
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    export NEEDRESTART_SUSPEND=1
+    export UCF_FORCE_CONFFOLD=1
+    if [ ! -f /etc/apt/apt.conf.d/99mhpanel-noninteractive ]; then
+        mkdir -p /etc/apt/apt.conf.d 2>/dev/null || true
+        cat > /etc/apt/apt.conf.d/99mhpanel-noninteractive <<'EOF'
+Dpkg::Options {
+   "--force-confdef";
+   "--force-confold";
+};
+DPkg::Lock::Timeout "60";
+EOF
+    fi
+}
+ensure_apt_noninteractive 2>/dev/null || true
+
+run_apt() {
+    ensure_apt_noninteractive 2>/dev/null || true
+    local count=0
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+        sleep 2
+        count=$((count + 1))
+        if [ "$count" -ge 15 ]; then
+            fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+            rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+            dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+            break
+        fi
+    done
+    apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+}
+
 # Helper: UFW Port Management
 allow_port() {
     local port=$1
@@ -284,7 +322,7 @@ install_ssh() {
         exit 1
     fi
 
-    apt-get update -y && apt-get install -y openssh-server libpam-radius-auth
+    run_apt update && run_apt install openssh-server libpam-radius-auth
 
     # Copy sshd binary — PAM uses the binary name to pick the right PAM file.
     # /usr/sbin/sshd-vpn  →  /etc/pam.d/sshd-vpn
@@ -435,7 +473,7 @@ install_openvpn() {
     local dns1=$(get_setting "openvpn_dns1" "8.8.8.8")
     local dns2=$(get_setting "openvpn_dns2" "8.8.4.4")
 
-    apt-get update -y && apt-get install -y openvpn libpam-radius-auth
+    run_apt update && run_apt install openvpn libpam-radius-auth
     generate_certs
 
     if [ ! -f /etc/openvpn/tls-crypt.key ]; then
@@ -530,7 +568,7 @@ install_ocserv() {
     local dns1=$(get_setting "ocserv_dns1" "8.8.8.8")
     local dns2=$(get_setting "ocserv_dns2" "8.8.4.4")
 
-    apt-get update -y && apt-get install -y ocserv libradcli4
+    run_apt update && run_apt install ocserv libradcli4
     generate_certs
 
     # Ensure ocserv system user and directory exist
@@ -601,8 +639,8 @@ install_ikev2() {
     local dns2=$(get_setting "ikev2_dns2" "8.8.4.4")
 
     export DEBIAN_FRONTEND=noninteractive
-    apt-get update -y >/dev/null 2>&1 || true
-    apt-get install -y strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins strongswan-swanctl >/dev/null 2>&1 || true
+    run_apt update >/dev/null 2>&1 || true
+    run_apt install strongswan strongswan-pki libcharon-extra-plugins libstrongswan-extra-plugins strongswan-swanctl >/dev/null 2>&1 || true
     generate_certs
     
     local server_ip=$(get_server_ip)
@@ -938,19 +976,20 @@ EOF
     fi
 
     # Fallback to accel-ppp if sstpd could not be installed
-    if ! apt-get install -y accel-ppp; then
-        echo "accel-ppp package not found in repositories. Compiling from source..."
-        apt-get install -y build-essential cmake gcc git libpcre2-dev libssl-dev liblua5.1-0-dev linux-headers-$(uname -r) >/dev/null 2>&1 || true
-        rm -rf /usr/src/accel-ppp
-        git clone https://github.com/accel-ppp/accel-ppp.git /usr/src/accel-ppp >/dev/null 2>&1 || true
-        mkdir -p /usr/src/accel-ppp/build
-        cd /usr/src/accel-ppp/build 2>/dev/null || true
-        cmake -DBUILD_IPOE_DRIVER=FALSE -DBUILD_VLAN_MON_DRIVER=FALSE -DCMAKE_INSTALL_PREFIX=/usr -DKDIR=/usr/src/linux-headers-$(uname -r) -DLUA=TRUE .. >/dev/null 2>&1 || true
-        make -j$(nproc) >/dev/null 2>&1 || true
-        cpack -G DEB >/dev/null 2>&1 || true
-        dpkg -i accel-ppp*.deb 2>/dev/null || apt-get install -f -y >/dev/null 2>&1 || true
-        cd - >/dev/null 2>&1 || true
-        rm -rf /usr/src/accel-ppp
+    if ! command -v accel-pppd >/dev/null 2>&1 && [ ! -x /usr/sbin/accel-pppd ]; then
+        if ! run_apt install accel-ppp; then
+            echo "accel-ppp package not found in repositories. Compiling from source..."
+            run_apt install build-essential cmake gcc git libpcre2-dev libssl-dev liblua5.1-0-dev linux-headers-$(uname -r) >/dev/null 2>&1 || true
+            rm -rf /usr/src/accel-ppp
+            git clone --depth 1 https://github.com/accel-ppp/accel-ppp.git /usr/src/accel-ppp >/dev/null 2>&1 || true
+            mkdir -p /usr/src/accel-ppp/build
+            cd /usr/src/accel-ppp/build 2>/dev/null || true
+            cmake -DBUILD_IPOE_DRIVER=FALSE -DBUILD_VLAN_MON_DRIVER=FALSE -DCMAKE_INSTALL_PREFIX=/usr -DLUA=TRUE .. >/dev/null 2>&1 || true
+            make -j$(nproc) >/dev/null 2>&1 || true
+            make install >/dev/null 2>&1 || true
+            cd - >/dev/null 2>&1 || true
+            rm -rf /usr/src/accel-ppp
+        fi
     fi
 
     local auth_line="mschap-v2"
@@ -1123,8 +1162,8 @@ install_pptp() {
     local remotestart="${subnet%.*}.10"
     local remoteend="${subnet%.*}.254"
 
-    apt-get update -y >/dev/null 2>&1
-    apt-get install -y pptpd ppp libpam-radius-auth >/dev/null 2>&1 || true
+    run_apt update >/dev/null 2>&1 || true
+    run_apt install pptpd ppp libpam-radius-auth >/dev/null 2>&1 || true
 
     if [ -f /etc/pam_radius_auth.conf ]; then
         sed -i -E 's/\s+vrf=[^\s]+//g' /etc/pam_radius_auth.conf 2>/dev/null || true
@@ -1565,7 +1604,7 @@ install_wireguard() {
     local port=${1:-51820}
     local subnet=$(get_setting "wireguard_subnet" "10.13.0.0")
     
-    apt-get update -y && apt-get install -y wireguard wireguard-tools qrencode
+    run_apt update && run_apt install wireguard wireguard-tools qrencode
     
     mkdir -p /etc/wireguard
     chmod 700 /etc/wireguard
@@ -1654,7 +1693,7 @@ set_port_amneziawg() {
 
 # ----------------- HTTP / SOCKS / SHADOWSOCKS / MTPROTO PROXIES -----------------
 ensure_proxy_python_tools() {
-    apt-get update -y && apt-get install -y python3 python3-venv python3-pip openssl
+    run_apt update && run_apt install python3 python3-venv python3-pip openssl
     if [ ! -x "${PANEL_PYTHON}" ]; then
         python3 -m venv "${PANEL_VENV}"
     fi
@@ -2818,8 +2857,8 @@ install_tor() {
     export DEBIAN_FRONTEND=noninteractive
 
     rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
-    apt-get update -y >/dev/null 2>&1 || true
-    apt-get install -y tor tor-geoipdb obfs4proxy >/dev/null 2>&1 || apt-get install -y tor tor-geoipdb lyrebird >/dev/null 2>&1 || true
+    run_apt update >/dev/null 2>&1 || true
+    run_apt install tor tor-geoipdb obfs4proxy >/dev/null 2>&1 || run_apt install tor tor-geoipdb lyrebird >/dev/null 2>&1 || true
 
     # Stop default distro tor service to prevent conflict on port 9050
     systemctl stop tor tor@default 2>/dev/null || true
@@ -2828,10 +2867,25 @@ install_tor() {
     local obfs_bin="$(command -v obfs4proxy || command -v lyrebird || echo '/usr/bin/obfs4proxy')"
     local tor_bin="$(command -v tor || echo '/usr/bin/tor')"
 
+    local tor_ver=$(${tor_bin} --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1 || echo "0.4.0")
+    local major=$(echo "$tor_ver" | cut -d. -f1)
+    local minor=$(echo "$tor_ver" | cut -d. -f2)
+    local patch=$(echo "$tor_ver" | cut -d. -f3)
+
     mkdir -p /etc/tor /etc/vpnpanel /var/lib/tor
     chown -R debian-tor:debian-tor /var/lib/tor 2>/dev/null || true
     chmod 700 /var/lib/tor 2>/dev/null || true
-    cat > /etc/tor/torrc <<EOF
+
+    # Tor consensus requires Tor >= 0.4.7 for public relays/bridges
+    if [ "${major:-0}" -eq 0 ] && [ "${minor:-0}" -le 4 ] && [ "${patch:-0}" -lt 7 ]; then
+        cat > /etc/tor/torrc <<EOF
+SocksPort 127.0.0.1:9050
+RunAsDaemon 0
+PublishServerDescriptor 0
+DataDirectory /var/lib/tor
+EOF
+    else
+        cat > /etc/tor/torrc <<EOF
 SocksPort 127.0.0.1:9050
 RunAsDaemon 0
 ORPort ${or_port}
@@ -2843,6 +2897,7 @@ ContactInfo admin@kigaping.com
 Nickname MHPanelBridge
 DataDirectory /var/lib/tor
 EOF
+    fi
 
     cat > /etc/systemd/system/mhpanel-tor.service <<EOF
 [Unit]
@@ -2914,9 +2969,9 @@ install_singbox() {
     fi
 
     mkdir -p /etc/sing-box
-    if [ ! -f /etc/sing-box/config.json ]; then
-        if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
-            /www/wwwroot/mhpanel/venv/bin/python -c "import sys; sys.path.insert(0, '/www/wwwroot/mhpanel'); from app import ensure_singbox_service, build_default_singbox_full_suite, save_singbox_config; ensure_singbox_service(); cfg = build_default_singbox_full_suite(); save_singbox_config(cfg)" 2>/dev/null || true
+    if [ ! -f /etc/sing-box/config.json ] || [ ! -s /etc/sing-box/config.json ]; then
+        if [ -x "${PANEL_PYTHON}" ]; then
+            "${PANEL_PYTHON}" -c "import sys; sys.path.insert(0, '${PANEL_DIR}'); from app import ensure_singbox_service, ensure_singbox_default_config; ensure_singbox_default_config(); ensure_singbox_service()" 2>/dev/null || true
         fi
     fi
 
@@ -3185,7 +3240,7 @@ print_status_report() {
 
     # 2. Protocols Status
     echo -e "VPN Protocols Status:"
-    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "badvpn" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor")
+    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "badvpn" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor" "singbox" "google_script")
     for proto in "${protocols[@]}"; do
         local inst="No"
         local act="Inactive"
@@ -3453,6 +3508,26 @@ print_status_report() {
                     if systemctl is-active mhpanel-tor >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "tor" "$port")
+                    fi
+                fi
+                ;;
+            singbox)
+                if ([ -x /usr/local/bin/sing-box ] && [ -f "/etc/sing-box/config.json" ]) || [ -f "/etc/systemd/system/mhpanel-singbox.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/sing-box/config.json 2>/dev/null | head -n1 | awk '{print $2}' || echo "20443")
+                    if [ "$(service_status mhpanel-singbox sing-box)" = "active" ]; then
+                        act="Active"
+                        conn=$(get_connections_count "singbox" "$port")
+                    fi
+                fi
+                ;;
+            google_script)
+                if ([ -f "/etc/vpnpanel/google_script.json" ] && [ -x /usr/local/bin/mhpanel-gas-server ]) || [ -f "/etc/systemd/system/mhpanel-gas-tunnel.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/google_script.json 2>/dev/null | awk '{print $2}' || echo "8448")
+                    if [ "$(service_status mhpanel-gas-tunnel)" = "active" ]; then
+                        act="Active"
+                        conn=$(get_connections_count "google_script" "$port")
                     fi
                 fi
                 ;;

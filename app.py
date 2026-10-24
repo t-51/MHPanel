@@ -19941,6 +19941,16 @@ def ensure_singbox_default_config():
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         except Exception: pass
 
+def save_singbox_config(cfg, restart=True):
+    os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+    if restart:
+        try:
+            subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+        except Exception:
+            pass
+
 def validate_singbox_config(cfg_obj):
     tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
     try:

@@ -120,23 +120,30 @@ SERVER_IP_BASE="${SUBNET%.*}.1"
 
 # Key generation helper
 gen_key() {
+    local k=""
     if command -v awg >/dev/null 2>&1; then
-        awg genkey
-    elif command -v wg >/dev/null 2>&1; then
-        wg genkey
-    else
-        python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
+        k=$(awg genkey 2>/dev/null || true)
     fi
+    if [ -z "$k" ] && command -v wg >/dev/null 2>&1; then
+        k=$(wg genkey 2>/dev/null || true)
+    fi
+    if [ -z "$k" ]; then
+        k=$(python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())" 2>/dev/null || true)
+    fi
+    echo "$k"
 }
 
 pub_key() {
     local priv="$1"
+    local p=""
     if command -v awg >/dev/null 2>&1; then
-        echo "$priv" | awg pubkey
-    elif command -v wg >/dev/null 2>&1; then
-        echo "$priv" | wg pubkey
-    else
-        python3 -c "
+        p=$(echo "$priv" | awg pubkey 2>/dev/null || true)
+    fi
+    if [ -z "$p" ] && command -v wg >/dev/null 2>&1; then
+        p=$(echo "$priv" | wg pubkey 2>/dev/null || true)
+    fi
+    if [ -z "$p" ]; then
+        p=$(python3 -c "
 import base64, sys
 try:
     from cryptography.hazmat.primitives.asymmetric import x25519
@@ -145,15 +152,18 @@ try:
     print(base64.b64encode(k.public_key().public_bytes_raw()).decode())
 except Exception:
     print('')
-"
+" 2>/dev/null || true)
     fi
+    echo "$p"
 }
 
 # Generate or preserve server keys
-if [[ -f "${AMNEZIA_DIR}/private.key" && -f "${AMNEZIA_DIR}/public.key" && -s "${AMNEZIA_DIR}/private.key" ]]; then
+if [[ -f "${AMNEZIA_DIR}/private.key" && -f "${AMNEZIA_DIR}/public.key" && -s "${AMNEZIA_DIR}/private.key" && -s "${AMNEZIA_DIR}/public.key" ]]; then
     SERVER_PRIVKEY=$(cat "${AMNEZIA_DIR}/private.key")
     SERVER_PUBKEY=$(cat "${AMNEZIA_DIR}/public.key")
-else
+fi
+
+if [ -z "${SERVER_PRIVKEY}" ]; then
     SERVER_PRIVKEY=$(gen_key)
     SERVER_PUBKEY=$(pub_key "${SERVER_PRIVKEY}")
     echo "${SERVER_PRIVKEY}" > "${AMNEZIA_DIR}/private.key"

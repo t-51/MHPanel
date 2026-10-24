@@ -12,6 +12,41 @@
 export DEBIAN_FRONTEND=noninteractive
 export NEEDRESTART_MODE=a
 export NEEDRESTART_SUSPEND=1
+export UCF_FORCE_CONFFOLD=1
+
+ensure_apt_noninteractive() {
+    export DEBIAN_FRONTEND=noninteractive
+    export NEEDRESTART_MODE=a
+    export NEEDRESTART_SUSPEND=1
+    export UCF_FORCE_CONFFOLD=1
+    if [ ! -f /etc/apt/apt.conf.d/99mhpanel-noninteractive ]; then
+        mkdir -p /etc/apt/apt.conf.d 2>/dev/null || true
+        cat > /etc/apt/apt.conf.d/99mhpanel-noninteractive <<'EOF'
+Dpkg::Options {
+   "--force-confdef";
+   "--force-confold";
+};
+DPkg::Lock::Timeout "60";
+EOF
+    fi
+}
+ensure_apt_noninteractive 2>/dev/null || true
+
+run_apt() {
+    ensure_apt_noninteractive 2>/dev/null || true
+    local count=0
+    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+        sleep 2
+        count=$((count + 1))
+        if [ "$count" -ge 15 ]; then
+            fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+            rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+            dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+            break
+        fi
+    done
+    apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+}
 
 GITHUB_REPO="https://github.com/t-51/MHPanel.git"
 
@@ -522,17 +557,11 @@ EOF
         echo -e "    ${GREEN}[✓] All base Linux dependencies are already installed (Skipped).${NC}"
     else
         echo -e "    Installing missing packages: ${CYAN}${pkgs_needed[*]}${NC}..."
-        apt-get update -y 2>/dev/null || true
-        if ! apt-get install -y --no-install-recommends \
-            -o Dpkg::Options::="--force-confdef" \
-            -o Dpkg::Options::="--force-confold" \
-            "${pkgs_needed[@]}" 2>/dev/null; then
+        run_apt update 2>/dev/null || true
+        if ! run_apt install --no-install-recommends "${pkgs_needed[@]}" 2>/dev/null; then
             echo -e "    ${YELLOW}Batch package installation encountered issues; installing required packages individually...${NC}"
             for pkg in "${pkgs_needed[@]}"; do
-                apt-get install -y --no-install-recommends \
-                    -o Dpkg::Options::="--force-confdef" \
-                    -o Dpkg::Options::="--force-confold" \
-                    "$pkg" 2>/dev/null || apt-get install -y "$pkg" 2>/dev/null || true
+                run_apt install --no-install-recommends "$pkg" 2>/dev/null || run_apt install "$pkg" 2>/dev/null || true
             done
         fi
         echo -e "    ${GREEN}[✓] Base system dependencies successfully installed.${NC}"
@@ -704,8 +733,8 @@ install_panel_web_ui() {
 
     # Ensure git is available
     if ! command -v git >/dev/null 2>&1; then
-        apt-get update -y 2>/dev/null || true
-        apt-get install -y git 2>/dev/null || true
+        run_apt update 2>/dev/null || true
+        run_apt install git 2>/dev/null || true
     fi
 
     if [ "${SCRIPT_DIR}" != "${PANEL_DIR}" ] && [ -f "${SCRIPT_DIR}/app.py" ]; then
@@ -753,7 +782,7 @@ install_panel_web_ui() {
 
     # Ensure python3-venv and python3-pip are installed
     if ! dpkg -s python3-venv >/dev/null 2>&1 || ! dpkg -s python3-pip >/dev/null 2>&1; then
-        apt-get install -y python3-venv python3-pip 2>/dev/null || true
+        run_apt install python3-venv python3-pip 2>/dev/null || true
     fi
 
     if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ] || [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
@@ -761,7 +790,7 @@ install_panel_web_ui() {
         rm -rf "${PANEL_DIR}/venv"
         python3 -m venv "${PANEL_DIR}/venv" 2>/dev/null || true
         if [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
-            apt-get install -y python3-venv python3-pip 2>/dev/null || true
+            run_apt install python3-venv python3-pip 2>/dev/null || true
             rm -rf "${PANEL_DIR}/venv"
             python3 -m venv "${PANEL_DIR}/venv"
         fi
@@ -1018,9 +1047,9 @@ setup_freeradius() {
         export DEBIAN_FRONTEND=noninteractive
         rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
         if ! command -v freeradius >/dev/null 2>&1 || [ ! -d "${rad_conf_dir}" ]; then
-            apt-get update -y >/dev/null 2>&1 || true
-            apt-get install -y --no-install-recommends freeradius freeradius-utils freeradius-config libpam-radius-auth libradcli4 >/dev/null 2>&1 || \
-            apt-get install -y freeradius freeradius-utils libpam-radius-auth >/dev/null 2>&1 || true
+            run_apt update >/dev/null 2>&1 || true
+            run_apt install --no-install-recommends freeradius freeradius-utils freeradius-config libpam-radius-auth libradcli4 >/dev/null 2>&1 || \
+            run_apt install freeradius freeradius-utils libpam-radius-auth >/dev/null 2>&1 || true
         fi
         rad_conf_dir="/etc/freeradius/3.0"
         rad_service="freeradius"
@@ -1144,12 +1173,20 @@ install_badvpn() {
         return 0
     fi
 
+    if [ -x /usr/local/bin/badvpn-udpgw ] && ! /usr/local/bin/badvpn-udpgw --help >/dev/null 2>&1; then
+        rm -f /usr/local/bin/badvpn-udpgw
+    fi
+
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
         for bdir in "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
             if [ -f "${bdir}/badvpn-udpgw" ]; then
                 cp -f "${bdir}/badvpn-udpgw" /usr/local/bin/badvpn-udpgw 2>/dev/null || true
                 chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
-                break
+                if /usr/local/bin/badvpn-udpgw --help >/dev/null 2>&1; then
+                    break
+                else
+                    rm -f /usr/local/bin/badvpn-udpgw
+                fi
             fi
         done
     fi
@@ -1157,15 +1194,22 @@ install_badvpn() {
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/badvpn-udpgw -o /usr/local/bin/badvpn-udpgw 2>/dev/null || true
         chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+        if ! /usr/local/bin/badvpn-udpgw --help >/dev/null 2>&1; then
+            rm -f /usr/local/bin/badvpn-udpgw
+        fi
     fi
 
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
+        echo -e "    ${CYAN}Building BadVPN UDP-GW from source for native OS compatibility...${NC}"
+        run_apt install cmake build-essential gcc git >/dev/null 2>&1 || true
         mkdir -p /tmp/badvpn-build
         cd /tmp/badvpn-build
         if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
             mkdir -p build && cd build
             cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
-            make install >/dev/null 2>&1
+            make -j$(nproc) >/dev/null 2>&1
+            cp -f udpgw/badvpn-udpgw /usr/local/bin/badvpn-udpgw 2>/dev/null || make install >/dev/null 2>&1 || true
+            chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
         fi
         cd /root && rm -rf /tmp/badvpn-build
     fi
@@ -1364,7 +1408,7 @@ install_tunnel_tools() {
     if ! command -v tor >/dev/null 2>&1; then
         echo "    Installing Tor & obfs4proxy/lyrebird..."
         export DEBIAN_FRONTEND=noninteractive
-        apt-get install -y --no-install-recommends tor obfs4proxy >/dev/null 2>&1 || apt-get install -y --no-install-recommends tor lyrebird >/dev/null 2>&1 || true
+        run_apt install --no-install-recommends tor obfs4proxy >/dev/null 2>&1 || run_apt install --no-install-recommends tor lyrebird >/dev/null 2>&1 || true
         systemctl stop tor tor@default 2>/dev/null || true
         systemctl disable tor tor@default 2>/dev/null || true
     fi
