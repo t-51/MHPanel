@@ -265,6 +265,8 @@ is_protocol_installed() {
         noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
         masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
+        singbox) ([ -x /usr/local/bin/sing-box ] && [ -f "/etc/sing-box/config.json" ]) || [ -f "/etc/systemd/system/mhpanel-singbox.service" ] ;;
+        google_script) ([ -f "/etc/vpnpanel/google_script.json" ] && [ -x /usr/local/bin/mhpanel-gas-server ]) || [ -f "/etc/systemd/system/mhpanel-gas-tunnel.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -2892,6 +2894,169 @@ set_port_tor() {
     fi
 }
 
+# ----------------- SING-BOX UNIVERSAL SUITE CORE -----------------
+install_singbox() {
+    local port=${1:-20443}
+    echo "Installing & verifying Sing-box Universal Suite Core..."
+    for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
+        if [ -f "${bdir}/sing-box" ]; then
+            cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
+            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+            break
+        fi
+    done
+    if [ ! -x /usr/local/bin/sing-box ]; then
+        local arch="$(uname -m)"
+        local sb_arch="amd64"
+        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
+        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+        chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+    fi
+
+    mkdir -p /etc/sing-box
+    if [ ! -f /etc/sing-box/config.json ]; then
+        if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+            /www/wwwroot/mhpanel/venv/bin/python -c "import sys; sys.path.insert(0, '/www/wwwroot/mhpanel'); from app import ensure_singbox_service, build_default_singbox_full_suite, save_singbox_config; ensure_singbox_service(); cfg = build_default_singbox_full_suite(); save_singbox_config(cfg)" 2>/dev/null || true
+        fi
+    fi
+
+    cat > /etc/systemd/system/mhpanel-singbox.service <<'EOF'
+[Unit]
+Description=MHPanel - Sing-box Universal Suite Core
+After=network.target network-online.target nss-lookup.target
+
+[Service]
+Type=simple
+User=root
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW
+ExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json
+Restart=always
+RestartSec=3s
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    for p in "${port}" 2080 20443 20444 20447 20448 20449 20450 20451; do
+        allow_port "${p}" "tcp"
+    done
+    for p in 20445 20446; do
+        allow_port "${p}" "udp"
+    done
+
+    systemctl daemon-reload
+    systemctl enable mhpanel-singbox 2>/dev/null || true
+    systemctl restart mhpanel-singbox 2>/dev/null || true
+    echo "Sing-box Universal Suite Core active on port ${port}."
+}
+
+uninstall_singbox() {
+    systemctl stop mhpanel-singbox 2>/dev/null || true
+    systemctl disable mhpanel-singbox 2>/dev/null || true
+    deny_port "20443" "tcp"
+    rm -f /etc/systemd/system/mhpanel-singbox.service
+    systemctl daemon-reload
+    echo "Sing-box service uninstalled."
+}
+
+set_port_singbox() {
+    local port=$1
+    if [ -f /etc/sing-box/config.json ]; then
+        sed -i -E "s/\"listen_port\": [0-9]+/\"listen_port\": ${port}/1" /etc/sing-box/config.json
+        allow_port "${port}" "tcp"
+        systemctl restart mhpanel-singbox 2>/dev/null || true
+    fi
+}
+
+# ----------------- GOOGLE APPS SCRIPT (GAS) FULL TUNNEL -----------------
+install_google_script() {
+    local port=${1:-8448}
+    echo "Installing Google Apps Script (GAS) Full Tunnel Relay Server..."
+    for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
+        if [ -f "${bdir}/mhrv-tunnel-node" ]; then
+            cp -f "${bdir}/mhrv-tunnel-node" /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            chmod +x /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            break
+        fi
+    done
+    for sdir in /www/wwwroot/mhpanel/scripts/daemons /root/mhpanel-repo/scripts/daemons; do
+        if [ -f "${sdir}/mhpanel-gas-server" ]; then
+            cp -f "${sdir}/mhpanel-gas-server" /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            chmod +x /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            break
+        fi
+    done
+
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/google_script.json ]; then
+        local rand_gas_sec
+        rand_gas_sec=$(openssl rand -hex 16 2>/dev/null || echo "mhpanel_gas_$(date +%s)")
+        cat > /etc/vpnpanel/google_script.json <<GEO
+{
+  "enabled": true,
+  "port": ${port},
+  "secret": "${rand_gas_sec}",
+  "mode": "full_tunnel",
+  "singbox_target": "127.0.0.1:20443",
+  "default_upstream": "127.0.0.1:20443",
+  "session_timeout": 60,
+  "read_timeout": 1.2,
+  "google_project_title": "MHPanel-GAS-FullTunnel",
+  "google_script_id": "",
+  "google_deployment_id": "",
+  "google_webapp_url": "",
+  "last_deploy_time": ""
+}
+GEO
+    fi
+
+    cat > /etc/systemd/system/mhpanel-gas-tunnel.service <<'GEO'
+[Unit]
+Description=MHPanel Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+After=network.target sing-box.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/mhpanel-gas-server
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+GEO
+
+    allow_port "${port}" "tcp"
+    systemctl daemon-reload
+    systemctl enable mhpanel-gas-tunnel 2>/dev/null || true
+    systemctl restart mhpanel-gas-tunnel 2>/dev/null || true
+    echo "Google Apps Script Full Tunnel Relay Server successfully installed on port ${port}."
+}
+
+uninstall_google_script() {
+    systemctl stop mhpanel-gas-tunnel 2>/dev/null || true
+    systemctl disable mhpanel-gas-tunnel 2>/dev/null || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/google_script.json 2>/dev/null | awk '{print $2}' || echo "8448")
+    deny_port "${port}" "tcp"
+    rm -f /etc/systemd/system/mhpanel-gas-tunnel.service
+    systemctl daemon-reload
+    echo "Google Apps Script tunnel service uninstalled."
+}
+
+set_port_google_script() {
+    local port=$1
+    if [ -f /etc/vpnpanel/google_script.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/google_script.json 2>/dev/null | awk '{print $2}' || echo "8448")
+        deny_port "${old_port}" "tcp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/google_script.json
+        allow_port "${port}" "tcp"
+        systemctl restart mhpanel-gas-tunnel 2>/dev/null || true
+    fi
+}
+
 # Color definitions for terminal output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -3410,6 +3575,8 @@ case "${ACTION}" in
             noizdns) install_noizdns "$ARG3" ;;
             masterdnsvpn) install_masterdnsvpn "$ARG3" ;;
             tor) install_tor "$ARG3" "$ARG4" ;;
+            singbox) install_singbox "$ARG3" ;;
+            google_script) install_google_script "$ARG3" ;;
             freeradius|radius) install_freeradius "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -3441,6 +3608,8 @@ case "${ACTION}" in
             noizdns) uninstall_noizdns ;;
             masterdnsvpn) uninstall_masterdnsvpn ;;
             tor) uninstall_tor ;;
+            singbox) uninstall_singbox ;;
+            google_script) uninstall_google_script ;;
             freeradius|radius) uninstall_freeradius ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -3471,6 +3640,8 @@ case "${ACTION}" in
             noizdns) set_port_noizdns "$ARG3" ;;
             masterdnsvpn) set_port_masterdnsvpn "$ARG3" ;;
             tor) set_port_tor "$ARG3" ;;
+            singbox) set_port_singbox "$ARG3" ;;
+            google_script) set_port_google_script "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -3626,6 +3797,8 @@ case "${ACTION}" in
             noizdns) service_status mhpanel-noizdns ;;
             masterdnsvpn) service_status mhpanel-masterdnsvpn ;;
             tor) service_status mhpanel-tor ;;
+            singbox) service_status mhpanel-singbox sing-box ;;
+            google_script) service_status mhpanel-gas-tunnel ;;
             freeradius|radius) service_status freeradius radiusd ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -3661,12 +3834,14 @@ case "${ACTION}" in
             noizdns) journalctl -u mhpanel-noizdns -n 100 --no-pager ;;
             masterdnsvpn) journalctl -u mhpanel-masterdnsvpn -n 100 --no-pager ;;
             tor) journalctl -u mhpanel-tor -n 100 --no-pager ;;
+            singbox) journalctl -u mhpanel-singbox -u sing-box -n 100 --no-pager ;;
+            google_script) journalctl -u mhpanel-gas-tunnel -n 100 --no-pager ;;
             freeradius|radius) journalctl -u freeradius -u radiusd -n 100 --no-pager ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
     *)
-        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|amneziawg|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto|hysteria2|trojan|naiveproxy|stuntls|noizdns|masterdnsvpn|tor} [port/ad-tag]"
+        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|amneziawg|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto|hysteria2|trojan|naiveproxy|stuntls|noizdns|masterdnsvpn|tor|singbox|google_script} [port/ad-tag]"
         exit 1
         ;;
 esac

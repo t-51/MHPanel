@@ -19155,6 +19155,25 @@ def install_tunnel_tool_binary(tool_key):
         else:
             return False, f"خطا در نصب apt: {r.stderr[:100]}"
 
+    # Fallback: Automatic download from repository / release mirrors
+    dl_scripts = {
+        "gost": 'curl -fsSL https://github.com/go-gost/gost/releases/download/v3.0.0-rc10/gost_3.0.0-rc10_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ gost 2>/dev/null && chmod +x /usr/local/bin/gost',
+        "wstunnel": 'curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null && chmod +x /usr/local/bin/wstunnel',
+        "chisel": 'curl -fsSL https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz 2>/dev/null | gzip -d > /usr/local/bin/chisel 2>/dev/null && chmod +x /usr/local/bin/chisel',
+        "rathole": 'curl -fsSL https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-x86_64-unknown-linux-musl.zip -o /tmp/r.zip 2>/dev/null && unzip -o /tmp/r.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rathole && rm -f /tmp/r.zip',
+        "udp2raw": 'curl -fsSL https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && chmod +x /usr/local/bin/udp2raw && rm -rf /tmp/udp2raw*',
+        "rtt": 'curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null && unzip -o /tmp/rtt.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rtt && rm -f /tmp/rtt.zip',
+        "dnstt": 'curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-server -o /usr/local/bin/dnstt-server 2>/dev/null && chmod +x /usr/local/bin/dnstt-server',
+        "singbox": 'curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-amd64.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
+    }
+    if tool_key in dl_scripts:
+        try:
+            subprocess.run(dl_scripts[tool_key], shell=True, timeout=60, check=True)
+            if os.path.exists(target_path) and os.access(target_path, os.X_OK):
+                return True, f"ابزار {bin_name} با موفقیت دانلود و در {target_path} فعال شد."
+        except Exception as e:
+            return False, f"خطا در دانلود خودکار {bin_name}: {e}"
+
     return False, f"فایل باینری {bin_name} یافت نشد."
 
 @app.route("/api/tunnels/tools/status", methods=["GET"])
@@ -22069,12 +22088,14 @@ def deploy_decoy_wordpress(domain, site_title="Cloud Computing & Modern Dev Jour
     with open(os.path.join(DECOY_WP_DIR, "wp-login.php"), "w", encoding="utf-8") as f:
         f.write(login_content)
 
+    # Apache VHost (aaPanel / system)
     apache_vhost_dir = "/www/server/apache/conf/vhost"
     if os.path.exists(apache_vhost_dir):
         vhost_conf = f"""<VirtualHost *:80>
     ServerAdmin webmaster@{domain}
     DocumentRoot "{DECOY_WP_DIR}"
     ServerName {domain}
+    ServerAlias www.{domain}
     ErrorLog "/var/log/decoy_wp_error.log"
     CustomLog "/var/log/decoy_wp_access.log" combined
     <Directory "{DECOY_WP_DIR}">
@@ -22090,9 +22111,72 @@ def deploy_decoy_wordpress(domain, site_title="Cloud Computing & Modern Dev Jour
         try:
             with open(os.path.join(apache_vhost_dir, "decoy_wp.conf"), "w", encoding="utf-8") as f:
                 f.write(vhost_conf)
-            subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
+            if os.path.exists("/www/server/apache/bin/httpd"):
+                subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
+            else:
+                subprocess.run(["systemctl", "reload", "apache2"], capture_output=True)
         except Exception:
             pass
+    elif os.path.exists("/etc/apache2/sites-available"):
+        vhost_conf = f"""<VirtualHost *:80>
+    ServerAdmin webmaster@{domain}
+    DocumentRoot "{DECOY_WP_DIR}"
+    ServerName {domain}
+    ServerAlias www.{domain}
+    ErrorLog ${{APACHE_LOG_DIR}}/decoy_wp_error.log
+    CustomLog ${{APACHE_LOG_DIR}}/decoy_wp_access.log combined
+    <Directory "{DECOY_WP_DIR}">
+        Options FollowSymLinks
+        AllowOverride All
+        Require all granted
+        DirectoryIndex index.html index.php
+    </Directory>
+</VirtualHost>
+"""
+        try:
+            with open("/etc/apache2/sites-available/decoy_wp.conf", "w", encoding="utf-8") as f:
+                f.write(vhost_conf)
+            subprocess.run(["a2ensite", "decoy_wp.conf"], capture_output=True)
+            subprocess.run(["systemctl", "reload", "apache2"], capture_output=True)
+        except Exception:
+            pass
+
+    # Nginx VHost (aaPanel / system)
+    nginx_vhost_dirs = ["/www/server/nginx/conf/vhost", "/etc/nginx/conf.d", "/etc/nginx/sites-available"]
+    for nv_dir in nginx_vhost_dirs:
+        if os.path.exists(nv_dir):
+            nv_conf = f"""server {{
+    listen 80;
+    server_name {domain} www.{domain};
+    root {DECOY_WP_DIR};
+    index index.html index.php;
+
+    location / {{
+        try_files $uri $uri/ /index.php?$args;
+    }}
+
+    location ~ \\.php$ {{
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass 127.0.0.1:9000;
+    }}
+}}
+"""
+            try:
+                conf_dest = os.path.join(nv_dir, "decoy_wp.conf")
+                with open(conf_dest, "w", encoding="utf-8") as f:
+                    f.write(nv_conf)
+                if nv_dir == "/etc/nginx/sites-available" and os.path.exists("/etc/nginx/sites-enabled"):
+                    link_dest = "/etc/nginx/sites-enabled/decoy_wp.conf"
+                    if not os.path.exists(link_dest):
+                        os.symlink(conf_dest, link_dest)
+                if os.path.exists("/www/server/nginx/sbin/nginx"):
+                    subprocess.run(["/www/server/nginx/sbin/nginx", "-s", "reload"], capture_output=True)
+                else:
+                    subprocess.run(["systemctl", "reload", "nginx"], capture_output=True)
+                break
+            except Exception:
+                pass
 
     cfg = {
         "installed": True,
@@ -22106,13 +22190,27 @@ def deploy_decoy_wordpress(domain, site_title="Cloud Computing & Modern Dev Jour
     return cfg
 
 def remove_decoy_wordpress():
-    apache_vhost_file = "/www/server/apache/conf/vhost/decoy_wp.conf"
-    if os.path.exists(apache_vhost_file):
-        try:
-            os.remove(apache_vhost_file)
-            subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
-        except Exception:
-            pass
+    files_to_remove = [
+        "/www/server/apache/conf/vhost/decoy_wp.conf",
+        "/etc/apache2/sites-available/decoy_wp.conf",
+        "/etc/apache2/sites-enabled/decoy_wp.conf",
+        "/www/server/nginx/conf/vhost/decoy_wp.conf",
+        "/etc/nginx/conf.d/decoy_wp.conf",
+        "/etc/nginx/sites-available/decoy_wp.conf",
+        "/etc/nginx/sites-enabled/decoy_wp.conf"
+    ]
+    for f in files_to_remove:
+        if os.path.exists(f):
+            try:
+                os.remove(f)
+            except Exception:
+                pass
+    if os.path.exists("/www/server/apache/bin/httpd"):
+        subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], capture_output=True)
+    subprocess.run(["systemctl", "reload", "apache2"], capture_output=True)
+    if os.path.exists("/www/server/nginx/sbin/nginx"):
+        subprocess.run(["/www/server/nginx/sbin/nginx", "-s", "reload"], capture_output=True)
+    subprocess.run(["systemctl", "reload", "nginx"], capture_output=True)
     cfg = get_decoy_wp_config()
     cfg["installed"] = False
     save_decoy_wp_config(cfg)

@@ -262,6 +262,20 @@
                 </div>
             </div>
 
+            <!-- Script Tunnels Quick Instructions -->
+            <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.7;">
+                <div style="font-weight: 700; color: #4f46e5; display:flex; align-items:center; gap:8px; margin-bottom: 6px;">
+                    <i data-lucide="help-circle" style="width:16px; height:16px;"></i>
+                    <span>راهنمای استقرار و نحوه نصب تانل‌های اسکریپتی (بین سرور خارج و ایران):</span>
+                </div>
+                <div style="color: var(--text-muted); display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+                    <div><strong>۱. ساخت تانل در این سرور:</strong> روی دکمه «راه‌اندازی تونل ضد فیلتر جدید» کلیک کرده و پروتکل (GOST, WSTunnel, Chisel, Rathole...) و پورت را مشخص کنید.</div>
+                    <div><strong>۲. دریافت اسکریپت سرور مقابل:</strong> در جدول زیر روی آیکون «اسکریپت و دستورات» کلیک کنید و دستور آماده را کپی نمایید.</div>
+                    <div><strong>۳. اجرا در سرور ایران:</strong> دستور کپی‌شده را در ترمینال SSH سرور ایران پیست و اینتر بزنید تا سرویس دائمی خودکار متصل شود.</div>
+                    <div><strong>۴. نصب باینری‌ها در همین سرور:</strong> از تب «مدیریت ابزارها» یا منوی ترمینال (دستور <code>mhpanel</code> گزینه 9) ابزارهای مفقود را با یک کلیک نصب کنید.</div>
+                </div>
+            </div>
+
             <!-- Advanced Tunnels Table -->
             <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-glow); border-radius: 12px; background: var(--bg-card);">
                 <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">

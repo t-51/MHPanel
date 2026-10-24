@@ -81,7 +81,7 @@ EOF
 ensure_cli_shortcuts
 
 # Supported Protocols List
-PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn dnstt vaydns slipstream hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor)
+PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn dnstt vaydns slipstream hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor singbox google_script)
 
 # Banner Display
 show_banner() {
@@ -149,6 +149,8 @@ protocol_label() {
         noizdns) echo "NoizDNS (Noise-Padded Anti-DPI DNS)" ;;
         masterdnsvpn) echo "MasterdnsVPN (High-Speed Chunked DNS)" ;;
         tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
+        singbox) echo "Sing-box Universal Suite (VLESS/Reality/Trojan/Hysteria2)" ;;
+        google_script) echo "Google Apps Script Full Tunnel (GAS Relay)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -180,6 +182,8 @@ protocol_default_port() {
         noizdns) echo "5355" ;;
         masterdnsvpn) echo "5356" ;;
         tor) echo "9001" ;;
+        singbox) echo "20443" ;;
+        google_script) echo "8448" ;;
         *) echo "0" ;;
     esac
 }
@@ -308,6 +312,8 @@ protocol_is_installed() {
         noizdns) [ -f "/etc/vpnpanel/noizdns.json" ] && [ -f "/etc/systemd/system/mhpanel-noizdns.service" ] && [ -x /usr/local/bin/noizdns-server ] ;;
         masterdnsvpn) [ -f "/etc/vpnpanel/masterdnsvpn.json" ] && [ -f "/etc/systemd/system/mhpanel-masterdnsvpn.service" ] && [ -x /usr/local/bin/masterdnsvpn-server ] ;;
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
+        singbox) ([ -x /usr/local/bin/sing-box ] && [ -f "/etc/sing-box/config.json" ]) || [ -f "/etc/systemd/system/mhpanel-singbox.service" ] ;;
+        google_script) ([ -f "/etc/vpnpanel/google_script.json" ] && [ -x /usr/local/bin/mhpanel-gas-server ]) || [ -f "/etc/systemd/system/mhpanel-gas-tunnel.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -405,6 +411,8 @@ protocol_service_status() {
         noizdns) svc="mhpanel-noizdns" ;;
         masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
         tor) svc="mhpanel-tor" ;;
+        singbox) svc="mhpanel-singbox" ;;
+        google_script) svc="mhpanel-gas-tunnel" ;;
     esac
 
     if [ -n "$svc" ] && systemctl is-active --quiet "$svc" 2>/dev/null; then
@@ -444,6 +452,8 @@ protocol_current_port() {
         noizdns) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/noizdns.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
         masterdnsvpn) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/masterdnsvpn.json 2>/dev/null | awk '{print $2}' | tail -n1) ;;
         tor) port=$(grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        singbox) port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/sing-box/config.json 2>/dev/null | head -n1 | awk '{print $2}') ;;
+        google_script) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/google_script.json 2>/dev/null | awk '{print $2}' || echo "8448") ;;
     esac
     if [ -n "$port" ]; then
         echo "$port"
@@ -930,6 +940,20 @@ EOF
     sleep 2
 
     # Setup Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -f "${bdir}/mhrv-tunnel-node" ]; then
+            cp -f "${bdir}/mhrv-tunnel-node" /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            chmod +x /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            break
+        fi
+    done
+    for sdir in "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/scripts/daemons" "/root/mhpanel-repo/scripts/daemons"; do
+        if [ -f "${sdir}/mhpanel-gas-server" ]; then
+            cp -f "${sdir}/mhpanel-gas-server" /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            chmod +x /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            break
+        fi
+    done
     mkdir -p /etc/vpnpanel
     if [ ! -f /etc/vpnpanel/google_script.json ]; then
         local rand_gas_sec
@@ -1260,15 +1284,24 @@ install_tunnel_tools() {
         fi
     fi
 
-    # Sing-box (Trojan & NaiveProxy)
+    # Sing-box Universal Suite
     if [ ! -x /usr/local/bin/sing-box ]; then
-        echo "    Downloading Sing-box (Trojan & NaiveProxy)..."
-        local arch="$(uname -m)"
-        local sb_arch="amd64"
-        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
-        curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
-        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
-        chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+        echo "    Checking / Downloading Sing-box Universal Suite..."
+        for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+            if [ -f "${bdir}/sing-box" ]; then
+                cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
+                chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+                break
+            fi
+        done
+        if [ ! -x /usr/local/bin/sing-box ]; then
+            local arch="$(uname -m)"
+            local sb_arch="amd64"
+            [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
+            curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
+            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+        fi
         if [ -x /usr/local/bin/sing-box ]; then
             count_downloaded=$((count_downloaded + 1))
         else
@@ -1493,6 +1526,33 @@ install_tunnel_tools() {
             echo -e "    ${RED}[!] Warning: Failed to download Kcptun. Check server internet access.${NC}"
         fi
     fi
+
+    # MHRV Tunnel Node & Google Apps Script Daemon
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -f "${bdir}/mhrv-tunnel-node" ] && [ ! -x /usr/local/bin/mhrv-tunnel-node ]; then
+            cp -f "${bdir}/mhrv-tunnel-node" /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            chmod +x /usr/local/bin/mhrv-tunnel-node 2>/dev/null || true
+            break
+        fi
+    done
+    for sdir in "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/scripts/daemons" "/root/mhpanel-repo/scripts/daemons"; do
+        if [ -f "${sdir}/mhpanel-gas-server" ] && [ ! -x /usr/local/bin/mhpanel-gas-server ]; then
+            cp -f "${sdir}/mhpanel-gas-server" /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            chmod +x /usr/local/bin/mhpanel-gas-server 2>/dev/null || true
+            break
+        fi
+    done
+
+    # AmneziaWG tools & userspace binary
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        for b in awg awg-quick amneziawg-go; do
+            if [ -f "${bdir}/${b}" ] && [ ! -x "/usr/bin/${b}" ]; then
+                cp -f "${bdir}/${b}" "/usr/bin/${b}" 2>/dev/null || true
+                cp -f "${bdir}/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+                chmod +x "/usr/bin/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+            fi
+        done
+    done
 
     echo -e "    ${GREEN}[✓] Anti-censorship tunnel binaries verified (${count_downloaded} new files downloaded).${NC}"
 }
@@ -1877,6 +1937,8 @@ menu_vpn_protocols() {
                         noizdns) svc="mhpanel-noizdns" ;;
                         masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
                         tor) svc="mhpanel-tor" ;;
+                        singbox) svc="mhpanel-singbox" ;;
+                        google_script) svc="mhpanel-gas-tunnel" ;;
                     esac
                     systemctl restart "$svc" 2>/dev/null || true
                     echo -e "${GREEN}Service ${svc} restarted.${NC}"
@@ -1918,6 +1980,8 @@ menu_vpn_protocols() {
                         noizdns) svc="mhpanel-noizdns" ;;
                         masterdnsvpn) svc="mhpanel-masterdnsvpn" ;;
                         tor) svc="mhpanel-tor" ;;
+                        singbox) svc="mhpanel-singbox" ;;
+                        google_script) svc="mhpanel-gas-tunnel" ;;
                     esac
                     journalctl -u "$svc" -n 50 --no-pager 2>/dev/null || journalctl -n 50 --no-pager 2>/dev/null || true
                     read -p "Press Enter to continue..."
@@ -1937,41 +2001,513 @@ menu_vpn_protocols() {
 }
 
 menu_tunnel_tools() {
-    clear 2>/dev/null || true
-    echo -e "${YELLOW}${BOLD}=== Anti-Censorship Tunnels & Network Bridge Hub ===${NC}"
-    echo -e "Manage GOST, WSTunnel, RTT, FRP, Chisel, UDP2Raw, Phantun, Rathole and IPv6 Tunnel Modules.\n"
+    while true; do
+        clear 2>/dev/null || true
+        echo -e "${YELLOW}${BOLD}=== Anti-Censorship Tunnels & Network Bridge Hub (مدیریت تانل‌ها) ===${NC}"
+        echo -e "${DIM}Tranziting, reverse tunnels, fake-TCP and server-to-server obfuscation${NC}\n"
 
-    echo -e "  [1] Download / Update All Anti-Filter Tunnel Binaries"
-    echo -e "  [2] Enable Kernel Tunnel Modules for IPv6 (ip6_gre, ip6_tunnel, sit)"
-    echo -e "  [3] Execute Boot Tunnels Script (/etc/mhpanel/tunnels_boot.sh)"
-    echo -e "  [4] List Active Systemd Tunnel Services (mhtun_*)"
-    echo -e "  [0] Back"
-    echo ""
-    read -p "Select option [0-4]: " t_act
-    case "$t_act" in
-        1)
-            install_tunnel_tools
-            read -p "Press Enter to continue..."
-            ;;
-        2)
-            modprobe ip6_gre; modprobe ip6_tunnel; modprobe sit; modprobe ip_gre; modprobe ipip
-            echo -e "${GREEN}Kernel modules for GRE IPv6, IPIP IPv6 and SIT 6in4 loaded.${NC}"
-            read -p "Press Enter to continue..."
-            ;;
-        3)
-            if [ -f "/etc/mhpanel/tunnels_boot.sh" ]; then
-                bash /etc/mhpanel/tunnels_boot.sh
-                echo -e "${GREEN}Boot tunnels script executed.${NC}"
-            else
-                echo -e "${YELLOW}No tunnels configured in panel yet.${NC}"
+        echo -e "  ${WHITE}${BOLD}Live Tunnel Binaries Status:${NC}"
+        local tools=(
+            "gost:GOST v3 (WSS/TLS Relay):/usr/local/bin/gost"
+            "wstunnel:WSTunnel (WebSocket Tunnel):/usr/local/bin/wstunnel"
+            "chisel:Chisel (TCP/UDP over HTTP):/usr/local/bin/chisel"
+            "frps:FRP Server:/usr/local/bin/frps"
+            "frpc:FRP Client:/usr/local/bin/frpc"
+            "rathole:Rathole (Secure Reverse Proxy):/usr/local/bin/rathole"
+            "udp2raw:UDP2Raw (Fake-TCP Tunnel):/usr/local/bin/udp2raw"
+            "phantun-server:Phantun Server (Obfuscated UDP):/usr/local/bin/phantun-server"
+            "phantun-client:Phantun Client:/usr/local/bin/phantun-client"
+            "rtt:RTT (Reverse TLS Tunnel):/usr/local/bin/rtt"
+            "kcptun-server:KCPTun Server (KCP/UDP FEC):/usr/local/bin/kcptun-server"
+            "tun2socks:Tun2Socks (TUN to SOCKS5):/usr/local/bin/tun2socks"
+            "mhrv-tunnel-node:MHRV Tunnel Node (GAS / Rust Relay):/usr/local/bin/mhrv-tunnel-node"
+        )
+        for item in "${tools[@]}"; do
+            local key="${item%%:*}"
+            local rest="${item#*:}"
+            local label="${rest%%:*}"
+            local bpath="${rest#*:}"
+            local st="${RED}Missing (نصب نشده)${NC}"
+            if [ -x "$bpath" ]; then
+                st="${GREEN}Installed ✓ (نصب شده)${NC}"
             fi
-            read -p "Press Enter to continue..."
-            ;;
-        4)
-            systemctl list-units --type=service "mhtun_*" --no-pager
-            read -p "Press Enter to continue..."
-            ;;
-    esac
+            echo -e "    • ${label}: ${st}"
+        done
+        echo ""
+
+        echo -e "  ${CYAN}[1] Download & Install / Update ALL Tunnel Binaries (نصب همه ابزارهای تانل)${NC}"
+        echo -e "  [2] Install / Reinstall a Specific Missing Binary (نصب تکی ابزار دلخواه)"
+        echo -e "  [3] Execute / Start Local Configured Tunnels (/etc/mhpanel/tunnels_boot.sh)"
+        echo -e "  [4] List Active Systemd Tunnel Services (mhtun_*) & Live Status"
+        echo -e "  [5] View Live Journal Logs of Tunnel Services"
+        echo -e "  [6] Enable Kernel Modules for GRE / IPIP / IPv6 Tunnels"
+        echo -e "  ${YELLOW}[7] Generate / View Setup Commands for Iran / Remote Server (دستورات سرور مقابل)${NC}"
+        echo -e "  ${GREEN}[8] Step-by-Step Tunnel Architecture Guide (راهنمای جامع راه‌اندازی تانل‌های اسکریپتی)${NC}"
+        echo -e "  [0] Back to Main Menu"
+        echo ""
+        read -p "Select option [0-8]: " t_act
+        case "$t_act" in
+            1)
+                install_tunnel_tools
+                read -p "Press Enter to continue..."
+                ;;
+            2)
+                echo -e "\n${WHITE}Select binary to install:${NC}"
+                echo "1) gost  2) wstunnel  3) chisel  4) frp  5) rathole  6) udp2raw  7) phantun  8) rtt  9) kcptun  10) tun2socks  11) mhrv-tunnel-node"
+                read -p "Choice [1-11]: " b_choice
+                case "$b_choice" in
+                    1) curl -fsSL https://github.com/go-gost/gost/releases/download/v3.0.0-rc10/gost_3.0.0-rc10_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ gost 2>/dev/null && chmod +x /usr/local/bin/gost ;;
+                    2) curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null && chmod +x /usr/local/bin/wstunnel ;;
+                    3) curl -fsSL https://github.com/jpillora/chisel/releases/download/v1.10.0/chisel_1.10.0_linux_amd64.gz 2>/dev/null | gzip -d > /usr/local/bin/chisel && chmod +x /usr/local/bin/chisel ;;
+                    4) curl -fsSL https://github.com/fatedier/frp/releases/download/v0.58.1/frp_0.58.1_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/frp_0.58.1_linux_amd64/frp* /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/frp* ;;
+                    5) curl -fsSL https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-x86_64-unknown-linux-musl.zip -o /tmp/r.zip 2>/dev/null && unzip -o /tmp/r.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rathole && rm -f /tmp/r.zip ;;
+                    6) curl -fsSL https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && chmod +x /usr/local/bin/udp2raw ;;
+                    7) curl -fsSL https://github.com/dndx/phantun/releases/download/v0.8.1/phantun_x86_64-unknown-linux-musl.zip -o /tmp/p.zip 2>/dev/null && unzip -o /tmp/p.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/phantun* && rm -f /tmp/p.zip ;;
+                    8) curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null && unzip -o /tmp/rtt.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rtt && rm -f /tmp/rtt.zip ;;
+                    9) curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/kcptun-server -o /usr/local/bin/kcptun-server 2>/dev/null && curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/kcptun-client -o /usr/local/bin/kcptun-client 2>/dev/null && chmod +x /usr/local/bin/kcptun-* ;;
+                    10) curl -fsSL "https://github.com/xjasonlyu/tun2socks/releases/download/v2.5.2/tun2socks-linux-amd64.zip" -o /tmp/t.zip 2>/dev/null && unzip -o /tmp/t.zip -d /tmp/ 2>/dev/null && mv /tmp/tun2socks-* /usr/local/bin/tun2socks 2>/dev/null && chmod +x /usr/local/bin/tun2socks && rm -f /tmp/t.zip ;;
+                    11)
+                        for bdir in "${PANEL_DIR}/bin" "/root/mhpanel-repo/bin"; do
+                            [ -f "${bdir}/mhrv-tunnel-node" ] && cp -f "${bdir}/mhrv-tunnel-node" /usr/local/bin/mhrv-tunnel-node && chmod +x /usr/local/bin/mhrv-tunnel-node && break
+                        done
+                        ;;
+                esac
+                echo -e "${GREEN}Operation completed.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            3)
+                if [ -f "/etc/mhpanel/tunnels_boot.sh" ]; then
+                    bash /etc/mhpanel/tunnels_boot.sh
+                    echo -e "${GREEN}Boot tunnels script executed successfully.${NC}"
+                else
+                    echo -e "${YELLOW}No configured tunnels found in /etc/mhpanel/tunnels_boot.sh yet.${NC}"
+                    echo -e "You can create and manage tunnels from the Web UI under 'Tunnels & MikroTik Hub'."
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            4)
+                echo -e "\n${WHITE}${BOLD}Active Systemd Tunnel Units (mhtun_*):${NC}"
+                systemctl list-units --type=service "mhtun_*" --no-pager
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                echo -e "\n${WHITE}Select tunnel service name (e.g. mhtun_1 or leave empty for all mhtun):${NC}"
+                read -p "Service name [mhtun_*]: " tun_svc_name
+                tun_svc_name=${tun_svc_name:-"mhtun_*"}
+                journalctl -u "$tun_svc_name" -n 60 --no-pager
+                read -p "Press Enter to continue..."
+                ;;
+            6)
+                modprobe ip6_gre 2>/dev/null || true
+                modprobe ip6_tunnel 2>/dev/null || true
+                modprobe sit 2>/dev/null || true
+                modprobe ip_gre 2>/dev/null || true
+                modprobe ipip 2>/dev/null || true
+                echo -e "${GREEN}Kernel modules for GRE IPv6, IPIP IPv6 and SIT 6in4 loaded.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            7)
+                echo -e "\n${YELLOW}${BOLD}=== دستورات و اسکریپت نصب روی سرور مقابل (سرور ایران یا کلاینت) ===${NC}"
+                local srv_ip=$(get_public_ipv4)
+                echo -e "برای راه‌اندازی تانل در سرور مقابل (ایران)، می‌توانید از اسکریپت‌های هوشمند زیر استفاده کنید:"
+                echo -e "\n${CYAN}1) نصب باینری‌های تانل در سرور ایران با یک دستور:${NC}"
+                echo -e "   curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh | bash -s -- --ui"
+                echo -e "\n${CYAN}2) دریافت دستور دقیق سرویس هر تانل ساخت‌شده:${NC}"
+                echo -e "   در پنل وب -> تب «مرکز تونل‌ها» -> جدول تونل‌های ضد فیلتر -> روی دکمه «اسکریپت و دستورات» کلیک کنید."
+                echo -e "   اسکریپت به همراه تمام کلیدها، ساب‌نت‌ها و پورتی که به سرور خارج (${srv_ip}) متصل می‌شود کپی خواهد شد."
+                read -p "Press Enter to continue..."
+                ;;
+            8)
+                echo -e "\n${GREEN}${BOLD}=== راهنمای جامع راه‌اندازی و معماری تانل‌های اسکریپتی ===${NC}"
+                echo -e "1. ${BOLD}مفهوم تانل اسکریپتی چیست؟${NC}"
+                echo -e "   تانل‌های اسکریپتی (مثل GOST, WSTunnel, Chisel, RTT, Rathole) ترافیک را به شکل"
+                echo -e "   وب‌سوکت امن (WSS) یا TLS استاندارد شبیه وب‌سایت‌های عادی تغییر می‌دهند."
+                echo -e "2. ${BOLD}کجا نصب می‌شوند؟${NC}"
+                echo -e "   یک طرف تانل (معمولاً نقش Server) روی همین سرور خارج با پنل مدیریت ساخته می‌شود."
+                echo -e "   طرف دیگر (نقش Client) روی سرور ایران شما اجرا می‌شود."
+                echo -e "3. ${BOLD}چگونه اجرا کنیم؟${NC}"
+                echo -e "   در تب مرکز تونل‌ها دکمه «اسکریپت سرور مقابل» را بزنید و متن آن را در SSH سرور ایران"
+                echo -e "   Paste کنید. اسکریپت به صورت خودکار سرویس دائمی systemd را در سرور ایران می‌سازد."
+                echo -e "4. ${BOLD}در صورت نبود ابزارها در همین سرور خارج چه کنیم؟${NC}"
+                echo -e "   گزینه [1] را در همین منوی ترمینال بزنید تا تمامی ابزارها با یک کلیک نصب و آماده شوند."
+                read -p "Press Enter to continue..."
+                ;;
+            0|"")
+                break
+                ;;
+        esac
+    done
+}
+
+menu_wordpress_camouflage() {
+    while true; do
+        clear 2>/dev/null || true
+        echo -e "${YELLOW}${BOLD}=== Web Server Integration & WordPress Anti-DPI Camouflage ===${NC}"
+        echo -e "${DIM}هماهنگی خودکار با آپاچی/انجین‌یکس و استتار ترافیک فیلترشکن پشت سایت وردپرس${NC}\n"
+
+        local ws_type="None"
+        local ws_active="${RED}Not Running${NC}"
+        local ws_port="80"
+        local ws_ssl_port="8444"
+
+        if systemctl is-active --quiet httpd 2>/dev/null || [ -x "/www/server/apache/bin/httpd" ]; then
+            ws_type="Apache (aaPanel / httpd)"
+            systemctl is-active --quiet httpd 2>/dev/null && ws_active="${GREEN}Running (Port 80/8444) ✓${NC}"
+        elif systemctl is-active --quiet apache2 2>/dev/null; then
+            ws_type="Apache2 (Debian/Ubuntu)"
+            ws_active="${GREEN}Running ✓${NC}"
+        elif systemctl is-active --quiet nginx 2>/dev/null || [ -x "/www/server/nginx/sbin/nginx" ]; then
+            ws_type="Nginx"
+            ws_active="${GREEN}Running ✓${NC}"
+            ws_ssl_port="8443"
+        fi
+
+        local wp_sites=()
+        for cand in /www/wwwroot/* /var/www/html /var/www/*; do
+            if [ -f "${cand}/wp-config.php" ] || [ -f "${cand}/wp-load.php" ] || [ -d "${cand}/wp-content" ]; then
+                [ -d "$cand" ] && wp_sites+=("$cand")
+            fi
+        done
+
+        local decoy_status="${RED}Not Installed${NC}"
+        if [ -f "/www/wwwroot/decoy-wp/index.html" ] || [ -f "/etc/mhpanel/decoy_wp.json" ]; then
+            decoy_status="${GREEN}Deployed & Active ✓${NC}"
+        fi
+
+        local mux_status="${RED}Disabled${NC}"
+        if systemctl is-active --quiet haproxy 2>/dev/null; then
+            mux_status="${GREEN}Active on Port 443 (HAProxy Mux) ✓${NC}"
+        fi
+
+        echo -e "  Detected Web Server:   ${CYAN}${ws_type}${NC} (${ws_active})"
+        echo -e "  Port 443 Multiplexer:  ${mux_status}"
+        echo -e "  Decoy WordPress Site:  ${decoy_status} (/www/wwwroot/decoy-wp)"
+        if [ ${#wp_sites[@]} -gt 0 ]; then
+            echo -e "  Found WordPress Sites: ${GREEN}${#wp_sites[@]} site(s) detected:${NC}"
+            for w in "${wp_sites[@]}"; do
+                echo -e "    • ${w}"
+            done
+        else
+            echo -e "  Found WordPress Sites: ${YELLOW}None (Decoy WordPress available)${NC}"
+        fi
+        echo -e "${BLUE}------------------------------------------------------------------------${NC}"
+        echo -e "  ${WHITE}${BOLD}[1] Auto-Match Web Server & Enable Port 443 WordPress Camouflage${NC}"
+        echo -e "      (تنظیم خودکار اتصال ترافیک به وب‌سرور و نمایش وردپرس در صورت ورود عادی)"
+        echo -e "  ${WHITE}${BOLD}[2] Deploy / Update Realistic Decoy WordPress Site (/www/wwwroot/decoy-wp)${NC}"
+        echo -e "      (نصب و فعال‌سازی سایت فریب بلاگ فناوری وردپرس برای آپاچی و انجین‌یکس)"
+        echo -e "  [3] Configure Sing-box Reality Camouflage Target to WordPress Site"
+        echo -e "  [4] Send Live HTTP & HTTPS Camouflage Probe (تست زنده پاسخ وردپرس در پورت ۸۰ و ۴۴۳)"
+        echo -e "  [5] Remove / Unlink Decoy WordPress Virtual Host"
+        echo -e "  [0] Back to Main Menu"
+        echo -e "${BLUE}========================================================================${NC}"
+        read -p "Select option [0-5]: " wp_opt
+
+        case "$wp_opt" in
+            1)
+                echo -e "\n${CYAN}Configuring HAProxy Port Multiplexer for Web Server & WordPress Fallback...${NC}"
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import get_multiplexer_config, save_multiplexer_config, apply_multiplexer_config
+cfg = get_multiplexer_config()
+cfg['enabled'] = True
+cfg['listen_ports'] = [443]
+cfg['default_backend'] = 'web'
+web_p = ${ws_ssl_port}
+for p in cfg.get('protocols', []):
+    if p.get('id') == 'web':
+        p['enabled'] = True
+        p['backend_port'] = web_p
+        p['is_default'] = True
+save_multiplexer_config(cfg)
+ok, msg = apply_multiplexer_config(cfg)
+print('Result:', ok, msg)
+" 2>/dev/null || true
+                fi
+                echo -e "${GREEN}✓ HAProxy multiplexer configured to route all non-VPN and normal browser traffic directly to your WordPress web server on port ${ws_ssl_port}.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            2)
+                echo -e "\n${CYAN}Deploying Decoy WordPress Anti-DPI Site...${NC}"
+                local srv_ip=$(get_public_ipv4)
+                read -p "Enter camouflage domain name (Default: blog.${srv_ip}.nip.io or press Enter): " c_domain
+                c_domain=${c_domain:-"blog.${srv_ip}.nip.io"}
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import deploy_decoy_wordpress
+cfg = deploy_decoy_wordpress('${c_domain}', site_title='Modern DevOps & Cloud Infrastructure', theme='twentytwentythree')
+print('Deployed to:', cfg.get('path'))
+" 2>/dev/null || true
+                fi
+                echo -e "${GREEN}✓ Decoy WordPress site installed at /www/wwwroot/decoy-wp with virtual hosts for Apache and Nginx.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            3)
+                echo -e "\n${CYAN}Configuring Sing-box Reality handshake camouflage target...${NC}"
+                read -p "Enter camouflage domain for Reality (Default: dl.google.com): " r_domain
+                r_domain=${r_domain:-"dl.google.com"}
+                if [ -f /etc/sing-box/config.json ]; then
+                    sed -i -E "s/\"server\": \"[^\"]+\"/\"server\": \"${r_domain}\"/g" /etc/sing-box/config.json 2>/dev/null || true
+                    sed -i -E "s/\"server_name\": \"[^\"]+\"/\"server_name\": \"${r_domain}\"/g" /etc/sing-box/config.json 2>/dev/null || true
+                    systemctl restart mhpanel-singbox 2>/dev/null || true
+                    echo -e "${GREEN}✓ Sing-box Reality camouflage target set to ${r_domain}.${NC}"
+                else
+                    echo -e "${YELLOW}Sing-box config not found at /etc/sing-box/config.json.${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            4)
+                echo -e "\n${CYAN}Testing Web Server & WordPress Camouflage Live Probe...${NC}"
+                echo "1. Testing HTTP Port 80:"
+                curl -Is --connect-timeout 3 http://127.0.0.1:80/ | head -n 6 || echo "Port 80 probe failed."
+                echo -e "\n2. Testing HTTPS Port 8444 / 8443 (Web Server SSL Backend):"
+                curl -Iks --connect-timeout 3 https://127.0.0.1:${ws_ssl_port}/ | head -n 6 || echo "SSL Backend probe failed."
+                echo -e "\n3. Testing Port 443 Multiplexer (Direct Browser visit):"
+                curl -Iks --connect-timeout 3 https://127.0.0.1:443/ | head -n 6 || echo "Port 443 probe failed."
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import remove_decoy_wordpress
+remove_decoy_wordpress()
+" 2>/dev/null || true
+                fi
+                echo -e "${GREEN}✓ Decoy WordPress virtual host removed.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            0|"")
+                break
+                ;;
+        esac
+    done
+}
+
+menu_telegram_bot() {
+    while true; do
+        clear 2>/dev/null || true
+        echo -e "${YELLOW}${BOLD}=== Telegram Bot Notification & Auto-Backup Hub ===${NC}"
+        echo -e "${DIM}مدیریت ربات تلگرام، اعلان‌های مصرف منابع، ورود مدیر و ارسال خودکار بکاپ${NC}\n"
+
+        local tg_cfg="/etc/mhpanel/telegram_bot.json"
+        local b_token="Not Set"
+        local c_id="Not Set"
+        local is_en="${RED}Disabled${NC}"
+        local auto_bk="${RED}Disabled${NC}"
+        local bk_sched="daily"
+        local cpu_th="90"
+        local ram_th="90"
+        local disk_th="90"
+
+        if [ -f "$tg_cfg" ]; then
+            local raw_tok=$(grep -oE '"bot_token":\s*"[^"]+"' "$tg_cfg" | cut -d'"' -f4)
+            if [ -n "$raw_tok" ] && [ "$raw_tok" != "" ]; then
+                if [ ${#raw_tok} -gt 10 ]; then
+                    b_token="${raw_tok:0:4}****${raw_tok: -4}"
+                else
+                    b_token="Set (${raw_tok})"
+                fi
+            fi
+            local raw_cid=$(grep -oE '"chat_id":\s*"[^"]+"' "$tg_cfg" | cut -d'"' -f4)
+            [ -n "$raw_cid" ] && [ "$raw_cid" != "" ] && c_id="$raw_cid"
+            if grep -q '"enabled":\s*true' "$tg_cfg"; then
+                is_en="${GREEN}Enabled (Active) ✓${NC}"
+            fi
+            if grep -q '"auto_backup":\s*true' "$tg_cfg"; then
+                auto_bk="${GREEN}Enabled ✓${NC}"
+            fi
+            local raw_sched=$(grep -oE '"auto_backup_schedule":\s*"[^"]+"' "$tg_cfg" | cut -d'"' -f4)
+            [ -n "$raw_sched" ] && bk_sched="$raw_sched"
+            local raw_cpu=$(grep -oE '"alert_cpu_percent":\s*[0-9]+' "$tg_cfg" | awk '{print $2}')
+            [ -n "$raw_cpu" ] && cpu_th="$raw_cpu"
+            local raw_ram=$(grep -oE '"alert_ram_percent":\s*[0-9]+' "$tg_cfg" | awk '{print $2}')
+            [ -n "$raw_ram" ] && ram_th="$raw_ram"
+            local raw_disk=$(grep -oE '"alert_disk_percent":\s*[0-9]+' "$tg_cfg" | awk '{print $2}')
+            [ -n "$raw_disk" ] && disk_th="$raw_disk"
+        fi
+
+        echo -e "  Telegram Bot Token:   ${CYAN}${b_token}${NC}"
+        echo -e "  Admin Chat ID:        ${CYAN}${c_id}${NC}"
+        echo -e "  Notification Engine:  ${is_en}"
+        echo -e "  Auto-Backup to Chat:  ${auto_bk} (Schedule: ${bk_sched})"
+        echo -e "  Resource Thresholds:  CPU: ${cpu_th}% | RAM: ${ram_th}% | Disk: ${disk_th}%"
+        echo -e "${BLUE}------------------------------------------------------------------------${NC}"
+        echo -e "  ${WHITE}${BOLD}[1] Set / Change Telegram Bot Token (ثبت یا ویرایش توکن ربات)${NC}"
+        echo -e "  ${WHITE}${BOLD}[2] Set / Change Admin Telegram Chat ID (ثبت یا ویرایش شناسه چت ادمین)${NC}"
+        echo -e "  [3] Toggle Notification Service (فعال / غیرفعال‌سازی سراسری اعلان‌ها)"
+        echo -e "  [4] Configure Resource Alert Thresholds (تنظیم سقف مجاز CPU, RAM, Disk)"
+        echo -e "  [5] Configure Automated Backup to Telegram (زمان‌بندی ارسال خودکار بکاپ)"
+        echo -e "  ${GREEN}${BOLD}[6] Send Live Test Message to Telegram (تست ارسال اعلان تلگرام)${NC}"
+        echo -e "  ${YELLOW}${BOLD}[7] Send Instant Full Panel Backup to Telegram Now (ارسال آنی بکاپ)${NC}"
+        echo -e "  [8] Restart Telegram Alert Monitoring Daemon (راه‌اندازی مجدد پایشگر)"
+        echo -e "  [0] Back to Main Menu"
+        echo -e "${BLUE}========================================================================${NC}"
+        read -p "Select option [0-8]: " tg_opt
+
+        case "$tg_opt" in
+            1)
+                echo -e "\n${CYAN}Enter your Telegram Bot Token from @BotFather (e.g. 123456789:AAH...):${NC}"
+                read -p "Bot Token: " input_tok
+                input_tok=$(echo "$input_tok" | tr -d '[:space:]')
+                if [ -n "$input_tok" ]; then
+                    if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                        /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import load_telegram_config, save_telegram_config
+c = load_telegram_config()
+c['bot_token'] = '${input_tok}'
+c['enabled'] = True
+save_telegram_config(c)
+print('Token saved successfully.')
+" 2>/dev/null || true
+                    fi
+                    echo -e "${GREEN}✓ Telegram bot token registered.${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            2)
+                echo -e "\n${CYAN}Enter your Telegram numeric Chat ID (from @userinfobot or @raw_data_bot):${NC}"
+                read -p "Admin Chat ID: " input_cid
+                input_cid=$(echo "$input_cid" | tr -d '[:space:]')
+                if [ -n "$input_cid" ]; then
+                    if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                        /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import load_telegram_config, save_telegram_config
+c = load_telegram_config()
+c['chat_id'] = '${input_cid}'
+c['enabled'] = True
+save_telegram_config(c)
+print('Chat ID saved successfully.')
+" 2>/dev/null || true
+                    fi
+                    echo -e "${GREEN}✓ Admin chat ID registered.${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            3)
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import load_telegram_config, save_telegram_config
+c = load_telegram_config()
+c['enabled'] = not c.get('enabled', False)
+save_telegram_config(c)
+print('Notifications now:', 'Enabled' if c['enabled'] else 'Disabled')
+" 2>/dev/null || true
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            4)
+                echo -e "\n${CYAN}Configure Resource Thresholds (Percentages 1-100):${NC}"
+                read -p "CPU Alert Threshold % (Default: 90): " new_cpu
+                read -p "RAM Alert Threshold % (Default: 90): " new_ram
+                read -p "Disk Alert Threshold % (Default: 90): " new_disk
+                new_cpu=${new_cpu:-90}
+                new_ram=${new_ram:-90}
+                new_disk=${new_disk:-90}
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import load_telegram_config, save_telegram_config
+c = load_telegram_config()
+c['alert_cpu_percent'] = int('${new_cpu}')
+c['alert_ram_percent'] = int('${new_ram}')
+c['alert_disk_percent'] = int('${new_disk}')
+save_telegram_config(c)
+" 2>/dev/null || true
+                fi
+                echo -e "${GREEN}✓ Thresholds updated: CPU: ${new_cpu}%, RAM: ${new_ram}%, Disk: ${new_disk}%.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                echo -e "\n${CYAN}Automated Backup Schedule to Telegram:${NC}"
+                echo "1) Disabled  2) Every 12 Hours  3) Daily (24h)  4) Weekly (7 Days)"
+                read -p "Select schedule [1-4] (Default: 3): " s_choice
+                s_choice=${s_choice:-3}
+                local s_val="daily"
+                local s_en="True"
+                case "$s_choice" in
+                    1) s_en="False" ;;
+                    2) s_val="every_12h" ;;
+                    3) s_val="daily" ;;
+                    4) s_val="weekly" ;;
+                esac
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+from app import load_telegram_config, save_telegram_config
+c = load_telegram_config()
+c['auto_backup'] = ${s_en}
+c['auto_backup_schedule'] = '${s_val}'
+save_telegram_config(c)
+" 2>/dev/null || true
+                fi
+                echo -e "${GREEN}✓ Automated backup settings updated.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            6)
+                echo -e "\n${CYAN}Sending Live Test Notification Message to Telegram...${NC}"
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+import psutil, time
+from app import load_telegram_config, send_telegram_msg, get_server_public_ip
+cfg = load_telegram_config()
+srv_ip = get_server_public_ip()
+cpu = psutil.cpu_percent(0.2)
+ram = psutil.virtual_memory().percent
+disk = psutil.disk_usage('/').percent
+msg = f'''🤖 <b>MHPanel Telegram Notification Bot</b>\n\n✅ <b>ارتباط ربات تلگرام با سرور با موفقیت برقرار شد!</b>\n🌐 آی‌پی سرور: <code>{srv_ip}</code>\n⏰ زمان سرور: <code>{time.strftime('%Y-%m-%d %H:%M:%S')}</code>\n📊 مصرف منابع: CPU: {cpu}% | RAM: {ram}% | Disk: {disk}%\n🛡️ هسته سینگ‌باکس و پروتکل‌های امنیتی: فعال و آماده سرویس‌دهی\n\n<i>ارسال شده از طریق دستورات ترمینال MHPanel CLI</i>'''
+ok, res = send_telegram_msg(msg, cfg)
+if ok:
+    print('SUCCESS: Notification delivered successfully to your Telegram!')
+else:
+    print('ERROR:', res)
+"
+                else
+                    echo -e "${RED}Python venv not found.${NC}"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            7)
+                echo -e "\n${CYAN}Creating and dispatching full panel backup to Telegram...${NC}"
+                if [ -x /www/wwwroot/mhpanel/venv/bin/python ]; then
+                    /www/wwwroot/mhpanel/venv/bin/python -c "
+import sys; sys.path.insert(0, '/www/wwwroot/mhpanel')
+import time
+from app import load_telegram_config, create_system_backup, send_telegram_doc, get_server_public_ip, save_telegram_config
+cfg = load_telegram_config()
+if not cfg.get('bot_token') or not cfg.get('chat_id'):
+    print('ERROR: Please set bot token and chat ID first.')
+    sys.exit(1)
+b_res = create_system_backup(backup_type='full', note='ارسال مستقیم از منوی ترمینال')
+fp = b_res['filepath']
+srv_ip = get_server_public_ip()
+caption = f'''📦 <b>پشتیبان خودکار کامل MHPanel (Full Backup)</b>\n\n🌐 سرور: <code>{srv_ip}</code>\n📅 تاریخ: <code>{b_res['created_at']}</code>\n💾 حجم: <code>{b_res['size_formatted']}</code>\n⚡ شامل تمامی کانفیگ‌ها، پروتکل‌ها، کاربران و تنظیمات سیستم.'''
+ok, res = send_telegram_doc(fp, caption, cfg)
+if ok:
+    cfg['last_backup_sent'] = time.strftime('%Y-%m-%d %H:%M:%S')
+    save_telegram_config(cfg)
+    print('SUCCESS: Backup archive sent directly to your Telegram chat!')
+else:
+    print('ERROR:', res)
+"
+                fi
+                read -p "Press Enter to continue..."
+                ;;
+            8)
+                systemctl restart mhpanel
+                echo -e "${GREEN}✓ MHPanel service restarted to reload telegram monitoring thread.${NC}"
+                read -p "Press Enter to continue..."
+                ;;
+            0|"")
+                break
+                ;;
+        esac
+    done
 }
 
 # ==============================================================================
@@ -2624,16 +3160,18 @@ main_menu() {
         echo -e "  ${YELLOW}${BOLD}[6]  Change Panel Address, Port & Path (تغییر پورت و آدرس پنل)${NC}"
         echo -e "  [7]  Live System & Service Diagnostic Report"
         echo -e "  [8]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
-        echo -e "  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
-        echo -e "  [10] Web Dashboard Settings (Logs, Restart, 2FA & API Key)"
-        echo -e "  [11] SSL Certificate Management (Let's Encrypt & IP SAN)"
-        echo -e "  [12] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
-        echo -e "  [13] Backup & Restore Panel Configurations"
-        echo -e "  [14] Update Script & Panel"
-        echo -e "  ${RED}${BOLD}[15] Uninstall MH Panel from Server${NC}"
+        echo -e "  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub (مدیریت تانل‌ها)"
+        echo -e "  ${CYAN}[10] Web Server Integration & WordPress Camouflage (هماهنگی آپاچی/انجین‌یکس و استتار وردپرس)${NC}"
+        echo -e "  ${YELLOW}[11] Telegram Bot Notifications & Auto-Backup Hub (مدیریت ربات تلگرام و اعلان‌ها)${NC}"
+        echo -e "  [12] Web Dashboard Settings (Logs, Restart, 2FA & API Key)"
+        echo -e "  [13] SSL Certificate Management (Let's Encrypt & IP SAN)"
+        echo -e "  [14] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
+        echo -e "  [15] Backup & Restore Panel Configurations"
+        echo -e "  [16] Update Script & Panel"
+        echo -e "  ${RED}${BOLD}[17] Uninstall MH Panel from Server${NC}"
         echo -e "  [0]  Exit"
         echo -e "${BLUE}========================================================================${NC}"
-        read -p "Please select an option [0-15]: " opt
+        read -p "Please select an option [0-17]: " opt
 
         case "$opt" in
             1) wizard_full_automated ;;
@@ -2645,12 +3183,14 @@ main_menu() {
             7) menu_diagnostic_status ;;
             8) menu_vpn_protocols ;;
             9) menu_tunnel_tools ;;
-            10) menu_web_ui_settings ;;
-            11) menu_ssl_management ;;
-            12) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
-            13) backup_restore ;;
-            14) update_panel_repo ;;
-            15) uninstall_mhpanel ;;
+            10) menu_wordpress_camouflage ;;
+            11) menu_telegram_bot ;;
+            12) menu_web_ui_settings ;;
+            13) menu_ssl_management ;;
+            14) enable_bbr_and_sysctl; read -p "Press Enter to continue..." ;;
+            15) backup_restore ;;
+            16) update_panel_repo ;;
+            17) uninstall_mhpanel ;;
             0)
                 echo -e "\n${GREEN}Exiting MH Panel CLI. Have a great day!${NC}"
                 echo -e "Reminder: You can return to this menu at any time by typing ${CYAN}mhpanel${NC}\n"
@@ -2687,6 +3227,12 @@ elif [ "$1" = "--path" ] || [ "$1" = "path" ]; then
     change_panel_path "$2"
 elif [ "$1" = "--address" ] || [ "$1" = "address" ]; then
     change_panel_address "$2" "$3"
+elif [ "$1" = "--wp" ] || [ "$1" = "wordpress" ] || [ "$1" = "--wordpress" ]; then
+    menu_wordpress_camouflage
+elif [ "$1" = "--tg" ] || [ "$1" = "telegram" ] || [ "$1" = "--telegram" ]; then
+    menu_telegram_bot
+elif [ "$1" = "--tunnels" ] || [ "$1" = "tunnels" ]; then
+    menu_tunnel_tools
 elif [ "$1" = "--uninstall" ] || [ "$1" = "uninstall" ] || [ "$1" = "-u" ]; then
     uninstall_mhpanel "$2" "$3"
 else

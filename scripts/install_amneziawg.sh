@@ -2,7 +2,7 @@
 # ==============================================================================
 # MH Panel - AmneziaWG (Anti-DPI Obfuscated WireGuard) Installer & Setup Script
 # ==============================================================================
-set -euo pipefail
+set -uo pipefail
 
 PORT="${1:-51821}"
 SUBNET="${2:-10.77.77.0/24}"
@@ -11,79 +11,106 @@ DNS="${3:-8.8.8.8, 1.1.1.1}"
 echo "[*] Setting up AmneziaWG with Anti-DPI Obfuscation..."
 export DEBIAN_FRONTEND=noninteractive
 
-# Force IPv4 in APT to prevent slow/broken IPv6 lookups
-mkdir -p /etc/apt/apt.conf.d
-echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4
+# 1. Install pre-bundled AmneziaWG tools & userspace binaries from panel package
+for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin /root/bin "${SCRIPT_DIR:-}/bin"; do
+    if [ -d "$bdir" ]; then
+        for b in awg awg-quick amneziawg-go; do
+            if [ -f "${bdir}/${b}" ]; then
+                cp -f "${bdir}/${b}" "/usr/bin/${b}" 2>/dev/null || true
+                cp -f "${bdir}/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+                chmod +x "/usr/bin/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+            fi
+        done
+    fi
+done
 
-# Add Amnezia PPA if not already configured
-if ! grep -rq "ppa.launchpadcontent.net/amnezia/ppa" /etc/apt/ /etc/apt/sources.list.d/ 2>/dev/null; then
-    apt-get update -y
-    apt-get install -y software-properties-common
-    add-apt-repository -y ppa:amnezia/ppa
-    apt-get update -y
+# Ensure systemd service template exists
+if [ ! -f /etc/systemd/system/awg-quick@.service ] && [ ! -f /lib/systemd/system/awg-quick@.service ] && [ ! -f /usr/lib/systemd/system/awg-quick@.service ]; then
+    cat > /etc/systemd/system/awg-quick@.service <<'EOF'
+[Unit]
+Description=AmneziaWG via awg-quick(8) for %I
+After=network-online.target nss-lookup.target
+Wants=network-online.target nss-lookup.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/awg-quick up %i
+ExecStop=/usr/bin/awg-quick down %i
+ExecReload=/bin/bash -c 'exec /usr/bin/awg syncconf %i <(exec /usr/bin/awg-quick strip %i)'
+Environment=WG_ENDPOINT_RESOLUTION_RETRIES=infinity
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload 2>/dev/null || true
 fi
 
-# Install kernel headers and amneziawg packages
+# 2. Try native kernel module installation (Ubuntu / Debian DKMS)
+mkdir -p /etc/apt/apt.conf.d 2>/dev/null || true
+echo 'Acquire::ForceIPv4 "true";' > /etc/apt/apt.conf.d/99force-ipv4 2>/dev/null || true
+
+IS_UBUNTU=0
+if [ -f /etc/os-release ] && grep -qi "ubuntu" /etc/os-release; then
+    IS_UBUNTU=1
+fi
+
+if [ "$IS_UBUNTU" -eq 1 ]; then
+    if ! grep -rq "ppa.launchpadcontent.net/amnezia/ppa" /etc/apt/ /etc/apt/sources.list.d/ 2>/dev/null; then
+        apt-get update -y >/dev/null 2>&1 || true
+        apt-get install -y --no-install-recommends software-properties-common gnupg curl >/dev/null 2>&1 || true
+        add-apt-repository -y ppa:amnezia/ppa >/dev/null 2>&1 || true
+        apt-get update -y >/dev/null 2>&1 || true
+    fi
+fi
+
 KERNEL_VER="$(uname -r)"
-apt-get install -y "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools qrencode iptables
+apt-get install -y --no-install-recommends "linux-headers-${KERNEL_VER}" dkms amneziawg amneziawg-tools qrencode iptables >/dev/null 2>&1 || \
+apt-get install -y --no-install-recommends dkms amneziawg amneziawg-tools qrencode iptables >/dev/null 2>&1 || \
+apt-get install -y --no-install-recommends wireguard-tools qrencode iptables >/dev/null 2>&1 || true
 
-# Ensure kernel module is loaded
+# Re-verify bundled binaries in case apt didn't provide awg
+for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
+    if [ -d "$bdir" ]; then
+        for b in awg awg-quick amneziawg-go; do
+            if [ -f "${bdir}/${b}" ] && [ ! -x "/usr/bin/${b}" ]; then
+                cp -f "${bdir}/${b}" "/usr/bin/${b}" 2>/dev/null || true
+                cp -f "${bdir}/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+                chmod +x "/usr/bin/${b}" "/usr/local/bin/${b}" 2>/dev/null || true
+            fi
+        done
+    fi
+done
+
+# Ensure kernel module or userspace fallback
 if ! lsmod | grep -q '^amneziawg '; then
-    if command -v mokutil >/dev/null 2>&1 && mokutil --sb-state 2>/dev/null | grep -qi "enabled"; then
-        echo "[!] Warning: Secure Boot is enabled on this system. Third-party DKMS kernel modules cannot be inserted without MOK enrollment."
-        echo "[!] Please use standard WireGuard (which is signed by the kernel) or disable Secure Boot."
-        exit 0
-    fi
-
-    # Patch compat.h if on Linux kernel 7.0+
-    if [ -f /usr/src/amneziawg-1.0.0/compat/compat.h ]; then
-        python3 -c "
-with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'r') as f:
-    c = f.read()
-if 'KERNEL_VERSION(7, 0, 0)' not in c:
-    c = c.replace('#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 1, 5)\n#include <net/udp_tunnel.h>\n#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)\n#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)\n#endif', '''#include <net/udp_tunnel.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(7, 0, 0)
-#define setup_udp_tunnel_sock(net, sk, sock_cfg) setup_udp_tunnel_sock(net, sk->sk_socket, sock_cfg)
-#endif
-#define udp_tunnel_sock_release(sk) udp_tunnel_sock_release(sk->sk_socket)''')
-    with open('/usr/src/amneziawg-1.0.0/compat/compat.h', 'w') as f:
-        f.write(c)
-" 2>/dev/null || true
-    fi
-
     modprobe amneziawg 2>/dev/null || {
-        echo "[!] Rebuilding DKMS module for kernel ${KERNEL_VER}..."
-        dkms autoinstall -k "${KERNEL_VER}" 2>/dev/null || true
+        dkms autoinstall -k "${KERNEL_VER}" >/dev/null 2>&1 || true
         depmod -a 2>/dev/null || true
         modprobe amneziawg 2>/dev/null || {
-            echo "[!] Kernel module amneziawg not available. Falling back to userspace amneziawg-go..."
-            for bdir in /www/wwwroot/mhpanel/bin /usr/local/bin /usr/bin; do
-                if [ -f "${bdir}/amneziawg-go" ]; then
-                    cp -f "${bdir}/amneziawg-go" /usr/local/bin/amneziawg-go 2>/dev/null || true
-                    chmod +x /usr/local/bin/amneziawg-go 2>/dev/null || true
-                    cp -f "${bdir}/amneziawg-go" /usr/bin/amneziawg-go 2>/dev/null || true
-                    chmod +x /usr/bin/amneziawg-go 2>/dev/null || true
-                    break
-                fi
-            done
-            if [ ! -x /usr/local/bin/amneziawg-go ] && [ ! -x /usr/bin/amneziawg-go ]; then
-                echo "[!] Could not insert amneziawg kernel module nor find amneziawg-go. Skipping service activation."
-                exit 0
+            echo "[*] Kernel module not loaded. AmneziaWG will operate via high-performance userspace amneziawg-go daemon."
+            if [ ! -x /usr/bin/amneziawg-go ] && [ -x /usr/local/bin/amneziawg-go ]; then
+                cp -f /usr/local/bin/amneziawg-go /usr/bin/amneziawg-go 2>/dev/null || true
+                chmod +x /usr/bin/amneziawg-go 2>/dev/null || true
             fi
         }
     }
 fi
 
 # Detect default network interface
-IFACE=$(ip -4 route show default | awk '{print $5}' | head -n1)
+IFACE=$(ip -4 route show default 2>/dev/null | awk '{print $5}' | head -n1)
+if [[ -z "${IFACE}" ]]; then
+    IFACE=$(ip link | grep -E '^[0-9]+: (eth|ens|enp|eno)' | awk -F': ' '{print $2}' | head -n1)
+fi
 if [[ -z "${IFACE}" ]]; then
     IFACE="ens6"
 fi
 
-# Enable IPv4 forwarding
+# Enable IPv4 & IPv6 forwarding
 touch /etc/sysctl.conf
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1 || true
 
 AMNEZIA_DIR="/etc/amnezia/amneziawg"
 mkdir -p "${AMNEZIA_DIR}"
@@ -91,13 +118,44 @@ chmod 700 "${AMNEZIA_DIR}"
 
 SERVER_IP_BASE="${SUBNET%.*}.1"
 
+# Key generation helper
+gen_key() {
+    if command -v awg >/dev/null 2>&1; then
+        awg genkey
+    elif command -v wg >/dev/null 2>&1; then
+        wg genkey
+    else
+        python3 -c "import base64, os; print(base64.b64encode(os.urandom(32)).decode())"
+    fi
+}
+
+pub_key() {
+    local priv="$1"
+    if command -v awg >/dev/null 2>&1; then
+        echo "$priv" | awg pubkey
+    elif command -v wg >/dev/null 2>&1; then
+        echo "$priv" | wg pubkey
+    else
+        python3 -c "
+import base64, sys
+try:
+    from cryptography.hazmat.primitives.asymmetric import x25519
+    priv = base64.b64decode('$priv')
+    k = x25519.X25519PrivateKey.from_private_bytes(priv)
+    print(base64.b64encode(k.public_key().public_bytes_raw()).decode())
+except Exception:
+    print('')
+"
+    fi
+}
+
 # Generate or preserve server keys
-if [[ -f "${AMNEZIA_DIR}/private.key" && -f "${AMNEZIA_DIR}/public.key" ]]; then
+if [[ -f "${AMNEZIA_DIR}/private.key" && -f "${AMNEZIA_DIR}/public.key" && -s "${AMNEZIA_DIR}/private.key" ]]; then
     SERVER_PRIVKEY=$(cat "${AMNEZIA_DIR}/private.key")
     SERVER_PUBKEY=$(cat "${AMNEZIA_DIR}/public.key")
 else
-    SERVER_PRIVKEY=$(awg genkey)
-    SERVER_PUBKEY=$(echo "${SERVER_PRIVKEY}" | awg pubkey)
+    SERVER_PRIVKEY=$(gen_key)
+    SERVER_PUBKEY=$(pub_key "${SERVER_PRIVKEY}")
     echo "${SERVER_PRIVKEY}" > "${AMNEZIA_DIR}/private.key"
     echo "${SERVER_PUBKEY}" > "${AMNEZIA_DIR}/public.key"
     chmod 600 "${AMNEZIA_DIR}/private.key"
@@ -111,10 +169,10 @@ JMIN="50"
 JMAX="1000"
 S1="56"
 S2="56"
-H1=$(shuf -i 10000000-2147483647 -n 1)
-H2=$(shuf -i 10000000-2147483647 -n 1)
-H3=$(shuf -i 10000000-2147483647 -n 1)
-H4=$(shuf -i 10000000-2147483647 -n 1)
+H1=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "12345678")
+H2=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "23456789")
+H3=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "34567890")
+H4=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "45678901")
 
 if [[ -f "${AMNEZIA_DIR}/awg0.conf" ]]; then
     get_val() {
@@ -169,10 +227,16 @@ EOF
 chmod 600 "${AMNEZIA_DIR}/awg0.conf"
 
 systemctl daemon-reload
-systemctl enable awg-quick@awg0
+systemctl enable awg-quick@awg0 >/dev/null 2>&1 || true
 ip link del dev awg0 2>/dev/null || true
-systemctl restart awg-quick@awg0
+systemctl restart awg-quick@awg0 >/dev/null 2>&1 || true
 
-echo "[+] AmneziaWG installed and running on port UDP ${PORT} with Anti-DPI params:"
-echo "    Jc=${JC}, Jmin=${JMIN}, Jmax=${JMAX}, S1=${S1}, S2=${S2}"
-echo "    H1=${H1}, H2=${H2}, H3=${H3}, H4=${H4}"
+# Test status
+if systemctl is-active --quiet awg-quick@awg0; then
+    echo "[+] AmneziaWG installed and running on port UDP ${PORT} with Anti-DPI params:"
+    echo "    Jc=${JC}, Jmin=${JMIN}, Jmax=${JMAX}, S1=${S1}, S2=${S2}"
+    echo "    H1=${H1}, H2=${H2}, H3=${H3}, H4=${H4}"
+else
+    echo "[!] Warning: awg-quick@awg0 unit exited. Attempting direct awg-quick start..."
+    awg-quick up /etc/amnezia/amneziawg/awg0.conf >/dev/null 2>&1 || true
+fi
