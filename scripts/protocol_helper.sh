@@ -1112,6 +1112,8 @@ ExecStart=${accel_bin} -c /etc/accel-ppp.conf
 ExecReload=/bin/kill -HUP \$MAINPID
 Restart=always
 RestartSec=3
+TimeoutStopSec=5s
+KillMode=control-group
 
 [Install]
 WantedBy=multi-user.target
@@ -1124,6 +1126,7 @@ EOF
 }
 
 uninstall_sstp() {
+    killall -9 accel-pppd sstpd 2>/dev/null || true
     systemctl stop sstpd || true
     systemctl disable sstpd || true
     port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || echo "4443")
@@ -3093,6 +3096,46 @@ set_port_singbox() {
     fi
 }
 
+# ----------------- BADVPN UDPGW FORWARDER -----------------
+install_badvpn() {
+    local port=${1:-7300}
+    echo "Installing BadVPN UDPGW on port ${port}..."
+    for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons"; do
+        if [ -f "${bdir}/badvpn-udpgw" ]; then
+            cp -f "${bdir}/badvpn-udpgw" /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+            chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
+            break
+        fi
+    done
+    cat > /etc/systemd/system/badvpn.service <<EOF
+[Unit]
+Description=BadVPN UDPGW Service for Gaming & UDP Forwarding
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/badvpn-udpgw --listen-addr 127.0.0.1:${port} --max-clients 1000 --max-connections-for-client 20
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl daemon-reload
+    systemctl enable badvpn.service >/dev/null 2>&1
+    systemctl restart badvpn.service >/dev/null 2>&1 || true
+    echo "BadVPN UDP-GW installed on UDP port ${port}."
+}
+
+uninstall_badvpn() {
+    systemctl stop badvpn.service videocall.service 2>/dev/null || true
+    systemctl disable badvpn.service videocall.service 2>/dev/null || true
+    rm -f /etc/systemd/system/badvpn.service /etc/systemd/system/videocall.service
+    systemctl daemon-reload
+    echo "BadVPN service uninstalled."
+}
+
 # ----------------- GOOGLE APPS SCRIPT (GAS) FULL TUNNEL -----------------
 install_google_script() {
     local port=${1:-8448}
@@ -3711,6 +3754,7 @@ case "${ACTION}" in
             slipstream) install_slipstream "$ARG3" ;;
             mtproto) install_mtproto "$ARG3" "$ARG4" ;;
             pptp) install_pptp "$ARG3" ;;
+            badvpn) install_badvpn "$ARG3" ;;
             hysteria2) install_hysteria2 "$ARG3" ;;
             trojan) install_trojan "$ARG3" ;;
             naiveproxy) install_naiveproxy "$ARG3" ;;
@@ -3744,6 +3788,7 @@ case "${ACTION}" in
             slipstream) uninstall_slipstream ;;
             mtproto) uninstall_mtproto ;;
             pptp) uninstall_pptp ;;
+            badvpn) uninstall_badvpn ;;
             hysteria2) uninstall_hysteria2 ;;
             trojan) uninstall_trojan ;;
             naiveproxy) uninstall_naiveproxy ;;
