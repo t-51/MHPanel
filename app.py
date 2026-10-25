@@ -3478,15 +3478,45 @@ def get_user_active_connection_counts():
     return counts, sessions
 
 def get_server_public_ip():
+    # 1. Check cached server_ip file
+    try:
+        ip_file = "/etc/vpnpanel/server_ip.txt"
+        if os.path.exists(ip_file):
+            with open(ip_file, "r") as f:
+                saved = f.read().strip()
+                if saved and "." in saved and ":" not in saved and saved != "212.227.143.16":
+                    return saved
+    except Exception:
+        pass
+    # 2. Kernel routing table lookup for public default gateway
+    try:
+        r = subprocess.run(["ip", "route", "get", "1.1.1.1"], capture_output=True, text=True, timeout=2)
+        if r.returncode == 0:
+            m = re.search(r'src\s+(\d+\.\d+\.\d+\.\d+)', r.stdout)
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    # 3. Socket connect lookup
     try:
         import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
-        return ip
+        if ip and ip != "127.0.0.1":
+            return ip
     except Exception:
-        return "212.227.143.16"
+        pass
+    # 4. External IP APIs (IPv4 only)
+    try:
+        r2 = subprocess.run(["curl", "-4", "-s", "--max-time", "2", "https://api.ipify.org"], capture_output=True, text=True, timeout=3)
+        ip = r2.stdout.strip()
+        if ip and "." in ip and ":" not in ip:
+            return ip
+    except Exception:
+        pass
+    return "127.0.0.1"
 
 
 # --- Helper: Parse Bandwidth Rate Limit string (Mikrotik Rate-Limit to bits per second) ---
@@ -6736,10 +6766,12 @@ def get_server_domain():
         ip_file = "/etc/vpnpanel/server_ip.txt"
         if os.path.exists(ip_file):
             with open(ip_file, "r") as f:
-                return f.read().strip()
+                saved = f.read().strip()
+                if saved and "." in saved and saved != "212.227.143.16":
+                    return saved
     except Exception:
         pass
-    return "212.227.143.16"
+    return get_server_public_ip()
 
 def get_detected_domains():
     domains = set()
@@ -6775,7 +6807,7 @@ def api_system_domain_get():
         "domain": get_server_domain(),
         "saved_domain": saved,
         "all_domains": get_detected_domains(),
-        "ip": "212.227.143.16"
+        "ip": get_server_public_ip()
     })
 
 @app.route("/api/system/domain", methods=["POST"])
@@ -6854,7 +6886,7 @@ def api_mtproto_instances():
                             "active": active,
                             "connections": connections,
                             "server_domain": get_server_domain(),
-                            "server_ip": "212.227.143.16"
+                            "server_ip": get_server_public_ip()
                         })
                 except Exception:
                     pass
@@ -6976,7 +7008,7 @@ def api_tuic_config_get():
     zero_rtt = True
     alpn = ["h3"]
     domain = get_server_domain()
-    ip = "212.227.143.16"
+    ip = get_server_public_ip()
 
     if os.path.exists(TUIC_CONFIG_FILE):
         try:
@@ -7124,7 +7156,7 @@ def api_shadowsocks_config_get():
     method = "2022-blake3-aes-128-gcm"
     fast_open = True
     domain = get_server_domain()
-    ip = "212.227.143.16"
+    ip = get_server_public_ip()
 
     if os.path.exists(SHADOWSOCKS_CONFIG_FILE):
         try:
@@ -7252,7 +7284,7 @@ def api_shadowsocks_clients_get():
         return jsonify({"error": "Unauthorized"}), 401
     clients = load_shadowsocks_clients()
     domain = get_server_domain()
-    ip = "212.227.143.16"
+    ip = get_server_public_ip()
     port = 8388
     method = "2022-blake3-aes-128-gcm"
     server_password = ""
@@ -7358,7 +7390,7 @@ def api_proxy_clients_get():
         return jsonify({"error": "Unauthorized"}), 401
     users = load_proxy_users()
     domain = get_server_domain()
-    ip = "212.227.143.16"
+    ip = get_server_public_ip()
     socks_port = 1080
     http_port = 3128
     
@@ -8500,7 +8532,7 @@ DataDirectory /var/lib/tor
                 pass
 
     cfg["fingerprint"] = fingerprint or "GENERATING_AFTER_FIRST_CONNECT"
-    server_ip = "212.227.143.16"
+    server_ip = get_server_domain() or get_server_public_ip()
     cfg["server_ip"] = server_ip
     cfg["bridge_line"] = f"Bridge obfs4 {server_ip}:{cfg.get('bridge_port')} {cfg.get('fingerprint')} cert=AUTO iat-mode=0"
     cfg["installed"] = is_installed("tor")
@@ -9230,34 +9262,38 @@ def validate_key_pair(cert_pem, key_pem):
 def load_imported_certs():
     if not os.path.exists(IMPORTED_CERTS_FILE):
         defaults = []
-        le_crt = "/etc/letsencrypt/live/vpn.kigaping.com/fullchain.pem"
-        le_key = "/etc/letsencrypt/live/vpn.kigaping.com/privkey.pem"
-        if os.path.exists(le_crt) and os.path.exists(le_key):
+        le_dir = "/etc/letsencrypt/live"
+        if os.path.exists(le_dir):
             try:
-                with open(le_crt, "r", encoding="utf-8") as f:
-                    info = parse_cert_info(f.read())
-                defaults.append({
-                    "id": "sys_letsencrypt",
-                    "name": "گواهی رسمی Let's Encrypt (vpn.kigaping.com)",
-                    "type": "custom",
-                    "type_label": "گواهی رسمی Let's Encrypt",
-                    "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "common_name": info.get("common_name", "vpn.kigaping.com"),
-                    "subject": info.get("subject", ""),
-                    "issuer": info.get("issuer", "Let's Encrypt Authority"),
-                    "valid_from": info.get("valid_from", ""),
-                    "valid_until": info.get("valid_until", ""),
-                    "days_remaining": info.get("days_remaining", 90),
-                    "is_expired": info.get("is_expired", False),
-                    "sans": info.get("sans", []),
-                    "server_crt_path": le_crt,
-                    "server_key_path": le_key,
-                    "ca_path": VPN_CA_CERT if os.path.exists(VPN_CA_CERT) else None,
-                    "client_crt_path": None,
-                    "client_key_path": None,
-                    "has_client": False,
-                    "assigned_protocols": ["sstp", "ocserv"]
-                })
+                for d in os.listdir(le_dir):
+                    le_crt = os.path.join(le_dir, d, "fullchain.pem")
+                    le_key = os.path.join(le_dir, d, "privkey.pem")
+                    if os.path.exists(le_crt) and os.path.exists(le_key):
+                        with open(le_crt, "r", encoding="utf-8") as f:
+                            info = parse_cert_info(f.read())
+                        defaults.append({
+                            "id": f"sys_letsencrypt_{d}",
+                            "name": f"گواهی رسمی Let's Encrypt ({d})",
+                            "type": "custom",
+                            "type_label": "گواهی رسمی Let's Encrypt",
+                            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                            "common_name": info.get("common_name", d),
+                            "subject": info.get("subject", ""),
+                            "issuer": info.get("issuer", "Let's Encrypt Authority"),
+                            "valid_from": info.get("valid_from", ""),
+                            "valid_until": info.get("valid_until", ""),
+                            "days_remaining": info.get("days_remaining", 90),
+                            "is_expired": info.get("is_expired", False),
+                            "sans": info.get("sans", []),
+                            "server_crt_path": le_crt,
+                            "server_key_path": le_key,
+                            "ca_path": VPN_CA_CERT if os.path.exists(VPN_CA_CERT) else None,
+                            "client_crt_path": None,
+                            "client_key_path": None,
+                            "has_client": False,
+                            "active_for": ["cisco", "sstp", "singbox"],
+                            "assigned_protocols": ["sstp", "ocserv"]
+                        })
             except Exception:
                 pass
 
@@ -9326,12 +9362,18 @@ def get_protocol_certificate(protocol):
                     "type": c.get("type")
                 }
     if protocol == "sstp":
-        for cp, kp in [
-            ("/etc/letsencrypt/live/vpn.kigaping.com/fullchain.pem", "/etc/letsencrypt/live/vpn.kigaping.com/privkey.pem"),
-            ("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem", "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem"),
-            (VPN_SERVER_CERT, VPN_SERVER_KEY),
-            (PANEL_CERT, PANEL_KEY)
-        ]:
+        srv_dom = get_server_domain()
+        check_list = []
+        if srv_dom:
+            check_list.append((f"/etc/letsencrypt/live/{srv_dom}/fullchain.pem", f"/etc/letsencrypt/live/{srv_dom}/privkey.pem"))
+        if os.path.exists("/etc/letsencrypt/live"):
+            try:
+                for d in os.listdir("/etc/letsencrypt/live"):
+                    check_list.append((f"/etc/letsencrypt/live/{d}/fullchain.pem", f"/etc/letsencrypt/live/{d}/privkey.pem"))
+            except Exception:
+                pass
+        check_list.extend([(VPN_SERVER_CERT, VPN_SERVER_KEY), (PANEL_CERT, PANEL_KEY)])
+        for cp, kp in check_list:
             if os.path.exists(cp) and os.path.exists(kp):
                 return {"cert_path": cp, "key_path": kp, "ca_path": VPN_CA_CERT, "id": "default", "name": "System Default Certificate"}
     return {"cert_path": PANEL_CERT, "key_path": PANEL_KEY, "ca_path": VPN_CA_CERT, "id": "panel_ssl", "name": "Panel Web SSL"}
@@ -10227,6 +10269,7 @@ def api_servers_install():
 OPENVPN_MULTIPORT_FILE = "/www/wwwroot/mhpanel/openvpn_multiport.json"
 
 def get_default_openvpn_multiport_config():
+    host = get_server_domain() or get_server_public_ip()
     return {
         "udp_enabled": True,
         "tcp_enabled": True,
@@ -10234,7 +10277,7 @@ def get_default_openvpn_multiport_config():
         "primary_tcp_port": 1194,
         "extra_udp_ports": [],
         "extra_tcp_ports": [9443],
-        "server_host": "212.227.143.16",
+        "server_host": host,
         "scramble_enabled": False,
         "scramble_key": "openvpn_xor"
     }
@@ -10243,7 +10286,10 @@ def get_openvpn_multiport_config():
     if os.path.exists(OPENVPN_MULTIPORT_FILE):
         try:
             with open(OPENVPN_MULTIPORT_FILE, "r") as f:
-                return json.load(f)
+                cfg = json.load(f)
+                if cfg.get("server_host") in ["212.227.143.16", "", "127.0.0.1"]:
+                    cfg["server_host"] = get_server_domain() or get_server_public_ip()
+                return cfg
         except Exception:
             pass
     cfg = get_default_openvpn_multiport_config()
@@ -10408,13 +10454,25 @@ def api_get_openvpn_config():
     tcp_active = get_service_is_active("openvpn-server@server-tcp")
     udpspeeder_active = get_service_is_active("udpspeeder-openvpn")
     
-    real_ca = "/etc/openvpn/server/ca.crt" if os.path.exists("/etc/openvpn/server/ca.crt") else VPN_CA_CERT
-    ca_details = get_certificate_details(real_ca)
-    ca_details["has_tc_key"] = os.path.exists("/etc/openvpn/server/tc.key") or os.path.exists("/etc/openvpn/tls-crypt.key")
+    real_ca = get_openvpn_ca_path()
+    ca_details = get_certificate_details(real_ca) if real_ca else {"exists": False}
+    tc_p = get_openvpn_tc_path()
+    ca_details["has_tc_key"] = bool(tc_p and os.path.exists(tc_p))
 
-    settings = get_protocol_settings()
-    server_ip = settings.get("wireguard_server_ip", "212.227.143.16")
-    domains = ["212.227.143.16", "kigaping.com", "ovpn.kigaping.com", "vpn.kigaping.com"]
+    pub_ip = get_server_public_ip()
+    srv_dom = get_server_domain()
+    detected_domains = get_detected_domains()
+    all_doms = []
+    if srv_dom and srv_dom != pub_ip:
+        all_doms.append(srv_dom)
+    if pub_ip:
+        all_doms.append(pub_ip)
+    for d in detected_domains:
+        if d not in all_doms:
+            all_doms.append(d)
+
+    server_ip = srv_dom or pub_ip
+    domains = all_doms if all_doms else ([pub_ip] if pub_ip else ["127.0.0.1"])
     
     return jsonify({
         "success": True,
@@ -10426,7 +10484,8 @@ def api_get_openvpn_config():
             "freeradius_active": get_service_is_active("freeradius")
         },
         "ca_details": ca_details,
-        "server_ip": server_ip,
+        "server_ip": pub_ip,
+        "server_domain": srv_dom,
         "domains": domains
     })
 
@@ -11251,9 +11310,21 @@ def api_get_ssh_config():
     if not slowdns_pub:
         slowdns_pub = "b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31"
 
+    pub_ip = get_server_public_ip()
+    srv_dom = get_server_domain()
+    detected_domains = get_detected_domains()
+    hosts = []
+    if srv_dom and srv_dom != pub_ip:
+        hosts.append(srv_dom)
+    if pub_ip:
+        hosts.append(pub_ip)
+    for d in detected_domains:
+        if d not in hosts:
+            hosts.append(d)
+
     config_data = {
-        "server_ip": "212.227.143.16",
-        "hostnames": ["vpn.kigaping.com", "ssh.kigaping.com"],
+        "server_ip": pub_ip,
+        "hostnames": hosts if hosts else ([pub_ip] if pub_ip else ["127.0.0.1"]),
         "direct_ports": [22, 2053, 443],
         "stunnel_ports": [9443, 2087, 443],
         "ws_ports": [80, 8088, 443, 8444, 2083],
@@ -11418,9 +11489,20 @@ def ocserv_client_tracker():
 
 def get_ocserv_config_data():
     conf_path = "/etc/ocserv/ocserv.conf"
-    le_cert = "/etc/letsencrypt/live/vpn.kigaping.com/fullchain.pem"
-    le_key = "/etc/letsencrypt/live/vpn.kigaping.com/privkey.pem"
-    has_le = (os.path.exists(le_cert) and os.path.exists(le_key)) or (os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem"))
+    srv_dom = get_server_domain()
+    le_cert = f"/etc/letsencrypt/live/{srv_dom}/fullchain.pem" if srv_dom else ""
+    le_key = f"/etc/letsencrypt/live/{srv_dom}/privkey.pem" if srv_dom else ""
+    has_le = bool(le_cert and le_key and os.path.exists(le_cert) and os.path.exists(le_key))
+    if not has_le and os.path.exists("/etc/letsencrypt/live"):
+        try:
+            for d in os.listdir("/etc/letsencrypt/live"):
+                fc = os.path.join("/etc/letsencrypt/live", d, "fullchain.pem")
+                pk = os.path.join("/etc/letsencrypt/live", d, "privkey.pem")
+                if os.path.exists(fc) and os.path.exists(pk):
+                    has_le = True
+                    break
+        except Exception:
+            pass
 
     config = {
         "tcp_port": 10443,
@@ -11430,7 +11512,7 @@ def get_ocserv_config_data():
         "camouflage_secret": "secure_npu_bypass",
         "camouflage_realm": "Restricted Area",
         "cert_type": "letsencrypt" if has_le else "self_signed",
-        "default_domain": "vpn.kigaping.com",
+        "default_domain": srv_dom or get_server_public_ip(),
         "ipv4_network": "10.30.30.0",
         "ipv4_netmask": "255.255.255.0",
         "dns1": "8.8.8.8",
@@ -14530,10 +14612,15 @@ def api_ikev2_config_get():
                 for line in content.splitlines():
                     line = line.strip()
                     if line.startswith(f"{key}=") or line.startswith(f"{key} ="):
-                        config[key] = line.split("=", 1)[1].strip()
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if key == "leftid" and val in ["212.227.143.16", ""]:
+                            val = get_server_domain() or get_server_public_ip()
+                        config[key] = val
         except Exception:
             pass
 
+    config["server_ip"] = get_server_public_ip()
+    config["server_domain"] = get_server_domain()
     return jsonify(config)
 
 @app.route("/api/ikev2/config", methods=["POST"])
@@ -14766,14 +14853,16 @@ def api_ikev2_download_ca_crt():
 @app.route("/api/ikev2/windows-setup.ps1", methods=["GET"])
 def api_ikev2_windows_setup():
     conf_path = "/etc/ipsec.conf"
-    server_address = "212.227.143.16"
+    server_address = get_server_domain() or get_server_public_ip()
     if os.path.exists(conf_path):
         try:
             with open(conf_path, "r") as f:
                 for line in f.read().splitlines():
                     line = line.strip()
                     if line.startswith("leftid=") or line.startswith("leftid ="):
-                        server_address = line.split("=", 1)[1].strip()
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if val and val != "212.227.143.16":
+                            server_address = val
                         break
         except Exception:
             pass
@@ -14907,14 +14996,16 @@ def api_ikev2_client_p12():
 @app.route("/api/ikev2/mobileconfig", methods=["GET"])
 def api_ikev2_mobileconfig():
     conf_path = "/etc/ipsec.conf"
-    server_address = "212.227.143.16"
+    server_address = get_server_domain() or get_server_public_ip()
     if os.path.exists(conf_path):
         try:
             with open(conf_path, "r") as f:
                 for line in f.read().splitlines():
                     line = line.strip()
                     if line.startswith("leftid=") or line.startswith("leftid ="):
-                        server_address = line.split("=", 1)[1].strip()
+                        val = line.split("=", 1)[1].strip().strip('"').strip("'")
+                        if val and val != "212.227.143.16":
+                            server_address = val
                         break
         except Exception:
             pass
@@ -16208,17 +16299,6 @@ def save_tunnels_data(data):
         update_boot_tunnels_script(data)
     except Exception as e:
         print(f"Error saving tunnels config: {e}")
-
-def get_server_public_ip():
-    try:
-        r = subprocess.run(["ip", "route", "get", "1.1.1.1"], capture_output=True, text=True)
-        if r.returncode == 0:
-            m = re.search(r'src\s+(\d+\.\d+\.\d+\.\d+)', r.stdout)
-            if m:
-                return m.group(1)
-    except Exception:
-        pass
-    return "212.227.143.16"
 
 def get_server_public_ipv6():
     try:
@@ -20144,10 +20224,10 @@ def build_default_singbox_full_suite():
 
     cert_path = "/etc/vpnpanel/ssl/panel.crt"
     key_path = "/etc/vpnpanel/ssl/panel.key"
-    sni_domain = "mhpanel.kigaping.com"
-    le_cert = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem"
-    le_key = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem"
-    if os.path.exists(le_cert) and os.path.exists(le_key):
+    sni_domain = get_server_domain() or "mhpanel.local"
+    le_cert = f"/etc/letsencrypt/live/{sni_domain}/fullchain.pem" if sni_domain else ""
+    le_key = f"/etc/letsencrypt/live/{sni_domain}/privkey.pem" if sni_domain else ""
+    if le_cert and le_key and os.path.exists(le_cert) and os.path.exists(le_key):
         cert_path = le_cert
         key_path = le_key
     elif not os.path.exists(cert_path) or not os.path.exists(key_path):
@@ -22997,8 +23077,9 @@ def generate_cloudflare_worker_code(cfg):
     server_ip = get_server_public_ip()
     port = cfg.get("port", 8448)
     secret = cfg.get("secret", "")
-    has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
-    default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}:{port}"
+    srv_dom = get_server_domain()
+    has_domain_ssl = os.path.exists(f"/etc/letsencrypt/live/{srv_dom}/fullchain.pem") if srv_dom else False
+    default_url = f"https://{srv_dom}" if (has_domain_ssl and srv_dom) else f"http://{server_ip}:{port}"
     custom_url = cfg.get("tunnel_server_url", "").strip()
     vps_url = custom_url or default_url
 
@@ -23201,8 +23282,9 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443",
     cfg = get_gas_config()
     acc_id = account_id or cfg.get("active_account_id") or "acc_primary"
     custom_url = cfg.get("tunnel_server_url", "").strip()
-    has_domain_ssl = os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem")
-    default_url = "https://mhpanel.kigaping.com" if has_domain_ssl else f"http://{server_ip}"
+    srv_dom = get_server_domain()
+    has_domain_ssl = os.path.exists(f"/etc/letsencrypt/live/{srv_dom}/fullchain.pem") if srv_dom else False
+    default_url = f"https://{srv_dom}" if (has_domain_ssl and srv_dom) else f"http://{server_ip}"
     tunnel_node_url = custom_url or default_url
 
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"

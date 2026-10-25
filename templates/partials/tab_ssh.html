@@ -167,8 +167,8 @@
 <span style="font-size:11px; background:#e2e8f0; color:#334155; padding:2px 8px; border-radius:6px; font-weight:600;">Server Details</span>
 </div>
 <div style="font-size:12px; color:var(--text-muted); display:flex; flex-direction:column; gap:4px;">
-<div><span data-i18n="ssh_server_ip">آی‌پی سرور:</span> <code style="direction:ltr; font-family:'JetBrains Mono',monospace;">212.227.143.16</code></div>
-<div><span data-i18n="ssh_item_5">دامنه سرور:</span> <code style="direction:ltr; font-family:'JetBrains Mono',monospace;">vpn.kigaping.com</code></div>
+<div><span data-i18n="ssh_server_ip">آی‌پی سرور:</span> <code id="ssh-server-ip-display" style="direction:ltr; font-family:'JetBrains Mono',monospace;">--</code></div>
+<div><span data-i18n="ssh_item_5">دامنه سرور:</span> <code id="ssh-server-domain-display" style="direction:ltr; font-family:'JetBrains Mono',monospace;">--</code></div>
 <div><span data-i18n="ssh_authentication_protocol">پروتکل احراز هویت:</span> <strong>FreeRADIUS + Linux PAM</strong></div>
 <div data-i18n-html="elem_tab_ssh_46">دسترسی کاربر: <strong data-i18n="ssh_saks_5_safe_without_shell">ساکس ۵ ایمن (بدون شل روت)</strong></div>
 </div>
@@ -231,10 +231,10 @@
                             برای دورزدن فیلترینگ با پورت ۴۴۳ حتماً باید SNI متفاوت از سیسکو وارد کنید:
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code> یا <code>212.227.143.16</code></li>
+<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code id="ssh-guide-host">دامنه یا IP سرور</code></li>
 <li><strong data-i18n="ssh_port">Port (پورت):</strong> <code>443</code></li>
 <li data-i18n-html="elem_tab_ssh_52"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> روشن (فعال)</li>
-<li data-i18n-html="auto_strong_sni_strong_code_ssh_kig"><strong>SNI:</strong> حتماً <code>ssh.kigaping.com</code></li>
+<li data-i18n-html="auto_strong_sni_strong_code_ssh_kig"><strong>SNI:</strong> دامنه اختصاصی SSH (تنظیم شده در مالتی‌پلکسر)</li>
 </ul>
 </div>
 <!-- Method 3: WebSocket (WS / WSS) CDN -->

@@ -30,7 +30,7 @@
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="ikev2_server_id" style="color: var(--text-muted); font-size: 11px;">شناسه سرور (Server ID)</div>
-<div id="ikev2-top-server-id" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">212.227.143.16</div>
+<div id="ikev2-top-server-id" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">--</div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="ovpn_authentication_method" style="color: var(--text-muted); font-size: 11px;">شیوه احراز هویت</div>
@@ -208,7 +208,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ikev2_server_id_leftid">شناسه سرور (Server ID / LeftID)</label>
-<input class="form-input" id="ike-leftid-input" placeholder="212.227.143.16" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+<input class="form-input" id="ike-leftid-input" placeholder="آدرس سرور یا دامنه" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
 </div>
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ikev2_auth_method">متد احراز هویت (Auth Method)</label>
@@ -325,7 +325,7 @@
                     اگر از دامنه اختصاصی استفاده می‌کنید (مانند <code>mhpanel.kigaping.com</code>)، آن را در فیلد زیر وارد کنید تا سرتفیکیت معتبر برای آن صادر شده و در شناسه‌ی سرور تنظیم گردد.
                 </p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-<input class="form-input" data-i18n-placeholder="ikev2_example_mhpanel_kigaping_com_212" id="ike-new-cert-domain" placeholder="مثال: mhpanel.kigaping.com یا 212.227.143.16" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+<input class="form-input" data-i18n-placeholder="ikev2_example_domain_or_ip" id="ike-new-cert-domain" placeholder="مثال: vpn.domain.com یا IP سرور" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
 <button class="btn" onclick="renewIkev2Certificate()" style="width:auto; padding:10px 20px;" type="button">
 <i class="btn-icon" data-lucide="sparkles"></i> <span data-i18n="ikev2_issuing_applying_new_certificates">صدور و اعمال سرتفیکیت جدید</span>
 </button>
@@ -364,7 +364,7 @@
 <div style="margin-top:14px; border-top:1px dashed #cbd5e1; padding-top:10px;">
 <div data-i18n="ikev2_manual_powershell_command" style="font-size:11px; font-weight:700; color:var(--text-muted); margin-bottom:4px;">دستور پاورشل دستی:</div>
 <div id="win-ps-command" style="background:#0f172a; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:10px; padding:8px 10px; border-radius:6px; overflow-x:auto; direction:ltr; text-align:left;">
-                                Add-VpnConnection -Name "MH-IKEv2" -ServerAddress "212.227.143.16" -TunnelType Ikev2 -AuthenticationMethod EAP
+                                Add-VpnConnection -Name "MH-IKEv2" -ServerAddress "SERVER_ADDRESS" -TunnelType Ikev2 -AuthenticationMethod EAP
                             </div>
 <button class="btn btn-secondary btn-sm" onclick="copyWinCommand()" style="width:100%; margin-top:6px; font-size:11px;" type="button">
 <i class="btn-icon" data-lucide="copy"></i> <span data-i18n="ovpn_copy_connection_command">کپی دستور اتصال</span>
@@ -415,7 +415,7 @@
 </a>
 </div>
 <div data-i18n-html="elem_tab_ikev2_16" style="margin-top:14px; font-size:11px; color:var(--text-muted); background:#f1f5f9; padding:8px; border-radius:6px; text-align:center;">
-                            آدرس سرور: <strong id="android-server-display">212.227.143.16</strong> | متد: EAP
+                            آدرس سرور: <strong id="android-server-display">--</strong> | متد: EAP
                         </div>
 </div>
 </div>

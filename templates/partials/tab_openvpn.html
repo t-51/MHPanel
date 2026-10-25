@@ -33,7 +33,7 @@
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
 <div data-i18n="ovpn_server_id_domain" style="color: var(--text-muted); font-size: 11px;">شناسه و دامنه سرور</div>
 <div id="ovpn-top-server-id" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;">
-                        212.227.143.16
+                        --
                     </div>
 </div>
 <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
@@ -125,7 +125,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ovpn_server_address_domain_host_domain">آدرس سرور / دامنه (Host / Domain)</label>
-<input class="form-input" id="ovpn-host-input" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="212.227.143.16"/>
+<input class="form-input" id="ovpn-host-input" placeholder="آدرس سرور یا دامنه" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value=""/>
 </div>
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ovpn_authentication_method_auth_engine">شیوه احراز هویت (Auth Engine)</label>
@@ -311,7 +311,7 @@
                     اگر از دامنه اختصاصی مانند <code>kigaping.com</code> استفاده می‌کنید، آن را وارد کرده و اعمال نمایید تا شناسه‌ی سرور به‌روزرسانی شود.
                 </p>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-<input class="form-input" data-i18n-placeholder="ovpn_example_kigaping_com_212_227" id="ovpn-new-cert-domain" placeholder="مثال: kigaping.com یا 212.227.143.16" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+<input class="form-input" data-i18n-placeholder="ovpn_example_domain_or_ip" id="ovpn-new-cert-domain" placeholder="مثال: vpn.domain.com یا IP سرور" style="flex:1; min-width:240px; padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
 <button class="btn" onclick="renewOpenvpnCertificate()" style="width:auto; padding:10px 20px;" type="button">
 <i class="btn-icon" data-lucide="sparkles"></i> <span data-i18n="ovpn_update_server_id">به‌روزرسانی شناسه سرور</span>
 </button>
@@ -350,11 +350,11 @@
 <div>
 <label class="form-label" data-i18n="ovpn_host_domain_addresses" style="font-size: 12px; margin-bottom: 6px;">آدرس هاست / دامنه:</label>
 <div style="display: flex; gap: 6px;">
-<input class="form-input" id="ovpn-export-host" placeholder="212.227.143.16" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 13px; height: 42px; padding: 0 14px; border-radius: 10px; flex: 1;" type="text" value="212.227.143.16"/>
-<button class="btn btn-secondary btn-sm" data-i18n-html="ovpn_domain" data-i18n-title="ovpn_item_11" onclick="setOvpnExportDomain('kigaping.com')" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از دامنه" type="button">
+<input class="form-input" id="ovpn-export-host" placeholder="دامنه یا IP سرور" style="direction: ltr; font-family: 'JetBrains Mono'; font-size: 13px; height: 42px; padding: 0 14px; border-radius: 10px; flex: 1;" type="text" value=""/>
+<button class="btn btn-secondary btn-sm" data-i18n-html="ovpn_domain" data-i18n-title="ovpn_item_11" onclick="useOvpnDomain()" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از دامنه" type="button">
                                 دامنه
                             </button>
-<button class="btn btn-secondary btn-sm" data-i18n-title="ovpn_use_ip" onclick="setOvpnExportDomain('212.227.143.16')" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از IP" type="button">
+<button class="btn btn-secondary btn-sm" data-i18n-title="ovpn_use_ip" onclick="useOvpnIp()" style="padding: 0 12px; font-size: 11.5px; height: 42px;" title="استفاده از IP" type="button">
                                 IP
                             </button>
 </div>
