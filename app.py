@@ -8365,8 +8365,45 @@ def api_stuntls_config():
     cfg["installed"] = is_installed("stuntls")
     cfg["active"] = get_protocol_active("stuntls")
     cfg["connections"] = get_connection_count("stuntls")
-    cfg["client_cmd"] = f"stuntls-client -server {get_server_domain()}:{cfg.get('port')} -key {cfg.get('secret')} -l 1080"
+    srv = get_server_domain() or get_server_public_ip()
+    port = cfg.get('port', 3478)
+    sec = cfg.get('secret', 'stuntls-secret')
+    panel_port = get_panel_port()
+    cfg["server_host"] = srv
+    cfg["client_cmd"] = f"python stuntls-client.py -server {srv}:{port} -key {sec} -l 1080"
+    cfg["client_cmd_powershell"] = f"Invoke-WebRequest -Uri \"https://{srv}:{panel_port}/download/stuntls-client.py\" -OutFile \"stuntls-client.py\" -SkipCertificateCheck; python stuntls-client.py -server {srv}:{port} -l 1080"
+    cfg["client_cmd_ssh"] = f"ssh -D 1080 -N -p {port} root@{srv}"
     return jsonify(cfg)
+
+@app.route("/download/stuntls-client.py", methods=["GET"])
+def api_download_stuntls_client_py():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/stuntls-client.py"
+    if not os.path.exists(path):
+        path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.py")
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="stuntls-client.py", mimetype="text/x-python")
+    return "File not found", 404
+
+@app.route("/download/stuntls-client.bat", methods=["GET"])
+def api_download_stuntls_client_bat():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/stuntls-client.bat"
+    if not os.path.exists(path):
+        path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.bat")
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="stuntls-client.bat", mimetype="application/x-bat")
+    return "File not found", 404
+
+@app.route("/download/stuntls-client.ps1", methods=["GET"])
+def api_download_stuntls_client_ps1():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/stuntls-client.ps1"
+    if not os.path.exists(path):
+        path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.ps1")
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="stuntls-client.ps1", mimetype="text/plain")
+    return "File not found", 404
 
 
 # --- NoizDNS Protocol API ---

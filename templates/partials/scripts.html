@@ -16775,6 +16775,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("stuntls-cfg-secret")) document.getElementById("stuntls-cfg-secret").value = data.secret;
             if (document.getElementById("stuntls-cfg-upstream")) document.getElementById("stuntls-cfg-upstream").value = data.upstream;
             if (document.getElementById("stuntls-client-cmd")) document.getElementById("stuntls-client-cmd").value = data.client_cmd || "";
+            if (document.getElementById("stuntls-client-ps-cmd")) document.getElementById("stuntls-client-ps-cmd").value = data.client_cmd_powershell || "";
+            if (document.getElementById("stuntls-client-ssh-cmd")) document.getElementById("stuntls-client-ssh-cmd").value = data.client_cmd_ssh || "";
             if (document.getElementById("stuntls-cfg-mode")) document.getElementById("stuntls-cfg-mode").value = data.mode || "webrtc_stun";
             if (document.getElementById("stuntls-cfg-jitter")) document.getElementById("stuntls-cfg-jitter").checked = Boolean(data.jitter);
 

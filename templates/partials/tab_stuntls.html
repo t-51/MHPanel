@@ -251,29 +251,110 @@
             </div>
         </div>
 
-        <!-- Client Guide Card -->
-        <div class="glass-card config-card">
-            <div class="config-header">
-                <h3 class="config-title">
-                    <i data-lucide="terminal" style="color: #a855f7; width: 20px; height: 20px;"></i>
-                    <span data-i18n="client_guide">دستور اجرای کلاینت و تونل محلی StunTLS</span>
-                </h3>
+        <!-- Client Connection & Setup Hub -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(168, 85, 247, 0.3);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(168, 85, 247, 0.15); color:#c084fc; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="download-cloud" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                            دانلود ابزارهای کلاینت و راهنمای روش‌های اتصال StunTLS
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            دانلود مستقیم اسکریپت‌های کلاینت برای ویندوز، مک و لینوکس یا اتصال مستقیم بدون کلاینت
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div style="display:flex; flex-direction:column; gap:14px;">
-                <div style="font-size:12.5px; color:var(--text-muted); line-height:1.7;" data-i18n="stuntls_guide">
-                    کلاینت StunTLS یک تونل رمزنگاری شده را با هدرهای تصادفی VoIP/STUN روی پورت ۳۴۷۸ ایجاد کرده و یک پورت لوکال SOCKS5 به شما تحویل می‌دهد.
+            <!-- Download Client Files Buttons -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <a href="/download/stuntls-client.py" class="btn" style="background:#0284c7; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
+                    <i data-lucide="file-code" style="width:18px; height:18px;"></i>
+                    <span>دانلود اسکریپت کلاینت (stuntls-client.py)</span>
+                </a>
+                <a href="/download/stuntls-client.bat" class="btn" style="background:#4f46e5; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
+                    <i data-lucide="terminal" style="width:18px; height:18px;"></i>
+                    <span>دانلود لانچر ویندوز (stuntls-client.bat)</span>
+                </a>
+                <a href="/download/stuntls-client.ps1" class="btn" style="background:#059669; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
+                    <i data-lucide="shield-check" style="width:18px; height:18px;"></i>
+                    <span>دانلود اسکریپت پاورشل (stuntls-client.ps1)</span>
+                </a>
+            </div>
+
+            <!-- Tabbed Connection Methods -->
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                
+                <!-- Method 1: Client Obfuscation -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:12px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                        <span style="background:rgba(168,85,247,0.2); color:#c084fc; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">روش اول (پیشنهادی)</span>
+                        <strong style="font-size:13.5px; color:var(--text-main);">اتصال با کلاینت استتار StunTLS (شبیه‌سازی کامل تماس WebRTC)</strong>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 12px 0;">
+                        این کلاینت تمام ترافیک خروجی را با هدر رسمی RFC 5389 استتار کرده و پورت لوکال <code>127.0.0.1:1080</code> را به عنوان پروکسی محلی به شما تحویل می‌دهد.
+                    </p>
+
+                    <div style="display:flex; flex-direction:column; gap:10px;">
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۱. دستور دانلود و اجرای خودکار در PowerShell ویندوز (تک‌خطی - بدون نیاز به دانلود دستی):</label>
+                            <div style="display:flex; gap:8px;">
+                                <input class="form-input" id="stuntls-client-ps-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#38bdf8;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-ps-cmd'); showToast('دستور پاورشل کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                                    <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۲. دستور اجرای مستقیم پایتون (ویندوز / مک / لینوکس پس از دانلود فایل):</label>
+                            <div style="display:flex; gap:8px;">
+                                <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#e9d5ff;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                                    <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.25); border-radius:8px; padding:10px 14px; font-size:12px; color:var(--text-main); line-height:1.6;">
+                            <strong>نحوه مصرف پس از اجرا:</strong> پورت <code>127.0.0.1:1080</code> روی کامپیوتر شما باز است. آن را در پروکسی تلگرام، مرورگر یا Proxifier قرار دهید تا به اینترنت آزاد متصل شوید.
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="form-label" data-i18n="stuntls_cmd_label">دستور اجرای کلاینت CLI (ویندوز / لینوکس / مک):</label>
+                <!-- Method 2: Direct SSH over Port 3478 -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:12px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                        <span style="background:rgba(14,165,233,0.2); color:#38bdf8; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">روش دوم</span>
+                        <strong style="font-size:13.5px; color:var(--text-main);">اتصال مستقیم بدون نیاز به کلاینت (تونل SSH پویا از پورت STUN ۳۴۷۸)</strong>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 10px 0;">
+                        هسته سرور به صورت هوشمند پکت‌های استاندارد SSH را نیز شناسایی می‌کند. می‌توانید بدون نصب هیچ نرم‌افزار اضافی، در CMD یا ترمینال ویندوز/مک دستور زیر را اجرا کنید تا پورت ۱۰۸۰ سیستم شما تبدیل به پروکسی پرسرعت SOCKS5 شود:
+                    </p>
                     <div style="display:flex; gap:8px;">
-                        <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#e9d5ff;">
-                        <button type="button" class="btn btn-secondary" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
-                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        <input class="form-input" id="stuntls-client-ssh-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:12px; background:#0f172a; color:#34d399;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-ssh-cmd'); showToast('دستور SSH کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی
                         </button>
                     </div>
                 </div>
+
+                <!-- Method 3: Client Apps Guide (Telegram / Proxifier) -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-glow); border-radius:12px; padding:16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                        <span style="background:rgba(245,158,11,0.2); color:#fbbf24; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px;">روش سوم</span>
+                        <strong style="font-size:13.5px; color:var(--text-main);">پیکربندی در تلگرام، مرورگرها و نرم‌افزار Proxifier</strong>
+                    </div>
+                    <ul style="margin:0; padding-right:20px; font-size:12px; color:var(--text-muted); line-height:1.8;">
+                        <li><strong>تلگرام دسکتاپ:</strong> به مسیر <code>Settings -&gt; Advanced -&gt; Connection type -&gt; Use custom proxy -&gt; SOCKS5</code> بروید. آدرس را <code>127.0.0.1</code> و پورت را <code>1080</code> قرار دهید.</li>
+                        <li><strong>پروکسیفایر (Proxifier) برای کل سیستم:</strong> یک Proxy Server از نوع SOCKS5 به آدرس <code>127.0.0.1:1080</code> بسازید تا تمام بازی‌ها، برنامه‌ها و مرورگرهای ویندوز از تونل امن رد شوند.</li>
+                        <li><strong>تغییر مقصد (Upstream):</strong> اگر در فرم بالا مقصد فوروارد را روی <code>127.0.0.1:1080 (پروکسی SOCKS5)</code> ذخیره کنید، اتصال مستقیماً به هسته SOCKS5 متصل می‌شود.</li>
+                    </ul>
+                </div>
+
             </div>
         </div>
 

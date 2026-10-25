@@ -77,15 +77,15 @@ def handle_client_tcp(client_sock, upstream_host, upstream_port, enable_jitter=F
     bytes_in = 0
     bytes_out = 0
     up_sock = None
+    is_client_stun = False
     try:
         up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         up_sock.connect((upstream_host, upstream_port))
 
         sockets = [client_sock, up_sock]
-        first_packet = True
 
         while True:
-            r, _, _ = select.select(sockets, [], [], 60)
+            r, _, _ = select.select(sockets, [], [], 120)
             if not r:
                 break
             for s in r:
@@ -97,12 +97,15 @@ def handle_client_tcp(client_sock, upstream_host, upstream_port, enable_jitter=F
                         time.sleep(random.uniform(0.002, 0.012))
 
                     is_stun, _, _, payload = is_stun_packet(data)
+                    if is_stun:
+                        is_client_stun = True
                     data_to_send = payload if is_stun else data
                     bytes_in += len(data)
                     up_sock.sendall(data_to_send)
                 else:
                     bytes_out += len(data)
-                    client_sock.sendall(data)
+                    data_to_send = wrap_stun_response(data) if is_client_stun else data
+                    client_sock.sendall(data_to_send)
     except Exception:
         pass
     finally:
