@@ -270,18 +270,22 @@
             </div>
 
             <!-- Download Client Files Buttons -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <a href="/download/stuntls-client.exe" class="btn" style="background:#ec4899; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
+                    <i data-lucide="download" style="width:18px; height:18px;"></i>
+                    <span>دانلود فایل ویندوز (stuntls-client.exe)</span>
+                </a>
                 <a href="/download/stuntls-client.py" class="btn" style="background:#0284c7; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
                     <i data-lucide="file-code" style="width:18px; height:18px;"></i>
-                    <span>دانلود اسکریپت کلاینت (stuntls-client.py)</span>
+                    <span>اسکریپت پایتون (stuntls-client.py)</span>
                 </a>
                 <a href="/download/stuntls-client.bat" class="btn" style="background:#4f46e5; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
                     <i data-lucide="terminal" style="width:18px; height:18px;"></i>
-                    <span>دانلود لانچر ویندوز (stuntls-client.bat)</span>
+                    <span>لانچر ویندوز (stuntls-client.bat)</span>
                 </a>
                 <a href="/download/stuntls-client.ps1" class="btn" style="background:#059669; color:#fff; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:8px; padding:12px 16px; border-radius:10px; font-weight:700; font-size:12.5px;">
                     <i data-lucide="shield-check" style="width:18px; height:18px;"></i>
-                    <span>دانلود اسکریپت پاورشل (stuntls-client.ps1)</span>
+                    <span>اسکریپت پاورشل (stuntls-client.ps1)</span>
                 </a>
             </div>
 
@@ -300,20 +304,20 @@
 
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۱. دستور دانلود و اجرای خودکار در PowerShell ویندوز (تک‌خطی - بدون نیاز به دانلود دستی):</label>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۱. اجرای مستقیم با فایل EXE ویندوز (بدون نیاز به نصب پایتون):</label>
                             <div style="display:flex; gap:8px;">
-                                <input class="form-input" id="stuntls-client-ps-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#38bdf8;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-ps-cmd'); showToast('دستور پاورشل کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                                <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#f472b6;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
                                     <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی
                                 </button>
                             </div>
                         </div>
 
                         <div>
-                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۲. دستور اجرای مستقیم پایتون (ویندوز / مک / لینوکس پس از دانلود فایل):</label>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۲. دستور دانلود و اجرای خودکار در PowerShell ویندوز (تک‌خطی - بدون نیاز به دانلود دستی):</label>
                             <div style="display:flex; gap:8px;">
-                                <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#e9d5ff;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
+                                <input class="form-input" id="stuntls-client-ps-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#38bdf8;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-ps-cmd'); showToast('دستور پاورشل کپی شد', 'success');" style="width:auto; white-space:nowrap;">
                                     <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی
                                 </button>
                             </div>

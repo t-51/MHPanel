@@ -8370,10 +8370,21 @@ def api_stuntls_config():
     sec = cfg.get('secret', 'stuntls-secret')
     panel_port = get_panel_port()
     cfg["server_host"] = srv
-    cfg["client_cmd"] = f"python stuntls-client.py -server {srv}:{port} -key {sec} -l 1080"
-    cfg["client_cmd_powershell"] = f"Invoke-WebRequest -Uri \"https://{srv}:{panel_port}/download/stuntls-client.py\" -OutFile \"stuntls-client.py\" -SkipCertificateCheck; python stuntls-client.py -server {srv}:{port} -l 1080"
+    cfg["client_cmd"] = f"stuntls-client.exe -server {srv}:{port} -key {sec} -l 1080"
+    cfg["client_cmd_python"] = f"python stuntls-client.py -server {srv}:{port} -key {sec} -l 1080"
+    cfg["client_cmd_powershell"] = f"Invoke-WebRequest -Uri \"https://{srv}:{panel_port}/download/stuntls-client.exe\" -OutFile \"stuntls-client.exe\" -SkipCertificateCheck; .\\stuntls-client.exe -server {srv}:{port} -l 1080"
     cfg["client_cmd_ssh"] = f"ssh -D 1080 -N -p {port} root@{srv}"
     return jsonify(cfg)
+
+@app.route("/download/stuntls-client.exe", methods=["GET"])
+def api_download_stuntls_client_exe():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/stuntls-client.exe"
+    if not os.path.exists(path):
+        path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.exe")
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="stuntls-client.exe", mimetype="application/vnd.microsoft.portable-executable")
+    return "File not found", 404
 
 @app.route("/download/stuntls-client.py", methods=["GET"])
 def api_download_stuntls_client_py():
