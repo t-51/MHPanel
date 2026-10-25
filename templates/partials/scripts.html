@@ -4837,38 +4837,66 @@
     }
 
     // =========================================================================
-    // Vouchers Generator (MikroTik User Manager Vouchers)
+    // =========================================================================
+    // Vouchers & Recharge Cards Management Engine (MikroTik / FreeRADIUS)
     // =========================================================================
     let currentGeneratedVouchers = [];
+    let currentVoucherBatchGroup = null;
 
     function populateVoucherGroupSelect() {
         const select = document.getElementById("voucher-group-select");
         if (!select) return;
-        const entries = Object.entries(currentRadiusGroups);
-        select.innerHTML = entries.map(([id, g]) => `<option value="${id}">${g.name} (${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'} - ${g.validity_days || 30} روز)</option>`).join("");
+        const entries = Object.entries(currentRadiusGroups || {});
+        if (entries.length === 0) {
+            select.innerHTML = '<option value="default">پکیج پیش‌فرض (نامحدود)</option>';
+        } else {
+            select.innerHTML = entries.map(([id, g]) => `<option value="${id}">${g.name} (${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'} - ${g.validity_days || 30} روز)</option>`).join("");
+        }
+        updateVoucherGroupBadge();
+    }
+
+    function updateVoucherGroupBadge() {
+        const select = document.getElementById("voucher-group-select");
+        const badge = document.getElementById("voucher-group-badge");
+        if (!select || !badge) return;
+        const g = (currentRadiusGroups && currentRadiusGroups[select.value]) || { name: 'پکیج استاندارد', traffic_gb: 0, validity_days: 30 };
+        const traffic = g.traffic_gb > 0 ? `${g.traffic_gb} گیگابایت` : 'نامحدود';
+        const days = `${g.validity_days || 30} روز`;
+        const speed = g.rate_limit ? `سرعت: ${g.rate_limit}` : 'سرعت نامحدود';
+        badge.innerHTML = `<span class="badge" style="background:rgba(99,102,241,0.15); color:var(--color-primary); border:1px solid rgba(99,102,241,0.3); font-size:11px; padding:3px 8px; border-radius:6px;">📊 ${traffic} | ⏳ ${days} | ⚡ ${speed}</span>`;
     }
 
     async function generateVouchers() {
         const group_id = document.getElementById("voucher-group-select")?.value || "default";
         const count = parseInt(document.getElementById("voucher-count-select")?.value || 10);
-        const prefix = document.getElementById("voucher-prefix")?.value || "v-";
+        const prefix = document.getElementById("voucher-prefix")?.value || "";
+        const brand_title = document.getElementById("voucher-brand-title")?.value || "MH Panel VIP Access";
+        const price = document.getElementById("voucher-price")?.value || "";
         const length = parseInt(document.getElementById("voucher-length-select")?.value || 6);
         const charset = document.getElementById("voucher-charset-select")?.value || "easy";
         const passmode = document.getElementById("voucher-passmode-select")?.value || "same";
+        const qr_type = document.getElementById("voucher-qr-type")?.value || "sub";
+        const traffic_gb = document.getElementById("voucher-override-traffic")?.value || null;
+        const validity_days = document.getElementById("voucher-override-days")?.value || null;
+        const card_style = document.getElementById("voucher-style-select")?.value || "glass";
 
-        toggleLoading(true, `در حال تولید و ثبت ${count} کارت شارژ...`);
+        toggleLoading(true, `در حال تولید و فعال‌سازی ${count} کارت شارژ...`);
         try {
             const res = await fetch("/api/radius/vouchers/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ group_id, count, prefix, length, charset, passmode })
+                body: JSON.stringify({
+                    group_id, count, prefix, length, charset, passmode,
+                    brand_title, price, qr_type, traffic_gb, validity_days
+                })
             });
             const data = await res.json();
             toggleLoading(false);
-            if (res.ok) {
+            if (res.ok && data.success) {
                 currentGeneratedVouchers = data.vouchers || [];
+                currentVoucherBatchGroup = data.group || (currentRadiusGroups && currentRadiusGroups[group_id]) || {};
                 showToast(data.message || `${count} کارت شارژ با موفقیت تولید شد`, "success");
-                renderGeneratedVouchers(data.group, currentGeneratedVouchers);
+                renderGeneratedVouchers(currentVoucherBatchGroup, currentGeneratedVouchers, card_style);
                 fetchRadiusData(true);
             } else {
                 showToast(data.error || "خطا در تولید کارت شارژ", "error");
@@ -4879,22 +4907,23 @@
         }
     }
 
-    function renderGeneratedVouchers(group, vouchers) {
+    function renderGeneratedVouchers(group, vouchers, card_style) {
         const container = document.getElementById("rad-printable-vouchers-container");
-        const btnPrint = document.getElementById("btn-print-vouchers");
-        const btnExport = document.getElementById("btn-export-vouchers");
+        const toolbar = document.getElementById("vouchers-output-toolbar");
         if (!container) return;
 
         if (!vouchers || vouchers.length === 0) {
             container.style.display = "none";
-            if (btnPrint) btnPrint.style.display = "none";
-            if (btnExport) btnExport.style.display = "none";
+            if (toolbar) toolbar.style.display = "none";
             return;
         }
 
+        card_style = card_style || document.getElementById("voucher-style-select")?.value || "glass";
         container.style.display = "grid";
-        if (btnPrint) btnPrint.style.display = "inline-flex";
-        if (btnExport) btnExport.style.display = "inline-flex";
+        if (toolbar) toolbar.style.display = "flex";
+
+        const countEl = document.getElementById("voucher-output-count");
+        if (countEl) countEl.textContent = `${vouchers.length} کارت شارژ فعال`;
 
         const grpName = group ? group.name : 'اینترنت پرسرعت';
         const trafficStr = group && group.traffic_gb > 0 ? `${group.traffic_gb} گیگابایت` : 'نامحدود';
@@ -4903,48 +4932,263 @@
 
         let html = "";
         vouchers.forEach((v, idx) => {
+            const vSerial = v.serial || `#${idx + 1}`;
+            const vBrand = v.brand_title || 'MH Panel VIP Access';
+            const vPrice = v.price ? `<span class="rad-voucher-price-pill"><i data-lucide="tag" style="width:11px; height:11px;"></i> ${escapeHtml(v.price)}</span>` : '';
+            const isSinglePin = (v.username === v.password);
+            const qrText = (v.qr_type === 'credentials') ? `VPN User: ${v.username}\nPass: ${v.password}` : (v.sub_url || `VPN:${v.username}:${v.password}`);
+            const qrId = `rad-qr-canvas-${idx}`;
+
             html += `
-                <div class="rad-voucher-card">
+                <div class="rad-voucher-card rad-style-${card_style}" data-username="${escapeHtml(v.username)}" data-idx="${idx}">
+                    <div class="rad-voucher-cut-marker">
+                        <span class="rad-cut-icon">✂</span>
+                        <span class="rad-cut-line"></span>
+                    </div>
+
+                    <!-- Top Card Header -->
                     <div class="rad-voucher-header">
-                        <div style="display:flex; align-items:center; gap:6px;">
-                            <i data-lucide="wifi" style="width:16px; height:16px; color:#4f46e5;"></i>
-                            <strong style="font-size:13px;">${escapeHtml(grpName)}</strong>
+                        <div class="rad-voucher-brand-box">
+                            <div class="rad-brand-icon-circle">
+                                <i data-lucide="wifi" style="width:15px; height:15px;"></i>
+                            </div>
+                            <div class="rad-brand-titles">
+                                <strong class="rad-brand-name">${escapeHtml(vBrand)}</strong>
+                                <span class="rad-plan-subtitle">${escapeHtml(v.group_name || grpName)}</span>
+                            </div>
                         </div>
-                        <span style="font-size:10.5px; color:#64748b; font-family:'JetBrains Mono';">#${idx + 1}</span>
-                    </div>
-                    <div style="background:rgba(241,245,249,0.7); padding:10px 12px; border-radius:8px; display:flex; flex-direction:column; gap:6px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:11px; color:#64748b;">نام کاربری:</span>
-                            <span class="rad-voucher-code">${escapeHtml(v.username)}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:11px; color:#64748b;">رمز عبور:</span>
-                            <span style="font-family:'JetBrains Mono'; font-weight:700; font-size:13px; color:#0f172a;">${escapeHtml(v.password)}</span>
+                        <div class="rad-voucher-header-badges">
+                            ${vPrice}
+                            <span class="rad-voucher-serial">${escapeHtml(vSerial)}</span>
                         </div>
                     </div>
-                    <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#64748b; border-top:1px dashed rgba(100,116,139,0.2); padding-top:6px;">
-                        <span>حجم: <b>${trafficStr}</b></span>
-                        <span>اعتبار: <b>${validityStr}</b></span>
-                        ${speedStr ? `<span>${speedStr}</span>` : ''}
+
+                    <!-- Main Credentials & QR Grid -->
+                    <div class="rad-voucher-body">
+                        <div class="rad-voucher-creds">
+                            <div class="rad-cred-row">
+                                <span class="rad-cred-label">${isSinglePin ? 'پین اتصال (PIN Code):' : 'نام کاربری:'}</span>
+                                <div class="rad-cred-value-wrap">
+                                    <span class="rad-voucher-code">${escapeHtml(v.username)}</span>
+                                    <button class="rad-copy-btn" onclick="copySinglePin('${escapeHtml(v.username)}', this)" title="کپی پین">
+                                        <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${!isSinglePin ? `
+                            <div class="rad-cred-row">
+                                <span class="rad-cred-label">رمز عبور:</span>
+                                <div class="rad-cred-value-wrap">
+                                    <span class="rad-voucher-pass">${escapeHtml(v.password)}</span>
+                                    <button class="rad-copy-btn" onclick="copySinglePin('${escapeHtml(v.password)}', this)" title="کپی رمز">
+                                        <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <div class="rad-voucher-meta-pills">
+                                <span class="rad-meta-pill"><i data-lucide="database" style="width:11px; height:11px;"></i> ${v.traffic_gb > 0 ? v.traffic_gb + ' GB' : 'نامحدود'}</span>
+                                <span class="rad-meta-pill"><i data-lucide="calendar" style="width:11px; height:11px;"></i> ${v.validity_days || 30} روز</span>
+                                ${v.rate_limit && v.rate_limit !== 'نامحدود' ? `<span class="rad-meta-pill"><i data-lucide="zap" style="width:11px; height:11px;"></i> ${v.rate_limit}</span>` : ''}
+                            </div>
+                        </div>
+
+                        ${v.qr_type !== 'none' ? `
+                        <div class="rad-voucher-qr-wrap" onclick="zoomVoucherQr('${escapeHtml(qrText)}', '${escapeHtml(v.username)}')" title="برای بزرگنمایی بارکد کلیک کنید">
+                            <div id="${qrId}" class="rad-qr-box"></div>
+                            <span class="rad-qr-hint">اسکن QR اتصال</span>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Card Footer Actions -->
+                    <div class="rad-voucher-footer no-print">
+                        <button class="btn btn-xs rad-action-sub" onclick="copyVoucherTelegram(${idx})" title="کپی ساختاریافته برای ارسال در تلگرام/واتساپ">
+                            <i data-lucide="send" style="width:12px; height:12px;"></i>
+                            <span>ارسال به تلگرام</span>
+                        </button>
+                        <button class="btn btn-xs rad-action-sub" onclick="printSingleVoucher(${idx})" title="چاپ فقط همین کارت">
+                            <i data-lucide="printer" style="width:12px; height:12px;"></i>
+                            <span>چاپ تکی</span>
+                        </button>
                     </div>
                 </div>
             `;
         });
+
         container.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+
+        // Render QR codes
+        if (typeof QRCode !== 'undefined') {
+            vouchers.forEach((v, idx) => {
+                if (v.qr_type === 'none') return;
+                const qrEl = document.getElementById(`rad-qr-canvas-${idx}`);
+                if (!qrEl) return;
+                const qrText = (v.qr_type === 'credentials') ? `VPN User: ${v.username}\nPass: ${v.password}` : (v.sub_url || `VPN:${v.username}:${v.password}`);
+                qrEl.innerHTML = '';
+                new QRCode(qrEl, {
+                    text: qrText,
+                    width: 78,
+                    height: 78,
+                    colorDark: "#0f172a",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+            });
+        }
+    }
+
+    function copySinglePin(text, btnEl) {
+        copyTextToClipboard(text, "پین در حافظه کپی شد");
+        if (btnEl) {
+            const original = btnEl.innerHTML;
+            btnEl.innerHTML = '<i data-lucide="check" style="width:13px; height:13px; color:#10b981;"></i>';
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => {
+                btnEl.innerHTML = original;
+                if (window.lucide) lucide.createIcons();
+            }, 1500);
+        }
+    }
+
+    function copyVoucherTelegram(idx) {
+        const v = currentGeneratedVouchers[idx];
+        if (!v) return;
+        const brand = v.brand_title || 'MH Panel High-Speed VPN';
+        const plan = v.group_name || 'پکیج استاندارد';
+        const isSingle = (v.username === v.password);
+        let msg = `💎 *${brand}*\n`;
+        msg += `🏷️ *پکیج:* ${plan}\n`;
+        if (isSingle) {
+            msg += `🔑 *پین اتصال:* \`${v.username}\`\n`;
+        } else {
+            msg += `👤 *نام کاربری:* \`${v.username}\`\n`;
+            msg += `🔑 *رمز عبور:* \`${v.password}\`\n`;
+        }
+        msg += `📊 *حجم ترافیک:* ${v.traffic_gb > 0 ? v.traffic_gb + ' گیگابایت' : 'نامحدود'}\n`;
+        msg += `⏳ *مدت اعتبار:* ${v.validity_days || 30} روز (تا تاریخ ${v.expire_date})\n`;
+        if (v.price) msg += `💰 *قیمت:* ${v.price}\n`;
+        if (v.sub_url) msg += `🔗 *لینک اتصال خودکار:*\n${v.sub_url}\n`;
+        msg += `\n⚡ اتصال پایدار بر روی تمامی اپلیکیشن‌ها و سیستم‌عامل‌ها`;
+        copyTextToClipboard(msg, "متن کارت مخصوص شبکه‌های اجتماعی کپی شد.");
+    }
+
+    function printSingleVoucher(idx) {
+        const cards = document.querySelectorAll(".rad-voucher-card");
+        cards.forEach((c, i) => {
+            if (i !== idx) c.classList.add("print-hidden");
+            else c.classList.remove("print-hidden");
+        });
+        window.print();
+        setTimeout(() => {
+            cards.forEach(c => c.classList.remove("print-hidden"));
+        }, 1000);
     }
 
     function printVouchersCards() {
+        const cards = document.querySelectorAll(".rad-voucher-card");
+        cards.forEach(c => c.classList.remove("print-hidden"));
         window.print();
     }
 
-    function exportVouchersList() {
+    function exportVouchersCsv() {
         if (!currentGeneratedVouchers || currentGeneratedVouchers.length === 0) return;
-        let txt = "Username\tPassword\tExpires\n";
+        let csv = "\uFEFFSerial,Username,Password,Plan,Traffic_GB,Validity_Days,Expires,Price,Subscription_URL\n";
         currentGeneratedVouchers.forEach(v => {
-            txt += `${v.username}\t${v.password}\t${v.expire_date}\n`;
+            csv += `"${v.serial || ''}","${v.username}","${v.password}","${v.group_name || ''}","${v.traffic_gb || 'Unlimited'}","${v.validity_days || 30}","${v.expire_date || ''}","${v.price || ''}","${v.sub_url || ''}"\n`;
         });
-        copyTextToClipboard(txt, "لیست ووچرها در حافظه کپی شد.");
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `MHPanel_Vouchers_${new Date().toISOString().slice(0,10)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("فایل اکسل / CSV با موفقیت دانلود شد.", "success");
+    }
+
+    function exportVouchersTxt() {
+        if (!currentGeneratedVouchers || currentGeneratedVouchers.length === 0) return;
+        let txt = "=== MH Panel Generated Vouchers List ===\n\n";
+        currentGeneratedVouchers.forEach((v, i) => {
+            txt += `[Card #${i+1}] ${v.serial || ''}\n`;
+            txt += `Username: ${v.username}\n`;
+            txt += `Password: ${v.password}\n`;
+            txt += `Plan: ${v.group_name || ''} (${v.traffic_gb > 0 ? v.traffic_gb + ' GB' : 'Unlimited'} - ${v.validity_days || 30} Days)\n`;
+            txt += `Expires: ${v.expire_date}\n`;
+            if (v.sub_url) txt += `Subscription: ${v.sub_url}\n`;
+            txt += "----------------------------------------\n";
+        });
+        const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute("download", `MHPanel_Vouchers_${new Date().toISOString().slice(0,10)}.txt`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast("فایل متنی TXT با موفقیت دانلود شد.", "success");
+    }
+
+    function filterVoucherCards(query) {
+        query = (query || "").toLowerCase().trim();
+        const cards = document.querySelectorAll(".rad-voucher-card");
+        let visibleCount = 0;
+        cards.forEach(c => {
+            const u = (c.getAttribute("data-username") || "").toLowerCase();
+            const text = c.textContent.toLowerCase();
+            if (!query || u.includes(query) || text.includes(query)) {
+                c.style.display = "flex";
+                visibleCount++;
+            } else {
+                c.style.display = "none";
+            }
+        });
+        const countEl = document.getElementById("voucher-output-count");
+        if (countEl) countEl.textContent = `${visibleCount} کارت نمایش داده شد`;
+    }
+
+    function clearGeneratedVouchers() {
+        currentGeneratedVouchers = [];
+        const container = document.getElementById("rad-printable-vouchers-container");
+        const toolbar = document.getElementById("vouchers-output-toolbar");
+        if (container) {
+            container.innerHTML = "";
+            container.style.display = "none";
+        }
+        if (toolbar) toolbar.style.display = "none";
+        showToast("کارت‌های نمایش داده شده پاکسازی شدند.", "info");
+    }
+
+    function zoomVoucherQr(text, title) {
+        const modal = document.getElementById("rad-voucher-qr-modal");
+        const titleEl = document.getElementById("rad-voucher-qr-modal-title");
+        const box = document.getElementById("rad-voucher-qr-modal-box");
+        const textEl = document.getElementById("rad-voucher-qr-modal-text");
+        if (!modal || !box) return;
+
+        if (titleEl) titleEl.textContent = `بارکد اتصال: ${title}`;
+        if (textEl) textEl.textContent = text;
+        box.innerHTML = "";
+        if (typeof QRCode !== 'undefined') {
+            new QRCode(box, {
+                text: text,
+                width: 220,
+                height: 220,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeVoucherQrModal() {
+        const modal = document.getElementById("rad-voucher-qr-modal");
+        if (modal) modal.style.display = "none";
     }
 
     // =========================================================================
@@ -10574,6 +10818,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const certType = document.querySelector('input[name="ocserv-cert-type"]:checked')?.value || 'letsencrypt';
 
         const payload = {
+            auth_mode: "radius",
             tcp_port: parseInt(document.getElementById('ocserv-tcp-port').value),
             udp_port: parseInt(document.getElementById('ocserv-udp-port').value),
             enable_udp: document.getElementById('ocserv-enable-udp').checked,
@@ -11578,12 +11823,15 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
         const espCiphers = Array.from(document.querySelectorAll('.esp-cipher-cb:checked')).map(cb => cb.value);
         const espHashes = Array.from(document.querySelectorAll('.esp-hash-cb:checked')).map(cb => cb.value);
 
-        // Build IKE proposals
+        // Build IKE proposals - Note: AEAD ciphers (gcm/poly1305) strictly require PRF algorithm in Phase 1
         const ikeProposals = [];
         ikeCiphers.forEach(cipher => {
             if (cipher.includes('gcm') || cipher.includes('poly1305')) {
-                ikeDhs.forEach(dh => {
-                    ikeProposals.push(`${cipher}-${dh}`);
+                const prfHashes = ikeHashes.length > 0 ? ikeHashes : ['sha256'];
+                prfHashes.forEach(hash => {
+                    ikeDhs.forEach(dh => {
+                        ikeProposals.push(`${cipher}-prf${hash}-${dh}`);
+                    });
                 });
             } else {
                 ikeHashes.forEach(hash => {
@@ -11596,7 +11844,7 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
 
         const ikeString = (ikeProposals.length > 0 ? ikeProposals.join(',') : 'aes256-sha256-modp2048') + '!';
 
-        // Build ESP proposals
+        // Build ESP proposals - AEAD ciphers in Phase 2 omit integrity/PRF algorithms
         const espProposals = [];
         espCiphers.forEach(cipher => {
             if (cipher.includes('gcm') || cipher.includes('poly1305')) {
@@ -11798,6 +12046,12 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
     // Submit IKEv2 Policy Form
     async function saveIkev2Config(e) {
         if (e) e.preventDefault();
+        
+        // Sync checkboxes to input fields if manual proposal box is not open
+        const manualBox = document.getElementById("manual-proposals-box");
+        if (!manualBox || manualBox.style.display === "none" || !document.getElementById("ike-proposal-input")?.value.trim()) {
+            syncProposalsFromCheckboxes();
+        }
         
         const payload = {
             leftid: document.getElementById("ike-leftid-input")?.value.trim() || "",

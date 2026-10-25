@@ -3934,36 +3934,56 @@ session sufficient pam_permit.so
 session required pam_unix.so
 """)
 
-    ovpn_conf = "/etc/openvpn/server/server.conf"
-    if os.path.exists(ovpn_conf):
-        with open(ovpn_conf, "r") as f:
-            lines = f.readlines()
-        clean = [l for l in lines if not any(k in l for k in ["openvpn-plugin-auth-pam", "verify-client-cert", "username-as-common-name"])]
-        pam_plugin = find_openvpn_pam_plugin()
-        if "openvpn" in protocols:
-            clean.append(f"plugin {pam_plugin} openvpn\n")
-            clean.append("verify-client-cert none\n")
-            clean.append("username-as-common-name\n")
-        with open(ovpn_conf, "w") as f:
-            f.writelines(clean)
-        subprocess.run(["systemctl", "restart", "openvpn-server@server"], capture_output=True)
-        subprocess.run(["systemctl", "restart", "openvpn-server@server"], capture_output=True)
+    ovpn_confs = ["/etc/openvpn/server.conf", "/etc/openvpn/server/server.conf", "/etc/openvpn/server-tcp.conf", "/etc/openvpn/server/server-tcp.conf"]
+    pam_plugin = find_openvpn_pam_plugin()
+    for ovpn_conf in ovpn_confs:
+        if os.path.exists(ovpn_conf):
+            try:
+                with open(ovpn_conf, "r") as f:
+                    lines = f.readlines()
+                clean = [l for l in lines if not any(k in l for k in ["openvpn-plugin-auth-pam", "verify-client-cert", "username-as-common-name"])]
+                if "openvpn" in protocols and pam_plugin:
+                    clean.append(f"plugin {pam_plugin} openvpn\n")
+                    clean.append("verify-client-cert none\n")
+                    clean.append("username-as-common-name\n")
+                with open(ovpn_conf, "w") as f:
+                    f.writelines(clean)
+            except Exception:
+                pass
+    for s_name in ["openvpn@server", "openvpn-server@server", "openvpn@server-tcp", "openvpn-server@server-tcp"]:
+        subprocess.run(["systemctl", "restart", s_name], capture_output=True)
 
     # 4. Ocserv
     ocserv_conf = "/etc/ocserv/ocserv.conf"
     if os.path.exists(ocserv_conf):
-        with open(ocserv_conf, "r") as f:
-            content = f.read()
-        if "ocserv" in protocols:
-            content = re.sub(r'^auth\s*=.*', 'auth = "radius[config=/etc/radcli/radiusclient.conf,groupconfig=true]"', content, flags=re.MULTILINE)
-            if "acct =" not in content:
-                content += '\nacct = "radius[config=/etc/radcli/radiusclient.conf]"\n'
-        else:
-            content = re.sub(r'^auth\s*=.*', 'auth = "plain[passwd=/etc/ocserv/ocpasswd]"', content, flags=re.MULTILINE)
-            content = re.sub(r'^acct\s*=\s*.*radius.*', '', content, flags=re.MULTILINE)
-        with open(ocserv_conf, "w") as f:
-            f.write(content)
-        subprocess.run(["systemctl", "restart", "ocserv"], capture_output=True)
+        try:
+            with open(ocserv_conf, "r") as f:
+                content = f.read()
+            if "ocserv" in protocols:
+                content = re.sub(r'^[#\s]*auth\s*=.*', 'auth = "radius[config=/etc/radcli/radiusclient.conf,groupconfig=true]"', content, flags=re.MULTILINE)
+                if "acct =" not in content and "acct=" not in content:
+                    content += '\nacct = "radius[config=/etc/radcli/radiusclient.conf]"\n'
+                else:
+                    content = re.sub(r'^[#\s]*acct\s*=.*', 'acct = "radius[config=/etc/radcli/radiusclient.conf]"', content, flags=re.MULTILINE)
+            else:
+                content = re.sub(r'^[#\s]*auth\s*=.*', 'auth = "plain[passwd=/etc/ocserv/ocpasswd]"', content, flags=re.MULTILINE)
+                content = re.sub(r'^[#\s]*acct\s*=.*radius.*', '', content, flags=re.MULTILINE)
+
+            # Ensure valid certificates are referenced so ocserv does not fail on restart
+            if "server-cert = /etc/ocserv/certs/server.crt" in content and not os.path.exists("/etc/ocserv/certs/server.crt"):
+                if os.path.exists("/etc/vpn-ca/vpn-server.crt"):
+                    content = content.replace("server-cert = /etc/ocserv/certs/server.crt", "server-cert = /etc/vpn-ca/vpn-server.crt")
+                    content = content.replace("server-key = /etc/ocserv/certs/server.key", "server-key = /etc/vpn-ca/vpn-server.key")
+                    content = content.replace("ca-cert = /etc/ocserv/certs/ca.crt", "ca-cert = /etc/vpn-ca/ca.crt")
+                elif os.path.exists("/etc/vpnpanel/ssl/panel.crt"):
+                    content = content.replace("server-cert = /etc/ocserv/certs/server.crt", "server-cert = /etc/vpnpanel/ssl/panel.crt")
+                    content = content.replace("server-key = /etc/ocserv/certs/server.key", "server-key = /etc/vpnpanel/ssl/panel.key")
+
+            with open(ocserv_conf, "w") as f:
+                f.write(content)
+            subprocess.run(["systemctl", "restart", "ocserv"], capture_output=True)
+        except Exception:
+            pass
 
     # 5. StrongSwan IKEv2
     os.makedirs("/etc/strongswan.d/charon", exist_ok=True)
@@ -3992,14 +4012,14 @@ session required pam_unix.so
             f.write(c)
         restart_ikev2_service()
 
-    # 6. L2TP / SSTP ppp options
+    # 6. L2TP / SSTP / PPTP ppp options & accel-ppp
     l2tp_opt = "/etc/ppp/options.xl2tpd"
     if os.path.exists(l2tp_opt):
         with open(l2tp_opt, "r") as f:
             c = f.read()
-        c = c.replace("plugin radius.so", "").replace("radius-config-file /etc/radcli/radiusclient.conf", "")
+        c = c.replace("plugin radius.so\n", "").replace("radius-config-file /etc/radcli/radiusclient.conf\n", "").replace("plugin radius.so", "").replace("radius-config-file /etc/radcli/radiusclient.conf", "")
         if "l2tp" in protocols:
-            c += "\nplugin radius.so\nradius-config-file /etc/radcli/radiusclient.conf\n"
+            c = c.strip() + "\nplugin radius.so\nradius-config-file /etc/radcli/radiusclient.conf\n"
         with open(l2tp_opt, "w") as f:
             f.write(c.strip() + "\n")
         subprocess.run(["systemctl", "restart", "xl2tpd"], capture_output=True)
@@ -4008,12 +4028,55 @@ session required pam_unix.so
     if os.path.exists(sstp_opt):
         with open(sstp_opt, "r") as f:
             c = f.read()
-        c = c.replace("plugin radius.so", "").replace("radius-config-file /etc/radcli/radiusclient.conf", "")
+        c = c.replace("plugin radius.so\n", "").replace("radius-config-file /etc/radcli/radiusclient.conf\n", "").replace("plugin radius.so", "").replace("radius-config-file /etc/radcli/radiusclient.conf", "")
         if "sstp" in protocols:
-            c += "\nplugin radius.so\nradius-config-file /etc/radcli/radiusclient.conf\n"
+            c = c.strip() + "\nplugin radius.so\nradius-config-file /etc/radcli/radiusclient.conf\n"
         with open(sstp_opt, "w") as f:
             f.write(c.strip() + "\n")
-        subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
+
+    # Sync accel-ppp configuration for SSTP
+    accel_conf = "/etc/accel-ppp.conf"
+    if os.path.exists(accel_conf):
+        try:
+            with open(accel_conf, "r") as f:
+                a_data = f.read()
+            if "sstp" in protocols:
+                if "radius" not in a_data:
+                    a_data = a_data.replace("[modules]", "[modules]\nradius")
+                if "[radius]" not in a_data:
+                    a_data += f"""
+[radius]
+dictionary=/usr/share/accel-ppp/radius/dictionary
+nas-identifier=accel-ppp
+nas-ip-address=127.0.0.1
+gw-ip-address=10.11.0.1
+server={server_ip},{shared_secret},auth-port={auth_port},acct-port={acct_port},req-limit=0,fail-time=0
+dae-server={server_ip}:{coa_port},{shared_secret}
+verbose=1
+timeout=3
+max-try=3
+acct-timeout=120
+"""
+            with open(accel_conf, "w") as f:
+                f.write(a_data)
+        except Exception:
+            pass
+    subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
+
+    # PPTP radius sync
+    pptp_opt = "/etc/ppp/options.pptpd"
+    if os.path.exists(pptp_opt):
+        try:
+            with open(pptp_opt, "r") as f:
+                p_c = f.read()
+            p_c = p_c.replace("plugin radius.so\n", "").replace("radius-config-file /etc/radcli/radiusclient.conf\n", "").replace("plugin radattr.so\n", "")
+            if "pptp" in protocols or protocols is None or "all" in protocols:
+                p_c = p_c.strip() + "\nplugin radius.so\nplugin radattr.so\nradius-config-file /etc/radcli/radiusclient.conf\n"
+            with open(pptp_opt, "w") as f:
+                f.write(p_c.strip() + "\n")
+            subprocess.run(["systemctl", "restart", "pptpd"], capture_output=True)
+        except Exception:
+            pass
 
     # 7. SSH PAM
     sshd_pam = "/etc/pam.d/sshd"
@@ -4768,10 +4831,13 @@ def api_radius_vouchers_generate():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
-    try: count = min(max(int(data.get("count", 10)), 1), 200)
+    try: count = min(max(int(data.get("count", 10)), 1), 500)
     except Exception: count = 10
     group_id = data.get("group_id", "default")
     prefix = (data.get("prefix") or "").strip()
+    brand_title = (data.get("brand_title") or "MH Panel High-Speed VPN").strip()
+    price = (data.get("price") or "").strip()
+    qr_type = data.get("qr_type", "sub") # "sub", "credentials", or "none"
     try: user_len = int(data.get("length") or data.get("user_length") or 6)
     except Exception: user_len = 6
     try: pass_len = int(data.get("pass_length") or user_len)
@@ -4805,6 +4871,7 @@ def api_radius_vouchers_generate():
             pass
             
     created_vouchers = []
+    batch_id = datetime.now().strftime("%y%m%d%H%M")
     
     for i in range(count):
         while True:
@@ -4819,6 +4886,7 @@ def api_radius_vouchers_generate():
             pwd = "".join(random.choices(char_pool, k=pass_len))
             
         sub_tok = secrets.token_urlsafe(12)
+        serial_no = f"VC-{batch_id}-{i+1:03d}"
         
         u_info = {
             "password": pwd,
@@ -4833,7 +4901,11 @@ def api_radius_vouchers_generate():
             "rate_limit": group_data.get("rate_limit", ""),
             "download_limit_gb": group_data.get("download_gb"),
             "upload_limit_gb": group_data.get("upload_gb"),
-            "framed_pool": group_data.get("framed_pool", "")
+            "framed_pool": group_data.get("framed_pool", ""),
+            "is_voucher": True,
+            "price": price,
+            "brand_title": brand_title,
+            "serial": serial_no
         }
         users[uname] = u_info
         
@@ -4841,12 +4913,17 @@ def api_radius_vouchers_generate():
         created_vouchers.append({
             "username": uname,
             "password": pwd,
+            "serial": serial_no,
+            "group_id": group_id,
             "group_name": group_data.get("name", "پکیج استاندارد"),
             "traffic_gb": traffic_gb if traffic_gb else "نامحدود",
             "rate_limit": group_data.get("rate_limit") or "نامحدود",
             "validity_days": validity_days,
             "expire_date": expire_date,
-            "sub_url": sub_url
+            "sub_url": sub_url,
+            "price": price,
+            "brand_title": brand_title,
+            "qr_type": qr_type
         })
         
     try:
@@ -4862,14 +4939,9 @@ def api_radius_vouchers_generate():
         "count": len(created_vouchers),
         "vouchers": created_vouchers,
         "group": group_data,
+        "batch_id": batch_id,
         "message": f"{len(created_vouchers)} کارت شارژ با موفقیت تولید و در FreeRADIUS فعال شد."
     })
-        
-    with open(RADIUS_USERS_FILE, "w") as f:
-        json.dump(users, f, indent=2)
-        
-    sync_freeradius_users()
-    return jsonify({"success": True, "count": len(created_vouchers), "vouchers": created_vouchers})
 
 # --- Online Active Sessions APIs with RFC 3576 / 5176 CoA Kick ---
 @app.route("/api/radius/online", methods=["GET"])
@@ -11436,8 +11508,8 @@ def save_ocserv_full_config(data):
     camouflage_secret = str(data.get("camouflage_secret", "myvpnsecret")).strip()
     camouflage_realm = str(data.get("camouflage_realm", "Restricted Content")).strip()
     cert_type = data.get("cert_type", "letsencrypt")
-    default_domain = data.get("default_domain", "vpn.kigaping.com").strip() or "vpn.kigaping.com"
-    ipv4_network = data.get("ipv4_network", "10.30.30.0").strip()
+    default_domain = data.get("default_domain", "").strip() or get_server_domain() or get_server_public_ip() or "vpn.kigaping.com"
+    ipv4_network = data.get("ipv4_network", "10.9.0.0").strip()
     ipv4_netmask = data.get("ipv4_netmask", "255.255.255.0").strip()
     dns1 = data.get("dns1", "8.8.8.8").strip()
     dns2 = data.get("dns2", "1.1.1.1").strip()
@@ -11453,22 +11525,41 @@ def save_ocserv_full_config(data):
     auth_mode = data.get("auth_mode", "radius")
     tls_priorities = data.get("tls_priorities", "NORMAL:%SERVER_PRECEDENCE:%COMPAT:-VERS-SSL3.0:-VERS-TLS1.0:-VERS-TLS1.1")
 
-    # Certificates selection
+    # Certificates selection with reliable multi-tier fallback
     cert_lines = []
     ca_cert_line = ""
     if cert_type == "letsencrypt":
         added = set()
-        for d in [default_domain, "vpn.kigaping.com", "mhpanel.kigaping.com"]:
+        for d in [default_domain, get_server_domain(), "vpn.kigaping.com", "mhpanel.kigaping.com"]:
+            if not d: continue
             c_cert = f"/etc/letsencrypt/live/{d}/fullchain.pem"
             c_key = f"/etc/letsencrypt/live/{d}/privkey.pem"
             if os.path.exists(c_cert) and os.path.exists(c_key) and c_cert not in added:
                 cert_lines.append(f"server-cert = {c_cert}")
                 cert_lines.append(f"server-key = {c_key}")
                 added.add(c_cert)
+                break
+
     if not cert_lines:
-        cert_lines.append("server-cert = /etc/ocserv/certs/server.crt")
-        cert_lines.append("server-key = /etc/ocserv/certs/server.key")
-        ca_cert_line = "ca-cert = /etc/ocserv/certs/ca.crt"
+        if os.path.exists("/etc/vpn-ca/vpn-server.crt") and os.path.exists("/etc/vpn-ca/vpn-server.key"):
+            cert_lines.append("server-cert = /etc/vpn-ca/vpn-server.crt")
+            cert_lines.append("server-key = /etc/vpn-ca/vpn-server.key")
+            if os.path.exists("/etc/vpn-ca/ca.crt"):
+                ca_cert_line = "ca-cert = /etc/vpn-ca/ca.crt"
+        elif os.path.exists("/etc/vpnpanel/ssl/panel.crt") and os.path.exists("/etc/vpnpanel/ssl/panel.key"):
+            cert_lines.append("server-cert = /etc/vpnpanel/ssl/panel.crt")
+            cert_lines.append("server-key = /etc/vpnpanel/ssl/panel.key")
+        elif os.path.exists("/etc/ipsec.d/certs/server-cert.pem") and os.path.exists("/etc/ipsec.d/private/server-key.pem"):
+            cert_lines.append("server-cert = /etc/ipsec.d/certs/server-cert.pem")
+            cert_lines.append("server-key = /etc/ipsec.d/private/server-key.pem")
+            if os.path.exists("/etc/ipsec.d/cacerts/ca-cert.pem"):
+                ca_cert_line = "ca-cert = /etc/ipsec.d/cacerts/ca-cert.pem"
+        else:
+            os.makedirs("/etc/ocserv/certs", exist_ok=True)
+            subprocess.run("openssl req -x509 -newkey rsa:2048 -nodes -keyout /etc/ocserv/certs/server.key -out /etc/ocserv/certs/server.crt -days 3650 -subj '/CN=vpn' >/dev/null 2>&1", shell=True)
+            cert_lines.append("server-cert = /etc/ocserv/certs/server.crt")
+            cert_lines.append("server-key = /etc/ocserv/certs/server.key")
+
     server_certs_block = "\n".join(cert_lines)
 
     # Auth selection
@@ -11487,12 +11578,12 @@ def save_ocserv_full_config(data):
         camo_lines.append(f'camouflage_secret = "{camouflage_secret}"')
         camo_lines.append(f'camouflage_realm = "{camouflage_realm}"')
     else:
-        camo_lines.append("camouflage = false")
-        camo_lines.append(f'# camouflage_secret = "{camouflage_secret}"')
-        camo_lines.append(f'# camouflage_realm = "{camouflage_realm}"')
+        camo_lines.append("# camouflage = false")
     camo_str = "\n".join(camo_lines)
 
     conf_content = f"""# Generated by MH Panel
+run-as-user = ocserv
+run-as-group = ocserv
 {auth_line}
 {acct_line}
 
@@ -12316,14 +12407,118 @@ radius-config-file /etc/radcli/radiusclient.conf
         except Exception:
             pass
 
-    service_content = f"""[Unit]
+    # Check whether accel-ppp is the active SSTP engine
+    accel_bin = ""
+    for c in ["/usr/sbin/accel-pppd", "/usr/local/sbin/accel-pppd", "/usr/bin/accel-pppd"]:
+        if os.path.exists(c):
+            accel_bin = c
+            break
+
+    if accel_bin or os.path.exists("/etc/accel-ppp.conf"):
+        accel_bin = accel_bin or "/usr/sbin/accel-pppd"
+        c_path = sstp_c_path if os.path.exists(sstp_c_path) else "/etc/sstp-ca/sstp-server.crt"
+        k_path = sstp_k_path if os.path.exists(sstp_k_path) else "/etc/sstp-ca/sstp-server.key"
+        if not (os.path.exists(c_path) and os.path.exists(k_path)):
+            if os.path.exists("/etc/vpnpanel/ssl/panel.crt"):
+                c_path = "/etc/vpnpanel/ssl/panel.crt"
+                k_path = "/etc/vpnpanel/ssl/panel.key"
+
+        accel_conf_content = f"""[modules]
+log_file
+sstp
+ppp
+ippool
+chap-secrets
+auth_mschap_v2
+radius
+
+[core]
+log-error=/var/log/accel-ppp/core.log
+thread-count=4
+
+[common]
+single-session=replace
+
+[ppp]
+verbose=1
+min-mtu=1280
+mtu={mtu}
+mru={mru}
+ipv4=require
+ipv6=deny
+ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
+ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
+
+[sstp]
+bind=0.0.0.0
+port={port}
+cert={c_path}
+key={k_path}
+ssl=1
+
+[dns]
+dns1={dns1}
+dns2={dns2}
+
+[ip-pool]
+gw-ip-address={local_ip}
+{ip_range}
+
+[chap-secrets]
+chap-secrets=/etc/ppp/chap-secrets
+
+[radius]
+dictionary=/usr/share/accel-ppp/radius/dictionary
+nas-identifier=accel-ppp
+nas-ip-address=127.0.0.1
+gw-ip-address={local_ip}
+server=127.0.0.1,testing123,auth-port=1812,acct-port=1813,req-limit=0,fail-time=0
+dae-server=127.0.0.1:3799,testing123
+verbose=1
+timeout=3
+max-try=3
+acct-timeout=120
+
+[log]
+log-file=/var/log/accel-ppp/accel-ppp.log
+log-emerg=/var/log/accel-ppp/emerg.log
+log-debug=/var/log/accel-ppp/debug.log
+copy=1
+level=3
+"""
+        try:
+            with open("/etc/accel-ppp.conf", "w") as f:
+                f.write(accel_conf_content)
+        except Exception:
+            pass
+
+        service_content = f"""[Unit]
+Description=MHPanel SSTP Server (accel-ppp)
+Wants=network-online.target freeradius.service
+After=network-online.target freeradius.service
+
+[Service]
+Type=simple
+ExecStart={accel_bin} -c /etc/accel-ppp.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=always
+RestartSec=3
+TimeoutStopSec=5s
+KillMode=control-group
+
+[Install]
+WantedBy=multi-user.target
+"""
+    else:
+        sstpd_bin = shutil.which("sstpd") or "/usr/local/bin/sstpd"
+        service_content = f"""[Unit]
 Description=SSTP Server Daemon (sstpd)
 After=network.target freeradius.service
 Wants=freeradius.service
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p {port} -c {sstp_c_path} -k {sstp_k_path} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
+ExecStart={sstpd_bin} -l 0.0.0.0 -p {port} -c {sstp_c_path} -k {sstp_k_path} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
@@ -12331,6 +12526,7 @@ LimitNOFILE=65535
 [Install]
 WantedBy=multi-user.target
 """
+
     try:
         with open("/etc/systemd/system/sstpd.service", "w") as f:
             f.write(service_content)
@@ -12348,7 +12544,7 @@ WantedBy=multi-user.target
     else:
         subprocess.run(["systemctl", "stop", "vpnserver"], capture_output=True)
         
-    subprocess.run(f"iptables -t nat -C POSTROUTING -s {remote_subnet} -o ens6 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {remote_subnet} -o ens6 -j MASQUERADE", shell=True)
+    subprocess.run(f"iptables -t nat -C POSTROUTING -s {remote_subnet} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {remote_subnet} -j MASQUERADE", shell=True)
     
     return jsonify({"success": True, "message": "تنظیمات SSTP ذخیره و اعمال شد."})
 
@@ -13213,6 +13409,26 @@ def get_l2tp_config_data():
 
     return conf
 
+def sanitize_ike_proposal_string(ike_str):
+    if not ike_str:
+        return "aes256-sha256-modp2048,aes128-sha256-modp2048!"
+    has_excl = ike_str.endswith("!")
+    raw = ike_str.rstrip("!")
+    parts = [p.strip() for p in raw.split(",") if p.strip()]
+    sanitized = []
+    for part in parts:
+        if ("gcm" in part or "poly1305" in part) and "prf" not in part:
+            subbed = re.sub(r'-(modp\d+|ecp\d+|curve25519)', r'-prfsha256-\1', part)
+            if subbed == part:
+                subbed = f"{part}-prfsha256-modp2048"
+            sanitized.append(subbed)
+        else:
+            sanitized.append(part)
+    res = ",".join(sanitized)
+    if has_excl and not res.endswith("!"):
+        res += "!"
+    return res
+
 def save_l2tp_full_config(data):
     psk = data.get("psk", "VpnSecret123").strip()
     local_ip = data.get("local_ip", "192.168.42.1").strip()
@@ -13224,7 +13440,7 @@ def save_l2tp_full_config(data):
     mru = int(data.get("mru", 1280))
     auth_mode = data.get("auth_mode", "mschapv2").strip()
     radius_enabled = data.get("radius_enabled", True)
-    ike = data.get("ike", "aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024!").strip()
+    ike = sanitize_ike_proposal_string(data.get("ike", "aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024!").strip())
     esp = data.get("esp", "aes256-sha256,aes128-sha256,aes256-sha1,aes128-sha1,3des-sha1!").strip()
     dpdaction = data.get("dpdaction", "clear").strip()
     dpddelay = data.get("dpddelay", "30s").strip()
@@ -14215,9 +14431,11 @@ def api_ikev2_config_set():
     data = request.json or {}
     leftid = data.get("leftid", get_server_public_ip()).strip()
     rightsourceip = data.get("rightsourceip", "10.10.10.10-10.10.10.250").strip()
+    if not rightsourceip or any(bad in rightsourceip for bad in ["155.", "158."]):
+        rightsourceip = "10.10.10.10-10.10.10.250"
     rightdns = data.get("rightdns", "8.8.8.8,1.1.1.1").strip()
     rightauth = data.get("rightauth", "eap-radius").strip()
-    ike = data.get("ike", "aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!").strip()
+    ike = sanitize_ike_proposal_string(data.get("ike", "aes256-sha256-modp2048,aes256-sha1-modp2048,aes128-sha256-modp2048,aes128-sha1-modp2048,aes256-sha256-modp1024,aes256-sha1-modp1024,aes128-sha256-modp1024,aes128-sha1-modp1024,3des-sha1-modp1024,aes256-sha256-ecp256,aes128-sha256-ecp256!").strip())
     esp = data.get("esp", "aes256-sha256,aes256-sha1,aes128-sha256,aes128-sha1,3des-sha1,aes256-sha256-modp2048,aes128-sha256-modp2048,aes256-sha1-modp2048,aes128-sha1-modp2048,aes256gcm128,aes256gcm16!").strip()
     fragmentation = data.get("fragmentation", "yes").strip()
     forceencaps = data.get("forceencaps", "yes").strip()

@@ -600,7 +600,8 @@ device = vpns
 ipv4-network = ${subnet}
 ipv4-netmask = 255.255.255.0
 route = default
-auth = "pam[gid-min=1000]"
+auth = "radius[config=/etc/radcli/radiusclient.conf,groupconfig=true]"
+acct = "radius[config=/etc/radcli/radiusclient.conf]"
 EOF
 
     allow_port "${port}" "tcp"

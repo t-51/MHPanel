@@ -4070,67 +4070,300 @@
     }
     .rad-voucher-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
         margin-top: 20px;
     }
     .rad-voucher-card {
-        background: #ffffff;
-        color: #1e293b;
-        border: 2px dashed #cbd5e1;
-        border-radius: 14px;
-        padding: 16px 18px;
+        background: var(--bg-surface, #ffffff);
+        color: var(--text-main, #0f172a);
+        border: 1px solid var(--border-color, #e2e8f0);
+        border-radius: 16px;
+        padding: 18px 20px;
         position: relative;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.06);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        gap: 12px;
+        gap: 14px;
         page-break-inside: avoid;
+        break-inside: avoid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .rad-voucher-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
     }
     [data-theme="dark"] .rad-voucher-card {
-        background: #1e293b;
-        color: #f1f5f9;
-        border-color: #334155;
+        background: rgba(30, 41, 59, 0.7);
+        backdrop-filter: blur(12px);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
+
+    /* Style variants */
+    .rad-voucher-card.rad-style-glass {
+        border-color: rgba(99, 102, 241, 0.25);
+    }
+    .rad-voucher-card.rad-style-scratch {
+        border: 2px dashed rgba(148, 163, 184, 0.5);
+    }
+    .rad-voucher-card.rad-style-gold {
+        border: 1.5px solid rgba(245, 158, 11, 0.4);
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.12);
+    }
+    [data-theme="dark"] .rad-voucher-card.rad-style-gold {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.85), rgba(45, 27, 7, 0.4));
+        border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .rad-voucher-cut-marker {
+        display: none;
+    }
+
     .rad-voucher-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px dashed rgba(100, 116, 139, 0.3);
-        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+        padding-bottom: 10px;
+        gap: 10px;
+    }
+    .rad-voucher-brand-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        overflow: hidden;
+    }
+    .rad-brand-icon-circle {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(168, 85, 247, 0.15));
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-primary, #6366f1);
+        flex-shrink: 0;
+    }
+    .rad-brand-titles {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .rad-brand-name {
+        font-size: 13.5px;
+        font-weight: 800;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        color: var(--text-main, #0f172a);
+    }
+    .rad-plan-subtitle {
+        font-size: 11px;
+        color: #64748b;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .rad-voucher-header-badges {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+    .rad-voucher-price-pill {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.15));
+        color: #d97706;
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 8px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    [data-theme="dark"] .rad-voucher-price-pill {
+        color: #fbbf24;
+    }
+    .rad-voucher-serial {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 600;
+        color: #94a3b8;
+        background: rgba(148, 163, 184, 0.1);
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    .rad-voucher-body {
+        display: flex;
+        gap: 14px;
+        align-items: stretch;
+    }
+    .rad-voucher-creds {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        justify-content: center;
+    }
+    .rad-cred-row {
+        background: rgba(241, 245, 249, 0.6);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        border-radius: 10px;
+        padding: 6px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+    }
+    [data-theme="dark"] .rad-cred-row {
+        background: rgba(15, 23, 42, 0.4);
+        border-color: rgba(255, 255, 255, 0.05);
+    }
+    .rad-cred-label {
+        font-size: 10.5px;
+        color: #64748b;
+        font-weight: 500;
+    }
+    .rad-cred-value-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
     }
     .rad-voucher-code {
         font-family: 'JetBrains Mono', monospace;
         font-size: 15px;
         font-weight: 800;
         letter-spacing: 0.5px;
-        color: #4f46e5;
+        color: var(--color-primary, #4f46e5);
+        user-select: all;
     }
     [data-theme="dark"] .rad-voucher-code {
         color: #818cf8;
     }
-    .rad-terminal-block {
-        background: #0f172a;
-        color: #38bdf8;
+    .rad-voucher-pass {
         font-family: 'JetBrains Mono', monospace;
-        font-size: 12px;
-        line-height: 1.6;
-        padding: 14px 16px;
-        border-radius: 10px;
-        overflow-x: auto;
-        direction: ltr;
-        text-align: left;
-        position: relative;
-        border: 1px solid #1e293b;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-main, #0f172a);
+        user-select: all;
     }
+    [data-theme="dark"] .rad-voucher-pass {
+        color: #f1f5f9;
+    }
+    .rad-copy-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 3px;
+        border-radius: 4px;
+        display: inline-flex;
+        align-items: center;
+        transition: color 0.15s, transform 0.1s;
+    }
+    .rad-copy-btn:hover {
+        color: var(--color-primary, #6366f1);
+        transform: scale(1.1);
+    }
+
+    .rad-voucher-qr-wrap {
+        width: 86px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+    .rad-qr-box {
+        background: #ffffff;
+        padding: 5px;
+        border-radius: 8px;
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 86px;
+        height: 86px;
+    }
+    .rad-qr-box canvas, .rad-qr-box img {
+        width: 76px !important;
+        height: 76px !important;
+        display: block;
+    }
+    .rad-qr-hint {
+        font-size: 9.5px;
+        color: #94a3b8;
+        white-space: nowrap;
+    }
+
+    .rad-voucher-meta-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 4px;
+    }
+    .rad-meta-pill {
+        font-size: 10.5px;
+        font-weight: 600;
+        color: #64748b;
+        background: rgba(148, 163, 184, 0.12);
+        padding: 2px 7px;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    [data-theme="dark"] .rad-meta-pill {
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .rad-voucher-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border-top: 1px solid rgba(148, 163, 184, 0.15);
+        padding-top: 10px;
+    }
+    .rad-action-sub {
+        font-size: 11.5px;
+        padding: 4px 10px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
     @media print {
+        @page {
+            size: A4 portrait;
+            margin: 0.8cm;
+        }
+        body {
+            background: #ffffff !important;
+            color: #000000 !important;
+        }
         body * {
             visibility: hidden !important;
         }
         #rad-printable-vouchers-container,
-        #rad-printable-vouchers-container * {
+        #rad-printable-vouchers-container *:not(.no-print) {
             visibility: visible !important;
+        }
+        .no-print {
+            display: none !important;
+        }
+        .print-hidden {
+            display: none !important;
         }
         #rad-printable-vouchers-container {
             position: absolute !important;
@@ -4138,15 +4371,56 @@
             top: 0 !important;
             width: 100% !important;
             display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 12px !important;
-            padding: 10px !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
         }
         .rad-voucher-card {
-            border: 1.5px dashed #000 !important;
-            color: #000 !important;
-            background: #fff !important;
+            border: 1.5px dashed #1e293b !important;
+            color: #000000 !important;
+            background: #ffffff !important;
             box-shadow: none !important;
+            padding: 14px 16px !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            position: relative !important;
+        }
+        .rad-voucher-cut-marker {
+            display: flex !important;
+            align-items: center !important;
+            position: absolute !important;
+            top: -12px !important;
+            left: 10px !important;
+            font-size: 12px !important;
+            color: #475569 !important;
+            background: #ffffff !important;
+            padding: 0 4px !important;
+        }
+        .rad-cred-row {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        .rad-voucher-code, .rad-voucher-pass {
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+        .rad-voucher-price-pill {
+            border: 1px solid #000000 !important;
+            color: #000000 !important;
+            background: transparent !important;
+        }
+        .rad-meta-pill {
+            border: 1px solid #94a3b8 !important;
+            color: #000000 !important;
+            background: transparent !important;
+        }
+        .rad-qr-box {
+            border: 1px solid #000000 !important;
+        }
+        .rad-copy-btn {
+            display: none !important;
         }
     }
 

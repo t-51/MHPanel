@@ -482,40 +482,59 @@
         <!-- SUB-TAB 5: VOUCHERS GENERATOR             -->
         <!-- ========================================== -->
         <div class="rad-subpane" id="rad-subpane-vouchers" style="display: none; flex-direction: column; gap: 20px;">
-            <div class="glass-card" style="padding: 20px 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+            <div class="glass-card" style="padding: 22px 26px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
                     <div>
-                        <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
-                            <i data-lucide="ticket" style="color: #f59e0b; width:22px; height:22px;"></i>
-                            <span>تولید کارت شارژ و ووچر (Vouchers Generator)</span>
+                        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:10px;">
+                            <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1)); display:flex; align-items:center; justify-content:center; border:1px solid rgba(245,158,11,0.3);">
+                                <i data-lucide="ticket" style="color: #f59e0b; width:20px; height:20px;"></i>
+                            </div>
+                            <span>استودیو طراحی و تولید کارت شارژ و ووچر (Vouchers & Recharge Cards)</span>
                         </h3>
-                        <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
-                            تولید دسته‌ای کارت‌های اعتباری یا ووچرهای اتصال برای پروتکل‌های وی‌پی‌ان با امکان چاپ و خروجی فایل
+                        <p style="font-size: 13px; color: #64748b; margin: 6px 0 0 0;">
+                            تولید دسته‌ای کارت‌های اعتباری و پین‌های یک‌بارمصرف با قابلیت چاپ A4، تولید بارکد QR اختصاصی، تگ قیمت و خروجی اکسل
                         </p>
+                    </div>
+                    <div id="voucher-group-badge">
+                        <!-- Injected live plan summary -->
                     </div>
                 </div>
 
-                <!-- Generator Controls -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 18px;">
+                <!-- Generator Controls Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">انتخاب پکیج / پلن:</label>
-                        <select class="form-select" id="voucher-group-select">
+                        <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
+                            <span>انتخاب پکیج / پلن کاربری:</span>
+                        </label>
+                        <select class="form-select" id="voucher-group-select" onchange="updateVoucherGroupBadge()">
                             <!-- Injected dynamically -->
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تعداد کارت شارژ:</label>
+                        <label class="form-label">تعداد کارت‌های شارژ:</label>
                         <select class="form-select" id="voucher-count-select">
                             <option value="5">۵ عدد</option>
                             <option value="10" selected>۱۰ عدد</option>
                             <option value="20">۲۰ عدد</option>
                             <option value="50">۵۰ عدد</option>
                             <option value="100">۱۰۰ عدد</option>
+                            <option value="200">۲۰۰ عدد</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">پیشوند کدهای کاربری:</label>
-                        <input class="form-input" id="voucher-prefix" placeholder="مثلاً: NET- یا v-" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="v-"/>
+                        <label class="form-label">عنوان برند / روی کارت:</label>
+                        <input class="form-input" id="voucher-brand-title" placeholder="مثلاً: اینترنت پرسرعت VIP" style="padding-left:14px;" type="text" value="MH Panel VIP Ultra Internet"/>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">تگ قیمت نمایشی (اختیاری):</label>
+                        <input class="form-input" id="voucher-price" placeholder="مثلاً: ۵۰,۰۰۰ تومان یا $5" style="padding-left:14px;" type="text" value=""/>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 18px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">پیشوند نام کاربری / سریال:</label>
+                        <input class="form-input" id="voucher-prefix" placeholder="مثلاً: VIP- یا NET-" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="VIP-"/>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">طول کد تصادفی:</label>
@@ -523,15 +542,13 @@
                             <option value="6" selected>۶ کاراکتر (استاندارد)</option>
                             <option value="8">۸ کاراکتر (امن‌تر)</option>
                             <option value="10">۱۰ کاراکتر</option>
+                            <option value="12">۱۲ کاراکتر</option>
                         </select>
                     </div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px;">
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">نوع کاراکترهای کد:</label>
                         <select class="form-select" id="voucher-charset-select">
-                            <option value="numbers">فقط ارقام عددی (ساده برای تایپ در موبایل)</option>
+                            <option value="numbers">فقط ارقام عددی (مناسب تایپ تلفنی / پین)</option>
                             <option value="easy" selected>حروف و ارقام خوانا (بدون کاراکترهای مشابه O/0 و l/1)</option>
                             <option value="alphanumeric">حروف بزرگ و ارقام</option>
                         </select>
@@ -539,22 +556,75 @@
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">حالت رمز عبور:</label>
                         <select class="form-select" id="voucher-passmode-select">
-                            <option value="same" selected>رمز عبور برابر با نام کاربری (تک کده)</option>
+                            <option value="same" selected>پین تک‌کده (User = Pass - اتصال آسان)</option>
                             <option value="distinct">تولید رمز عبور مجزا و امن</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Action Buttons -->
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" onclick="generateVouchers()" style="flex: 1; min-width: 200px; background: linear-gradient(135deg, #f59e0b, #d97706);" type="button">
-                        <i class="btn-icon" data-lucide="ticket"></i> <span>تولید و ثبت کارت‌های شارژ</span>
+                <!-- Visual & Overrides Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px;">
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">محتوای بارکد QR:</label>
+                        <select class="form-select" id="voucher-qr-type">
+                            <option value="sub" selected>لینک هوشمند اشتراک (اتصال خودکار کلاینت‌ها)</option>
+                            <option value="credentials">مشخصات اکانت (User:Pass)</option>
+                            <option value="none">بدون بارکد QR</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">استایل ظاهری کارت:</label>
+                        <select class="form-select" id="voucher-style-select">
+                            <option value="glass" selected>گلس‌مورفیسم لوکس (Glassmorphism Dark/Light)</option>
+                            <option value="scratch">کارت اعتباری چاپی با خط برش ✂️ (Print-Ready)</option>
+                            <option value="gold">گرادیان نئون طلایی VIP (Golden Neon)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">تغییر حجم پکیج (GB - اختیاری):</label>
+                        <input class="form-input" id="voucher-override-traffic" placeholder="خالی = مطابق پلن" type="number" min="0" step="1"/>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label class="form-label">تغییر مدت اعتبار (روز - اختیاری):</label>
+                        <input class="form-input" id="voucher-override-days" placeholder="خالی = مطابق پلن" type="number" min="1" step="1"/>
+                    </div>
+                </div>
+
+                <!-- Action Submit -->
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                    <button class="btn btn-primary" onclick="generateVouchers()" style="flex: 2; min-width: 240px; background: linear-gradient(135deg, #f59e0b, #d97706); height: 44px; font-weight: 700; font-size: 14px;" type="button">
+                        <i class="btn-icon" data-lucide="ticket"></i> <span>تولید و فعال‌سازی آنی کارت‌های شارژ</span>
                     </button>
-                    <button class="btn btn-secondary" id="btn-print-vouchers" onclick="printVouchersCards()" style="display: none;" type="button">
-                        <i class="btn-icon" data-lucide="printer"></i> <span>چاپ کارت‌ها (Print Vouchers)</span>
+                </div>
+            </div>
+
+            <!-- Output Management Toolbar -->
+            <div id="vouchers-output-toolbar" class="glass-card no-print" style="display: none; padding: 14px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border: 1px solid var(--border-glow);">
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span id="voucher-output-count" class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-weight: 700; padding: 6px 12px; border-radius: 8px; font-size: 13px;">
+                        ۰ کارت شارژ
+                    </span>
+                    <div style="position: relative; width: 220px;">
+                        <input class="form-input" placeholder="جستجو در کارت‌ها..." style="padding: 6px 32px 6px 12px; font-size: 12.5px; height: 34px;" oninput="filterVoucherCards(this.value)" type="text"/>
+                        <i data-lucide="search" style="position: absolute; right: 10px; top: 9px; width: 14px; height: 14px; color: #94a3b8;"></i>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="printVouchersCards()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <i data-lucide="printer" style="width: 15px; height: 15px; color: var(--color-primary);"></i>
+                        <span>چاپ با کیفیت (Print A4)</span>
                     </button>
-                    <button class="btn btn-secondary" id="btn-export-vouchers" onclick="exportVouchersList()" style="display: none;" type="button">
-                        <i class="btn-icon" data-lucide="copy"></i> <span>کپی لیست کارت‌ها</span>
+                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersCsv()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <i data-lucide="file-spreadsheet" style="width: 15px; height: 15px; color: #10b981;"></i>
+                        <span>خروجی اکسل (CSV)</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersTxt()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                        <i data-lucide="file-text" style="width: 15px; height: 15px; color: #38bdf8;"></i>
+                        <span>خروجی متنی (TXT)</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearGeneratedVouchers()" type="button" style="display: inline-flex; align-items: center; gap: 6px; color: #ef4444;" title="پاکسازی نمایش">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
                     </button>
                 </div>
             </div>
@@ -562,6 +632,16 @@
             <!-- Vouchers Printable Container Grid -->
             <div id="rad-printable-vouchers-container" class="rad-voucher-grid" style="display: none;">
                 <!-- Dynamically injected voucher cards -->
+            </div>
+
+            <!-- QR Zoom Modal -->
+            <div id="rad-voucher-qr-modal" class="modal-backdrop" style="display: none;" onclick="closeVoucherQrModal()">
+                <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px; text-align: center; padding: 24px;">
+                    <h4 id="rad-voucher-qr-modal-title" style="margin: 0 0 14px 0; font-size: 15px; color: var(--text-main); font-weight: 700;">بارکد اتصال</h4>
+                    <div id="rad-voucher-qr-modal-box" style="display: inline-block; background: #fff; padding: 14px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 12px;"></div>
+                    <p id="rad-voucher-qr-modal-text" style="font-family:'JetBrains Mono'; font-size: 11.5px; word-break: break-all; color: #64748b; background: rgba(0,0,0,0.04); padding: 8px 10px; border-radius: 8px; margin: 0 0 16px 0; max-height: 80px; overflow-y: auto;"></p>
+                    <button class="btn btn-secondary" onclick="closeVoucherQrModal()" style="width: 100%;">بستن</button>
+                </div>
             </div>
         </div>
 
