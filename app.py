@@ -4057,6 +4057,10 @@ timeout=3
 max-try=3
 acct-timeout=120
 """
+            if "[client-ip-range]" not in a_data:
+                a_data = a_data.strip() + "\n\n[client-ip-range]\n0.0.0.0/0\n::/0\n"
+            if "cert=" in a_data and "ssl-pemfile=" not in a_data:
+                a_data = a_data.replace("cert=", "ssl-pemfile=").replace("key=", "ssl-keyfile=")
             with open(accel_conf, "w") as f:
                 f.write(a_data)
         except Exception:
@@ -12416,7 +12420,8 @@ radius-config-file /etc/radcli/radiusclient.conf
 
     if accel_bin or os.path.exists("/etc/accel-ppp.conf"):
         accel_bin = accel_bin or "/usr/sbin/accel-pppd"
-        c_path = sstp_c_path if os.path.exists(sstp_c_path) else "/etc/sstp-ca/sstp-server.crt"
+        fullchain = "/etc/sstp-ca/sstp-fullchain.crt"
+        c_path = fullchain if os.path.exists(fullchain) else (sstp_c_path if os.path.exists(sstp_c_path) else "/etc/sstp-ca/sstp-server.crt")
         k_path = sstp_k_path if os.path.exists(sstp_k_path) else "/etc/sstp-ca/sstp-server.key"
         if not (os.path.exists(c_path) and os.path.exists(k_path)):
             if os.path.exists("/etc/vpnpanel/ssl/panel.crt"):
@@ -12452,8 +12457,8 @@ ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 [sstp]
 bind=0.0.0.0
 port={port}
-cert={c_path}
-key={k_path}
+ssl-pemfile={c_path}
+ssl-keyfile={k_path}
 ssl=1
 
 [dns]
@@ -12485,6 +12490,10 @@ log-emerg=/var/log/accel-ppp/emerg.log
 log-debug=/var/log/accel-ppp/debug.log
 copy=1
 level=3
+
+[client-ip-range]
+0.0.0.0/0
+::/0
 """
         try:
             with open("/etc/accel-ppp.conf", "w") as f:
@@ -14944,20 +14953,32 @@ def get_service_is_active(service_name):
         return False
 
 def get_default_multiplexer_config():
+    # If singbox or ocserv or sstp are installed, set intelligent default
+    def_proto = "singbox" if os.path.exists("/etc/sing-box/config.json") else ("ocserv" if os.path.exists("/etc/ocserv/ocserv.conf") else "web")
+    srv_domain = get_server_domain() or ""
+    
+    web_sni = f"panel.{srv_domain}, {srv_domain}, *.{srv_domain}" if srv_domain else "panel.example.com, example.com, *.example.com"
+    ocserv_sni = f"vpn.{srv_domain}" if srv_domain else "vpn.example.com"
+    ssh_sni = f"ssh.{srv_domain}" if srv_domain else "ssh.example.com"
+    ovpn_sni = f"ovpn.{srv_domain}" if srv_domain else "ovpn.example.com"
+    sstp_sni = f"sstp.{srv_domain}" if srv_domain else "sstp.example.com"
+    sb_snis = get_singbox_snis()
+    sb_sni_str = ", ".join(sb_snis) if sb_snis else (f"sb.{srv_domain}, vless.{srv_domain}" if srv_domain else "sb.example.com, vless.example.com")
+
     return {
         "enabled": True,
         "listen_ports": [443],
-        "default_backend": "web",
+        "default_backend": def_proto,
         "web_server_type": "internal",
         "protocols": [
             {
                 "id": "web",
                 "name": "وب سرور و پنل مدیریت (Web / MHPanel)",
                 "enabled": True,
-                "sni": "panel.example.com, example.com, *.example.com",
+                "sni": web_sni,
                 "backend_ip": "127.0.0.1",
                 "backend_port": 9090,
-                "is_default": True,
+                "is_default": (def_proto == "web"),
                 "protocol_type": "web",
                 "desc": "ترافیک وب‌سایت‌ها، آپاچی/انجین‌یکس و پنل مدیریت"
             },
@@ -14965,10 +14986,10 @@ def get_default_multiplexer_config():
                 "id": "ocserv",
                 "name": "سیسکو AnyConnect (Cisco OCServ)",
                 "enabled": True,
-                "sni": "vpn.example.com",
+                "sni": ocserv_sni,
                 "backend_ip": "127.0.0.1",
                 "backend_port": 10443,
-                "is_default": False,
+                "is_default": (def_proto == "ocserv"),
                 "protocol_type": "cisco",
                 "desc": "اتصال کلاینت‌های سیسکو انی‌کانکت و اوپن‌کانکت"
             },
@@ -14976,7 +14997,7 @@ def get_default_multiplexer_config():
                 "id": "ssh",
                 "name": "تونل SSH (مستقیم و TLS)",
                 "enabled": True,
-                "sni": "ssh.example.com",
+                "sni": ssh_sni,
                 "backend_ip": "127.0.0.1",
                 "backend_port": 22,
                 "is_default": False,
@@ -14987,9 +15008,9 @@ def get_default_multiplexer_config():
                 "id": "openvpn",
                 "name": "اوپن‌وی‌پی‌ان (OpenVPN TCP)",
                 "enabled": True,
-                "sni": "ovpn.example.com",
+                "sni": ovpn_sni,
                 "backend_ip": "127.0.0.1",
-                "backend_port": 1194,
+                "backend_port": 1195,
                 "is_default": False,
                 "protocol_type": "openvpn",
                 "desc": "اشتراک پورت ۴۴۳ برای کلاینت‌های OpenVPN TCP"
@@ -14998,10 +15019,10 @@ def get_default_multiplexer_config():
                 "id": "sstp",
                 "name": "پروتکل SSTP ویندوز (MS-SSTP / sstpd)",
                 "enabled": True,
-                "sni": "sstp.example.com",
+                "sni": sstp_sni,
                 "backend_ip": "127.0.0.1",
                 "backend_port": 4443,
-                "is_default": False,
+                "is_default": (def_proto == "sstp"),
                 "protocol_type": "sstp",
                 "desc": "اتصال مستقیم کلاینت‌های ویندوز با SSL/TLS"
             },
@@ -15009,10 +15030,10 @@ def get_default_multiplexer_config():
                 "id": "singbox",
                 "name": "هسته جامع سینگ‌باکس (Sing-box Core)",
                 "enabled": True,
-                "sni": "sb.example.com,vless.example.com",
+                "sni": sb_sni_str,
                 "backend_ip": "127.0.0.1",
                 "backend_port": 20443,
-                "is_default": False,
+                "is_default": (def_proto == "singbox"),
                 "protocol_type": "singbox",
                 "desc": "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
             }
@@ -15076,6 +15097,31 @@ def check_listen_port_conflicts(ports):
         pass
     return conflicts
 
+def get_singbox_snis():
+    snis = set()
+    sb_cfg_path = "/etc/sing-box/config.json"
+    if os.path.exists(sb_cfg_path):
+        try:
+            with open(sb_cfg_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            inbounds = data.get("inbounds", [])
+            for ib in inbounds:
+                tls = ib.get("tls", {})
+                if isinstance(tls, dict) and tls.get("enabled"):
+                    sname = tls.get("server_name")
+                    if sname:
+                        snis.add(sname.strip())
+                    reality = tls.get("reality", {})
+                    if isinstance(reality, dict) and reality.get("enabled"):
+                        hs = reality.get("handshake", {})
+                        if isinstance(hs, dict):
+                            hs_server = hs.get("server")
+                            if hs_server:
+                                snis.add(hs_server.strip())
+        except Exception:
+            pass
+    return [s for s in snis if s]
+
 def generate_haproxy_cfg(config):
     listen_ports = config.get("listen_ports", [443])
     if not listen_ports:
@@ -15108,7 +15154,7 @@ def generate_haproxy_cfg(config):
     
     lines.extend([
         "    mode tcp",
-        "    tcp-request inspect-delay 3s",
+        "    tcp-request inspect-delay 5s",
         "",
         "    # 1. Plain SSH Handshake Detection (SSH-...)",
         "    acl is_ssh_raw payload(0,4) -m str SSH-",
@@ -15117,10 +15163,11 @@ def generate_haproxy_cfg(config):
         "    acl is_openvpn_raw payload(2,1) -m bin 38 40",
         "",
         "    # 3. Plain HTTP Request Detection",
-        "    acl is_http_raw payload(0,4) -m str \"GET \" \"POST\" \"HEAD\" \"CONN\"",
+        "    acl is_http_raw payload(0,4) -m str \"GET \" \"POST\" \"HEAD\" \"CONN\" \"PUT \" \"DELE\" \"OPTI\"",
         "",
         "    # 4. SSL / TLS ClientHello Detection",
         "    acl is_ssl_hello req_ssl_hello_type 1",
+        "    acl has_sni req_ssl_sni -m found",
         "",
         "    tcp-request content accept if is_ssh_raw || is_openvpn_raw || is_http_raw || is_ssl_hello",
         ""
@@ -15141,13 +15188,33 @@ def generate_haproxy_cfg(config):
     
     acls = []
     use_backends = []
-    default_backend_name = "web_backend"
     
-    # Process non-default protocols first, and default/web last
-    sorted_protocols = sorted(protocols, key=lambda p: (1 if p.get("is_default") or p.get("id") == "web" else 0))
+    # Determine default backend name for direct IP and fallback
+    default_proto_id = config.get("default_backend", "")
+    if not default_proto_id:
+        for p in protocols:
+            if p.get("is_default", False):
+                default_proto_id = p.get("id")
+                break
+    if not default_proto_id or default_proto_id not in enabled_protos:
+        for cand in ["singbox", "ocserv", "sstp", "web"]:
+            if cand in enabled_protos:
+                default_proto_id = cand
+                break
+        if not default_proto_id:
+            default_proto_id = "web"
+
+    default_backend_name = f"{default_proto_id}_backend"
+    
+    # Process non-default protocols first, and default last
+    sorted_protocols = sorted(protocols, key=lambda p: (1 if p.get("id") == default_proto_id else 0))
     
     exact_rules = []
     wildcard_rules = []
+    
+    auto_sb_snis = get_singbox_snis()
+    server_pub_ip = get_server_public_ip() or ""
+    server_domain = get_server_domain() or ""
     
     for proto in sorted_protocols:
         p_id = proto.get("id")
@@ -15155,7 +15222,7 @@ def generate_haproxy_cfg(config):
         p_sni_str = proto.get("sni", "").strip()
         p_host = proto.get("backend_ip", "127.0.0.1").strip()
         p_port = proto.get("backend_port")
-        if not p_port or (p_id == "ssh" and p_port == 22):
+        if not p_port or (p_id == "ssh" and p_port == 22) or (p_id == "openvpn" and p_port == 1194):
             if p_id == "web":
                 web_srv = config.get("web_server_type", "internal")
                 if web_srv == "internal":
@@ -15167,26 +15234,39 @@ def generate_haproxy_cfg(config):
                 else:
                     p_port = 8444
             elif p_id == "ocserv": p_port = 10443
-            elif p_id == "ssh": p_port = 4444
-            elif p_id == "openvpn": p_port = 1194
+            elif p_id == "ssh": p_port = 22
+            elif p_id == "openvpn": p_port = 1195
             elif p_id == "sstp": p_port = 4443
             elif p_id == "singbox": p_port = 20443
             else: p_port = 8444
             
         backend_name = f"{p_id}_backend"
-        if proto.get("is_default", False):
+        if proto.get("is_default", False) or p_id == default_proto_id:
             default_backend_name = backend_name
             
         if p_enabled:
             backend_blocks.append(f"backend {backend_name}\n    mode tcp\n    server {p_id} {p_host}:{p_port}")
-            if p_sni_str:
-                sni_items = [s.strip() for s in p_sni_str.replace(";", ",").split(",") if s.strip()]
-                for idx_s, s_val in enumerate(sni_items):
-                    acl_name = f"is_{p_id}_{idx_s}"
-                    if s_val.startswith("*."):
-                        wildcard_rules.append((f"    acl {acl_name} req_ssl_sni -m end {s_val[1:]}", f"    use_backend {backend_name} if {acl_name}"))
-                    else:
-                        exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {s_val}", f"    use_backend {backend_name} if {acl_name}"))
+            sni_items = [s.strip() for s in p_sni_str.replace(";", ",").split(",") if s.strip()]
+            
+            # Automatically augment singbox with dynamically parsed reality & decoy SNIs
+            if p_id == "singbox":
+                for s in auto_sb_snis:
+                    if s and s not in sni_items:
+                        sni_items.append(s)
+
+            # If default protocol, also map public IP and server domain
+            if p_id == default_proto_id:
+                if server_pub_ip and server_pub_ip not in sni_items:
+                    sni_items.append(server_pub_ip)
+                if server_domain and server_domain not in sni_items:
+                    sni_items.append(server_domain)
+                    
+            for idx_s, s_val in enumerate(sni_items):
+                acl_name = f"is_{p_id}_{idx_s}"
+                if s_val.startswith("*."):
+                    wildcard_rules.append((f"    acl {acl_name} req_ssl_sni -m end {s_val[1:]}", f"    use_backend {backend_name} if {acl_name}"))
+                else:
+                    exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {s_val}", f"    use_backend {backend_name} if {acl_name}"))
 
     for a_line, u_line in exact_rules:
         acls.append(a_line)
@@ -15225,6 +15305,11 @@ def generate_haproxy_cfg(config):
     lines.extend(use_backends)
     if use_backends:
         lines.append("")
+        
+    # Crucial fallback: route direct IP / Non-SNI TLS connections directly to default protocol
+    lines.append(f"    # Direct IP & Non-SNI TLS traffic routing to default VPN")
+    lines.append(f"    use_backend {default_backend_name} if is_ssl_hello !has_sni")
+    lines.append("")
     lines.append(f"    default_backend {default_backend_name}")
     lines.append("")
     lines.extend(backend_blocks)
@@ -20119,19 +20204,21 @@ def build_default_singbox_full_suite():
         },
         "dns": {
             "servers": [
-                {"tag": "dns-direct", "address": "1.1.1.1", "strategy": "prefer_ipv4", "detour": "direct"},
-                {"tag": "dns-google", "address": "8.8.8.8", "strategy": "prefer_ipv4", "detour": "direct"}
-            ]
+                {"tag": "dns-direct", "address": "1.1.1.1", "strategy": "ipv4_only", "detour": "direct"},
+                {"tag": "dns-google", "address": "8.8.8.8", "strategy": "ipv4_only", "detour": "direct"}
+            ],
+            "strategy": "ipv4_only"
         },
         "inbounds": inbounds,
         "outbounds": [
-            {"type": "direct", "tag": "direct"},
+            {"type": "direct", "tag": "direct", "domain_strategy": "ipv4_only"},
             {"type": "block", "tag": "block"}
         ],
         "route": {
             "auto_detect_interface": True,
             "rules": [
                 {"protocol": "dns", "outbound": "direct"},
+                {"port": [443], "network": ["udp"], "outbound": "block"},
                 {"ip_is_private": True, "outbound": "direct"}
             ]
         }
@@ -20148,6 +20235,30 @@ def ensure_singbox_default_config():
                 c = json.load(f)
             if not c.get("inbounds"):
                 need_init = True
+            else:
+                # Ensure DNS IPv4 only and QUIC blocking are present
+                dns_obj = c.get("dns", {})
+                route_obj = c.get("route", {})
+                rules = route_obj.get("rules", [])
+                has_quic_block = any(r.get("port") == [443] and "udp" in r.get("network", []) and r.get("outbound") == "block" for r in rules if isinstance(r, dict))
+                if not has_quic_block or dns_obj.get("strategy") != "ipv4_only":
+                    dns_obj["strategy"] = "ipv4_only"
+                    for s in dns_obj.get("servers", []):
+                        if isinstance(s, dict):
+                            s["strategy"] = "ipv4_only"
+                    c["dns"] = dns_obj
+                    for ob in c.get("outbounds", []):
+                        if isinstance(ob, dict) and ob.get("tag") == "direct":
+                            ob["domain_strategy"] = "ipv4_only"
+                    if not has_quic_block:
+                        rules.insert(1, {"port": [443], "network": ["udp"], "outbound": "block"})
+                        route_obj["rules"] = rules
+                        c["route"] = route_obj
+                    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f_out:
+                        json.dump(c, f_out, indent=2, ensure_ascii=False)
+                    try:
+                        subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+                    except Exception: pass
         except Exception:
             need_init = True
 

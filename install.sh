@@ -1718,7 +1718,10 @@ wizard_full_automated() {
         fi
     done
 
-    echo -e "\n${YELLOW}>>> [6/6] Synchronizing firewall rules and saving state...${NC}"
+    echo -e "\n${YELLOW}>>> [6/6] Synchronizing firewall rules, TCP MSS clamping, and routing state...${NC}"
+    if [ -x "/www/wwwroot/mhpanel/scripts/protocol_helper.sh" ]; then
+        /www/wwwroot/mhpanel/scripts/protocol_helper.sh setup-nat 2>/dev/null || true
+    fi
     if command -v iptables-save >/dev/null 2>&1; then
         mkdir -p /etc/iptables
         iptables-save > /etc/iptables/rules.v4 2>/dev/null || true

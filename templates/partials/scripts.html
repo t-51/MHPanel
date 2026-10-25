@@ -7279,6 +7279,12 @@
                 webServerType.value = cfg.web_server_type;
             }
 
+            // Default Backend for Non-SNI / Direct IP
+            const defBackendEl = document.getElementById("mpx-default-backend");
+            if (defBackendEl && cfg.default_backend) {
+                defBackendEl.value = cfg.default_backend;
+            }
+
             // Custom rules
             const customContainer = document.getElementById("mpx-custom-rules-container");
             if (customContainer) {
@@ -7337,7 +7343,7 @@
         const webTarget = parseTarget(document.getElementById("mpx-proto-web-target")?.value, 8444);
         const ocservTarget = parseTarget(document.getElementById("mpx-proto-ocserv-target")?.value, 10443);
         const sshTarget = parseTarget(document.getElementById("mpx-proto-ssh-target")?.value, 4444);
-        const openvpnTarget = parseTarget(document.getElementById("mpx-proto-openvpn-target")?.value, 1194);
+        const openvpnTarget = parseTarget(document.getElementById("mpx-proto-openvpn-target")?.value, 1195);
         const sstpTarget = parseTarget(document.getElementById("mpx-proto-sstp-target")?.value, 4443);
         const singboxTarget = parseTarget(document.getElementById("mpx-proto-singbox-target")?.value, 20443);
 
@@ -7346,11 +7352,13 @@
             return val.split(",").map(p => parseInt(p.trim(), 10)).filter(p => !isNaN(p) && p > 0 && p <= 65535);
         }
 
+        const chosenDefaultBackend = document.getElementById("mpx-default-backend")?.value || "singbox";
+
         const payload = {
             enabled: document.getElementById("mpx-master-toggle")?.checked ?? true,
             listen_ports: currentListenPorts.length > 0 ? currentListenPorts : [443],
             web_server_type: document.getElementById("mpx-web-server-type")?.value || "apache",
-            default_backend: "web",
+            default_backend: chosenDefaultBackend,
             protocols: [
                 {
                     id: "web",
@@ -7359,7 +7367,7 @@
                     sni: document.getElementById("mpx-proto-web-sni")?.value.trim() || "panel.example.com",
                     backend_ip: webTarget.host,
                     backend_port: webTarget.port,
-                    is_default: true,
+                    is_default: (chosenDefaultBackend === "web"),
                     protocol_type: "web"
                 },
                 {
@@ -7369,7 +7377,7 @@
                     sni: document.getElementById("mpx-proto-ocserv-sni")?.value.trim() || "vpn.example.com",
                     backend_ip: ocservTarget.host,
                     backend_port: ocservTarget.port,
-                    is_default: false,
+                    is_default: (chosenDefaultBackend === "ocserv"),
                     protocol_type: "cisco"
                 },
                 {
@@ -7379,7 +7387,7 @@
                     sni: document.getElementById("mpx-proto-ssh-sni")?.value.trim() || "ssh.example.com",
                     backend_ip: sshTarget.host,
                     backend_port: sshTarget.port,
-                    is_default: false,
+                    is_default: (chosenDefaultBackend === "ssh"),
                     protocol_type: "ssh"
                 },
                 {
@@ -7389,7 +7397,7 @@
                     sni: document.getElementById("mpx-proto-openvpn-sni")?.value.trim() || "ovpn.example.com",
                     backend_ip: openvpnTarget.host,
                     backend_port: openvpnTarget.port,
-                    is_default: false,
+                    is_default: (chosenDefaultBackend === "openvpn"),
                     protocol_type: "openvpn"
                 },
                 {
@@ -7399,7 +7407,7 @@
                     sni: document.getElementById("mpx-proto-sstp-sni")?.value.trim() || "sstp.example.com",
                     backend_ip: sstpTarget.host,
                     backend_port: sstpTarget.port,
-                    is_default: false,
+                    is_default: (chosenDefaultBackend === "sstp"),
                     protocol_type: "sstp"
                 },
                 {
@@ -7409,7 +7417,7 @@
                     sni: document.getElementById("mpx-proto-singbox-sni")?.value.trim() || "sb.example.com,vless.example.com",
                     backend_ip: singboxTarget.host,
                     backend_port: singboxTarget.port,
-                    is_default: false,
+                    is_default: (chosenDefaultBackend === "singbox"),
                     protocol_type: "singbox",
                     desc: "مسیریابی پروتکل‌های VLESS, Trojan, VMess روی پورت اشتراکی ۴۴۳"
                 }

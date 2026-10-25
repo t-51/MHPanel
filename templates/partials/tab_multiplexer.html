@@ -115,6 +115,23 @@
 <p data-i18n="mpx_check_protocols_that_you_want" style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-bottom: 20px;">
                 پروتکل‌هایی که مایلید روی پورت‌های اشتراکی بالا همزمان کار کنند را تیک بزنید و دامنه اختصاصی هر کدام را وارد نمایید. سیستم هوشمند HAProxy بسته به دامنه‌ای که کلاینت درخواست می‌دهد، ترافیک را به پروتکل مناسب هدایت می‌کند.
             </p>
+<div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px;">
+<div style="display: flex; align-items: center; gap: 10px;">
+<i data-lucide="compass" style="color: #0284c7; width: 22px; height: 22px;"></i>
+<div>
+<div style="font-weight: 700; font-size: 14px; color: var(--text-main);">پروتکل پیش‌فرض برای اتصالات مستقیم با IP (بدون SNI):</div>
+<div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">کلاینت‌هایی که با آدرس IP مستقیم به پورت ۴۴۳ وصل می‌شوند (سیسکو، SSTP، یا سینگ‌باکس بدون دامنه) به این سرویس هدایت می‌شوند.</div>
+</div>
+</div>
+<select class="form-input" id="mpx-default-backend" style="width: 270px; height: 38px; font-weight: 600;">
+<option value="singbox">هسته سینگ‌باکس (Sing-box VLESS / Reality)</option>
+<option value="ocserv">سیسکو AnyConnect / OpenConnect</option>
+<option value="sstp">ویندوز SSTP (Accel-PPP)</option>
+<option value="web">وب‌سرور و پنل مدیریت (Web / MHPanel)</option>
+<option value="ssh">تونل SSH</option>
+<option value="openvpn">اوپن‌وی‌پی‌ان (OpenVPN TCP)</option>
+</select>
+</div>
 <div id="mpx-protocols-list" style="display: flex; flex-direction: column; gap: 16px;">
 <!-- 1. Web Server / MHPanel -->
 <div class="mpx-proto-row" style="background: rgba(255, 255, 255, 0.8); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; transition: all 0.2s;">

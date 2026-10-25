@@ -259,19 +259,71 @@ setup_global_nat() {
     echo "net.ipv4.ip_forward=1" > /etc/sysctl.d/99-ipforward.conf
     echo "net.ipv6.conf.all.forwarding=1" >> /etc/sysctl.d/99-ipforward.conf
     
-    # 2. Add masquerade rules for our VPN subnets (10.8.0.0/12 covers 10.8.x.x through 10.13.x.x)
     local ext_if=$(get_public_interface)
+
+    # 2. Add masquerade rules for all VPN subnets and public egress
     if [ -n "${ext_if}" ]; then
-        # Add to iptables if not exists
-        if ! iptables -t nat -C POSTROUTING -s 10.8.0.0/12 -o "${ext_if}" -j MASQUERADE 2>/dev/null; then
-            iptables -t nat -A POSTROUTING -s 10.8.0.0/12 -o "${ext_if}" -j MASQUERADE
+        for subnet in "10.0.0.0/8" "172.16.0.0/12" "192.168.0.0/16"; do
+            if ! iptables -t nat -C POSTROUTING -s "${subnet}" -o "${ext_if}" -j MASQUERADE 2>/dev/null; then
+                iptables -t nat -A POSTROUTING -s "${subnet}" -o "${ext_if}" -j MASQUERADE 2>/dev/null || true
+            fi
+        done
+        if ! iptables -t nat -C POSTROUTING -o "${ext_if}" -j MASQUERADE 2>/dev/null; then
+            iptables -t nat -A POSTROUTING -o "${ext_if}" -j MASQUERADE 2>/dev/null || true
         fi
-        
-        # Save iptables rules so they persist
-        if command -v iptables-save >/dev/null; then
-            mkdir -p /etc/iptables
-            iptables-save > /etc/iptables/rules.v4
+        if command -v ip6tables >/dev/null 2>&1; then
+            if ! ip6tables -t nat -C POSTROUTING -o "${ext_if}" -j MASQUERADE 2>/dev/null; then
+                ip6tables -t nat -A POSTROUTING -o "${ext_if}" -j MASQUERADE 2>/dev/null || true
+            fi
         fi
+    fi
+
+    # 3. Universal TCP MSS Clamping (PMTU Discovery Blackhole Fix for YouTube & Streaming)
+    iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+        iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+    iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+
+    # Clamp MSS to 1280 max to guarantee packets fit inside any Wireguard / SSTP / Tunnel MTU without fragmentation
+    iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
+        iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+    iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
+        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+
+    if command -v ip6tables >/dev/null 2>&1; then
+        ip6tables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
+            ip6tables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
+        ip6tables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
+            ip6tables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+    fi
+
+    # 4. Block/Reject Outbound QUIC (UDP 443) on FORWARD to prevent YouTube hang & force instant TCP TLS
+    iptables -C FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || \
+        iptables -I FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || true
+    if command -v ip6tables >/dev/null 2>&1; then
+        ip6tables -C FORWARD -p udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || \
+            ip6tables -I FORWARD -p udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
+    fi
+
+    # 5. Bidirectional FORWARD rules for VPN interfaces
+    iptables -C FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || \
+        iptables -I FORWARD 1 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+
+    for iface in "tun+" "wg+" "awg+" "ppp+" "vpns+"; do
+        iptables -C FORWARD -i "${iface}" -j ACCEPT 2>/dev/null || iptables -A FORWARD -i "${iface}" -j ACCEPT 2>/dev/null || true
+        iptables -C FORWARD -o "${iface}" -j ACCEPT 2>/dev/null || iptables -A FORWARD -o "${iface}" -j ACCEPT 2>/dev/null || true
+    done
+
+    # 6. Save iptables rules so they persist across reboots
+    if command -v iptables-save >/dev/null 2>&1; then
+        mkdir -p /etc/iptables
+        iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+        if command -v ip6tables-save >/dev/null 2>&1; then
+            ip6tables-save > /etc/iptables/rules.v6 2>/dev/null || true
+        fi
+    fi
+    if command -v netfilter-persistent >/dev/null 2>&1; then
+        netfilter-persistent save >/dev/null 2>&1 || true
     fi
 }
 
@@ -504,6 +556,7 @@ server ${subnet} 255.255.255.0
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS ${dns1}"
 push "dhcp-option DNS ${dns2}"
+push "block-outside-dns"
 keepalive 10 120
 cipher ${cipher}
 ncp-ciphers ${cipher}:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
@@ -514,6 +567,35 @@ persist-tun
 status /var/log/openvpn-status.log
 verb 3
 explicit-exit-notify 1
+plugin ${pam_plugin} openvpn
+username-as-common-name
+verify-client-cert none
+EOF
+
+    # Also provision OpenVPN TCP on port 1195 for HAProxy multiplexer coexistence
+    cat > /etc/openvpn/server-tcp.conf <<EOF
+port 1195
+proto tcp
+dev tun-tcp
+ca ${CA_CERT}
+cert ${SERVER_CERT}
+key ${SERVER_KEY}
+dh none
+tls-crypt /etc/openvpn/tls-crypt.key
+server 10.9.0.0 255.255.255.0
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS ${dns1}"
+push "dhcp-option DNS ${dns2}"
+push "block-outside-dns"
+keepalive 10 120
+cipher ${cipher}
+ncp-ciphers ${cipher}:AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
+user nobody
+group nogroup
+persist-key
+persist-tun
+status /var/log/openvpn-tcp-status.log
+verb 3
 plugin ${pam_plugin} openvpn
 username-as-common-name
 verify-client-cert none
@@ -533,17 +615,23 @@ session required pam_unix.so
 EOF
 
     allow_port "${port}" "${proto}"
+    allow_port "1195" "tcp"
     systemctl enable openvpn@server
     systemctl restart openvpn@server
+    systemctl enable openvpn@server-tcp >/dev/null 2>&1 || true
+    systemctl restart openvpn@server-tcp >/dev/null 2>&1 || true
 }
 
 uninstall_openvpn() {
     systemctl stop openvpn@server || true
     systemctl disable openvpn@server || true
+    systemctl stop openvpn@server-tcp || true
+    systemctl disable openvpn@server-tcp || true
     port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "1194")
     proto=$(grep -Ei '^proto ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "udp")
     deny_port "${port}" "${proto}"
-    rm -f /etc/openvpn/server.conf /etc/openvpn/tls-crypt.key /etc/pam.d/openvpn
+    deny_port "1195" "tcp"
+    rm -f /etc/openvpn/server.conf /etc/openvpn/server-tcp.conf /etc/openvpn/tls-crypt.key /etc/pam.d/openvpn
 }
 
 set_port_openvpn() {
@@ -901,13 +989,21 @@ DNS.1 = ${srv_host}
 DNS.2 = *.${srv_host}
 DNS.3 = localhost
 IP.1 = 127.0.0.1
+IP.2 = ${srv_host}
 EOF
         openssl genrsa -out /etc/sstp-ca/sstp-server.key 2048 >/dev/null 2>&1 || true
         chmod 600 /etc/sstp-ca/sstp-server.key 2>/dev/null || true
         openssl req -new -key /etc/sstp-ca/sstp-server.key -out /etc/sstp-ca/sstp_server.csr -config "${cnf_path}" >/dev/null 2>&1 || true
         openssl x509 -req -in /etc/sstp-ca/sstp_server.csr -CA /etc/sstp-ca/ca.crt -CAkey /etc/sstp-ca/ca.key -CAcreateserial -out /etc/sstp-ca/sstp-server.crt -days 3650 -extfile "${cnf_path}" -extensions v3_req >/dev/null 2>&1 || true
         chmod 644 /etc/sstp-ca/sstp-server.crt 2>/dev/null || true
+        cat /etc/sstp-ca/sstp-server.crt /etc/sstp-ca/ca.crt > /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
+        chmod 644 /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
         rm -f "${cnf_path}" /etc/sstp-ca/sstp_server.csr
+    fi
+
+    if [ ! -f "/etc/sstp-ca/sstp-fullchain.crt" ] && [ -f "/etc/sstp-ca/sstp-server.crt" ] && [ -f "/etc/sstp-ca/ca.crt" ]; then
+        cat /etc/sstp-ca/sstp-server.crt /etc/sstp-ca/ca.crt > /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
+        chmod 644 /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
     fi
 
     mkdir -p /etc/accel-ppp /var/log/accel-ppp /etc/ppp/ip-up.d /etc/ppp/ip-down.d
@@ -944,7 +1040,8 @@ EOF
         pip3 install sstp-server --break-system-packages >/dev/null 2>&1 || pip install sstp-server >/dev/null 2>&1 || true
     fi
 
-    local sstp_cert_path="/etc/sstp-ca/sstp-server.crt"
+    local sstp_cert_path="/etc/sstp-ca/sstp-fullchain.crt"
+    [ ! -f "${sstp_cert_path}" ] && sstp_cert_path="/etc/sstp-ca/sstp-server.crt"
     local sstp_key_path="/etc/sstp-ca/sstp-server.key"
     if [ ! -f "${sstp_cert_path}" ] || [ ! -f "${sstp_key_path}" ]; then
         sstp_cert_path="${SERVER_CERT}"
@@ -1033,6 +1130,7 @@ ppp
 ippool
 chap-secrets
 ${auth_module}
+radius
 
 [core]
 log-error=/var/log/accel-ppp/core.log
@@ -1054,8 +1152,8 @@ ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 [sstp]
 bind=0.0.0.0
 port=${port}
-cert=${sstp_cert_path}
-key=${sstp_key_path}
+ssl-pemfile=${sstp_cert_path}
+ssl-keyfile=${sstp_key_path}
 ssl=1
 
 [dns]
@@ -1069,12 +1167,28 @@ ${remote_start}-${remote_end}
 [chap-secrets]
 chap-secrets=/etc/ppp/chap-secrets
 
+[radius]
+dictionary=/usr/share/accel-ppp/radius/dictionary
+nas-identifier=accel-ppp
+nas-ip-address=127.0.0.1
+gw-ip-address=${local_ip}
+server=127.0.0.1,testing123,auth-port=1812,acct-port=1813,req-limit=0,fail-time=0
+dae-server=127.0.0.1:3799,testing123
+verbose=1
+timeout=3
+max-try=3
+acct-timeout=120
+
 [log]
 log-file=/var/log/accel-ppp/accel-ppp.log
 log-emerg=/var/log/accel-ppp/emerg.log
 log-debug=/var/log/accel-ppp/debug.log
 copy=1
 level=3
+
+[client-ip-range]
+0.0.0.0/0
+::/0
 EOF
 
     if [ ! -f /etc/ppp/chap-secrets ]; then
@@ -3987,6 +4101,11 @@ case "${ACTION}" in
             freeradius|radius) service_status freeradius radiusd ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
+        ;;
+    setup_global_nat|setup-nat|fix-routing)
+        setup_global_nat
+        echo "Firewall, TCP MSS clamping and NAT routing synchronized."
+        exit 0
         ;;
     status_report)
         print_status_report
