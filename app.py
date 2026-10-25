@@ -11642,6 +11642,8 @@ ping-leases = false
 mtu = {mtu}
 cisco-client-compat = {"true" if cisco_compat else "false"}
 dtls-legacy = {"true" if dtls_legacy else "false"}
+route = default
+tunnel-all-dns = true
 """
 
     temp_path = "/tmp/ocserv_new.conf"
@@ -12303,6 +12305,8 @@ def api_get_sstp_config():
             "vpnserver": vpnserver_active,
             "haproxy": haproxy_active
         },
+        "softether_installed": os.path.exists("/usr/local/vpnserver/vpnserver"),
+        "sstpd_installed": bool(shutil.which("accel-pppd") or shutil.which("sstpd") or os.path.exists("/usr/sbin/accel-pppd")),
         "cert": {
             "valid": cert_details.get("installed", False),
             "domain": cert_details.get("subject", srv_domain)
@@ -12312,6 +12316,21 @@ def api_get_sstp_config():
         "domain": srv_domain,
         "sni": cfg.get("sni", f"sstp.{srv_domain}" if srv_domain else "sstp.example.com")
     })
+
+@app.route("/api/sstp/softether/install", methods=["POST"])
+def api_install_softether():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        cfg = get_sstp_config()
+        port = cfg.get("port", 4443)
+        res = subprocess.run(["bash", "/root/mhpanel-repo/scripts/protocol_helper.sh", "install", "softether", str(port)], capture_output=True, text=True, timeout=180)
+        if res.returncode == 0:
+            return jsonify({"success": True, "message": "سرور سافت‌ایزر (SoftEther MS-SSTP Enterprise) با موفقیت نصب و راه‌اندازی شد."})
+        else:
+            return jsonify({"success": False, "error": res.stderr or res.stdout}), 500
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/sstp/config", methods=["POST"])
 def api_save_sstp_config():
@@ -12431,11 +12450,15 @@ radius-config-file /etc/radcli/radiusclient.conf
         accel_conf_content = f"""[modules]
 log_file
 sstp
-ppp
+pppd_compat
 ippool
 chap-secrets
 auth_mschap_v2
+auth_mschap_v1
+auth_chap_md5
+auth_pap
 radius
+sigchld
 
 [core]
 log-error=/var/log/accel-ppp/core.log
@@ -12451,6 +12474,8 @@ mtu={mtu}
 mru={mru}
 ipv4=require
 ipv6=deny
+check-ip=0
+mppe=prefer
 ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
 ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 
@@ -12544,16 +12569,28 @@ WantedBy=multi-user.target
         pass
         
     if engine in ["sstpd", "both"]:
+        if os.path.exists("/usr/local/vpnserver/vpncmd"):
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "ListenerDelete", str(port)], capture_output=True)
         subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
     else:
         subprocess.run(["systemctl", "stop", "sstpd"], capture_output=True)
         
     if engine in ["softether", "both"]:
+        if not os.path.exists("/usr/local/vpnserver/vpnserver"):
+            subprocess.run(["bash", "/root/mhpanel-repo/scripts/protocol_helper.sh", "install", "softether", str(port)], capture_output=True)
+        if os.path.exists("/usr/local/vpnserver/vpncmd"):
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "ListenerCreate", str(port)], capture_output=True)
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "SstpEnable", "yes"], capture_output=True)
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SecureNatEnable"], capture_output=True)
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "RadiusServerSet", "127.0.0.1:1812", "/SECRET:testing123", "/RETRYINTERVAL:3000"], capture_output=True)
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserCreate", "*", "/GROUP:none", "/REALNAME:none", "/NOTE:none"], capture_output=True)
+            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserRadiusSet", "*", "/ALIAS:none"], capture_output=True)
         subprocess.run(["systemctl", "start", "vpnserver"], capture_output=True)
     else:
         subprocess.run(["systemctl", "stop", "vpnserver"], capture_output=True)
         
     subprocess.run(f"iptables -t nat -C POSTROUTING -s {remote_subnet} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {remote_subnet} -j MASQUERADE", shell=True)
+    subprocess.run("iptables -t nat -C POSTROUTING -s 192.168.30.0/24 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 192.168.30.0/24 -j MASQUERADE", shell=True)
     
     return jsonify({"success": True, "message": "تنظیمات SSTP ذخیره و اعمال شد."})
 

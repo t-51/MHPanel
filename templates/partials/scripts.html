@@ -12224,6 +12224,14 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             }
 
             const certDetails = data.cert_details || {};
+            const seBadge = document.getElementById("sstp-softether-installed-badge");
+            if (seBadge) {
+                if (data.softether_installed) {
+                    seBadge.innerHTML = `<span style="color:#059669; font-weight:600;"><i data-lucide="check" style="width:12px; height:12px; display:inline;"></i> سافت‌ایزر آماده</span>`;
+                } else {
+                    seBadge.innerHTML = `<span style="color:#d97706; font-weight:600;"><i data-lucide="alert-circle" style="width:12px; height:12px; display:inline;"></i> نیاز به نصب</span>`;
+                }
+            }
             const topCertStatus = document.getElementById("sstp-top-cert-status");
             if (topCertStatus) {
                 if (certDetails.installed) {
@@ -12377,6 +12385,25 @@ SlowDNS Pubkey: b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
             showToast("خطای ارتباط با سرور", "error");
         }
         toggleLoading(false);
+    }
+
+    async function installSoftEtherManual() {
+        toggleLoading(true, "در حال دانلود، کامپایل و راه‌اندازی سرور SoftEther MS-SSTP Enterprise...");
+        try {
+            const res = await fetch("/api/sstp/softether/install", { method: "POST" });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || "SoftEther با موفقیت نصب و فعال شد.", "success");
+                fetchSstpConfig();
+            } else {
+                showToast(`خطا در نصب SoftEther: ${data.error || "نامشخص"}`, "error");
+            }
+        } catch (e) {
+            showToast(`خطا: ${e.message}`, "error");
+        } finally {
+            toggleLoading(false);
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     }
 
     function downloadSstpScript(type) {

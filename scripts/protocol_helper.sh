@@ -1126,11 +1126,15 @@ EOF
 [modules]
 log_file
 sstp
-ppp
+pppd_compat
 ippool
 chap-secrets
 ${auth_module}
+auth_mschap_v1
+auth_chap_md5
+auth_pap
 radius
+sigchld
 
 [core]
 log-error=/var/log/accel-ppp/core.log
@@ -1146,6 +1150,8 @@ mtu=1400
 mru=1400
 ipv4=require
 ipv6=deny
+check-ip=0
+mppe=prefer
 ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
 ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
 
@@ -1268,6 +1274,86 @@ set_port_sstp() {
     allow_port "${port}" "tcp"
     systemctl daemon-reload
     systemctl restart sstpd
+}
+
+# ----------------- SOFTETHER PROTOCOL -----------------
+install_softether() {
+    local port=${1:-4443}
+    echo "Installing SoftEther VPN Server (MS-SSTP Enterprise)..."
+    run_apt install build-essential gcc make curl tar >/dev/null 2>&1 || true
+
+    if [ ! -x /usr/local/vpnserver/vpnserver ] || [ ! -x /usr/local/vpnserver/vpncmd ]; then
+        local dl_url="https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/v4.44-9807-rtm/softether-vpnserver-v4.44-9807-rtm-2025.04.16-linux-x64-64bit.tar.gz"
+        mkdir -p /tmp/se_inst
+        curl -sSL "${dl_url}" -o /tmp/se_inst/softether.tar.gz || curl -sSL "https://www.softether-download.com/files/softether/v4.42-9798-rtm-2023.06.30-tree/Linux/SoftEther_VPN_Server/64bit_-_Intel_x64_or_AMD64/softether-vpnserver-v4.42-9798-rtm-2023.06.30-linux-x64-64bit.tar.gz" -o /tmp/se_inst/softether.tar.gz
+        
+        cd /tmp/se_inst && tar -xzf softether.tar.gz
+        cd /tmp/se_inst/vpnserver && printf '1\n1\n1\n' | make >/dev/null 2>&1
+        mkdir -p /usr/local/vpnserver
+        cp -rf /tmp/se_inst/vpnserver/* /usr/local/vpnserver/
+        cd /usr/local/vpnserver && chmod 600 * && chmod 700 vpncmd vpnserver
+        rm -rf /tmp/se_inst
+    fi
+
+    cat > /etc/systemd/system/vpnserver.service <<EOF
+[Unit]
+Description=SoftEther VPN Server
+After=network.target freeradius.service
+Wants=freeradius.service
+
+[Service]
+Type=forking
+ExecStart=/usr/local/vpnserver/vpnserver start
+ExecStop=/usr/local/vpnserver/vpnserver stop
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    systemctl daemon-reload
+    systemctl enable vpnserver >/dev/null 2>&1
+    systemctl restart vpnserver
+    sleep 2
+
+    # Clean up standard ports and set SSTP port
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerDelete 443 >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerDelete 1194 >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerCreate "${port}" >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD SstpEnable yes >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD SecureNatEnable >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD RadiusServerSet 127.0.0.1:1812 /SECRET:testing123 /RETRYINTERVAL:3000 >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD UserCreate '*' /GROUP:none /REALNAME:none /NOTE:none >/dev/null 2>&1 || true
+    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD UserRadiusSet '*' /ALIAS:none >/dev/null 2>&1 || true
+
+    mkdir -p /usr/local/vpnserver/chain_certs
+    [ -f /etc/sstp-ca/ca.crt ] && cp -f /etc/sstp-ca/ca.crt /usr/local/vpnserver/chain_certs/
+    if [ -f /etc/sstp-ca/sstp-server.crt ] && [ -f /etc/sstp-ca/sstp-server.key ]; then
+        /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ServerCertSet /LOADCERT:/etc/sstp-ca/sstp-server.crt /LOADKEY:/etc/sstp-ca/sstp-server.key >/dev/null 2>&1 || true
+    fi
+
+    allow_port "${port}" "tcp"
+    allow_port "5555" "tcp"
+    iptables -t nat -C POSTROUTING -s 192.168.30.0/24 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 192.168.30.0/24 -j MASQUERADE
+    echo "SoftEther VPN Server (MS-SSTP Enterprise) installed on TCP port ${port}."
+}
+
+uninstall_softether() {
+    systemctl stop vpnserver >/dev/null 2>&1 || true
+    systemctl disable vpnserver >/dev/null 2>&1 || true
+    rm -f /etc/systemd/system/vpnserver.service
+    systemctl daemon-reload
+    rm -rf /usr/local/vpnserver
+    echo "SoftEther VPN Server uninstalled."
+}
+
+set_port_softether() {
+    local port=$1
+    if [ -x /usr/local/vpnserver/vpncmd ]; then
+        /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerCreate "${port}" >/dev/null 2>&1 || true
+        allow_port "${port}" "tcp"
+    fi
 }
 
 # ----------------- PPTP PROTOCOL -----------------
@@ -3852,6 +3938,7 @@ case "${ACTION}" in
             ocserv) install_ocserv "$ARG3" ;;
             ikev2) install_ikev2 ;;
             sstp) install_sstp "$ARG3" ;;
+            softether) install_softether "$ARG3" ;;
             l2tp) install_l2tp ;;
             l2tpv3) install_l2tpv3 "$ARG3" "$ARG4" ;;
             wireguard) install_wireguard "$ARG3" ;;
@@ -3886,6 +3973,7 @@ case "${ACTION}" in
             ocserv) uninstall_ocserv ;;
             ikev2) uninstall_ikev2 ;;
             sstp) uninstall_sstp ;;
+            softether) uninstall_softether ;;
             l2tp) uninstall_l2tp ;;
             l2tpv3) uninstall_l2tpv3 ;;
             wireguard) uninstall_wireguard ;;
@@ -3920,6 +4008,7 @@ case "${ACTION}" in
             ocserv) set_port_ocserv "$ARG3" ;;
             ikev2) echo "Cannot set custom port for IKEv2 (fixed to UDP 500/4500)" && exit 1 ;;
             sstp) set_port_sstp "$ARG3" ;;
+            softether) set_port_softether "$ARG3" ;;
             l2tp) echo "Cannot set custom port for L2TP (fixed to UDP 1701)" && exit 1 ;;
             wireguard) set_port_wireguard "$ARG3" ;;
             amneziawg) set_port_amneziawg "$ARG3" ;;

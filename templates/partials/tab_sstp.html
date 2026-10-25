@@ -49,6 +49,9 @@
                 <button type="button" class="btn btn-secondary btn-sm" onclick="restartSstpServices()" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="rotate-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="sstp_sstp_3">راه‌اندازی مجدد سرویس‌های SSTP</span>
                 </button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="installSoftEtherManual()" style="width:auto; padding: 8px 16px;">
+                    <i data-lucide="download-cloud" style="width:14px; height:14px; margin-right:6px; color:#0284c7;"></i> <span>نصب / ارتقای SoftEther</span>
+                </button>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSstpConfig(); fetchSstpClients(); fetchSstpSessions();" style="width:auto; padding: 8px 16px;">
                     <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-right:6px;"></i> <span data-i18n="ssh_status_updates_meetings">بروزرسانی وضعیت و نشست‌ها</span>
                 </button>
@@ -289,7 +292,10 @@
                     
                     <!-- Engine Selector -->
                     <div class="form-group" style="margin:0;">
-                        <label class="form-label" style="font-weight:600; font-size:12px;" data-i18n="sstp_server_engine">موتور هسته سرور (Server Engine)</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label class="form-label" style="font-weight:600; font-size:12px; margin:0;" data-i18n="sstp_server_engine">موتور هسته سرور (Server Engine)</label>
+                            <span id="sstp-softether-installed-badge" style="font-size:11px;"></span>
+                        </div>
                         <select class="form-input" id="sstp-cfg-engine" style="padding-left:14px; font-weight:600;">
                             <option value="sstpd" data-i18n="sstp_linux_native_sstpd_lightweight_fast">Linux Native sstpd (سبک، پرسرعت، متصل به کرنل)</option>
                             <option value="softether" data-i18n="sstp_softether_ms_sstp_enterprise">SoftEther MS-SSTP Enterprise (انترپرایز مایکروسافت)</option>
