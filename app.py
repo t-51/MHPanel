@@ -11686,6 +11686,7 @@ disconnect-script = /etc/ocserv/connect-script.sh
     os.makedirs("/etc/ocserv", exist_ok=True)
     connect_script_path = "/etc/ocserv/connect-script.sh"
     connect_script_content = """#!/bin/bash
+logger -t ocserv-script "CALL: REASON=$REASON DEVICE=$DEVICE IP_REMOTE=$IP_REMOTE IP_REAL=$IP_REAL USERNAME=$USERNAME"
 CLIENT_IP="${IP_REMOTE:-$IP_REAL}"
 if [ "$REASON" = "connect" ] || [ -z "$REASON" ]; then
     ip link set dev "$DEVICE" up 2>/dev/null || true
@@ -11695,10 +11696,12 @@ if [ "$REASON" = "connect" ] || [ -z "$REASON" ]; then
     fi
     sysctl -w net.ipv4.conf."$DEVICE".forwarding=1 >/dev/null 2>&1 || true
     sysctl -w net.ipv4.conf."$DEVICE".rp_filter=0 >/dev/null 2>&1 || true
+    logger -t ocserv-script "CONFIGURED $DEVICE for $CLIENT_IP"
 elif [ "$REASON" = "disconnect" ]; then
     if [ -n "$CLIENT_IP" ]; then
         ip route del "$CLIENT_IP/32" dev "$DEVICE" 2>/dev/null || true
     fi
+    logger -t ocserv-script "CLEANED UP $DEVICE for $CLIENT_IP"
 fi
 exit 0
 """
