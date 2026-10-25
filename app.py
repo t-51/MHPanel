@@ -5206,22 +5206,53 @@ def api_protocols_reconfigure():
         return jsonify({"success": True, "message": f"{protocol} reconfigured successfully."})
     return jsonify({"success": False, "error": stderr}), 500
 
+def get_openvpn_ca_path():
+    for p in ["/etc/openvpn/server/ca.crt", "/etc/openvpn/ca.crt", "/etc/vpn-ca/ca.crt", VPN_CA_CERT]:
+        if p and os.path.exists(p):
+            return p
+    os.makedirs("/etc/vpn-ca", exist_ok=True)
+    os.makedirs("/etc/openvpn", exist_ok=True)
+    try:
+        subprocess.run("openssl genrsa -out /etc/vpn-ca/ca.key 2048 && openssl req -x509 -new -nodes -key /etc/vpn-ca/ca.key -subj '/CN=MHPanel Root CA' -days 3650 -out /etc/vpn-ca/ca.crt", shell=True)
+        if os.path.exists("/etc/vpn-ca/ca.crt"):
+            try: os.symlink("/etc/vpn-ca/ca.crt", "/etc/openvpn/ca.crt")
+            except Exception: pass
+            return "/etc/vpn-ca/ca.crt"
+    except Exception:
+        pass
+    return None
+
+def get_openvpn_tc_path():
+    for p in ["/etc/openvpn/server/tc.key", "/etc/openvpn/tls-crypt.key", "/etc/openvpn/tc.key"]:
+        if p and os.path.exists(p):
+            return p
+    try:
+        os.makedirs("/etc/openvpn", exist_ok=True)
+        subprocess.run("openvpn --genkey --secret /etc/openvpn/tls-crypt.key", shell=True)
+        if os.path.exists("/etc/openvpn/tls-crypt.key"):
+            try: os.symlink("/etc/openvpn/tls-crypt.key", "/etc/openvpn/tc.key")
+            except Exception: pass
+            return "/etc/openvpn/tls-crypt.key"
+    except Exception:
+        pass
+    return None
+
 @app.route("/api/openvpn/client/download", methods=["GET"])
 def api_openvpn_client_download():
     if not check_login():
         return "Unauthorized", 401
         
-    ca_path = "/etc/openvpn/server/ca.crt" if os.path.exists("/etc/openvpn/server/ca.crt") else "/etc/openvpn/ca.crt"
-    tc_path = "/etc/openvpn/server/tc.key" if os.path.exists("/etc/openvpn/server/tc.key") else "/etc/openvpn/tls-crypt.key"
+    ca_path = get_openvpn_ca_path()
+    tc_path = get_openvpn_tc_path()
     
-    if not os.path.exists(ca_path):
+    if not ca_path or not os.path.exists(ca_path):
         return "گواهی CA سرور OpenVPN یافت نشد.", 400
         
     with open(ca_path, "r") as f:
         ca_content = f.read().strip()
         
     tc_content = ""
-    if os.path.exists(tc_path):
+    if tc_path and os.path.exists(tc_path):
         with open(tc_path, "r") as f:
             tc_content = f.read().strip()
             
@@ -5234,19 +5265,12 @@ def api_openvpn_client_download():
     port = int(req_port) if req_port.isdigit() and int(req_port) > 0 else default_port
     
     # Host (Domain or IP)
-    settings = get_protocol_settings()
-    server_ip = settings.get("wireguard_server_ip", "")
-    if not server_ip:
-        try:
-            server_ip = subprocess.run(["curl", "-s", "--max-time", "2", "ifconfig.me"], stdout=subprocess.PIPE, text=True).stdout.strip()
-        except Exception:
-            pass
-    if not server_ip:
-        server_ip = "212.227.143.16"
-        
     host = request.args.get("host", "").strip()
     if not host:
-        host = server_ip
+        settings = get_protocol_settings()
+        host = settings.get("openvpn_server_ip", "").strip() or get_server_domain() or get_server_public_ip()
+    if ":" in host and not (host.startswith("[") and host.endswith("]")):
+        host = get_server_public_ip()
         
     use_xor = request.args.get("xor") == "1"
     use_udpspeeder = request.args.get("udpspeeder") == "1" or request.args.get("udp") == "1"
@@ -5395,9 +5419,9 @@ def api_wg_client_bulk():
             
     port = get_active_port("wireguard") or 904
     
-    server_ip = settings.get("wireguard_server_ip", "")
-    if not server_ip:
-        server_ip = "212.227.143.16"
+    server_ip = settings.get("wireguard_server_ip", "").strip() or get_server_domain() or get_server_public_ip()
+    if ":" in server_ip and not (server_ip.startswith("[") and server_ip.endswith("]")):
+        server_ip = get_server_public_ip()
             
     wg_dns1 = settings.get("wireguard_dns1", "8.8.8.8")
     wg_dns2 = settings.get("wireguard_dns2", "8.8.4.4")
@@ -5427,13 +5451,13 @@ def api_wg_client_bulk():
         
         client_config = f"""[Interface]
 PrivateKey = {privkey}
-Address = {client_ip}/24
+Address = {client_ip}/32
 DNS = {dns_val}
 
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25
 """
         created_clients.append({
@@ -5682,9 +5706,9 @@ def api_wg_client():
     client_ip = f"{subnet_prefix}.{next_ip_num}"
     
     # Get server endpoint
-    server_ip = settings.get("wireguard_server_ip", "")
-    if not server_ip:
-        server_ip = "212.227.143.16"
+    server_ip = settings.get("wireguard_server_ip", "").strip() or get_server_domain() or get_server_public_ip()
+    if ":" in server_ip and not (server_ip.startswith("[") and server_ip.endswith("]")):
+        server_ip = get_server_public_ip()
             
     with open("/etc/wireguard/wg0.conf", "a") as f:
         f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
@@ -5698,13 +5722,13 @@ def api_wg_client():
     
     client_config = f"""[Interface]
 PrivateKey = {privkey}
-Address = {client_ip}/24
+Address = {client_ip}/32
 DNS = {dns_val}
 
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25
 """
 
@@ -5841,9 +5865,9 @@ def api_awg_client_bulk():
             
     port = get_active_port("amneziawg") or 51820
     
-    server_ip = settings.get("amneziawg_server_ip", "")
-    if not server_ip:
-        server_ip = "212.227.143.16"
+    server_ip = settings.get("amneziawg_server_ip", "").strip() or get_server_domain() or get_server_public_ip()
+    if ":" in server_ip and not (server_ip.startswith("[") and server_ip.endswith("]")):
+        server_ip = get_server_public_ip()
             
     wg_dns1 = settings.get("amneziawg_dns1", "8.8.8.8")
     wg_dns2 = settings.get("amneziawg_dns2", "8.8.4.4")
@@ -5886,7 +5910,7 @@ DNS = {dns_val}
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25
 """
         created_clients.append({
@@ -6144,16 +6168,12 @@ def api_awg_client():
     client_ip = f"{subnet_prefix}.{next_ip_num}"
     
     # Get server endpoint
-    server_ip = settings.get("amneziawg_server_ip", "")
-    if not server_ip:
-        try:
-            server_ip = subprocess.run(["curl", "-s", "ifconfig.me"], stdout=subprocess.PIPE, text=True, timeout=3).stdout.strip()
-        except Exception:
-            server_ip = "YOUR_SERVER_IP"
+    server_ip = settings.get("amneziawg_server_ip", "").strip() or get_server_domain() or get_server_public_ip()
+    if ":" in server_ip and not (server_ip.startswith("[") and server_ip.endswith("]")):
+        server_ip = get_server_public_ip()
             
-    client_ipv6 = f"fd77:77::{next_ip_num}"
     with open("/etc/amnezia/amneziawg/awg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32, {client_ipv6}/128\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
         
     subprocess.run(f"awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
     
@@ -6170,13 +6190,13 @@ def api_awg_client():
 
     client_config = f"""[Interface]
 PrivateKey = {privkey}
-Address = {client_ip}/32, {client_ipv6}/128
+Address = {client_ip}/32
 DNS = {dns_val}
 {obf_params}
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25
 """
 
@@ -9825,9 +9845,12 @@ def api_protocols_batch_install():
 def api_openvpn_ca_status():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    real_ca = "/etc/openvpn/server/ca.crt" if os.path.exists("/etc/openvpn/server/ca.crt") else VPN_CA_CERT
+    real_ca = get_openvpn_ca_path()
+    if not real_ca:
+        return jsonify({"valid": False, "error": "CA certificate not found", "has_tc_key": False})
     details = get_certificate_details(real_ca)
-    details["has_tc_key"] = os.path.exists("/etc/openvpn/server/tc.key") or os.path.exists("/etc/openvpn/tls-crypt.key")
+    tc_p = get_openvpn_tc_path()
+    details["has_tc_key"] = bool(tc_p and os.path.exists(tc_p))
     return jsonify(details)
 
 @app.route("/api/openvpn/ca.crt", methods=["GET"])
@@ -9835,8 +9858,8 @@ def api_openvpn_download_ca():
     if not check_login():
         return "Unauthorized", 401
     from flask import send_file
-    ca_path = "/etc/openvpn/server/ca.crt" if os.path.exists("/etc/openvpn/server/ca.crt") else "/etc/openvpn/ca.crt"
-    if os.path.exists(ca_path):
+    ca_path = get_openvpn_ca_path()
+    if ca_path and os.path.exists(ca_path):
         return send_file(ca_path, as_attachment=True, download_name="openvpn-ca.crt", mimetype="application/x-x509-ca-cert")
     return "CA certificate not found", 404
 
@@ -9845,8 +9868,8 @@ def api_openvpn_download_tc():
     if not check_login():
         return "Unauthorized", 401
     from flask import send_file
-    tc_path = "/etc/openvpn/server/tc.key" if os.path.exists("/etc/openvpn/server/tc.key") else "/etc/openvpn/tls-crypt.key"
-    if os.path.exists(tc_path):
+    tc_path = get_openvpn_tc_path()
+    if tc_path and os.path.exists(tc_path):
         return send_file(tc_path, as_attachment=True, download_name="tc.key", mimetype="text/plain")
     return "TLS-crypt key not found", 404
 
@@ -9856,8 +9879,18 @@ def api_openvpn_ca_regenerate():
         return jsonify({"error": "Unauthorized"}), 401
         
     try:
-        subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp"], check=False)
-        return jsonify({"success": True, "message": "گواهی و سرویس‌های OpenVPN با موفقیت به‌روزرسانی و مجدداً راه‌اندازی شدند."})
+        os.makedirs("/etc/vpn-ca", exist_ok=True)
+        os.makedirs("/etc/openvpn", exist_ok=True)
+        subprocess.run("openssl genrsa -out /etc/vpn-ca/ca.key 2048", shell=True, check=True)
+        subprocess.run("openssl req -x509 -new -nodes -key /etc/vpn-ca/ca.key -subj '/CN=MHPanel Root CA' -days 3650 -out /etc/vpn-ca/ca.crt", shell=True, check=True)
+        subprocess.run("openssl genrsa -out /etc/vpn-ca/vpn-server.key 2048", shell=True, check=True)
+        subprocess.run("openssl req -new -key /etc/vpn-ca/vpn-server.key -subj '/CN=vpn-server' -out /etc/vpn-ca/vpn-server.csr", shell=True, check=True)
+        subprocess.run("openssl x509 -req -in /etc/vpn-ca/vpn-server.csr -CA /etc/vpn-ca/ca.crt -CAkey /etc/vpn-ca/ca.key -CAcreateserial -out /etc/vpn-ca/vpn-server.crt -days 3650", shell=True, check=True)
+        subprocess.run("openvpn --genkey --secret /etc/openvpn/tls-crypt.key", shell=True, check=True)
+        subprocess.run("ln -sf /etc/vpn-ca/ca.crt /etc/openvpn/ca.crt", shell=True)
+        subprocess.run("ln -sf /etc/openvpn/tls-crypt.key /etc/openvpn/tc.key", shell=True)
+        subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "ocserv"], check=False)
+        return jsonify({"success": True, "message": "گواهی و کلیدهای OpenVPN با موفقیت مجدداً تولید و سرویس‌ها راه‌اندازی شدند."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -11642,9 +11675,39 @@ ping-leases = false
 mtu = {mtu}
 cisco-client-compat = {"true" if cisco_compat else "false"}
 dtls-legacy = {"true" if dtls_legacy else "false"}
-route = default
+# route = default
 tunnel-all-dns = true
+
+connect-script = /etc/ocserv/connect-script.sh
+disconnect-script = /etc/ocserv/connect-script.sh
 """
+
+    # Dynamic tunnel worker routing script for Cisco AnyConnect
+    os.makedirs("/etc/ocserv", exist_ok=True)
+    connect_script_path = "/etc/ocserv/connect-script.sh"
+    connect_script_content = """#!/bin/bash
+CLIENT_IP="${IP_REMOTE:-$IP_REAL}"
+if [ "$REASON" = "connect" ] || [ -z "$REASON" ]; then
+    ip link set dev "$DEVICE" up 2>/dev/null || true
+    if [ -n "$CLIENT_IP" ]; then
+        ip addr add 10.9.0.1 peer "$CLIENT_IP" dev "$DEVICE" 2>/dev/null || ip addr add 10.9.0.1/24 dev "$DEVICE" 2>/dev/null || true
+        ip route replace "$CLIENT_IP/32" dev "$DEVICE" 2>/dev/null || true
+    fi
+    sysctl -w net.ipv4.conf."$DEVICE".forwarding=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf."$DEVICE".rp_filter=0 >/dev/null 2>&1 || true
+elif [ "$REASON" = "disconnect" ]; then
+    if [ -n "$CLIENT_IP" ]; then
+        ip route del "$CLIENT_IP/32" dev "$DEVICE" 2>/dev/null || true
+    fi
+fi
+exit 0
+"""
+    try:
+        with open(connect_script_path, "w") as f:
+            f.write(connect_script_content)
+        os.chmod(connect_script_path, 0o755)
+    except Exception:
+        pass
 
     temp_path = "/tmp/ocserv_new.conf"
     with open(temp_path, "w") as f:
@@ -11708,6 +11771,7 @@ tunnel-all-dns = true
         subprocess.run(f"iptables -t nat -C POSTROUTING -s {cidr} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {cidr} -j MASQUERADE", shell=True)
         subprocess.run(f"iptables -C FORWARD -s {cidr} -j ACCEPT 2>/dev/null || iptables -A FORWARD -s {cidr} -j ACCEPT", shell=True)
         subprocess.run(f"iptables -C FORWARD -d {cidr} -j ACCEPT 2>/dev/null || iptables -A FORWARD -d {cidr} -j ACCEPT", shell=True)
+        subprocess.run("sysctl -w net.ipv4.ip_forward=1 net.ipv4.conf.all.rp_filter=0 net.ipv4.conf.default.rp_filter=0 >/dev/null 2>&1", shell=True)
     except Exception:
         pass
 

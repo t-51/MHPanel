@@ -239,6 +239,11 @@ generate_certs() {
     ln -sf "${SERVER_CERT}" /root/vpn-server.crt
     ln -sf "${SERVER_KEY}" /root/vpn-server.key
 
+    # OpenVPN CA and TLS-crypt symlinks
+    mkdir -p /etc/openvpn
+    [ -f "${CA_CERT}" ] && ln -sf "${CA_CERT}" /etc/openvpn/ca.crt
+    [ -f /etc/openvpn/tls-crypt.key ] && ln -sf /etc/openvpn/tls-crypt.key /etc/openvpn/tc.key
+
     if [ ! -f "${PANEL_CERT}" ] || [ ! -f "${PANEL_KEY}" ]; then
         openssl req -x509 -newkey rsa:2048 -nodes -keyout "${PANEL_KEY}" -out "${PANEL_CERT}" -subj "/CN=MHPanel Panel" -days 3650
         chmod 600 "${PANEL_KEY}"
@@ -248,10 +253,12 @@ generate_certs() {
 
 # Helper: Setup Firewall & NAT Routing globally
 setup_global_nat() {
-    # 1. Enable IP Forwarding
+    # 1. Enable IP Forwarding & Disable strict rp_filter for multi-NIC/VPN routing
     touch /etc/sysctl.conf
     sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
     sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.all.rp_filter=0 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf.default.rp_filter=0 >/dev/null 2>&1 || true
     sed -i 's/#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/g' /etc/sysctl.conf 2>/dev/null || true
     grep -qxF 'net.ipv4.ip_forward=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
     grep -qxF 'net.ipv6.conf.all.forwarding=1' /etc/sysctl.conf 2>/dev/null || echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
@@ -528,10 +535,13 @@ install_openvpn() {
     run_apt update && run_apt install openvpn libpam-radius-auth
     generate_certs
 
+    mkdir -p /etc/openvpn
     if [ ! -f /etc/openvpn/tls-crypt.key ]; then
         openvpn --genkey --secret /etc/openvpn/tls-crypt.key
         chmod 600 /etc/openvpn/tls-crypt.key
     fi
+    ln -sf /etc/openvpn/tls-crypt.key /etc/openvpn/tc.key
+    [ -f "${CA_CERT}" ] && ln -sf "${CA_CERT}" /etc/openvpn/ca.crt
     
     local pam_plugin=""
     for p in /usr/lib/x86_64-linux-gnu/openvpn/plugins/openvpn-plugin-auth-pam.so \
@@ -582,7 +592,7 @@ cert ${SERVER_CERT}
 key ${SERVER_KEY}
 dh none
 tls-crypt /etc/openvpn/tls-crypt.key
-server 10.9.0.0 255.255.255.0
+server 10.8.1.0 255.255.255.0
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS ${dns1}"
 push "dhcp-option DNS ${dns2}"
@@ -662,15 +672,35 @@ install_ocserv() {
     # Ensure ocserv system user and directory exist
     getent group ocserv >/dev/null || groupadd -r ocserv
     getent passwd ocserv >/dev/null || useradd -r -g ocserv -d /var/lib/ocserv -s /usr/sbin/nologin ocserv
-    mkdir -p /var/lib/ocserv/run /var/lib/ocserv
+    mkdir -p /var/lib/ocserv/run /var/lib/ocserv /etc/ocserv
     chown -R ocserv:ocserv /var/lib/ocserv
     
+    # Write dynamic worker routing connect script
+    cat > /etc/ocserv/connect-script.sh << 'EOF_CS'
+#!/bin/bash
+CLIENT_IP="${IP_REMOTE:-$IP_REAL}"
+if [ "$REASON" = "connect" ] || [ -z "$REASON" ]; then
+    ip link set dev "$DEVICE" up 2>/dev/null || true
+    if [ -n "$CLIENT_IP" ]; then
+        ip addr add 10.9.0.1 peer "$CLIENT_IP" dev "$DEVICE" 2>/dev/null || ip addr add 10.9.0.1/24 dev "$DEVICE" 2>/dev/null || true
+        ip route replace "$CLIENT_IP/32" dev "$DEVICE" 2>/dev/null || true
+    fi
+    sysctl -w net.ipv4.conf."$DEVICE".forwarding=1 >/dev/null 2>&1 || true
+    sysctl -w net.ipv4.conf."$DEVICE".rp_filter=0 >/dev/null 2>&1 || true
+elif [ "$REASON" = "disconnect" ]; then
+    if [ -n "$CLIENT_IP" ]; then
+        ip route del "$CLIENT_IP/32" dev "$DEVICE" 2>/dev/null || true
+    fi
+fi
+exit 0
+EOF_CS
+    chmod 755 /etc/ocserv/connect-script.sh
+
     # Write Default Configuration
     cat > /etc/ocserv/ocserv.conf <<EOF
 run-as-user = ocserv
 run-as-group = ocserv
 socket-file = /run/ocserv.socket
-chroot-dir = /var/lib/ocserv
 tcp-port = ${port}
 udp-port = ${port}
 server-cert = ${SERVER_CERT}
@@ -687,7 +717,9 @@ dns = ${dns2}
 device = vpns
 ipv4-network = ${subnet}
 ipv4-netmask = 255.255.255.0
-route = default
+# route = default
+connect-script = /etc/ocserv/connect-script.sh
+disconnect-script = /etc/ocserv/connect-script.sh
 auth = "radius[config=/etc/radcli/radiusclient.conf,groupconfig=true]"
 acct = "radius[config=/etc/radcli/radiusclient.conf]"
 EOF
