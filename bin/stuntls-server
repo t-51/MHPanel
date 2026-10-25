@@ -79,8 +79,40 @@ def handle_client_tcp(client_sock, upstream_host, upstream_port, enable_jitter=F
     up_sock = None
     is_client_stun = False
     try:
-        up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        up_sock.connect((upstream_host, upstream_port))
+        # Wait up to 500ms for initial packet to determine protocol (STUN, SOCKS5, SSH)
+        r, _, _ = select.select([client_sock], [], [], 0.5)
+        first_payload = b""
+        target_host = upstream_host
+        target_port = upstream_port
+
+        if r:
+            first_data = client_sock.recv(16384)
+            if not first_data:
+                return
+            bytes_in += len(first_data)
+            is_stun, _, _, payload = is_stun_packet(first_data)
+            if is_stun:
+                is_client_stun = True
+                first_payload = payload
+            else:
+                first_payload = first_data
+
+            # Auto-route SOCKS5 or SSH if detected
+            if len(first_payload) > 0 and first_payload[0] == 0x05:
+                # SOCKS5 handshake (from Telegram, browser, Proxifier) -> route to local SOCKS5 proxy
+                target_host, target_port = "127.0.0.1", 1080
+            elif first_payload.startswith(b"SSH-"):
+                # SSH handshake -> route to local SSH server
+                target_host, target_port = "127.0.0.1", 22
+
+            up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            up_sock.connect((target_host, target_port))
+            if first_payload:
+                up_sock.sendall(first_payload)
+        else:
+            # Client waiting for server greeting banner (e.g. direct SSH: ssh -p 3478 user@host)
+            up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            up_sock.connect((upstream_host, upstream_port))
 
         sockets = [client_sock, up_sock]
 

@@ -8372,7 +8372,7 @@ def api_stuntls_config():
     cfg["server_host"] = srv
     cfg["client_cmd"] = f"stuntls-client.exe -server {srv}:{port} -key {sec} -l 1080"
     cfg["client_cmd_python"] = f"python stuntls-client.py -server {srv}:{port} -key {sec} -l 1080"
-    cfg["client_cmd_powershell"] = f"Invoke-WebRequest -Uri \"https://{srv}:{panel_port}/download/stuntls-client.exe\" -OutFile \"stuntls-client.exe\" -SkipCertificateCheck; .\\stuntls-client.exe -server {srv}:{port} -l 1080"
+    cfg["client_cmd_powershell"] = f"curl.exe -k -o stuntls-client.exe \"https://{srv}:{panel_port}/download/stuntls-client.exe\"; .\\stuntls-client.exe"
     cfg["client_cmd_ssh"] = f"ssh -D 1080 -N -p {port} root@{srv}"
     return jsonify(cfg)
 

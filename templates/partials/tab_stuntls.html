@@ -305,6 +305,10 @@
                     <div style="display:flex; flex-direction:column; gap:10px;">
                         <div>
                             <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۱. اجرای مستقیم با فایل EXE ویندوز (بدون نیاز به نصب پایتون):</label>
+                            <div style="font-size:11px; color:#34d399; margin-bottom:4px;">
+                                <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle;"></i>
+                                فایل stuntls-client.exe را دانلود کرده و ۲ بار روی آن کلیک کنید و Enter بزنید؛ پنجره باز مانده و پروکسی روی 127.0.0.1:1080 فعال می‌شود.
+                            </div>
                             <div style="display:flex; gap:8px;">
                                 <input class="form-input" id="stuntls-client-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#f472b6;">
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-cmd'); showToast('دستور کپی شد', 'success');" style="width:auto; white-space:nowrap;">
@@ -314,7 +318,7 @@
                         </div>
 
                         <div>
-                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۲. دستور دانلود و اجرای خودکار در PowerShell ویندوز (تک‌خطی - بدون نیاز به دانلود دستی):</label>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px;">۲. دستور دانلود و اجرای خودکار در ترمینال یا PowerShell ویندوز (تک‌خطی - بدون نیاز به دانلود دستی):</label>
                             <div style="display:flex; gap:8px;">
                                 <input class="form-input" id="stuntls-client-ps-cmd" readonly style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px; background:#0f172a; color:#38bdf8;">
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('stuntls-client-ps-cmd'); showToast('دستور پاورشل کپی شد', 'success');" style="width:auto; white-space:nowrap;">
