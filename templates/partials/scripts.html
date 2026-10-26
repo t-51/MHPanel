@@ -9172,9 +9172,21 @@
         refreshTwoFactorStatus();
         checkPanelUpdate(true);
 
-        // Load active tab
-        const activeTab = localStorage.getItem("active_tab") || "overview";
+        // Load active tab and URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTheme = urlParams.get("theme");
+        if (urlTheme && typeof setTheme === "function") setTheme(urlTheme);
+
+        const activeTab = urlParams.get("tab") || localStorage.getItem("active_tab") || "overview";
         switchTab(activeTab);
+
+        const urlSubtab = urlParams.get("subtab");
+        if (activeTab === "wireguard" && urlSubtab && typeof switchWgSubTab === "function") {
+            switchWgSubTab(urlSubtab);
+        }
+        if (activeTab === "amneziawg" && urlSubtab && typeof switchAwgSubTab === "function") {
+            switchAwgSubTab(urlSubtab);
+        }
         
         // Load default test user details
         fetchTestUser();
