@@ -4652,6 +4652,20 @@
 
     /* ─── Mobile Viewport Specialist (≤ 768px) ────────────────────────── */
     @media (max-width: 768px) {
+        *, *::before, *::after {
+            box-sizing: border-box !important;
+        }
+        .main-content,
+        .tab-pane,
+        .tab-pane > section,
+        .tab-pane > div,
+        .glass-card,
+        .config-card,
+        #amneziawg-panel {
+            min-width: 0 !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
         /* Header: Strictly 56px, Single-Row, Non-Wrapping Sticky Bar */
         .app-header {
             height: 56px !important;
