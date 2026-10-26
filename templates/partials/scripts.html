@@ -9191,8 +9191,10 @@
         // Load default test user details
         fetchTestUser();
         
-        setInterval(fetchStats, 2000);
-        setInterval(fetchProtocols, 6000); // Poll protocols & connections count every 6 seconds
+        if (!urlParams.get("no_poll")) {
+            setInterval(fetchStats, 2000);
+            setInterval(fetchProtocols, 6000); // Poll protocols & connections count every 6 seconds
+        }
 
         // Setup API Box details
         const serverHost = window.location.host;
