@@ -1,183 +1,381 @@
 <div class="tab-pane" id="tab-wireguard">
-<section style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px;">
-<!-- Left card: Client Manager -->
-<div class="glass-card config-card" id="wireguard-panel" style="flex: 1;">
-<div class="config-header">
-<h3 class="config-title">
-<i data-lucide="key-round" style="color: var(--color-secondary); width: 20px; height: 20px;"></i> <span data-i18n="wg_wireguard_client_manager">WireGuard Client Manager</span>
-</h3>
-</div>
-<!-- WireGuard Status Banner -->
-<div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 10px; padding: 14px 18px; margin-bottom: 20px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-<div style="display:flex; align-items:center; gap:10px;">
-<span class="status-dot active"></span>
-<span data-i18n="wg_standard_wireguard_service_enabled" style="font-weight:700; color:#0284c7; font-size:14px;">سرویس WireGuard استاندارد فعال است</span>
-</div>
-<div style="display:flex; gap:12px; font-size:12px; font-family:'JetBrains Mono', monospace;">
-<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;"><span data-i18n="wg_port_2">پورت:</span> <strong>UDP 904</strong></span>
-<span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;"><span data-i18n="wg_subnet">ساب‌نت:</span> <strong>10.66.66.1/24</strong></span>
-</div>
-</div>
-<div data-i18n="wg_wireguard_wireguard_latency" style="font-size:12px; color:var(--text-muted); margin-top:8px; line-height:1.6;">
-                    ⚡ پروتکل فوق‌سریع WireGuard استاندارد برای اتصال در کلاینت‌های رسمی WireGuard با سرعت حداکثری و کمترین تاخیر (Latency).
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Header -->
+        <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+            <div>
+                <h2 class="section-title" style="margin:0; font-size:20px; display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="shield" style="color:#0284c7; width:24px; height:24px;"></i>
+                    <span data-i18n="nav_wireguard">مدیریت وایرگارد استاندارد (WireGuard Core)</span>
+                    <span class="sidebar-badge sidebar-badge-blue" id="wg-active-port-pill">UDP 51820</span>
+                    <span class="sidebar-badge sidebar-badge-green" id="wg-live-status-pill">Active</span>
+                </h2>
+                <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">
+                    پروتکل فوق‌سریع WireGuard با مدیریت کاربران، ساخت اکانت تکی و گروهی با دسته‌بندی، ساب‌لینک اختصاصی، کانفیگ چند پورته همزمان و تونل CDN
+                </p>
+            </div>
+            <!-- Header Action Quick Buttons -->
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="switchWgSubTab('create')" type="button" style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="user-plus" style="width:16px; height:16px;"></i>
+                    <span>ساخت اکانت جدید</span>
+                </button>
+                <button class="btn btn-secondary" onclick="openWgMultiportModal()" type="button" style="display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="network" style="width:16px; height:16px; color:#0ea5e9;"></i>
+                    <span>کانفیگ چند پورته همزمان</span>
+                </button>
+                <button class="btn btn-secondary" onclick="fetchWireGuardClients()" type="button" title="بروزرسانی لیست">
+                    <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Sub-Navigation Protocol Pills -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
+            <button type="button" class="btn btn-sm btn-subtab active" id="wg-subtab-btn-clients" onclick="switchWgSubTab('clients')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+                <i data-lucide="users" style="width:14px; height:14px; color:#0284c7;"></i>
+                <span>مدیریت کاربران و کانفیگ‌ها</span>
+                <span class="badge-pill" id="wg-badge-total-count" style="font-size:11px; padding:1px 7px; background:rgba(2,132,199,0.15); color:#0284c7; border-radius:999px;">0</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="wg-subtab-btn-create" onclick="switchWgSubTab('create')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+                <i data-lucide="plus-circle" style="width:14px; height:14px; color:#10b981;"></i>
+                <span>ساخت اکانت (تکی و دسته‌ای)</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="wg-subtab-btn-settings" onclick="switchWgSubTab('settings')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+                <i data-lucide="sliders" style="width:14px; height:14px; color:#6366f1;"></i>
+                <span>تنظیمات سرور و چندپورته</span>
+            </button>
+        </div>
+
+        <!-- ================= SUBTAB 1: CLIENTS LIST ================= -->
+        <div id="wg-subtab-pane-clients" class="wg-subtab-content" style="display:flex; flex-direction:column; gap:16px;">
+            <!-- Filter & Search Toolbar -->
+            <div class="glass-card config-card" style="padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                    <!-- Status Filter Pills -->
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm wg-filter-btn active" id="wg-filter-all" onclick="filterWgClients('all')" style="font-size:12px; padding:5px 12px; border-radius:20px;">
+                            <span>همه کاربران</span>
+                            <span id="wg-filter-count-all" style="opacity:0.75; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
+                        <button type="button" class="btn btn-sm wg-filter-btn" id="wg-filter-active" onclick="filterWgClients('active')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#10b981;">
+                            <span class="status-dot active" style="margin-inline-end:4px;"></span>
+                            <span>فعال</span>
+                            <span id="wg-filter-count-active" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
+                        <button type="button" class="btn btn-sm wg-filter-btn" id="wg-filter-traffic" onclick="filterWgClients('traffic_expired')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#f43f5e;">
+                            <i data-lucide="alert-octagon" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
+                            <span>پایان حجم</span>
+                            <span id="wg-filter-count-traffic" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
+                        <button type="button" class="btn btn-sm wg-filter-btn" id="wg-filter-date" onclick="filterWgClients('date_expired')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#f59e0b;">
+                            <i data-lucide="clock" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
+                            <span>تاریخ منقضی</span>
+                            <span id="wg-filter-count-date" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
+                    </div>
+
+                    <!-- Search and Group Filter -->
+                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="folder" style="width:14px; height:14px;"></i> دسته:</span>
+                            <select id="wg-group-filter-select" onchange="filterWgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:8px; min-width:130px;">
+                                <option value="all">همه دسته‌ها (گروه‌ها)</option>
+                            </select>
+                        </div>
+                        <div style="position:relative;">
+                            <input type="text" id="wg-clients-search" oninput="filterWgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:180px;">
+                        </div>
+                    </div>
                 </div>
-</div>
-<!-- WireGuard over Cloudflare CDN (WebSocket Tunnel) Card -->
-<div class="glass-card config-card" style="margin-bottom: 20px; background: linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(255, 255, 255, 0.95) 100%); border: 1px solid rgba(245, 158, 11, 0.35);">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:10px;">
-<div style="width:40px; height:40px; border-radius:10px; background:rgba(245, 158, 11, 0.15); color:#d97706; display:flex; align-items:center; justify-content:center;">
-<i data-lucide="cloud-lightning" style="width:22px; height:22px;"></i>
-</div>
-<div>
-<h4 data-i18n="wg_cf_title" style="margin:0; font-size:16px; font-weight:700; color:#b45309;">
+            </div>
+
+            <!-- WireGuard Clients Cards Container -->
+            <div id="wg-clients-grid" style="display:flex; flex-direction:column; gap:10px;">
+                <div style="text-align:center; padding:30px; font-size:13px; color:var(--text-muted);">
+                    در حال دریافت لیست کاربران WireGuard...
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUBTAB 2: CREATE ACCOUNTS ================= -->
+        <div id="wg-subtab-pane-create" class="wg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+                <!-- Card 1: Create Single Client -->
+                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                    <div class="config-header" style="margin-bottom:0;">
+                        <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="user-plus" style="color:var(--color-emerald); width:20px; height:20px;"></i>
+                            <span>ساخت اکانت تکی وایرگارد (Single Client)</span>
+                        </h3>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0;">
+                        ایجاد یک پروفایل مجزا همراه با تولید کلید رمزنگاری اختصاصی، آی‌پی اختصاصی، دسته‌بندی و ساب‌لینک
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:14px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12.5px;">نام کاربر (Client Name)</label>
+                            <input class="form-input" id="wg-client-name" placeholder="مثلاً User-Ali یا Phone-1" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
+                            <input class="form-input" id="wg-client-group" list="wg-group-datalist" placeholder="مثلاً VIP، عمومی، خانواده یا نام جدید..." style="padding-left:14px;" type="text" value="عمومی"/>
+                            <datalist id="wg-group-datalist"></datalist>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB) - اختیاری</label>
+                                <input class="form-input" id="wg-client-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number" min="1"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز) - اختیاری</label>
+                                <input class="form-input" id="wg-client-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
+                            <input id="wg-client-first-connect" style="width:16px; height:16px; cursor:pointer;" type="checkbox"/>
+                            <label for="wg-client-first-connect" class="form-label" style="margin:0; cursor:pointer; font-size:12.5px;">شروع شمارش زمان پس از اولین اتصال (Start on 1st connect)</label>
+                        </div>
+                        <button class="btn btn-primary" id="wg-add-btn" type="button" style="padding:10px; margin-top:6px;">
+                            <i class="btn-icon" data-lucide="plus"></i> ایجاد اکانت و دریافت کانفیگ
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card 2: Bulk Create Clients -->
+                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                    <div class="config-header" style="margin-bottom:0;">
+                        <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="users" style="color:var(--color-primary); width:20px; height:20px;"></i>
+                            <span>ساخت دسته‌ای اکانت‌ها (Bulk Create)</span>
+                        </h3>
+                    </div>
+                    <p style="font-size:12px; color:var(--text-muted); margin:0;">
+                        تولید همزمان چند کاربر با نام‌گذاری متوالی، دسته‌بندی مشخص و امکان دانلود کلی کانفیگ‌ها
+                    </p>
+                    <form id="wg-bulk-form" onsubmit="createWgBulk(event)" style="display:flex; flex-direction:column; gap:14px;">
+                        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12.5px;">پیشوند نام (Prefix)</label>
+                                <input class="form-input" id="wg-bulk-prefix" placeholder="Client" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="Client"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12.5px;">تعداد (۱ تا ۵۰)</label>
+                                <input class="form-input" id="wg-bulk-count" max="50" min="1" required="" style="padding-left:14px;" type="number" value="5"/>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
+                            <input class="form-input" id="wg-bulk-group" list="wg-group-datalist" placeholder="مثلاً VIP، دسته تست..." style="padding-left:14px;" type="text" value="عمومی"/>
+                        </div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
+                                <input class="form-input" id="wg-bulk-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
+                                <input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
+                            <input id="wg-bulk-first-connect" style="width:16px; height:16px; cursor:pointer;" type="checkbox"/>
+                            <label for="wg-bulk-first-connect" class="form-label" style="margin:0; cursor:pointer; font-size:12.5px;">شروع شمارش از اولین اتصال</label>
+                        </div>
+                        <button class="btn btn-primary" id="wg-bulk-btn" type="submit" style="padding:10px; margin-top:6px;">
+                            <i class="btn-icon" data-lucide="users"></i> ساخت دسته‌ای اکانت‌ها
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Single Result Card Modal / Box -->
+            <div id="wg-single-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.04);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; color:#10b981; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check-circle" style="width:18px; height:18px;"></i> اکانت با موفقیت ساخته شد!
+                    </h4>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" id="wg-copy-sub-btn" type="button" style="font-size:12px; padding:6px 12px; color:#6366f1;">
+                            <i data-lucide="link" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی ساب‌لینک
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="wg-dl-btn" type="button" style="font-size:12px; padding:6px 12px;">
+                            <i data-lucide="download" style="width:14px; height:14px; margin-inline-end:4px;"></i> دانلود .conf
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="wg-copy-btn" type="button" style="font-size:12px; padding:6px 12px;">
+                            <i data-lucide="copy" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی متن کانفیگ
+                        </button>
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr auto; gap:20px; align-items:start;">
+                    <div class="code-box" id="wg-config-text" style="max-height:220px; overflow-y:auto; margin:0; font-size:12px; direction:ltr; text-align:left;"></div>
+                    <div id="qrcode-canvas" style="background:white; padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center;"></div>
+                </div>
+            </div>
+
+            <!-- Bulk Result Card -->
+            <div id="wg-bulk-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(99, 102, 241, 0.4); background:rgba(99, 102, 241, 0.04);">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h4 style="margin:0; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="check-circle" style="width:18px; height:18px;"></i> پروفایل‌های دسته‌ای ساخته شدند
+                    </h4>
+                    <button class="btn btn-primary btn-sm" id="wg-bulk-dl-all-btn" type="button">
+                        <i data-lucide="download-cloud" style="width:14px; height:14px;"></i> دانلود همه فایل‌های .conf
+                    </button>
+                </div>
+                <div id="wg-bulk-list" style="display:flex; flex-direction:column; gap:8px; max-height:260px; overflow-y:auto;"></div>
+            </div>
+        </div>
+
+        <!-- ================= SUBTAB 3: SETTINGS & MULTIPORT ================= -->
+        <div id="wg-subtab-pane-settings" class="wg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
+            <!-- WireGuard Status Banner -->
+            <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 10px; padding: 14px 18px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot active"></span>
+                        <span style="font-weight:700; color:#0284c7; font-size:14px;">سرویس WireGuard استاندارد فعال و عملیاتی است</span>
+                    </div>
+                    <div style="display:flex; gap:12px; font-size:12px; font-family:'JetBrains Mono', monospace;">
+                        <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">پورت هسته: <strong id="wg-stat-core-port">UDP 51820</strong></span>
+                        <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">ساب‌نت: <strong>10.66.66.1/24</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WireGuard Multi-Port Manager Card -->
+            <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="config-header" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:38px; height:38px; border-radius:10px; background:rgba(2, 132, 199, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="network" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 class="config-title" style="margin:0; font-size:16px;">
+                                مدیریت پورت‌های همزمان وایرگارد (Multi-Port Forwarding)
+                            </h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                باز کردن و ریدایرکت چندین پورت همزمان UDP (مثل 443، 80، 53، 51820، 8080) به وایرگارد جهت عبور از فیلترینگ پورت‌ها
+                            </p>
+                        </div>
+                    </div>
+                    <span class="sidebar-badge sidebar-badge-blue">iptables NAT</span>
+                </div>
+
+                <div style="background:var(--bg-surface); padding:16px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <span style="font-size:13px; font-weight:600;">پورت‌های فعال ریدایرکت شده:</span>
+                        <div style="display:flex; gap:8px;">
+                            <input type="number" id="wg-add-port-input" placeholder="پورت جدید (مثلاً 8443)" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; width:150px;" min="1" max="65535">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addWgMultiportFromInput()">
+                                <i data-lucide="plus" style="width:13px; height:13px;"></i> افزودن پورت
+                            </button>
+                        </div>
+                    </div>
+                    <div id="wg-multiport-tags" style="display:flex; flex-wrap:wrap; gap:8px; padding:6px 0;">
+                        <!-- Injected via JS -->
+                    </div>
+                    <div style="font-size:11.5px; color:var(--text-muted); line-height:1.5;">
+                        💡 در فایل کانفیگ و اشتراک کلاینت، تمامی این پورت‌ها قابل انتخاب هستند. در صورت مسدود شدن یک پورت، کافیست کاربر پورت دیگر را انتخاب کند.
+                    </div>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button class="btn btn-primary" onclick="saveWgMultiportConfig()" type="button" style="padding:8px 20px;">
+                        <i class="btn-icon" data-lucide="save"></i> ذخیره و اعمال پورت‌های همزمان
+                    </button>
+                </div>
+            </div>
+
+            <!-- WireGuard over Cloudflare CDN (WebSocket Tunnel) Card -->
+            <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.35); background: linear-gradient(135deg, rgba(254, 243, 199, 0.08) 0%, rgba(20, 24, 39, 0.6) 100%);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(245, 158, 11, 0.15); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="cloud-lightning" style="width:22px; height:22px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin:0; font-size:16px; font-weight:700; color:#d97706;">
                                 عبور وایرگارد از کلودفلر (WireGuard over Cloudflare CDN)
                             </h4>
-<p data-i18n="wg_cf_subtitle" style="font-size:12px; color:var(--text-muted); margin-top:2px;">
-                                تبدیل ترافیک UDP وایرگارد به وب‌سوکت رمزنگاری‌شده (WSS) و عبور از CDN کلودفلر (پروکسی ابر نارنجی)
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                تبدیل ترافیک UDP وایرگارد به وب‌سوکت رمزنگاری‌شده (WSS) و عبور از CDN کلودفلر
                             </p>
-</div>
-</div>
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="wg-cf-status-dot"></span>
-<button class="btn btn-secondary btn-sm" id="wg-cf-toggle-btn" onclick="toggleWgCloudflare()" type="button">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-<button class="btn btn-secondary btn-sm" onclick="fetchWgCloudflareConfig()" type="button">
-<i data-lucide="refresh-cw" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-<!-- Quick Stats -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:12px;">
-<div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="wg_websocket_port_server" style="color:var(--text-muted); font-size:11px;">پورت وب‌سوکت سرور</div>
-<div id="wg-cf-stat-port" style="font-weight:700; color:#b45309; font-family:'JetBrains Mono',monospace;">2082 (HTTP/WS)</div>
-</div>
-<div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="wg_websocket_path" style="color:var(--text-muted); font-size:11px;">مسیر وب‌سوکت (Path)</div>
-<div id="wg-cf-stat-path" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">wg-cf</div>
-</div>
-<div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="wg_local_destination_target" style="color:var(--text-muted); font-size:11px;">مقصد محلی (Target)</div>
-<div style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">127.0.0.1:904</div>
-</div>
-<div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="wg_cloudflare_public_port" style="color:var(--text-muted); font-size:11px;">پورت عمومی کلادفلر</div>
-<div style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace;">443 (HTTPS/WSS)</div>
-</div>
-</div>
-<!-- Config Form -->
-<form id="wg-cf-config-form" onsubmit="saveWgCloudflareConfig(event)" style="margin-bottom:16px;">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="wg_item_3" style="font-size:12px;">پورت سرور (از پورت‌های مجاز کلادفلر)</label>
-<select class="form-input" id="wg-cf-port-input">
-<option data-i18n="wg_2082_cloudflare_http_ws" value="2082">2082 (کلادفلر HTTP/WS)</option>
-<option data-i18n="wg_2086_cloudflare_http_ws" value="2086">2086 (کلادفلر HTTP/WS)</option>
-<option data-i18n="wg_2052_cloudflare_http_ws" value="2052">2052 (کلادفلر HTTP/WS)</option>
-<option data-i18n="wg_8080_cloudflare_http_ws" value="8080">8080 (کلادفلر HTTP/WS)</option>
-<option data-i18n="wg_2083_cloudflare_https_wss" value="2083">2083 (کلادفلر HTTPS/WSS)</option>
-<option data-i18n="wg_8443_cloudflare_https_wss" value="8443">8443 (کلادفلر HTTPS/WSS)</option>
-</select>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="wg_websocket_path_2" style="font-size:12px;">مسیر وب‌سوکت (WebSocket Path)</label>
-<input class="form-input" id="wg-cf-path-input" required="" style="direction:ltr; font-family:'JetBrains Mono',monospace;" type="text" value="wg-cf"/>
-</div>
-</div>
-<button class="btn btn-primary btn-sm" style="width:auto; padding:6px 16px;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات کلودفلر</span>
-</button>
-</form>
-<!-- Client Guide -->
-<div style="background: var(--bg-surface); border:1px solid rgba(245, 158, 11, 0.2); border-radius:8px; padding:12px; font-size:12px;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-<strong style="color:#b45309; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:14px; height:14px;"></i> <span data-i18n="wg_wstunnel">دستور کلاینت برای اتصال تونل wstunnel:</span>
-</strong>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('wg-cf-cmd-box').textContent)" style="padding:2px 8px; font-size:11px;" type="button">
-<i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="wg_copy_order">کپی دستور</span>
-</button>
-</div>
-<div class="code-box" id="wg-cf-cmd-box" style="margin:0; padding:8px 10px; font-size:11.5px; direction:ltr; text-align:left;">wstunnel client -L udp://127.0.0.1:51820:127.0.0.1:904 wss://vpn.kigaping.com:443/wg-cf --http-upgrade-path-prefix wg-cf</div>
-<p data-i18n-html="elem_tab_wireguard_76" style="font-size:11px; color:var(--text-muted); margin:8px 0 0 0; line-height:1.5;">
-                        💡 <strong data-i18n="wg_help">راهنما:</strong> پس از اجرای دستور فوق در سیستم یا گوشی کلاینت، کافیست در فایل کانفیگ وایرگارد خط <code>Endpoint = 127.0.0.1:51820</code> قرار دهید. تمام ترافیک وایرگارد از CDN کلودفلر به صورت امن عبور می‌کند.
-                    </p>
-</div>
-</div>
-<div style="display: flex; flex-direction: column; gap: 16px;">
-<div>
-<h4 class="form-label" data-i18n="wg_wireguard_peers" style="margin-bottom: 10px;">کاربران فعال WireGuard (Peers)</h4>
-<div class="wg-client-list" id="wg-clients"></div>
-</div>
-</div>
-</div>
-<!-- Right Column: Create Client Profile (Single & Bulk) -->
-<div style="display: flex; flex-direction: column; gap: 24px;">
-<!-- Create Single Client -->
-<div class="glass-card config-card">
-<div class="config-header">
-<h3 class="config-title">
-<i data-lucide="plus" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span data-i18n="wg_create_client_profile">Create Client Profile</span>
-</h3>
-</div>
-<div style="display: flex; flex-direction: column; gap: 12px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_client_name">Client name</label>
-<input class="form-input" data-i18n-placeholder="wg_client_name" id="wg-client-name" placeholder="Client name" style="padding-left:16px;" type="text"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
-<input class="form-input" id="wg-client-limit" placeholder="e.g. 50" style="padding-left:16px;" type="number"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
-<input class="form-input" id="wg-client-expire-days" min="1" placeholder="e.g. 30" style="padding-left:16px;" type="number"/>
-</div>
-<div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-<input id="wg-client-first-connect" style="width: 16px; height: 16px;" type="checkbox"/>
-<label class="form-label" data-i18n="wg_start_after_first_connect" style="margin: 0;">Start after first connect</label>
-</div>
-<button class="btn" id="wg-add-btn" type="button">
-<i class="btn-icon" data-lucide="plus"></i> Create
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="status-dot" id="wg-cf-status-dot"></span>
+                        <button class="btn btn-secondary btn-sm" id="wg-cf-toggle-btn" onclick="toggleWgCloudflare()" type="button">
+                            تغییر وضعیت
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="fetchWgCloudflareConfig()" type="button">
+                            <i data-lucide="refresh-cw" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
+                </div>
+                <!-- Quick Stats -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:12px;">
+                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                        <div style="color:var(--text-muted); font-size:11px;">پورت وب‌سوکت سرور</div>
+                        <div id="wg-cf-stat-port" style="font-weight:700; color:#d97706; font-family:'JetBrains Mono',monospace;">2082 (HTTP/WS)</div>
+                    </div>
+                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                        <div style="color:var(--text-muted); font-size:11px;">مسیر وب‌سوکت (Path)</div>
+                        <div id="wg-cf-stat-path" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">wg-cf</div>
+                    </div>
+                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                        <div style="color:var(--text-muted); font-size:11px;">مقصد محلی (Target)</div>
+                        <div id="wg-cf-stat-target" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">127.0.0.1:51820</div>
+                    </div>
+                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                        <div style="color:var(--text-muted); font-size:11px;">پورت عمومی کلادفلر</div>
+                        <div style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace;">443 (HTTPS/WSS)</div>
+                    </div>
+                </div>
+                <!-- Config Form -->
+                <form id="wg-cf-config-form" onsubmit="saveWgCloudflareConfig(event)" style="margin-bottom:16px;">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:12px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-size:12px;">پورت سرور (از پورت‌های مجاز کلادفلر)</label>
+                            <select class="form-input" id="wg-cf-port-input">
+                                <option value="2082">2082 (کلادفلر HTTP/WS)</option>
+                                <option value="2086">2086 (کلادفلر HTTP/WS)</option>
+                                <option value="2052">2052 (کلادفلر HTTP/WS)</option>
+                                <option value="8080">8080 (کلادفلر HTTP/WS)</option>
+                                <option value="2083">2083 (کلادفلر HTTPS/WSS)</option>
+                                <option value="8443">8443 (کلادفلر HTTPS/WSS)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" style="font-size:12px;">مسیر وب‌سوکت (WebSocket Path)</label>
+                            <input class="form-input" id="wg-cf-path-input" required="" style="direction:ltr; font-family:'JetBrains Mono',monospace;" type="text" value="wg-cf"/>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" style="width:auto; padding:6px 16px;" type="submit">
+                        <i class="btn-icon" data-lucide="save"></i> <span>ذخیره و اعمال تنظیمات کلودفلر</span>
                     </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
-</div>
-<!-- Create Bulk Clients -->
-<div class="glass-card config-card">
-<div class="config-header">
-<h3 class="config-title">
-<i data-lucide="users" style="color: var(--color-primary); width: 20px; height: 20px;"></i> <span data-i18n="wg_bulk_create_clients">Bulk Create Clients</span>
-</h3>
-</div>
-<form id="wg-bulk-form" onsubmit="createWgBulk(event)" style="display: flex; flex-direction: column; gap: 12px;">
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_client_name_prefix">Client Name Prefix</label>
-<input class="form-input" id="wg-bulk-prefix" placeholder="e.g. Client" required="" style="padding-left:16px;" type="text" value="Client"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_number_profiles_1_50">Number of Profiles (1-50)</label>
-<input class="form-input" id="wg-bulk-count" max="50" min="1" required="" style="padding-left:16px;" type="number" value="5"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
-<input class="form-input" id="wg-bulk-limit" placeholder="e.g. 50" style="padding-left:16px;" type="number"/>
-</div>
-<div class="form-group" style="margin: 0;">
-<label class="form-label" data-i18n="wg_expiration_days_optional">Expiration (Days) - Optional</label>
-<input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="e.g. 30" style="padding-left:16px;" type="number"/>
-</div>
-<div class="form-group" style="margin: 0; display: flex; align-items: center; gap: 8px;">
-<input id="wg-bulk-first-connect" style="width: 16px; height: 16px;" type="checkbox"/>
-<label class="form-label" data-i18n="wg_start_after_first_connect" style="margin: 0;">Start after first connect</label>
-</div>
-<button class="btn" id="wg-bulk-btn" type="submit">
-<i class="btn-icon" data-lucide="users"></i> <span data-i18n="wg_create_bulk">Create Bulk</span>
-</button>
-</form>
-</div>
-</div>
-</section>
+
+<!-- WireGuard Multiport Modal for Client -->
+<div class="modal" id="modal-wg-client-multiport">
+    <div class="modal-card" style="max-width: 650px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="network" style="color:var(--color-primary); width:18px; height:18px;"></i>
+                <span>کانفیگ‌های چند پورته وایرگارد</span>
+            </h3>
+            <button class="modal-close" onclick="closeWgClientMultiportModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+            <p style="font-size:12.5px; color:var(--text-muted); margin:0;">
+                سرور روی کلیه پورت‌های زیر ترافیک این اکانت را می‌پذیرد. در صورت مسدود شدن یا اختلال یک پورت، از پورت‌های جایگزین استفاده کنید:
+            </p>
+            <div id="wg-client-mp-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
 </div>

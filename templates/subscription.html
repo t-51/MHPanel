@@ -488,7 +488,138 @@
 </div>
         {% endif %}
 
-        <!-- User Status Card -->
+                <!-- WireGuard / AmneziaWG Dedicated Subscription View -->
+        {% if proto_type in ['wireguard', 'amneziawg'] %}
+        <div class="card user-status-card" style="border: 1px solid {% if proto_type == 'amneziawg' %}rgba(16, 185, 129, 0.4){% else %}rgba(2, 132, 199, 0.4){% endif %};">
+            <div class="user-header">
+                <div class="user-title">
+                    <div class="user-avatar" style="background: {% if proto_type == 'amneziawg' %}rgba(16, 185, 129, 0.2); color:#10b981;{% else %}rgba(2, 132, 199, 0.2); color:#0284c7;{% endif %}">
+                        <i data-lucide="shield" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:18px; font-weight:700; display:flex; align-items:center; gap:8px;">
+                            <span>{{ username }}</span>
+                            {% if user.group %}
+                            <span class="proto-tag" style="font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(99,102,241,0.15); color:var(--color-primary);">
+                                <i data-lucide="folder" style="width:11px; height:11px; display:inline-block; vertical-align:middle;"></i> {{ user.group }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+                            {% if proto_type == 'amneziawg' %}
+                            <span style="color:#10b981; font-weight:700;">AmneziaWG (Anti-DPI Shield)</span> - تونل بهینه‌شده ضد فیلترینگ
+                            {% else %}
+                            <span style="color:#0284c7; font-weight:700;">WireGuard VPN</span> - پروتکل پرسرعت استاندارد
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    {% if user.active and not is_expired %}
+                    <span class="status-badge status-active">
+                        <i data-lucide="check-circle" style="width:14px; height:14px;"></i> <span>فعال و مجاز</span>
+                    </span>
+                    {% else %}
+                    <span class="status-badge status-expired">
+                        <i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> <span>منقضی / مسدود</span>
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">تاریخ انقضا</div>
+                    <div class="stat-val">{% if user.expire_date %}{{ user.expire_date }}{% else %}<span>نامحدود</span>{% endif %}</div>
+                    {% if days_left is not none %}
+                    <div style="font-size:11px; color:var(--color-primary); margin-top:2px;">{{ days_left }} روز باقی‌مانده</div>
+                    {% endif %}
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">حجم مصرفی / سقف مجاز</div>
+                    <div class="stat-val">{{ used_gb }} GB / {{ limit_gb_label }}</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: {{ traffic_pct }}%; {% if traffic_pct >= 90 %}background:#ef4444;{% elif traffic_pct >= 75 %}background:#f59e0b;{% endif %}"></div>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">آی‌پی اختصاصی کلاینت (VPN IP)</div>
+                    <div class="stat-val" style="direction:ltr; text-align:left;">{{ user.ip or '10.8.0.x' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Multi-Port Connection Switcher Card -->
+        <div class="card" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="network" style="color:var(--color-primary); width:20px; height:20px;"></i>
+                    <span style="font-size:15px; font-weight:700;">پورت‌های همزمان قابل اتصال (Multi-Port Direct)</span>
+                </div>
+                <span style="font-size:11.5px; color:var(--text-muted);">جهت دورزدن محدودیت‌های اپراتورها، پورت دلخواه را انتخاب کنید</span>
+            </div>
+
+            <!-- Port Pills Bar -->
+            <div style="display:flex; flex-wrap:wrap; gap:8px;" id="multiport-buttons-bar">
+                {% for p in multiport_list %}
+                <button type="button" class="btn btn-secondary btn-sm multiport-port-btn {% if p == server_port %}btn-active{% endif %}" onclick="selectSubscriptionPort({{ p }})" id="port-btn-{{ p }}" style="font-family:'JetBrains Mono', monospace; font-size:12px; padding:6px 14px; border-radius:20px; display:inline-flex; align-items:center; gap:6px; {% if p == server_port %}background:var(--color-primary); color:#ffffff; border-color:var(--color-primary);{% endif %}">
+                    <i data-lucide="radio" style="width:12px; height:12px;"></i>
+                    <span>Port {{ p }} {% if p == server_port %}(اصلی){% elif p in [443, 8443] %}(HTTPS){% elif p in [80, 8080] %}(HTTP){% elif p == 53 %}(DNS){% endif %}</span>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Active Endpoint Display & Action Buttons -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; background:rgba(255,255,255,0.02); padding:14px; border-radius:10px; border:1px solid var(--border-color);">
+                <div style="display:flex; flex-direction:column; gap:4px;">
+                    <span style="font-size:11.5px; color:var(--text-muted);">آدرس اندپوینت فعال سرور (Active Server Endpoint):</span>
+                    <span id="active-endpoint-display" style="font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:700; color:var(--color-primary); direction:ltr; text-align:left;">{{ server_host }}:{{ server_port }}</span>
+                </div>
+                <div class="btn-group">
+                    <button class="btn" onclick="copyCurrentConfigText()" type="button">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i> <span>کپی متن کانفیگ</span>
+                    </button>
+                    <a class="btn" id="download-conf-btn" href="/sub/{{ sub_token }}/port/{{ server_port }}.conf" download="{{ username }}-port-{{ server_port }}.conf">
+                        <i data-lucide="download" style="width:14px; height:14px;"></i> <span>دانلود فایل .conf</span>
+                    </a>
+                    <button class="btn btn-secondary" onclick="showCurrentQrModal()" type="button">
+                        <i data-lucide="qr-code" style="width:14px; height:14px;"></i> <span>نمایش بارکد QR</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Live Config Preview -->
+            <div style="display:flex; flex-direction:column; gap:6px;">
+                <span style="font-size:12px; color:var(--text-muted); font-weight:600;">پیش‌نمایش محتوای فایل تنظیمات:</span>
+                <pre id="subscription-config-pre" style="background:#0a0e14; color:#56b6c2; padding:14px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:12px; max-height:220px; overflow-y:auto; direction:ltr; text-align:left; border:1px solid rgba(255,255,255,0.08);">{{ default_conf }}</pre>
+            </div>
+        </div>
+
+        <!-- Setup Guide Card -->
+        <div class="card" style="display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="help-circle" style="color:var(--color-info); width:20px; height:20px;"></i>
+                <span style="font-size:15px; font-weight:700;">راهنمای اتصال سریع و استفاده</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+                <div style="background:rgba(255,255,255,0.02); padding:12px 14px; border-radius:8px; border:1px solid var(--border-color); font-size:12.5px; line-height:1.7;">
+                    <strong style="color:var(--text-main); display:block; margin-bottom:4px;">📱 گوشی‌های موبایل (Android / iOS):</strong>
+                    1. برنامه {% if proto_type == 'amneziawg' %}<strong>AmneziaWG</strong>{% else %}<strong>WireGuard</strong>{% endif %} را از گوگل‌پلی یا اپ‌استور نصب کنید.<br>
+                    2. دکمه «نمایش بارکد QR» را بزنید و از داخل اپلیکیشن با دوربین اسکن کنید.<br>
+                    3. یا دکمه «دانلود فایل .conf» را بزنید و در اپلیکیشن Import کنید.
+                </div>
+                <div style="background:rgba(255,255,255,0.02); padding:12px 14px; border-radius:8px; border:1px solid var(--border-color); font-size:12.5px; line-height:1.7;">
+                    <strong style="color:var(--text-main); display:block; margin-bottom:4px;">💻 کامپیوتر (Windows / macOS / Linux):</strong>
+                    1. نرم‌افزار رسمی {% if proto_type == 'amneziawg' %}AmneziaWG{% else %}WireGuard{% endif %} را دانلود و نصب نمایید.<br>
+                    2. دکمه «دانلود فایل .conf» را کلیک کرده و فایل را در نرم‌افزار وارد (Add Tunnel) کنید.<br>
+                    3. بر روی Activate کلیک نمایید تا ارتباط ایمن برقرار شود.
+                </div>
+            </div>
+        </div>
+        {% else %}
+
+<!-- User Status Card -->
 <div class="card user-status-card">
 <div class="user-header">
 <div class="user-title">
@@ -769,6 +900,7 @@
 </div>
             {% endif %}
         </div>
+        {% endif %}
 <div class="footer">
 <div><span data-i18n="designed_and_managed_by">طراحی و مدیریت شده با</span><strong>MH Panel v1.6.0</strong></div>
 <div data-i18n="all_rights_are_reserved_for_the_use" style="margin-top:4px; opacity:0.7;">تمامی حقوق برای کاربر و سرور محفوظ است.</div>
@@ -876,7 +1008,54 @@
         });
     }
     applySubLanguage(localStorage.getItem("sub_language") || "fa");
-    </script>
+    
+        const defaultRawConf = {{ (default_conf or '') | tojson }};
+        const serverHost = {{ (server_host or '') | tojson }};
+        let currentSelectedPort = {{ (server_port or 51820) | tojson }};
+        const subToken = {{ (sub_token or '') | tojson }};
+        const clientUsername = {{ (username or '') | tojson }};
+
+        function selectSubscriptionPort(port) {
+            currentSelectedPort = port;
+            document.querySelectorAll('.multiport-port-btn').forEach(b => {
+                b.style.background = 'rgba(255,255,255,0.08)';
+                b.style.borderColor = 'var(--border-color)';
+                b.style.color = 'var(--text-main)';
+            });
+            const activeBtn = document.getElementById(`port-btn-${port}`);
+            if (activeBtn) {
+                activeBtn.style.background = 'var(--color-primary)';
+                activeBtn.style.borderColor = 'var(--color-primary)';
+                activeBtn.style.color = '#ffffff';
+            }
+
+            const endp = document.getElementById("active-endpoint-display");
+            if (endp) endp.innerText = `${serverHost}:${port}`;
+
+            const dlBtn = document.getElementById("download-conf-btn");
+            if (dlBtn) {
+                dlBtn.href = `/sub/${subToken}/port/${port}.conf`;
+                dlBtn.download = `${clientUsername}-port-${port}.conf`;
+            }
+
+            let updatedConf = defaultRawConf.replace(/Endpoint\s*=\s*[^:\n]+:\d+/i, `Endpoint = ${serverHost}:${port}`);
+            const pre = document.getElementById("subscription-config-pre");
+            if (pre) pre.textContent = updatedConf;
+        }
+
+        function copyCurrentConfigText() {
+            const pre = document.getElementById("subscription-config-pre");
+            const txt = pre ? pre.textContent : defaultRawConf;
+            copyText(txt, "متن کانفیگ پورت " + currentSelectedPort + " کپی شد!");
+        }
+
+        function showCurrentQrModal() {
+            const pre = document.getElementById("subscription-config-pre");
+            const txt = pre ? pre.textContent : defaultRawConf;
+            showQrModal(txt, `اسکن بارکد - Port ${currentSelectedPort}`);
+        }
+
+</script>
     
 </body>
 </html>

@@ -3130,10 +3130,14 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/mhpanel-gas-server" -o "${PANEL_DIR}/scripts/daemons/mhpanel-gas-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/subscription.html" -o "${PANEL_DIR}/templates/subscription.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/styles.html" -o "${PANEL_DIR}/templates/partials/styles.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_terminal.html" -o "${PANEL_DIR}/templates/partials/tab_terminal.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_wireguard.html" -o "${PANEL_DIR}/templates/partials/tab_wireguard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_amneziawg.html" -o "${PANEL_DIR}/templates/partials/tab_amneziawg.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true

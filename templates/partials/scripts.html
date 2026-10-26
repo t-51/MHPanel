@@ -5700,59 +5700,365 @@
         }
     }
 
+        // ==========================================
+    // WireGuard Comprehensive Modern Management
+    // ==========================================
+    window.wgAllPeers = [];
+    window.currentWgFilter = "all";
+    window.currentWgGroup = "all";
+    window.currentWgSearch = "";
+    window.wgMultiportList = [51820, 443, 80, 53, 8080];
+    window.generatedWgBulkClients = [];
+
+    function switchWgSubTab(tabName) {
+        const tabs = ['clients', 'create', 'settings'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`wg-subtab-btn-${t}`);
+            const pane = document.getElementById(`wg-subtab-pane-${t}`);
+            if (btn) {
+                if (t === tabName) {
+                    btn.classList.add("active");
+                    btn.style.background = "var(--color-primary)";
+                    btn.style.color = "#ffffff";
+                } else {
+                    btn.classList.remove("active");
+                    btn.style.background = "transparent";
+                    btn.style.color = "var(--text-muted)";
+                }
+            }
+            if (pane) {
+                pane.style.display = (t === tabName) ? "flex" : "none";
+            }
+        });
+
+        if (tabName === "clients") fetchWireGuardClients();
+        if (tabName === "settings") {
+            loadWgMultiportSettings();
+            if (typeof fetchWgCloudflareConfig === "function") fetchWgCloudflareConfig();
+        }
+    }
+
     async function fetchWireGuardClients() {
-        const container = document.getElementById("wg-clients");
-        if (!container) return;
-        
         try {
             const res = await fetch("/api/wireguard/peers");
+            if (!res.ok) return;
             const peers = await res.json();
-            
-            container.innerHTML = "";
-            if (peers.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">${window.t("common_no_clients_found")}</div>`;
-                return;
-            }
-            
-            peers.forEach(peer => {
-                const row = document.createElement("div");
-                row.className = "wg-client-item";
-                row.style.display = "flex";
-                row.style.justifyContent = "space-between";
-                row.style.alignItems = "center";
-                row.style.padding = "12px";
-                row.style.borderBottom = "1px solid var(--border-color)";
-                
-                row.innerHTML = `
-                    <div style="display:flex; flex-direction:column; gap: 4px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="wg-client-name" style="font-weight:600; color:var(--text-color);">${peer.name}</span>
-                            <span class="wg-client-ip" style="font-size:12px; color:var(--text-muted); background:var(--bg-muted); padding:2px 6px; border-radius:4px;">${peer.ip}</span>
-                            ${peer.limit_gb ? '<span style="font-size:11px; color:var(--color-primary); background:rgba(6, 182, 212, 0.1); padding:2px 6px; border-radius:4px;">Limit: ' + peer.limit_gb + ' GB</span>' : ''}
-                            ${peer.expire_date ? '<span style="font-size:11px; color:var(--color-rose); background:rgba(244, 63, 94, 0.1); padding:2px 6px; border-radius:4px;">Expires: ' + peer.expire_date + '</span>' : (peer.start_on_first_connect ? '<span style="font-size:11px; color:var(--color-amber); background:rgba(245, 158, 11, 0.1); padding:2px 6px; border-radius:4px;">Starts on 1st connect (' + peer.duration_days + 'd)</span>' : '')}
-                        </div>
-                        <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="arrow-left-right" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>Usage: <strong>${formatBytes(peer.total_usage)}</strong> <span style="opacity:0.7;">(↓ ${formatBytes(peer.rx)} | ↑ ${formatBytes(peer.tx)})</span></span>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        ${peer.config ? '<button class="port-btn" style="padding:4px 8px; font-size:11px; background:var(--color-primary); color:white; border:none;" onclick="downloadWgConfig(\'' + peer.name + '\', this.getAttribute(\'data-config\'))" data-config="' + btoa(peer.config) + '" title="Download Config"><i data-lucide="download" style="width:12px; height:12px; margin-right:4px; vertical-align:middle;"></i>Config</button>' : ''}
-                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard')" title="${window.t('common_edit')}">
-                            ${window.t('common_edit')}
-                        </button>
-                        <button class="wg-delete-btn" onclick="deleteWgClient('${peer.public_key}')" title="${window.t('common_delete')}"><i data-lucide="trash-2" style="width:16px;"></i></button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            window.wgAllPeers = peers || [];
+
+            // Populate Category / Group Dropdown and Datalist
+            updateWgGroupDropdown();
+            filterWgClients();
         } catch (err) {
-            console.error(err);
+            console.error("fetchWireGuardClients error:", err);
+        }
+    }
+
+    function updateWgGroupDropdown() {
+        const select = document.getElementById("wg-group-filter-select");
+        const datalist = document.getElementById("wg-group-datalist");
+        const groups = new Set();
+        (window.wgAllPeers || []).forEach(p => {
+            if (p.group && p.group.trim()) groups.add(p.group.trim());
+        });
+        groups.add("عمومی");
+
+        if (select) {
+            const currentVal = select.value || "all";
+            let opts = `<option value="all">همه دسته‌ها (All Groups)</option>`;
+            groups.forEach(g => {
+                opts += `<option value="${g}">${g}</option>`;
+            });
+            select.innerHTML = opts;
+            select.value = groups.has(currentVal) ? currentVal : "all";
+            window.currentWgGroup = select.value;
+        }
+
+        if (datalist) {
+            let dlOpts = "";
+            groups.forEach(g => {
+                dlOpts += `<option value="${g}">`;
+            });
+            datalist.innerHTML = dlOpts;
+        }
+    }
+
+    function filterWgClients(status) {
+        if (status) window.currentWgFilter = status;
+        
+        const grpSelect = document.getElementById("wg-group-filter-select");
+        if (grpSelect) window.currentWgGroup = grpSelect.value;
+        
+        const searchInput = document.getElementById("wg-clients-search");
+        if (searchInput) window.currentWgSearch = searchInput.value.trim().toLowerCase();
+
+        // Update status counts
+        const allCount = window.wgAllPeers.length;
+        const activeCount = window.wgAllPeers.filter(p => p.status === 'active' || (!p.is_traffic_expired && !p.is_date_expired && p.active !== false)).length;
+        const trafficCount = window.wgAllPeers.filter(p => p.status === 'traffic_expired' || p.is_traffic_expired).length;
+        const dateCount = window.wgAllPeers.filter(p => p.status === 'date_expired' || p.is_date_expired).length;
+
+        const elAll = document.getElementById("wg-filter-count-all");
+        if (elAll) elAll.innerText = `(${allCount})`;
+        const elAct = document.getElementById("wg-filter-count-active");
+        if (elAct) elAct.innerText = `(${activeCount})`;
+        const elTrf = document.getElementById("wg-filter-count-traffic");
+        if (elTrf) elTrf.innerText = `(${trafficCount})`;
+        const elDat = document.getElementById("wg-filter-count-date");
+        if (elDat) elDat.innerText = `(${dateCount})`;
+
+        const totBadge = document.getElementById("wg-badge-total-count");
+        if (totBadge) totBadge.innerText = allCount;
+
+        // Update button visual active state
+        ['all', 'active', 'traffic', 'date'].forEach(f => {
+            const btn = document.getElementById(`wg-filter-${f}`);
+            if (btn) {
+                const isCur = (f === 'all' && window.currentWgFilter === 'all') ||
+                              (f === 'active' && window.currentWgFilter === 'active') ||
+                              (f === 'traffic' && window.currentWgFilter === 'traffic_expired') ||
+                              (f === 'date' && window.currentWgFilter === 'date_expired');
+                if (isCur) {
+                    btn.classList.add("active");
+                    btn.style.background = "var(--bg-card-hover)";
+                    btn.style.border = "1px solid var(--color-primary)";
+                } else {
+                    btn.classList.remove("active");
+                    btn.style.background = "transparent";
+                    btn.style.border = "1px solid var(--border-color)";
+                }
+            }
+        });
+
+        renderWgClientsGrid();
+    }
+
+    function renderWgClientsGrid() {
+        const container = document.getElementById("wg-clients-grid") || document.getElementById("wg-clients");
+        if (!container) return;
+
+        let filtered = window.wgAllPeers || [];
+
+        // Filter by status
+        if (window.currentWgFilter === "active") {
+            filtered = filtered.filter(p => p.status === 'active' || (!p.is_traffic_expired && !p.is_date_expired && p.active !== false));
+        } else if (window.currentWgFilter === "traffic_expired") {
+            filtered = filtered.filter(p => p.status === 'traffic_expired' || p.is_traffic_expired);
+        } else if (window.currentWgFilter === "date_expired") {
+            filtered = filtered.filter(p => p.status === 'date_expired' || p.is_date_expired);
+        }
+
+        // Filter by group
+        if (window.currentWgGroup && window.currentWgGroup !== "all") {
+            filtered = filtered.filter(p => (p.group || "عمومی") === window.currentWgGroup);
+        }
+
+        // Filter by search query
+        if (window.currentWgSearch) {
+            const q = window.currentWgSearch;
+            filtered = filtered.filter(p => 
+                (p.name && p.name.toLowerCase().includes(q)) ||
+                (p.ip && p.ip.includes(q)) ||
+                (p.public_key && p.public_key.toLowerCase().includes(q))
+            );
+        }
+
+        container.innerHTML = "";
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="glass-card" style="text-align:center; padding:32px 16px; color:var(--text-muted); border-radius:12px;">
+                    <i data-lucide="users" style="width:36px; height:36px; margin:0 auto 10px; opacity:0.4;"></i>
+                    <div style="font-size:14px; font-weight:600;">هیچ کلاینت WireGuard با این مشخصات یافت نشد</div>
+                    <div style="font-size:12px; margin-top:4px;">برای ایجاد کاربر جدید، از تب «افزودن و صدور کانفیگ» استفاده کنید.</div>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: container }); } catch (_) {}
+            return;
+        }
+
+        filtered.forEach(peer => {
+            const card = document.createElement("div");
+            card.className = "glass-card config-card";
+            card.style.cssText = "padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-card); transition:all 0.2s;";
+
+            // Determine status
+            let statusBadge = "";
+            const isTrafficExp = peer.status === 'traffic_expired' || peer.is_traffic_expired;
+            const isDateExp = peer.status === 'date_expired' || peer.is_date_expired;
+            const isDisabled = peer.active === false || peer.status === 'disabled';
+
+            if (isDisabled) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(148,163,184,0.15); color:var(--text-muted); border:1px solid rgba(148,163,184,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="slash" style="width:11px; height:11px;"></i> غیرفعال</span>`;
+            } else if (isTrafficExp) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="alert-octagon" style="width:11px; height:11px;"></i> پایان حجم (Quota Exceeded)</span>`;
+            } else if (isDateExp) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="clock" style="width:11px; height:11px;"></i> منقضی شده (Date Expired)</span>`;
+            } else {
+                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال (Active)</span>`;
+            }
+
+            // Usage progress calculation
+            let usagePct = 0;
+            let usageColor = "#10b981";
+            let limitText = "بدون سقف حجم (نامحدود)";
+            if (peer.limit_gb && peer.limit_gb > 0) {
+                const totalBytesLimit = peer.limit_gb * (1024 ** 3);
+                usagePct = Math.min(100, Math.round(((peer.total_usage || 0) / totalBytesLimit) * 100));
+                limitText = `سقف: ${peer.limit_gb} GB`;
+                if (usagePct >= 95) usageColor = "#f43f5e";
+                else if (usagePct >= 80) usageColor = "#f59e0b";
+            }
+
+            // Expiry info
+            let expireInfo = "نامحدود";
+            if (peer.expire_date) {
+                expireInfo = `انقضا: ${peer.expire_date}`;
+            } else if (peer.start_on_first_connect) {
+                expireInfo = `شروع از ۱st connect (${peer.duration_days || 30} روز)`;
+            }
+
+            const groupName = peer.group || "عمومی";
+            const subToken = peer.sub_token || "";
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:15px; font-weight:800; color:var(--text-main);">${peer.name}</span>
+                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11.5px; background:rgba(2,132,199,0.12); color:#0284c7; border:1px solid rgba(2,132,199,0.25);">
+                            ${peer.ip || '10.8.0.x'}
+                        </span>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); display:inline-flex; align-items:center; gap:4px;">
+                            <i data-lucide="folder" style="width:11px; height:11px;"></i> ${groupName}
+                        </span>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+
+                <!-- Usage Progress Bar -->
+                <div style="display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted);">
+                        <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
+                        <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                    </div>
+                    <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
+                        <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : 'var(--color-primary)'}; height:100%; border-radius:999px;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); padding-top:2px;">
+                        <span><i data-lucide="calendar" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${expireInfo}</span>
+                        <span style="font-family:'JetBrains Mono'; font-size:11px; opacity:0.6;">Key: ${peer.public_key ? peer.public_key.substring(0, 10) + '...' : ''}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Toolbar -->
+                <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; padding-top:4px;">
+                    ${subToken ? `
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:5px 10px; color:#6366f1;" title="کپی لینک هوشمند ساب">
+                            <i data-lucide="link" style="width:12px; height:12px;"></i> لینک ساب
+                        </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openWgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:5px 10px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
+                        <i data-lucide="network" style="width:12px; height:12px;"></i> پورت‌ها
+                    </button>
+                    ${peer.config ? `
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openWgQrModal('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px; color:#10b981;" title="نمایش بارکد QR">
+                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px;" title="دانلود فایل .conf">
+                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود .conf
+                        </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard', '${groupName}')" style="font-size:11.5px; padding:5px 10px;" title="ویرایش کلاینت و تغییر گروه">
+                        <i data-lucide="edit-3" style="width:12px; height:12px;"></i> ویرایش
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteWgClient('${peer.public_key}')" style="font-size:11.5px; padding:5px 9px;" title="حذف کاربر">
+                        <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        if (typeof lucide !== 'undefined') {
+            try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }
+        }
+    }
+
+    function copyClientSubLink(subToken) {
+        if (!subToken) {
+            showToast("توکن اشتراک برای این کاربر موجود نیست", "warning");
+            return;
+        }
+        const url = `${window.location.origin}/sub/${subToken}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(() => showToast("لینک اشتراک با موفقیت کپی شد!", "success"))
+                     .catch(() => fallbackCopyText(url));
+        } else {
+            fallbackCopyText(url);
+        }
+    }
+
+    function openWgQrModal(name, b64config) {
+        let config = "";
+        try { config = atob(b64config); } catch (e) { config = b64config || ""; }
+        if (!config) {
+            showToast("متن کانفیگ موجود نیست", "error");
+            return;
+        }
+
+        const singleResult = document.getElementById("wg-single-result");
+        const bulkResult = document.getElementById("wg-bulk-result");
+        if (singleResult) singleResult.style.display = "flex";
+        if (bulkResult) bulkResult.style.display = "none";
+
+        const textEl = document.getElementById("wg-config-text");
+        if (textEl) textEl.innerText = config;
+
+        const qrEl = document.getElementById("wg-qrcode-canvas") || document.getElementById("qrcode-canvas");
+        if (qrEl) {
+            qrEl.innerHTML = "";
+            if (typeof QRCode === 'undefined') {
+                qrEl.innerHTML = "<p style='color:var(--color-rose); font-size:12px;'>کتابخانه بارکد بارگذاری نشد.</p>";
+            } else {
+                QRCode.toCanvas(config, { width: 220, margin: 1 }, (err, canvas) => {
+                    if (err) console.error(err);
+                    else qrEl.appendChild(canvas);
+                });
+            }
+        }
+
+        const dlBtn = document.getElementById("wg-dl-btn");
+        if (dlBtn) {
+            dlBtn.onclick = () => {
+                const blob = new Blob([config], { type: "text/plain" });
+                const a = document.createElement("a");
+                a.href = URL.createObjectURL(blob);
+                a.download = `${name}.conf`;
+                a.click();
+            };
+        }
+
+        const copyBtn = document.getElementById("wg-copy-btn");
+        if (copyBtn) {
+            copyBtn.onclick = () => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(config).then(() => showToast("متن کانفیگ کپی شد", "success"))
+                             .catch(() => fallbackCopyText(config));
+                } else {
+                    fallbackCopyText(config);
+                }
+            };
+        }
+
+        const modal = document.getElementById("wg-config-modal");
+        if (modal) modal.classList.add("active");
+        else {
+            switchWgSubTab('create');
+            singleResult?.scrollIntoView({ behavior: 'smooth' });
         }
     }
 
     function downloadWgConfig(name, b64config) {
-        const config = atob(b64config);
+        let config = "";
+        try { config = atob(b64config); } catch(e) { config = b64config || ""; }
         const blob = new Blob([config], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -5764,9 +6070,9 @@
     }
 
     async function deleteWgClient(pubkey) {
-        if (!confirm("Are you sure you want to delete this WireGuard client?")) return;
+        if (!confirm("آیا از حذف این کلاینت WireGuard اطمینان دارید؟")) return;
         
-        toggleLoading(true, "Removing client peer...");
+        toggleLoading(true, "در حال حذف کلاینت...");
         try {
             const res = await fetch("/api/wireguard/client/delete", {
                 method: "POST",
@@ -5774,115 +6080,313 @@
                 body: JSON.stringify({ public_key: pubkey })
             });
             if (res.ok) {
-                showToast("Client removed", "success");
+                showToast("کلاینت با موفقیت حذف شد", "success");
                 fetchWireGuardClients();
             } else {
-                showToast("Failed to remove client", "error");
+                showToast("خطا در حذف کلاینت", "error");
             }
         } catch (e) {
-            showToast("Connection error", "error");
+            showToast("خطای اتصال به سرور", "error");
         }
         toggleLoading(false);
     }
 
+    // Add Single WireGuard Client
     document.getElementById("wg-add-btn")?.addEventListener("click", async () => {
         const nameInput = document.getElementById("wg-client-name");
         const name = nameInput.value.trim();
+        const grpInput = document.getElementById("wg-client-group");
+        const group = grpInput ? (grpInput.value.trim() || "عمومی") : "عمومی";
         const limit_gb = document.getElementById("wg-client-limit").value ? parseInt(document.getElementById("wg-client-limit").value) : null;
         const expire_days = document.getElementById("wg-client-expire-days").value || null;
         const start_on_first_connect = document.getElementById("wg-client-first-connect").checked;
 
-        if (!name) return;
+        if (!name) {
+            showToast("نام کلاینت نمی‌تواند خالی باشد", "warning");
+            return;
+        }
         
-        toggleLoading(true, "Generating cryptographic keys & profile...");
+        toggleLoading(true, "تولید کلیدهای رمزنگاری و ساخت پروفایل...");
         try {
             const res = await fetch("/api/wireguard/client", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, limit_gb, expire_days, start_on_first_connect })
+                body: JSON.stringify({ name, group, limit_gb, expire_days, start_on_first_connect })
             });
             const data = await res.json();
             if (res.ok) {
                 nameInput.value = "";
                 fetchWireGuardClients();
                 
-                // Show single config view, hide bulk config view
-                document.getElementById("wg-single-result").style.display = "flex";
-                document.getElementById("wg-bulk-result").style.display = "none";
+                const singleRes = document.getElementById("wg-single-result");
+                const bulkRes = document.getElementById("wg-bulk-result");
+                if (singleRes) singleRes.style.display = "flex";
+                if (bulkRes) bulkRes.style.display = "none";
                 
-                document.getElementById("wg-config-text").innerText = data.config;
-                document.getElementById("qrcode-canvas").innerHTML = "";
+                const confText = document.getElementById("wg-config-text");
+                if (confText) confText.innerText = data.config;
                 
-                if (typeof QRCode === 'undefined') {
-                    document.getElementById("qrcode-canvas").innerHTML = "<p style='color:var(--color-rose); font-size:12px;'>QR Code library unavailable.</p>";
-                } else {
-                    QRCode.toCanvas(data.config, { width: 180, margin: 1 }, (err, canvas) => {
-                        if (err) console.error(err);
-                        document.getElementById("qrcode-canvas").appendChild(canvas);
-                    });
+                const qrCanvas = document.getElementById("wg-qrcode-canvas") || document.getElementById("qrcode-canvas");
+                if (qrCanvas) {
+                    qrCanvas.innerHTML = "";
+                    if (typeof QRCode !== 'undefined') {
+                        QRCode.toCanvas(data.config, { width: 180, margin: 1 }, (err, canvas) => {
+                            if (!err) qrCanvas.appendChild(canvas);
+                        });
+                    }
                 }
                 
-                document.getElementById("wg-dl-btn").onclick = () => {
-                    const blob = new Blob([data.config], { type: "text/plain" });
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `${data.name}.conf`;
-                    a.click();
-                };
-                
-                function fallbackCopyText(text) {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.top = "0";
-                    textArea.style.left = "0";
-                    textArea.style.position = "fixed";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        const successful = document.execCommand('copy');
-                        if (successful) {
-                            showToast("Config text copied to clipboard!", "success");
-                        } else {
-                            showToast("Failed to copy text", "error");
-                        }
-                    } catch (err) {
-                        showToast("Failed to copy text", "error");
-                    }
-                    document.body.removeChild(textArea);
+                const dlBtn = document.getElementById("wg-dl-btn");
+                if (dlBtn) {
+                    dlBtn.onclick = () => {
+                        const blob = new Blob([data.config], { type: "text/plain" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `${data.name}.conf`;
+                        a.click();
+                    };
                 }
 
-                document.getElementById("wg-copy-btn").onclick = () => {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(data.config).then(() => {
-                            showToast("Config text copied to clipboard!", "success");
-                        }).catch(() => {
+                const subBtn = document.getElementById("wg-copy-sub-btn");
+                if (subBtn && data.sub_token) {
+                    subBtn.onclick = () => copyClientSubLink(data.sub_token);
+                }
+
+                const copyBtn = document.getElementById("wg-copy-btn");
+                if (copyBtn) {
+                    copyBtn.onclick = () => {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(data.config).then(() => showToast("متن کانفیگ کپی شد!", "success"))
+                                     .catch(() => fallbackCopyText(data.config));
+                        } else {
                             fallbackCopyText(data.config);
-                        });
-                    } else {
-                        fallbackCopyText(data.config);
-                    }
-                };
+                        }
+                    };
+                }
                 
-                document.getElementById("wg-config-modal").classList.add("active");
+                showToast("کلاینت WireGuard با موفقیت ایجاد شد!", "success");
+                singleRes?.scrollIntoView({ behavior: 'smooth' });
             } else {
-                showToast("Failed: " + data.error, "error");
+                showToast("خطا در ایجاد کلاینت: " + data.error, "error");
             }
         } catch (err) {
-            showToast("Connection error", "error");
+            showToast("خطای اتصال به سرور", "error");
         }
         toggleLoading(false);
     });
 
-    document.getElementById("wg-close-btn")?.addEventListener("click", () => {
-        document.getElementById("wg-config-modal").classList.remove("active");
-    });
+    // Bulk WireGuard Clients Creation
+    async function createWgBulk(event) {
+        if (event) event.preventDefault();
+        const prefix = document.getElementById("wg-bulk-prefix").value.trim() || "User";
+        const count = parseInt(document.getElementById("wg-bulk-count").value) || 5;
+        const grpInput = document.getElementById("wg-bulk-group");
+        const group = grpInput ? (grpInput.value.trim() || "عمومی") : "عمومی";
+        const limit_gb = document.getElementById("wg-bulk-limit").value ? parseInt(document.getElementById("wg-bulk-limit").value) : null;
+        const expire_days = document.getElementById("wg-bulk-expire-days").value || null;
+        const start_on_first_connect = document.getElementById("wg-bulk-first-connect").checked;
 
-    document.getElementById("wg-config-modal")?.addEventListener("click", (e) => {
-        if (e.target === document.getElementById("wg-config-modal")) {
-            document.getElementById("wg-config-modal").classList.remove("active");
+        toggleLoading(true, `در حال تولید ${count} کانفیگ گروهی WireGuard...`);
+        try {
+            const res = await fetch("/api/wireguard/client/bulk", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prefix, count, group, limit_gb, expire_days, start_on_first_connect })
+            });
+            const data = await res.json();
+            if (res.ok && data.clients) {
+                showToast(`تعداد ${data.clients.length} کاربر WireGuard با موفقیت ساخته شد!`, "success");
+                fetchWireGuardClients();
+
+                window.generatedWgBulkClients = data.clients;
+                const singleRes = document.getElementById("wg-single-result");
+                const bulkRes = document.getElementById("wg-bulk-result");
+                if (singleRes) singleRes.style.display = "none";
+                if (bulkRes) bulkRes.style.display = "flex";
+
+                const cntEl = document.getElementById("wg-bulk-success-count");
+                if (cntEl) cntEl.innerText = data.clients.length;
+
+                const listEl = document.getElementById("wg-bulk-list");
+                if (listEl) {
+                    listEl.innerHTML = "";
+                    data.clients.forEach(c => {
+                        const row = document.createElement("div");
+                        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color); font-size:12px;";
+                        row.innerHTML = `
+                            <div>
+                                <strong>${c.name}</strong> <span style="font-family:'JetBrains Mono'; opacity:0.7;">(${c.ip})</span>
+                            </div>
+                            <div style="display:flex; gap:6px;">
+                                ${c.sub_token ? `<button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${c.sub_token}')" style="font-size:11px; padding:3px 7px;">لینک ساب</button>` : ''}
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${c.name}', '${btoa(c.config)}')" style="font-size:11px; padding:3px 7px;">دانلود</button>
+                            </div>
+                        `;
+                        listEl.appendChild(row);
+                    });
+                }
+
+                const dlAllBtn = document.getElementById("wg-bulk-dl-all-btn");
+                if (dlAllBtn) {
+                    dlAllBtn.onclick = () => {
+                        const zipLines = data.clients.map(c => `=== ${c.name}.conf ===
+${c.config}
+`).join("
+
+");
+                        const blob = new Blob([zipLines], { type: "text/plain" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `wireguard_bulk_${Date.now()}.txt`;
+                        a.click();
+                    };
+                }
+                bulkRes?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showToast("خطا در ساخت گروهی: " + (data.error || ""), "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
         }
-    });
+        toggleLoading(false);
+    }
+
+    // WireGuard Multiport Settings
+    async function loadWgMultiportSettings() {
+        try {
+            const res = await fetch("/api/wireguard/multiport");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.ports && Array.isArray(data.ports)) {
+                window.wgMultiportList = data.ports;
+            }
+            renderWgMultiportTags();
+            const mainPortEl = document.getElementById("wg-active-port-display");
+            if (mainPortEl && data.main_port) mainPortEl.innerText = `UDP ${data.main_port}`;
+            const pillEl = document.getElementById("wg-active-port-pill");
+            if (pillEl && data.main_port) pillEl.innerText = `UDP ${data.main_port}`;
+        } catch (e) {
+            console.error("loadWgMultiportSettings error:", e);
+        }
+    }
+
+    function renderWgMultiportTags() {
+        const container = document.getElementById("wg-multiport-tags");
+        if (!container) return;
+        container.innerHTML = "";
+        window.wgMultiportList.forEach(port => {
+            const tag = document.createElement("span");
+            tag.className = "badge-pill";
+            tag.style.cssText = "display:inline-flex; align-items:center; gap:6px; padding:4px 10px; font-size:12px; background:rgba(2,132,199,0.12); color:#0284c7; border:1px solid rgba(2,132,199,0.25); border-radius:8px; font-family:'JetBrains Mono';";
+            tag.innerHTML = `
+                <span>UDP :${port}</span>
+                <button type="button" onclick="removeWgMultiportTag(${port})" style="background:none; border:none; cursor:pointer; color:#ef4444; padding:0; display:flex; align-items:center;">
+                    <i data-lucide="x" style="width:12px; height:12px;"></i>
+                </button>
+            `;
+            container.appendChild(tag);
+        });
+        if (typeof lucide !== 'undefined') {
+            try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }
+        }
+    }
+
+    function addWgMultiportTag() {
+        const input = document.getElementById("wg-add-port-input");
+        if (!input) return;
+        const val = parseInt(input.value);
+        if (!val || val < 1 || val > 65535) {
+            showToast("شماره پورت نامعتبر است (۱ تا ۶۵۵۳۵)", "warning");
+            return;
+        }
+        if (!window.wgMultiportList.includes(val)) {
+            window.wgMultiportList.push(val);
+            renderWgMultiportTags();
+        }
+        input.value = "";
+    }
+
+    function removeWgMultiportTag(port) {
+        window.wgMultiportList = window.wgMultiportList.filter(p => p !== port);
+        renderWgMultiportTags();
+    }
+
+    async function saveWgMultiportConfig() {
+        toggleLoading(true, "در حال ذخیره و اعمال پورت‌های همزمان در فایروال سرور...");
+        try {
+            const res = await fetch("/api/wireguard/multiport", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ports: window.wgMultiportList, enabled: true })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast("پورت‌های همزمان و قوانین فوروارد با موفقیت اعمال شدند!", "success");
+                loadWgMultiportSettings();
+            } else {
+                showToast("خطا در ذخیره پورت‌ها: " + (data.error || ""), "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    // Client Multiport Modal for WireGuard
+    async function openWgClientMultiportModal(pubkey, subToken, clientName) {
+        toggleLoading(true, "دریافت کانفیگ چند پورته کلاینت...");
+        try {
+            const res = await fetch(`/api/wireguard/client/multiport?public_key=${encodeURIComponent(pubkey)}`);
+            const data = await res.json();
+            if (!res.ok) {
+                showToast(data.error || "خطا در دریافت پورت‌ها", "error");
+                toggleLoading(false);
+                return;
+            }
+
+            const modal = document.getElementById("wg-client-multiport-modal");
+            const titleEl = document.getElementById("wg-client-mp-title");
+            const listEl = document.getElementById("wg-client-mp-list");
+
+            if (titleEl) titleEl.innerText = `کانفیگ‌های همزمان کلاینت: ${clientName || data.name}`;
+            if (listEl) {
+                listEl.innerHTML = "";
+                (data.configs || []).forEach(item => {
+                    const row = document.createElement("div");
+                    row.className = "glass-card";
+                    row.style.cssText = "padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border:1px solid var(--border-color); border-radius:10px;";
+                    row.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="badge-pill" style="font-family:'JetBrains Mono'; font-weight:700; font-size:13px; padding:4px 10px; background:rgba(2,132,199,0.15); color:#0284c7; border:1px solid rgba(2,132,199,0.3); border-radius:8px;">
+                                UDP ${item.port} ${item.is_main ? '★ (اصلی)' : ''}
+                            </span>
+                            <span style="font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono';">${data.server_ip}:${item.port}</span>
+                        </div>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openWgQrModal('${data.name}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i> QR
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${data.name}-port-${item.port}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                                <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود .conf
+                            </button>
+                        </div>
+                    `;
+                    listEl.appendChild(row);
+                });
+                if (typeof lucide !== 'undefined') {
+                    try { lucide.createIcons({ root: listEl }); } catch (_) { lucide.createIcons(); }
+                }
+            }
+            if (modal) modal.classList.add("active");
+        } catch (e) {
+            showToast("خطای اتصال به سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    function closeWgClientMultiportModal() {
+        document.getElementById("wg-client-multiport-modal")?.classList.remove("active");
+    }
 
     // Save Admin Credentials
     document.getElementById("credentials-form")?.addEventListener("submit", async (e) => {
@@ -8698,72 +9202,293 @@
 
 
 
-    // --- AmneziaWG Client Management ---
+        // ==========================================
+    // AmneziaWG Comprehensive Anti-DPI Management
+    // ==========================================
+    window.awgAllPeers = [];
+    window.currentAwgFilter = "all";
+    window.currentAwgGroup = "all";
+    window.currentAwgSearch = "";
+    window.awgMultiportList = [443, 80, 53, 51820, 8080];
+    window.generatedAwgBulkClients = [];
+
+    function switchAwgSubTab(tabName) {
+        const tabs = ['clients', 'create', 'settings'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`awg-subtab-btn-${t}`);
+            const pane = document.getElementById(`awg-subtab-pane-${t}`);
+            if (btn) {
+                if (t === tabName) {
+                    btn.classList.add("active");
+                    btn.style.background = "var(--color-primary)";
+                    btn.style.color = "#ffffff";
+                } else {
+                    btn.classList.remove("active");
+                    btn.style.background = "transparent";
+                    btn.style.color = "var(--text-muted)";
+                }
+            }
+            if (pane) {
+                pane.style.display = (t === tabName) ? "flex" : "none";
+            }
+        });
+
+        if (tabName === "clients") fetchAmneziaWGClients();
+        if (tabName === "settings") {
+            loadAwgMultiportSettings();
+            loadAwgSettingsForm();
+            if (typeof fetchAwgWarpStatus === "function") fetchAwgWarpStatus();
+            if (typeof fetchAwgVersion === "function") fetchAwgVersion();
+        }
+    }
+
     async function fetchAmneziaWGClients() {
-        const container = document.getElementById("awg-clients");
-        if (!container) return;
-        
         try {
             const res = await fetch("/api/amneziawg/peers");
+            if (!res.ok) return;
             const peers = await res.json();
-            
-            container.innerHTML = "";
-            if (peers.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:12px; font-size:13px; color:var(--text-dim);">${window.t("common_no_clients_found")}</div>`;
-                return;
-            }
-            
-            peers.forEach(peer => {
-                const row = document.createElement("div");
-                row.className = "awg-client-item";
-                row.style.display = "flex";
-                row.style.justifyContent = "space-between";
-                row.style.alignItems = "center";
-                row.style.padding = "12px";
-                row.style.borderBottom = "1px solid var(--border-color)";
-                
-                row.innerHTML = `
-                    <div style="display:flex; flex-direction:column; gap: 4px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span class="awg-client-name" style="font-weight:600; color:var(--text-color);">${peer.name}</span>
-                            <span class="awg-client-ip" style="font-size:12px; color:var(--text-muted); background:var(--bg-muted); padding:2px 6px; border-radius:4px;">${peer.ip}</span>
-                            ${peer.limit_gb ? '<span style="font-size:11px; color:var(--color-primary); background:rgba(6, 182, 212, 0.1); padding:2px 6px; border-radius:4px;">Limit: ' + peer.limit_gb + ' GB</span>' : ''}
-                            ${peer.expire_date ? '<span style="font-size:11px; color:var(--color-rose); background:rgba(244, 63, 94, 0.1); padding:2px 6px; border-radius:4px;">Expires: ' + peer.expire_date + '</span>' : (peer.start_on_first_connect ? '<span style="font-size:11px; color:var(--color-amber); background:rgba(245, 158, 11, 0.1); padding:2px 6px; border-radius:4px;">Starts on 1st connect (' + peer.duration_days + 'd)</span>' : '')}
-                        </div>
-                        <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="arrow-left-right" style="width:12px; height:12px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>Usage: <strong>${formatBytes(peer.total_usage)}</strong> <span style="opacity:0.7;">(↓ ${formatBytes(peer.rx)} | ↑ ${formatBytes(peer.tx)})</span></span>
-                    </div>
-                    <div style="display:flex; gap:8px; align-items:center;">
-                        ${peer.config ? `
-                            <button class="port-btn" style="padding:4px 9px; font-size:11px; background:#059669; color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="openAwgQrModal('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="${window.t('common_show_scan_qr')}">
-                                <i data-lucide="qr-code" style="width:12px; height:12px;"></i> ${window.t('common_scan_qr')}
-                            </button>
-                            <button class="port-btn" style="padding:4px 8px; font-size:11px; background:var(--color-primary); color:white; border:none; display:inline-flex; align-items:center; gap:3px;" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" title="${window.t('common_download_config')}">
-                                <i data-lucide="download" style="width:12px; height:12px;"></i> ${window.t('common_download')}
-                            </button>
-                        ` : ''}
-                        <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg')" title="${window.t('common_edit')}">
-                            ${window.t('common_edit')}
-                        </button>
-                        <button class="awg-delete-btn" onclick="deleteAwgClient('${peer.public_key}')" title="${window.t('common_delete')}"><i data-lucide="trash-2" style="width:16px;"></i></button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
+            window.awgAllPeers = peers || [];
+
+            // Populate Category / Group Dropdown and Datalist
+            updateAwgGroupDropdown();
+            filterAwgClients();
         } catch (err) {
-            console.error(err);
+            console.error("fetchAmneziaWGClients error:", err);
+        }
+    }
+
+    function updateAwgGroupDropdown() {
+        const select = document.getElementById("awg-group-filter-select");
+        const datalist = document.getElementById("awg-group-datalist");
+        const groups = new Set();
+        (window.awgAllPeers || []).forEach(p => {
+            if (p.group && p.group.trim()) groups.add(p.group.trim());
+        });
+        groups.add("عمومی");
+
+        if (select) {
+            const currentVal = select.value || "all";
+            let opts = `<option value="all">همه دسته‌ها (All Groups)</option>`;
+            groups.forEach(g => {
+                opts += `<option value="${g}">${g}</option>`;
+            });
+            select.innerHTML = opts;
+            select.value = groups.has(currentVal) ? currentVal : "all";
+            window.currentAwgGroup = select.value;
+        }
+
+        if (datalist) {
+            let dlOpts = "";
+            groups.forEach(g => {
+                dlOpts += `<option value="${g}">`;
+            });
+            datalist.innerHTML = dlOpts;
+        }
+    }
+
+    function filterAwgClients(status) {
+        if (status) window.currentAwgFilter = status;
+        
+        const grpSelect = document.getElementById("awg-group-filter-select");
+        if (grpSelect) window.currentAwgGroup = grpSelect.value;
+        
+        const searchInput = document.getElementById("awg-clients-search");
+        if (searchInput) window.currentAwgSearch = searchInput.value.trim().toLowerCase();
+
+        // Update status counts
+        const allCount = window.awgAllPeers.length;
+        const activeCount = window.awgAllPeers.filter(p => p.status === 'active' || (!p.is_traffic_expired && !p.is_date_expired && p.active !== false)).length;
+        const trafficCount = window.awgAllPeers.filter(p => p.status === 'traffic_expired' || p.is_traffic_expired).length;
+        const dateCount = window.awgAllPeers.filter(p => p.status === 'date_expired' || p.is_date_expired).length;
+
+        const elAll = document.getElementById("awg-filter-count-all");
+        if (elAll) elAll.innerText = `(${allCount})`;
+        const elAct = document.getElementById("awg-filter-count-active");
+        if (elAct) elAct.innerText = `(${activeCount})`;
+        const elTrf = document.getElementById("awg-filter-count-traffic");
+        if (elTrf) elTrf.innerText = `(${trafficCount})`;
+        const elDat = document.getElementById("awg-filter-count-date");
+        if (elDat) elDat.innerText = `(${dateCount})`;
+
+        const totBadge = document.getElementById("awg-badge-total-count");
+        if (totBadge) totBadge.innerText = allCount;
+
+        // Update button visual active state
+        ['all', 'active', 'traffic', 'date'].forEach(f => {
+            const btn = document.getElementById(`awg-filter-${f}`);
+            if (btn) {
+                const isCur = (f === 'all' && window.currentAwgFilter === 'all') ||
+                              (f === 'active' && window.currentAwgFilter === 'active') ||
+                              (f === 'traffic' && window.currentAwgFilter === 'traffic_expired') ||
+                              (f === 'date' && window.currentAwgFilter === 'date_expired');
+                if (isCur) {
+                    btn.classList.add("active");
+                    btn.style.background = "var(--bg-card-hover)";
+                    btn.style.border = "1px solid var(--color-primary)";
+                } else {
+                    btn.classList.remove("active");
+                    btn.style.background = "transparent";
+                    btn.style.border = "1px solid var(--border-color)";
+                }
+            }
+        });
+
+        renderAwgClientsGrid();
+    }
+
+    function renderAwgClientsGrid() {
+        const container = document.getElementById("awg-clients-grid") || document.getElementById("awg-clients");
+        if (!container) return;
+
+        let filtered = window.awgAllPeers || [];
+
+        // Filter by status
+        if (window.currentAwgFilter === "active") {
+            filtered = filtered.filter(p => p.status === 'active' || (!p.is_traffic_expired && !p.is_date_expired && p.active !== false));
+        } else if (window.currentAwgFilter === "traffic_expired") {
+            filtered = filtered.filter(p => p.status === 'traffic_expired' || p.is_traffic_expired);
+        } else if (window.currentAwgFilter === "date_expired") {
+            filtered = filtered.filter(p => p.status === 'date_expired' || p.is_date_expired);
+        }
+
+        // Filter by group
+        if (window.currentAwgGroup && window.currentAwgGroup !== "all") {
+            filtered = filtered.filter(p => (p.group || "عمومی") === window.currentAwgGroup);
+        }
+
+        // Filter by search query
+        if (window.currentAwgSearch) {
+            const q = window.currentAwgSearch;
+            filtered = filtered.filter(p => 
+                (p.name && p.name.toLowerCase().includes(q)) ||
+                (p.ip && p.ip.includes(q)) ||
+                (p.public_key && p.public_key.toLowerCase().includes(q))
+            );
+        }
+
+        container.innerHTML = "";
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div class="glass-card" style="text-align:center; padding:32px 16px; color:var(--text-muted); border-radius:12px;">
+                    <i data-lucide="shield" style="width:36px; height:36px; margin:0 auto 10px; opacity:0.4;"></i>
+                    <div style="font-size:14px; font-weight:600;">هیچ کلاینت AmneziaWG با این مشخصات یافت نشد</div>
+                    <div style="font-size:12px; margin-top:4px;">برای ایجاد کاربر جدید، از تب «افزودن و صدور کانفیگ» استفاده کنید.</div>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: container }); } catch (_) {}
+            return;
+        }
+
+        filtered.forEach(peer => {
+            const card = document.createElement("div");
+            card.className = "glass-card config-card";
+            card.style.cssText = "padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-card); transition:all 0.2s;";
+
+            // Determine status
+            let statusBadge = "";
+            const isTrafficExp = peer.status === 'traffic_expired' || peer.is_traffic_expired;
+            const isDateExp = peer.status === 'date_expired' || peer.is_date_expired;
+            const isDisabled = peer.active === false || peer.status === 'disabled';
+
+            if (isDisabled) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(148,163,184,0.15); color:var(--text-muted); border:1px solid rgba(148,163,184,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="slash" style="width:11px; height:11px;"></i> غیرفعال</span>`;
+            } else if (isTrafficExp) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="alert-octagon" style="width:11px; height:11px;"></i> پایان حجم (Quota Exceeded)</span>`;
+            } else if (isDateExp) {
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="clock" style="width:11px; height:11px;"></i> منقضی شده (Date Expired)</span>`;
+            } else {
+                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال (Active)</span>`;
+            }
+
+            // Usage progress calculation
+            let usagePct = 0;
+            let usageColor = "#10b981";
+            let limitText = "بدون سقف حجم (نامحدود)";
+            if (peer.limit_gb && peer.limit_gb > 0) {
+                const totalBytesLimit = peer.limit_gb * (1024 ** 3);
+                usagePct = Math.min(100, Math.round(((peer.total_usage || 0) / totalBytesLimit) * 100));
+                limitText = `سقف: ${peer.limit_gb} GB`;
+                if (usagePct >= 95) usageColor = "#f43f5e";
+                else if (usagePct >= 80) usageColor = "#f59e0b";
+            }
+
+            // Expiry info
+            let expireInfo = "نامحدود";
+            if (peer.expire_date) {
+                expireInfo = `انقضا: ${peer.expire_date}`;
+            } else if (peer.start_on_first_connect) {
+                expireInfo = `شروع از ۱st connect (${peer.duration_days || 30} روز)`;
+            }
+
+            const groupName = peer.group || "عمومی";
+            const subToken = peer.sub_token || "";
+
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <span style="font-size:15px; font-weight:800; color:var(--text-main);">${peer.name}</span>
+                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11.5px; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25);">
+                            ${peer.ip || '10.8.0.x'}
+                        </span>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); display:inline-flex; align-items:center; gap:4px;">
+                            <i data-lucide="folder" style="width:11px; height:11px;"></i> ${groupName}
+                        </span>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+
+                <!-- Usage Progress Bar -->
+                <div style="display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted);">
+                        <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
+                        <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                    </div>
+                    <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
+                        <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : '#10b981'}; height:100%; border-radius:999px;"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); padding-top:2px;">
+                        <span><i data-lucide="calendar" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${expireInfo}</span>
+                        <span style="font-family:'JetBrains Mono'; font-size:11px; opacity:0.6;">Key: ${peer.public_key ? peer.public_key.substring(0, 10) + '...' : ''}</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Toolbar -->
+                <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; padding-top:4px;">
+                    ${subToken ? `
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:5px 10px; color:#6366f1;" title="کپی لینک هوشمند ساب">
+                            <i data-lucide="link" style="width:12px; height:12px;"></i> لینک ساب
+                        </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openAwgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:5px 10px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
+                        <i data-lucide="network" style="width:12px; height:12px;"></i> پورت‌ها
+                    </button>
+                    ${peer.config ? `
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openAwgQrModal('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px; color:#10b981;" title="نمایش بارکد QR">
+                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px;" title="دانلود فایل .conf">
+                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود .conf
+                        </button>
+                    ` : ''}
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg', '${groupName}')" style="font-size:11.5px; padding:5px 10px;" title="ویرایش کلاینت و تغییر گروه">
+                        <i data-lucide="edit-3" style="width:12px; height:12px;"></i> ویرایش
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteAwgClient('${peer.public_key}')" style="font-size:11.5px; padding:5px 9px;" title="حذف کاربر">
+                        <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                    </button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+        if (typeof lucide !== 'undefined') {
+            try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }
         }
     }
 
     function openAwgQrModal(name, b64config) {
         let config = "";
-        try {
-            config = atob(b64config);
-        } catch(e) {
-            config = b64config || "";
-        }
+        try { config = atob(b64config); } catch (e) { config = b64config || ""; }
         if (!config) {
             showToast("فایل کانفیگ برای این کاربر موجود نیست", "error");
             return;
@@ -8805,9 +9530,8 @@
         if (copyBtn) {
             copyBtn.onclick = () => {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(config).then(() => {
-                        showToast("متن کانفیگ کپی شد", "success");
-                    }).catch(() => fallbackCopyText(config));
+                    navigator.clipboard.writeText(config).then(() => showToast("متن کانفیگ کپی شد", "success"))
+                             .catch(() => fallbackCopyText(config));
                 } else {
                     fallbackCopyText(config);
                 }
@@ -8816,10 +9540,15 @@
 
         const modal = document.getElementById("awg-config-modal");
         if (modal) modal.classList.add("active");
+        else {
+            switchAwgSubTab('create');
+            singleResult?.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     function downloadAwgConfig(name, b64config) {
-        const config = atob(b64config);
+        let config = "";
+        try { config = atob(b64config); } catch(e) { config = b64config || ""; }
         const blob = new Blob([config], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -8831,9 +9560,9 @@
     }
 
     async function deleteAwgClient(pubkey) {
-        if (!confirm("Are you sure you want to delete this AmneziaWG client?")) return;
+        if (!confirm("آیا از حذف این کلاینت AmneziaWG اطمینان دارید؟")) return;
         
-        toggleLoading(true, "Removing client peer...");
+        toggleLoading(true, "در حال حذف کلاینت...");
         try {
             const res = await fetch("/api/amneziawg/client/delete", {
                 method: "POST",
@@ -8841,309 +9570,10 @@
                 body: JSON.stringify({ public_key: pubkey })
             });
             if (res.ok) {
-                showToast("Client removed", "success");
+                showToast("کلاینت AmneziaWG حذف شد", "success");
                 fetchAmneziaWGClients();
             } else {
-                showToast("Failed to remove client", "error");
-            }
-        } catch (e) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
-    }
-
-    document.getElementById("awg-add-btn")?.addEventListener("click", async () => {
-        const nameInput = document.getElementById("awg-client-name");
-        const name = nameInput.value.trim();
-        const limit_gb = document.getElementById("awg-client-limit").value ? parseInt(document.getElementById("awg-client-limit").value) : null;
-        const expire_days = document.getElementById("awg-client-expire-days").value || null;
-        const start_on_first_connect = document.getElementById("awg-client-first-connect").checked;
-
-        if (!name) return;
-        
-        toggleLoading(true, "Generating cryptographic keys & profile...");
-        try {
-            const res = await fetch("/api/amneziawg/client", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, limit_gb, expire_days, start_on_first_connect })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                nameInput.value = "";
-                fetchAmneziaWGClients();
-                
-                // Show single config view, hide bulk config view
-                document.getElementById("awg-single-result").style.display = "flex";
-                document.getElementById("awg-bulk-result").style.display = "none";
-                
-                document.getElementById("awg-config-text").innerText = data.config;
-                const qrEl = document.getElementById("awg-qrcode-canvas") || document.getElementById("qrcode-canvas");
-                if (qrEl) {
-                    qrEl.innerHTML = "";
-                    if (typeof QRCode === 'undefined') {
-                        qrEl.innerHTML = "<p style='color:var(--color-rose); font-size:12px;'>QR Code library unavailable.</p>";
-                    } else {
-                        QRCode.toCanvas(data.config, { width: 180, margin: 1 }, (err, canvas) => {
-                            if (err) console.error(err);
-                            else qrEl.appendChild(canvas);
-                        });
-                    }
-                }
-                
-                document.getElementById("awg-dl-btn").onclick = () => {
-                    const blob = new Blob([data.config], { type: "text/plain" });
-                    const a = document.createElement("a");
-                    a.href = URL.createObjectURL(blob);
-                    a.download = `${data.name}.conf`;
-                    a.click();
-                };
-                
-                function fallbackCopyText(text) {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.top = "0";
-                    textArea.style.left = "0";
-                    textArea.style.position = "fixed";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    try {
-                        const successful = document.execCommand('copy');
-                        if (successful) {
-                            showToast("Config text copied to clipboard!", "success");
-                        } else {
-                            showToast("Failed to copy text", "error");
-                        }
-                    } catch (err) {
-                        showToast("Failed to copy text", "error");
-                    }
-                    document.body.removeChild(textArea);
-                }
-
-                document.getElementById("awg-copy-btn").onclick = () => {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(data.config).then(() => {
-                            showToast("Config text copied to clipboard!", "success");
-                        }).catch(() => {
-                            fallbackCopyText(data.config);
-                        });
-                    } else {
-                        fallbackCopyText(data.config);
-                    }
-                };
-                
-                document.getElementById("awg-config-modal").classList.add("active");
-            } else {
-                showToast("Failed: " + data.error, "error");
-            }
-        } catch (err) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
-    });
-
-    document.getElementById("awg-close-btn")?.addEventListener("click", () => {
-        document.getElementById("awg-config-modal").classList.remove("active");
-    });
-
-    document.getElementById("awg-config-modal")?.addEventListener("click", (e) => {
-        if (e.target === document.getElementById("awg-config-modal")) {
-            document.getElementById("awg-config-modal").classList.remove("active");
-        }
-    });
-
-    async function createAwgBulk(event) {
-        event.preventDefault();
-        const prefix = document.getElementById("awg-bulk-prefix").value.trim();
-        const count = parseInt(document.getElementById("awg-bulk-count").value);
-        const limit_gb = document.getElementById("awg-bulk-limit").value ? parseInt(document.getElementById("awg-bulk-limit").value) : null;
-        const expire_days = document.getElementById("awg-bulk-expire-days").value || null;
-        const start_on_first_connect = document.getElementById("awg-bulk-first-connect").checked;
-
-        if (!prefix || isNaN(count)) return;
-
-        toggleLoading(true, `Generating ${count} AmneziaWG profiles in bulk...`);
-        try {
-            const res = await fetch("/api/amneziawg/client/bulk", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prefix, count, limit_gb, expire_days, start_on_first_connect })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast(`Successfully created ${data.clients.length} profiles!`, "success");
-                
-                // Clear inputs
-                document.getElementById("awg-bulk-prefix").value = "Client";
-                document.getElementById("awg-bulk-count").value = "5";
-
-                fetchAmneziaWGClients();
-
-                generatedAwgBulkClients = data.clients;
-
-                // Show bulk result view, hide single result view
-                document.getElementById("awg-single-result").style.display = "none";
-                document.getElementById("awg-bulk-result").style.display = "flex";
-                document.getElementById("awg-bulk-success-count").innerText = data.clients.length;
-
-                // Render bulk entries
-                const listContainer = document.getElementById("awg-bulk-list");
-                listContainer.innerHTML = "";
-                data.clients.forEach((client, index) => {
-                    const div = document.createElement("div");
-                    div.style.display = "flex";
-                    div.style.justifyContent = "space-between";
-                    div.style.alignItems = "center";
-                    div.style.padding = "10px 14px";
-                    div.style.borderBottom = "1px solid var(--border-color)";
-
-                    div.innerHTML = `
-                        <div style="display:flex; flex-direction:column; gap:2px; text-align:left;">
-                            <span style="font-weight:600; font-size:13px; color:var(--text-color);">${client.name}</span>
-                            <span style="font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono';">${client.ip}</span>
-                        </div>
-                        <div style="display:flex; gap:8px;">
-                            <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="copyClientConfigText(${index})">Copy</button>
-                            <button class="port-btn" style="padding:4px 8px; font-size:11px;" onclick="downloadClientConfigText(${index})">Download</button>
-                        </div>
-                    `;
-                    listContainer.appendChild(div);
-                });
-
-                // Set up download all button click
-                document.getElementById("awg-bulk-download-all-btn").onclick = () => {
-                    downloadAllAwgBulk();
-                };
-
-                document.getElementById("awg-config-modal").classList.add("active");
-            } else {
-                showToast("Failed to bulk generate: " + data.error, "error");
-            }
-        } catch (err) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
-    }
-
-
-    async function installAmneziaWG() {
-        toggleLoading(true, "Installing AmneziaWG... This may take a minute.");
-        try {
-            const res = await fetch("/api/amneziawg/install", { method: "POST" });
-            const data = await res.json();
-            if (res.ok) {
-                showToast("AmneziaWG installed successfully!", "success");
-                fetchAmneziaWGClients();
-            } else {
-                showToast("Install failed: " + data.error, "error");
-            }
-        } catch (e) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
-    }
-
-    function closeAwgSettingsModal() {
-        document.getElementById("awg-settings-modal").classList.remove("active");
-    }
-
-    async function checkAmneziaWGStatus() {
-        try {
-            const res = await fetch("/api/amneziawg/status");
-            const data = await res.json();
-            const overlay = document.getElementById("awg-uninstalled-overlay");
-            if (overlay) {
-                overlay.style.display = data.installed ? "none" : "flex";
-            }
-            if (data.installed) {
-                fetchAwgVersion();
-            }
-            return data.installed;
-        } catch (e) {
-            return false;
-        }
-    }
-
-    async function fetchAwgVersion() {
-        try {
-            const res = await fetch("/api/amneziawg/version");
-            if (!res.ok) return;
-            const data = await res.json();
-            const ver = data.version || "v2";
-            updateAwgVersionDisplay(ver);
-        } catch (e) {}
-    }
-
-    function updateAwgVersionDisplay(ver) {
-        const btn = document.getElementById("awg-active-version-btn");
-        const disp = document.getElementById("awg-active-version-display");
-        const verMap = {
-            "v1": { code: "v1", label: "AmneziaWG v1 (پایه)" },
-            "v2": { code: "v2", label: "AmneziaWG v2 (پایدار)" },
-            "v3": { code: "v3", label: "AmneziaWG v3 (ضد AI)" }
-        };
-        const info = verMap[ver] || { code: ver, label: `AmneziaWG ${ver}` };
-        if (btn) btn.innerText = info.code;
-        if (disp) disp.innerText = info.label;
-    }
-
-    let selectedAwgVersion = "v2";
-
-    function selectAwgVerOption(ver) {
-        selectedAwgVersion = ver;
-        ["v1", "v2", "v3"].forEach(v => {
-            const radio = document.getElementById(`awg-radio-${v}`);
-            const card = document.getElementById(`awg-ver-card-${v}`);
-            if (radio) radio.checked = (v === ver);
-            if (card) {
-                if (v === ver) {
-                    card.style.borderColor = "#4f46e5";
-                    card.style.background = "rgba(99, 102, 241, 0.05)";
-                } else {
-                    card.style.borderColor = "#e2e8f0";
-                    card.style.background = "transparent";
-                }
-            }
-        });
-    }
-
-    async function openAwgVersionModal() {
-        toggleLoading(true, "دریافت نسخه فعلی پروتکل...");
-        try {
-            const res = await fetch("/api/amneziawg/version");
-            const data = await res.json();
-            const currentVer = data.version || "v2";
-            selectAwgVerOption(currentVer);
-            document.getElementById("awg-version-modal")?.classList.add("active");
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        } catch (e) {
-            showToast("خطا در بررسی نسخه", "error");
-        }
-        toggleLoading(false);
-    }
-
-    function closeAwgVersionModal() {
-        document.getElementById("awg-version-modal")?.classList.remove("active");
-    }
-
-    async function submitAwgVersionChange() {
-        const ver = selectedAwgVersion || "v2";
-        toggleLoading(true, `در حال تغییر نسخه AmneziaWG به ${ver.toUpperCase()} و اعمال تنظیمات...`);
-        try {
-            const res = await fetch("/api/amneziawg/version", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ version: ver })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast(data.message || "نسخه پروتکل با موفقیت تغییر کرد.", "success");
-                closeAwgVersionModal();
-                updateAwgVersionDisplay(ver);
-                fetchAmneziaWGClients();
-            } else {
-                showToast(`خطا: ${data.error}`, "error");
+                showToast("خطا در حذف کلاینت", "error");
             }
         } catch (e) {
             showToast("خطای ارتباط با سرور", "error");
@@ -9151,60 +9581,390 @@
         toggleLoading(false);
     }
 
-    async function viewAwgSettings() {
-        toggleLoading(true, "دریافت تنظیمات AmneziaWG...");
+    // Add Single AmneziaWG Client
+    document.getElementById("awg-add-btn")?.addEventListener("click", async () => {
+        const nameInput = document.getElementById("awg-client-name");
+        const name = nameInput.value.trim();
+        const grpInput = document.getElementById("awg-client-group");
+        const group = grpInput ? (grpInput.value.trim() || "عمومی") : "عمومی";
+        const limit_gb = document.getElementById("awg-client-limit").value ? parseInt(document.getElementById("awg-client-limit").value) : null;
+        const expire_days = document.getElementById("awg-client-expire-days").value || null;
+        const start_on_first_connect = document.getElementById("awg-client-first-connect").checked;
+
+        if (!name) {
+            showToast("نام کاربر نمی‌تواند خالی باشد", "warning");
+            return;
+        }
+        
+        toggleLoading(true, "تولید کلیدهای رمزنگاری و پارامترهای ضد فیلترینگ...");
         try {
-            const res = await fetch("/api/amneziawg/settings");
+            const res = await fetch("/api/amneziawg/client", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, group, limit_gb, expire_days, start_on_first_connect })
+            });
             const data = await res.json();
             if (res.ok) {
-                const container = document.getElementById("awg-settings-container");
-                container.innerHTML = "";
-                const paramMeta = {
-                    "JC": { title: "تعداد بسته‌های تصادفی (Jc)", hint: "تعداد پکت‌های فیک قبل از هندشیک برای فریب DPI (پیشنهاد: ۳ تا ۵)" },
-                    "JMIN": { title: "حداقل اندازه بسته فیک (Jmin)", hint: "حداقل بایت پکت تصادفی (پیشنهاد: ۵۰)" },
-                    "JMAX": { title: "حداکثر اندازه بسته فیک (Jmax)", hint: "حداکثر بایت پکت تصادفی (پیشنهاد: ۱۰۰۰)" },
-                    "S1": { title: "پدینگ پیام شروع (S1)", hint: "بایت‌های اضافی به پیام اولیه هندشیک (پیشنهاد: ۵۶)" },
-                    "S2": { title: "پدینگ پیام پاسخ (S2)", hint: "بایت‌های اضافی به پیام پاسخ هندشیک (پیشنهاد: ۵۶)" },
-                    "S3": { title: "پدینگ کوکی (S3) [نسخه ۳]", hint: "بایت‌های اضافی به بسته کوکی در نسخه ۳ (پیشنهاد: ۵۶)" },
-                    "S4": { title: "پدینگ ترنسپورت (S4) [نسخه ۳]", hint: "بایت‌های اضافی به بسته انتقال داده در نسخه ۳ (پیشنهاد: ۵۶)" },
-                    "H1": { title: "هدر شروع هندشیک (H1)", hint: "شناسه هدر پیام شروع اولیه (عدد تصادفی بزرگ ۳۲ بیتی)" },
-                    "H2": { title: "هدر پاسخ هندشیک (H2)", hint: "شناسه هدر پیام پاسخ سرور (عدد تصادفی بزرگ ۳۲ بیتی)" },
-                    "H3": { title: "هدر کوکی (H3)", hint: "شناسه هدر بسته کوکی (عدد تصادفی بزرگ ۳۲ بیتی)" },
-                    "H4": { title: "هدر داده ترافیک (H4)", hint: "شناسه هدر انتقال داده اصلی (عدد تصادفی بزرگ ۳۲ بیتی)" },
-                    "PORT": { title: "پورت سرور (Port)", hint: "پورت UDP فعال سرور" },
-                    "MTU": { title: "سایز بسته (MTU)", hint: "اندازه MTU (پیشنهاد: ۱۲۸۰ یا ۱۳۰۰ برای اینترنت ایران)" }
-                };
+                nameInput.value = "";
+                fetchAmneziaWGClients();
+                
+                const singleRes = document.getElementById("awg-single-result");
+                const bulkRes = document.getElementById("awg-bulk-result");
+                if (singleRes) singleRes.style.display = "flex";
+                if (bulkRes) bulkRes.style.display = "none";
+                
+                const textEl = document.getElementById("awg-config-text");
+                if (textEl) textEl.innerText = data.config;
 
-                for (const [k, v] of Object.entries(data.settings)) {
-                    const uKey = k.toUpperCase();
-                    const meta = paramMeta[uKey] || { title: k, hint: "" };
-                    container.innerHTML += `
-                        <div class="form-group" style="margin: 0; background: var(--bg-muted); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
-                                <label class="form-label" style="margin: 0; font-weight:600; font-size:13px;">${meta.title}</label>
-                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--color-primary); font-weight:700;">${k}</span>
-                            </div>
-                            <input class="form-input" style="font-family:'JetBrains Mono', monospace; padding:6px 12px; font-size:13px;" type="text" name="${k}" value="${v}">
-                            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${meta.hint}</div>
-                        </div>
-                    `;
+                const qrEl = document.getElementById("awg-qrcode-canvas") || document.getElementById("qrcode-canvas");
+                if (qrEl) {
+                    qrEl.innerHTML = "";
+                    if (typeof QRCode !== 'undefined') {
+                        QRCode.toCanvas(data.config, { width: 180, margin: 1 }, (err, canvas) => {
+                            if (!err) qrEl.appendChild(canvas);
+                        });
+                    }
                 }
-                document.getElementById("awg-settings-modal").classList.add("active");
+                
+                const dlBtn = document.getElementById("awg-dl-btn");
+                if (dlBtn) {
+                    dlBtn.onclick = () => {
+                        const blob = new Blob([data.config], { type: "text/plain" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `${data.name}.conf`;
+                        a.click();
+                    };
+                }
+
+                const subBtn = document.getElementById("awg-copy-sub-btn");
+                if (subBtn && data.sub_token) {
+                    subBtn.onclick = () => copyClientSubLink(data.sub_token);
+                }
+
+                const copyBtn = document.getElementById("awg-copy-btn");
+                if (copyBtn) {
+                    copyBtn.onclick = () => {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(data.config).then(() => showToast("متن کانفیگ کپی شد!", "success"))
+                                     .catch(() => fallbackCopyText(data.config));
+                        } else {
+                            fallbackCopyText(data.config);
+                        }
+                    };
+                }
+                
+                showToast("کلاینت AmneziaWG با موفقیت ایجاد شد!", "success");
+                singleRes?.scrollIntoView({ behavior: 'smooth' });
             } else {
-                showToast("خطا در دریافت تنظیمات: " + data.error, "error");
+                showToast("خطا در ایجاد: " + data.error, "error");
+            }
+        } catch (err) {
+            showToast("خطای اتصال به سرور", "error");
+        }
+        toggleLoading(false);
+    });
+
+    // Bulk AmneziaWG Clients Creation
+    async function createAwgBulk(event) {
+        if (event) event.preventDefault();
+        const prefix = document.getElementById("awg-bulk-prefix").value.trim() || "User";
+        const count = parseInt(document.getElementById("awg-bulk-count").value) || 5;
+        const grpInput = document.getElementById("awg-bulk-group");
+        const group = grpInput ? (grpInput.value.trim() || "عمومی") : "عمومی";
+        const limit_gb = document.getElementById("awg-bulk-limit").value ? parseInt(document.getElementById("awg-bulk-limit").value) : null;
+        const expire_days = document.getElementById("awg-bulk-expire-days").value || null;
+        const start_on_first_connect = document.getElementById("awg-bulk-first-connect").checked;
+
+        toggleLoading(true, `در حال تولید ${count} کانفیگ گروهی AmneziaWG...`);
+        try {
+            const res = await fetch("/api/amneziawg/client/bulk", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prefix, count, group, limit_gb, expire_days, start_on_first_connect })
+            });
+            const data = await res.json();
+            if (res.ok && data.clients) {
+                showToast(`تعداد ${data.clients.length} کاربر AmneziaWG با موفقیت ساخته شد!`, "success");
+                fetchAmneziaWGClients();
+
+                window.generatedAwgBulkClients = data.clients;
+                const singleRes = document.getElementById("awg-single-result");
+                const bulkRes = document.getElementById("awg-bulk-result");
+                if (singleRes) singleRes.style.display = "none";
+                if (bulkRes) bulkRes.style.display = "flex";
+
+                const cntEl = document.getElementById("awg-bulk-success-count");
+                if (cntEl) cntEl.innerText = data.clients.length;
+
+                const listEl = document.getElementById("awg-bulk-list");
+                if (listEl) {
+                    listEl.innerHTML = "";
+                    data.clients.forEach(c => {
+                        const row = document.createElement("div");
+                        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color); font-size:12px;";
+                        row.innerHTML = `
+                            <div>
+                                <strong>${c.name}</strong> <span style="font-family:'JetBrains Mono'; opacity:0.7;">(${c.ip})</span>
+                            </div>
+                            <div style="display:flex; gap:6px;">
+                                ${c.sub_token ? `<button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${c.sub_token}')" style="font-size:11px; padding:3px 7px;">لینک ساب</button>` : ''}
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${c.name}', '${btoa(c.config)}')" style="font-size:11px; padding:3px 7px;">دانلود</button>
+                            </div>
+                        `;
+                        listEl.appendChild(row);
+                    });
+                }
+
+                const dlAllBtn = document.getElementById("awg-bulk-dl-all-btn");
+                if (dlAllBtn) {
+                    dlAllBtn.onclick = () => {
+                        const allConf = data.clients.map(c => `=== ${c.name}.conf ===
+${c.config}
+`).join("
+
+");
+                        const blob = new Blob([allConf], { type: "text/plain" });
+                        const a = document.createElement("a");
+                        a.href = URL.createObjectURL(blob);
+                        a.download = `amneziawg_bulk_${Date.now()}.txt`;
+                        a.click();
+                    };
+                }
+                bulkRes?.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                showToast("خطا در ساخت گروهی: " + (data.error || ""), "error");
             }
         } catch (e) {
-            showToast("خطا در ارتباط با سرور", "error");
+            showToast("خطای ارتباط با سرور", "error");
         }
         toggleLoading(false);
     }
 
+    // AmneziaWG Anti-Filtering Presets
+    async function applyAwgPreset(presetKey) {
+        const presetNames = {
+            'mci_irancell': 'همراه اول و ایرانسل (MCI & Irancell Optimization)',
+            'adsl_fixed': 'مخابرات و اینترنت ثابت (ADSL / VDSL / FTTH)',
+            'extreme_dpi': 'استتار عمیق فیلترینگ (Deep Neural DPI Camouflage)',
+            'randomize': 'تولید پارامترهای تصادفی (Randomize Anti-DPI Values)'
+        };
+        const title = presetNames[presetKey] || presetKey;
+        if (!confirm(`آیا از اعمال پریست ضد فیلترینگ «${title}» بر روی سرور اطمینان دارید؟ تمام کانفیگ‌های کاربران نیز با مقادیر جدید همگام‌سازی خواهند شد.`)) return;
+
+        toggleLoading(true, `در حال اعمال پریست «${title}» و ری‌استارت سرویس AmneziaWG...`);
+        try {
+            const res = await fetch("/api/amneziawg/preset", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ preset: presetKey })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast(`پریست ${title} با موفقیت اعمال شد!`, "success");
+                loadAwgSettingsForm();
+                fetchAmneziaWGClients();
+            } else {
+                showToast("خطا در اعمال پریست: " + (data.error || ""), "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    // AmneziaWG Multiport Settings
+    async function loadAwgMultiportSettings() {
+        try {
+            const res = await fetch("/api/amneziawg/multiport");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data.ports && Array.isArray(data.ports)) {
+                window.awgMultiportList = data.ports;
+            }
+            renderAwgMultiportTags();
+            const mainPortEl = document.getElementById("awg-active-port-display");
+            if (mainPortEl && data.main_port) mainPortEl.innerText = `UDP ${data.main_port}`;
+            const pillEl = document.getElementById("awg-active-port-pill");
+            if (pillEl && data.main_port) pillEl.innerText = `UDP ${data.main_port}`;
+        } catch (e) {
+            console.error("loadAwgMultiportSettings error:", e);
+        }
+    }
+
+    function renderAwgMultiportTags() {
+        const container = document.getElementById("awg-multiport-tags");
+        if (!container) return;
+        container.innerHTML = "";
+        window.awgMultiportList.forEach(port => {
+            const tag = document.createElement("span");
+            tag.className = "badge-pill";
+            tag.style.cssText = "display:inline-flex; align-items:center; gap:6px; padding:4px 10px; font-size:12px; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25); border-radius:8px; font-family:'JetBrains Mono';";
+            tag.innerHTML = `
+                <span>UDP :${port}</span>
+                <button type="button" onclick="removeAwgMultiportTag(${port})" style="background:none; border:none; cursor:pointer; color:#ef4444; padding:0; display:flex; align-items:center;">
+                    <i data-lucide="x" style="width:12px; height:12px;"></i>
+                </button>
+            `;
+            container.appendChild(tag);
+        });
+        if (typeof lucide !== 'undefined') {
+            try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }
+        }
+    }
+
+    function addAwgMultiportTag() {
+        const input = document.getElementById("awg-add-port-input");
+        if (!input) return;
+        const val = parseInt(input.value);
+        if (!val || val < 1 || val > 65535) {
+            showToast("شماره پورت نامعتبر است (۱ تا ۶۵۵۳۵)", "warning");
+            return;
+        }
+        if (!window.awgMultiportList.includes(val)) {
+            window.awgMultiportList.push(val);
+            renderAwgMultiportTags();
+        }
+        input.value = "";
+    }
+
+    function removeAwgMultiportTag(port) {
+        window.awgMultiportList = window.awgMultiportList.filter(p => p !== port);
+        renderAwgMultiportTags();
+    }
+
+    async function saveAwgMultiportConfig() {
+        toggleLoading(true, "در حال ذخیره و اعمال پورت‌های همزمان در فایروال سرور...");
+        try {
+            const res = await fetch("/api/amneziawg/multiport", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ports: window.awgMultiportList, enabled: true })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast("پورت‌های همزمان و قوانین فوروارد با موفقیت اعمال شدند!", "success");
+                loadAwgMultiportSettings();
+            } else {
+                showToast("خطا در ذخیره پورت‌ها: " + (data.error || ""), "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    // Client Multiport Modal for AmneziaWG
+    async function openAwgClientMultiportModal(pubkey, subToken, clientName) {
+        toggleLoading(true, "دریافت کانفیگ چند پورته کلاینت...");
+        try {
+            const res = await fetch(`/api/amneziawg/client/multiport?public_key=${encodeURIComponent(pubkey)}`);
+            const data = await res.json();
+            if (!res.ok) {
+                showToast(data.error || "خطا در دریافت پورت‌ها", "error");
+                toggleLoading(false);
+                return;
+            }
+
+            const modal = document.getElementById("awg-client-multiport-modal");
+            const titleEl = document.getElementById("awg-client-mp-title");
+            const listEl = document.getElementById("awg-client-mp-list");
+
+            if (titleEl) titleEl.innerText = `کانفیگ‌های همزمان کلاینت: ${clientName || data.name}`;
+            if (listEl) {
+                listEl.innerHTML = "";
+                (data.configs || []).forEach(item => {
+                    const row = document.createElement("div");
+                    row.className = "glass-card";
+                    row.style.cssText = "padding:12px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border:1px solid var(--border-color); border-radius:10px;";
+                    row.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="badge-pill" style="font-family:'JetBrains Mono'; font-weight:700; font-size:13px; padding:4px 10px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:8px;">
+                                UDP ${item.port} ${item.is_main ? '★ (اصلی)' : ''}
+                            </span>
+                            <span style="font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono';">${data.server_ip}:${item.port}</span>
+                        </div>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openAwgQrModal('${data.name}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i> QR
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${data.name}-port-${item.port}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                                <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود .conf
+                            </button>
+                        </div>
+                    `;
+                    listEl.appendChild(row);
+                });
+                if (typeof lucide !== 'undefined') {
+                    try { lucide.createIcons({ root: listEl }); } catch (_) { lucide.createIcons(); }
+                }
+            }
+            if (modal) modal.classList.add("active");
+        } catch (e) {
+            showToast("خطای اتصال به سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    function closeAwgClientMultiportModal() {
+        document.getElementById("awg-client-multiport-modal")?.classList.remove("active");
+    }
+
+    // AmneziaWG Settings Form & Obfuscation Editor
+    async function loadAwgSettingsForm() {
+        try {
+            const res = await fetch("/api/amneziawg/settings");
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const container = document.getElementById("awg-settings-container");
+            if (!container) return;
+            container.innerHTML = "";
+
+            const paramMeta = {
+                "JC": { title: "تعداد بسته‌های تصادفی (Jc)", hint: "تعداد پکت‌های فیک قبل از هندشیک برای فریب DPI (پیشنهاد: ۳ تا ۵)" },
+                "JMIN": { title: "حداقل اندازه بسته فیک (Jmin)", hint: "حداقل بایت پکت تصادفی (پیشنهاد: ۵۰)" },
+                "JMAX": { title: "حداکثر اندازه بسته فیک (Jmax)", hint: "حداکثر بایت پکت تصادفی (پیشنهاد: ۱۰۰۰)" },
+                "S1": { title: "پدینگ پیام شروع (S1)", hint: "بایت‌های اضافی به پیام اولیه هندشیک (پیشنهاد: ۵۶)" },
+                "S2": { title: "پدینگ پیام پاسخ (S2)", hint: "بایت‌های اضافی به پیام پاسخ هندشیک (پیشنهاد: ۵۶)" },
+                "S3": { title: "پدینگ کوکی (S3) [نسخه ۳]", hint: "بایت‌های اضافی به بسته کوکی در نسخه ۳ (پیشنهاد: ۵۶)" },
+                "S4": { title: "پدینگ ترنسپورت (S4) [نسخه ۳]", hint: "بایت‌های اضافی به بسته انتقال داده در نسخه ۳ (پیشنهاد: ۵۶)" },
+                "H1": { title: "هدر شروع هندشیک (H1)", hint: "شناسه هدر پیام شروع اولیه (عدد تصادفی بزرگ ۳۲ بیتی)" },
+                "H2": { title: "هدر پاسخ هندشیک (H2)", hint: "شناسه هدر پیام پاسخ سرور (عدد تصادفی بزرگ ۳۲ بیتی)" },
+                "H3": { title: "هدر کوکی (H3)", hint: "شناسه هدر بسته کوکی (عدد تصادفی بزرگ ۳۲ بیتی)" },
+                "H4": { title: "هدر داده ترافیک (H4)", hint: "شناسه هدر انتقال داده اصلی (عدد تصادفی بزرگ ۳۲ بیتی)" },
+                "PORT": { title: "پورت سرور (Port)", hint: "پورت UDP فعال سرور" },
+                "LISTENPORT": { title: "پورت شنود اصلی (ListenPort)", hint: "پورت اصلی AmneziaWG" },
+                "MTU": { title: "سایز بسته (MTU)", hint: "اندازه MTU (پیشنهاد: ۱۲۸۰ یا ۱۳۰۰ برای اینترنت ایران)" }
+            };
+
+            for (const [k, v] of Object.entries(data.settings || {})) {
+                const uKey = k.toUpperCase();
+                const meta = paramMeta[uKey] || { title: k, hint: "" };
+                container.innerHTML += `
+                    <div class="form-group" style="margin: 0; background: var(--bg-muted); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+                            <label class="form-label" style="margin: 0; font-weight:600; font-size:13px;">${meta.title}</label>
+                            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--color-primary); font-weight:700;">${k}</span>
+                        </div>
+                        <input class="form-input" style="font-family:'JetBrains Mono', monospace; padding:6px 12px; font-size:13px;" type="text" name="${k}" value="${v}">
+                        <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">${meta.hint}</div>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error("loadAwgSettingsForm error:", e);
+        }
+    }
+
     async function saveAwgSettings(e) {
-        e.preventDefault();
-        const formData = new FormData(e.target);
+        if (e) e.preventDefault();
+        const form = document.getElementById("awg-settings-form");
+        if (!form) return;
+        const formData = new FormData(form);
         const settings = Object.fromEntries(formData.entries());
         
-        toggleLoading(true, "Saving settings and restarting service...");
+        toggleLoading(true, "در حال ذخیره تنظیمات و ری‌استارت سرویس AmneziaWG...");
         try {
             const res = await fetch("/api/amneziawg/settings", {
                 method: "POST",
@@ -9213,124 +9973,14 @@
             });
             const data = await res.json();
             if (res.ok) {
-                showToast("Settings updated successfully!", "success");
-                closeAwgSettingsModal();
-                if (settings.PORT || settings.ListenPort) {
-                    updateAwgActivePortDisplay(settings.PORT || settings.ListenPort);
-                }
+                showToast("تنظیمات استتار و پکت‌های فیک با موفقیت ذخیره شد!", "success");
+                loadAwgSettingsForm();
                 fetchAmneziaWGClients();
             } else {
-                showToast("Failed to save: " + data.error, "error");
+                showToast("خطا در ذخیره: " + (data.error || ""), "error");
             }
         } catch (err) {
-            showToast("Connection error", "error");
-        }
-        toggleLoading(false);
-    }
-
-    function updateAwgActivePortDisplay(port) {
-        const el = document.getElementById("awg-active-port-display");
-        if (el) el.innerText = `UDP ${port}`;
-    }
-
-    function openAwgPortModal() {
-        const currentPortText = document.getElementById("awg-active-port-display")?.innerText || "";
-        const portMatch = currentPortText.match(/\d+/);
-        const portInput = document.getElementById("awg-new-port-input");
-        if (portInput) portInput.value = portMatch ? portMatch[0] : "443";
-        document.getElementById("awg-port-modal")?.classList.add("active");
-    }
-
-    function closeAwgPortModal() {
-        document.getElementById("awg-port-modal")?.classList.remove("active");
-    }
-
-    async function submitAwgPortChange(event) {
-        event.preventDefault();
-        const port = document.getElementById("awg-new-port-input").value;
-        if (!port) return;
-
-        toggleLoading(true, "در حال تغییر پورت AmneziaWG و اعمال در فایروال سرور...");
-        try {
-            const res = await fetch("/api/amneziawg/port", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ port: parseInt(port) })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast("پورت AmneziaWG با موفقیت تغییر کرد و در فایروال اعمال شد!", "success");
-                closeAwgPortModal();
-                updateAwgActivePortDisplay(data.port || port);
-                fetchAmneziaWGClients();
-            } else {
-                showToast("خطا در تغییر پورت: " + (data.error || "نامشخص"), "error");
-            }
-        } catch(err) {
-            showToast("خطا در ارتباط با سرور", "error");
-        }
-        toggleLoading(false);
-    }
-
-    async function fetchAwgWarpStatus() {
-        try {
-            const res = await fetch("/api/amneziawg/warp");
-            const data = await res.json();
-            const badge = document.getElementById("awg-warp-status-badge");
-            const btn = document.getElementById("awg-warp-toggle-btn");
-            const ipEl = document.getElementById("awg-warp-exit-ip");
-
-            if (data.active) {
-                if (badge) {
-                    badge.innerText = "متصل به کلودفلر وارپ (فعال)";
-                    badge.style.background = "rgba(16, 185, 129, 0.15)";
-                    badge.style.color = "#059669";
-                }
-                if (btn) {
-                    btn.innerText = "غیرفعال‌سازی وارپ";
-                    btn.className = "btn btn-danger btn-sm";
-                    btn.setAttribute("data-warp-active", "true");
-                }
-                if (ipEl) ipEl.innerText = data.warp_ip || "متصل (Cloudflare)";
-            } else {
-                if (badge) {
-                    badge.innerText = "غیرفعال (ترافیک مستقیم سرور)";
-                    badge.style.background = "#e2e8f0";
-                    badge.style.color = "#475569";
-                }
-                if (btn) {
-                    btn.innerText = "فعال‌سازی وارپ";
-                    btn.className = "btn btn-primary btn-sm";
-                    btn.setAttribute("data-warp-active", "false");
-                }
-                if (ipEl) ipEl.innerText = "غیرفعال (IP اصلی سرور)";
-            }
-        } catch(e) {
-            console.error("fetchAwgWarpStatus error:", e);
-        }
-    }
-
-    async function toggleAwgWarpClick() {
-        const btn = document.getElementById("awg-warp-toggle-btn");
-        const currentlyActive = btn?.getAttribute("data-warp-active") === "true";
-        const willEnable = !currentlyActive;
-
-        toggleLoading(true, willEnable ? "در حال اتصال ترافیک AmneziaWG به کلودفلر وارپ..." : "در حال بازگردانی ترافیک به اینترنت مستقیم سرور...");
-        try {
-            const res = await fetch("/api/amneziawg/warp/toggle", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ enabled: willEnable })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                showToast(willEnable ? "ترافیک AmneziaWG با موفقیت به کلودفلر وارپ متصل شد!" : "ترافیک به حالت مستقیم بازگردانده شد.", "success");
-                await fetchAwgWarpStatus();
-            } else {
-                showToast("خطا در تغییر وضعیت وارپ: " + (data.error || ""), "error");
-            }
-        } catch(e) {
-            showToast("خطا در ارتباط با سرور", "error");
+            showToast("خطای اتصال به سرور", "error");
         }
         toggleLoading(false);
     }
@@ -9362,6 +10012,8 @@
             checkAmneziaWGStatus();
             fetchAmneziaWGClients();
             fetchAwgWarpStatus();
+            if (typeof loadAwgMultiportSettings === 'function') loadAwgMultiportSettings();
+            if (typeof loadAwgSettingsForm === 'function') loadAwgSettingsForm();
             fetch("/api/amneziawg/settings").then(r => r.json()).then(d => {
                 if (d.success && d.settings && (d.settings.PORT || d.settings.LISTENPORT)) {
                     updateAwgActivePortDisplay(d.settings.PORT || d.settings.LISTENPORT);
@@ -9373,7 +10025,15 @@
         }
         if (tabId === 'wireguard') {
             fetchWireGuardClients();
+            if (typeof loadWgMultiportSettings === 'function') loadWgMultiportSettings();
             fetchWgCloudflareConfig();
+        }
+        if (tabId === 'terminal') {
+            if (typeof initTerminal === 'function') initTerminal();
+            setTimeout(() => {
+                const ti = document.getElementById("terminal-input");
+                if (ti) ti.focus();
+            }, 100);
         }
         if (tabId === 'shadowsocks') {
             fetchShadowsocksConfig();

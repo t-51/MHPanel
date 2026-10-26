@@ -1,0 +1,64 @@
+<div class="tab-pane" id="tab-terminal">
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+        <!-- Header -->
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="terminal" style="color: var(--color-emerald); width: 24px; height: 24px;"></i>
+                    <span data-i18n="sys_terminal_title">ترمینال تحت وب سرور (Web Terminal CLI)</span>
+                    <span class="sidebar-badge sidebar-badge-green"><span class="status-dot active"></span> Live Console</span>
+                </h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                    دسترسی مستقیم و اختصاصی به خط فرمان سرور با حفظ کانتکست دایرکتوری و اجرای کلیه دستورات سیستمی و مدیریت MHPanel
+                </p>
+            </div>
+            <!-- Header Actions -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="clearTerminal()" style="padding: 7px 14px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i data-lucide="eraser" style="width: 14px; height: 14px;"></i>
+                    <span data-i18n="sys_terminal_clear">پاکسازی صفحه</span>
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('mhpanel')" style="padding: 7px 14px; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                    <i data-lucide="play" style="width: 14px; height: 14px; color: var(--color-gold);"></i>
+                    <span>اجرای منوی mhpanel</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Shortcut Bar -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 10px; padding: 10px 14px;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px;">
+                <i data-lucide="sparkles" style="width: 14px; height: 14px; color: var(--color-primary);"></i> دستورات سریع:
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('mhpanel --status')" style="font-size: 11.5px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace;">
+                mhpanel --status
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('systemctl status mhpanel')" style="font-size: 11.5px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace;">
+                systemctl status mhpanel
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('ss -tulpn')" style="font-size: 11.5px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace;">
+                ss -tulpn
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('iptables -t nat -L -n -v')" style="font-size: 11.5px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace;">
+                iptables nat rules
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="executeQuickTerminalCmd('uptime && free -h')" style="font-size: 11.5px; padding: 4px 10px; font-family: 'JetBrains Mono', monospace;">
+                uptime & memory
+            </button>
+        </div>
+
+        <!-- Terminal Main Box -->
+        <div class="glass-card config-card" style="padding: 0; overflow: hidden; border: 1px solid #1f2430; border-radius: 12px;">
+            <div id="terminal-container" style="background: #0a0e14; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13.5px; color: #56b6c2; min-height: 520px; max-height: 75vh; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; cursor: text;" onclick="if(document.getElementById('terminal-input')) document.getElementById('terminal-input').focus();">
+                <div id="terminal-output" style="flex: 1; overflow-y: auto; margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; white-space: pre-wrap; word-break: break-all; padding-right: 6px;">
+                    <div style="color: #98c379; font-weight: 700;">MHPanel Web Terminal [Linux Ready]</div>
+                    <div style="color: #5c6370; font-size: 12px; margin-bottom: 12px;">Type commands below. Context and current directory are fully maintained. Type 'mhpanel' for CLI menu.</div>
+                </div>
+                <div style="display: flex; align-items: center; color: #abb2bf; background: rgba(0,0,0,0.4); padding: 8px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                    <span id="terminal-prompt" style="color: #e06c75; margin-inline-end: 10px; font-weight: bold; white-space: nowrap;">root@server:/root#</span>
+                    <input autocomplete="off" autofocus="" id="terminal-input" placeholder="Type a command and press Enter..." style="flex: 1; background: transparent; border: none; outline: none; color: #f8fafc; font-family: 'JetBrains Mono', monospace; font-size: 13.5px;" type="text"/>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
