@@ -257,12 +257,13 @@ def check_login():
         return True
     try:
         api_key = get_api_key()
-        req_key = request.headers.get("X-API-Key") or request.headers.get("X-API-KEY")
+        req_key = request.args.get("api_key") or request.headers.get("X-API-Key") or request.headers.get("X-API-KEY")
         if not req_key and request.headers.get("Authorization"):
             auth_hdr = request.headers.get("Authorization").strip()
             if auth_hdr.startswith("Bearer "):
                 req_key = auth_hdr.split("Bearer ", 1)[1].strip()
         if req_key and api_key and req_key == api_key:
+            session["logged_in"] = True
             return True
     except Exception:
         pass
