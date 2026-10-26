@@ -6229,11 +6229,7 @@
                 const dlAllBtn = document.getElementById("wg-bulk-dl-all-btn");
                 if (dlAllBtn) {
                     dlAllBtn.onclick = () => {
-                        const zipLines = data.clients.map(c => `=== ${c.name}.conf ===
-${c.config}
-`).join("
-
-");
+                        const zipLines = data.clients.map(c => `=== ${c.name}.conf ===\n${c.config}\n`).join("\n\n");
                         const blob = new Blob([zipLines], { type: "text/plain" });
                         const a = document.createElement("a");
                         a.href = URL.createObjectURL(blob);
@@ -9719,11 +9715,7 @@ ${c.config}
                 const dlAllBtn = document.getElementById("awg-bulk-dl-all-btn");
                 if (dlAllBtn) {
                     dlAllBtn.onclick = () => {
-                        const allConf = data.clients.map(c => `=== ${c.name}.conf ===
-${c.config}
-`).join("
-
-");
+                        const allConf = data.clients.map(c => `=== ${c.name}.conf ===\n${c.config}\n`).join("\n\n");
                         const blob = new Blob([allConf], { type: "text/plain" });
                         const a = document.createElement("a");
                         a.href = URL.createObjectURL(blob);
