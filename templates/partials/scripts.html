@@ -7341,13 +7341,13 @@
         } else if (tabId === "protocols") {
             fetchProtocols();
         } else if (tabId === "wireguard") {
-            fetchWireGuardClients();
-            fetchWgCloudflareConfig();
+            if (typeof fetchWireGuardClients === 'function') fetchWireGuardClients();
+            if (typeof fetchWgCloudflareConfig === 'function') fetchWgCloudflareConfig();
         } else if (tabId === "amneziawg") {
-            checkAmneziaWGStatus();
-            fetchAmneziaWGClients();
-            fetchAwgVersion();
-            fetchAwgWarpStatus();
+            if (typeof checkAmneziaWGStatus === 'function') checkAmneziaWGStatus();
+            if (typeof fetchAmneziaWGClients === 'function') fetchAmneziaWGClients();
+            if (typeof fetchAwgVersion === 'function') fetchAwgVersion();
+            if (typeof fetchAwgWarpStatus === 'function') fetchAwgWarpStatus();
         } else if (tabId === "servers") {
             fetchServers();
         } else if (tabId === "tuic") {
@@ -10015,9 +10015,9 @@
     switchTab = function(tabId) {
         originalSwitchTab(tabId);
         if (tabId === 'amneziawg') {
-            checkAmneziaWGStatus();
-            fetchAmneziaWGClients();
-            fetchAwgWarpStatus();
+            if (typeof checkAmneziaWGStatus === 'function') checkAmneziaWGStatus();
+            if (typeof fetchAmneziaWGClients === 'function') fetchAmneziaWGClients();
+            if (typeof fetchAwgWarpStatus === 'function') fetchAwgWarpStatus();
             if (typeof loadAwgMultiportSettings === 'function') loadAwgMultiportSettings();
             if (typeof loadAwgSettingsForm === 'function') loadAwgSettingsForm();
             fetch("/api/amneziawg/settings").then(r => r.json()).then(d => {
