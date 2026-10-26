@@ -4921,6 +4921,31 @@
             max-height: 190px !important;
         }
 
+        /* Login Layout on Mobile */
+        .login-container {
+            padding: 14px 12px !important;
+            min-height: 100vh !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .login-card {
+            padding: 24px 16px !important;
+            border-radius: 18px !important;
+            max-width: 100% !important;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        /* Two-Column & Multi-Column Grid Collapse on Mobile */
+        [style*="grid-template-columns: 2fr 1fr" i],
+        [style*="grid-template-columns:2fr 1fr" i],
+        [style*="grid-template-columns: 1fr 2fr" i],
+        [style*="grid-template-columns:1fr 2fr" i],
+        [style*="grid-template-columns: 1fr 1fr" i],
+        [style*="grid-template-columns:1fr 1fr" i] {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+        }
+
         /* Universal Section & Config Headers (Vertical Stack with 2-Col Buttons) */
         .section-header,
         .config-header {
@@ -4940,12 +4965,13 @@
         .section-header > div:last-child .btn,
         .config-header > div:last-child .btn {
             flex: 1 1 calc(50% - 4px) !important;
-            min-width: 110px !important;
+            min-width: 0 !important;
             justify-content: center !important;
             text-align: center !important;
             font-size: 11.5px !important;
-            padding: 7px 10px !important;
+            padding: 7px 8px !important;
             min-height: 38px !important;
+            box-sizing: border-box !important;
         }
         .section-title {
             font-size: 16px !important;
