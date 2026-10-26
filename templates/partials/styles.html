@@ -5387,4 +5387,120 @@
     .radar-text-muted {
         color: var(--text-muted) !important;
     }
+
+    /* ========================================================================== */
+    /* MASTER RESPONSIVE & DUAL-THEME AUDIT REFACTORING (Prompt.txt Compliance)   */
+    /* ========================================================================== */
+
+    /* 1. Global Viewport & Horizontal Overflow Prevention (320px - 1920px) */
+    html, body {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        box-sizing: border-box;
+    }
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+
+    /* 2. Accessible Focus Indicators */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    a:focus-visible,
+    [tabindex]:focus-visible {
+        outline: 2px solid var(--color-primary) !important;
+        outline-offset: 2px !important;
+    }
+
+    /* 3. Dark Theme Polish for Warning/Alert Containers */
+    [data-theme="dark"] [style*="background: #fffbeb" i],
+    [data-theme="dark"] [style*="background:#fffbeb" i],
+    [data-theme="dark"] [style*="background: #fff7ed" i],
+    [data-theme="dark"] [style*="background:#fff7ed" i] {
+        background: rgba(245, 158, 11, 0.12) !important;
+        border-color: rgba(245, 158, 11, 0.28) !important;
+        color: #fbbf24 !important;
+    }
+    [data-theme="dark"] [style*="background: #fffbeb" i] *,
+    [data-theme="dark"] [style*="background:#fffbeb" i] *,
+    [data-theme="dark"] [style*="background: #fff7ed" i] *,
+    [data-theme="dark"] [style*="background:#fff7ed" i] * {
+        color: #fbbf24 !important;
+    }
+
+    /* 4. Light Theme Polish for Containers & Cards */
+    html[data-theme="light"] .glass-card,
+    html:not([data-theme="dark"]) .glass-card {
+        background: #ffffff !important;
+        border: 1px solid rgba(226, 232, 240, 0.85) !important;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05) !important;
+    }
+    html[data-theme="light"] .code-block,
+    html[data-theme="light"] pre,
+    html[data-theme="light"] .terminal-box {
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid #1e293b !important;
+    }
+
+    /* 5. Mobile & Tablet Universal Grid Refactoring (<= 900px) */
+    @media (max-width: 900px) {
+        /* Collapse 2-column, 3-column & fractional grids to 1-column */
+        .bottom-section,
+        [style*="grid-template-columns: 2fr 1fr" i],
+        [style*="grid-template-columns:2fr 1fr" i],
+        [style*="grid-template-columns: 1fr 2fr" i],
+        [style*="grid-template-columns:1fr 2fr" i],
+        [style*="grid-template-columns: 1fr 1fr" i],
+        [style*="grid-template-columns:1fr 1fr" i],
+        [style*="grid-template-columns:repeat(2, 1fr)" i],
+        [style*="grid-template-columns: repeat(2, 1fr)" i],
+        [style*="grid-template-columns:repeat(3, 1fr)" i],
+        [style*="grid-template-columns: repeat(3, 1fr)" i] {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+
+        /* Responsive touch targets (minimum 42px - 44px) */
+        .btn, .header-btn, .form-input, .mob-nav-item, select {
+            min-height: 42px;
+        }
+
+        /* Modals on Mobile */
+        .modal-content, .modal-card, .modal-box {
+            max-width: 96% !important;
+            width: 96% !important;
+            margin: 0 auto !important;
+        }
+
+        /* Ensure Tables Scroll Horizontally without Breaking Viewport */
+        .table-responsive-wrapper,
+        .table-wrapper {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            display: block !important;
+        }
+    }
+
+    /* 6. Ultra-Compact Phones (<= 480px and <= 360px) */
+    @media (max-width: 480px) {
+        .main-content {
+            padding: 10px 8px calc(80px + env(safe-area-inset-bottom, 0px)) 8px !important;
+            gap: 14px !important;
+        }
+        .glass-card, .config-card {
+            padding: 12px 10px !important;
+            border-radius: 12px !important;
+        }
+        .header-title {
+            font-size: 14px !important;
+        }
+        .modal-body {
+            padding: 12px !important;
+        }
+    }
+
 </style>

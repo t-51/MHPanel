@@ -199,7 +199,7 @@ protocol_default_port() {
         sstp) echo "4443" ;;
         l2tp) echo "1701" ;;
         wireguard) echo "51820" ;;
-        amneziawg) echo "51821" ;;
+        amneziawg) echo "443" ;;
         http) echo "8080" ;;
         socks) echo "1080" ;;
         shadowsocks) echo "8388" ;;
@@ -280,7 +280,7 @@ resolve_clean_port() {
         if ss -tlnp 2>/dev/null | grep -qE "(:${final_port}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${final_port}\b)"; then
             case "$proto" in
                 ocserv) final_port=10443 ;;
-                amneziawg) final_port=51821 ;;
+                amneziawg) final_port=443 ;;
                 trojan) final_port=12443 ;;
                 naiveproxy) final_port=13443 ;;
                 hysteria2) final_port=11443 ;;
@@ -303,7 +303,7 @@ resolve_clean_port() {
                 naiveproxy) final_port=13443 ;;
                 stuntls) final_port=3478 ;;
                 wireguard) final_port=51820 ;;
-                amneziawg) final_port=51821 ;;
+                amneziawg) final_port=443 ;;
                 ocserv) final_port=10443 ;;
                 *)
                     local p=$final_port
@@ -1242,6 +1242,70 @@ EOF
     echo -e "    ${GREEN}[✓] BadVPN UDPGW service successfully started on port 7300.${NC}"
 }
 
+# Cloudflare WARP and AmneziaWG Outbound Gateway
+install_cloudflare_warp() {
+    echo -e "    Checking Cloudflare WARP & AmneziaWG Gateway..."
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Install cloudflare-warp if missing
+    if ! command -v warp-cli >/dev/null 2>&1; then
+        echo "    Adding Cloudflare WARP repository..."
+        curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg 2>/dev/null || true
+        local codename=$(lsb_release -cs 2>/dev/null || echo "focal")
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ ${codename} main" > /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null || true
+        run_apt update 2>/dev/null || true
+        run_apt install --no-install-recommends cloudflare-warp 2>/dev/null || apt-get install -y --no-install-recommends cloudflare-warp 2>/dev/null || true
+    fi
+
+    if command -v warp-cli >/dev/null 2>&1; then
+        systemctl enable --now warp-svc >/dev/null 2>&1 || true
+        if warp-cli --accept-tos status 2>/dev/null | grep -qi "Registration missing"; then
+            warp-cli --accept-tos registration new >/dev/null 2>&1 || true
+        fi
+        warp-cli --accept-tos mode proxy >/dev/null 2>&1 || true
+        warp-cli --accept-tos connect >/dev/null 2>&1 || true
+    fi
+
+    # Install tun2socks binary
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -f "${bdir}/tun2socks" ]; then
+            cp -f "${bdir}/tun2socks" /usr/local/bin/tun2socks 2>/dev/null || true
+            chmod +x /usr/local/bin/tun2socks 2>/dev/null || true
+            break
+        fi
+    done
+
+    # Install amnezia-warp scripts
+    for sdir in "${PANEL_DIR}/scripts" "${SCRIPT_DIR}/scripts" "/root/mhpanel-repo/scripts"; do
+        if [ -f "${sdir}/amnezia-warp-up.sh" ]; then
+            cp -f "${sdir}/amnezia-warp-up.sh" /usr/local/bin/amnezia-warp-up.sh 2>/dev/null || true
+            cp -f "${sdir}/amnezia-warp-down.sh" /usr/local/bin/amnezia-warp-down.sh 2>/dev/null || true
+            chmod +x /usr/local/bin/amnezia-warp-up.sh /usr/local/bin/amnezia-warp-down.sh 2>/dev/null || true
+            break
+        fi
+    done
+
+    # Create systemd service for mhpanel-amnezia-warp
+    cat > /etc/systemd/system/mhpanel-amnezia-warp.service <<'WARPEOF'
+[Unit]
+Description=MHPanel AmneziaWG Cloudflare WARP Outbound Gateway
+After=network.target warp-svc.service
+Wants=warp-svc.service
+
+[Service]
+Type=simple
+ExecStartPre=-/sbin/ip link delete awg-warp
+ExecStart=/usr/local/bin/tun2socks --device awg-warp --proxy socks5://127.0.0.1:40000 --tun-post-up /usr/local/bin/amnezia-warp-up.sh --loglevel warn
+ExecStopPost=/usr/local/bin/amnezia-warp-down.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+WARPEOF
+    systemctl daemon-reload 2>/dev/null || true
+}
+
 install_tunnel_tools() {
     echo -e "\n${YELLOW}>>> [4/6] Checking and verifying Anti-Censorship Tunnel Binaries...${NC}"
     local count_downloaded=0
@@ -1596,6 +1660,7 @@ install_tunnel_tools() {
         done
     done
 
+    install_cloudflare_warp
     echo -e "    ${GREEN}[✓] Anti-censorship tunnel binaries verified (${count_downloaded} new files downloaded).${NC}"
 }
 

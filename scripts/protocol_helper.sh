@@ -1955,6 +1955,7 @@ Type=simple
 ExecStart=${PANEL_PYTHON} ${PANEL_DIR}/scripts/radius_proxy.py --listen http://0.0.0.0:${port}
 Restart=always
 RestartSec=5
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
@@ -1997,6 +1998,7 @@ Type=simple
 ExecStart=${PANEL_PYTHON} ${PANEL_DIR}/scripts/radius_proxy.py --listen socks5://0.0.0.0:${port}
 Restart=always
 RestartSec=5
+LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
@@ -3934,7 +3936,7 @@ case "${ACTION}" in
                 ocserv) ARG3=10443 ;;
                 sstp) ARG3=4443 ;;
                 wireguard) ARG3=51820 ;;
-                amneziawg) ARG3=51821 ;;
+                amneziawg) ARG3=443 ;;
                 http) ARG3=8080 ;;
                 socks) ARG3=1080 ;;
                 shadowsocks) ARG3=8388 ;;
@@ -3959,7 +3961,7 @@ case "${ACTION}" in
         if [ "$ARG3" = "80" ] || [ "$ARG3" = "443" ]; then
             case "${PROTOCOL}" in
                 ocserv) ARG3=10443 ;;
-                amneziawg) ARG3=51821 ;;
+                amneziawg) ARG3=443 ;;
                 trojan) ARG3=12443 ;;
                 naiveproxy) ARG3=13443 ;;
                 hysteria2) ARG3=11443 ;;

@@ -8,6 +8,7 @@ import threading
 import json
 import ssl
 import socket
+socket.setdefaulttimeout(30)
 import concurrent.futures
 import base64
 import uuid
@@ -5936,6 +5937,7 @@ def api_awg_client_bulk():
 PrivateKey = {privkey}
 Address = {client_ip}/32
 DNS = {dns_val}
+MTU = 1280
 {obf_params}
 [Peer]
 PublicKey = {server_pubkey}
@@ -6222,6 +6224,7 @@ def api_awg_client():
 PrivateKey = {privkey}
 Address = {client_ip}/32
 DNS = {dns_val}
+MTU = 1280
 {obf_params}
 [Peer]
 PublicKey = {server_pubkey}
@@ -6702,9 +6705,7 @@ def api_amneziawg_warp_toggle():
             subprocess.run(["systemctl", "restart", "mhpanel-amnezia-warp"], check=False)
         else:
             subprocess.run(["systemctl", "disable", "--now", "mhpanel-amnezia-warp"], check=False)
-            subprocess.run(["ip", "rule", "del", "from", "10.77.77.0/24", "table", "51821", "priority", "51821"], check=False)
-            subprocess.run(["ip", "route", "flush", "table", "51821"], check=False)
-            subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-s", "10.77.77.0/24", "-o", "awg-warp", "-j", "MASQUERADE"], check=False)
+            subprocess.run(["/usr/local/bin/amnezia-warp-down.sh"], check=False)
         time.sleep(1)
         is_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
         return jsonify({"success": True, "active": is_active})

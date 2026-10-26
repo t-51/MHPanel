@@ -16,6 +16,7 @@
 <input class="form-input" data-i18n-placeholder="sys_search_port_service" id="ports-filter-input" oninput="filterPortsTable()" placeholder="جستجوی پورت یا سرویس..." style="padding-left:16px; font-size:13px; height:36px;" type="text"/>
 </div>
 <div style="flex:1; overflow-y:auto; max-height: 350px; border-radius: 8px; border: 1px solid var(--border-color);">
+<div class="table-responsive-wrapper" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
 <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:start;">
 <thead>
 <tr style="background:var(--bg-muted); border-bottom: 1px solid var(--border-color); color:var(--text-color); font-weight:600;">
@@ -30,6 +31,7 @@
 <!-- Port entries inject here -->
 </tbody>
 </table>
+</div>
 </div>
 </div>
 <!-- Web Terminal -->
@@ -237,7 +239,7 @@
 <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
 <i data-lucide="cloud-lightning" style="color: #ea580c; width: 20px; height: 20px;"></i> <span data-i18n="sys_cloudflare_warp_management_center">مرکز مدیریت کلادفلر وارپ (Cloudflare WARP)</span>
 </h3>
-<span data-i18n-html="elem_tab_system_66" id="warp-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
+<span id="warp-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
 <span class="status-dot active"></span> در حال بررسی...
                     </span>
 </div>
@@ -268,7 +270,10 @@
                             ثبت لایسنس
                         </button>
 </div>
-<div data-i18n="sys_current_license" id="warp-current-license" style="font-size:11px; color:var(--text-muted); margin-top:6px;">لایسنس فعلی: -</div>
+<div style="font-size:12px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:6px;">
+<span>لایسنس فعال:</span>
+<strong id="warp-current-license" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#059669;">-</strong>
+</div>
 </div>
 </div>
 <!-- WARP Action Buttons -->

@@ -6984,13 +6984,16 @@
                 }
             }
             if (document.getElementById("warp-account-type")) {
-                document.getElementById("warp-account-type").innerText = data.account_type || "Free";
+                const isLicensed = !!(data.license && data.license.length > 5);
+                document.getElementById("warp-account-type").innerText = isLicensed ? "WARP+ (لایسنس فعال)" : (data.account_type || "Free");
+                document.getElementById("warp-account-type").style.color = isLicensed ? "#059669" : "#ea580c";
             }
             if (document.getElementById("warp-socks-port")) {
                 document.getElementById("warp-socks-port").innerText = `127.0.0.1:${data.socks_port || 40000}`;
             }
             if (document.getElementById("warp-current-license")) {
-                document.getElementById("warp-current-license").innerText = `${window.t("لایسنس فعال:")} ${data.license ? data.license : (window.t("warp_default_free", "پیش‌فرض رایگان"))}`;
+                document.getElementById("warp-current-license").innerText = data.license ? data.license : (window.t("warp_default_free", "پیش‌فرض رایگان"));
+                document.getElementById("warp-current-license").style.color = data.license ? "#059669" : "var(--text-muted)";
             }
         } catch (err) {
             console.error("fetchWarpStatus error:", err);
