@@ -1126,6 +1126,116 @@
         flex-shrink: 0;
     }
 
+    /* Subtab and Filter Button Themes */
+    .btn-subtab,
+    .wg-subtab-btn,
+    .awg-subtab-btn {
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+        font-weight: 600 !important;
+        border-radius: 10px !important;
+        cursor: pointer !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        transition: all 0.2s ease !important;
+        border: 1px solid var(--border-color) !important;
+        background: transparent !important;
+        color: var(--text-muted) !important;
+        box-shadow: none !important;
+    }
+
+    .btn-subtab:hover,
+    .wg-subtab-btn:hover,
+    .awg-subtab-btn:hover {
+        background: rgba(99, 102, 241, 0.08) !important;
+        color: var(--text-main) !important;
+        border-color: rgba(99, 102, 241, 0.3) !important;
+    }
+
+    .btn-subtab.active,
+    .wg-subtab-btn.active,
+    .awg-subtab-btn.active {
+        background: var(--color-primary) !important;
+        color: #ffffff !important;
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 2px 8px var(--color-primary-glow) !important;
+    }
+
+    .btn-subtab.active span,
+    .wg-subtab-btn.active span,
+    .awg-subtab-btn.active span {
+        color: #ffffff !important;
+    }
+
+    .wg-filter-btn,
+    .awg-filter-btn {
+        padding: 5px 12px !important;
+        font-size: 12px !important;
+        border-radius: 20px !important;
+        cursor: pointer !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 5px !important;
+        border: 1px solid var(--border-color) !important;
+        background: var(--bg-card) !important;
+        color: var(--text-main) !important;
+        box-shadow: none !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .wg-filter-btn:hover,
+    .awg-filter-btn:hover {
+        border-color: var(--color-primary) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    .wg-filter-btn.active,
+    .awg-filter-btn.active {
+        background: var(--color-primary) !important;
+        color: #ffffff !important;
+        border-color: var(--color-primary) !important;
+        box-shadow: 0 2px 6px var(--color-primary-glow) !important;
+    }
+
+    .wg-filter-btn.active span,
+    .awg-filter-btn.active span {
+        color: #ffffff !important;
+    }
+
+    html[data-theme="light"] .btn-subtab:not(.active),
+    html:not([data-theme="dark"]) .btn-subtab:not(.active),
+    html[data-theme="light"] .wg-filter-btn:not(.active),
+    html:not([data-theme="dark"]) .wg-filter-btn:not(.active),
+    html[data-theme="light"] .awg-filter-btn:not(.active),
+    html:not([data-theme="dark"]) .awg-filter-btn:not(.active) {
+        color: #334155 !important;
+        background: #f1f5f9 !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    html[data-theme="light"] .btn-subtab:not(.active) span,
+    html:not([data-theme="dark"]) .btn-subtab:not(.active) span,
+    html[data-theme="light"] .wg-filter-btn:not(.active) span,
+    html:not([data-theme="dark"]) .wg-filter-btn:not(.active) span,
+    html[data-theme="light"] .awg-filter-btn:not(.active) span,
+    html:not([data-theme="dark"]) .awg-filter-btn:not(.active) span {
+        color: #334155 !important;
+    }
+
+    html[data-theme="light"] .wg-filter-btn.status-active:not(.active),
+    html[data-theme="light"] .awg-filter-btn.status-active:not(.active) {
+        color: #059669 !important;
+    }
+    html[data-theme="light"] .wg-filter-btn.status-traffic:not(.active),
+    html[data-theme="light"] .awg-filter-btn.status-traffic:not(.active) {
+        color: #e11d48 !important;
+    }
+    html[data-theme="light"] .wg-filter-btn.status-date:not(.active),
+    html[data-theme="light"] .awg-filter-btn.status-date:not(.active) {
+        color: #d97706 !important;
+    }
+
     /* Dashboard Layout - Single Viewport Height, No Double Scrollbars */
     html.app-viewport,
     body.app-viewport,

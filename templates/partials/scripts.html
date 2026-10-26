@@ -5718,13 +5718,11 @@
             if (btn) {
                 if (t === tabName) {
                     btn.classList.add("active");
-                    btn.style.background = "var(--color-primary)";
-                    btn.style.color = "#ffffff";
                 } else {
                     btn.classList.remove("active");
-                    btn.style.background = "transparent";
-                    btn.style.color = "var(--text-muted)";
                 }
+                btn.style.background = "";
+                btn.style.color = "";
             }
             if (pane) {
                 pane.style.display = (t === tabName) ? "flex" : "none";
@@ -5819,13 +5817,11 @@
                               (f === 'date' && window.currentWgFilter === 'date_expired');
                 if (isCur) {
                     btn.classList.add("active");
-                    btn.style.background = "var(--bg-card-hover)";
-                    btn.style.border = "1px solid var(--color-primary)";
                 } else {
                     btn.classList.remove("active");
-                    btn.style.background = "transparent";
-                    btn.style.border = "1px solid var(--border-color)";
                 }
+                btn.style.background = "";
+                btn.style.border = "";
             }
         });
 
@@ -9230,13 +9226,11 @@
             if (btn) {
                 if (t === tabName) {
                     btn.classList.add("active");
-                    btn.style.background = "var(--color-primary)";
-                    btn.style.color = "#ffffff";
                 } else {
                     btn.classList.remove("active");
-                    btn.style.background = "transparent";
-                    btn.style.color = "var(--text-muted)";
                 }
+                btn.style.background = "";
+                btn.style.color = "";
             }
             if (pane) {
                 pane.style.display = (t === tabName) ? "flex" : "none";
@@ -9333,13 +9327,11 @@
                               (f === 'date' && window.currentAwgFilter === 'date_expired');
                 if (isCur) {
                     btn.classList.add("active");
-                    btn.style.background = "var(--bg-card-hover)";
-                    btn.style.border = "1px solid var(--color-primary)";
                 } else {
                     btn.classList.remove("active");
-                    btn.style.background = "transparent";
-                    btn.style.border = "1px solid var(--border-color)";
                 }
+                btn.style.background = "";
+                btn.style.border = "";
             }
         });
 

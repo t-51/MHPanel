@@ -43,16 +43,16 @@
 
         <!-- Sub-Navigation Protocol Pills -->
         <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-            <button type="button" class="btn btn-sm btn-subtab active" id="awg-subtab-btn-clients" onclick="switchAwgSubTab('clients')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+            <button type="button" class="btn-subtab active" id="awg-subtab-btn-clients" onclick="switchAwgSubTab('clients')" style="font-weight:700;">
                 <i data-lucide="users" style="width:14px; height:14px; color:#10b981;"></i>
                 <span>مدیریت کاربران و کانفیگ‌ها</span>
                 <span class="badge-pill" id="awg-badge-total-count" style="font-size:11px; padding:1px 7px; background:rgba(16,185,129,0.15); color:#10b981; border-radius:999px;">0</span>
             </button>
-            <button type="button" class="btn btn-sm btn-subtab" id="awg-subtab-btn-create" onclick="switchAwgSubTab('create')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+            <button type="button" class="btn-subtab" id="awg-subtab-btn-create" onclick="switchAwgSubTab('create')" style="font-weight:700;">
                 <i data-lucide="plus-circle" style="width:14px; height:14px; color:#059669;"></i>
                 <span>ساخت اکانت (تکی و دسته‌ای)</span>
             </button>
-            <button type="button" class="btn btn-sm btn-subtab" id="awg-subtab-btn-settings" onclick="switchAwgSubTab('settings')" style="display:flex; align-items:center; gap:6px; font-weight:700;">
+            <button type="button" class="btn-subtab" id="awg-subtab-btn-settings" onclick="switchAwgSubTab('settings')" style="font-weight:700;">
                 <i data-lucide="shield-alert" style="width:14px; height:14px; color:#6366f1;"></i>
                 <span>تنظیمات ضد فیلترینگ و چندپورته</span>
             </button>
@@ -65,21 +65,21 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <!-- Status Filter Pills -->
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button type="button" class="btn btn-sm awg-filter-btn active" id="awg-filter-all" onclick="filterAwgClients('all')" style="font-size:12px; padding:5px 12px; border-radius:20px;">
+                        <button type="button" class="awg-filter-btn active" id="awg-filter-all" onclick="filterAwgClients('all')">
                             <span>همه کاربران</span>
                             <span id="awg-filter-count-all" style="opacity:0.75; font-size:11px; margin-inline-start:4px;">(0)</span>
                         </button>
-                        <button type="button" class="btn btn-sm awg-filter-btn" id="awg-filter-active" onclick="filterAwgClients('active')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#10b981;">
+                        <button type="button" class="awg-filter-btn status-active" id="awg-filter-active" onclick="filterAwgClients('active')">
                             <span class="status-dot active" style="margin-inline-end:4px;"></span>
                             <span>فعال</span>
                             <span id="awg-filter-count-active" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
                         </button>
-                        <button type="button" class="btn btn-sm awg-filter-btn" id="awg-filter-traffic" onclick="filterAwgClients('traffic_expired')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#f43f5e;">
+                        <button type="button" class="awg-filter-btn status-traffic" id="awg-filter-traffic" onclick="filterAwgClients('traffic_expired')">
                             <i data-lucide="alert-octagon" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
                             <span>پایان حجم</span>
                             <span id="awg-filter-count-traffic" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
                         </button>
-                        <button type="button" class="btn btn-sm awg-filter-btn" id="awg-filter-date" onclick="filterAwgClients('date_expired')" style="font-size:12px; padding:5px 12px; border-radius:20px; color:#f59e0b;">
+                        <button type="button" class="awg-filter-btn status-date" id="awg-filter-date" onclick="filterAwgClients('date_expired')">
                             <i data-lucide="clock" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
                             <span>تاریخ منقضی</span>
                             <span id="awg-filter-count-date" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
