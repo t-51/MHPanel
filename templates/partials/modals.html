@@ -2664,6 +2664,98 @@
     </div>
 </div>
 
+<!-- BULK CHANGE GROUP MODAL -->
+<div class="modal" id="modal-bulk-group">
+    <div class="modal-card" style="max-width: 480px; border-radius: 16px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="folder" style="color: #6366f1; width: 20px; height: 20px;"></i>
+                <span>تغییر دسته / گروه دسته‌جمعی</span>
+            </h3>
+            <button class="modal-close" onclick="closeBulkGroupModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+                انتقال تعداد <strong id="bulk-group-count-badge" style="color: var(--color-primary); font-family: 'JetBrains Mono';">0</strong> کلاینت انتخاب شده به گروه زیر:
+            </p>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label" style="font-weight: 600; font-size: 12.5px;">نام گروه یا دسته جدید:</label>
+                <input class="form-input" id="bulk-group-input" list="bulk-group-datalist" placeholder="مثلاً VIP، عمومی، خانواده یا نام دلخواه..." type="text" style="padding-left: 12px;"/>
+                <datalist id="bulk-group-datalist"></datalist>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 11.5px; color: var(--text-muted); margin-inline-end: 4px;">دسته‌های پیشنهادی:</span>
+                <button type="button" class="badge-pill" onclick="document.getElementById('bulk-group-input').value='عمومی'" style="cursor:pointer; border:1px solid var(--border-color); background:transparent;">عمومی</button>
+                <button type="button" class="badge-pill" onclick="document.getElementById('bulk-group-input').value='VIP'" style="cursor:pointer; border:1px solid var(--border-color); background:transparent;">VIP</button>
+                <button type="button" class="badge-pill" onclick="document.getElementById('bulk-group-input').value='همراه اول'" style="cursor:pointer; border:1px solid var(--border-color); background:transparent;">همراه اول</button>
+                <button type="button" class="badge-pill" onclick="document.getElementById('bulk-group-input').value='ایرانسل'" style="cursor:pointer; border:1px solid var(--border-color); background:transparent;">ایرانسل</button>
+                <button type="button" class="badge-pill" onclick="document.getElementById('bulk-group-input').value='خانواده'" style="cursor:pointer; border:1px solid var(--border-color); background:transparent;">خانواده</button>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 6px;">
+                <button class="btn btn-secondary" type="button" onclick="closeBulkGroupModal()">انصراف</button>
+                <button class="btn btn-primary" type="button" onclick="submitBulkGroupChange()" style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                    <span>ثبت و اعمال تغییرات</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BULK TRAFFIC & USAGE MODAL -->
+<div class="modal" id="modal-bulk-traffic">
+    <div class="modal-card" style="max-width: 500px; border-radius: 16px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="pie-chart" style="color: #eab308; width: 20px; height: 20px;"></i>
+                <span>مدیریت حجم و ترافیک دسته‌جمعی</span>
+            </h3>
+            <button class="modal-close" onclick="closeBulkTrafficModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+                تنظیمات حجم و مصرف برای <strong id="bulk-traffic-count-badge" style="color: var(--color-primary); font-family: 'JetBrains Mono';">0</strong> کلاینت انتخاب شده:
+            </p>
+            
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="font-weight: 700; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="hard-drive" style="width: 15px; height: 15px; color: #0284c7;"></i>
+                    <span>۱. تنظیم سقف حجم جدید (Traffic Quota)</span>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; color: var(--text-muted);">سقف حجم به گیگابایت (خالی = نامحدود):</label>
+                    <div style="display: flex; gap: 8px;">
+                        <input class="form-input" id="bulk-traffic-limit-input" type="number" min="0" placeholder="مثلاً 50 یا خالی برای نامحدود" style="flex: 1; padding-left: 12px;"/>
+                        <button class="btn btn-primary btn-sm" type="button" onclick="submitBulkTrafficChange('set_traffic')">
+                            اعمال سقف حجم
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="font-weight: 700; font-size: 13px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="rotate-ccw" style="width: 15px; height: 15px; color: #10b981;"></i>
+                    <span>۲. صفر کردن حجم مصرفی (Reset Usage)</span>
+                </div>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+                    ترافیک مصرف‌شده (Rx و Tx) صفر می‌شود و در صورت قطع بودن به دلیل پایان حجم، اکانت‌ها مجدداً به صورت آنی وصل و فعال می‌گردند.
+                </p>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button class="btn btn-secondary btn-sm" type="button" onclick="submitBulkTrafficChange('reset_usage')" style="color: #10b981; border-color: rgba(16,185,129,0.3); display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i>
+                        <span>صفر کردن حجم مصرفی کلاینت‌ها</span>
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px;">
+                <button class="btn btn-secondary" type="button" onclick="closeBulkTrafficModal()">بستن پنجره</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 
 

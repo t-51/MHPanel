@@ -5828,6 +5828,7 @@
             if (p.group && p.group.trim()) groups.add(p.group.trim());
         });
         groups.add("عمومی");
+        window.wgAllGroups = Array.from(groups);
 
         if (select) {
             const currentVal = select.value || "all";
@@ -5905,6 +5906,7 @@
         const container = document.getElementById("wg-clients-grid") || document.getElementById("wg-clients");
         if (!container) return;
 
+        if (!window.wgSelectedKeys) window.wgSelectedKeys = new Set();
         let filtered = window.wgAllPeers || [];
 
         // Filter by status
@@ -5942,14 +5944,17 @@
                     <div style="font-size:12px; margin-top:4px;">برای ایجاد کاربر جدید، از تب «افزودن و صدور کانفیگ» استفاده کنید.</div>
                 </div>
             `;
+            updateWgBulkBarState();
             if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: container }); } catch (_) {}
             return;
         }
 
         filtered.forEach(peer => {
+            const isSelected = window.wgSelectedKeys && window.wgSelectedKeys.has(peer.public_key);
             const card = document.createElement("div");
-            card.className = "glass-card config-card";
-            card.style.cssText = "padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-card); transition:all 0.2s;";
+            card.className = "glass-card config-card wg-client-card";
+            card.setAttribute("data-pubkey", peer.public_key);
+            card.style.cssText = `padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid ${isSelected ? '#0284c7' : 'var(--border-color)'}; background:${isSelected ? 'rgba(2,132,199,0.06)' : 'var(--bg-card)'}; transition:all 0.2s;`;
 
             // Determine status
             let statusBadge = "";
@@ -5994,6 +5999,9 @@
             card.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                        <label style="display:inline-flex; align-items:center; margin:0; cursor:pointer;" title="انتخاب کلاینت برای اعمال دسته جمعی">
+                            <input type="checkbox" class="wg-client-chk" value="${peer.public_key}" ${isSelected ? 'checked' : ''} onchange="toggleWgClientCheck('${peer.public_key}', this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#0284c7;">
+                        </label>
                         <span style="font-size:15px; font-weight:800; color:var(--text-main);">${peer.name}</span>
                         <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11.5px; background:rgba(2,132,199,0.12); color:#0284c7; border:1px solid rgba(2,132,199,0.25);">
                             ${peer.ip || '10.8.0.x'}
@@ -6060,6 +6068,8 @@
             `;
             container.appendChild(card);
         });
+
+        updateWgBulkBarState();
 
         if (typeof lucide !== 'undefined') {
             try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }
@@ -6177,6 +6187,356 @@
             showToast("خطای اتصال به سرور", "error");
         }
         toggleLoading(false);
+    }
+
+    // --- Bulk Selection & Action Handlers (WireGuard & AmneziaWG) ---
+    window.wgSelectedKeys = new Set();
+    window.awgSelectedKeys = new Set();
+    window.bulkTargetProto = "wireguard";
+
+    function toggleSelectAllWgClients(checked) {
+        const chks = document.querySelectorAll(".wg-client-chk");
+        chks.forEach(chk => {
+            chk.checked = checked;
+            if (checked) window.wgSelectedKeys.add(chk.value);
+            else window.wgSelectedKeys.delete(chk.value);
+        });
+        updateWgBulkBarState();
+        updateWgCardStyles();
+    }
+
+    function toggleWgClientCheck(pubkey, checked) {
+        if (!window.wgSelectedKeys) window.wgSelectedKeys = new Set();
+        if (checked) {
+            window.wgSelectedKeys.add(pubkey);
+        } else {
+            window.wgSelectedKeys.delete(pubkey);
+        }
+        updateWgBulkBarState();
+        updateWgCardStyles();
+    }
+
+    function updateWgCardStyles() {
+        document.querySelectorAll(".wg-client-chk").forEach(chk => {
+            const card = chk.closest(".wg-client-card");
+            if (card) {
+                if (chk.checked) {
+                    card.style.borderColor = "#0284c7";
+                    card.style.background = "rgba(2,132,199,0.06)";
+                } else {
+                    card.style.borderColor = "var(--border-color)";
+                    card.style.background = "var(--bg-card)";
+                }
+            }
+        });
+    }
+
+    function updateWgBulkBarState() {
+        const count = window.wgSelectedKeys ? window.wgSelectedKeys.size : 0;
+        const bar = document.getElementById("wg-bulk-bar");
+        const actionsGroup = document.getElementById("wg-bulk-actions-group");
+        const counterPill = document.getElementById("wg-bulk-counter-pill");
+        const countSpan = document.getElementById("wg-bulk-selected-count");
+        const selectAllChk = document.getElementById("wg-select-all-chk");
+
+        if (countSpan) countSpan.innerText = count.toLocaleString('fa-IR');
+
+        const allChks = document.querySelectorAll(".wg-client-chk");
+        if (selectAllChk && allChks.length > 0) {
+            selectAllChk.checked = (count === allChks.length && count > 0);
+            selectAllChk.indeterminate = (count > 0 && count < allChks.length);
+        } else if (selectAllChk) {
+            selectAllChk.checked = false;
+            selectAllChk.indeterminate = false;
+        }
+
+        if (count > 0) {
+            if (counterPill) counterPill.style.display = "inline-flex";
+            if (actionsGroup) actionsGroup.style.display = "flex";
+            if (bar) {
+                bar.style.borderColor = "rgba(2,132,199,0.4)";
+                bar.style.background = "rgba(2,132,199,0.06)";
+            }
+        } else {
+            if (counterPill) counterPill.style.display = "none";
+            if (actionsGroup) actionsGroup.style.display = "none";
+            if (bar) {
+                bar.style.borderColor = "var(--border-color)";
+                bar.style.background = "rgba(2,132,199,0.03)";
+            }
+        }
+    }
+
+    function toggleSelectAllAwgClients(checked) {
+        const chks = document.querySelectorAll(".awg-client-chk");
+        chks.forEach(chk => {
+            chk.checked = checked;
+            if (checked) window.awgSelectedKeys.add(chk.value);
+            else window.awgSelectedKeys.delete(chk.value);
+        });
+        updateAwgBulkBarState();
+        updateAwgCardStyles();
+    }
+
+    function toggleAwgClientCheck(pubkey, checked) {
+        if (!window.awgSelectedKeys) window.awgSelectedKeys = new Set();
+        if (checked) {
+            window.awgSelectedKeys.add(pubkey);
+        } else {
+            window.awgSelectedKeys.delete(pubkey);
+        }
+        updateAwgBulkBarState();
+        updateAwgCardStyles();
+    }
+
+    function updateAwgCardStyles() {
+        document.querySelectorAll(".awg-client-chk").forEach(chk => {
+            const card = chk.closest(".awg-client-card");
+            if (card) {
+                if (chk.checked) {
+                    card.style.borderColor = "#10b981";
+                    card.style.background = "rgba(16,185,129,0.06)";
+                } else {
+                    card.style.borderColor = "var(--border-color)";
+                    card.style.background = "var(--bg-card)";
+                }
+            }
+        });
+    }
+
+    function updateAwgBulkBarState() {
+        const count = window.awgSelectedKeys ? window.awgSelectedKeys.size : 0;
+        const bar = document.getElementById("awg-bulk-bar");
+        const actionsGroup = document.getElementById("awg-bulk-actions-group");
+        const counterPill = document.getElementById("awg-bulk-counter-pill");
+        const countSpan = document.getElementById("awg-bulk-selected-count");
+        const selectAllChk = document.getElementById("awg-select-all-chk");
+
+        if (countSpan) countSpan.innerText = count.toLocaleString('fa-IR');
+
+        const allChks = document.querySelectorAll(".awg-client-chk");
+        if (selectAllChk && allChks.length > 0) {
+            selectAllChk.checked = (count === allChks.length && count > 0);
+            selectAllChk.indeterminate = (count > 0 && count < allChks.length);
+        } else if (selectAllChk) {
+            selectAllChk.checked = false;
+            selectAllChk.indeterminate = false;
+        }
+
+        if (count > 0) {
+            if (counterPill) counterPill.style.display = "inline-flex";
+            if (actionsGroup) actionsGroup.style.display = "flex";
+            if (bar) {
+                bar.style.borderColor = "rgba(16,185,129,0.4)";
+                bar.style.background = "rgba(16,185,129,0.06)";
+            }
+        } else {
+            if (counterPill) counterPill.style.display = "none";
+            if (actionsGroup) actionsGroup.style.display = "none";
+            if (bar) {
+                bar.style.borderColor = "var(--border-color)";
+                bar.style.background = "rgba(16,185,129,0.03)";
+            }
+        }
+    }
+
+    function clearBulkSelection(proto) {
+        if (proto === 'wireguard') {
+            if (window.wgSelectedKeys) window.wgSelectedKeys.clear();
+            const selectAllChk = document.getElementById("wg-select-all-chk");
+            if (selectAllChk) selectAllChk.checked = false;
+            document.querySelectorAll(".wg-client-chk").forEach(chk => chk.checked = false);
+            updateWgBulkBarState();
+            updateWgCardStyles();
+        } else {
+            if (window.awgSelectedKeys) window.awgSelectedKeys.clear();
+            const selectAllChk = document.getElementById("awg-select-all-chk");
+            if (selectAllChk) selectAllChk.checked = false;
+            document.querySelectorAll(".awg-client-chk").forEach(chk => chk.checked = false);
+            updateAwgBulkBarState();
+            updateAwgCardStyles();
+        }
+    }
+
+    async function triggerBulkAction(proto, action, extraData = {}) {
+        const selected = proto === 'wireguard' ? window.wgSelectedKeys : window.awgSelectedKeys;
+        if (!selected || selected.size === 0) {
+            showToast("هیچ کاربری انتخاب نشده است.", "warning");
+            return;
+        }
+
+        const count = selected.size;
+        if (action === 'delete') {
+            if (!confirm(`آیا از حذف دسته‌جمعی ${count} کلاینت انتخاب شده اطمینان کامل دارید؟ این عمل غیرقابل بازگشت است.`)) {
+                return;
+            }
+        }
+
+        const actionTitles = {
+            'delete': 'حذف دسته‌جمعی کلاینت‌ها...',
+            'pause': 'متوقف کردن کلاینت‌ها...',
+            'resume': 'فعال‌سازی مجدد کلاینت‌ها...',
+            'set_group': 'تغییر گروه کلاینت‌ها...',
+            'set_traffic': 'اعمال سقف حجم جدید...',
+            'reset_usage': 'صفر کردن ترافیک مصرفی...'
+        };
+
+        toggleLoading(true, actionTitles[action] || "در حال انجام عملیات دسته‌جمعی...");
+        try {
+            const endpoint = proto === 'wireguard' ? '/api/wireguard/clients/bulk-action' : '/api/amneziawg/clients/bulk-action';
+            const payload = {
+                action: action,
+                public_keys: Array.from(selected),
+                ...extraData
+            };
+
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showToast(data.message || "عملیات دسته‌جمعی با موفقیت انجام شد.", "success");
+                clearBulkSelection(proto);
+                if (proto === 'wireguard') {
+                    fetchWireGuardClients();
+                } else {
+                    fetchAmneziaWGClients();
+                }
+            } else {
+                showToast(data.error || "خطا در انجام عملیات دسته‌جمعی", "error");
+            }
+        } catch (e) {
+            console.error("Bulk action error:", e);
+            showToast("خطا در برقراری ارتباط با سرور", "error");
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    async function triggerBulkDownload(proto) {
+        const selected = proto === 'wireguard' ? window.wgSelectedKeys : window.awgSelectedKeys;
+        if (!selected || selected.size === 0) {
+            showToast("هیچ کاربری انتخاب نشده است.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال بسته‌بندی کانفیگ‌ها در قالب فایل ZIP...");
+        try {
+            const endpoint = proto === 'wireguard' ? '/api/wireguard/clients/bulk-download' : '/api/amneziawg/clients/bulk-download';
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ public_keys: Array.from(selected) })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                showToast(errData.error || "خطا در دانلود دسته‌جمعی کانفیگ‌ها", "error");
+                toggleLoading(false);
+                return;
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = `${proto}-selected-configs-${Date.now()}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            showToast(`فایل ZIP با موفقیت دانلود شد (${selected.size} کلاینت).`, "success");
+        } catch (e) {
+            console.error("Bulk download error:", e);
+            showToast("خطا در دانلود فایل ZIP", "error");
+        } finally {
+            toggleLoading(false);
+        }
+    }
+
+    function openBulkGroupModal(proto) {
+        window.bulkTargetProto = proto;
+        const selected = proto === 'wireguard' ? window.wgSelectedKeys : window.awgSelectedKeys;
+        if (!selected || selected.size === 0) {
+            showToast("ابتدا کلاینت‌های مورد نظر را انتخاب نمایید.", "warning");
+            return;
+        }
+
+        const countBadge = document.getElementById("bulk-group-count-badge");
+        if (countBadge) countBadge.innerText = selected.size.toLocaleString('fa-IR');
+
+        const input = document.getElementById("bulk-group-input");
+        if (input) input.value = "عمومی";
+
+        // Populate datalist with existing groups
+        const datalist = document.getElementById("bulk-group-datalist");
+        if (datalist) {
+            datalist.innerHTML = "";
+            const groups = proto === 'wireguard' ? (window.wgAllGroups || []) : (window.awgAllGroups || []);
+            groups.forEach(g => {
+                const opt = document.createElement("option");
+                opt.value = g;
+                datalist.appendChild(opt);
+            });
+        }
+
+        const modal = document.getElementById("modal-bulk-group");
+        if (modal) modal.classList.add("active");
+        if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: modal }); } catch (_) {}
+    }
+
+    function closeBulkGroupModal() {
+        const modal = document.getElementById("modal-bulk-group");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function submitBulkGroupChange() {
+        const input = document.getElementById("bulk-group-input");
+        const newGroup = input ? (input.value.trim() || "عمومی") : "عمومی";
+        closeBulkGroupModal();
+        triggerBulkAction(window.bulkTargetProto, "set_group", { group: newGroup });
+    }
+
+    function openBulkTrafficModal(proto) {
+        window.bulkTargetProto = proto;
+        const selected = proto === 'wireguard' ? window.wgSelectedKeys : window.awgSelectedKeys;
+        if (!selected || selected.size === 0) {
+            showToast("ابتدا کلاینت‌های مورد نظر را انتخاب نمایید.", "warning");
+            return;
+        }
+
+        const countBadge = document.getElementById("bulk-traffic-count-badge");
+        if (countBadge) countBadge.innerText = selected.size.toLocaleString('fa-IR');
+
+        const limitInput = document.getElementById("bulk-traffic-limit-input");
+        if (limitInput) limitInput.value = "";
+
+        const modal = document.getElementById("modal-bulk-traffic");
+        if (modal) modal.classList.add("active");
+        if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: modal }); } catch (_) {}
+    }
+
+    function closeBulkTrafficModal() {
+        const modal = document.getElementById("modal-bulk-traffic");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function submitBulkTrafficChange(type) {
+        if (type === 'set_traffic') {
+            const limitInput = document.getElementById("bulk-traffic-limit-input");
+            const val = limitInput ? limitInput.value.trim() : "";
+            const limit_gb = val === "" ? null : parseFloat(val);
+            closeBulkTrafficModal();
+            triggerBulkAction(window.bulkTargetProto, "set_traffic", { limit_gb: limit_gb });
+        } else if (type === 'reset_usage') {
+            closeBulkTrafficModal();
+            triggerBulkAction(window.bulkTargetProto, "reset_usage");
+        }
     }
 
     // Add Single WireGuard Client
@@ -9371,6 +9731,7 @@
             if (p.group && p.group.trim()) groups.add(p.group.trim());
         });
         groups.add("عمومی");
+        window.awgAllGroups = Array.from(groups);
 
         if (select) {
             const currentVal = select.value || "all";

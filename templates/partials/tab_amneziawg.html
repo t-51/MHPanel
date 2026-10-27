@@ -110,6 +110,48 @@
                 </div>
             </div>
 
+            <!-- AmneziaWG Bulk Actions Bar -->
+            <div id="awg-bulk-bar" class="glass-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:10px; border:1px solid var(--border-color); background:rgba(16,185,129,0.03);">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-main); user-select:none;">
+                        <input type="checkbox" id="awg-select-all-chk" onchange="toggleSelectAllAwgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#10b981;">
+                        <span>انتخاب همه</span>
+                    </label>
+                    <span id="awg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:999px; font-weight:700; display:none;">
+                        <span id="awg-bulk-selected-count">۰</span> کلاینت انتخاب شد
+                    </span>
+                </div>
+                <div id="awg-bulk-actions-group" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkDownload('amneziawg')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="دانلود کانفیگ تمام کاربران انتخاب شده بصورت یک فایل ZIP">
+                        <i data-lucide="archive" style="width:13px; height:13px;"></i>
+                        <span>دانلود ZIP کانفیگ‌ها</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkGroupModal('amneziawg')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#6366f1; border-color:rgba(99,102,241,0.3);" title="تغییر دسته / گروه کلاینت‌های انتخاب شده">
+                        <i data-lucide="folder" style="width:13px; height:13px;"></i>
+                        <span>تغییر گروه</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkTrafficModal('amneziawg')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#eab308; border-color:rgba(234,179,8,0.3);" title="تنظیم سقف حجم یا صفر کردن مصرف">
+                        <i data-lucide="pie-chart" style="width:13px; height:13px;"></i>
+                        <span>حجم / مصرف</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('amneziawg', 'pause')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#f97316; border-color:rgba(249,115,22,0.3);" title="متوقف کردن اتصال کلاینت‌های انتخاب شده">
+                        <i data-lucide="pause" style="width:13px; height:13px;"></i>
+                        <span>توقف اتصال</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('amneziawg', 'resume')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="فعال‌سازی مجدد اتصال کلاینت‌های انتخاب شده">
+                        <i data-lucide="play" style="width:13px; height:13px;"></i>
+                        <span>فعال‌سازی</span>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="triggerBulkAction('amneziawg', 'delete')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="حذف کلاینت‌های انتخاب شده">
+                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        <span>حذف دسته‌جمعی</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="clearBulkSelection('amneziawg')" style="font-size:12px; height:32px; padding:0 8px; opacity:0.8;" title="انصراف و لغو انتخاب">
+                        <i data-lucide="x" style="width:13px; height:13px;"></i>
+                    </button>
+                </div>
+            </div>
+
             <!-- AmneziaWG Clients Cards Container -->
             <div id="awg-clients-grid" style="display:flex; flex-direction:column; gap:10px;">
                 <div style="text-align:center; padding:30px; font-size:13px; color:var(--text-muted);">

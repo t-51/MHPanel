@@ -6912,6 +6912,47 @@ def api_groups_list():
         
     return jsonify({"success": True, "groups": res})
 
+def remove_peers_from_config(conf_path, pubkeys_to_remove):
+    if not os.path.exists(conf_path):
+        return
+    try:
+        with open(conf_path, "r") as f:
+            lines = f.readlines()
+        
+        pubkeys_set = set()
+        for k in pubkeys_to_remove:
+            if k and str(k).strip():
+                s = str(k).strip()
+                pubkeys_set.add(s)
+                pubkeys_set.add(s.replace(" ", "+"))
+                pubkeys_set.add(s.replace("+", " "))
+            
+        new_lines = []
+        skip_lines = 0
+        for i, line in enumerate(lines):
+            if skip_lines > 0:
+                skip_lines -= 1
+                continue
+            if "[Peer]" in line:
+                block_lines = []
+                j = i
+                while j < len(lines) and not lines[j].strip().startswith("[Interface]") and not (lines[j].strip().startswith("[Peer]") and j > i):
+                    block_lines.append(lines[j])
+                    j += 1
+                block_content = "".join(block_lines)
+                matched = any(k in block_content for k in pubkeys_set)
+                if matched:
+                    if len(new_lines) > 0 and new_lines[-1].strip().startswith("# Name:"):
+                        new_lines.pop()
+                    skip_lines = len(block_lines) - 1
+                    continue
+            new_lines.append(line)
+            
+        with open(conf_path, "w") as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        print(f"Error removing peers from {conf_path}: {e}")
+
 @app.route("/api/wireguard/client/delete", methods=["POST"])
 def api_wg_client_delete():
     if not check_login():
@@ -6924,34 +6965,9 @@ def api_wg_client_delete():
     if not os.path.exists("/etc/wireguard/wg0.conf"):
         return jsonify({"success": False, "error": "WireGuard is not installed."}), 400
         
-    with open("/etc/wireguard/wg0.conf", "r") as f:
-        lines = f.readlines()
-        
-    new_lines = []
-    skip_lines = 0
-    
-    for i, line in enumerate(lines):
-        if skip_lines > 0:
-            skip_lines -= 1
-            continue
-        if "[Peer]" in line:
-            block_lines = []
-            j = i
-            while j < len(lines) and not lines[j].strip().startswith("[Interface]") and not (lines[j].strip().startswith("[Peer]") and j > i):
-                block_lines.append(lines[j])
-                j += 1
-            block_content = "".join(block_lines)
-            if pubkey in block_content:
-                if len(new_lines) > 0 and new_lines[-1].strip().startswith("# Name:"):
-                    new_lines.pop()
-                skip_lines = len(block_lines) - 1
-                continue
-        new_lines.append(line)
-        
-    with open("/etc/wireguard/wg0.conf", "w") as f:
-        f.writelines(new_lines)
-        
+    remove_peers_from_config("/etc/wireguard/wg0.conf", [pubkey])
     subprocess.run(f"wg syncconf wg0 <(wg-quick strip wg0)", shell=True, executable="/bin/bash")
+    subprocess.run(["wg", "set", "wg0", "peer", pubkey, "remove"], check=False)
     
     if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
         wg_users = {}
@@ -6964,6 +6980,175 @@ def api_wg_client_delete():
                 json.dump(wg_users, f)
                 
     return jsonify({"success": True})
+
+@app.route("/api/wireguard/clients/bulk-action", methods=["POST"])
+def api_wg_clients_bulk_action():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    action = data.get("action")
+    raw_keys = data.get("public_keys", [])
+    if not action or not raw_keys:
+        return jsonify({"success": False, "error": "Missing action or public_keys"}), 400
+
+    wg_users_file = '/www/wwwroot/mhpanel/wg_users.json'
+    wg_users = {}
+    if os.path.exists(wg_users_file):
+        try:
+            with open(wg_users_file, 'r') as f:
+                wg_users = json.load(f)
+        except Exception:
+            pass
+
+    keys_map = {}
+    for k in raw_keys:
+        norm = str(k).strip()
+        if norm in wg_users:
+            keys_map[norm] = wg_users[norm]
+        elif norm.replace(" ", "+") in wg_users:
+            keys_map[norm.replace(" ", "+")] = wg_users[norm.replace(" ", "+")]
+        elif norm.replace("+", " ") in wg_users:
+            keys_map[norm.replace("+", " ")] = wg_users[norm.replace("+", " ")]
+
+    if not keys_map:
+        return jsonify({"success": False, "error": "هیچ کلاینت منطبقی یافت نشد."}), 404
+
+    count = len(keys_map)
+
+    if action == "delete":
+        remove_peers_from_config("/etc/wireguard/wg0.conf", list(keys_map.keys()))
+        subprocess.run("wg syncconf wg0 <(wg-quick strip wg0)", shell=True, executable="/bin/bash")
+        for k in keys_map.keys():
+            subprocess.run(["wg", "set", "wg0", "peer", k, "remove"], check=False)
+            if k in wg_users:
+                del wg_users[k]
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر وایرگارد با موفقیت حذف شدند."})
+
+    elif action == "pause":
+        for k in keys_map.keys():
+            wg_users[k]["active"] = False
+            wg_users[k]["status"] = "disabled"
+            subprocess.run(["wg", "set", "wg0", "peer", k, "remove"], check=False)
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر وایرگارد متوقف شدند."})
+
+    elif action == "resume":
+        for k, u in keys_map.items():
+            wg_users[k]["active"] = True
+            wg_users[k]["status"] = "active"
+            ip = u.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["wg", "set", "wg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر وایرگارد مجدداً فعال شدند."})
+
+    elif action == "set_group":
+        new_group = str(data.get("group", "")).strip() or "عمومی"
+        tok = get_or_create_group_token(new_group)
+        for k in keys_map.keys():
+            wg_users[k]["group"] = new_group
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "group": new_group, "message": f"دسته {count} کاربر به «{new_group}» تغییر یافت."})
+
+    elif action == "reset_usage":
+        for k in keys_map.keys():
+            wg_users[k]["rx"] = 0
+            wg_users[k]["tx"] = 0
+            wg_users[k]["total_usage"] = 0
+            wg_users[k]["is_traffic_expired"] = False
+            if wg_users[k].get("status") == "traffic_expired":
+                wg_users[k]["status"] = "active"
+                wg_users[k]["active"] = True
+                ip = wg_users[k].get("ip")
+                if not ip:
+                    m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", wg_users[k].get("config", ""))
+                    if m_ip: ip = m_ip.group(1)
+                if ip:
+                    subprocess.run(["wg", "set", "wg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"حجم مصرفی {count} کاربر صفر شد."})
+
+    elif action == "set_traffic":
+        new_limit = data.get("limit_gb")
+        new_limit_val = float(new_limit) if new_limit is not None and str(new_limit).strip() != "" else None
+        for k in keys_map.keys():
+            wg_users[k]["limit_gb"] = new_limit_val
+            if new_limit_val is None or (wg_users[k].get("total_usage", 0) < new_limit_val * (1024**3)):
+                wg_users[k]["is_traffic_expired"] = False
+                if wg_users[k].get("status") == "traffic_expired":
+                    wg_users[k]["status"] = "active"
+                    wg_users[k]["active"] = True
+                    ip = wg_users[k].get("ip")
+                    if not ip:
+                        m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", wg_users[k].get("config", ""))
+                        if m_ip: ip = m_ip.group(1)
+                    if ip:
+                        subprocess.run(["wg", "set", "wg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2)
+        limit_desc = f"{new_limit_val} GB" if new_limit_val else "نامحدود"
+        return jsonify({"success": True, "count": count, "message": f"سقف حجم {count} کاربر به {limit_desc} تغییر یافت."})
+
+    return jsonify({"success": False, "error": f"عملیات نامعتبر: {action}"}), 400
+
+@app.route("/api/wireguard/clients/bulk-download", methods=["POST"])
+def api_wg_clients_bulk_download():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    raw_keys = data.get("public_keys", [])
+    if not raw_keys:
+        return jsonify({"error": "No clients selected"}), 400
+
+    wg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
+                wg_users = json.load(f)
+        except Exception:
+            pass
+
+    domain = get_server_domain() or get_server_public_ip()
+    mp_cfg = get_wg_multiport_config()
+    ports = list(mp_cfg.get("ports", []))
+    target = mp_cfg.get("target_port") or 51820
+    if target not in ports:
+        ports.insert(0, target)
+
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for k in raw_keys:
+            norm = str(k).strip()
+            u = wg_users.get(norm) or wg_users.get(norm.replace(" ", "+")) or wg_users.get(norm.replace("+", " "))
+            if not u:
+                continue
+            uname = re.sub(r'[^a-zA-Z0-9_\-]', '_', u.get("name", "Client"))
+            base_cfg = u.get("config", "")
+            if not base_cfg:
+                continue
+            if len(ports) > 1:
+                for p in ports:
+                    cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+                    zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
+            else:
+                zf.writestr(f"{uname}.conf", base_cfg)
+
+    mem_file.seek(0)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"wireguard-selected-configs.zip"
+    )
 
 # --- MTProto Multi-Instance API ---
 @app.route("/api/amneziawg/client/bulk", methods=["POST"])
@@ -7688,34 +7873,9 @@ def api_awg_client_delete():
     if not os.path.exists("/etc/amnezia/amneziawg/awg0.conf"):
         return jsonify({"success": False, "error": "AmneziaWG is not installed."}), 400
         
-    with open("/etc/amnezia/amneziawg/awg0.conf", "r") as f:
-        lines = f.readlines()
-        
-    new_lines = []
-    skip_lines = 0
-    
-    for i, line in enumerate(lines):
-        if skip_lines > 0:
-            skip_lines -= 1
-            continue
-        if "[Peer]" in line:
-            block_lines = []
-            j = i
-            while j < len(lines) and not lines[j].strip().startswith("[Interface]") and not (lines[j].strip().startswith("[Peer]") and j > i):
-                block_lines.append(lines[j])
-                j += 1
-            block_content = "".join(block_lines)
-            if pubkey in block_content:
-                if len(new_lines) > 0 and new_lines[-1].strip().startswith("# Name:"):
-                    new_lines.pop()
-                skip_lines = len(block_lines) - 1
-                continue
-        new_lines.append(line)
-        
-    with open("/etc/amnezia/amneziawg/awg0.conf", "w") as f:
-        f.writelines(new_lines)
-        
+    remove_peers_from_config("/etc/amnezia/amneziawg/awg0.conf", [pubkey])
     subprocess.run(f"awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
+    subprocess.run(["awg", "set", "awg0", "peer", pubkey, "remove"], check=False)
     
     if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
         awg_users = {}
@@ -7728,6 +7888,175 @@ def api_awg_client_delete():
                 json.dump(awg_users, f)
                 
     return jsonify({"success": True})
+
+@app.route("/api/amneziawg/clients/bulk-action", methods=["POST"])
+def api_awg_clients_bulk_action():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    action = data.get("action")
+    raw_keys = data.get("public_keys", [])
+    if not action or not raw_keys:
+        return jsonify({"success": False, "error": "Missing action or public_keys"}), 400
+
+    awg_users_file = '/www/wwwroot/mhpanel/awg_users.json'
+    awg_users = {}
+    if os.path.exists(awg_users_file):
+        try:
+            with open(awg_users_file, 'r') as f:
+                awg_users = json.load(f)
+        except Exception:
+            pass
+
+    keys_map = {}
+    for k in raw_keys:
+        norm = str(k).strip()
+        if norm in awg_users:
+            keys_map[norm] = awg_users[norm]
+        elif norm.replace(" ", "+") in awg_users:
+            keys_map[norm.replace(" ", "+")] = awg_users[norm.replace(" ", "+")]
+        elif norm.replace("+", " ") in awg_users:
+            keys_map[norm.replace("+", " ")] = awg_users[norm.replace("+", " ")]
+
+    if not keys_map:
+        return jsonify({"success": False, "error": "هیچ کلاینت منطبقی یافت نشد."}), 404
+
+    count = len(keys_map)
+
+    if action == "delete":
+        remove_peers_from_config("/etc/amnezia/amneziawg/awg0.conf", list(keys_map.keys()))
+        subprocess.run("awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
+        for k in keys_map.keys():
+            subprocess.run(["awg", "set", "awg0", "peer", k, "remove"], check=False)
+            if k in awg_users:
+                del awg_users[k]
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر AmneziaWG با موفقیت حذف شدند."})
+
+    elif action == "pause":
+        for k in keys_map.keys():
+            awg_users[k]["active"] = False
+            awg_users[k]["status"] = "disabled"
+            subprocess.run(["awg", "set", "awg0", "peer", k, "remove"], check=False)
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر AmneziaWG متوقف شدند."})
+
+    elif action == "resume":
+        for k, u in keys_map.items():
+            awg_users[k]["active"] = True
+            awg_users[k]["status"] = "active"
+            ip = u.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["awg", "set", "awg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر AmneziaWG مجدداً فعال شدند."})
+
+    elif action == "set_group":
+        new_group = str(data.get("group", "")).strip() or "عمومی"
+        tok = get_or_create_group_token(new_group)
+        for k in keys_map.keys():
+            awg_users[k]["group"] = new_group
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "group": new_group, "message": f"دسته {count} کاربر به «{new_group}» تغییر یافت."})
+
+    elif action == "reset_usage":
+        for k in keys_map.keys():
+            awg_users[k]["rx"] = 0
+            awg_users[k]["tx"] = 0
+            awg_users[k]["total_usage"] = 0
+            awg_users[k]["is_traffic_expired"] = False
+            if awg_users[k].get("status") == "traffic_expired":
+                awg_users[k]["status"] = "active"
+                awg_users[k]["active"] = True
+                ip = awg_users[k].get("ip")
+                if not ip:
+                    m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", awg_users[k].get("config", ""))
+                    if m_ip: ip = m_ip.group(1)
+                if ip:
+                    subprocess.run(["awg", "set", "awg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        return jsonify({"success": True, "count": count, "message": f"حجم مصرفی {count} کاربر AmneziaWG صفر شد."})
+
+    elif action == "set_traffic":
+        new_limit = data.get("limit_gb")
+        new_limit_val = float(new_limit) if new_limit is not None and str(new_limit).strip() != "" else None
+        for k in keys_map.keys():
+            awg_users[k]["limit_gb"] = new_limit_val
+            if new_limit_val is None or (awg_users[k].get("total_usage", 0) < new_limit_val * (1024**3)):
+                awg_users[k]["is_traffic_expired"] = False
+                if awg_users[k].get("status") == "traffic_expired":
+                    awg_users[k]["status"] = "active"
+                    awg_users[k]["active"] = True
+                    ip = awg_users[k].get("ip")
+                    if not ip:
+                        m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", awg_users[k].get("config", ""))
+                        if m_ip: ip = m_ip.group(1)
+                    if ip:
+                        subprocess.run(["awg", "set", "awg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2)
+        limit_desc = f"{new_limit_val} GB" if new_limit_val else "نامحدود"
+        return jsonify({"success": True, "count": count, "message": f"سقف حجم {count} کاربر به {limit_desc} تغییر یافت."})
+
+    return jsonify({"success": False, "error": f"عملیات نامعتبر: {action}"}), 400
+
+@app.route("/api/amneziawg/clients/bulk-download", methods=["POST"])
+def api_awg_clients_bulk_download():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    raw_keys = data.get("public_keys", [])
+    if not raw_keys:
+        return jsonify({"error": "No clients selected"}), 400
+
+    awg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
+                awg_users = json.load(f)
+        except Exception:
+            pass
+
+    domain = get_server_domain() or get_server_public_ip()
+    mp_cfg = get_awg_multiport_config()
+    ports = list(mp_cfg.get("ports", []))
+    target = mp_cfg.get("target_port") or 443
+    if target not in ports:
+        ports.insert(0, target)
+
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for k in raw_keys:
+            norm = str(k).strip()
+            u = awg_users.get(norm) or awg_users.get(norm.replace(" ", "+")) or awg_users.get(norm.replace("+", " "))
+            if not u:
+                continue
+            uname = re.sub(r'[^a-zA-Z0-9_\-]', '_', u.get("name", "Client"))
+            base_cfg = u.get("config", "")
+            if not base_cfg:
+                continue
+            if len(ports) > 1:
+                for p in ports:
+                    cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+                    zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
+            else:
+                zf.writestr(f"{uname}.conf", base_cfg)
+
+    mem_file.seek(0)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"amneziawg-selected-configs.zip"
+    )
 
 # --- MTProto Multi-Instance API ---
 
