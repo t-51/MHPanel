@@ -11728,14 +11728,11 @@
                             </div>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                            <a href="/api/ssh/users/${encodeURIComponent(username)}/configs.zip" download="MHPanel-${username}-configs.zip" class="btn btn-primary btn-sm" title="دانلود پکیج کامل کلیه کانفیگ‌های این کاربر (.zip)" style="padding:6px 12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
-                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ
+                            <a href="/api/ssh/users/${encodeURIComponent(username)}/ssh.json" download="MHPanel-${username}-ssh.json" class="btn btn-primary btn-sm" title="دانلود مستقیم فایل کانفیگ SSH (.json)" style="padding:6px 12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
+                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ SSH
                             </a>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshUri('${username}')" title="کپی لینک سریع NapsternetV / NetMod (Import from Clipboard)" style="padding:6px 10px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;">
-                                <i data-lucide="link" style="width:13px; height:13px;"></i> لینک NPV
-                            </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="مشاهده تمام کانفیگ‌ها و راهنماها" style="padding:6px 10px;">
-                                <i data-lucide="layers" style="width:13px; height:13px;"></i>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="مشاهده اطلاعات اتصال و کانفیگ SSH" style="padding:6px 10px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;">
+                                <i data-lucide="eye" style="width:13px; height:13px;"></i> جزئیات SSH
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshConnection('${username}')" title="کپی اطلاعات اتصال این کاربر" style="padding:6px 10px;">
                                 <i data-lucide="copy" style="width:13px; height:13px;"></i>
@@ -12009,7 +12006,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
         const host = getSshHost();
         const pwd = user.password || "";
-        const subTok = user.sub_token || "";
 
         const userEl = document.getElementById("ssh-modal-user");
         if (userEl) userEl.innerText = username;
@@ -12018,36 +12014,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const hostEl = document.getElementById("ssh-modal-host");
         if (hostEl) hostEl.innerText = host;
 
-        const allZipDl = document.getElementById("ssh-modal-all-zip-dl");
-        if (allZipDl) {
-            allZipDl.href = `/api/ssh/users/${encodeURIComponent(username)}/configs.zip`;
-            allZipDl.download = `MHPanel-${username}-configs.zip`;
-        }
-
-        const netmodDl = document.getElementById("ssh-modal-netmod-dl");
-        if (netmodDl) {
-            netmodDl.href = `/api/ssh/users/${encodeURIComponent(username)}/netmod.json`;
-            netmodDl.download = `MHPanel-${username}-NetMod.json`;
-        }
-
-        const singboxDl = document.getElementById("ssh-modal-singbox-dl");
-        if (singboxDl) {
-            singboxDl.href = `/api/ssh/users/${encodeURIComponent(username)}/singbox.json`;
-            singboxDl.download = `MHPanel-${username}-SingBox.json`;
+        const sshDl = document.getElementById("ssh-modal-file-dl");
+        if (sshDl) {
+            sshDl.href = `/api/ssh/users/${encodeURIComponent(username)}/ssh.json`;
+            sshDl.download = `MHPanel-${username}-ssh.json`;
         }
 
         const uri = getUserSshUri(username);
         const uriBox = document.getElementById("ssh-modal-uri-preview");
         if (uriBox) uriBox.innerText = uri;
 
-        const subUrl = subTok ? `${window.location.origin}/sub/${subTok}` : `${window.location.origin}/sub/`;
-        const subBox = document.getElementById("ssh-modal-sub-url");
-        if (subBox) subBox.innerText = subUrl;
-        const subOpen = document.getElementById("ssh-modal-sub-open");
-        if (subOpen) subOpen.href = subUrl;
+        const payloadBox = document.getElementById("ssh-modal-payload-preview");
+        if (payloadBox) {
+            payloadBox.innerText = `GET /ssh HTTP/1.1[c]Host: ${host}[c]Upgrade: websocket[c]Connection: keep-alive[c][c]`;
+        }
 
         window._currentSshModalUri = uri;
-        window._currentSshModalSub = subUrl;
 
         const modal = document.getElementById("modal-ssh-configs");
         if (modal) modal.classList.add("active");
@@ -12062,12 +12044,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function copySshModalUri() {
         if (window._currentSshModalUri) {
             copySshText(window._currentSshModalUri, "لینک هوشمند NapsternetV / NetMod");
-        }
-    }
-
-    function copySshModalSubLink() {
-        if (window._currentSshModalSub) {
-            copySshText(window._currentSshModalSub, "لینک صفحه اشتراک کاربر");
         }
     }
 
@@ -23510,6 +23486,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (modal) {
+            modal.classList.add('active');
             modal.style.display = 'flex';
             if (window.lucide) lucide.createIcons();
         }
@@ -23517,7 +23494,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     function closeGasQrModal() {
         const modal = document.getElementById('gas-qr-modal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }
     }
 
     function copyGasText(elementId, btnId) {
@@ -24002,6 +23982,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function openNewGasTemplateModal() {
         const modal = document.getElementById('gas-new-template-modal');
         if (modal) {
+            modal.classList.add('active');
             modal.style.display = 'flex';
             if (window.lucide) lucide.createIcons();
             const input = document.getElementById('gas-newtpl-name');
@@ -24011,7 +23992,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     function closeNewGasTemplateModal() {
         const modal = document.getElementById('gas-new-template-modal');
-        if (modal) modal.style.display = 'none';
+        if (modal) {
+            modal.classList.remove('active');
+            modal.style.display = 'none';
+        }
     }
 
     async function submitNewGasTemplate() {
@@ -24668,6 +24652,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    function togglePasswordVisibility(fieldId) {
+        const el = typeof fieldId === 'string' ? document.getElementById(fieldId) : fieldId;
+        if (!el) return;
+        el.type = el.type === 'password' ? 'text' : 'password';
+    }
+    window.togglePasswordVisibility = togglePasswordVisibility;
+
     function openGasAddAccountModal() {
         const nameEl = document.getElementById("gas-newacc-name");
         const emailEl = document.getElementById("gas-newacc-email");
@@ -24678,13 +24669,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (tokenEl) tokenEl.value = "";
         if (titleEl) titleEl.value = "MHPanel-GAS-FullTunnel";
         const m = document.getElementById("gas-add-account-modal");
-        if (m) m.style.display = "flex";
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
         if (window.lucide) lucide.createIcons();
     }
 
     function closeGasAddAccountModal() {
         const m = document.getElementById("gas-add-account-modal");
-        if (m) m.style.display = "none";
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
     }
 
     async function submitGasAddAccount() {
@@ -24714,6 +24711,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const tokenInput = document.getElementById("gas-input-token");
                 if (tokenInput && setActive) tokenInput.value = token;
                 await fetchGoogleScriptConfig();
+                const manageModal = document.getElementById("gas-manage-accounts-modal");
+                if (manageModal && (manageModal.classList.contains("active") || manageModal.style.display === "flex")) {
+                    openGasManageAccountsModal();
+                }
             } else {
                 showToast(data.error || "خطا در افزودن حساب", "error");
             }
@@ -24727,7 +24728,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const tbody = document.getElementById("gas-manage-accounts-tbody");
         if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">در حال دریافت اطلاعات حساب‌ها...</td></tr>`;
         const m = document.getElementById("gas-manage-accounts-modal");
-        if (m) m.style.display = "flex";
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
         if (window.lucide) lucide.createIcons();
 
         try {
@@ -24792,7 +24796,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     function closeGasManageAccountsModal() {
         const m = document.getElementById("gas-manage-accounts-modal");
-        if (m) m.style.display = "none";
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
     }
 
     async function setGasAccountActiveFromModal(accId) {
@@ -24812,13 +24819,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         document.getElementById("gas-editacc-title").value = acc.project_title || "MHPanel-GAS-FullTunnel";
 
         const m = document.getElementById("gas-edit-account-modal");
-        if (m) m.style.display = "flex";
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
         if (window.lucide) lucide.createIcons();
     }
 
     function closeGasEditAccountModal() {
         const m = document.getElementById("gas-edit-account-modal");
-        if (m) m.style.display = "none";
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
     }
 
     async function submitGasEditAccount() {
@@ -24843,7 +24856,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 closeGasEditAccountModal();
                 await fetchGoogleScriptConfig();
                 const manageModal = document.getElementById("gas-manage-accounts-modal");
-                if (manageModal && manageModal.style.display === "flex") {
+                if (manageModal && (manageModal.classList.contains("active") || manageModal.style.display === "flex")) {
                     openGasManageAccountsModal();
                 }
             } else {
@@ -24904,13 +24917,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (resBox) resBox.style.display = "none";
 
         const m = document.getElementById("gas-batch-deploy-modal");
-        if (m) m.style.display = "flex";
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
         if (window.lucide) lucide.createIcons();
     }
 
     function closeGasBatchDeployModal() {
         const m = document.getElementById("gas-batch-deploy-modal");
-        if (m) m.style.display = "none";
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
     }
 
     function toggleSelectAllGasBatch(selectAll) {
@@ -25930,7 +25949,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     document.addEventListener("keydown", function(e) {
         if (e.key === "Escape" || e.keyCode === 27) {
-            document.querySelectorAll(".modal.active").forEach(m => m.classList.remove("active"));
+            document.querySelectorAll(".modal.active, .gas-modal-overlay.active").forEach(m => {
+                m.classList.remove("active");
+                m.style.display = "none";
+            });
         }
     });
 

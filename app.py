@@ -14150,6 +14150,7 @@ def api_add_ssh_user():
 
     return jsonify({"success": True})
 
+@app.route("/api/ssh/users/<username>/ssh.json", methods=["GET"])
 @app.route("/api/ssh/users/<username>/netmod.json", methods=["GET"])
 def api_ssh_user_netmod_download(username):
     if not check_login():
@@ -14160,7 +14161,7 @@ def api_ssh_user_netmod_download(username):
     pub_ip = get_server_public_ip()
     cfg = generate_netmod_config_bundle(username, pwd, domain, pub_ip)
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
-    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-NetMod.json"'
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-ssh.json"'
     return resp
 
 @app.route("/api/ssh/users/<username>/singbox.json", methods=["GET"])
@@ -25898,12 +25899,18 @@ def save_gas_config(cfg, restart_service=True):
         act_id = cfg.get("active_account_id")
         if act_id and act_id in cfg["accounts"]:
             act = cfg["accounts"][act_id]
-            if "google_access_token" in cfg: act["access_token"] = cfg["google_access_token"]
-            if "google_script_id" in cfg: act["script_id"] = cfg["google_script_id"]
-            if "google_deployment_id" in cfg: act["deployment_id"] = cfg["google_deployment_id"]
-            if "google_webapp_url" in cfg: act["webapp_url"] = cfg["google_webapp_url"]
-            if "google_project_title" in cfg: act["project_title"] = cfg["google_project_title"]
-            if "last_deploy_time" in cfg: act["last_deploy_time"] = cfg["last_deploy_time"]
+            if "google_access_token" in cfg and cfg["google_access_token"]:
+                act["access_token"] = cfg["google_access_token"]
+            if "google_script_id" in cfg and cfg["google_script_id"]:
+                act["script_id"] = cfg["google_script_id"]
+            if "google_deployment_id" in cfg and cfg["google_deployment_id"]:
+                act["deployment_id"] = cfg["google_deployment_id"]
+            if "google_webapp_url" in cfg and cfg["google_webapp_url"]:
+                act["webapp_url"] = cfg["google_webapp_url"]
+            if "google_project_title" in cfg and cfg["google_project_title"]:
+                act["project_title"] = cfg["google_project_title"]
+            if "last_deploy_time" in cfg and cfg["last_deploy_time"]:
+                act["last_deploy_time"] = cfg["last_deploy_time"]
 
     os.makedirs(os.path.dirname(GAS_CONFIG_FILE), exist_ok=True)
     with open(GAS_CONFIG_FILE, "w", encoding="utf-8") as f:
@@ -26879,6 +26886,12 @@ def api_google_script_account_add():
     cfg["accounts"][acc_id] = new_acc
     if len(cfg["accounts"]) == 1 or data.get("set_active", True):
         cfg["active_account_id"] = acc_id
+        cfg["google_access_token"] = token
+        cfg["google_project_title"] = title
+        cfg["google_script_id"] = new_acc["script_id"]
+        cfg["google_deployment_id"] = new_acc["deployment_id"]
+        cfg["google_webapp_url"] = new_acc["webapp_url"]
+        cfg["last_deploy_time"] = ""
     save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": f"حساب جیمیل «{name}» با موفقیت افزوده شد.", "account": new_acc, "active_account_id": cfg["active_account_id"]})
 
@@ -26899,7 +26912,9 @@ def api_google_script_account_edit(acc_id):
         acc["access_token"] = data["access_token"].strip()
         if acc["access_token"]:
             acc["status"] = "ready"
-    if "project_title" in data:
+        elif not acc.get("webapp_url"):
+            acc["status"] = "no_token"
+    if "project_title" in data and data["project_title"].strip():
         acc["project_title"] = data["project_title"].strip()
     if "script_id" in data:
         acc["script_id"] = data["script_id"].strip()
@@ -26907,7 +26922,18 @@ def api_google_script_account_edit(acc_id):
         acc["deployment_id"] = data["deployment_id"].strip()
     if "webapp_url" in data:
         acc["webapp_url"] = data["webapp_url"].strip()
-        
+        if acc["webapp_url"]:
+            acc["status"] = "active"
+
+    # If this is the active account, also sync top-level fields
+    if cfg.get("active_account_id") == acc_id:
+        cfg["google_access_token"] = acc.get("access_token", "")
+        cfg["google_project_title"] = acc.get("project_title", "")
+        cfg["google_script_id"] = acc.get("script_id", "")
+        cfg["google_deployment_id"] = acc.get("deployment_id", "")
+        cfg["google_webapp_url"] = acc.get("webapp_url", "")
+        cfg["last_deploy_time"] = acc.get("last_deploy_time", "")
+
     save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": "اطلاعات حساب جیمیل بروزرسانی شد.", "account": acc})
 
@@ -26919,6 +26945,13 @@ def api_google_script_account_set_active(acc_id):
     if acc_id not in cfg.get("accounts", {}):
         return jsonify({"success": False, "error": "حساب کاربری یافت نشد."}), 404
     cfg["active_account_id"] = acc_id
+    act = cfg["accounts"][acc_id]
+    cfg["google_access_token"] = act.get("access_token", "")
+    cfg["google_script_id"] = act.get("script_id", "")
+    cfg["google_deployment_id"] = act.get("deployment_id", "")
+    cfg["google_webapp_url"] = act.get("webapp_url", "")
+    cfg["google_project_title"] = act.get("project_title", cfg.get("google_project_title", ""))
+    cfg["last_deploy_time"] = act.get("last_deploy_time", "")
     save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": f"حساب فعال به «{cfg['accounts'][acc_id].get('name')}» تغییر یافت.", "active_account_id": acc_id, "account": cfg["accounts"][acc_id]})
 
@@ -26931,7 +26964,21 @@ def api_google_script_account_delete(acc_id):
         return jsonify({"success": False, "error": "حساب کاربری یافت نشد."}), 404
     del cfg["accounts"][acc_id]
     if cfg.get("active_account_id") == acc_id:
-        cfg["active_account_id"] = list(cfg["accounts"].keys())[0] if cfg["accounts"] else ""
+        new_active = list(cfg["accounts"].keys())[0] if cfg["accounts"] else ""
+        cfg["active_account_id"] = new_active
+        if new_active:
+            act = cfg["accounts"][new_active]
+            cfg["google_access_token"] = act.get("access_token", "")
+            cfg["google_script_id"] = act.get("script_id", "")
+            cfg["google_deployment_id"] = act.get("deployment_id", "")
+            cfg["google_webapp_url"] = act.get("webapp_url", "")
+            cfg["google_project_title"] = act.get("project_title", "")
+            cfg["last_deploy_time"] = act.get("last_deploy_time", "")
+        else:
+            cfg["google_access_token"] = ""
+            cfg["google_script_id"] = ""
+            cfg["google_deployment_id"] = ""
+            cfg["google_webapp_url"] = ""
     save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": "حساب جیمیل با موفقیت حذف گردید.", "active_account_id": cfg.get("active_account_id", "")})
 

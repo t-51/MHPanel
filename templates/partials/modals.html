@@ -2878,13 +2878,13 @@
     </div>
 </div>
 
-<!-- SSH Ready Configs & Links Modal -->
+<!-- SSH Ready Configs & Details Modal -->
 <div class="modal" id="modal-ssh-configs">
     <div class="modal-card" style="max-width: 620px; width: 100%;">
         <header class="modal-header">
             <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
-                <i data-lucide="smartphone" style="color: #10b981; width: 20px; height: 20px;"></i>
-                <span>کانفیگ‌های آماده اتصال کلاینت‌های اندروید و ویندوز</span>
+                <i data-lucide="terminal" style="color: #6366f1; width: 20px; height: 20px;"></i>
+                <span>اطلاعات اتصال و فایل کانفیگ SSH</span>
             </h3>
             <button class="modal-close" onclick="closeSshConfigsModal()"><i data-lucide="x"></i></button>
         </header>
@@ -2905,46 +2905,47 @@
                 </div>
             </div>
 
-            <!-- Unified All-in-one ZIP Download Button -->
-            <div style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <!-- SSH Detailed Specifications -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                    <div><span style="color:var(--text-muted);">پورت وب‌سوکت SSL:</span> <strong style="color:#10b981; font-family:'JetBrains Mono',monospace;">443</strong> <span style="font-size:10.5px; color:var(--text-muted);">(Path: /ssh)</span></div>
+                    <div><span style="color:var(--text-muted);">پورت مستقیم TCP:</span> <strong style="color:#6366f1; font-family:'JetBrains Mono',monospace;">22</strong></div>
+                    <div><span style="color:var(--text-muted);">سرویس UDPGW:</span> <strong style="color:#f59e0b; font-family:'JetBrains Mono',monospace;">127.0.0.1:7300</strong></div>
+                    <div><span style="color:var(--text-muted);">پروتکل تونل:</span> <strong style="color:var(--text-main);">SSH over WebSocket / Direct</strong></div>
+                </div>
+                <div style="margin-top:4px;">
+                    <span style="color:var(--text-muted); display:block; margin-bottom:4px;">پی‌لود وب‌سوکت (WS Payload):</span>
+                    <div id="ssh-modal-payload-preview" style="background:#0f172a; color:#a5b4fc; padding:6px 10px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:11px; direction:ltr; word-break:break-all;">
+                        GET /ssh HTTP/1.1[c]Host: ...[c]Upgrade: websocket[c]Connection: keep-alive[c][c]
+                    </div>
+                </div>
+            </div>
+
+            <!-- Primary Direct Download Button for SSH File -->
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 12px; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                 <div>
-                    <strong style="color: #059669; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-                        <i data-lucide="package-check" style="width: 18px; height: 18px;"></i>
-                        <span>پکیج کامل کلیه کانفیگ‌ها در یک فایل (ZIP)</span>
+                    <strong style="color: #6366f1; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="file-json" style="width: 18px; height: 18px;"></i>
+                        <span>دانلود مستقیم فایل کانفیگ SSH (.json)</span>
                     </strong>
                     <p style="font-size: 11.5px; color: var(--text-muted); margin: 3px 0 0 0;">
-                        شامل فایل‌های NetMod (.json)، Sing-Box (.json)، OpenVPN (.ovpn)، لینک‌های NapsternetV و راهنما
+                        فایل کانفیگ استاندارد جهت ایمپورت مستقیم در نرم‌افزارهای NetMod Syna و Sing-box
                     </p>
                 </div>
-                <a id="ssh-modal-all-zip-dl" href="#" download class="btn btn-primary" style="background: #10b981; border-color: #10b981; text-decoration: none; padding: 8px 18px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                <a id="ssh-modal-file-dl" href="#" download class="btn btn-primary" style="background: #6366f1; border-color: #6366f1; text-decoration: none; padding: 8px 18px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
                     <i data-lucide="download" style="width: 15px; height: 15px;"></i>
-                    <span>دانلود کانفیگ</span>
+                    <span>دانلود فایل کانفیگ SSH</span>
                 </a>
             </div>
 
-            <!-- Client Option 1: NetMod Syna -->
+            <!-- Quick Link for NapsternetV / NPV -->
             <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
                     <strong style="color:#059669; font-size:13.5px; display:flex; align-items:center; gap:6px;">
-                        <i data-lucide="file-json" style="width:16px; height:16px;"></i> برنامه NetMod Syna (فایل .json آماده)
-                    </strong>
-                    <a id="ssh-modal-netmod-dl" href="#" download class="btn btn-primary btn-sm" style="background:#10b981; border-color:#10b981; text-decoration:none; padding:5px 14px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px;">
-                        <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل آماده NetMod
-                    </a>
-                </div>
-                <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.5;">
-                    شامل تنظیمات پورت ۴۴۳ WebSocket، پورت ۲۲، SNI، پی‌لود و BadVPN UDPGW. مدیر می‌تواند مستقیماً این فایل را برای کاربر بفرستد تا در منوی برنامه گزینه <code>Import Config &gt; From File</code> را انتخاب کند.
-                </p>
-            </div>
-
-            <!-- Client Option 2: NapsternetV (NPV) & NetMod 1-Click Link -->
-            <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <strong style="color:#4f46e5; font-size:13.5px; display:flex; align-items:center; gap:6px;">
-                        <i data-lucide="link" style="width:16px; height:16px;"></i> لینک هوشمند سریع NapsternetV / NPV / NetMod
+                        <i data-lucide="link" style="width:16px; height:16px;"></i> لینک سریع NapsternetV / NPV (Import from Clipboard)
                     </strong>
                     <button type="button" class="btn btn-secondary btn-sm" id="ssh-modal-copy-uri-btn" onclick="copySshModalUri()" style="padding:5px 14px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
-                        <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی لینک هوشمند
+                        <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی لینک NPV
                     </button>
                 </div>
                 <div id="ssh-modal-uri-preview" style="background:#0f172a; color:#a5b4fc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono',monospace; font-size:11px; direction:ltr; word-break:break-all; max-height:60px; overflow-y:auto;">
@@ -2953,41 +2954,6 @@
                 <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.5;">
                     کاربر این لینک را کپی کرده، در برنامه NapsternetV علامت <code>+</code> بالا را می‌زند و <code>Import from Clipboard</code> را انتخاب می‌کند.
                 </p>
-            </div>
-
-            <!-- Client Option 3: Sing-Box / NekoBox (.json) -->
-            <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <strong style="color:#2563eb; font-size:13.5px; display:flex; align-items:center; gap:6px;">
-                        <i data-lucide="layers" style="width:16px; height:16px;"></i> برنامه Sing-Box / NekoBox (.json)
-                    </strong>
-                    <a id="ssh-modal-singbox-dl" href="#" download class="btn btn-secondary btn-sm" style="text-decoration:none; padding:5px 14px; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
-                        <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل Sing-Box
-                    </a>
-                </div>
-                <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.5;">
-                    فایل پروفایل استاندارد Sing-box با Inbound محلی Mixed (پورت 2080) و Outbound هوشمند SSH.
-                </p>
-            </div>
-
-            <!-- Client Option 4: Subscription Page Link -->
-            <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                    <strong style="color:#d97706; font-size:13.5px; display:flex; align-items:center; gap:6px;">
-                        <i data-lucide="globe" style="width:16px; height:16px;"></i> صفحه اختصاصی سابسکریپشن کاربر
-                    </strong>
-                    <div style="display:flex; gap:6px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySshModalSubLink()" style="padding:4px 10px; font-size:12px;">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی لینک
-                        </button>
-                        <a id="ssh-modal-sub-open" href="#" target="_blank" class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:12px; text-decoration:none;">
-                            <i data-lucide="external-link" style="width:13px; height:13px;"></i> باز کردن
-                        </a>
-                    </div>
-                </div>
-                <div id="ssh-modal-sub-url" style="background:#0f172a; color:#fde68a; padding:6px 10px; border-radius:6px; font-family:'JetBrains Mono',monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                    https://...
-                </div>
             </div>
 
             <!-- Close Action -->
