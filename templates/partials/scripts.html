@@ -11728,11 +11728,14 @@
                             </div>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="کانفیگ‌های آماده کلاینت‌ها (NetMod, NPV, ...)" style="padding:6px 10px; color:#10b981; display:inline-flex; align-items:center; gap:4px; font-weight:600;">
-                                <i data-lucide="smartphone" style="width:13px; height:13px;"></i> کانفیگ آماده
-                            </button>
+                            <a href="/api/ssh/users/${encodeURIComponent(username)}/configs.zip" download="MHPanel-${username}-configs.zip" class="btn btn-primary btn-sm" title="دانلود پکیج کامل کلیه کانفیگ‌های این کاربر (.zip)" style="padding:6px 12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
+                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ
+                            </a>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshUri('${username}')" title="کپی لینک سریع NapsternetV / NetMod (Import from Clipboard)" style="padding:6px 10px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;">
                                 <i data-lucide="link" style="width:13px; height:13px;"></i> لینک NPV
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="مشاهده تمام کانفیگ‌ها و راهنماها" style="padding:6px 10px;">
+                                <i data-lucide="layers" style="width:13px; height:13px;"></i>
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshConnection('${username}')" title="کپی اطلاعات اتصال این کاربر" style="padding:6px 10px;">
                                 <i data-lucide="copy" style="width:13px; height:13px;"></i>
@@ -12014,6 +12017,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (passEl) passEl.innerText = pwd ? pwd : "(رمز سیستمی / ردیوس)";
         const hostEl = document.getElementById("ssh-modal-host");
         if (hostEl) hostEl.innerText = host;
+
+        const allZipDl = document.getElementById("ssh-modal-all-zip-dl");
+        if (allZipDl) {
+            allZipDl.href = `/api/ssh/users/${encodeURIComponent(username)}/configs.zip`;
+            allZipDl.download = `MHPanel-${username}-configs.zip`;
+        }
 
         const netmodDl = document.getElementById("ssh-modal-netmod-dl");
         if (netmodDl) {

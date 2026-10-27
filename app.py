@@ -1621,6 +1621,121 @@ def generate_ssh_uris(username, password, domain, pub_ip):
     uri_direct = f"ssh://{safe_user}:{safe_pass}@{domain}:22#MHPanel-{username}-Direct22"
     return [uri_ws, uri_direct]
 
+def generate_client_ovpn_text(uname, server_host):
+    ca_content = ""
+    for ca_path in ["/etc/openvpn/server/ca.crt", "/etc/vpn-ca/ca.crt", "/etc/openvpn/ca.crt"]:
+        if os.path.exists(ca_path):
+            try:
+                with open(ca_path, "r") as f:
+                    ca_content = f.read().strip()
+                    break
+            except Exception:
+                pass
+
+    tc_content = ""
+    for tcp_candidate in ["/etc/openvpn/tls-crypt.key", "/etc/openvpn/tc.key", "/etc/openvpn/server/tls-crypt.key"]:
+        if os.path.exists(tcp_candidate):
+            try:
+                with open(tcp_candidate, "r") as f:
+                    tc_content = f.read().strip()
+                    break
+            except Exception:
+                pass
+
+    auth_block = "auth-user-pass"
+    tc_block = f"<tls-crypt>\n{tc_content}\n</tls-crypt>" if tc_content else ""
+
+    return f"""client
+dev tun
+remote {server_host} 1194 udp
+remote {server_host} 1194 tcp
+remote {server_host} 443 tcp
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+remote-cert-tls server
+cipher AES-256-GCM
+auth SHA256
+redirect-gateway def1 bypass-dhcp
+dhcp-option DNS 1.1.1.1
+dhcp-option DNS 8.8.8.8
+mssfix 1360
+verb 3
+{auth_block}
+<ca>
+{ca_content}
+</ca>
+{tc_block}
+"""
+
+def build_ssh_user_configs_zip(username, password, domain, pub_ip):
+    domain = domain or pub_ip or "127.0.0.1"
+    netmod_cfg = generate_netmod_config_bundle(username, password, domain, pub_ip)
+    singbox_cfg = generate_singbox_ssh_config(username, password, domain, pub_ip)
+    uris = generate_ssh_uris(username, password, domain, pub_ip)
+
+    npv_text = f"""=== NapsternetV / NPV / NetMod ===
+Username: {username}
+Host: {domain}
+
+Link 1 (Port 443 WS/TLS):
+{uris[0]}
+
+Link 2 (Port 22 Direct):
+{uris[1]}
+
+Guide:
+Copy Link 1 above. In NapsternetV, tap '+' at top right and choose 'Import from Clipboard'.
+"""
+
+    readme_text = f"""=====================================================
+            MHPanel VPN Configs Package
+=====================================================
+نام کاربری: {username}
+رمز عبور: {password}
+آدرس سرور: {domain}
+پورت‌های در دسترس: ۴۴۳ (WS / TLS) و ۲۲ (Direct)
+پورت گیمینگ و صوتی: ۷۳۰۰ (BadVPN UDPGW)
+=====================================================
+
+راهنمای سریع اتصال در برنامه‌ها:
+
+۱. نرم‌افزار NetMod Syna (اندروید و ویندوز):
+   فایل MHPanel-{username}-NetMod.json را در برنامه از مسیر Menu > Import Config > From File انتخاب کنید.
+
+۲. نرم‌افزار NapsternetV (NPV):
+   لینک موجود در فایل MHPanel-{username}-NapsternetV.txt را کپی کرده، در برنامه علامت + را لمس کرده و Import from Clipboard را بزنید.
+
+۳. نرم‌افزار Sing-Box / NekoBox:
+   فایل MHPanel-{username}-SingBox.json را در بخش Profiles با گزینه Import انتخاب نمایید.
+
+۴. نرم‌افزار OpenVPN Connect:
+   فایل MHPanel-{username}-OpenVPN.ovpn را در برنامه ایمپورت کرده و نام کاربری ({username}) و رمز عبور را وارد نمایید.
+
+۵. نرم‌افزار HTTP Custom:
+   آدرس اتصال: {domain}:443@{username}:{password}
+   پی‌لود وب‌سوکت:
+   GET /ssh HTTP/1.1[crlf]Host: {domain}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
+=====================================================
+"""
+
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"MHPanel-{username}-NetMod.json", json.dumps(netmod_cfg, indent=2, ensure_ascii=False))
+        zf.writestr(f"MHPanel-{username}-SingBox.json", json.dumps(singbox_cfg, indent=2, ensure_ascii=False))
+        zf.writestr(f"MHPanel-{username}-NapsternetV.txt", npv_text)
+        try:
+            ovpn_text = generate_client_ovpn_text(username, domain)
+            if ovpn_text:
+                zf.writestr(f"MHPanel-{username}-OpenVPN.ovpn", ovpn_text)
+        except Exception:
+            pass
+        zf.writestr(f"راهنمای_اتصال_{username}.txt", readme_text)
+
+    mem_file.seek(0)
+    return mem_file
+
 def find_user_by_sub_token(token):
     if not token:
         return None, None, None
@@ -2086,43 +2201,58 @@ def client_subscription_port_conf_download(sub_token, target_port):
 @app.route("/sub/<sub_token>/configs.zip")
 def client_subscription_zip_download(sub_token):
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
-    if not uname or "config" not in udata:
+    if not uname:
         return "Configuration Not Found", 404
-    base_cfg = udata["config"]
     domain = get_server_domain() or get_server_public_ip()
-    if proto_type == "wireguard":
-        mp_cfg = get_wg_multiport_config()
-        target = mp_cfg.get("target_port") or 51820
-    else:
-        mp_cfg = get_awg_multiport_config()
-        target = mp_cfg.get("target_port") or 2053
-    
-    ports = list(mp_cfg.get("ports", []))
-    if target not in ports:
-        ports.insert(0, target)
+    pub_ip = get_server_public_ip()
+
+    if proto_type in ["wireguard", "amneziawg"]:
+        if "config" not in udata:
+            return "Configuration Not Found", 404
+        base_cfg = udata["config"]
+        if proto_type == "wireguard":
+            mp_cfg = get_wg_multiport_config()
+            target = mp_cfg.get("target_port") or 51820
+        else:
+            mp_cfg = get_awg_multiport_config()
+            target = mp_cfg.get("target_port") or 2053
         
-    mem_file = io.BytesIO()
-    used_names = set()
-    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for p in ports:
-            cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=(proto_type != "wireguard"))
-            entry_name = make_safe_tunnel_name(uname, port=p, fallback="awg" if proto_type != "wireguard" else "wg")
-            uniq_name = entry_name
-            idx = 1
-            while uniq_name in used_names:
-                uniq_name = f"{entry_name[:12]}_{idx}"
-                idx += 1
-            used_names.add(uniq_name)
-            zf.writestr(f"{uniq_name}.conf", cfg_p)
+        ports = list(mp_cfg.get("ports", []))
+        if target not in ports:
+            ports.insert(0, target)
             
-    mem_file.seek(0)
-    zip_dl_name = f"{make_safe_tunnel_name(uname, fallback='awg' if proto_type != 'wireguard' else 'wg')}-all-ports.zip"
-    return send_file(
-        mem_file,
-        mimetype="application/zip",
-        as_attachment=True,
-        download_name=zip_dl_name
-    )
+        mem_file = io.BytesIO()
+        used_names = set()
+        with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+            for p in ports:
+                cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=(proto_type != "wireguard"))
+                entry_name = make_safe_tunnel_name(uname, port=p, fallback="awg" if proto_type != "wireguard" else "wg")
+                uniq_name = entry_name
+                idx = 1
+                while uniq_name in used_names:
+                    uniq_name = f"{entry_name[:12]}_{idx}"
+                    idx += 1
+                used_names.add(uniq_name)
+                zf.writestr(f"{uniq_name}.conf", cfg_p)
+                
+        mem_file.seek(0)
+        zip_dl_name = f"{make_safe_tunnel_name(uname, fallback='awg' if proto_type != 'wireguard' else 'wg')}-all-ports.zip"
+        return send_file(
+            mem_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=zip_dl_name
+        )
+    else:
+        uinfo = get_ssh_user_info(uname)
+        pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+        mem_file = build_ssh_user_configs_zip(uname, pwd, domain, pub_ip)
+        return send_file(
+            mem_file,
+            mimetype="application/zip",
+            as_attachment=True,
+            download_name=f"MHPanel-{uname}-configs.zip"
+        )
 
 @app.route("/sub/group/<group_token>")
 def group_subscription_portal(group_token):
@@ -2350,61 +2480,7 @@ def client_subscription_ovpn(sub_token):
     if not uname:
         return "Not Found", 404
     server_host = get_server_domain() or get_server_public_ip()
-    port = get_proto_active_port("openvpn", 1194)
-    ca_content = ""
-    for ca_path in ["/etc/openvpn/server/ca.crt", "/etc/vpn-ca/ca.crt", "/etc/openvpn/ca.crt"]:
-        if os.path.exists(ca_path):
-            try:
-                with open(ca_path, "r") as f:
-                    ca_content = f.read().strip()
-                    break
-            except Exception:
-                pass
-
-    tc_content = ""
-    tc_path = get_openvpn_tc_path()
-    if tc_path and os.path.exists(tc_path):
-        try:
-            with open(tc_path, "r") as f:
-                tc_content = f.read().strip()
-        except Exception:
-            pass
-    if not tc_content:
-        for tcp_candidate in ["/etc/openvpn/tls-crypt.key", "/etc/openvpn/tc.key"]:
-            if os.path.exists(tcp_candidate):
-                try:
-                    with open(tcp_candidate, "r") as f:
-                        tc_content = f.read().strip()
-                        break
-                except Exception:
-                    pass
-
-    auth_block = "auth-user-pass"
-    tc_block = f"<tls-crypt>\n{tc_content}\n</tls-crypt>" if tc_content else ""
-
-    ovpn_text = f"""client
-dev tun
-remote {server_host} 1194 udp
-remote {server_host} 1194 tcp
-remote {server_host} 443 tcp
-resolv-retry infinite
-nobind
-persist-key
-persist-tun
-remote-cert-tls server
-cipher AES-256-GCM
-auth SHA256
-redirect-gateway def1 bypass-dhcp
-dhcp-option DNS 1.1.1.1
-dhcp-option DNS 8.8.8.8
-mssfix 1360
-verb 3
-{auth_block}
-<ca>
-{ca_content}
-</ca>
-{tc_block}
-"""
+    ovpn_text = generate_client_ovpn_text(uname, server_host)
     return Response(
         ovpn_text,
         mimetype="application/x-openvpn-profile",
@@ -14099,6 +14175,22 @@ def api_ssh_user_singbox_download(username):
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
     resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-SingBox.json"'
     return resp
+
+@app.route("/api/ssh/users/<username>/configs.zip", methods=["GET"])
+def api_ssh_user_configs_zip(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    mem_file = build_ssh_user_configs_zip(username, pwd, domain, pub_ip)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"MHPanel-{username}-configs.zip"
+    )
 
 @app.route("/api/ssh/users/<username>", methods=["DELETE"])
 def api_delete_ssh_user(username):
