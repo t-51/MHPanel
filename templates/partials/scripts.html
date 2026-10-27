@@ -1398,18 +1398,113 @@
         const totalVpnBytes = Math.max(1, protoData.total_vpn_bytes || 1);
         const lang = localStorage.getItem("panel_language") || "fa";
 
+        const needsRebuild = (container.children.length !== list.length) || 
+                              (container.dataset.renderedLang !== lang) ||
+                              !container.querySelector(".proto-bandwidth-card");
+
+        if (needsRebuild) {
+            container.dataset.renderedLang = lang;
+            const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
+            const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
+            const tRxLabel = (lang === "fa" ? "سرعت دانلود (Rx)" : (lang === "ru" ? "Скорость скачивания (Rx)" : "Download Speed (Rx)"));
+            const tTxLabel = (lang === "fa" ? "سرعت آپلود (Tx)" : (lang === "ru" ? "Скорость отдачи (Tx)" : "Upload Speed (Tx)"));
+            const tShareLabel = (lang === "fa" ? "سهم ترافیک:" : (lang === "ru" ? "Доля трафика:" : "Traffic Share:"));
+            const tConnsLabel = (lang === "fa" ? "اتصالات فعال:" : (lang === "ru" ? "Активные:" : "Active Connections:"));
+            const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польز." : "users"));
+            const tTotalExchanged = (lang === "fa" ? "حجم کل مبادله شده:" : (lang === "ru" ? "Всего передано:" : "Total Exchanged:"));
+            const tRxShort = (lang === "fa" ? "دانلود:" : (lang === "ru" ? "Вход:" : "Rx:"));
+            const tTxShort = (lang === "fa" ? "آپلود:" : (lang === "ru" ? "Исход:" : "Tx:"));
+
+            let html = "";
+            list.forEach(item => {
+                const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : "0 KB/s";
+                const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : "0 KB/s";
+                const totalBytesStr = formatBytes(item.total_bytes);
+                const rxBytesStr = formatBytes(item.rx_bytes);
+                const txBytesStr = formatBytes(item.tx_bytes);
+                const sharePercent = Math.min(100, Math.round((item.total_bytes / totalVpnBytes) * 100));
+
+                const dispName = (lang === "fa" ? (item.fa_name || item.name) : item.name);
+                const subName = (lang === "fa" ? `${item.name} ${item.port ? `(${item.port})` : ""}` : (item.port ? `Port ${item.port}` : ""));
+
+                let extraTag = "";
+                if (item.id === "singbox") {
+                    extraTag = `<span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Universal</span>`;
+                } else if (["dnstt", "vaydns", "slipstream", "noizdns", "masterdnsvpn"].includes(item.id)) {
+                    extraTag = `<span style="font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(6,182,212,0.12); color:#06b6d4; border:1px solid rgba(6,182,212,0.25); font-weight:700;">Anti-Filter DNS</span>`;
+                }
+
+                html += `
+                    <div class="proto-bandwidth-card" id="proto-bw-card-${item.id}" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="${dispName}">
+                        <div class="proto-card-top">
+                            <div class="proto-card-identity">
+                                <div class="proto-icon-circle" style="background:${item.color}15; color:${item.color}; border:1px solid ${item.color}35;">
+                                    <i data-lucide="${item.icon || 'shield'}" style="width:18px; height:18px;"></i>
+                                </div>
+                                <div class="proto-name-box">
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        <span class="proto-name-fa" style="color:var(--text-main); font-weight:700; font-size:13.5px;">${dispName}</span>
+                                        ${extraTag}
+                                    </div>
+                                    ${subName ? `<span class="proto-name-en" style="color:var(--text-muted); font-size:11px;">${subName}</span>` : ""}
+                                </div>
+                            </div>
+                            <span id="proto-bw-badge-${item.id}"></span>
+                        </div>
+
+                        <div class="proto-rate-metrics">
+                            <div class="proto-rate-item">
+                                <span class="proto-rate-label" style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                                    <i data-lucide="arrow-down" style="width:11px; height:11px; color:#10b981;"></i>
+                                    ${tRxLabel}
+                                </span>
+                                <span class="proto-rate-value" id="proto-bw-rx-speed-${item.id}" style="color:#10b981; font-weight:800; font-family:'JetBrains Mono'; font-size:13px;">${rxSpeed}</span>
+                            </div>
+                            <div class="proto-rate-item">
+                                <span class="proto-rate-label" style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                                    <i data-lucide="arrow-up" style="width:11px; height:11px; color:#0ea5e9;"></i>
+                                    ${tTxLabel}
+                                </span>
+                                <span class="proto-rate-value" id="proto-bw-tx-speed-${item.id}" style="color:#0ea5e9; font-weight:800; font-family:'JetBrains Mono'; font-size:13px;">${txSpeed}</span>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
+                                <span>${tShareLabel} <strong id="proto-bw-share-pct-${item.id}" style="color:var(--text-main); font-family:'JetBrains Mono';">${sharePercent}%</strong></span>
+                                <span>${tConnsLabel} <strong id="proto-bw-conns-cnt-${item.id}" style="color:var(--text-main); font-family:'JetBrains Mono';">${item.connections || 0} ${tUserUnit}</strong></span>
+                            </div>
+                            <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
+                                <div class="core-progress-fill" id="proto-bw-share-bar-${item.id}" style="width:${sharePercent}%; background:${item.color}; height:100%; border-radius:999px;"></div>
+                            </div>
+                        </div>
+
+                        <div class="proto-total-metric" style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px dashed var(--border-color); font-size:12px;">
+                            <span style="font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="bar-chart-2" style="width:13px; height:13px; color:var(--color-primary);"></i>
+                                ${tTotalExchanged}
+                            </span>
+                            <span class="proto-total-val" id="proto-bw-total-bytes-${item.id}" style="font-size:13px; font-weight:800; color:var(--color-primary); font-family:'JetBrains Mono';">${totalBytesStr}</span>
+                        </div>
+                        <div class="proto-traffic-pill-box">
+                            <span class="proto-traffic-rx" style="font-weight:700; display:flex; align-items:center; gap:3px; font-family:'JetBrains Mono', monospace;">
+                                <i data-lucide="arrow-down" style="width:12px; height:12px;"></i> ${tRxShort} <span id="proto-bw-rx-bytes-${item.id}">${rxBytesStr}</span>
+                            </span>
+                            <span class="proto-traffic-tx" style="font-weight:700; display:flex; align-items:center; gap:3px; font-family:'JetBrains Mono', monospace;">
+                                <i data-lucide="arrow-up" style="width:12px; height:12px;"></i> ${tTxShort} <span id="proto-bw-tx-bytes-${item.id}">${txBytesStr}</span>
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+            container.innerHTML = html;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        }
+
         const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
         const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
-        const tRxLabel = (lang === "fa" ? "سرعت دانلود (Rx)" : (lang === "ru" ? "Скорость скачивания (Rx)" : "Download Speed (Rx)"));
-        const tTxLabel = (lang === "fa" ? "سرعت آپلود (Tx)" : (lang === "ru" ? "Скорость отдачи (Tx)" : "Upload Speed (Tx)"));
-        const tShareLabel = (lang === "fa" ? "سهم ترافیک:" : (lang === "ru" ? "Доля трафика:" : "Traffic Share:"));
-        const tConnsLabel = (lang === "fa" ? "اتصالات فعال:" : (lang === "ru" ? "Активные:" : "Active Connections:"));
-        const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польз." : "users"));
-        const tTotalExchanged = (lang === "fa" ? "حجم کل مبادله شده:" : (lang === "ru" ? "Всего передано:" : "Total Exchanged:"));
-        const tRxShort = (lang === "fa" ? "دانلود:" : (lang === "ru" ? "Вход:" : "Rx:"));
-        const tTxShort = (lang === "fa" ? "آپلود:" : (lang === "ru" ? "Исход:" : "Tx:"));
+        const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польز." : "users"));
 
-        let html = "";
         list.forEach(item => {
             const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : "0 KB/s";
             const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : "0 KB/s";
@@ -1418,86 +1513,40 @@
             const txBytesStr = formatBytes(item.tx_bytes);
             const sharePercent = Math.min(100, Math.round((item.total_bytes / totalVpnBytes) * 100));
 
-            const activeBadge = item.active 
-                ? `<span class="radar-status-badge badge-emerald" style="font-size:10.5px; padding:2px 8px;"><i data-lucide="check-circle" style="width:10px; height:10px;"></i> ${tActiveBadge}</span>`
-                : `<span class="radar-status-badge" style="background:rgba(148,163,184,0.12); color:var(--text-muted); border:1px solid rgba(148,163,184,0.25); font-size:10.5px; padding:2px 8px;"><i data-lucide="minus-circle" style="width:10px; height:10px;"></i> ${tInactiveBadge}</span>`;
+            const rxEl = document.getElementById(`proto-bw-rx-speed-${item.id}`);
+            if (rxEl && rxEl.innerText !== rxSpeed) rxEl.innerText = rxSpeed;
 
-            const dispName = (lang === "fa" ? (item.fa_name || item.name) : item.name);
-            const subName = (lang === "fa" ? `${item.name} ${item.port ? `(${item.port})` : ""}` : (item.port ? `Port ${item.port}` : ""));
+            const txEl = document.getElementById(`proto-bw-tx-speed-${item.id}`);
+            if (txEl && txEl.innerText !== txSpeed) txEl.innerText = txSpeed;
 
-            let extraTag = "";
-            if (item.id === "singbox") {
-                extraTag = `<span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Universal</span>`;
-            } else if (["dnstt", "vaydns", "slipstream", "noizdns", "masterdnsvpn"].includes(item.id)) {
-                extraTag = `<span style="font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(6,182,212,0.12); color:#06b6d4; border:1px solid rgba(6,182,212,0.25); font-weight:700;">Anti-Filter DNS</span>`;
+            const sharePctEl = document.getElementById(`proto-bw-share-pct-${item.id}`);
+            if (sharePctEl && sharePctEl.innerText !== `${sharePercent}%`) sharePctEl.innerText = `${sharePercent}%`;
+
+            const connsEl = document.getElementById(`proto-bw-conns-cnt-${item.id}`);
+            const connsStr = `${item.connections || 0} ${tUserUnit}`;
+            if (connsEl && connsEl.innerText !== connsStr) connsEl.innerText = connsStr;
+
+            const barEl = document.getElementById(`proto-bw-share-bar-${item.id}`);
+            if (barEl) barEl.style.width = `${sharePercent}%`;
+
+            const totalEl = document.getElementById(`proto-bw-total-bytes-${item.id}`);
+            if (totalEl && totalEl.innerText !== totalBytesStr) totalEl.innerText = totalBytesStr;
+
+            const rxBytesEl = document.getElementById(`proto-bw-rx-bytes-${item.id}`);
+            if (rxBytesEl && rxBytesEl.innerText !== rxBytesStr) rxBytesEl.innerText = rxBytesStr;
+
+            const txBytesEl = document.getElementById(`proto-bw-tx-bytes-${item.id}`);
+            if (txBytesEl && txBytesEl.innerText !== txBytesStr) txBytesEl.innerText = txBytesStr;
+
+            const badgeEl = document.getElementById(`proto-bw-badge-${item.id}`);
+            if (badgeEl && badgeEl.dataset.active !== String(item.active)) {
+                badgeEl.dataset.active = String(item.active);
+                badgeEl.innerHTML = item.active 
+                    ? `<span class="radar-status-badge badge-emerald" style="font-size:10.5px; padding:2px 8px;"><i data-lucide="check-circle" style="width:10px; height:10px;"></i> ${tActiveBadge}</span>`
+                    : `<span class="radar-status-badge" style="background:rgba(148,163,184,0.12); color:var(--text-muted); border:1px solid rgba(148,163,184,0.25); font-size:10.5px; padding:2px 8px;"><i data-lucide="minus-circle" style="width:10px; height:10px;"></i> ${tInactiveBadge}</span>`;
+                if (typeof lucide !== "undefined") lucide.createIcons();
             }
-
-            html += `
-                <div class="proto-bandwidth-card" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="${dispName}">
-                    <div class="proto-card-top">
-                        <div class="proto-card-identity">
-                            <div class="proto-icon-circle" style="background:${item.color}15; color:${item.color}; border:1px solid ${item.color}35;">
-                                <i data-lucide="${item.icon || 'shield'}" style="width:18px; height:18px;"></i>
-                            </div>
-                            <div class="proto-name-box">
-                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-                                    <span class="proto-name-fa" style="color:var(--text-main); font-weight:700; font-size:13.5px;">${dispName}</span>
-                                    ${extraTag}
-                                </div>
-                                ${subName ? `<span class="proto-name-en" style="color:var(--text-muted); font-size:11px;">${subName}</span>` : ""}
-                            </div>
-                        </div>
-                        ${activeBadge}
-                    </div>
-
-                    <div class="proto-rate-metrics">
-                        <div class="proto-rate-item">
-                            <span class="proto-rate-label" style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                                <i data-lucide="arrow-down" style="width:11px; height:11px; color:#10b981;"></i>
-                                ${tRxLabel}
-                            </span>
-                            <span class="proto-rate-value" style="color:#10b981; font-weight:800; font-family:'JetBrains Mono'; font-size:13px;">${rxSpeed}</span>
-                        </div>
-                        <div class="proto-rate-item">
-                            <span class="proto-rate-label" style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
-                                <i data-lucide="arrow-up" style="width:11px; height:11px; color:#0ea5e9;"></i>
-                                ${tTxLabel}
-                            </span>
-                            <span class="proto-rate-value" style="color:#0ea5e9; font-weight:800; font-family:'JetBrains Mono'; font-size:13px;">${txSpeed}</span>
-                        </div>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column; gap:6px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--text-muted);">
-                            <span>${tShareLabel} <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${sharePercent}%</strong></span>
-                            <span>${tConnsLabel} <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${item.connections || 0} ${tUserUnit}</strong></span>
-                        </div>
-                        <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
-                            <div class="core-progress-fill" style="width:${sharePercent}%; background:${item.color}; height:100%; border-radius:999px;"></div>
-                        </div>
-                    </div>
-
-                    <div class="proto-total-metric" style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px dashed var(--border-color); font-size:12px;">
-                        <span style="font-weight:600; color:var(--text-muted); display:flex; align-items:center; gap:5px;">
-                            <i data-lucide="bar-chart-2" style="width:13px; height:13px; color:var(--color-primary);"></i>
-                            ${tTotalExchanged}
-                        </span>
-                        <span class="proto-total-val" style="font-size:13px; font-weight:800; color:var(--color-primary); font-family:'JetBrains Mono';">${totalBytesStr}</span>
-                    </div>
-                    <div class="proto-traffic-pill-box">
-                        <span class="proto-traffic-rx" style="font-weight:700; display:flex; align-items:center; gap:3px; font-family:'JetBrains Mono', monospace;">
-                            <i data-lucide="arrow-down" style="width:12px; height:12px;"></i> ${tRxShort} ${rxBytesStr}
-                        </span>
-                        <span class="proto-traffic-tx" style="font-weight:700; display:flex; align-items:center; gap:3px; font-family:'JetBrains Mono', monospace;">
-                            <i data-lucide="arrow-up" style="width:12px; height:12px;"></i> ${tTxShort} ${txBytesStr}
-                        </span>
-                    </div>
-                </div>
-            `;
         });
-
-        container.innerHTML = html;
-        if (typeof lucide !== "undefined") lucide.createIcons();
     }
 
     // Security Radar State
@@ -1525,8 +1574,12 @@
         }
 
         if (secData.events && Array.isArray(secData.events)) {
-            window.allSecEvents = secData.events;
-            renderSecLogsFiltered();
+            const evHash = JSON.stringify(secData.events);
+            if (evHash !== window._lastSecEventsHash) {
+                window._lastSecEventsHash = evHash;
+                window.allSecEvents = secData.events;
+                renderSecLogsFiltered();
+            }
         }
     }
 
@@ -1721,13 +1774,13 @@
             const netTotalEl = document.getElementById("net-total-val");
             if (netTotalEl) netTotalEl.innerText = `Rx: ${totalRxGb} GB | Tx: ${totalTxGb} GB`;
 
-            // Update charts if loaded
+            // Update charts if loaded (use 'none' mode to prevent mobile canvas reflow thrashing)
             if (usageChart) {
                 usageChart.data.datasets[0].data.shift();
                 usageChart.data.datasets[0].data.push(data.cpu);
                 usageChart.data.datasets[1].data.shift();
                 usageChart.data.datasets[1].data.push(data.ram.percent);
-                usageChart.update();
+                usageChart.update('none');
             }
             
             if (bandwidthChart) {
@@ -1735,7 +1788,7 @@
                 bandwidthChart.data.datasets[0].data.push(rxSpeed);
                 bandwidthChart.data.datasets[1].data.shift();
                 bandwidthChart.data.datasets[1].data.push(txSpeed);
-                bandwidthChart.update();
+                bandwidthChart.update('none');
             }
 
             // Update Enhanced Overview Widgets
@@ -2064,7 +2117,13 @@
         try {
             const res = await fetch("/api/protocols");
             if (!res.ok) return;
-            loadedProtocolsData = await res.json();
+            const data = await res.json();
+            const protoHash = JSON.stringify(data) + '_' + currentProtoFilter + '_' + (localStorage.getItem("panel_language") || "fa");
+            if (protoHash === window._lastProtocolsRenderHash) {
+                return; // Nothing changed, skip DOM destruction
+            }
+            window._lastProtocolsRenderHash = protoHash;
+            loadedProtocolsData = data;
             renderProtocolsCards();
         } catch (err) {
             console.error(err);
