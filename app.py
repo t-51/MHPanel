@@ -6560,17 +6560,25 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
         if "[Peer]" in cfg:
             cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 21", cfg, count=1)
 
-    # 3. For AmneziaWG: Ensure stable anti-censorship parameters (S3=0, S4=0, Jc <= 4)
+    # 3. For AmneziaWG: Synchronize anti-censorship parameters from server awg0.conf
     if is_awg or "H1 =" in cfg or "Jc =" in cfg:
-        cfg = re.sub(r"^\s*S3\s*=\s*\d+", "S3 = 0", cfg, flags=re.MULTILINE)
-        cfg = re.sub(r"^\s*S4\s*=\s*\d+", "S4 = 0", cfg, flags=re.MULTILINE)
-        m_jc = re.search(r"^\s*Jc\s*=\s*(\d+)", cfg, flags=re.MULTILINE)
-        if m_jc and int(m_jc.group(1)) > 4:
-            cfg = re.sub(r"^\s*Jc\s*=\s*\d+", "Jc = 3", cfg, flags=re.MULTILINE)
-        if re.search(r"^\s*Jmin\s*=\s*\d+", cfg, flags=re.MULTILINE):
-            cfg = re.sub(r"^\s*Jmin\s*=\s*\d+", "Jmin = 40", cfg, flags=re.MULTILINE)
-        if re.search(r"^\s*Jmax\s*=\s*\d+", cfg, flags=re.MULTILINE):
-            cfg = re.sub(r"^\s*Jmax\s*=\s*\d+", "Jmax = 70", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r"^\s*S3\s*=.*$", "", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r"^\s*S4\s*=.*$", "", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r",\s*fd[0-9a-fA-F:]+/[0-9]+", "", cfg)
+        if os.path.exists("/etc/amnezia/amneziawg/awg0.conf"):
+            try:
+                with open("/etc/amnezia/amneziawg/awg0.conf", "r") as s_conf:
+                    s_text = s_conf.read()
+                for p_name in ["Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4"]:
+                    pm = re.search(fr"^\s*{p_name}\s*=\s*([^\n]+)", s_text, re.MULTILINE | re.IGNORECASE)
+                    if pm:
+                        val = pm.group(1).strip()
+                        if re.search(fr"^\s*{p_name}\s*=", cfg, re.MULTILINE | re.IGNORECASE):
+                            cfg = re.sub(fr"^\s*{p_name}\s*=.*$", f"{p_name} = {val}", cfg, flags=re.MULTILINE | re.IGNORECASE)
+                        elif "[Interface]" in cfg:
+                            cfg = re.sub(r"(\[Interface\][\s\S]*?MTU\s*=\s*\d+)", rf"\1\n{p_name} = {val}", cfg, count=1)
+            except Exception:
+                pass
             
     # 4. Fix / Update Endpoint
     if domain or port:
@@ -8573,7 +8581,7 @@ def api_awg_client_multiport():
     domain = get_server_domain() or get_server_public_ip()
     mp_cfg = get_awg_multiport_config()
     ports = list(mp_cfg.get("ports", []))
-    target = int(mp_cfg.get("target_port") or 443)
+    target = int(mp_cfg.get("target_port") or 2053)
     if target not in ports:
         ports.insert(0, target)
     port_configs = []
@@ -27762,7 +27770,7 @@ if __name__ == "__main__":
             awg_dirty = False
             for pk, udata in awg_u.items():
                 orig_cfg = udata.get("config", "")
-                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=443, is_awg=True)
+                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=2053, is_awg=True)
                 if norm_cfg != orig_cfg:
                     udata["config"] = norm_cfg
                     awg_dirty = True
