@@ -6542,7 +6542,8 @@ PersistentKeepalive = 25
         "name": name,
         "ip": client_ip,
         "group": group_name,
-        "sub_token": sub_token
+        "sub_token": sub_token,
+        "public_key": pubkey
     })
 
 @app.route("/api/wireguard/multiport", methods=["GET", "POST"])
@@ -7428,7 +7429,8 @@ PersistentKeepalive = 25
         "name": name,
         "ip": client_ip,
         "group": group_name,
-        "sub_token": sub_token
+        "sub_token": sub_token,
+        "public_key": pubkey
     })
 
 @app.route("/api/amneziawg/multiport", methods=["GET", "POST"])
