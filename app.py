@@ -1478,6 +1478,55 @@ def get_proto_active_port(proto, default_port):
             pass
     return PROTOCOL_DEFAULT_PORTS.get(proto, default_port)
 
+PERSIAN_TRANSLIT = {
+    'آ': 'a', 'ا': 'a', 'ب': 'b', 'پ': 'p', 'ت': 't', 'ث': 's',
+    'ج': 'j', 'چ': 'ch', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'z',
+    'ر': 'r', 'ز': 'z', 'ژ': 'zh', 'س': 's', 'ش': 'sh', 'ص': 's',
+    'ض': 'z', 'ط': 't', 'ظ': 'z', 'ع': 'a', 'غ': 'gh', 'ف': 'f',
+    'ق': 'gh', 'ک': 'k', 'گ': 'g', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'و': 'v', 'ه': 'h', 'ی': 'y', 'ي': 'y', 'ئ': 'y', 'ة': 'h',
+    '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4',
+    '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9'
+}
+
+def make_safe_tunnel_name(raw_name, port=None, fallback="cl"):
+    """
+    Generate a strictly valid WireGuard / AmneziaWG tunnel name and filename:
+    - Maximum 15 characters (Linux IFNAMSIZ - 1 limit).
+    - Only ASCII characters [a-zA-Z0-9_-].
+    - Starts with an alphanumeric character [a-zA-Z0-9].
+    - Transliterates Persian / Arabic characters to readable ASCII.
+    - If port is specified, appends _<port> cleanly while guaranteeing <= 15 chars.
+    """
+    if not raw_name:
+        raw_name = fallback
+    s = re.sub(r'[\s\.\/]+', '-', str(raw_name).strip())
+    t = ''
+    for ch in s:
+        t += PERSIAN_TRANSLIT.get(ch, ch)
+    t = re.sub(r'[^a-zA-Z0-9_\-]', '', t)
+    t = re.sub(r'[-_]{2,}', '-', t).strip('_-')
+    if not t:
+        t = fallback
+
+    port_str = f"_{port}" if port else ""
+    allowed_base_len = 15 - len(port_str)
+    if allowed_base_len < 1:
+        port_str = f"_{port}"[:14]
+        allowed_base_len = 15 - len(port_str)
+
+    base = t[:allowed_base_len].rstrip('_-')
+    if not base:
+        base = fallback[:allowed_base_len]
+
+    final_name = f"{base}{port_str}"
+    if len(final_name) > 15:
+        final_name = final_name[:15]
+    if not final_name or not final_name[0].isalnum():
+        final_name = f"c{final_name[1:15]}" if len(final_name) > 1 else fallback
+
+    return final_name
+
 @app.route("/sub/<sub_token>")
 def client_subscription_view(sub_token):
     ensure_all_users_sub_tokens()
@@ -1534,7 +1583,8 @@ def client_subscription_view(sub_token):
         # Handle format=conf or format=raw
         if fmt == "conf":
             resp = Response(base_cfg, mimetype="text/plain; charset=utf-8")
-            resp.headers["Content-Disposition"] = f'attachment; filename="{uname}.conf"'
+            entry_name = make_safe_tunnel_name(uname, port=target_port, fallback="awg" if proto_type != "wireguard" else "wg")
+            resp.headers["Content-Disposition"] = f'attachment; filename="{entry_name}.conf"'
             return resp
         if fmt == "raw":
             return Response(base_cfg, mimetype="text/plain; charset=utf-8")
@@ -1570,10 +1620,14 @@ def client_subscription_view(sub_token):
                 "port_configs": port_configs
             })
 
+        safe_name = make_safe_tunnel_name(uname, fallback="awg" if proto_type != "wireguard" else "wg")
+        safe_tun_name = make_safe_tunnel_name(uname, port=target_port, fallback="awg" if proto_type != "wireguard" else "wg")
         return render_template(
             "subscription.html",
             proto_type=proto_type,
             username=uname,
+            safe_username=safe_name,
+            safe_tunnel_name=safe_tun_name,
             user=udata,
             settings=settings,
             server_host=domain,
@@ -1741,7 +1795,8 @@ def client_subscription_conf_download(sub_token):
         target_port = get_awg_multiport_config().get("target_port") or 2053
     cfg = normalize_client_config(udata["config"], domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
     resp = Response(cfg, mimetype="text/plain; charset=utf-8")
-    resp.headers["Content-Disposition"] = f'attachment; filename="{uname}.conf"'
+    entry_name = make_safe_tunnel_name(uname, port=target_port, fallback="awg" if proto_type != "wireguard" else "wg")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{entry_name}.conf"'
     return resp
 
 @app.route("/sub/<sub_token>/port/<int:target_port>.conf")
@@ -1753,7 +1808,8 @@ def client_subscription_port_conf_download(sub_token, target_port):
     base_cfg = udata["config"]
     cfg_p = normalize_client_config(base_cfg, domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
     resp = Response(cfg_p, mimetype="text/plain; charset=utf-8")
-    resp.headers["Content-Disposition"] = f'attachment; filename="{uname}-port{target_port}.conf"'
+    entry_name = make_safe_tunnel_name(uname, port=target_port, fallback="awg" if proto_type != "wireguard" else "wg")
+    resp.headers["Content-Disposition"] = f'attachment; filename="{entry_name}.conf"'
     return resp
 
 
@@ -1769,24 +1825,33 @@ def client_subscription_zip_download(sub_token):
         target = mp_cfg.get("target_port") or 51820
     else:
         mp_cfg = get_awg_multiport_config()
-        target = mp_cfg.get("target_port") or 443
+        target = mp_cfg.get("target_port") or 2053
     
     ports = list(mp_cfg.get("ports", []))
     if target not in ports:
         ports.insert(0, target)
         
     mem_file = io.BytesIO()
+    used_names = set()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
             cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=(proto_type != "wireguard"))
-            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            entry_name = make_safe_tunnel_name(uname, port=p, fallback="awg" if proto_type != "wireguard" else "wg")
+            uniq_name = entry_name
+            idx = 1
+            while uniq_name in used_names:
+                uniq_name = f"{entry_name[:12]}_{idx}"
+                idx += 1
+            used_names.add(uniq_name)
+            zf.writestr(f"{uniq_name}.conf", cfg_p)
             
     mem_file.seek(0)
+    zip_dl_name = f"{make_safe_tunnel_name(uname, fallback='awg' if proto_type != 'wireguard' else 'wg')}-all-ports.zip"
     return send_file(
         mem_file,
         mimetype="application/zip",
         as_attachment=True,
-        download_name=f"{uname}-all-ports.zip"
+        download_name=zip_dl_name
     )
 
 @app.route("/sub/group/<group_token>")
@@ -7039,17 +7104,26 @@ def api_wg_client_download_zip():
         ports.insert(0, target)
         
     mem_file = io.BytesIO()
+    used_names = set()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
             cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
-            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            entry_name = make_safe_tunnel_name(uname, port=p, fallback="wg")
+            uniq_name = entry_name
+            idx = 1
+            while uniq_name in used_names:
+                uniq_name = f"{entry_name[:12]}_{idx}"
+                idx += 1
+            used_names.add(uniq_name)
+            zf.writestr(f"{uniq_name}.conf", cfg_p)
             
     mem_file.seek(0)
+    zip_dl_name = f"{make_safe_tunnel_name(uname, fallback='wg')}-wg-all-ports.zip"
     return send_file(
         mem_file,
         mimetype="application/zip",
         as_attachment=True,
-        download_name=f"{uname}-wireguard-all-ports.zip"
+        download_name=zip_dl_name
     )
 
 @app.route("/api/amneziawg/client/download-zip")
@@ -7073,22 +7147,31 @@ def api_awg_client_download_zip():
     domain = get_server_domain() or get_server_public_ip()
     mp_cfg = get_awg_multiport_config()
     ports = list(mp_cfg.get("ports", []))
-    target = mp_cfg.get("target_port") or 443
+    target = mp_cfg.get("target_port") or 2053
     if target not in ports:
         ports.insert(0, target)
         
     mem_file = io.BytesIO()
+    used_names = set()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
             cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
-            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            entry_name = make_safe_tunnel_name(uname, port=p, fallback="awg")
+            uniq_name = entry_name
+            idx = 1
+            while uniq_name in used_names:
+                uniq_name = f"{entry_name[:12]}_{idx}"
+                idx += 1
+            used_names.add(uniq_name)
+            zf.writestr(f"{uniq_name}.conf", cfg_p)
             
     mem_file.seek(0)
+    zip_dl_name = f"{make_safe_tunnel_name(uname, fallback='awg')}-awg-all-ports.zip"
     return send_file(
         mem_file,
         mimetype="application/zip",
         as_attachment=True,
-        download_name=f"{uname}-amneziawg-all-ports.zip"
+        download_name=zip_dl_name
     )
 
 @app.route("/api/wireguard/warp", methods=["GET"])
@@ -7553,30 +7636,46 @@ def api_wg_clients_bulk_download():
         ports.insert(0, target)
 
     mem_file = io.BytesIO()
+    used_names = set()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for k in raw_keys:
             norm = str(k).strip()
             u = wg_users.get(norm) or wg_users.get(norm.replace(" ", "+")) or wg_users.get(norm.replace("+", " "))
             if not u:
                 continue
-            uname = re.sub(r'[^a-zA-Z0-9_\-]', '_', u.get("name", "Client"))
+            uname = u.get("name", "Client")
             base_cfg = u.get("config", "")
             if not base_cfg:
                 continue
             if len(ports) > 1:
                 for p in ports:
                     cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
-                    zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
+                    entry_name = make_safe_tunnel_name(uname, port=p, fallback="wg")
+                    uniq_name = entry_name
+                    idx = 1
+                    while uniq_name in used_names:
+                        uniq_name = f"{entry_name[:12]}_{idx}"
+                        idx += 1
+                    used_names.add(uniq_name)
+                    zf.writestr(f"{uniq_name}.conf", cfg_p)
             else:
-                cfg_p = normalize_client_config(base_cfg, domain=domain, port=ports[0] if ports else 51820, is_awg=False)
-                zf.writestr(f"{uname}.conf", cfg_p)
+                p = ports[0] if ports else 51820
+                cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
+                entry_name = make_safe_tunnel_name(uname, fallback="wg")
+                uniq_name = entry_name
+                idx = 1
+                while uniq_name in used_names:
+                    uniq_name = f"{entry_name[:12]}_{idx}"
+                    idx += 1
+                used_names.add(uniq_name)
+                zf.writestr(f"{uniq_name}.conf", cfg_p)
 
     mem_file.seek(0)
     return send_file(
         mem_file,
         mimetype="application/zip",
         as_attachment=True,
-        download_name=f"wireguard-selected-configs.zip"
+        download_name="wireguard-selected-configs.zip"
     )
 
 # --- MTProto Multi-Instance API ---
@@ -8582,35 +8681,51 @@ def api_awg_clients_bulk_download():
     domain = get_server_domain() or get_server_public_ip()
     mp_cfg = get_awg_multiport_config()
     ports = list(mp_cfg.get("ports", []))
-    target = mp_cfg.get("target_port") or 443
+    target = mp_cfg.get("target_port") or 2053
     if target not in ports:
         ports.insert(0, target)
 
     mem_file = io.BytesIO()
+    used_names = set()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for k in raw_keys:
             norm = str(k).strip()
             u = awg_users.get(norm) or awg_users.get(norm.replace(" ", "+")) or awg_users.get(norm.replace("+", " "))
             if not u:
                 continue
-            uname = re.sub(r'[^a-zA-Z0-9_\-]', '_', u.get("name", "Client"))
+            uname = u.get("name", "Client")
             base_cfg = u.get("config", "")
             if not base_cfg:
                 continue
             if len(ports) > 1:
                 for p in ports:
                     cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
-                    zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
+                    entry_name = make_safe_tunnel_name(uname, port=p, fallback="awg")
+                    uniq_name = entry_name
+                    idx = 1
+                    while uniq_name in used_names:
+                        uniq_name = f"{entry_name[:12]}_{idx}"
+                        idx += 1
+                    used_names.add(uniq_name)
+                    zf.writestr(f"{uniq_name}.conf", cfg_p)
             else:
-                cfg_p = normalize_client_config(base_cfg, domain=domain, port=ports[0] if ports else 443, is_awg=True)
-                zf.writestr(f"{uname}.conf", cfg_p)
+                p = ports[0] if ports else 2053
+                cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
+                entry_name = make_safe_tunnel_name(uname, fallback="awg")
+                uniq_name = entry_name
+                idx = 1
+                while uniq_name in used_names:
+                    uniq_name = f"{entry_name[:12]}_{idx}"
+                    idx += 1
+                used_names.add(uniq_name)
+                zf.writestr(f"{uniq_name}.conf", cfg_p)
 
     mem_file.seek(0)
     return send_file(
         mem_file,
         mimetype="application/zip",
         as_attachment=True,
-        download_name=f"amneziawg-selected-configs.zip"
+        download_name="amneziawg-selected-configs.zip"
     )
 
 # --- MTProto Multi-Instance API ---

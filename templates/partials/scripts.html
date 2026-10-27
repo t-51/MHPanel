@@ -6180,13 +6180,33 @@
         }
     }
 
-    function downloadWgConfig(name, b64config) {
+    function sanitizeTunnelName(name, port) {
+        if (!name) name = "cl";
+        let s = String(name).trim().replace(/[\s\.\/]+/g, '-');
+        const pmap = {'آ':'a','ا':'a','ب':'b','پ':'p','ت':'t','ث':'s','ج':'j','چ':'ch','ح':'h','خ':'kh','د':'d','ذ':'z','ر':'r','ز':'z','ژ':'zh','س':'s','ش':'sh','ص':'s','ض':'z','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'gh','ک':'k','گ':'g','ل':'l','م':'m','ن':'n','و':'v','ه':'h','ی':'y','ي':'y','ئ':'y','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+        let t = '';
+        for (let i = 0; i < s.length; i++) {
+            t += pmap[s[i]] || s[i];
+        }
+        t = t.replace(/[^a-zA-Z0-9_\-]/g, '').replace(/[-_]{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '');
+        if (!t) t = "cl";
+        const portStr = port ? `_${port}` : '';
+        const allowedBase = Math.max(1, 15 - portStr.length);
+        let base = t.substring(0, allowedBase).replace(/[-_]+$/, '');
+        if (!base) base = "cl".substring(0, allowedBase);
+        let res = `${base}${portStr}`;
+        if (res.length > 15) res = res.substring(0, 15);
+        if (!/^[a-zA-Z0-9]/.test(res)) res = 'c' + res.substring(1);
+        return res;
+    }
+
+    function downloadWgConfig(name, b64config, port) {
         let config = "";
         try { config = atob(b64config); } catch(e) { config = b64config || ""; }
         const blob = new Blob([config], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = name + ".conf";
+        a.download = sanitizeTunnelName(name, port) + ".conf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -6992,7 +7012,7 @@
                             <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${data.name}', '${btoa(item.config)}', 'wireguard', '${pubkey}', '${subToken}')" style="font-size:11.5px; padding:4px 10px;">
                                 <i data-lucide="qr-code" style="width:13px; height:13px;"></i> QR
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${data.name}-port-${item.port}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${data.name}', '${btoa(item.config)}', ${item.port})" style="font-size:11.5px; padding:4px 10px;">
                                 <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود .conf
                             </button>
                         </div>
@@ -10240,13 +10260,13 @@
         }
     }
 
-    function downloadAwgConfig(name, b64config) {
+    function downloadAwgConfig(name, b64config, port) {
         let config = "";
         try { config = atob(b64config); } catch(e) { config = b64config || ""; }
         const blob = new Blob([config], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = name + ".conf";
+        a.download = sanitizeTunnelName(name, port) + ".conf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -10587,7 +10607,7 @@
                             <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${data.name}', '${btoa(item.config)}', 'amneziawg', '${pubkey}', '${subToken}')" style="font-size:11.5px; padding:4px 10px;">
                                 <i data-lucide="qr-code" style="width:13px; height:13px;"></i> QR
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${data.name}-port-${item.port}', '${btoa(item.config)}')" style="font-size:11.5px; padding:4px 10px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${data.name}', '${btoa(item.config)}', ${item.port})" style="font-size:11.5px; padding:4px 10px;">
                                 <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود .conf
                             </button>
                         </div>
@@ -25456,7 +25476,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const blob = new Blob([item.config], { type: "text/plain" });
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `${window.unifiedQrData.name}-port-${item.port}.conf`;
+        a.download = sanitizeTunnelName(window.unifiedQrData.name, item.port) + ".conf";
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

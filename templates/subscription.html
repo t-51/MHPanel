@@ -588,10 +588,10 @@
                     <button class="btn" onclick="copyCurrentConfigText()" type="button">
                         <i data-lucide="copy" style="width:14px; height:14px;"></i> <span>کپی متن کانفیگ</span>
                     </button>
-                    <a class="btn" id="download-conf-btn" href="/sub/{{ sub_token }}/port/{{ server_port }}.conf" download="{{ username }}-port-{{ server_port }}.conf">
+                    <a class="btn" id="download-conf-btn" href="/sub/{{ sub_token }}/port/{{ server_port }}.conf" download="{{ safe_tunnel_name or (username ~ '_' ~ server_port) }}.conf">
                         <i data-lucide="download" style="width:14px; height:14px;"></i> <span>دانلود فایل .conf</span>
                     </a>
-                    <a class="btn" style="background:#4f46e5; color:#ffffff;" href="/sub/{{ sub_token }}/configs.zip" download="{{ username }}-all-ports.zip" title="دانلود یکجای تمامی پورت‌ها در یک فایل ZIP">
+                    <a class="btn" style="background:#4f46e5; color:#ffffff;" href="/sub/{{ sub_token }}/configs.zip" download="{{ safe_username or username }}-all-ports.zip" title="دانلود یکجای تمامی پورت‌ها در یک فایل ZIP">
                         <i data-lucide="archive" style="width:14px; height:14px;"></i> <span>دانلود تمام پورت‌ها (فایل ZIP)</span>
                     </a>
                     <button class="btn btn-secondary" onclick="showCurrentQrModal()" type="button">
@@ -1026,6 +1026,26 @@
         const subToken = {{ (sub_token or '') | tojson }};
         const clientUsername = {{ (username or '') | tojson }};
 
+        function getSafeTunnelName(name, port) {
+            if (!name) name = "cl";
+            let s = String(name).trim().replace(/[\s\.\/]+/g, '-');
+            const pmap = {'آ':'a','ا':'a','ب':'b','پ':'p','ت':'t','ث':'s','ج':'j','چ':'ch','ح':'h','خ':'kh','د':'d','ذ':'z','ر':'r','ز':'z','ژ':'zh','س':'s','ش':'sh','ص':'s','ض':'z','ط':'t','ظ':'z','ع':'a','غ':'gh','ف':'f','ق':'gh','ک':'k','گ':'g','ل':'l','م':'m','ن':'n','و':'v','ه':'h','ی':'y','ي':'y','ئ':'y','۰':'0','۱':'1','۲':'2','۳':'3','۴':'4','۵':'5','۶':'6','۷':'7','۸':'8','۹':'9'};
+            let t = '';
+            for (let i = 0; i < s.length; i++) {
+                t += pmap[s[i]] || s[i];
+            }
+            t = t.replace(/[^a-zA-Z0-9_\-]/g, '').replace(/[-_]{2,}/g, '-').replace(/^[-_]+|[-_]+$/g, '');
+            if (!t) t = "cl";
+            const portStr = port ? `_${port}` : '';
+            const allowedBase = Math.max(1, 15 - portStr.length);
+            let base = t.substring(0, allowedBase).replace(/[-_]+$/, '');
+            if (!base) base = "cl".substring(0, allowedBase);
+            let res = `${base}${portStr}`;
+            if (res.length > 15) res = res.substring(0, 15);
+            if (!/^[a-zA-Z0-9]/.test(res)) res = 'c' + res.substring(1);
+            return res;
+        }
+
         function selectSubscriptionPort(port) {
             currentSelectedPort = port;
             document.querySelectorAll('.multiport-port-btn').forEach(b => {
@@ -1046,7 +1066,7 @@
             const dlBtn = document.getElementById("download-conf-btn");
             if (dlBtn) {
                 dlBtn.href = `/sub/${subToken}/port/${port}.conf`;
-                dlBtn.download = `${clientUsername}-port-${port}.conf`;
+                dlBtn.download = `${getSafeTunnelName(clientUsername, port)}.conf`;
             }
 
             let updatedConf = defaultRawConf.replace(/Endpoint\s*=\s*[^:\n]+:\d+/i, `Endpoint = ${serverHost}:${port}`);
