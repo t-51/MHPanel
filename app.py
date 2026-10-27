@@ -1819,7 +1819,7 @@ def api_group_toggle_user():
     if not group_name:
         return jsonify({"error": "Unauthorized"}), 401
         
-    pubkey = data.get("public_key")
+    pubkey = (data.get("public_key") or "").strip()
     proto = data.get("protocol", "wireguard").lower()
     req_active = data.get("active")
     
@@ -1827,6 +1827,8 @@ def api_group_toggle_user():
         path = '/www/wwwroot/mhpanel/wg_users.json'
         if not os.path.exists(path): return jsonify({"error": "No users"}), 404
         with open(path, 'r') as f: users = json.load(f)
+        if pubkey not in users and pubkey.replace(" ", "+") in users:
+            pubkey = pubkey.replace(" ", "+")
         if pubkey not in users or users[pubkey].get("group") != group_name:
             return jsonify({"error": "User does not belong to this group"}), 403
         cur_act = users[pubkey].get("active", True)
@@ -1848,6 +1850,8 @@ def api_group_toggle_user():
         path = '/www/wwwroot/mhpanel/awg_users.json'
         if not os.path.exists(path): return jsonify({"error": "No users"}), 404
         with open(path, 'r') as f: users = json.load(f)
+        if pubkey not in users and pubkey.replace(" ", "+") in users:
+            pubkey = pubkey.replace(" ", "+")
         if pubkey not in users or users[pubkey].get("group") != group_name:
             return jsonify({"error": "User does not belong to this group"}), 403
         cur_act = users[pubkey].get("active", True)
@@ -6580,7 +6584,7 @@ def api_wg_multiport():
 def api_wg_client_multiport():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    pubkey = request.args.get("public_key")
+    pubkey = (request.args.get("public_key") or "").strip()
     if not pubkey:
         return jsonify({"error": "Missing public_key"}), 400
     wg_users = {}
@@ -6589,7 +6593,7 @@ def api_wg_client_multiport():
             with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
                 wg_users = json.load(f)
         except: pass
-    user_data = wg_users.get(pubkey, {})
+    user_data = wg_users.get(pubkey) or wg_users.get(pubkey.replace(" ", "+")) or {}
     base_cfg = user_data.get("config", "")
     if not base_cfg:
         return jsonify({"error": "Config not found"}), 404
@@ -6626,6 +6630,8 @@ def api_wg_client_toggle_status():
             with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
                 wg_users = json.load(f)
         except Exception: pass
+    if pubkey not in wg_users and pubkey.replace(" ", "+") in wg_users:
+        pubkey = pubkey.replace(" ", "+")
     user_data = wg_users.get(pubkey, {})
     current_active = user_data.get("active", True)
     req_active = (request.json or {}).get("active")
@@ -6666,6 +6672,8 @@ def api_awg_client_toggle_status():
             with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
                 awg_users = json.load(f)
         except Exception: pass
+    if pubkey not in awg_users and pubkey.replace(" ", "+") in awg_users:
+        pubkey = pubkey.replace(" ", "+")
     user_data = awg_users.get(pubkey, {})
     current_active = user_data.get("active", True)
     req_active = (request.json or {}).get("active")
@@ -6706,7 +6714,7 @@ def api_wg_client_download_zip():
             with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
                 wg_users = json.load(f)
         except Exception: pass
-    user_data = wg_users.get(pubkey, {})
+    user_data = wg_users.get(pubkey) or wg_users.get(pubkey.replace(" ", "+")) or {}
     base_cfg = user_data.get("config", "")
     uname = user_data.get("name", "wireguard")
     if not base_cfg:
@@ -6745,7 +6753,7 @@ def api_awg_client_download_zip():
             with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
                 awg_users = json.load(f)
         except Exception: pass
-    user_data = awg_users.get(pubkey, {})
+    user_data = awg_users.get(pubkey) or awg_users.get(pubkey.replace(" ", "+")) or {}
     base_cfg = user_data.get("config", "")
     uname = user_data.get("name", "amneziawg")
     if not base_cfg:
@@ -7467,7 +7475,7 @@ def api_awg_multiport():
 def api_awg_client_multiport():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    pubkey = request.args.get("public_key")
+    pubkey = (request.args.get("public_key") or "").strip()
     if not pubkey:
         return jsonify({"error": "Missing public_key"}), 400
     awg_users = {}
@@ -7476,7 +7484,7 @@ def api_awg_client_multiport():
             with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
                 awg_users = json.load(f)
         except: pass
-    user_data = awg_users.get(pubkey, {})
+    user_data = awg_users.get(pubkey) or awg_users.get(pubkey.replace(" ", "+")) or {}
     base_cfg = user_data.get("config", "")
     if not base_cfg:
         return jsonify({"error": "Config not found"}), 404
