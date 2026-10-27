@@ -66,14 +66,14 @@
 </div>
 </div>
 <!-- Architecture & Anti-DPI Notice Banner -->
-<div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:14px;">
-<div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:14px;">
+<div style="width:36px; height:36px; border-radius:10px; background: rgba(245, 158, 11, 0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
 <i data-lucide="info" style="width:20px; height:20px;"></i>
 </div>
-<div style="font-size: 13px; line-height: 1.6; color: #92400e;">
-<strong data-i18n="ovpn_dual_architecture_authentication_integra" style="color: #b45309; font-size: 14px;">معماری دوگانه و یکپارچگی احراز هویت با FreeRADIUS:</strong>
-<p data-i18n-html="elem_tab_openvpn_29" style="margin: 4px 0 0 0;">
-                    در این سیستم هر دو پروتکل <strong data-i18n="ovpn_udp_fast_gaming_streaming">UDP (سریع برای گیمینگ و استریمینگ)</strong> و <strong data-i18n="ovpn_tcp_stable_disruption_blocking_time">TCP (پایدار برای زمان اختلال و مسدودسازی)</strong> به طور همزمان روی سرور فعال هستند. کلیه کاربران بدون نیاز به تعریف مجدد، مستقیماً از پایگاه سراسری <strong>FreeRADIUS</strong> (از جمله کاربر پیش‌فرض <code>NPU</code>) احراز هویت می‌شوند و فایل <code>.ovpn</code> کامل شامل کلیدهای سرور مستقیماً در پایین صفحه قابل دریافت است.
+<div style="font-size: 13px; line-height: 1.6; color: var(--text-main);">
+<strong data-i18n="ovpn_dual_architecture_authentication_integra" style="color: #f59e0b; font-size: 14px;">معماری دوگانه و یکپارچگی احراز هویت با FreeRADIUS:</strong>
+<p data-i18n-html="elem_tab_openvpn_29" style="margin: 4px 0 0 0; color: var(--text-muted);">
+                    در این سیستم هر دو پروتکل <strong data-i18n="ovpn_udp_fast_gaming_streaming" style="color: var(--text-main);">UDP (سریع برای گیمینگ و استریمینگ)</strong> و <strong data-i18n="ovpn_tcp_stable_disruption_blocking_time" style="color: var(--text-main);">TCP (پایدار برای زمان اختلال و مسدودسازی)</strong> به طور همزمان روی سرور فعال هستند. کلیه کاربران بدون نیاز به تعریف مجدد، مستقیماً از پایگاه سراسری <strong>FreeRADIUS</strong> (از جمله کاربر پیش‌فرض <code>NPU</code>) احراز هویت می‌شوند و فایل <code>.ovpn</code> کامل شامل کلیدهای سرور مستقیماً در پایین صفحه قابل دریافت است.
                 </p>
 </div>
 </div>
@@ -236,7 +236,7 @@
 </div>
 </div>
 <!-- Scramble Key Row -->
-<div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
+<div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--border-glow); display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;">
 <div style="display: flex; align-items: center; gap: 8px;">
 <label class="switch">
 <input id="ovpn-toggle-xor" type="checkbox"/>
@@ -303,7 +303,7 @@
 </div>
 </div>
 <!-- Issue / Renew Cert Box -->
-<div style="background: var(--bg-base); border: 1px dashed rgba(0,0,0,0.15); border-radius: 12px; padding: 18px;">
+<div style="background: var(--bg-base); border: 1px dashed var(--border-glow); border-radius: 12px; padding: 18px;">
 <h4 data-i18n="ovpn_update_connect_dedicated_domain_openvpn" style="font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main);">
                     به‌روزرسانی یا اتصال دامنه اختصاصی به سرور OpenVPN
                 </h4>
@@ -336,7 +336,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
 <div>
 <label class="form-label" data-i18n="ovpn_protocol_connection_mode" style="font-size: 12px; margin-bottom: 6px;">پروتکل و حالت اتصال:</label>
-<select class="form-input" id="ovpn-export-proto" onchange="handleOvpnExportProtoChange()" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
+<select class="form-input" id="ovpn-export-proto" onchange="handleOvpnExportProtoChange()" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); width: 100%; cursor: pointer;">
 <option data-i18n="ovpn_tcp_protocol_port_443_passing" value="tcp-443">پروتکل TCP - پورت ۴۴۳ (عبور از فیلترینگ شدید - مشترک با وب)</option>
 <option data-i18n="ovpn_tcp" value="tcp-1194">پروتکل TCP - پورت ۱۱۹۴ (استاندارد و پایدار)</option>
 <option data-i18n="ovpn_udp_protocol_port_1194_fast" selected="" value="udp-1194">پروتکل UDP - پورت ۱۱۹۴ (سریع و بهینه - پیش‌فرض)</option>
@@ -361,7 +361,7 @@
 </div>
 <div>
 <label class="form-label" data-i18n="ovpn_place_radius_account" style="font-size: 12px; margin-bottom: 6px;">جایگذاری اکانت ردیوس:</label>
-<select class="form-input" id="ovpn-export-user-select" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); border: 1px solid rgba(0,0,0,0.15); width: 100%; cursor: pointer;">
+<select class="form-input" id="ovpn-export-user-select" style="padding: 0 12px; height: 42px; font-size: 13px; direction: rtl; text-align: right; border-radius: 10px; background: var(--bg-surface); width: 100%; cursor: pointer;">
 <option data-i18n="ovpn_manual_login_without_saving_user" selected="" value="">ورود دستی (بدون ذخیره کاربر در کانفیگ)</option>
 <option data-i18n="ovpn_radius_default_user_npu" value="NPU">کاربر پیش‌فرض ردیوس (NPU)</option>
 </select>
@@ -405,7 +405,7 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="smartphone" style="width:20px; height:20px; color:#059669;"></i>
-<h4 data-i18n="ovpn_android_iphone_openvpn_connect" style="font-size:14px; font-weight:700; margin:0; color:#047857;">اندروید و آیفون (OpenVPN Connect)</h4>
+<h4 data-i18n="ovpn_android_iphone_openvpn_connect" style="font-size:14px; font-weight:700; margin:0; color:#10b981;">اندروید و آیفون (OpenVPN Connect)</h4>
 </div>
 <p data-i18n-html="elem_tab_openvpn_32" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             اپلیکیشن رسمی <strong>OpenVPN Connect</strong> را از گوگل‌پلی یا اپ‌استور نصب کرده و فایل <code>.ovpn</code> دانلود شده را در آن ایمپورت (Import) کنید:
@@ -423,7 +423,7 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="monitor" style="width:20px; height:20px; color:#0284c7;"></i>
-<h4 data-i18n="ovpn_windows_macos" style="font-size:14px; font-weight:700; margin:0; color:#0369a1;">ویندوز و مک (Windows &amp; macOS)</h4>
+<h4 data-i18n="ovpn_windows_macos" style="font-size:14px; font-weight:700; margin:0; color:#0284c7;">ویندوز و مک (Windows &amp; macOS)</h4>
 </div>
 <p data-i18n-html="elem_tab_openvpn_34" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             در ویندوز با نرم‌افزار رسمی <strong>OpenVPN GUI</strong> و در سیستم‌عامل مک با نرم‌افزار <strong>Tunnelblick</strong>:
@@ -441,7 +441,7 @@
 <div>
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
 <i data-lucide="terminal" style="width:20px; height:20px; color:#4f46e5;"></i>
-<h4 data-i18n="ovpn_direct_connection_linux_linux_cli" style="font-size:14px; font-weight:700; margin:0; color:#4338ca;">اتصال مستقیم در لینوکس (Linux CLI)</h4>
+<h4 data-i18n="ovpn_direct_connection_linux_linux_cli" style="font-size:14px; font-weight:700; margin:0; color:#6366f1;">اتصال مستقیم در لینوکس (Linux CLI)</h4>
 </div>
 <p data-i18n-html="elem_tab_openvpn_36" style="font-size:12px; color:var(--text-muted); line-height:1.5;">
                             اجرای تک‌خطی بدون نیاز به واسط گرافیکی با بسته‌ی <code>openvpn</code>:

@@ -227,10 +227,19 @@ generate_certs() {
         chmod 644 "${CA_CERT}"
     fi
 
-    if [ ! -f "${SERVER_KEY}" ] || [ ! -f "${SERVER_CERT}" ]; then
-        openssl genrsa -out "${SERVER_KEY}" 2048
+    if [ ! -f "${SERVER_KEY}" ] || [ ! -f "${SERVER_CERT}" ] || ! openssl x509 -in "${SERVER_CERT}" -text -noout 2>/dev/null | grep -q "TLS Web Server Authentication"; then
+        [ -f "${SERVER_KEY}" ] || openssl genrsa -out "${SERVER_KEY}" 2048
         openssl req -new -key "${SERVER_KEY}" -subj "/CN=vpn-server" -out "${CA_DIR}/vpn-server.csr"
-        openssl x509 -req -in "${CA_DIR}/vpn-server.csr" -CA "${CA_CERT}" -CAkey "${CA_DIR}/ca.key" -CAcreateserial -out "${SERVER_CERT}" -days 3650
+        cat > /tmp/vpn_srv_ext.cnf <<'EOFCERT'
+basicConstraints = CA:FALSE
+nsCertType = server
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth
+EOFCERT
+        openssl x509 -req -in "${CA_DIR}/vpn-server.csr" -CA "${CA_CERT}" -CAkey "${CA_DIR}/ca.key" -CAcreateserial -out "${SERVER_CERT}" -days 3650 -extfile /tmp/vpn_srv_ext.cnf
+        rm -f /tmp/vpn_srv_ext.cnf
         chmod 600 "${SERVER_KEY}"
         chmod 644 "${SERVER_CERT}"
     fi
@@ -594,9 +603,9 @@ username-as-common-name
 verify-client-cert none
 EOF
 
-    # Also provision OpenVPN TCP on port 1195 for HAProxy multiplexer coexistence
+    # Also provision OpenVPN TCP on port 1194 for dual-stack operation
     cat > /etc/openvpn/server-tcp.conf <<EOF
-port 1195
+port 1194
 proto tcp
 dev tun-tcp
 ca ${CA_CERT}

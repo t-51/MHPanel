@@ -12417,11 +12417,18 @@ def api_openvpn_ca_regenerate():
         subprocess.run("openssl req -x509 -new -nodes -key /etc/vpn-ca/ca.key -subj '/CN=MHPanel Root CA' -days 3650 -out /etc/vpn-ca/ca.crt", shell=True, check=True)
         subprocess.run("openssl genrsa -out /etc/vpn-ca/vpn-server.key 2048", shell=True, check=True)
         subprocess.run("openssl req -new -key /etc/vpn-ca/vpn-server.key -subj '/CN=vpn-server' -out /etc/vpn-ca/vpn-server.csr", shell=True, check=True)
-        subprocess.run("openssl x509 -req -in /etc/vpn-ca/vpn-server.csr -CA /etc/vpn-ca/ca.crt -CAkey /etc/vpn-ca/ca.key -CAcreateserial -out /etc/vpn-ca/vpn-server.crt -days 3650", shell=True, check=True)
+        ext_content = "basicConstraints = CA:FALSE\nnsCertType = server\nsubjectKeyIdentifier = hash\nauthorityKeyIdentifier = keyid,issuer:always\nkeyUsage = critical, digitalSignature, keyEncipherment\nextendedKeyUsage = serverAuth\n"
+        with open("/tmp/vpn_srv_ext.cnf", "w") as f:
+            f.write(ext_content)
+        subprocess.run("openssl x509 -req -in /etc/vpn-ca/vpn-server.csr -CA /etc/vpn-ca/ca.crt -CAkey /etc/vpn-ca/ca.key -CAcreateserial -out /etc/vpn-ca/vpn-server.crt -days 3650 -extfile /tmp/vpn_srv_ext.cnf", shell=True, check=True)
+        try:
+            os.remove("/tmp/vpn_srv_ext.cnf")
+        except Exception:
+            pass
         subprocess.run("openvpn --genkey --secret /etc/openvpn/tls-crypt.key", shell=True, check=True)
         subprocess.run("ln -sf /etc/vpn-ca/ca.crt /etc/openvpn/ca.crt", shell=True)
         subprocess.run("ln -sf /etc/openvpn/tls-crypt.key /etc/openvpn/tc.key", shell=True)
-        subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "ocserv"], check=False)
+        subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp", "ocserv"], check=False)
         return jsonify({"success": True, "message": "گواهی و کلیدهای OpenVPN با موفقیت مجدداً تولید و سرویس‌ها راه‌اندازی شدند."})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -12824,8 +12831,9 @@ def apply_openvpn_multiport_iptables(config):
                     subprocess.run(f"iptables -t nat -A OPENVPN_MULTIPORT -p tcp -m multiport --dports {csv} -j REDIRECT --to-ports 1194", shell=True)
                     subprocess.run(f"iptables -A OPENVPN_MULTIPORT_IN -p tcp -m multiport --dports {csv} -j ACCEPT", shell=True)
 
-        subprocess.run("iptables -t nat -C POSTROUTING -s 10.8.0.0/24 -o ens6 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -o ens6 -j MASQUERADE", shell=True)
-        subprocess.run("iptables -t nat -C POSTROUTING -s 10.9.0.0/24 -o ens6 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 10.9.0.0/24 -o ens6 -j MASQUERADE", shell=True)
+        # Ensure masquerade for OpenVPN UDP (10.8.0.0/24), OpenVPN TCP (10.8.1.0/24) and Ocserv (10.9.0.0/24, 10.30.30.0/24)
+        for subnet in ["10.8.0.0/24", "10.8.1.0/24", "10.9.0.0/24", "10.30.30.0/24"]:
+            subprocess.run(f"iptables -t nat -C POSTROUTING -s {subnet} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {subnet} -j MASQUERADE", shell=True)
         subprocess.run("which netfilter-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1 || true", shell=True)
         subprocess.run("which iptables-save >/dev/null 2>&1 && iptables-save > /etc/iptables/rules.v4 2>/dev/null || true", shell=True)
     except Exception as e:
@@ -12940,8 +12948,8 @@ def api_get_openvpn_config():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     cfg = get_openvpn_multiport_config()
-    udp_active = get_service_is_active("openvpn-server@server")
-    tcp_active = get_service_is_active("openvpn-server@server-tcp")
+    udp_active = get_service_is_active("openvpn-server@server") or get_service_is_active("openvpn@server")
+    tcp_active = get_service_is_active("openvpn-server@server-tcp") or get_service_is_active("openvpn@server-tcp")
     udpspeeder_active = get_service_is_active("udpspeeder-openvpn")
     
     real_ca = get_openvpn_ca_path()
@@ -13019,16 +13027,16 @@ def api_save_openvpn_config():
         apply_openvpn_multiport_iptables(cfg)
         
         if cfg["udp_enabled"]:
-            if not get_service_is_active("openvpn-server@server"):
-                subprocess.run(["systemctl", "start", "openvpn-server@server"])
+            if not (get_service_is_active("openvpn-server@server") or get_service_is_active("openvpn@server")):
+                subprocess.run(["systemctl", "start", "openvpn-server@server", "openvpn@server"])
         else:
-            subprocess.run(["systemctl", "stop", "openvpn-server@server"])
+            subprocess.run(["systemctl", "stop", "openvpn-server@server", "openvpn@server"])
             
         if cfg["tcp_enabled"]:
-            if not get_service_is_active("openvpn-server@server-tcp"):
-                subprocess.run(["systemctl", "start", "openvpn-server@server-tcp"])
+            if not (get_service_is_active("openvpn-server@server-tcp") or get_service_is_active("openvpn@server-tcp")):
+                subprocess.run(["systemctl", "start", "openvpn-server@server-tcp", "openvpn@server-tcp"])
         else:
-            subprocess.run(["systemctl", "stop", "openvpn-server@server-tcp"])
+            subprocess.run(["systemctl", "stop", "openvpn-server@server-tcp", "openvpn@server-tcp"])
             
         return jsonify({"success": True, "message": "تنظیمات ساخت سرور و مولتی‌پورت OpenVPN با موفقیت در فایروال و هسته شبکه اعمال شد."})
     except Exception as e:
@@ -13041,19 +13049,19 @@ def api_openvpn_service_action():
     action = (request.json or {}).get("action", "restart")
     try:
         if action == "restart":
-            subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp"])
+            subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"])
             msg = "تمامی سرویس‌های OpenVPN (UDP و TCP) با موفقیت راه‌اندازی مجدد شدند."
         elif action == "restart_udp":
-            subprocess.run(["systemctl", "restart", "openvpn-server@server"])
+            subprocess.run(["systemctl", "restart", "openvpn-server@server", "openvpn@server"])
             msg = "سرویس OpenVPN UDP با موفقیت راه‌اندازی مجدد شد."
         elif action == "restart_tcp":
-            subprocess.run(["systemctl", "restart", "openvpn-server@server-tcp"])
+            subprocess.run(["systemctl", "restart", "openvpn-server@server-tcp", "openvpn@server-tcp"])
             msg = "سرویس OpenVPN TCP با موفقیت راه‌اندازی مجدد شد."
         elif action == "stop":
-            subprocess.run(["systemctl", "stop", "openvpn-server@server", "openvpn-server@server-tcp"])
+            subprocess.run(["systemctl", "stop", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"])
             msg = "سرویس‌های OpenVPN متوقف شدند."
         elif action == "start":
-            subprocess.run(["systemctl", "start", "openvpn-server@server", "openvpn-server@server-tcp"])
+            subprocess.run(["systemctl", "start", "openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"])
             msg = "سرویس‌های OpenVPN روشن شدند."
         else:
             return jsonify({"success": False, "error": "عملیات نامعتبر است."}), 400

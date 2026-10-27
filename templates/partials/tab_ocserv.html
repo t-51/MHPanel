@@ -55,7 +55,7 @@
 </div>
 </div>
 <!-- Sub-Tabs Navigation for OCServ -->
-<div style="display: flex; gap: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; overflow-x: auto;">
+<div style="display: flex; gap: 8px; border-bottom: 2px solid var(--border-glow); padding-bottom: 4px; overflow-x: auto;">
 <button class="ocserv-subtab-btn active" id="btn-subtab-ocserv-config" onclick="switchOcservSubTab('config')" style="padding: 10px 18px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; background: #4f46e5; color: #fff; transition: all 0.2s;" type="button">
 <i data-lucide="sliders" style="width:16px; height:16px;"></i>
 <span data-i18n="proto_subtab_config">تنظیمات جامع و ضد فیلترینگ (Anti-DPI)</span>
@@ -92,27 +92,27 @@
 </div>
 <div style="display: flex; flex-direction: column; gap: 16px;">
 <!-- Camouflage Toggle -->
-<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px;">
-<label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:700; color:#166534;">
+<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 16px;">
+<label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:700; color: #10b981;">
 <input id="ocserv-camo-enable" onchange="toggleCamoInputs()" style="width:18px; height:18px; accent-color:#059669;" type="checkbox"/> <span data-i18n="ocserv_activating_full_server_camouflage_mode">فعال‌سازی حالت استتار کامل سرور (Camouflage Stealth Mode)</span>
 </label>
-<p data-i18n-html="elem_tab_ocserv_25" style="font-size:12px; color:#15803d; margin:6px 0 0 28px; line-height: 1.5;">
-                                وقتی فعال باشد، اسکنرهای فیلترینگ و هر درخواستی که بدون کلید اختصاصی ارسال شود، ارور <strong data-i18n="ocserv_401_404_normal_web_page">401 یا 404 (صفحه وب عادی)</strong> دریافت می‌کند و هویت سیسکو کاملاً مخفی می‌ماند. اتصال فقط با اضافه کردن آدرس سکرت برقرار می‌شود.
+<p data-i18n-html="elem_tab_ocserv_25" style="font-size:12px; color: var(--text-muted); margin:6px 0 0 28px; line-height: 1.5;">
+                                وقتی فعال باشد، اسکنرهای فیلترینگ و هر درخواستی که بدون کلید اختصاصی ارسال شود، ارور <strong data-i18n="ocserv_401_404_normal_web_page" style="color:var(--text-main);">401 یا 404 (صفحه وب عادی)</strong> دریافت می‌کند و هویت سیسکو کاملاً مخفی می‌ماند. اتصال فقط با اضافه کردن آدرس سکرت برقرار می‌شود.
                             </p>
-<div id="ocserv-camo-fields" style="display:none; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed #bbf7d0;">
+<div id="ocserv-camo-fields" style="display:none; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(16, 185, 129, 0.25);">
 <div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="ocserv_private_key_path_secret_url" style="font-size:12px; font-weight:600; color:#166534;">
+<label class="form-label" data-i18n="ocserv_private_key_path_secret_url" style="font-size:12px; font-weight:600; color: #10b981;">
                                         مسیر کلید اختصاصی (Secret URL Prefix)
                                     </label>
 <input class="form-input" id="ocserv-camo-secret" placeholder="e.g. secure_bypass" required="" style="font-family:'JetBrains Mono', monospace; font-size:13px;" type="text"/>
-<span style="font-size:11px; color:#15803d;"><span data-i18n="ocserv_client_this_value_after_placed">در کلاینت این مقدار بعد از علامت ? قرار می‌گیرد (مثال:</span> <code>https://domain:port/?secret</code>)</span>
+<span style="font-size:11px; color: var(--text-muted);"><span data-i18n="ocserv_client_this_value_after_placed">در کلاینت این مقدار بعد از علامت ? قرار می‌گیرد (مثال:</span> <code>https://domain:port/?secret</code>)</span>
 </div>
 <div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="ocserv_web_answer_title_camouflage_realm" style="font-size:12px; font-weight:600; color:#166534;">
+<label class="form-label" data-i18n="ocserv_web_answer_title_camouflage_realm" style="font-size:12px; font-weight:600; color: #10b981;">
                                         عنوان پاسخ وب (Camouflage Realm)
                                     </label>
 <input class="form-input" id="ocserv-camo-realm" placeholder="Restricted Area" style="font-size:13px;" type="text"/>
-<span data-i18n="ocserv_message_scanner_sees_when_opening" style="font-size:11px; color:#15803d;">پیامی که اسکنر هنگام باز کردن آدرس بدون کلید مشاهده می‌کند</span>
+<span data-i18n="ocserv_message_scanner_sees_when_opening" style="font-size:11px; color: var(--text-muted);">پیامی که اسکنر هنگام باز کردن آدرس بدون کلید مشاهده می‌کند</span>
 </div>
 </div>
 </div>
@@ -232,7 +232,7 @@
 <input class="form-input" id="ocserv-dpd" max="600" min="10" required="" style="font-family:'JetBrains Mono', monospace;" type="number" value="90"/>
 </div>
 </div>
-<div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid #f1f5f9;">
+<div style="display:flex; gap:20px; flex-wrap:wrap; margin-top:16px; padding-top:14px; border-top:1px solid var(--border-glow);">
 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; font-weight:600;">
 <input checked="" id="ocserv-cisco-compat" style="width:16px; height:16px; accent-color:#4f46e5;" type="checkbox"/> <span data-i18n="ocserv_full_compatibility_official_cisco_soft">سازگاری کامل با نرم‌افزار رسمی سیسکو (Cisco AnyConnect Client Compatibility)</span>
 </label>
@@ -325,7 +325,7 @@
 <div style="overflow-x: auto;">
 <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
 <thead>
-<tr style="border-bottom: 2px solid #e2e8f0; text-align: right; color: var(--text-muted); font-size: 12px;">
+<tr style="border-bottom: 2px solid var(--border-glow); text-align: right; color: var(--text-muted); font-size: 12px;">
 <th data-i18n="ovpn_id" style="padding: 10px 14px;">شناسه</th>
 <th data-i18n="login_username" style="padding: 10px 14px;">نام کاربری</th>
 <th data-i18n="ocserv_real_ip_client" style="padding: 10px 14px;">IP واقعی کلاینت</th>
@@ -353,25 +353,25 @@
 <!-- ============================================== -->
 <div id="subtab-pane-ocserv-guides" style="display: none; flex-direction: column; gap: 20px;">
 <!-- Connection URL Banner -->
-<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px;">
-<h4 style="margin:0 0 8px 0; color:#166534; font-size:16px; display:flex; align-items:center; gap:8px;">
+<div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 20px;">
+<h4 style="margin:0 0 8px 0; color: #10b981; font-size:16px; display:flex; align-items:center; gap:8px;">
 <i data-lucide="link" style="width:20px; height:20px;"></i> <span data-i18n="ocserv_server_connection_address_cisco_anycon">آدرس اتصال به سرور برای Cisco AnyConnect و OpenConnect</span>
 </h4>
-<p data-i18n-html="elem_tab_ocserv_27" style="font-size:13px; color:#15803d; margin:0 0 14px 0; line-height:1.6;">
+<p data-i18n-html="elem_tab_ocserv_27" style="font-size:13px; color: var(--text-muted); margin:0 0 14px 0; line-height:1.6;">
                     برای اتصال با اپلیکیشن رسمی <strong>Cisco AnyConnect / Cisco Secure Client</strong> در تمامی سیستم‌عامل‌ها، آدرس زیر را بدون هیچ پیشوند یا پسوند اضافه در نرم‌افزار وارد کنید:
                 </p>
-<div style="background: var(--bg-surface); border:1px solid #86efac; border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
-<code id="ocserv-connect-url-preview" style="font-family:'JetBrains Mono', monospace; font-size:15px; color:#166534; font-weight:700;">
+<div style="background: var(--bg-surface); border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+<code id="ocserv-connect-url-preview" style="font-family:'JetBrains Mono', monospace; font-size:15px; color: #10b981; font-weight:700;">
                         vpn.kigaping.com
                     </code>
 <button class="btn btn-secondary btn-sm" onclick="copyOcservConnectUrl()" style="width:auto; padding:6px 14px;" type="button">
 <i data-lucide="copy" style="width:14px; height:14px; margin-right:4px;"></i> <span data-i18n="ssh_copy_address">کپی آدرس</span>
 </button>
 </div>
-<div data-i18n-html="elem_tab_ocserv_28" style="font-size:12px; color:#15803d; margin-top:10px; line-height:1.6;">
-                    • <strong data-i18n="ocserv_main_address_suggested">آدرس اصلی (پیشنهادی ⚡):</strong> <code>vpn.kigaping.com</code> یا <code>vpn.kigaping.com:443</code> (روی پورت استاندارد ۴۴۳ فعال است، دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br/>
-                    • <strong data-i18n="ocserv_anti_filtering_mode">حالت ضد فیلترینگ:</strong> ترافیک AnyConnect به عنوان ترافیک امن وب HTTPS استاندارد (TLS 1.3) از پورت ۴۴۳ عبور می‌کند و غیرقابل شناسایی است.<br/>
-                    • <strong data-i18n="ocserv_note">نکته:</strong> در Cisco AnyConnect نیازی به وارد کردن پورت نیست؛ صرفاً وارد کردن <code>vpn.kigaping.com</code> کافی است.
+<div data-i18n-html="elem_tab_ocserv_28" style="font-size:12px; color: var(--text-muted); margin-top:10px; line-height:1.6;">
+                    • <strong data-i18n="ocserv_main_address_suggested" style="color: #10b981;">آدرس اصلی (پیشنهادی ⚡):</strong> <code>vpn.kigaping.com</code> یا <code>vpn.kigaping.com:443</code> (روی پورت استاندارد ۴۴۳ فعال است، دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br/>
+                    • <strong data-i18n="ocserv_anti_filtering_mode" style="color: #10b981;">حالت ضد فیلترینگ:</strong> ترافیک AnyConnect به عنوان ترافیک امن وب HTTPS استاندارد (TLS 1.3) از پورت ۴۴۳ عبور می‌کند و غیرقابل شناسایی است.<br/>
+                    • <strong data-i18n="ocserv_note" style="color: #10b981;">نکته:</strong> در Cisco AnyConnect نیازی به وارد کردن پورت نیست؛ صرفاً وارد کردن <code>vpn.kigaping.com</code> کافی است.
                 </div>
 </div>
 <!-- Client Software Cards -->
@@ -405,7 +405,7 @@
 <!-- iOS / macOS -->
 <div class="glass-card config-card" style="padding: 18px;">
 <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-<i data-lucide="apple" style="width:24px; height:24px; color:#334155;"></i>
+<i data-lucide="apple" style="width:24px; height:24px; color:var(--text-main);"></i>
 <strong data-i18n="ocserv_iphone_mac_ios_mac" style="font-size:14px;">آیفون و مک (iOS &amp; Mac)</strong>
 </div>
 <p data-i18n="ocserv_official_cisco_secure_client_applicati" style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
@@ -430,14 +430,14 @@
 </div>
 </div>
 <!-- Notes & Tips Alert -->
-<div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:14px;">
-<div style="width:36px; height:36px; border-radius:10px; background:#fef3c7; color:#d97706; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 16px 20px; display:flex; align-items:flex-start; gap:14px;">
+<div style="width:36px; height:36px; border-radius:10px; background: rgba(245, 158, 11, 0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
 <i data-lucide="info" style="width:20px; height:20px;"></i>
 </div>
-<div style="font-size: 13px; line-height: 1.6; color: #92400e;">
-<strong data-i18n="ocserv_important_points_when_connecting_cisco" style="color: #b45309; font-size: 14px;">نکات مهم در هنگام اتصال به Cisco AnyConnect:</strong>
-<ul style="margin: 6px 0 0 16px; padding: 0;">
-<li data-i18n-html="auto_anyconnect_strong_block_untrus">در کلاینت AnyConnect در بخش تنظیمات (چرخ‌دنده)، تیک گزینه <strong>Block Untrusted Servers</strong> را بردارید تا با ارور امنیتی مواجه نشوید (در صورت استفاده از Let's Encrypt نیازی به این کار نیست).</li>
+<div style="font-size: 13px; line-height: 1.6; color: var(--text-main);">
+<strong data-i18n="ocserv_important_points_when_connecting_cisco" style="color: #f59e0b; font-size: 14px;">نکات مهم در هنگام اتصال به Cisco AnyConnect:</strong>
+<ul style="margin: 6px 0 0 16px; padding: 0; color: var(--text-muted);">
+<li data-i18n-html="auto_anyconnect_strong_block_untrus">در کلاینت AnyConnect در بخش تنظیمات (چرخ‌دنده)، تیک گزینه <strong style="color:var(--text-main);">Block Untrusted Servers</strong> را بردارید تا با ارور امنیتی مواجه نشوید (در صورت استفاده از Let's Encrypt نیازی به این کار نیست).</li>
 <li data-i18n-html="auto_code_npu_code">هنگام اتصال، نام کاربری و رمز عبور همان اکانت‌های متمرکز ردیوس پنل (مانند کاربر <code>NPU</code>) می‌باشد.</li>
 <li data-i18n="ocserv_if_internet_disturbed_udp_packets">در صورتی که اینترنت روی بسته‌های UDP اختلال دارد، گزینه شتاب‌دهنده UDP را در تب تنظیمات خاموش کنید تا اتصال در حالت فوق‌العاده پایدار TCP برقرار گردد.</li>
 </ul>
