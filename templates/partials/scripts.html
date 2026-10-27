@@ -25162,4 +25162,24 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     });
 
+    // --- 7. DEEP LINKING & TAB ROUTER (URL PARAM / HASH) ---
+    window.addEventListener("DOMContentLoaded", function() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetTab = urlParams.get("tab") || (window.location.hash ? window.location.hash.replace("#", "") : null);
+            const targetSubTab = urlParams.get("subtab");
+            if (targetTab && typeof switchTab === "function") {
+                setTimeout(function() {
+                    switchTab(targetTab);
+                    if (targetSubTab) {
+                        setTimeout(function() {
+                            if (targetTab === 'wireguard' && typeof switchWgSubTab === "function") switchWgSubTab(targetSubTab);
+                            if (targetTab === 'amneziawg' && typeof switchAwgSubTab === "function") switchAwgSubTab(targetSubTab);
+                        }, 250);
+                    }
+                }, 350);
+            }
+        } catch (_) {}
+    });
+
 </script>
