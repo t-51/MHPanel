@@ -5952,9 +5952,9 @@
         filtered.forEach(peer => {
             const isSelected = window.wgSelectedKeys && window.wgSelectedKeys.has(peer.public_key);
             const card = document.createElement("div");
-            card.className = "glass-card config-card wg-client-card";
+            card.className = "glass-card config-card wg-client-card client-list-row";
             card.setAttribute("data-pubkey", peer.public_key);
-            card.style.cssText = `padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid ${isSelected ? '#0284c7' : 'var(--border-color)'}; background:${isSelected ? 'rgba(2,132,199,0.06)' : 'var(--bg-card)'}; transition:all 0.2s;`;
+            card.style.cssText = `padding:14px 16px; display:flex; flex-direction:column; gap:10px; border-radius:12px; border:1px solid ${isSelected ? '#0284c7' : 'var(--border-color)'}; background:${isSelected ? 'rgba(2,132,199,0.06)' : 'var(--bg-card)'}; transition:all 0.2s;`;
 
             // Determine status
             let statusBadge = "";
@@ -5963,19 +5963,19 @@
             const isLocked = peer.active === false || peer.status === 'locked' || peer.status === 'disabled';
 
             if (isLocked) {
-                statusBadge = `<span class="radar-status-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="lock" style="width:11px; height:11px;"></i> متوقف / قفل شده</span>`;
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="lock" style="width:11px; height:11px;"></i> متوقف / قفل</span>`;
             } else if (isTrafficExp) {
                 statusBadge = `<span class="radar-status-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="alert-octagon" style="width:11px; height:11px;"></i> پایان حجم</span>`;
             } else if (isDateExp) {
                 statusBadge = `<span class="radar-status-badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="clock" style="width:11px; height:11px;"></i> منقضی شده</span>`;
             } else {
-                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال (Active)</span>`;
+                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال</span>`;
             }
 
             // Usage progress calculation
             let usagePct = 0;
             let usageColor = "#10b981";
-            let limitText = "بدون سقف حجم (نامحدود)";
+            let limitText = "نامحدود";
             if (peer.limit_gb && peer.limit_gb > 0) {
                 const totalBytesLimit = peer.limit_gb * (1024 ** 3);
                 usagePct = Math.min(100, Math.round(((peer.total_usage || 0) / totalBytesLimit) * 100));
@@ -5989,81 +5989,107 @@
             if (peer.expire_date) {
                 expireInfo = `انقضا: ${peer.expire_date}`;
             } else if (peer.start_on_first_connect) {
-                expireInfo = `شروع از ۱st connect (${peer.duration_days || 30} روز)`;
+                expireInfo = `شروع از اتصال اول (${peer.duration_days || 30} روز)`;
             }
 
             const groupName = peer.group || "عمومی";
             const subToken = peer.sub_token || "";
             const simDevices = peer.simultaneous_use || 1;
+            const initial = (peer.name && peer.name.trim().length > 0) ? peer.name.trim().charAt(0).toUpperCase() : 'W';
 
             card.innerHTML = `
+                <!-- Top Row: Select Button, Avatar, Name, Badges, Status -->
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <label style="display:inline-flex; align-items:center; margin:0; cursor:pointer;" title="انتخاب کلاینت برای اعمال دسته جمعی">
-                            <input type="checkbox" class="wg-client-chk" value="${peer.public_key}" ${isSelected ? 'checked' : ''} onchange="toggleWgClientCheck('${peer.public_key}', this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#0284c7;">
-                        </label>
-                        <span style="font-size:15px; font-weight:800; color:var(--text-main);">${peer.name}</span>
-                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11.5px; background:rgba(2,132,199,0.12); color:#0284c7; border:1px solid rgba(2,132,199,0.25);">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <input type="checkbox" class="wg-client-chk" value="${peer.public_key}" ${isSelected ? 'checked' : ''} onchange="toggleWgClientCheck('${peer.public_key}', this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#0284c7;">
+                        <button type="button" class="btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-select-row" onclick="toggleWgClientCheck('${peer.public_key}', !${isSelected})" style="font-size:11px; padding:2px 8px; height:26px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;">
+                            <i data-lucide="${isSelected ? 'check-square' : 'square'}" style="width:12px; height:12px;"></i>
+                            <span>${isSelected ? 'انتخاب شد' : 'انتخاب'}</span>
+                        </button>
+                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(2,132,199,0.15); color:#0284c7; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
+                            ${initial}
+                        </div>
+                        <span style="font-size:14.5px; font-weight:800; color:var(--text-main);">${peer.name}</span>
+                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11px; background:rgba(2,132,199,0.12); color:#0284c7; border:1px solid rgba(2,132,199,0.25);">
                             ${peer.ip || '10.8.0.x'}
                         </span>
                         <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); display:inline-flex; align-items:center; gap:4px;">
                             <i data-lucide="folder" style="width:11px; height:11px;"></i> ${groupName}
                         </span>
-                        <span class="badge-pill" style="font-size:11px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25); display:inline-flex; align-items:center; gap:4px;" title="حداکثر کاربران / دستگاه‌های مجاز">
+                        <span class="badge-pill" style="font-size:11px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25); display:inline-flex; align-items:center; gap:4px;" title="حداکثر دستگاه‌های مجاز">
                             <i data-lucide="smartphone" style="width:11px; height:11px;"></i> مجاز: ${simDevices} کاربر
                         </span>
                     </div>
                     <div>${statusBadge}</div>
                 </div>
 
-                <!-- Usage Progress Bar -->
-                <div style="display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted);">
-                        <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
-                        <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                <!-- Middle Strip: Real Live Traffic Progress & Expiration -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); align-items:center;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted); flex-wrap:wrap; gap:4px;">
+                            <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
+                            <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                        </div>
+                        <div class="core-progress-track" style="height:5px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
+                            <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : 'var(--color-primary)'}; height:100%; border-radius:999px;"></div>
+                        </div>
                     </div>
-                    <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
-                        <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : 'var(--color-primary)'}; height:100%; border-radius:999px;"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); padding-top:2px;">
-                        <span><i data-lucide="calendar" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${expireInfo}</span>
-                        <span style="font-family:'JetBrains Mono'; font-size:11px; opacity:0.6;">Key: ${peer.public_key ? peer.public_key.substring(0, 10) + '...' : ''}</span>
+                    <div style="display:flex; justify-content:flex-end; align-items:center; font-size:11.5px; color:var(--text-muted); gap:5px; white-space:nowrap;">
+                        <i data-lucide="calendar" style="width:12px; height:12px;"></i>
+                        <span>${expireInfo}</span>
                     </div>
                 </div>
 
-                <!-- Action Buttons Toolbar -->
-                <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; padding-top:4px;">
-                    ${isLocked ? `
-                        <button type="button" class="btn btn-sm" onclick="toggleWgClientStatus('${peer.public_key}', true)" style="background:#10b981; color:#fff; font-size:11.5px; padding:5px 10px;" title="فعال‌سازی مجدد کاربر و برقراری اتصال">
-                            <i data-lucide="play" style="width:12px; height:12px;"></i> اتصال
+                <!-- Bottom Row: Action Toolbar (Renew, Status, Sub, Multiport, QR, Conf, Edit, Delete) -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm" onclick="openSingleRenewModal('wireguard', '${peer.public_key}', '${peer.name}', '${expireInfo}')" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="تمدید اعتبار و اضافه کردن روز به این اکانت">
+                            <i data-lucide="clock" style="width:12px; height:12px;"></i>
+                            <span>تمدید</span>
                         </button>
-                    ` : `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleWgClientStatus('${peer.public_key}', false)" style="color:#ef4444; font-size:11.5px; padding:5px 10px;" title="متوقف کردن موقت کاربر">
-                            <i data-lucide="pause" style="width:12px; height:12px;"></i> توقف
+                        ${isLocked ? `
+                            <button type="button" class="btn btn-sm" onclick="toggleWgClientStatus('${peer.public_key}', true)" style="background:#10b981; color:#fff; font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="فعال‌سازی مجدد کاربر و برقراری اتصال">
+                                <i data-lucide="play" style="width:12px; height:12px;"></i>
+                                <span>فعال‌سازی</span>
+                            </button>
+                        ` : `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleWgClientStatus('${peer.public_key}', false)" style="color:#ef4444; font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="متوقف کردن موقت کاربر">
+                                <i data-lucide="pause" style="width:12px; height:12px;"></i>
+                                <span>توقف</span>
+                            </button>
+                        `}
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        ${subToken ? `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:4px 9px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;" title="کپی لینک هوشمند ساب">
+                                <i data-lucide="link" style="width:12px; height:12px;"></i>
+                                <span>ساب</span>
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openWgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
+                            <i data-lucide="network" style="width:12px; height:12px;"></i>
+                            <span>پورت‌ها</span>
                         </button>
-                    `}
-                    ${subToken ? `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:5px 10px; color:#6366f1;" title="کپی لینک هوشمند ساب">
-                            <i data-lucide="link" style="width:12px; height:12px;"></i> لینک ساب
+                        ${peer.config ? `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${peer.name}', this.getAttribute('data-config'), 'wireguard', '${peer.public_key}', '${subToken}')" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:4px 9px; color:#10b981; display:inline-flex; align-items:center; gap:4px;" title="نمایش بارکد QR">
+                                <i data-lucide="qr-code" style="width:12px; height:12px;"></i>
+                                <span>بارکد</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="دانلود فایل .conf">
+                                <i data-lucide="download" style="width:12px; height:12px;"></i>
+                                <span>.conf</span>
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard', '${groupName}', ${simDevices})" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="ویرایش کلاینت و تغییر گروه">
+                            <i data-lucide="edit-3" style="width:12px; height:12px;"></i>
+                            <span>ویرایش</span>
                         </button>
-                    ` : ''}
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openWgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:5px 10px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
-                        <i data-lucide="network" style="width:12px; height:12px;"></i> پورت‌ها
-                    </button>
-                    ${peer.config ? `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${peer.name}', this.getAttribute('data-config'), 'wireguard', '${peer.public_key}', '${subToken}')" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px; color:#10b981;" title="نمایش بارکد QR">
-                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteWgClient('${peer.public_key}')" style="font-size:11.5px; padding:4px 8px; display:inline-flex; align-items:center; gap:4px;" title="حذف کاربر">
+                            <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                            <span>حذف</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadWgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px;" title="دانلود فایل .conf">
-                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود .conf
-                        </button>
-                    ` : ''}
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'wireguard', '${groupName}', ${simDevices})" style="font-size:11.5px; padding:5px 10px;" title="ویرایش کلاینت و تغییر گروه">
-                        <i data-lucide="edit-3" style="width:12px; height:12px;"></i> ویرایش
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteWgClient('${peer.public_key}')" style="font-size:11.5px; padding:5px 9px;" title="حذف کاربر">
-                        <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
-                    </button>
+                    </div>
                 </div>
             `;
             container.appendChild(card);
@@ -6219,16 +6245,26 @@
     function updateWgCardStyles() {
         document.querySelectorAll(".wg-client-chk").forEach(chk => {
             const card = chk.closest(".wg-client-card");
+            const btn = card ? card.querySelector(".btn-select-row") : null;
             if (card) {
                 if (chk.checked) {
                     card.style.borderColor = "#0284c7";
                     card.style.background = "rgba(2,132,199,0.06)";
+                    if (btn) {
+                        btn.className = "btn btn-sm btn-primary btn-select-row";
+                        btn.innerHTML = `<i data-lucide="check-square" style="width:12px; height:12px;"></i><span>انتخاب شد</span>`;
+                    }
                 } else {
                     card.style.borderColor = "var(--border-color)";
                     card.style.background = "var(--bg-card)";
+                    if (btn) {
+                        btn.className = "btn btn-sm btn-secondary btn-select-row";
+                        btn.innerHTML = `<i data-lucide="square" style="width:12px; height:12px;"></i><span>انتخاب</span>`;
+                    }
                 }
             }
         });
+        if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
     }
 
     function updateWgBulkBarState() {
@@ -6292,16 +6328,30 @@
     function updateAwgCardStyles() {
         document.querySelectorAll(".awg-client-chk").forEach(chk => {
             const card = chk.closest(".awg-client-card");
+            const btn = card ? card.querySelector(".btn-select-row") : null;
             if (card) {
                 if (chk.checked) {
                     card.style.borderColor = "#10b981";
                     card.style.background = "rgba(16,185,129,0.06)";
+                    if (btn) {
+                        btn.className = "btn btn-sm btn-primary btn-select-row";
+                        btn.style.background = "#10b981";
+                        btn.style.borderColor = "#10b981";
+                        btn.innerHTML = `<i data-lucide="check-square" style="width:12px; height:12px;"></i><span>انتخاب شد</span>`;
+                    }
                 } else {
                     card.style.borderColor = "var(--border-color)";
                     card.style.background = "var(--bg-card)";
+                    if (btn) {
+                        btn.className = "btn btn-sm btn-secondary btn-select-row";
+                        btn.style.background = "";
+                        btn.style.borderColor = "";
+                        btn.innerHTML = `<i data-lucide="square" style="width:12px; height:12px;"></i><span>انتخاب</span>`;
+                    }
                 }
             }
         });
+        if (typeof lucide !== 'undefined') try { lucide.createIcons(); } catch (_) {}
     }
 
     function updateAwgBulkBarState() {
@@ -6536,6 +6586,129 @@
         } else if (type === 'reset_usage') {
             closeBulkTrafficModal();
             triggerBulkAction(window.bulkTargetProto, "reset_usage");
+        }
+    }
+
+    // --- Bulk & Single Renewal Handlers ---
+    function openBulkRenewModal(proto) {
+        window.bulkTargetProto = proto;
+        const selected = proto === 'wireguard' ? window.wgSelectedKeys : window.awgSelectedKeys;
+        if (!selected || selected.size === 0) {
+            showToast("ابتدا کلاینت‌های مورد نظر را برای تمدید انتخاب نمایید.", "warning");
+            return;
+        }
+
+        const countBadge = document.getElementById("bulk-renew-count-badge");
+        if (countBadge) countBadge.innerText = selected.size.toLocaleString('fa-IR');
+
+        const daysInput = document.getElementById("bulk-renew-days-input");
+        if (daysInput) daysInput.value = "30";
+
+        const chkReset = document.getElementById("bulk-renew-reset-traffic");
+        if (chkReset) chkReset.checked = true;
+
+        const modal = document.getElementById("modal-bulk-renew");
+        if (modal) modal.classList.add("active");
+        if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: modal }); } catch (_) {}
+    }
+
+    function closeBulkRenewModal() {
+        const modal = document.getElementById("modal-bulk-renew");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function setBulkRenewDays(days) {
+        const daysInput = document.getElementById("bulk-renew-days-input");
+        if (daysInput) daysInput.value = days;
+    }
+
+    function submitBulkRenewChange() {
+        const daysInput = document.getElementById("bulk-renew-days-input");
+        const days = daysInput ? (parseInt(daysInput.value) || 30) : 30;
+        const resetTraffic = document.getElementById("bulk-renew-reset-traffic") ? document.getElementById("bulk-renew-reset-traffic").checked : true;
+
+        closeBulkRenewModal();
+        triggerBulkAction(window.bulkTargetProto, "renew", {
+            days: days,
+            reset_traffic: resetTraffic
+        });
+    }
+
+    function openSingleRenewModal(proto, pubkey, name, curExp) {
+        const pkEl = document.getElementById("single-renew-pubkey");
+        if (pkEl) pkEl.value = pubkey;
+
+        const protoEl = document.getElementById("single-renew-proto");
+        if (protoEl) protoEl.value = proto;
+
+        const nameEl = document.getElementById("single-renew-client-name");
+        if (nameEl) nameEl.innerText = name || "کاربر";
+
+        const expEl = document.getElementById("single-renew-client-exp");
+        if (expEl) expEl.innerText = curExp || "-";
+
+        const daysInput = document.getElementById("single-renew-days-input");
+        if (daysInput) daysInput.value = "30";
+
+        const chkReset = document.getElementById("single-renew-reset-traffic");
+        if (chkReset) chkReset.checked = true;
+
+        const modal = document.getElementById("modal-single-renew");
+        if (modal) modal.classList.add("active");
+        if (typeof lucide !== 'undefined') try { lucide.createIcons({ root: modal }); } catch (_) {}
+    }
+
+    function closeSingleRenewModal() {
+        const modal = document.getElementById("modal-single-renew");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function setSingleRenewDays(days) {
+        const daysInput = document.getElementById("single-renew-days-input");
+        if (daysInput) daysInput.value = days;
+    }
+
+    async function submitSingleRenew() {
+        const pubkey = document.getElementById("single-renew-pubkey")?.value;
+        const proto = document.getElementById("single-renew-proto")?.value || "wireguard";
+        const daysInput = document.getElementById("single-renew-days-input");
+        const days = daysInput ? (parseInt(daysInput.value) || 30) : 30;
+        const resetTraffic = document.getElementById("single-renew-reset-traffic") ? document.getElementById("single-renew-reset-traffic").checked : true;
+
+        if (!pubkey) {
+            showToast("مشخصات کلاینت نامعتبر است.", "error");
+            return;
+        }
+
+        closeSingleRenewModal();
+        toggleLoading(true, "در حال تمدید اعتبار اکانت...");
+        try {
+            const endpoint = proto === 'wireguard' ? '/api/wireguard/client/renew' : '/api/amneziawg/client/renew';
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    public_key: pubkey,
+                    days: days,
+                    reset_traffic: resetTraffic
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(data.message || "اکانت با موفقیت تمدید شد.", "success");
+                if (proto === 'wireguard') {
+                    fetchWireGuardClients();
+                } else {
+                    fetchAmneziaWGClients();
+                }
+            } else {
+                showToast(data.error || "خطا در تمدید اکانت", "error");
+            }
+        } catch (e) {
+            console.error("Renew error:", e);
+            showToast("خطا در برقراری ارتباط با سرور", "error");
+        } finally {
+            toggleLoading(false);
         }
     }
 
@@ -9851,9 +10024,11 @@
         }
 
         filtered.forEach(peer => {
+            const isSelected = window.awgSelectedKeys && window.awgSelectedKeys.has(peer.public_key);
             const card = document.createElement("div");
-            card.className = "glass-card config-card";
-            card.style.cssText = "padding:16px 18px; display:flex; flex-direction:column; gap:12px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-card); transition:all 0.2s;";
+            card.className = "glass-card config-card awg-client-card client-list-row";
+            card.setAttribute("data-pubkey", peer.public_key);
+            card.style.cssText = `padding:14px 16px; display:flex; flex-direction:column; gap:10px; border-radius:12px; border:1px solid ${isSelected ? '#10b981' : 'var(--border-color)'}; background:${isSelected ? 'rgba(16,185,129,0.06)' : 'var(--bg-card)'}; transition:all 0.2s;`;
 
             // Determine status
             let statusBadge = "";
@@ -9862,19 +10037,19 @@
             const isLocked = peer.active === false || peer.status === 'locked' || peer.status === 'disabled';
 
             if (isLocked) {
-                statusBadge = `<span class="radar-status-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="lock" style="width:11px; height:11px;"></i> متوقف / قفل شده</span>`;
+                statusBadge = `<span class="radar-status-badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="lock" style="width:11px; height:11px;"></i> متوقف / قفل</span>`;
             } else if (isTrafficExp) {
                 statusBadge = `<span class="radar-status-badge" style="background:rgba(244,63,94,0.15); color:#f43f5e; border:1px solid rgba(244,63,94,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="alert-octagon" style="width:11px; height:11px;"></i> پایان حجم</span>`;
             } else if (isDateExp) {
                 statusBadge = `<span class="radar-status-badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.35); font-size:11px; padding:3px 9px;"><i data-lucide="clock" style="width:11px; height:11px;"></i> منقضی شده</span>`;
             } else {
-                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال (Active)</span>`;
+                statusBadge = `<span class="radar-status-badge badge-emerald" style="font-size:11px; padding:3px 9px;"><i data-lucide="check-circle" style="width:11px; height:11px;"></i> فعال</span>`;
             }
 
             // Usage progress calculation
             let usagePct = 0;
             let usageColor = "#10b981";
-            let limitText = "بدون سقف حجم (نامحدود)";
+            let limitText = "نامحدود";
             if (peer.limit_gb && peer.limit_gb > 0) {
                 const totalBytesLimit = peer.limit_gb * (1024 ** 3);
                 usagePct = Math.min(100, Math.round(((peer.total_usage || 0) / totalBytesLimit) * 100));
@@ -9888,82 +10063,113 @@
             if (peer.expire_date) {
                 expireInfo = `انقضا: ${peer.expire_date}`;
             } else if (peer.start_on_first_connect) {
-                expireInfo = `شروع از ۱st connect (${peer.duration_days || 30} روز)`;
+                expireInfo = `شروع از اتصال اول (${peer.duration_days || 30} روز)`;
             }
 
             const groupName = peer.group || "عمومی";
             const subToken = peer.sub_token || "";
             const simDevices = peer.simultaneous_use || 1;
+            const initial = (peer.name && peer.name.trim().length > 0) ? peer.name.trim().charAt(0).toUpperCase() : 'A';
 
             card.innerHTML = `
+                <!-- Top Row: Select Button, Avatar, Name, Badges, Status -->
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                        <span style="font-size:15px; font-weight:800; color:var(--text-main);">${peer.name}</span>
-                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11.5px; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25);">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <input type="checkbox" class="awg-client-chk" value="${peer.public_key}" ${isSelected ? 'checked' : ''} onchange="toggleAwgClientCheck('${peer.public_key}', this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#10b981;">
+                        <button type="button" class="btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'} btn-select-row" onclick="toggleAwgClientCheck('${peer.public_key}', !${isSelected})" style="font-size:11px; padding:2px 8px; height:26px; border-radius:6px; display:inline-flex; align-items:center; gap:4px; ${isSelected ? 'background:#10b981; border-color:#10b981;' : ''}">
+                            <i data-lucide="${isSelected ? 'check-square' : 'square'}" style="width:12px; height:12px;"></i>
+                            <span>${isSelected ? 'انتخاب شد' : 'انتخاب'}</span>
+                        </button>
+                        <div style="width:30px; height:30px; border-radius:50%; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px;">
+                            ${initial}
+                        </div>
+                        <span style="font-size:14.5px; font-weight:800; color:var(--text-main);">${peer.name}</span>
+                        <span class="badge-pill" style="font-family:'JetBrains Mono'; font-size:11px; background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.25);">
                             ${peer.ip || '10.8.0.x'}
                         </span>
                         <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); display:inline-flex; align-items:center; gap:4px;">
                             <i data-lucide="folder" style="width:11px; height:11px;"></i> ${groupName}
                         </span>
-                        <span class="badge-pill" style="font-size:11px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25); display:inline-flex; align-items:center; gap:4px;" title="حداکثر کاربران / دستگاه‌های مجاز">
+                        <span class="badge-pill" style="font-size:11px; background:rgba(168,85,247,0.12); color:#a855f7; border:1px solid rgba(168,85,247,0.25); display:inline-flex; align-items:center; gap:4px;" title="حداکثر دستگاه‌های مجاز">
                             <i data-lucide="smartphone" style="width:11px; height:11px;"></i> مجاز: ${simDevices} کاربر
                         </span>
                     </div>
                     <div>${statusBadge}</div>
                 </div>
 
-                <!-- Usage Progress Bar -->
-                <div style="display:flex; flex-direction:column; gap:6px; background:rgba(255,255,255,0.02); padding:10px 14px; border-radius:8px; border:1px solid var(--border-color);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted);">
-                        <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
-                        <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                <!-- Middle Strip: Real Live Traffic Progress & Expiration -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; background:rgba(255,255,255,0.02); padding:8px 12px; border-radius:8px; border:1px solid var(--border-color); align-items:center;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--text-muted); flex-wrap:wrap; gap:4px;">
+                            <span>مصرف کل: <strong style="color:var(--text-main); font-family:'JetBrains Mono';">${formatBytes(peer.total_usage || 0)}</strong> <span style="font-size:11px; opacity:0.8;">(↓ ${formatBytes(peer.rx || 0)} | ↑ ${formatBytes(peer.tx || 0)})</span></span>
+                            <span>${limitText} ${peer.limit_gb ? `(<strong style="color:${usageColor}; font-family:'JetBrains Mono';">${usagePct}%</strong>)` : ''}</span>
+                        </div>
+                        <div class="core-progress-track" style="height:5px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
+                            <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : '#10b981'}; height:100%; border-radius:999px;"></div>
+                        </div>
                     </div>
-                    <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
-                        <div class="core-progress-fill" style="width:${peer.limit_gb ? usagePct : 100}%; background:${peer.limit_gb ? usageColor : '#10b981'}; height:100%; border-radius:999px;"></div>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:11.5px; color:var(--text-muted); padding-top:2px;">
-                        <span><i data-lucide="calendar" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> ${expireInfo}</span>
-                        <span style="font-family:'JetBrains Mono'; font-size:11px; opacity:0.6;">Key: ${peer.public_key ? peer.public_key.substring(0, 10) + '...' : ''}</span>
+                    <div style="display:flex; justify-content:flex-end; align-items:center; font-size:11.5px; color:var(--text-muted); gap:5px; white-space:nowrap;">
+                        <i data-lucide="calendar" style="width:12px; height:12px;"></i>
+                        <span>${expireInfo}</span>
                     </div>
                 </div>
 
-                <!-- Action Buttons Toolbar -->
-                <div style="display:flex; justify-content:flex-end; align-items:center; flex-wrap:wrap; gap:8px; padding-top:4px;">
-                    ${isLocked ? `
-                        <button type="button" class="btn btn-sm" onclick="toggleAwgClientStatus('${peer.public_key}', true)" style="background:#10b981; color:#fff; font-size:11.5px; padding:5px 10px;" title="فعال‌سازی مجدد کاربر و برقراری اتصال">
-                            <i data-lucide="play" style="width:12px; height:12px;"></i> اتصال
+                <!-- Bottom Row: Action Toolbar (Renew, Status, Sub, Multiport, QR, Conf, Edit, Delete) -->
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm" onclick="openSingleRenewModal('amneziawg', '${peer.public_key}', '${peer.name}', '${expireInfo}')" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="تمدید اعتبار و اضافه کردن روز به این اکانت">
+                            <i data-lucide="clock" style="width:12px; height:12px;"></i>
+                            <span>تمدید</span>
                         </button>
-                    ` : `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAwgClientStatus('${peer.public_key}', false)" style="color:#ef4444; font-size:11.5px; padding:5px 10px;" title="متوقف کردن موقت کاربر">
-                            <i data-lucide="pause" style="width:12px; height:12px;"></i> توقف
+                        ${isLocked ? `
+                            <button type="button" class="btn btn-sm" onclick="toggleAwgClientStatus('${peer.public_key}', true)" style="background:#10b981; color:#fff; font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="فعال‌سازی مجدد کاربر و برقراری اتصال">
+                                <i data-lucide="play" style="width:12px; height:12px;"></i>
+                                <span>فعال‌سازی</span>
+                            </button>
+                        ` : `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleAwgClientStatus('${peer.public_key}', false)" style="color:#ef4444; font-size:11.5px; padding:4px 10px; display:inline-flex; align-items:center; gap:4px;" title="متوقف کردن موقت کاربر">
+                                <i data-lucide="pause" style="width:12px; height:12px;"></i>
+                                <span>توقف</span>
+                            </button>
+                        `}
+                    </div>
+
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                        ${subToken ? `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:4px 9px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;" title="کپی لینک هوشمند ساب">
+                                <i data-lucide="link" style="width:12px; height:12px;"></i>
+                                <span>ساب</span>
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openAwgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
+                            <i data-lucide="network" style="width:12px; height:12px;"></i>
+                            <span>پورت‌ها</span>
                         </button>
-                    `}
-                    ${subToken ? `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyClientSubLink('${subToken}')" style="font-size:11.5px; padding:5px 10px; color:#6366f1;" title="کپی لینک هوشمند ساب">
-                            <i data-lucide="link" style="width:12px; height:12px;"></i> لینک ساب
+                        ${peer.config ? `
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${peer.name}', this.getAttribute('data-config'), 'amneziawg', '${peer.public_key}', '${subToken}')" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:4px 9px; color:#10b981; display:inline-flex; align-items:center; gap:4px;" title="نمایش بارکد QR">
+                                <i data-lucide="qr-code" style="width:12px; height:12px;"></i>
+                                <span>بارکد</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="دانلود فایل .conf">
+                                <i data-lucide="download" style="width:12px; height:12px;"></i>
+                                <span>.conf</span>
+                            </button>
+                        ` : ''}
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg', '${groupName}', ${simDevices})" style="font-size:11.5px; padding:4px 9px; display:inline-flex; align-items:center; gap:4px;" title="ویرایش کلاینت و تغییر گروه">
+                            <i data-lucide="edit-3" style="width:12px; height:12px;"></i>
+                            <span>ویرایش</span>
                         </button>
-                    ` : ''}
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openAwgClientMultiportModal('${peer.public_key}', '${subToken}', '${peer.name}')" style="font-size:11.5px; padding:5px 10px;" title="دریافت کانفیگ با پورت‌های مختلف همزمان">
-                        <i data-lucide="network" style="width:12px; height:12px;"></i> پورت‌ها
-                    </button>
-                    ${peer.config ? `
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="openUnifiedQrModal('${peer.name}', this.getAttribute('data-config'), 'amneziawg', '${peer.public_key}', '${subToken}')" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px; color:#10b981;" title="نمایش بارکد QR">
-                            <i data-lucide="qr-code" style="width:12px; height:12px;"></i> بارکد
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteAwgClient('${peer.public_key}')" style="font-size:11.5px; padding:4px 8px; display:inline-flex; align-items:center; gap:4px;" title="حذف کاربر">
+                            <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                            <span>حذف</span>
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadAwgConfig('${peer.name}', this.getAttribute('data-config'))" data-config="${btoa(peer.config)}" style="font-size:11.5px; padding:5px 10px;" title="دانلود فایل .conf">
-                            <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود .conf
-                        </button>
-                    ` : ''}
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openEditClientModal('${peer.public_key}', '${peer.name}', '${peer.limit_gb || ''}', '${peer.duration_days || ''}', ${peer.start_on_first_connect ? 'true' : 'false'}, 'amneziawg', '${groupName}', ${simDevices})" style="font-size:11.5px; padding:5px 10px;" title="ویرایش کلاینت و تغییر گروه">
-                        <i data-lucide="edit-3" style="width:12px; height:12px;"></i> ویرایش
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteAwgClient('${peer.public_key}')" style="font-size:11.5px; padding:5px 9px;" title="حذف کاربر">
-                        <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
-                    </button>
+                    </div>
                 </div>
             `;
             container.appendChild(card);
         });
+
+        updateAwgBulkBarState();
 
         if (typeof lucide !== 'undefined') {
             try { lucide.createIcons({ root: container }); } catch (_) { lucide.createIcons(); }

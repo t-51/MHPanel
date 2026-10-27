@@ -864,105 +864,229 @@ def add_traffic_record(rx, tx):
     except Exception:
         pass
 
+def sync_wireguard_traffic_and_quota(proto="wireguard"):
+    if proto == "wireguard":
+        cmd = ["wg", "show", "wg0", "dump"]
+        json_path = "/www/wwwroot/mhpanel/wg_users.json"
+        tool_bin = "wg"
+        dev_name = "wg0"
+    else:
+        cmd = ["awg", "show", "awg0", "dump"]
+        json_path = "/www/wwwroot/mhpanel/awg_users.json"
+        tool_bin = "awg"
+        dev_name = "awg0"
+
+    raw_dump = {}
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        if res.returncode == 0:
+            for line in res.stdout.strip().split("\n"):
+                parts = line.split()
+                if len(parts) >= 8:
+                    pubkey = parts[0]
+                    handshake = int(parts[4])
+                    rx = int(parts[5])
+                    tx = int(parts[6])
+                    raw_dump[pubkey] = {
+                        "rx": rx,
+                        "tx": tx,
+                        "handshake": handshake,
+                        "endpoint": parts[2],
+                        "allowed_ips": parts[3]
+                    }
+    except Exception:
+        pass
+
+    users = {}
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, 'r') as f:
+                users = json.load(f)
+        except Exception:
+            pass
+
+    dirty = False
+    now = datetime.now()
+    results = {}
+
+    for pk, raw in raw_dump.items():
+        norm_pk = pk
+        udata = users.get(pk)
+        if not udata and pk.replace(" ", "+") in users:
+            norm_pk = pk.replace(" ", "+")
+            udata = users[norm_pk]
+        elif not udata and pk.replace("+", " ") in users:
+            norm_pk = pk.replace("+", " ")
+            udata = users[norm_pk]
+
+        if not udata:
+            udata = {
+                "name": "Client",
+                "active": True,
+                "group": "عمومی"
+            }
+            users[norm_pk] = udata
+            dirty = True
+
+        raw_rx = raw["rx"]
+        raw_tx = raw["tx"]
+        last_raw_rx = udata.get("last_raw_rx", 0)
+        last_raw_tx = udata.get("last_raw_tx", 0)
+        acc_rx = udata.get("accumulated_rx", udata.get("rx", 0))
+        acc_tx = udata.get("accumulated_tx", udata.get("tx", 0))
+
+        delta_rx = (raw_rx - last_raw_rx) if raw_rx >= last_raw_rx else raw_rx
+        delta_tx = (raw_tx - last_raw_tx) if raw_tx >= last_raw_tx else raw_tx
+
+        if delta_rx > 0 or delta_tx > 0 or "accumulated_rx" not in udata:
+            acc_rx += delta_rx
+            acc_tx += delta_tx
+            udata["accumulated_rx"] = acc_rx
+            udata["accumulated_tx"] = acc_tx
+            udata["last_raw_rx"] = raw_rx
+            udata["last_raw_tx"] = raw_tx
+            udata["rx"] = acc_rx
+            udata["tx"] = acc_tx
+            udata["total_usage"] = acc_rx + acc_tx
+            dirty = True
+        else:
+            udata["last_raw_rx"] = raw_rx
+            udata["last_raw_tx"] = raw_tx
+
+        total_usage = udata.get("total_usage", acc_rx + acc_tx)
+        handshake = raw["handshake"]
+
+        # Check start_on_first_connect
+        if udata.get("start_on_first_connect") and not udata.get("first_connect_time") and (handshake > 0 or total_usage > 0):
+            dur_days = int(udata.get("duration_days") or 30)
+            exp_date_str = (now + timedelta(days=dur_days)).strftime("%Y-%m-%d")
+            udata["first_connect_time"] = now.strftime("%Y-%m-%d %H:%M:%S")
+            udata["expire_date"] = exp_date_str
+            udata["start_on_first_connect"] = False
+            dirty = True
+
+        # Check date expiration
+        is_date_expired = False
+        if udata.get("expire_date"):
+            try:
+                exp_dt = datetime.strptime(str(udata["expire_date"]).split()[0], "%Y-%m-%d")
+                if exp_dt < now:
+                    is_date_expired = True
+            except Exception:
+                pass
+
+        # Check traffic limit expiration
+        is_traffic_expired = False
+        limit_gb = udata.get("limit_gb")
+        if limit_gb:
+            try:
+                limit_bytes = float(limit_gb) * (1024 ** 3)
+                if total_usage >= limit_bytes:
+                    is_traffic_expired = True
+            except Exception:
+                pass
+
+        is_active = udata.get("active", True)
+        if not is_active:
+            status = "locked"
+        elif is_traffic_expired:
+            status = "traffic_expired"
+        elif is_date_expired:
+            status = "date_expired"
+        else:
+            status = "active"
+
+        # If expired or locked, disable in kernel
+        if (is_traffic_expired or is_date_expired or not is_active) and raw["allowed_ips"] != "0.0.0.0/32":
+            subprocess.run([tool_bin, "set", dev_name, "peer", pk, "allowed-ips", "0.0.0.0/32"], check=False)
+            udata["status"] = status
+            udata["active"] = False
+            dirty = True
+
+        results[norm_pk] = {
+            "rx": acc_rx,
+            "tx": acc_tx,
+            "total_usage": total_usage,
+            "raw_rx": raw_rx,
+            "raw_tx": raw_tx,
+            "handshake": handshake,
+            "is_date_expired": is_date_expired,
+            "is_traffic_expired": is_traffic_expired,
+            "status": status
+        }
+
+    for pk, udata in users.items():
+        if pk not in results:
+            acc_rx = udata.get("accumulated_rx", udata.get("rx", 0))
+            acc_tx = udata.get("accumulated_tx", udata.get("tx", 0))
+            total_usage = udata.get("total_usage", acc_rx + acc_tx)
+            is_date_expired = False
+            if udata.get("expire_date"):
+                try:
+                    exp_dt = datetime.strptime(str(udata["expire_date"]).split()[0], "%Y-%m-%d")
+                    if exp_dt < now:
+                        is_date_expired = True
+                except Exception:
+                    pass
+            is_traffic_expired = False
+            limit_gb = udata.get("limit_gb")
+            if limit_gb:
+                try:
+                    if total_usage >= float(limit_gb) * (1024 ** 3):
+                        is_traffic_expired = True
+                except Exception:
+                    pass
+            is_active = udata.get("active", True)
+            if not is_active:
+                status = "locked"
+            elif is_traffic_expired:
+                status = "traffic_expired"
+            elif is_date_expired:
+                status = "date_expired"
+            else:
+                status = "active"
+            results[pk] = {
+                "rx": acc_rx,
+                "tx": acc_tx,
+                "total_usage": total_usage,
+                "raw_rx": 0,
+                "raw_tx": 0,
+                "handshake": 0,
+                "is_date_expired": is_date_expired,
+                "is_traffic_expired": is_traffic_expired,
+                "status": status
+            }
+
+    if dirty:
+        try:
+            with open(json_path, 'w') as f:
+                json.dump(users, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    return results
+
+def get_wg_traffic():
+    return sync_wireguard_traffic_and_quota("wireguard")
+
+def get_awg_traffic():
+    return sync_wireguard_traffic_and_quota("amneziawg")
+
 def wg_client_tracker():
     while True:
         try:
-            if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
-                with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
-                    try: wg_users = json.load(f)
-                    except: wg_users = {}
-                
-                traffic = get_wg_traffic()
-                changed = False
-                now_str = datetime.now().strftime("%Y-%m-%d")
-                
-                for pubkey, user_data in wg_users.items():
-                    limit_gb = user_data.get("limit_gb")
-                    expire_date = user_data.get("expire_date")
-                    start_on_first = user_data.get("start_on_first_connect")
-                    duration_days = user_data.get("duration_days")
-                    disabled = False
-                    
-                    tdata = traffic.get(pubkey, {"rx": 0, "tx": 0})
-                    total_usage = tdata["rx"] + tdata["tx"]
-                    
-                    if start_on_first and not expire_date and total_usage > 0 and duration_days:
-                        from datetime import datetime, timedelta
-                        expire_date = (datetime.now() + timedelta(days=duration_days)).strftime("%Y-%m-%d")
-                        user_data["expire_date"] = expire_date
-                        user_data["start_on_first_connect"] = False
-                        changed = True
-                    
-                    if expire_date:
-                        if now_str > expire_date:
-                            disabled = True
-                            
-                    if limit_gb and not disabled:
-                        if total_usage >= limit_gb * (1024**3):
-                            disabled = True
-                            
-                    if disabled:
-                        if user_data.get("active", True):
-                            user_data["active"] = False
-                            changed = True
-                        subprocess.run(["wg", "set", "wg0", "peer", pubkey, "remove"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    
-                if changed:
-                    with open('/www/wwwroot/mhpanel/wg_users.json', 'w') as f:
-                        json.dump(wg_users, f)
+            sync_wireguard_traffic_and_quota("wireguard")
         except Exception:
             pass
-        time.sleep(60)
+        time.sleep(15)
 
 def awg_client_tracker():
     while True:
         try:
-            if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
-                with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
-                    try: awg_users = json.load(f)
-                    except: awg_users = {}
-                
-                traffic = get_awg_traffic()
-                changed = False
-                now_str = datetime.now().strftime("%Y-%m-%d")
-                
-                for pubkey, user_data in awg_users.items():
-                    limit_gb = user_data.get("limit_gb")
-                    expire_date = user_data.get("expire_date")
-                    start_on_first = user_data.get("start_on_first_connect")
-                    duration_days = user_data.get("duration_days")
-                    disabled = False
-                    
-                    tdata = traffic.get(pubkey, {"rx": 0, "tx": 0})
-                    total_usage = tdata["rx"] + tdata["tx"]
-                    
-                    if start_on_first and not expire_date and total_usage > 0 and duration_days:
-                        from datetime import datetime, timedelta
-                        expire_date = (datetime.now() + timedelta(days=duration_days)).strftime("%Y-%m-%d")
-                        user_data["expire_date"] = expire_date
-                        user_data["start_on_first_connect"] = False
-                        changed = True
-                    
-                    if expire_date:
-                        if now_str > expire_date:
-                            disabled = True
-                            
-                    if limit_gb and not disabled:
-                        if total_usage >= limit_gb * (1024**3):
-                            disabled = True
-                            
-                    if disabled:
-                        if user_data.get("active", True):
-                            user_data["active"] = False
-                            changed = True
-                        subprocess.run(["awg", "set", "awg0", "peer", pubkey, "remove"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                    
-                if changed:
-                    with open('/www/wwwroot/mhpanel/awg_users.json', 'w') as f:
-                        json.dump(awg_users, f)
+            sync_wireguard_traffic_and_quota("amneziawg")
         except Exception:
             pass
-        time.sleep(60)
+        time.sleep(15)
 
 # --- Panel Path & Routes ---
 PANEL_PATH_FILE = "/etc/vpnpanel/panel_path.txt"
@@ -6207,22 +6331,6 @@ PersistentKeepalive = 25
     return jsonify({"success": True, "clients": created_clients})
 
 
-def get_wg_traffic():
-    traffic = {}
-    try:
-        res = subprocess.run(["wg", "show", "wg0", "dump"], capture_output=True, text=True, timeout=5)
-        if res.returncode == 0:
-            for line in res.stdout.strip().split("\n"):
-                parts = line.split()
-                if len(parts) >= 8:
-                    pubkey = parts[0]
-                    rx = int(parts[5])
-                    tx = int(parts[6])
-                    traffic[pubkey] = {"rx": rx, "tx": tx}
-    except Exception:
-        pass
-    return traffic
-
 @app.route("/api/wireguard/peers", methods=["GET"])
 def api_wg_peers():
     if not check_login():
@@ -6264,13 +6372,22 @@ def api_wg_peers():
             try: wg_users = json.load(f)
             except: pass
 
+    existing_pks = {p.get("public_key") for p in peers if p.get("public_key")}
+    for pk, udata in wg_users.items():
+        if pk not in existing_pks and pk.replace(" ", "+") not in existing_pks and pk.replace("+", " ") not in existing_pks:
+            peers.append({
+                "name": udata.get("name", "Client"),
+                "public_key": pk,
+                "ip": udata.get("ip", "")
+            })
+
     traffic = get_wg_traffic()
     wg_dirty = False
     now = datetime.now()
     
     for peer in peers:
         pubkey = peer.get("public_key")
-        user_data = wg_users.get(pubkey, {})
+        user_data = wg_users.get(pubkey) or wg_users.get(pubkey.replace(" ", "+")) or wg_users.get(pubkey.replace("+", " ")) or {}
         peer["limit_gb"] = user_data.get("limit_gb")
         peer["expire_date"] = user_data.get("expire_date")
         peer["active"] = user_data.get("active", True)
@@ -6289,18 +6406,20 @@ def api_wg_peers():
             wg_dirty = True
         peer["sub_token"] = sub_tok
 
-        tdata = traffic.get(pubkey, {"rx": 0, "tx": 0})
-        peer["rx"] = tdata["rx"]
-        peer["tx"] = tdata["tx"]
-        total_usage = tdata["rx"] + tdata["tx"]
-        peer["total_usage"] = total_usage
+        tdata = traffic.get(pubkey) or traffic.get(pubkey.replace(" ", "+")) or traffic.get(pubkey.replace("+", " ")) or {}
+        acc_rx = tdata.get("rx", user_data.get("accumulated_rx", user_data.get("rx", 0)))
+        acc_tx = tdata.get("tx", user_data.get("accumulated_tx", user_data.get("tx", 0)))
+        peer["rx"] = acc_rx
+        peer["tx"] = acc_tx
+        peer["total_usage"] = tdata.get("total_usage", acc_rx + acc_tx)
+        total_usage = peer["total_usage"]
         
         # Calculate status flags
         is_date_expired = False
         if peer.get("expire_date"):
             try:
                 exp_dt = datetime.strptime(str(peer["expire_date"]).split()[0], "%Y-%m-%d")
-                if exp_dt < now:
+                if exp_dt.date() < now.date():
                     is_date_expired = True
             except Exception:
                 pass
@@ -6981,6 +7100,76 @@ def api_wg_client_delete():
                 
     return jsonify({"success": True})
 
+@app.route("/api/wireguard/client/renew", methods=["POST"])
+def api_wg_client_renew():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    pubkey = (data.get("public_key") or "").strip()
+    if not pubkey:
+        return jsonify({"success": False, "error": "Missing public_key"}), 400
+    try:
+        days = int(data.get("days", 30))
+    except Exception:
+        days = 30
+    reset_traffic = bool(data.get("reset_traffic", True))
+
+    wg_users_file = '/www/wwwroot/mhpanel/wg_users.json'
+    wg_users = {}
+    if os.path.exists(wg_users_file):
+        try:
+            with open(wg_users_file, 'r') as f:
+                wg_users = json.load(f)
+        except Exception:
+            pass
+
+    u = wg_users.get(pubkey) or wg_users.get(pubkey.replace(" ", "+")) or wg_users.get(pubkey.replace("+", " "))
+    if not u:
+        return jsonify({"success": False, "error": "Client not found"}), 404
+
+    norm_k = pubkey if pubkey in wg_users else (pubkey.replace(" ", "+") if pubkey.replace(" ", "+") in wg_users else pubkey.replace("+", " "))
+    now = datetime.now()
+    cur_exp_str = str(u.get("expire_date") or "").strip()
+    cur_exp_dt = None
+    if cur_exp_str:
+        try:
+            cur_exp_dt = datetime.strptime(cur_exp_str.split()[0], "%Y-%m-%d")
+        except Exception:
+            cur_exp_dt = None
+
+    if cur_exp_dt and cur_exp_dt.date() >= now.date():
+        new_exp_dt = cur_exp_dt + timedelta(days=days)
+    else:
+        new_exp_dt = now + timedelta(days=days)
+
+    u["expire_date"] = new_exp_dt.strftime("%Y-%m-%d")
+    u["duration_days"] = days
+    u["is_date_expired"] = False
+    u["active"] = True
+    u["status"] = "active"
+
+    if reset_traffic:
+        u["rx"] = 0
+        u["tx"] = 0
+        u["accumulated_rx"] = 0
+        u["accumulated_tx"] = 0
+        u["total_usage"] = 0
+        u["last_raw_rx"] = 0
+        u["last_raw_tx"] = 0
+        u["is_traffic_expired"] = False
+
+    ip = u.get("ip")
+    if not ip:
+        m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+        if m_ip: ip = m_ip.group(1)
+    if ip:
+        subprocess.run(["wg", "set", "wg0", "peer", norm_k, "allowed-ips", f"{ip}/32"], check=False)
+
+    with open(wg_users_file, 'w') as f:
+        json.dump(wg_users, f, indent=2, ensure_ascii=False)
+
+    return jsonify({"success": True, "message": f"اکانت «{u.get('name', 'کاربر')}» به مدت {days} روز با موفقیت تمدید شد."})
+
 @app.route("/api/wireguard/clients/bulk-action", methods=["POST"])
 def api_wg_clients_bulk_action():
     if not check_login():
@@ -7097,6 +7286,54 @@ def api_wg_clients_bulk_action():
             json.dump(wg_users, f, indent=2)
         limit_desc = f"{new_limit_val} GB" if new_limit_val else "نامحدود"
         return jsonify({"success": True, "count": count, "message": f"سقف حجم {count} کاربر به {limit_desc} تغییر یافت."})
+
+    elif action == "renew":
+        try:
+            days = int(data.get("days", 30))
+        except Exception:
+            days = 30
+        reset_traffic = bool(data.get("reset_traffic", True))
+        now = datetime.now()
+        for k, u in keys_map.items():
+            cur_exp_str = str(u.get("expire_date") or "").strip()
+            cur_exp_dt = None
+            if cur_exp_str:
+                try:
+                    cur_exp_dt = datetime.strptime(cur_exp_str.split()[0], "%Y-%m-%d")
+                except Exception:
+                    cur_exp_dt = None
+
+            if cur_exp_dt and cur_exp_dt.date() >= now.date():
+                new_exp_dt = cur_exp_dt + timedelta(days=days)
+            else:
+                new_exp_dt = now + timedelta(days=days)
+
+            u["expire_date"] = new_exp_dt.strftime("%Y-%m-%d")
+            u["duration_days"] = days
+            u["is_date_expired"] = False
+            u["active"] = True
+            u["status"] = "active"
+
+            if reset_traffic:
+                u["rx"] = 0
+                u["tx"] = 0
+                u["accumulated_rx"] = 0
+                u["accumulated_tx"] = 0
+                u["total_usage"] = 0
+                u["last_raw_rx"] = 0
+                u["last_raw_tx"] = 0
+                u["is_traffic_expired"] = False
+
+            ip = u.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["wg", "set", "wg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+
+        with open(wg_users_file, 'w') as f:
+            json.dump(wg_users, f, indent=2, ensure_ascii=False)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر وایرگارد به مدت {days} روز با موفقیت تمدید شدند."})
 
     return jsonify({"success": False, "error": f"عملیات نامعتبر: {action}"}), 400
 
@@ -7297,22 +7534,6 @@ PersistentKeepalive = 25
     return jsonify({"success": True, "clients": created_clients})
 
 
-def get_awg_traffic():
-    traffic = {}
-    try:
-        res = subprocess.run(["awg", "show", "awg0", "dump"], capture_output=True, text=True, timeout=5)
-        if res.returncode == 0:
-            for line in res.stdout.strip().split("\n"):
-                parts = line.split()
-                if len(parts) >= 8:
-                    pubkey = parts[0]
-                    rx = int(parts[5])
-                    tx = int(parts[6])
-                    traffic[pubkey] = {"rx": rx, "tx": tx}
-    except Exception:
-        pass
-    return traffic
-
 @app.route("/api/amneziawg/peers", methods=["GET"])
 def api_awg_peers():
     if not check_login():
@@ -7354,6 +7575,15 @@ def api_awg_peers():
             try: awg_users = json.load(f)
             except: pass
 
+    existing_pks = {p.get("public_key") for p in peers if p.get("public_key")}
+    for pk, udata in awg_users.items():
+        if pk not in existing_pks and pk.replace(" ", "+") not in existing_pks and pk.replace("+", " ") not in existing_pks:
+            peers.append({
+                "name": udata.get("name", "Client"),
+                "public_key": pk,
+                "ip": udata.get("ip", "")
+            })
+
     traffic = get_awg_traffic()
     active_awg_port = get_active_port("amneziawg") or 51820
     awg_users_dirty = False
@@ -7361,7 +7591,7 @@ def api_awg_peers():
 
     for peer in peers:
         pubkey = peer.get("public_key")
-        user_data = awg_users.get(pubkey, {})
+        user_data = awg_users.get(pubkey) or awg_users.get(pubkey.replace(" ", "+")) or awg_users.get(pubkey.replace("+", " ")) or {}
         peer["limit_gb"] = user_data.get("limit_gb")
         peer["expire_date"] = user_data.get("expire_date")
         peer["active"] = user_data.get("active", True)
@@ -7386,18 +7616,20 @@ def api_awg_peers():
         peer["duration_days"] = user_data.get("duration_days")
         peer["start_on_first_connect"] = user_data.get("start_on_first_connect", False)
 
-        tdata = traffic.get(pubkey, {"rx": 0, "tx": 0})
-        peer["rx"] = tdata["rx"]
-        peer["tx"] = tdata["tx"]
-        total_usage = tdata["rx"] + tdata["tx"]
-        peer["total_usage"] = total_usage
+        tdata = traffic.get(pubkey) or traffic.get(pubkey.replace(" ", "+")) or traffic.get(pubkey.replace("+", " ")) or {}
+        acc_rx = tdata.get("rx", user_data.get("accumulated_rx", user_data.get("rx", 0)))
+        acc_tx = tdata.get("tx", user_data.get("accumulated_tx", user_data.get("tx", 0)))
+        peer["rx"] = acc_rx
+        peer["tx"] = acc_tx
+        peer["total_usage"] = tdata.get("total_usage", acc_rx + acc_tx)
+        total_usage = peer["total_usage"]
         
         # Status calculation
         is_date_expired = False
         if peer.get("expire_date"):
             try:
                 exp_dt = datetime.strptime(str(peer["expire_date"]).split()[0], "%Y-%m-%d")
-                if exp_dt < now:
+                if exp_dt.date() < now.date():
                     is_date_expired = True
             except Exception:
                 pass
@@ -7889,6 +8121,76 @@ def api_awg_client_delete():
                 
     return jsonify({"success": True})
 
+@app.route("/api/amneziawg/client/renew", methods=["POST"])
+def api_awg_client_renew():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    pubkey = (data.get("public_key") or "").strip()
+    if not pubkey:
+        return jsonify({"success": False, "error": "Missing public_key"}), 400
+    try:
+        days = int(data.get("days", 30))
+    except Exception:
+        days = 30
+    reset_traffic = bool(data.get("reset_traffic", True))
+
+    awg_users_file = '/www/wwwroot/mhpanel/awg_users.json'
+    awg_users = {}
+    if os.path.exists(awg_users_file):
+        try:
+            with open(awg_users_file, 'r') as f:
+                awg_users = json.load(f)
+        except Exception:
+            pass
+
+    u = awg_users.get(pubkey) or awg_users.get(pubkey.replace(" ", "+")) or awg_users.get(pubkey.replace("+", " "))
+    if not u:
+        return jsonify({"success": False, "error": "Client not found"}), 404
+
+    norm_k = pubkey if pubkey in awg_users else (pubkey.replace(" ", "+") if pubkey.replace(" ", "+") in awg_users else pubkey.replace("+", " "))
+    now = datetime.now()
+    cur_exp_str = str(u.get("expire_date") or "").strip()
+    cur_exp_dt = None
+    if cur_exp_str:
+        try:
+            cur_exp_dt = datetime.strptime(cur_exp_str.split()[0], "%Y-%m-%d")
+        except Exception:
+            cur_exp_dt = None
+
+    if cur_exp_dt and cur_exp_dt.date() >= now.date():
+        new_exp_dt = cur_exp_dt + timedelta(days=days)
+    else:
+        new_exp_dt = now + timedelta(days=days)
+
+    u["expire_date"] = new_exp_dt.strftime("%Y-%m-%d")
+    u["duration_days"] = days
+    u["is_date_expired"] = False
+    u["active"] = True
+    u["status"] = "active"
+
+    if reset_traffic:
+        u["rx"] = 0
+        u["tx"] = 0
+        u["accumulated_rx"] = 0
+        u["accumulated_tx"] = 0
+        u["total_usage"] = 0
+        u["last_raw_rx"] = 0
+        u["last_raw_tx"] = 0
+        u["is_traffic_expired"] = False
+
+    ip = u.get("ip")
+    if not ip:
+        m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+        if m_ip: ip = m_ip.group(1)
+    if ip:
+        subprocess.run(["awg", "set", "awg0", "peer", norm_k, "allowed-ips", f"{ip}/32"], check=False)
+
+    with open(awg_users_file, 'w') as f:
+        json.dump(awg_users, f, indent=2, ensure_ascii=False)
+
+    return jsonify({"success": True, "message": f"اکانت «{u.get('name', 'کاربر')}» به مدت {days} روز با موفقیت تمدید شد."})
+
 @app.route("/api/amneziawg/clients/bulk-action", methods=["POST"])
 def api_awg_clients_bulk_action():
     if not check_login():
@@ -8005,6 +8307,54 @@ def api_awg_clients_bulk_action():
             json.dump(awg_users, f, indent=2)
         limit_desc = f"{new_limit_val} GB" if new_limit_val else "نامحدود"
         return jsonify({"success": True, "count": count, "message": f"سقف حجم {count} کاربر به {limit_desc} تغییر یافت."})
+
+    elif action == "renew":
+        try:
+            days = int(data.get("days", 30))
+        except Exception:
+            days = 30
+        reset_traffic = bool(data.get("reset_traffic", True))
+        now = datetime.now()
+        for k, u in keys_map.items():
+            cur_exp_str = str(u.get("expire_date") or "").strip()
+            cur_exp_dt = None
+            if cur_exp_str:
+                try:
+                    cur_exp_dt = datetime.strptime(cur_exp_str.split()[0], "%Y-%m-%d")
+                except Exception:
+                    cur_exp_dt = None
+
+            if cur_exp_dt and cur_exp_dt.date() >= now.date():
+                new_exp_dt = cur_exp_dt + timedelta(days=days)
+            else:
+                new_exp_dt = now + timedelta(days=days)
+
+            u["expire_date"] = new_exp_dt.strftime("%Y-%m-%d")
+            u["duration_days"] = days
+            u["is_date_expired"] = False
+            u["active"] = True
+            u["status"] = "active"
+
+            if reset_traffic:
+                u["rx"] = 0
+                u["tx"] = 0
+                u["accumulated_rx"] = 0
+                u["accumulated_tx"] = 0
+                u["total_usage"] = 0
+                u["last_raw_rx"] = 0
+                u["last_raw_tx"] = 0
+                u["is_traffic_expired"] = False
+
+            ip = u.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", u.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["awg", "set", "awg0", "peer", k, "allowed-ips", f"{ip}/32"], check=False)
+
+        with open(awg_users_file, 'w') as f:
+            json.dump(awg_users, f, indent=2, ensure_ascii=False)
+        return jsonify({"success": True, "count": count, "message": f"{count} کاربر AmneziaWG به مدت {days} روز با موفقیت تمدید شدند."})
 
     return jsonify({"success": False, "error": f"عملیات نامعتبر: {action}"}), 400
 

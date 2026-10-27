@@ -100,39 +100,50 @@
 
             <!-- WireGuard Bulk Actions Bar -->
             <div id="wg-bulk-bar" class="glass-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:10px; border:1px solid var(--border-color); background:rgba(2,132,199,0.03);">
-                <div style="display:flex; align-items:center; gap:12px;">
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                     <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-main); user-select:none;">
                         <input type="checkbox" id="wg-select-all-chk" onchange="toggleSelectAllWgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#0284c7;">
                         <span>انتخاب همه</span>
                     </label>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSelectAllWgClients(true)" style="font-size:11px; padding:2px 8px; height:26px;">
+                        انتخاب همه لیست
+                    </button>
                     <span id="wg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(2,132,199,0.15); color:#0284c7; border:1px solid rgba(2,132,199,0.3); border-radius:999px; font-weight:700; display:none;">
                         <span id="wg-bulk-selected-count">۰</span> کلاینت انتخاب شد
                     </span>
                 </div>
                 <div id="wg-bulk-actions-group" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkDownload('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#0284c7; border-color:rgba(2,132,199,0.3);" title="دانلود کانفیگ تمام کاربران انتخاب شده بصورت یک فایل ZIP">
-                        <i data-lucide="archive" style="width:13px; height:13px;"></i>
-                        <span>دانلود ZIP کانفیگ‌ها</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'pause')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#f97316; border-color:rgba(249,115,22,0.3);" title="متوقف کردن اتصال کلاینت‌های انتخاب شده">
+                        <i data-lucide="pause-circle" style="width:13px; height:13px;"></i>
+                        <span>متوقف کردن همه</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'resume')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="فعال‌سازی مجدد اتصال کلاینت‌های انتخاب شده">
+                        <i data-lucide="play-circle" style="width:13px; height:13px;"></i>
+                        <span>فعال‌سازی همه</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'reset_usage')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#06b6d4; border-color:rgba(6,182,212,0.3);" title="صفر کردن حجم مصرفی تمام کلاینت‌های انتخاب شده">
+                        <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
+                        <span>ریست همه</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkRenewModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="تمدید اعتبار و تاریخ انقضای تمام کاربران انتخاب شده">
+                        <i data-lucide="clock" style="width:13px; height:13px;"></i>
+                        <span>تمدید اعتبار همه</span>
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkGroupModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#6366f1; border-color:rgba(99,102,241,0.3);" title="تغییر دسته / گروه کلاینت‌های انتخاب شده">
                         <i data-lucide="folder" style="width:13px; height:13px;"></i>
                         <span>تغییر گروه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkTrafficModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#eab308; border-color:rgba(234,179,8,0.3);" title="تنظیم سقف حجم یا صفر کردن مصرف">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkTrafficModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#eab308; border-color:rgba(234,179,8,0.3);" title="تنظیم سقف حجم">
                         <i data-lucide="pie-chart" style="width:13px; height:13px;"></i>
-                        <span>حجم / مصرف</span>
+                        <span>سقف حجم</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'pause')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#f97316; border-color:rgba(249,115,22,0.3);" title="متوقف کردن اتصال کلاینت‌های انتخاب شده">
-                        <i data-lucide="pause" style="width:13px; height:13px;"></i>
-                        <span>توقف اتصال</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkDownload('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#0284c7; border-color:rgba(2,132,199,0.3);" title="دانلود کانفیگ تمام کاربران انتخاب شده بصورت یک فایل ZIP">
+                        <i data-lucide="archive" style="width:13px; height:13px;"></i>
+                        <span>دانلود ZIP</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'resume')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="فعال‌سازی مجدد اتصال کلاینت‌های انتخاب شده">
-                        <i data-lucide="play" style="width:13px; height:13px;"></i>
-                        <span>فعال‌سازی</span>
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="triggerBulkAction('wireguard', 'delete')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="حذف کلاینت‌های انتخاب شده">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="triggerBulkAction('wireguard', 'delete')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="حذف تمام کلاینت‌های انتخاب شده">
                         <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
-                        <span>حذف دسته‌جمعی</span>
+                        <span>حذف همه</span>
                     </button>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="clearBulkSelection('wireguard')" style="font-size:12px; height:32px; padding:0 8px; opacity:0.8;" title="انصراف و لغو انتخاب">
                         <i data-lucide="x" style="width:13px; height:13px;"></i>
