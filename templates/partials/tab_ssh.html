@@ -78,7 +78,7 @@
                             اتصال مستقیم TCP با پورت‌های ۲۲، ۲۰۵۳ و ۴۴۳ (از طریق مولتی‌پلکسر HAProxy) با قابلیت فوروارد نامحدود.
                         </p>
 <div id="ssh-box-socks5-cmd" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            ssh -N -D 1080 [username]@vpn.kigaping.com -p 22
+                            ssh -N -D 1080 [username]@test.kigaping.com -p 22
                         </div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-socks5-cmd').innerText, 'دستور ساکس ۵')" style="width:100%;" type="button">
@@ -96,7 +96,7 @@
                             مناسب اتصال از پشت شبکه کلودفلر، آروان‌کلود و پورت‌های 80 و 443 با مسیر <code>/ssh</code> و <code>/ws</code>.
                         </p>
 <div id="ssh-box-ws-payload" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            GET /ssh HTTP/1.1[crlf]Host: vpn.kigaping.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
+                            GET /ssh HTTP/1.1[crlf]Host: test.kigaping.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
                         </div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-ws-payload').innerText, 'پی‌لود وب‌سوکت')" style="width:100%;" type="button">
@@ -114,10 +114,10 @@
                             پنهان‌سازی فریم‌های SSH در لایه TLS با گواهی معتبر Let's Encrypt جهت عبور از DPI. پورت‌های ۹۴۴۳، ۲۰۸۷ و ۴۴۳.
                         </p>
 <div id="ssh-box-stunnel-info" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            Host: vpn.kigaping.com | Ports: 9443, 2087, 443 | SNI: vpn.kigaping.com
+                            Host: test.kigaping.com | Ports: 22, 443 | SNI: test.kigaping.com
                         </div>
 </div>
-<button class="btn btn-secondary btn-sm" onclick="copySshText('vpn.kigaping.com:9443', 'مشخصات TLS/Stunnel')" style="width:100%;" type="button">
+<button class="btn btn-secondary btn-sm" onclick="copySshStunnelInfo()" style="width:100%;" type="button">
 <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_stunnel_address_port">کپی آدرس و پورت Stunnel</span>
 </button>
 </div>
@@ -198,10 +198,10 @@
 </div>
 <div style="display:flex; flex-direction:column; gap:14px; font-size:13px; line-height:1.7;">
 <!-- Error explanation alert -->
-<div style="background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:12px 16px; color:#92400e;">
-<strong data-i18n="ssh_why_were_you_receiving_authentication" style="color:#b45309; font-size:14px;">⚠️ چرا روی پورت ۴۴۳ خطای احراز هویت یا قطعی دریافت می‌کردید؟</strong>
-<p data-i18n-html="elem_tab_ssh_47" style="margin:4px 0 0 0;">
-                        روی پورت ۴۴۳ به دلیل اشتراک‌گذاری همزمان چند پروتکل (Cisco AnyConnect، وب‌سایت‌های پنل، SSH و OpenVPN)، تفکیک ترافیک با <strong data-i18n="ssh_sni_domain_name_inside_ssl">SNI (نام دامنه داخل پکت SSL)</strong> انجام می‌شود. دامنه اصلی <code>vpn.kigaping.com</code> روی پورت ۴۴۳ به پروتکل سیسکو (Cisco AnyConnect) اختصاص دارد؛ بنابراین اگر در کلاینت SSH مقدار SNI را <code>vpn.kigaping.com</code> وارد کرده و به ۴۴۳ متصل شوید، ترافیک به سمت سرور سیسکو رفته و خطای احراز هویت (یا 401) می‌دهد!
+<div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 12px 16px; color: #d97706;">
+<strong data-i18n="ssh_why_were_you_receiving_authentication" style="color:#b45309; font-size:14px;">⚠️ تفکیک هوشمند پورت ۴۴۳ و نحوه اتصال SSH</strong>
+<p data-i18n-html="elem_tab_ssh_47" style="margin:4px 0 0 0; color: var(--text-main);">
+                        روی پورت ۴۴۳ تفکیک ترافیک به صورت خودکار توسط مالتی‌پلکسر انجام می‌شود. در اتصال مستقیم SSH، کدهای دست‌دهی بلافاصله شناسایی و به پورت ۲۲ هدایت می‌شوند. در صورت اتصال از طریق کلاینت‌های با لایه TLS/SSL، وارد کردن دامنه یا SNI الزامی است.
                     </p>
 </div>
 <!-- 4 Valid Working Connection Methods -->
@@ -209,32 +209,31 @@
 <!-- Method 1: Port 9443 or 2087 (Recommended) -->
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
 <div data-i18n="ssh_method_1_stunnel_direct_port" style="font-weight:700; color:#059669; margin-bottom:6px;">
-                            ✅ روش ۱: پورت مستقیم Stunnel (پیشنهادی و ۱۰۰٪ تست شده)
+                            ✅ روش ۱: پورت مستقیم Stunnel / TLS
                         </div>
 <p data-i18n="ssh_these_ports_are_managed_non" style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
-                            این پورت‌ها بدون تداخل و مستقیماً توسط سرویس TLS Stunnel با گواهی معتبر مدیریت می‌شوند:
+                            این پورت‌ها بدون تداخل و مستقیماً توسط سرویس TLS با گواهی معتبر مدیریت می‌شوند:
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
 <li data-i18n-html="elem_tab_ssh_48"><strong data-i18n="ssh_protocol_type">نوع پروتکل:</strong> SSH (با فعال‌سازی گزینه SSL / TLS)</li>
-<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
-<li data-i18n-html="elem_tab_ssh_49"><strong data-i18n="ssh_port">Port (پورت):</strong> <code>9443</code> یا <code>2087</code> (پورت امن کلودفلر)</li>
-<li><strong>Server Name Indication (SNI):</strong> <code>vpn.kigaping.com</code></li>
-<li data-i18n-html="elem_tab_ssh_50"><strong data-i18n="ssh_item_7">نام کاربری و رمز:</strong> اکانت ساخته‌شده در پنل (یا NPU / 123456)</li>
+<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li data-i18n-html="elem_tab_ssh_49"><strong data-i18n="ssh_port">Port (پورت):</strong> <code>22</code> یا <code>443</code></li>
+<li><strong>Server Name Indication (SNI):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li data-i18n-html="elem_tab_ssh_50"><strong data-i18n="ssh_item_7">نام کاربری و رمز:</strong> اکانت ساخته‌شده در پنل</li>
 </ul>
 </div>
 <!-- Method 2: Port 443 with Dedicated SNI -->
 <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px;">
 <div data-i18n="ssh_method_2_connect_port_443" style="font-weight:700; color:#2563eb; margin-bottom:6px;">
-                            ⚡ روش ۲: اتصال به پورت ۴۴۳ با تفکیک SNI
+                            ⚡ روش ۲: اتصال مستقیم به پورت ۴۴۳
                         </div>
 <p data-i18n="ssh_bypass_filtering_port_443_you" style="font-size:12px; color:var(--text-muted); margin:0 0 8px 0;">
-                            برای دورزدن فیلترینگ با پورت ۴۴۳ حتماً باید SNI متفاوت از سیسکو وارد کنید:
+                            اتصال مستقیم SSH روی پورت استاندارد ۴۴۳ (بدون نیاز به پورت خاص):
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code id="ssh-guide-host">دامنه یا IP سرور</code></li>
+<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
 <li><strong data-i18n="ssh_port">Port (پورت):</strong> <code>443</code></li>
-<li data-i18n-html="elem_tab_ssh_52"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> روشن (فعال)</li>
-<li data-i18n-html="auto_strong_sni_strong_code_ssh_kig"><strong>SNI:</strong> دامنه اختصاصی SSH (تنظیم شده در مالتی‌پلکسر)</li>
+<li data-i18n-html="elem_tab_ssh_52"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> خاموش (در حالت Direct SSH) یا روشن (با SNI)</li>
 </ul>
 </div>
 <!-- Method 3: WebSocket (WS / WSS) CDN -->
@@ -249,7 +248,7 @@
 <li><strong data-i18n="ssh_connection_type">نوع اتصال:</strong> SSH + WebSocket</li>
 <li data-i18n-html="elem_tab_ssh_53"><strong data-i18n="wg_port_2">پورت:</strong> <code>80</code> (بدون SSL) یا <code>443</code> (با SSL) یا <code>8088</code></li>
 <li data-i18n-html="elem_tab_ssh_54"><strong data-i18n="ssh_path">مسیر (Path):</strong> <code>/ssh</code> یا <code>/ws</code></li>
-<li><strong data-i18n="ssh_item_4">پی‌لود:</strong> <code>GET /ssh HTTP/1.1[crlf]Host: vpn.kigaping.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
+<li><strong data-i18n="ssh_item_4">پی‌لود:</strong> <code class="ssh-dynamic-payload">GET /ssh HTTP/1.1[crlf]Host: test.kigaping.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
 </ul>
 </div>
 <!-- Method 4: Direct SSH without TLS -->
@@ -261,8 +260,8 @@
                             مناسب برنامه‌های ویندوزی مانند Bitvise و PuTTY و کلاینت‌های ساده:
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code>vpn.kigaping.com</code></li>
-<li data-i18n-html="elem_tab_ssh_55"><strong data-i18n="ssh_ports">پورت‌ها:</strong> <code>22</code> (استاندارد) یا <code>2053</code> (کلودفلر) یا <code>443</code></li>
+<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li data-i18n-html="elem_tab_ssh_55"><strong data-i18n="ssh_ports">پورت‌ها:</strong> <code>22</code> (استاندارد) یا <code>443</code></li>
 <li data-i18n-html="elem_tab_ssh_56"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> خاموش (غیرفعال)</li>
 </ul>
 </div>

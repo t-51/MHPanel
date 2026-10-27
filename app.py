@@ -178,7 +178,7 @@ PANEL_CERT = os.path.join(PANEL_SSL_DIR, "panel.crt")
 PANEL_KEY = os.path.join(PANEL_SSL_DIR, "panel.key")
 PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "noizdns", "masterdnsvpn", "tor", "singbox", "tunnels", "google_script"]
 PROTOCOL_DEFAULT_PORTS = {
-    "ssh": 2222,
+    "ssh": 22,
     "openvpn": 1194,
     "ocserv": 10443,
     "ikev2": "500/4500",
@@ -1469,6 +1469,9 @@ def find_user_by_sub_token(token):
     return None, None, None
 
 def get_proto_active_port(proto, default_port):
+    if proto == "ssh":
+        act = get_active_port("ssh")
+        if act: return act
     if os.path.exists("/etc/vpnpanel/protocol_settings.json"):
         try:
             with open("/etc/vpnpanel/protocol_settings.json", "r") as f:
@@ -13849,26 +13852,27 @@ def api_get_ssh_config():
         if d not in hosts:
             hosts.append(d)
 
+    active_ssh_port = get_active_port("ssh") or 22
     config_data = {
         "server_ip": pub_ip,
         "hostnames": hosts if hosts else ([pub_ip] if pub_ip else ["127.0.0.1"]),
-        "direct_ports": [22, 2053, 443],
+        "direct_ports": [active_ssh_port, 443] if active_ssh_port != 443 else [443],
         "stunnel_ports": [9443, 2087, 443],
         "ws_ports": [80, 8088, 443, 8444, 2083],
         "ws_paths": ["/ssh", "/ws"],
         "slowdns": {
             "pubkey": slowdns_pub,
-            "nameservers": ["t.kigaping.com", "dns.kigaping.com"],
+            "nameservers": [f"t.{srv_dom}", f"dns.{srv_dom}"] if srv_dom else ["t.kigaping.com", "dns.kigaping.com"],
             "port": "UDP 53 / 5300",
             "upstream_dns": "8.8.8.8"
         },
         "udpgw_port": 7300,
         "services": {
-            "ssh": check_service("ssh"),
-            "stunnel": check_service("stunnel4"),
-            "ws": check_service("ssh-ws"),
-            "slowdns": check_service("dnstt-server"),
-            "udpgw": check_service("videocall"),
+            "ssh": check_service("ssh") or check_service("sshd"),
+            "stunnel": check_service("stunnel4") or check_service("haproxy"),
+            "ws": check_service("ssh-ws") or check_service("haproxy"),
+            "slowdns": check_service("mhpanel-dnstt") or check_service("dnstt-server") or check_service("dnstt"),
+            "udpgw": check_service("badvpn") or check_service("videocall") or check_service("badvpn-udpgw"),
             "radius": check_service("freeradius")
         }
     }
@@ -13905,9 +13909,17 @@ def api_kill_ssh_session():
 def api_restart_ssh_services():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    services = ["ssh", "stunnel4", "ssh-ws", "dnstt-server", "videocall"]
+    core_services = ["ssh", "badvpn"]
+    optional_services = ["mhpanel-dnstt", "dnstt-server", "stunnel4", "ssh-ws"]
+    services_to_restart = []
+    for s in core_services:
+        services_to_restart.append(s)
+    for s in optional_services:
+        if check_service(s) and s not in services_to_restart:
+            services_to_restart.append(s)
+            
     errors = []
-    for s in services:
+    for s in services_to_restart:
         try:
             res = subprocess.run(["systemctl", "restart", s], capture_output=True, text=True)
             if res.returncode != 0:

@@ -11625,12 +11625,27 @@
             }
 
             const sshHostMain = (data.hostnames && data.hostnames[0]) || data.server_ip || window.location.hostname;
+            const directPort = (data.direct_ports && data.direct_ports[0]) || 22;
+
             const ipDisp = document.getElementById("ssh-server-ip-display");
             if (ipDisp) ipDisp.innerText = data.server_ip || window.location.hostname;
             const domDisp = document.getElementById("ssh-server-domain-display");
             if (domDisp) domDisp.innerText = sshHostMain;
             const guideHost = document.getElementById("ssh-guide-host");
             if (guideHost) guideHost.innerText = sshHostMain;
+
+            const socksCmd = document.getElementById("ssh-box-socks5-cmd");
+            if (socksCmd) socksCmd.innerText = `ssh -N -D 1080 [username]@${sshHostMain} -p ${directPort}`;
+
+            const wsPayload = document.getElementById("ssh-box-ws-payload");
+            if (wsPayload) wsPayload.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${sshHostMain}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]`;
+
+            const stunnelBox = document.getElementById("ssh-box-stunnel-info");
+            if (stunnelBox) stunnelBox.innerText = `Host: ${sshHostMain} | Ports: ${directPort}, 443 | SNI: ${sshHostMain}`;
+
+            document.querySelectorAll(".ssh-dynamic-host").forEach(el => el.innerText = sshHostMain);
+            document.querySelectorAll(".ssh-dynamic-ip").forEach(el => el.innerText = data.server_ip || sshHostMain);
+            document.querySelectorAll(".ssh-dynamic-payload").forEach(el => el.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${sshHostMain}[crlf]Upgrade: websocket[crlf][crlf]`);
 
             if (data.direct_ports && document.getElementById("ssh-stat-direct-ports")) {
                 document.getElementById("ssh-stat-direct-ports").innerText = data.direct_ports.join(", ");
@@ -11912,14 +11927,19 @@
         }
     }
 
+    function copySshStunnelInfo() {
+        const host = (window.currentSshConfig && window.currentSshConfig.hostnames && window.currentSshConfig.hostnames[0]) || (window.currentSshConfig && window.currentSshConfig.server_ip) || window.location.hostname;
+        copySshText(`${host}:443`, "مشخصات TLS/Stunnel");
+    }
+
     function copySshAllDetails() {
         const host = (window.currentSshConfig && window.currentSshConfig.hostnames && window.currentSshConfig.hostnames[0]) || (window.currentSshConfig && window.currentSshConfig.server_ip) || window.location.hostname;
         const ip = (window.currentSshConfig && window.currentSshConfig.server_ip) || window.location.hostname;
-        const directPorts = (window.currentSshConfig && window.currentSshConfig.direct_ports) ? window.currentSshConfig.direct_ports.join(", ") : "22, 2053, 443";
+        const directPorts = (window.currentSshConfig && window.currentSshConfig.direct_ports) ? window.currentSshConfig.direct_ports.join(", ") : "22, 443";
         const wsPorts = (window.currentSshConfig && window.currentSshConfig.ws_ports) ? window.currentSshConfig.ws_ports.join(", ") : "80, 443, 8088";
-        const stunnelPorts = (window.currentSshConfig && window.currentSshConfig.stunnel_ports) ? window.currentSshConfig.stunnel_ports.join(", ") : "9443, 2087, 443";
+        const stunnelPorts = (window.currentSshConfig && window.currentSshConfig.stunnel_ports) ? window.currentSshConfig.stunnel_ports.join(", ") : "443";
         const udpgwPort = (window.currentSshConfig && window.currentSshConfig.udpgw_port) || 7300;
-        const slowdnsNs = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.nameserver) || `ns.${host}`;
+        const slowdnsNs = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.nameservers && window.currentSshConfig.slowdns.nameservers[0]) || `t.${host}`;
         const slowdnsKey = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.pubkey) || "";
 
         const text = `=== مشخصات اتصال SSH سرور ===
@@ -11937,11 +11957,11 @@ GET /ssh HTTP/1.1[crlf]Host: ${host}[crlf]Upgrade: websocket[crlf]Connection: Up
 
     function copyUserSshConnection(username) {
         const host = (window.currentSshConfig && window.currentSshConfig.hostnames && window.currentSshConfig.hostnames[0]) || (window.currentSshConfig && window.currentSshConfig.server_ip) || window.location.hostname;
-        const directPorts = (window.currentSshConfig && window.currentSshConfig.direct_ports) ? window.currentSshConfig.direct_ports.join(" یا ") : "22 یا 2053 یا 443";
+        const directPorts = (window.currentSshConfig && window.currentSshConfig.direct_ports) ? window.currentSshConfig.direct_ports.join(" یا ") : "22 یا 443";
         const wsPorts = (window.currentSshConfig && window.currentSshConfig.ws_ports) ? window.currentSshConfig.ws_ports.join(" یا ") : "80 یا 443";
-        const stunnelPorts = (window.currentSshConfig && window.currentSshConfig.stunnel_ports) ? window.currentSshConfig.stunnel_ports.join(" یا ") : "9443";
+        const stunnelPorts = (window.currentSshConfig && window.currentSshConfig.stunnel_ports) ? window.currentSshConfig.stunnel_ports.join(" یا ") : "443";
         const udpgwPort = (window.currentSshConfig && window.currentSshConfig.udpgw_port) || 7300;
-        const slowdnsNs = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.nameserver) || `ns.${host}`;
+        const slowdnsNs = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.nameservers && window.currentSshConfig.slowdns.nameservers[0]) || `t.${host}`;
         const slowdnsKey = (window.currentSshConfig && window.currentSshConfig.slowdns && window.currentSshConfig.slowdns.pubkey) || "";
 
         const text = `مشخصات اتصال کاربر: ${username}
