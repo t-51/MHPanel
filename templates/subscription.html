@@ -851,16 +851,20 @@
 
             <!-- 6. SSH Tunnel & WebSocket -->
             {% if settings.protocols.ssh %}
-            <div class="proto-card">
+            <div class="proto-card" style="border: 1px solid rgba(16, 185, 129, 0.35);">
 <div class="proto-top">
 <div class="proto-name">
 <i data-lucide="terminal" style="color:#10b981; width:20px; height:20px;"></i>
 <span>SSH Tunnel (Direct &amp; WS) + BadVPN</span>
 <span class="proto-tag" data-i18n="linux_tunnel">تونل لینوکس</span>
 </div>
-<div class="btn-group">
-<button class="btn btn-secondary" onclick="copyText('ssh -N -D 1080 {{ username }}@{{ server_host }} -p {{ ports.ssh }}', 'دستور ترمینال SSH کپی شد')" type="button">
-<i data-lucide="terminal" style="width:13px; height:13px;"></i><span data-i18n="copy_the_ssh_command">کپی دستور SSH</span></button>
+<div class="btn-group" style="flex-wrap: wrap; gap: 8px;">
+<a href="/sub/{{ sub_token }}/netmod.json" download="MHPanel-{{ username }}-NetMod.json" class="btn btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; padding: 7px 12px; font-size:12px; font-weight:700;">
+<i data-lucide="download" style="width:14px; height:14px;"></i><span>دانلود فایل NetMod (.json)</span>
+</a>
+<button class="btn btn-secondary" onclick="copyText('ssh://{{ username }}:{{ user.password }}@{{ server_host }}:443?ws=1&amp;path=%2Fssh&amp;sni={{ server_host }}#MHPanel-{{ username }}-WS443', 'لینک سریع NapsternetV / NetMod کپی شد')" type="button" style="display:inline-flex; align-items:center; gap:5px; padding: 7px 12px; font-size:12px;">
+<i data-lucide="link" style="width:14px; height:14px;"></i><span>کپی لینک هوشمند (NPV / NetMod)</span>
+</button>
 </div>
 </div>
 <div class="proto-fields">
@@ -879,6 +883,44 @@
 <div class="field-item">
 <span class="field-title" data-i18n="username_and_password">نام کاربری و پسورد</span>
 <span class="field-value">{{ username }} / {{ user.password }}</span>
+</div>
+</div>
+
+<!-- Ready Client Config Files & Fast Actions -->
+<div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 10px;">
+<div style="font-size: 12px; font-weight: 700; color: var(--text-main); display:flex; align-items:center; gap:6px;">
+<i data-lucide="smartphone" style="width:15px; height:15px; color:#10b981;"></i> کانفیگ‌های آماده و دانلود مستقیم برای نرم‌افزارهای مختلف:
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<a href="/sub/{{ sub_token }}/netmod.json" download="MHPanel-{{ username }}-NetMod.json" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#10b981;">
+<i data-lucide="download" style="width:13px; height:13px;"></i> فایل NetMod Syna (.json)
+</a>
+<a href="/sub/{{ sub_token }}/singbox.json" download="MHPanel-{{ username }}-SingBox.json" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:#38bdf8;">
+<i data-lucide="download" style="width:13px; height:13px;"></i> فایل Sing-Box / NekoBox (.json)
+</a>
+<button class="btn btn-secondary btn-sm" onclick="copyText('ssh://{{ username }}:{{ user.password }}@{{ server_host }}:443?ws=1&amp;path=%2Fssh&amp;sni={{ server_host }}#MHPanel-{{ username }}-WS443', 'لینک پورت ۴۴۳ NapsternetV کپی شد')" type="button" style="font-size:11.5px;">
+<i data-lucide="copy" style="width:13px; height:13px;"></i> لینک NPV (پورت ۴۴۳ WS)
+</button>
+<button class="btn btn-secondary btn-sm" onclick="copyText('ssh://{{ username }}:{{ user.password }}@{{ server_host }}:22#MHPanel-{{ username }}-Direct22', 'لینک مستقیم پورت ۲۲ کپی شد')" type="button" style="font-size:11.5px;">
+<i data-lucide="copy" style="width:13px; height:13px;"></i> لینک مستقیم (Port 22)
+</button>
+<button class="btn btn-secondary btn-sm" onclick="copyText('{{ server_host }}:443@{{ username }}:{{ user.password }}', 'فرمت اتصال HTTP Custom کپی شد')" type="button" style="font-size:11.5px;">
+<i data-lucide="copy" style="width:13px; height:13px;"></i> فرمت HTTP Custom
+</button>
+<button class="btn btn-secondary btn-sm" onclick="copyText('GET /ssh HTTP/1.1[crlf]Host: {{ server_host }}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]', 'پی‌لود وب‌سوکت کپی شد')" type="button" style="font-size:11.5px;">
+<i data-lucide="code" style="width:13px; height:13px;"></i> پی‌لود WS
+</button>
+<button class="btn btn-secondary btn-sm" onclick="copyText('ssh -N -D 1080 {{ username }}@{{ server_host }} -p {{ ports.ssh }}', 'دستور ترمینال SSH کپی شد')" type="button" style="font-size:11.5px;">
+<i data-lucide="terminal" style="width:13px; height:13px;"></i> دستور لینوکس / PuTTY
+</button>
+</div>
+
+<!-- Step-by-Step App Import Guide -->
+<div style="background: rgba(0,0,0,0.18); border-radius: 8px; padding: 10px 12px; font-size: 11.5px; line-height: 1.6; color: var(--text-muted); margin-top: 4px;">
+<strong style="color: var(--text-main); display:block; margin-bottom: 4px;">راهنمای اتصال سریع در کلاینت‌های اندروید و ویندوز:</strong>
+<div>• <strong>NetMod Syna:</strong> فایل آماده NetMod (.json) را دانلود کرده، در برنامه روی منو (سه خط) زده و <code>Import Config &gt; From File</code> را انتخاب کنید. همچنین با لمس دکمه «کپی لینک هوشمند» و زدن <code>From Clipboard</code> در برنامه، کانفیگ فوراً اضافه می‌شود.</div>
+<div>• <strong>NapsternetV (NPV):</strong> دکمه «کپی لینک هوشمند» را بزنید، وارد برنامه شده، علامت <code>+</code> گوشه بالا را لمس کرده و گزینه <code>Import from Clipboard</code> را انتخاب کنید. تمام تنظیمات و پورت خودکار فعال می‌شوند.</div>
+<div>• <strong>Sing-Box / NekoBox:</strong> فایل کانفیگ Sing-Box را دانلود نموده و در بخش Profiles برنامه با گزینه Import اضافه نمایید.</div>
 </div>
 </div>
 </div>

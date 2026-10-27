@@ -11678,6 +11678,7 @@
             container.innerHTML = "";
             
             const users = data.users || {};
+            currentSshUsersData = users;
             const userKeys = Object.keys(users);
             
             const countBadge = document.getElementById("ssh-client-count-badge");
@@ -11726,7 +11727,13 @@
                                 <div><i data-lucide="activity" style="width:12px; height:12px; vertical-align:-2px;"></i> مصرف: <strong>${totalGb} GB</strong></div>
                             </div>
                         </div>
-                        <div style="display:flex; gap:6px; align-items:center;">
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="کانفیگ‌های آماده کلاینت‌ها (NetMod, NPV, ...)" style="padding:6px 10px; color:#10b981; display:inline-flex; align-items:center; gap:4px; font-weight:600;">
+                                <i data-lucide="smartphone" style="width:13px; height:13px;"></i> کانفیگ آماده
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshUri('${username}')" title="کپی لینک سریع NapsternetV / NetMod (Import from Clipboard)" style="padding:6px 10px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;">
+                                <i data-lucide="link" style="width:13px; height:13px;"></i> لینک NPV
+                            </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshConnection('${username}')" title="کپی اطلاعات اتصال این کاربر" style="padding:6px 10px;">
                                 <i data-lucide="copy" style="width:13px; height:13px;"></i>
                             </button>
@@ -11973,6 +11980,86 @@ GET /ssh HTTP/1.1[crlf]Host: ${host}[crlf]Upgrade: websocket[crlf]Connection: Up
 SlowDNS NS: ${slowdnsNs}
 SlowDNS Pubkey: ${slowdnsKey}`;
         copySshText(text, `اطلاعات اتصال کاربر ${username}`);
+    }
+
+    function getSshHost() {
+        return (window.currentSshConfig && window.currentSshConfig.hostnames && window.currentSshConfig.hostnames[0]) || 
+               (window.currentSshConfig && window.currentSshConfig.server_ip) || 
+               window.location.hostname;
+    }
+
+    function getUserSshUri(username) {
+        const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
+        const host = getSshHost();
+        const pwd = user.password || "";
+        const uSafe = encodeURIComponent(username);
+        const pSafe = encodeURIComponent(pwd);
+        return `ssh://${uSafe}:${pSafe}@${host}:443?ws=1&path=%2Fssh&sni=${host}#MHPanel-${username}-WS443`;
+    }
+
+    function copyUserSshUri(username) {
+        const uri = getUserSshUri(username);
+        copySshText(uri, `لینک هوشمند NapsternetV / NetMod کاربر ${username}`);
+    }
+
+    function openSshConfigsModal(username) {
+        const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
+        const host = getSshHost();
+        const pwd = user.password || "";
+        const subTok = user.sub_token || "";
+
+        const userEl = document.getElementById("ssh-modal-user");
+        if (userEl) userEl.innerText = username;
+        const passEl = document.getElementById("ssh-modal-pass");
+        if (passEl) passEl.innerText = pwd ? pwd : "(رمز سیستمی / ردیوس)";
+        const hostEl = document.getElementById("ssh-modal-host");
+        if (hostEl) hostEl.innerText = host;
+
+        const netmodDl = document.getElementById("ssh-modal-netmod-dl");
+        if (netmodDl) {
+            netmodDl.href = `/api/ssh/users/${encodeURIComponent(username)}/netmod.json`;
+            netmodDl.download = `MHPanel-${username}-NetMod.json`;
+        }
+
+        const singboxDl = document.getElementById("ssh-modal-singbox-dl");
+        if (singboxDl) {
+            singboxDl.href = `/api/ssh/users/${encodeURIComponent(username)}/singbox.json`;
+            singboxDl.download = `MHPanel-${username}-SingBox.json`;
+        }
+
+        const uri = getUserSshUri(username);
+        const uriBox = document.getElementById("ssh-modal-uri-preview");
+        if (uriBox) uriBox.innerText = uri;
+
+        const subUrl = subTok ? `${window.location.origin}/sub/${subTok}` : `${window.location.origin}/sub/`;
+        const subBox = document.getElementById("ssh-modal-sub-url");
+        if (subBox) subBox.innerText = subUrl;
+        const subOpen = document.getElementById("ssh-modal-sub-open");
+        if (subOpen) subOpen.href = subUrl;
+
+        window._currentSshModalUri = uri;
+        window._currentSshModalSub = subUrl;
+
+        const modal = document.getElementById("modal-ssh-configs");
+        if (modal) modal.classList.add("active");
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeSshConfigsModal() {
+        const modal = document.getElementById("modal-ssh-configs");
+        if (modal) modal.classList.remove("active");
+    }
+
+    function copySshModalUri() {
+        if (window._currentSshModalUri) {
+            copySshText(window._currentSshModalUri, "لینک هوشمند NapsternetV / NetMod");
+        }
+    }
+
+    function copySshModalSubLink() {
+        if (window._currentSshModalSub) {
+            copySshText(window._currentSshModalSub, "لینک صفحه اشتراک کاربر");
+        }
     }
 
     async function fetchOcservClients() {

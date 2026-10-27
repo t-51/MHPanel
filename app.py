@@ -1390,6 +1390,237 @@ def ensure_all_users_sub_tokens():
         except Exception:
             pass
 
+    # 4. SSH users
+    s_file = "/www/wwwroot/mhpanel/ssh_users.json"
+    if os.path.exists(s_file):
+        try:
+            with open(s_file, "r") as f:
+                ssh_users = json.load(f)
+            changed = False
+            for uname, udata in ssh_users.items():
+                if not udata.get("sub_token"):
+                    r_tok = None
+                    if os.path.exists(r_file):
+                        try:
+                            with open(r_file, "r") as rf:
+                                r_data = json.load(rf)
+                                if uname in r_data and r_data[uname].get("sub_token"):
+                                    r_tok = r_data[uname]["sub_token"]
+                        except Exception:
+                            pass
+                    udata["sub_token"] = r_tok or secrets.token_urlsafe(16)
+                    changed = True
+            if changed:
+                with open(s_file, "w") as f:
+                    json.dump(ssh_users, f, indent=2)
+        except Exception:
+            pass
+
+    # 5. Default test user
+    t_file = "/www/wwwroot/mhpanel/test_user.json"
+    if os.path.exists(t_file):
+        try:
+            with open(t_file, "r") as f:
+                t_user = json.load(f)
+            if not t_user.get("sub_token"):
+                t_user["sub_token"] = secrets.token_urlsafe(16)
+                with open(t_file, "w") as f:
+                    json.dump(t_user, f, indent=2)
+        except Exception:
+            pass
+
+def get_ssh_user_info(username):
+    pwd = ""
+    sub_tok = ""
+    # 1. radius_users.json
+    r_file = "/www/wwwroot/mhpanel/radius_users.json"
+    if os.path.exists(r_file):
+        try:
+            with open(r_file, "r") as f:
+                r_users = json.load(f)
+                if isinstance(r_users, dict) and username in r_users:
+                    pwd = r_users[username].get("password", "")
+                    sub_tok = r_users[username].get("sub_token", "")
+        except Exception:
+            pass
+    # 2. ssh_users.json
+    s_file = "/www/wwwroot/mhpanel/ssh_users.json"
+    if os.path.exists(s_file):
+        try:
+            with open(s_file, "r") as f:
+                s_users = json.load(f)
+                if isinstance(s_users, dict) and username in s_users:
+                    if not pwd:
+                        pwd = s_users[username].get("password", "")
+                    if not sub_tok:
+                        sub_tok = s_users[username].get("sub_token", "")
+        except Exception:
+            pass
+    # 3. test_user.json
+    t_file = "/www/wwwroot/mhpanel/test_user.json"
+    if os.path.exists(t_file):
+        try:
+            with open(t_file, "r") as f:
+                t_user = json.load(f)
+                if isinstance(t_user, dict) and t_user.get("username") == username:
+                    if not pwd:
+                        pwd = t_user.get("password", "")
+                    if not sub_tok:
+                        sub_tok = t_user.get("sub_token", "")
+        except Exception:
+            pass
+    return {"username": username, "password": pwd, "sub_token": sub_tok}
+
+def generate_netmod_config_bundle(username, password, domain, pub_ip):
+    domain = domain or pub_ip or "127.0.0.1"
+    ws_payload = f"GET /ssh HTTP/1.1[c]Host: {domain}[c]Upgrade: websocket[c]Connection: keep-alive[c][c]"
+    return {
+        "version": "6.3.0",
+        "app_name": "NetMod Syna",
+        "profile_name": f"MHPanel - {username}",
+        "type": "SSH",
+        "server": {
+            "host": domain,
+            "port": 443,
+            "username": username,
+            "password": password
+        },
+        "connection_mode": "payload",
+        "payload_config": {
+            "sni": domain,
+            "target_host": f"{domain}:443",
+            "payload": ws_payload
+        },
+        "udpgw": {
+            "enabled": True,
+            "ip": "127.0.0.1",
+            "port": 7300
+        },
+        "dns": {
+            "primary": "1.1.1.1",
+            "secondary": "8.8.8.8"
+        },
+        "profiles": [
+            {
+                "id": f"mh_{username}_ws443",
+                "name": f"MHPanel - {username} (WS/TLS 443)",
+                "type": "SSH",
+                "server": {
+                    "host": domain,
+                    "port": 443,
+                    "username": username,
+                    "password": password
+                },
+                "connection_mode": "payload",
+                "payload_config": {
+                    "sni": domain,
+                    "target_host": f"{domain}:443",
+                    "payload": ws_payload
+                },
+                "udpgw": {
+                    "enabled": True,
+                    "ip": "127.0.0.1",
+                    "port": 7300
+                }
+            },
+            {
+                "id": f"mh_{username}_direct22",
+                "name": f"MHPanel - {username} (Direct 22)",
+                "type": "SSH",
+                "server": {
+                    "host": domain,
+                    "port": 22,
+                    "username": username,
+                    "password": password
+                },
+                "connection_mode": "direct",
+                "payload_config": {
+                    "sni": "",
+                    "target_host": "",
+                    "payload": ""
+                },
+                "udpgw": {
+                    "enabled": True,
+                    "ip": "127.0.0.1",
+                    "port": 7300
+                }
+            }
+        ]
+    }
+
+def generate_singbox_ssh_config(username, password, domain, pub_ip):
+    domain = domain or pub_ip or "127.0.0.1"
+    return {
+        "log": {
+            "level": "warn",
+            "timestamp": True
+        },
+        "inbounds": [
+            {
+                "type": "mixed",
+                "tag": "mixed-in",
+                "listen": "127.0.0.1",
+                "listen_port": 2080
+            },
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "interface_name": "tun0",
+                "inet4_address": "172.19.0.1/30",
+                "auto_route": True,
+                "strict_route": False,
+                "sniff": True
+            }
+        ],
+        "outbounds": [
+            {
+                "type": "ssh",
+                "tag": f"MHPanel-SSH-WS-443",
+                "server": domain,
+                "server_port": 443,
+                "user": username,
+                "password": password
+            },
+            {
+                "type": "ssh",
+                "tag": f"MHPanel-SSH-Direct-22",
+                "server": domain,
+                "server_port": 22,
+                "user": username,
+                "password": password
+            },
+            {
+                "type": "direct",
+                "tag": "direct"
+            },
+            {
+                "type": "dns",
+                "tag": "dns-out"
+            }
+        ],
+        "route": {
+            "rules": [
+                {
+                    "protocol": "dns",
+                    "outbound": "dns-out"
+                },
+                {
+                    "ip_is_private": True,
+                    "outbound": "direct"
+                }
+            ],
+            "auto_detect_interface": True
+        }
+    }
+
+def generate_ssh_uris(username, password, domain, pub_ip):
+    domain = domain or pub_ip or "127.0.0.1"
+    safe_user = urllib.parse.quote(str(username), safe="")
+    safe_pass = urllib.parse.quote(str(password), safe="")
+    uri_ws = f"ssh://{safe_user}:{safe_pass}@{domain}:443?ws=1&path=%2Fssh&sni={domain}#MHPanel-{username}-WS443"
+    uri_direct = f"ssh://{safe_user}:{safe_pass}@{domain}:22#MHPanel-{username}-Direct22"
+    return [uri_ws, uri_direct]
+
 def find_user_by_sub_token(token):
     if not token:
         return None, None, None
@@ -1463,6 +1694,37 @@ def find_user_by_sub_token(token):
                             pass
                     ret_udata = dict(udata, public_key=pubkey, name=name)
                     return name, ret_udata, "amneziawg"
+        except Exception:
+            pass
+
+    # 4. SSH Users
+    s_file = "/www/wwwroot/mhpanel/ssh_users.json"
+    if os.path.exists(s_file):
+        try:
+            with open(s_file, "r") as f:
+                users = json.load(f)
+            for uname, udata in users.items():
+                if udata.get("sub_token") == token:
+                    if not udata.get("password") and os.path.exists(r_file):
+                        try:
+                            with open(r_file, "r") as rf:
+                                r_users = json.load(rf)
+                                if uname in r_users and r_users[uname].get("password"):
+                                    udata["password"] = r_users[uname]["password"]
+                        except Exception:
+                            pass
+                    return uname, udata, "radius"
+        except Exception:
+            pass
+
+    # 5. Default Test User
+    t_file = "/www/wwwroot/mhpanel/test_user.json"
+    if os.path.exists(t_file):
+        try:
+            with open(t_file, "r") as f:
+                tdata = json.load(f)
+            if tdata.get("sub_token") == token:
+                return tdata.get("username", "test"), tdata, "radius"
         except Exception:
             pass
 
@@ -1695,6 +1957,11 @@ def client_subscription_view(sub_token):
         except Exception:
             pass
             
+    if not udata.get("password"):
+        uinfo = get_ssh_user_info(uname)
+        if uinfo.get("password"):
+            udata["password"] = uinfo["password"]
+
     if fmt == "json":
         return jsonify({
             "status": "success",
@@ -2143,6 +2410,47 @@ verb 3
         mimetype="application/x-openvpn-profile",
         headers={"Content-Disposition": f"attachment; filename=mhpanel-{uname}.ovpn"}
     )
+
+@app.route("/sub/<sub_token>/netmod.json")
+def client_sub_netmod_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    cfg = generate_netmod_config_bundle(uname, pwd, domain, pub_ip)
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-NetMod.json"'
+    return resp
+
+@app.route("/sub/<sub_token>/singbox.json")
+def client_sub_singbox_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    cfg = generate_singbox_ssh_config(uname, pwd, domain, pub_ip)
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox.json"'
+    return resp
+
+@app.route("/sub/<sub_token>/b64")
+def client_sub_b64(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
+    b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
+    return Response(b64_str, mimetype="text/plain; charset=utf-8")
 
 @app.route("/api/sub/settings", methods=["GET", "POST"])
 def api_sub_settings():
@@ -13584,6 +13892,7 @@ def ssh_client_tracker():
 def api_get_ssh_users():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
+    ensure_all_users_sub_tokens()
     users = {}
     traffic = get_ssh_traffic()
     active_sessions = get_ssh_active_sessions()
@@ -13604,7 +13913,9 @@ def api_get_ssh_users():
                         "auth_source": "FreeRADIUS",
                         "online": uname in online_usernames,
                         "rx": 0,
-                        "tx": 0
+                        "tx": 0,
+                        "password": uinfo.get("password", ""),
+                        "sub_token": uinfo.get("sub_token", "")
                     }
         except Exception:
             pass
@@ -13620,6 +13931,10 @@ def api_get_ssh_users():
                         users[uname]["rx"] = uinfo.get("rx", 0)
                         users[uname]["tx"] = uinfo.get("tx", 0)
                         users[uname]["active"] = uinfo.get("active", users[uname]["active"])
+                        if not users[uname].get("password") and uinfo.get("password"):
+                            users[uname]["password"] = uinfo.get("password")
+                        if not users[uname].get("sub_token") and uinfo.get("sub_token"):
+                            users[uname]["sub_token"] = uinfo.get("sub_token")
                     else:
                         users[uname] = {
                             "active": uinfo.get("active", True),
@@ -13629,7 +13944,9 @@ def api_get_ssh_users():
                             "auth_source": "Local / Linux",
                             "online": uname in online_usernames,
                             "rx": uinfo.get("rx", 0),
-                            "tx": uinfo.get("tx", 0)
+                            "tx": uinfo.get("tx", 0),
+                            "password": uinfo.get("password", ""),
+                            "sub_token": uinfo.get("sub_token", "")
                         }
         except Exception:
             pass
@@ -13641,10 +13958,18 @@ def api_get_ssh_users():
 
     for uname in users:
         users[uname]["online"] = uname in online_usernames
+        if not users[uname].get("password") or not users[uname].get("sub_token"):
+            uinfo = get_ssh_user_info(uname)
+            if not users[uname].get("password") and uinfo.get("password"):
+                users[uname]["password"] = uinfo["password"]
+            if not users[uname].get("sub_token") and uinfo.get("sub_token"):
+                users[uname]["sub_token"] = uinfo["sub_token"]
 
     def_user = get_default_test_user()
     if def_user and def_user.get("username"):
         uname = def_user["username"]
+        pwd = def_user.get("password", "56226500")
+        tok = def_user.get("sub_token") or get_ssh_user_info(uname).get("sub_token", "")
         if uname not in users:
             users[uname] = {
                 "active": True,
@@ -13654,12 +13979,18 @@ def api_get_ssh_users():
                 "online": uname in online_usernames,
                 "rx": 0,
                 "tx": 0,
+                "password": pwd,
+                "sub_token": tok,
                 "is_default": True
             }
         else:
             users[uname]["is_default"] = True
             users[uname]["auth_source"] = "FreeRADIUS (Test User)"
             users[uname]["online"] = uname in online_usernames
+            if not users[uname].get("password"):
+                users[uname]["password"] = pwd
+            if not users[uname].get("sub_token"):
+                users[uname]["sub_token"] = tok
 
     return jsonify({"users": users})
 
@@ -13688,6 +14019,7 @@ def api_add_ssh_user():
     proc = subprocess.Popen(["chpasswd"], stdin=subprocess.PIPE, text=True)
     proc.communicate(f"{username}:{password}")
 
+    sub_token = secrets.token_urlsafe(16)
     r_file = "/www/wwwroot/mhpanel/radius_users.json"
     r_users = {}
     if os.path.exists(r_file):
@@ -13703,7 +14035,8 @@ def api_add_ssh_user():
         "expire_date": expire_date or None,
         "limit_gb": float(limit_gb) if limit_gb else None,
         "created_at": now_str,
-        "protocols": ["all"]
+        "protocols": ["all"],
+        "sub_token": sub_token
     }
     with open(r_file, "w") as f:
         json.dump(r_users, f, indent=2)
@@ -13720,6 +14053,8 @@ def api_add_ssh_user():
         except Exception:
             pass
     users[username] = {
+        "password": password,
+        "sub_token": sub_token,
         "active": True,
         "limit_gb": float(limit_gb) if limit_gb else None,
         "expire_date": expire_date or None,
@@ -13730,6 +14065,32 @@ def api_add_ssh_user():
         json.dump(users, f, indent=2)
 
     return jsonify({"success": True})
+
+@app.route("/api/ssh/users/<username>/netmod.json", methods=["GET"])
+def api_ssh_user_netmod_download(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    cfg = generate_netmod_config_bundle(username, pwd, domain, pub_ip)
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-NetMod.json"'
+    return resp
+
+@app.route("/api/ssh/users/<username>/singbox.json", methods=["GET"])
+def api_ssh_user_singbox_download(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    cfg = generate_singbox_ssh_config(username, pwd, domain, pub_ip)
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-SingBox.json"'
+    return resp
 
 @app.route("/api/ssh/users/<username>", methods=["DELETE"])
 def api_delete_ssh_user(username):
