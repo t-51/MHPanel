@@ -43,10 +43,12 @@ done
 /sbin/ip rule add from "$AWG_SUBNET" table 51821 priority 1000
 /sbin/ip route replace default dev awg-warp table 51821
 
-# NAT Masquerade
-/sbin/iptables -t nat -C POSTROUTING -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE 2>/dev/null || /sbin/iptables -t nat -I POSTROUTING 1 -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE
-/sbin/iptables -t nat -C POSTROUTING -s "$AWG_SUBNET" -o eth0 -j MASQUERADE 2>/dev/null || /sbin/iptables -t nat -I POSTROUTING 2 -s "$AWG_SUBNET" -o eth0 -j MASQUERADE
+# NAT Masquerade (wait 5s for xtables lock if busy)
+/sbin/iptables -w 5 -t nat -C POSTROUTING -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE 2>/dev/null || /sbin/iptables -w 5 -t nat -I POSTROUTING 1 -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE
+/sbin/iptables -w 5 -t nat -C POSTROUTING -s "$AWG_SUBNET" -o eth0 -j MASQUERADE 2>/dev/null || /sbin/iptables -w 5 -t nat -I POSTROUTING 2 -s "$AWG_SUBNET" -o eth0 -j MASQUERADE
 
 # Forwarding acceptance
-/sbin/iptables -C FORWARD -i awg0 -o awg-warp -j ACCEPT 2>/dev/null || /sbin/iptables -I FORWARD 1 -i awg0 -o awg-warp -j ACCEPT
-/sbin/iptables -C FORWARD -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || /sbin/iptables -I FORWARD 2 -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+/sbin/iptables -w 5 -C FORWARD -i awg0 -o awg-warp -j ACCEPT 2>/dev/null || /sbin/iptables -w 5 -I FORWARD 1 -i awg0 -o awg-warp -j ACCEPT
+/sbin/iptables -w 5 -C FORWARD -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || /sbin/iptables -w 5 -I FORWARD 2 -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+exit 0

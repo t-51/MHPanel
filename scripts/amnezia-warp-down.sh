@@ -18,7 +18,9 @@ fi
 /sbin/ip rule del from "$AWG_SUBNET" table 51821 priority 1000 2>/dev/null || true
 /sbin/ip rule del from "$AWG_SUBNET" table 51821 priority 51821 2>/dev/null || true
 /sbin/ip route flush table 51821 2>/dev/null || true
-/sbin/iptables -t nat -D POSTROUTING -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE 2>/dev/null || true
-/sbin/iptables -D FORWARD -i awg0 -o awg-warp -j ACCEPT 2>/dev/null || true
-/sbin/iptables -D FORWARD -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
+/sbin/iptables -w 5 -t nat -D POSTROUTING -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE 2>/dev/null || true
+/sbin/iptables -w 5 -D FORWARD -i awg0 -o awg-warp -j ACCEPT 2>/dev/null || true
+/sbin/iptables -w 5 -D FORWARD -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || true
 /sbin/ip link delete awg-warp 2>/dev/null || true
+
+exit 0
