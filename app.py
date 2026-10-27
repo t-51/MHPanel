@@ -6798,11 +6798,18 @@ def api_wireguard_warp_status():
         "warp_ip": warp_ip
     })
 
+@app.route("/api/wireguard/warp", methods=["GET", "POST"])
 @app.route("/api/wireguard/warp/toggle", methods=["POST"])
 def api_wireguard_warp_toggle():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    enable = bool((request.json or {}).get("enabled", False))
+    if request.method == "GET":
+        return api_wireguard_warp_status()
+    req_data = request.json or {}
+    if "enabled" in req_data:
+        enable = bool(req_data["enabled"])
+    else:
+        enable = not os.path.exists(WG_WARP_FLAG)
     wg_sub = get_wg_subnet()
     os.makedirs("/etc/vpnpanel", exist_ok=True)
     try:
@@ -6822,7 +6829,8 @@ def api_wireguard_warp_toggle():
         time.sleep(1)
         svc_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
         is_active = os.path.exists(WG_WARP_FLAG) and svc_active
-        return jsonify({"success": True, "active": is_active})
+        msg = "خروج ترافیک وایرگارد از WARP فعال شد." if is_active else "خروج ترافیک وایرگارد از WARP غیرفعال شد."
+        return jsonify({"success": True, "active": is_active, "warp_enabled": is_active, "message": msg})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -8061,11 +8069,19 @@ def api_amneziawg_warp_status():
         "warp_ip": warp_ip
     })
 
+@app.route("/api/amneziawg/warp", methods=["GET", "POST"])
 @app.route("/api/amneziawg/warp/toggle", methods=["POST"])
 def api_amneziawg_warp_toggle():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    enable = bool((request.json or {}).get("enabled", False))
+    if request.method == "GET":
+        return api_amneziawg_warp_status()
+    req_data = request.json or {}
+    cur_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+    if "enabled" in req_data:
+        enable = bool(req_data["enabled"])
+    else:
+        enable = not cur_active
     try:
         if enable:
             subprocess.run(["systemctl", "start", "warp-svc"], check=False)
@@ -8078,7 +8094,8 @@ def api_amneziawg_warp_toggle():
             subprocess.run(["/usr/local/bin/amnezia-warp-down.sh"], check=False)
         time.sleep(1)
         is_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
-        return jsonify({"success": True, "active": is_active})
+        msg = "خروج ترافیک AmneziaWG از WARP فعال شد." if is_active else "خروج ترافیک AmneziaWG از WARP غیرفعال شد."
+        return jsonify({"success": True, "active": is_active, "warp_enabled": is_active, "message": msg})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
