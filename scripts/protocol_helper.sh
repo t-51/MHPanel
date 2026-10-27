@@ -291,25 +291,28 @@ setup_global_nat() {
     iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
         iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
 
-    # Clamp MSS to 1280 max to guarantee packets fit inside any Wireguard / SSTP / Tunnel MTU without fragmentation
-    iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
-        iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
-    iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
-        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+    # Clean old invalid 1280 MSS rules if present
+    iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+    iptables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+
+    # Clamp MSS to 1220 max to guarantee packets fit inside any Wireguard / AmneziaWG / Cellular MTU (1280 MTU - 60) without fragmentation
+    iptables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || \
+        iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+    iptables -t mangle -C POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || \
+        iptables -t mangle -A POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
 
     if command -v ip6tables >/dev/null 2>&1; then
         ip6tables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || \
             ip6tables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-        ip6tables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || \
-            ip6tables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+        ip6tables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true
+        ip6tables -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || \
+            ip6tables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
     fi
 
-    # 4. Block/Reject Outbound QUIC (UDP 443) on FORWARD to prevent YouTube hang & force instant TCP TLS
-    iptables -C FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || \
-        iptables -I FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || true
+    # 4. Remove QUIC (UDP 443) reject rules to ensure no connection stalls
+    iptables -D FORWARD -p udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || true
     if command -v ip6tables >/dev/null 2>&1; then
-        ip6tables -C FORWARD -p udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || \
-            ip6tables -I FORWARD -p udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
+        ip6tables -D FORWARD -p udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true
     fi
 
     # 5. Bidirectional FORWARD rules for VPN interfaces

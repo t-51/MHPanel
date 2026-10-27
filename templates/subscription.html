@@ -573,7 +573,7 @@
                 {% for p in multiport_list %}
                 <button type="button" class="btn btn-secondary btn-sm multiport-port-btn {% if p == server_port %}btn-active{% endif %}" onclick="selectSubscriptionPort({{ p }})" id="port-btn-{{ p }}" style="font-family:'JetBrains Mono', monospace; font-size:12px; padding:6px 14px; border-radius:20px; display:inline-flex; align-items:center; gap:6px; {% if p == server_port %}background:var(--color-primary); color:#ffffff; border-color:var(--color-primary);{% endif %}">
                     <i data-lucide="radio" style="width:12px; height:12px;"></i>
-                    <span>Port {{ p }} {% if p == server_port %}(اصلی){% elif p in [443, 8443] %}(HTTPS){% elif p in [80, 8080] %}(HTTP){% elif p == 53 %}(DNS){% endif %}</span>
+                    <span>Port {{ p }} {% if p == server_port %}(اصلی / فعال){% elif p == 2053 %}(پیشنهادی / کلودفلر){% elif p in [443, 8443] %}(HTTPS){% elif p in [2083, 2087, 2096] %}(کلودفلر){% elif p in [80, 8080] %}(HTTP){% elif p == 53 %}(DNS){% endif %}</span>
                 </button>
                 {% endfor %}
             </div>

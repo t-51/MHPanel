@@ -1523,14 +1523,6 @@ def client_subscription_view(sub_token):
             except Exception:
                 pass
                 
-        # Handle format=conf or format=raw
-        if fmt == "conf":
-            resp = Response(base_cfg, mimetype="text/plain; charset=utf-8")
-            resp.headers["Content-Disposition"] = f'attachment; filename="{uname}.conf"'
-            return resp
-        if fmt == "raw":
-            return Response(base_cfg, mimetype="text/plain; charset=utf-8")
-
         # Multi-port endpoints
         target_port = mp_cfg.get("target_port")
         mp_ports = list(mp_cfg.get("ports", []))
@@ -1538,6 +1530,14 @@ def client_subscription_view(sub_token):
             mp_ports.insert(0, target_port)
             
         base_cfg = normalize_client_config(base_cfg, domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
+
+        # Handle format=conf or format=raw
+        if fmt == "conf":
+            resp = Response(base_cfg, mimetype="text/plain; charset=utf-8")
+            resp.headers["Content-Disposition"] = f'attachment; filename="{uname}.conf"'
+            return resp
+        if fmt == "raw":
+            return Response(base_cfg, mimetype="text/plain; charset=utf-8")
 
         port_configs = []
         for p in mp_ports:
@@ -1733,7 +1733,13 @@ def client_subscription_conf_download(sub_token):
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
     if not uname or "config" not in udata:
         return "Configuration Not Found", 404
-    cfg = udata["config"]
+    domain = get_server_domain() or get_server_public_ip()
+    target_port = None
+    if proto_type == "wireguard":
+        target_port = get_wg_multiport_config().get("target_port") or 51820
+    elif proto_type == "amneziawg":
+        target_port = get_awg_multiport_config().get("target_port") or 2053
+    cfg = normalize_client_config(udata["config"], domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
     resp = Response(cfg, mimetype="text/plain; charset=utf-8")
     resp.headers["Content-Disposition"] = f'attachment; filename="{uname}.conf"'
     return resp
@@ -6145,8 +6151,20 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
     else:
         if "[Peer]" in cfg:
             cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 21", cfg, count=1)
+
+    # 3. For AmneziaWG: Ensure stable anti-censorship parameters (S3=0, S4=0, Jc <= 4)
+    if is_awg or "H1 =" in cfg or "Jc =" in cfg:
+        cfg = re.sub(r"^\s*S3\s*=\s*\d+", "S3 = 0", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r"^\s*S4\s*=\s*\d+", "S4 = 0", cfg, flags=re.MULTILINE)
+        m_jc = re.search(r"^\s*Jc\s*=\s*(\d+)", cfg, flags=re.MULTILINE)
+        if m_jc and int(m_jc.group(1)) > 4:
+            cfg = re.sub(r"^\s*Jc\s*=\s*\d+", "Jc = 3", cfg, flags=re.MULTILINE)
+        if re.search(r"^\s*Jmin\s*=\s*\d+", cfg, flags=re.MULTILINE):
+            cfg = re.sub(r"^\s*Jmin\s*=\s*\d+", "Jmin = 40", cfg, flags=re.MULTILINE)
+        if re.search(r"^\s*Jmax\s*=\s*\d+", cfg, flags=re.MULTILINE):
+            cfg = re.sub(r"^\s*Jmax\s*=\s*\d+", "Jmax = 70", cfg, flags=re.MULTILINE)
             
-    # 3. Fix / Update Endpoint
+    # 4. Fix / Update Endpoint
     if domain or port:
         if re.search(r"^\s*Endpoint\s*=\s*[^:\s]+:\d+", cfg, flags=re.MULTILINE):
             if domain and port:
@@ -6157,7 +6175,7 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
                 cfg = re.sub(r"^\s*Endpoint\s*=\s*[^:\s]+(:\d+)", rf"Endpoint = {domain}\g<1>", cfg, flags=re.MULTILINE)
         elif re.search(r"\\1:\d+", cfg):  # repair corrupted regex artifact
             d = domain or get_server_domain() or get_server_public_ip()
-            p = port or (443 if is_awg else 51820)
+            p = port or (2053 if is_awg else 51820)
             cfg = re.sub(r"\\1:\d+", f"Endpoint = {d}:{p}", cfg)
         elif "[Peer]" in cfg and domain and port:
             cfg = re.sub(r"(\[Peer\])", rf"\1\nEndpoint = {domain}:{port}", cfg, count=1)
@@ -6168,19 +6186,24 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
 def optimize_network_and_mss():
     """
     Apply kernel & firewall tuning to eliminate packet loss and PMTU black holes:
-    1. Clamp TCP MSS to 1240 in mangle FORWARD and POSTROUTING (1240 MSS + 40 bytes = 1280 MTU)
+    1. Clamp TCP MSS to 1220 in mangle FORWARD and POSTROUTING (1220 MSS + 40 bytes = 1260 MTU, comfortably within 1280 MTU)
     2. Set MTU = 1280 on wg0, awg0, awg-warp interfaces
-    3. Tune kernel sysctl: enable tcp_mtu_probing, raise conntrack UDP timeouts
+    3. Remove any QUIC UDP 443 block rules
+    4. Tune kernel sysctl: enable tcp_mtu_probing, raise conntrack UDP timeouts
     """
     try:
         # Flush broken 1280 MSS rules
         subprocess.run("iptables -t mangle -D FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true", shell=True)
         subprocess.run("iptables -t mangle -D POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true", shell=True)
 
-        # Apply correct 1240 MSS clamp and clamp-to-pmtu
-        subprocess.run("iptables -t mangle -C FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240 2>/dev/null || iptables -t mangle -I FORWARD 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240", shell=True)
+        # Flush broken QUIC reject rules
+        subprocess.run("iptables -D FORWARD -p udp -m udp --dport 443 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null || true", shell=True)
+        subprocess.run("ip6tables -D FORWARD -p udp -m udp --dport 443 -j REJECT --reject-with icmp6-port-unreachable 2>/dev/null || true", shell=True)
+
+        # Apply correct 1220 MSS clamp and clamp-to-pmtu
+        subprocess.run("iptables -t mangle -C FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || iptables -t mangle -I FORWARD 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220", shell=True)
         subprocess.run("iptables -t mangle -C FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -I FORWARD 2 -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu", shell=True)
-        subprocess.run("iptables -t mangle -C POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240 2>/dev/null || iptables -t mangle -I POSTROUTING 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240", shell=True)
+        subprocess.run("iptables -t mangle -C POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || iptables -t mangle -I POSTROUTING 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220", shell=True)
         subprocess.run("iptables -t mangle -C POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -I POSTROUTING 2 -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu", shell=True)
 
         # Interfaces MTU
@@ -6202,7 +6225,7 @@ def optimize_network_and_mss():
 
 def get_wg_multiport_config():
     target = int(get_active_port("wireguard") or 51820)
-    awg_target = int(get_active_port("amneziawg") or 443)
+    awg_target = int(get_active_port("amneziawg") or 2053)
     default_ports = [target]
     for p in [51821, 51822, 51823, 51824, 51825, 51826, 51827, 51828]:
         if p != target and p not in default_ports:
@@ -6215,7 +6238,10 @@ def get_wg_multiport_config():
     if os.path.exists(WIREGUARD_MULTIPORT_FILE):
         try:
             with open(WIREGUARD_MULTIPORT_FILE, "r") as f:
-                cfg = json.load(f)
+                content = f.read().strip()
+                if content and '"target_port"' not in content and 'target_port' in content:
+                    content = re.sub(r'(\b[a-zA-Z_][a-zA-Z0-9_]*\b)\s*:', r'"\1":', content)
+                cfg = json.loads(content)
                 cfg["target_port"] = target
                 raw_ports = cfg.get("ports", [])
                 valid_ports = []
@@ -6235,10 +6261,11 @@ def get_wg_multiport_config():
     return default_cfg
 
 def get_awg_multiport_config():
-    target = int(get_active_port("amneziawg") or 443)
+    target = int(get_active_port("amneziawg") or 2053)
     wg_target = int(get_active_port("wireguard") or 51820)
+    all_awg_ports = [2053, 8443, 2083, 2087, 2096, 8080, 8880, 1443, 443]
     default_ports = [target]
-    for p in [8443, 2053, 2083, 2087, 2096, 8080, 8880, 1443]:
+    for p in all_awg_ports:
         if p != target and p not in default_ports:
             default_ports.append(p)
     default_cfg = {
@@ -6249,7 +6276,10 @@ def get_awg_multiport_config():
     if os.path.exists(AMNEZIAWG_MULTIPORT_FILE):
         try:
             with open(AMNEZIAWG_MULTIPORT_FILE, "r") as f:
-                cfg = json.load(f)
+                content = f.read().strip()
+                if content and '"target_port"' not in content and 'target_port' in content:
+                    content = re.sub(r'(\b[a-zA-Z_][a-zA-Z0-9_]*\b)\s*:', r'"\1":', content)
+                cfg = json.loads(content)
                 cfg["target_port"] = target
                 raw_ports = cfg.get("ports", [])
                 excluded = {wg_target, 51820, 51821, 53, 3478}
@@ -6284,7 +6314,7 @@ def apply_wg_multiport_iptables(cfg):
 
         if cfg.get("enabled", True):
             target = int(cfg.get("target_port") or get_active_port("wireguard") or 51820)
-            awg_target = int(get_active_port("amneziawg") or 443)
+            awg_target = int(get_active_port("amneziawg") or 2053)
             raw_ports = [int(p) for p in cfg.get("ports", [])]
             ports = [p for p in raw_ports if p != target and p != awg_target]
             if ports:
@@ -6308,7 +6338,7 @@ def apply_awg_multiport_iptables(cfg):
         subprocess.run("iptables -F AMNEZIAWG_MULTIPORT_IN", shell=True)
         
         if cfg.get("enabled", True):
-            target = int(cfg.get("target_port") or get_active_port("amneziawg") or 443)
+            target = int(cfg.get("target_port") or get_active_port("amneziawg") or 2053)
             wg_target = int(get_active_port("wireguard") or 51820)
             raw_ports = [int(p) for p in cfg.get("ports", [])]
             excluded = {target, wg_target, 51820, 51821, 53, 3478}
@@ -6513,6 +6543,7 @@ def api_wg_peers():
             })
 
     traffic = get_wg_traffic()
+    active_wg_port = get_active_port("wireguard") or 51820
     wg_dirty = False
     now = datetime.now()
     
@@ -6522,7 +6553,15 @@ def api_wg_peers():
         peer["limit_gb"] = user_data.get("limit_gb")
         peer["expire_date"] = user_data.get("expire_date")
         peer["active"] = user_data.get("active", True)
-        peer["config"] = user_data.get("config", "")
+        
+        cfg = user_data.get("config", "")
+        if cfg:
+            norm_cfg = normalize_client_config(cfg, port=active_wg_port, is_awg=False)
+            if norm_cfg != cfg:
+                cfg = norm_cfg
+                user_data["config"] = cfg
+                wg_dirty = True
+        peer["config"] = cfg
         peer["duration_days"] = user_data.get("duration_days")
         peer["start_on_first_connect"] = user_data.get("start_on_first_connect", False)
         peer["group"] = user_data.get("group", "عمومی")
@@ -7750,10 +7789,12 @@ def api_awg_peers():
         peer["sub_token"] = sub_tok
         
         cfg = user_data.get("config", "")
-        if cfg and f":{active_awg_port}" not in cfg:
-            cfg = re.sub(r"(Endpoint\s*=\s*[^:\s]+):\d+", rf"\1:{active_awg_port}", cfg)
-            user_data["config"] = cfg
-            awg_users_dirty = True
+        if cfg:
+            norm_cfg = normalize_client_config(cfg, port=active_awg_port, is_awg=True)
+            if norm_cfg != cfg:
+                cfg = norm_cfg
+                user_data["config"] = cfg
+                awg_users_dirty = True
         peer["config"] = cfg
         peer["duration_days"] = user_data.get("duration_days")
         peer["start_on_first_connect"] = user_data.get("start_on_first_connect", False)
@@ -8124,14 +8165,14 @@ def api_awg_apply_preset():
     desc = ""
     
     if preset_name == "mci_irancell":
-        # Irancell & MCI Mobile Aggressive DPI Bypass
+        # Irancell & MCI Mobile Aggressive DPI Bypass - Stable v2
         params = {
-            "Jc": 5, "Jmin": 50, "Jmax": 100,
-            "S1": 64, "S2": 48, "S3": 56, "S4": 56,
+            "Jc": 3, "Jmin": 40, "Jmax": 70,
+            "S1": 64, "S2": 48, "S3": 0, "S4": 0,
             "H1": h1, "H2": h2, "H3": h3, "H4": h4
         }
-        ver = "v3"
-        desc = "پیکربندی تهاجمی همراه اول و ایرانسل با پکت‌های فیک و پدینگ لایه انتقال"
+        ver = "v2"
+        desc = "پیکربندی بهینه‌سازی شده همراه اول و ایرانسل با هدرهای تصادفی و پکت‌های فیک کنترل‌شده بدون افت سرعت"
     elif preset_name == "adsl_fixed":
         # Fixed Broadband / ADSL / VDSL Balanced
         params = {
@@ -8142,27 +8183,27 @@ def api_awg_apply_preset():
         ver = "v2"
         desc = "پیکربندی متوازن و پایدار اینترنت خانگی (مخابرات، شاتل، آسیاتک، های‌وب)"
     elif preset_name == "extreme_dpi":
-        # Deep Neural DPI & Statistical Analysis Extreme Camouflage
+        # Deep Neural DPI Camouflage
         params = {
-            "Jc": 8, "Jmin": 64, "Jmax": 140,
-            "S1": 96, "S2": 72, "S3": 80, "S4": 80,
+            "Jc": 4, "Jmin": 50, "Jmax": 90,
+            "S1": 64, "S2": 64, "S3": 0, "S4": 0,
             "H1": h1, "H2": h2, "H3": h3, "H4": h4
         }
-        ver = "v3"
-        desc = "استتار حداکثری هدرها و ترافیک جهت خنثی‌سازی هوش مصنوعی و DPI عمیق اپراتورها"
+        ver = "v2"
+        desc = "استتار هدرها جهت خنثی‌سازی هوش مصنوعی و DPI عمیق اپراتورها"
     elif preset_name == "randomize":
         # Fresh unique random keys
         params = {
-            "Jc": random.randint(4, 7),
-            "Jmin": random.randint(40, 60),
-            "Jmax": random.randint(80, 130),
-            "S1": random.randint(32, 96),
-            "S2": random.randint(32, 80),
-            "S3": random.randint(40, 80),
-            "S4": random.randint(40, 80),
+            "Jc": random.randint(3, 4),
+            "Jmin": random.randint(35, 45),
+            "Jmax": random.randint(65, 80),
+            "S1": random.randint(32, 64),
+            "S2": random.randint(32, 48),
+            "S3": 0,
+            "S4": 0,
             "H1": h1, "H2": h2, "H3": h3, "H4": h4
         }
-        ver = "v3"
+        ver = "v2"
         desc = "تولید هدرهای تصادفی و منحصر‌به‌فرد تازه برای سرور"
     else:
         return jsonify({"success": False, "error": f"Unknown preset: {preset_name}"}), 400
