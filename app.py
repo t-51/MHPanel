@@ -1537,13 +1537,16 @@ def client_subscription_view(sub_token):
         if target_port and target_port not in mp_ports:
             mp_ports.insert(0, target_port)
             
+        base_cfg = normalize_client_config(base_cfg, domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
+
         port_configs = []
         for p in mp_ports:
-            cfg_p = re.sub(r"(Endpoint\s*=\s*[^:\s]+):\d+", rf"\1:{p}", base_cfg)
+            cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=(proto_type != "wireguard"))
             port_configs.append({
                 "port": p,
                 "endpoint": f"{domain}:{p}",
-                "config": cfg_p
+                "config": cfg_p,
+                "is_main": (p == target_port)
             })
             
         if fmt == "json":
@@ -1574,6 +1577,7 @@ def client_subscription_view(sub_token):
             user=udata,
             settings=settings,
             server_host=domain,
+            server_port=target_port,
             sstp_host=domain,
             sub_token=sub_token,
             sub_url=request.url,
@@ -1582,9 +1586,11 @@ def client_subscription_view(sub_token):
             traffic_pct=traffic_pct,
             days_left=days_left,
             ports={},
+            default_conf=base_cfg,
             client_config=base_cfg,
             port_configs=port_configs,
             multiport_ports=mp_ports,
+            multiport_list=mp_ports,
             group=udata.get("group", "عمومی")
         )
 
@@ -1737,8 +1743,9 @@ def client_subscription_port_conf_download(sub_token, target_port):
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
     if not uname or "config" not in udata:
         return "Configuration Not Found", 404
+    domain = get_server_domain() or get_server_public_ip()
     base_cfg = udata["config"]
-    cfg_p = re.sub(r"(Endpoint\s*=\s*[^:\s]+):\d+", rf"\1:{target_port}", base_cfg)
+    cfg_p = normalize_client_config(base_cfg, domain=domain, port=target_port, is_awg=(proto_type != "wireguard"))
     resp = Response(cfg_p, mimetype="text/plain; charset=utf-8")
     resp.headers["Content-Disposition"] = f'attachment; filename="{uname}-port{target_port}.conf"'
     return resp
@@ -1765,7 +1772,7 @@ def client_subscription_zip_download(sub_token):
     mem_file = io.BytesIO()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
-            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=(proto_type != "wireguard"))
             zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
             
     mem_file.seek(0)
@@ -6111,39 +6118,152 @@ def find_group_by_token(token):
     return None
 
 
+def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
+    """
+    Standardize WireGuard / AmneziaWG client configuration:
+    - Enforces MTU = 1280 (prevents UDP fragmentation & packet loss on mobile networks)
+    - Enforces PersistentKeepalive = 21 (prevents NAT/conntrack 30s timeouts)
+    - Formats clean Endpoint = <domain>:<port> (resolves \\1:port and undefined:port bugs)
+    """
+    if not cfg:
+        return cfg
+    
+    # 1. Enforce MTU = 1280 in [Interface]
+    if re.search(r"^\s*MTU\s*=", cfg, flags=re.MULTILINE):
+        cfg = re.sub(r"^\s*MTU\s*=\s*\d+", "MTU = 1280", cfg, flags=re.MULTILINE)
+    else:
+        if re.search(r"^\s*DNS\s*=[^\n]+", cfg, flags=re.MULTILINE):
+            cfg = re.sub(r"(^\s*DNS\s*=[^\n]+)", r"\1\nMTU = 1280", cfg, count=1, flags=re.MULTILINE)
+        elif re.search(r"^\s*Address\s*=[^\n]+", cfg, flags=re.MULTILINE):
+            cfg = re.sub(r"(^\s*Address\s*=[^\n]+)", r"\1\nMTU = 1280", cfg, count=1, flags=re.MULTILINE)
+        elif "[Interface]" in cfg:
+            cfg = re.sub(r"(\[Interface\])", r"\1\nMTU = 1280", cfg, count=1)
+            
+    # 2. Enforce PersistentKeepalive = 21 in [Peer]
+    if re.search(r"^\s*PersistentKeepalive\s*=", cfg, flags=re.MULTILINE):
+        cfg = re.sub(r"^\s*PersistentKeepalive\s*=\s*\d+", "PersistentKeepalive = 21", cfg, flags=re.MULTILINE)
+    else:
+        if "[Peer]" in cfg:
+            cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 21", cfg, count=1)
+            
+    # 3. Fix / Update Endpoint
+    if domain or port:
+        if re.search(r"^\s*Endpoint\s*=\s*[^:\s]+:\d+", cfg, flags=re.MULTILINE):
+            if domain and port:
+                cfg = re.sub(r"^\s*Endpoint\s*=\s*[^:\s]+:\d+", f"Endpoint = {domain}:{port}", cfg, flags=re.MULTILINE)
+            elif port:
+                cfg = re.sub(r"(^\s*Endpoint\s*=\s*[^:\s]+):\d+", rf"\g<1>:{port}", cfg, flags=re.MULTILINE)
+            elif domain:
+                cfg = re.sub(r"^\s*Endpoint\s*=\s*[^:\s]+(:\d+)", rf"Endpoint = {domain}\g<1>", cfg, flags=re.MULTILINE)
+        elif re.search(r"\\1:\d+", cfg):  # repair corrupted regex artifact
+            d = domain or get_server_domain() or get_server_public_ip()
+            p = port or (443 if is_awg else 51820)
+            cfg = re.sub(r"\\1:\d+", f"Endpoint = {d}:{p}", cfg)
+        elif "[Peer]" in cfg and domain and port:
+            cfg = re.sub(r"(\[Peer\])", rf"\1\nEndpoint = {domain}:{port}", cfg, count=1)
+            
+    return cfg
+
+
+def optimize_network_and_mss():
+    """
+    Apply kernel & firewall tuning to eliminate packet loss and PMTU black holes:
+    1. Clamp TCP MSS to 1240 in mangle FORWARD and POSTROUTING (1240 MSS + 40 bytes = 1280 MTU)
+    2. Set MTU = 1280 on wg0, awg0, awg-warp interfaces
+    3. Tune kernel sysctl: enable tcp_mtu_probing, raise conntrack UDP timeouts
+    """
+    try:
+        # Flush broken 1280 MSS rules
+        subprocess.run("iptables -t mangle -D FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true", shell=True)
+        subprocess.run("iptables -t mangle -D POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1281:65535 -j TCPMSS --set-mss 1280 2>/dev/null || true", shell=True)
+
+        # Apply correct 1240 MSS clamp and clamp-to-pmtu
+        subprocess.run("iptables -t mangle -C FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240 2>/dev/null || iptables -t mangle -I FORWARD 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240", shell=True)
+        subprocess.run("iptables -t mangle -C FORWARD -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -I FORWARD 2 -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu", shell=True)
+        subprocess.run("iptables -t mangle -C POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240 2>/dev/null || iptables -t mangle -I POSTROUTING 1 -p tcp -m tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1241:65535 -j TCPMSS --set-mss 1240", shell=True)
+        subprocess.run("iptables -t mangle -C POSTROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || iptables -t mangle -I POSTROUTING 2 -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu", shell=True)
+
+        # Interfaces MTU
+        for iface in ["wg0", "awg0", "awg-warp"]:
+            subprocess.run(f"ip link set dev {iface} mtu 1280 2>/dev/null || true", shell=True)
+
+        # Sysctl low-latency & conntrack stability
+        subprocess.run("sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_mtu_probing=1 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout=60 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=300 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.rmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.wmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216' >/dev/null 2>&1 || true", shell=True)
+    except Exception as e:
+        print(f"Error in optimize_network_and_mss: {e}")
+
+
 def get_wg_multiport_config():
-    target = get_active_port("wireguard") or 51820
+    target = int(get_active_port("wireguard") or 51820)
+    awg_target = int(get_active_port("amneziawg") or 443)
+    default_ports = [target]
+    for p in [51821, 51822, 51823, 51824, 51825, 51826, 51827, 51828]:
+        if p != target and p not in default_ports:
+            default_ports.append(p)
     default_cfg = {
         "enabled": True,
         "target_port": target,
-        "ports": [51820, 51821, 443, 80, 53, 8080, 8443, 2082]
+        "ports": default_ports
     }
     if os.path.exists(WIREGUARD_MULTIPORT_FILE):
         try:
             with open(WIREGUARD_MULTIPORT_FILE, "r") as f:
                 cfg = json.load(f)
                 cfg["target_port"] = target
-                if not cfg.get("ports"):
-                    cfg["ports"] = default_cfg["ports"]
+                raw_ports = cfg.get("ports", [])
+                valid_ports = []
+                for p in raw_ports:
+                    try:
+                        p_int = int(p)
+                        if 1 <= p_int <= 65535 and p_int != awg_target and p_int not in valid_ports:
+                            valid_ports.append(p_int)
+                    except Exception:
+                        pass
+                if target not in valid_ports:
+                    valid_ports.insert(0, target)
+                cfg["ports"] = valid_ports or default_cfg["ports"]
                 return cfg
         except Exception:
             pass
     return default_cfg
 
 def get_awg_multiport_config():
-    target = get_active_port("amneziawg") or 443
+    target = int(get_active_port("amneziawg") or 443)
+    wg_target = int(get_active_port("wireguard") or 51820)
+    default_ports = [target]
+    for p in [8443, 2053, 2083, 2087, 2096, 8080, 8880, 1443]:
+        if p != target and p not in default_ports:
+            default_ports.append(p)
     default_cfg = {
         "enabled": True,
         "target_port": target,
-        "ports": [443, 51820, 51821, 80, 53, 8080, 8443, 3478]
+        "ports": default_ports
     }
     if os.path.exists(AMNEZIAWG_MULTIPORT_FILE):
         try:
             with open(AMNEZIAWG_MULTIPORT_FILE, "r") as f:
                 cfg = json.load(f)
                 cfg["target_port"] = target
-                if not cfg.get("ports"):
-                    cfg["ports"] = default_cfg["ports"]
+                raw_ports = cfg.get("ports", [])
+                excluded = {wg_target, 51820, 51821, 53, 3478}
+                valid_ports = []
+                for p in raw_ports:
+                    try:
+                        p_int = int(p)
+                        if 1 <= p_int <= 65535 and p_int not in excluded and p_int not in valid_ports:
+                            valid_ports.append(p_int)
+                    except Exception:
+                        pass
+                if target not in valid_ports:
+                    valid_ports.insert(0, target)
+                cfg["ports"] = valid_ports or default_cfg["ports"]
                 return cfg
         except Exception:
             pass
@@ -6152,22 +6272,28 @@ def get_awg_multiport_config():
 def apply_wg_multiport_iptables(cfg):
     try:
         subprocess.run("iptables -t nat -N WIREGUARD_MULTIPORT 2>/dev/null || true", shell=True)
-        subprocess.run("iptables -t nat -C PREROUTING -j WIREGUARD_MULTIPORT 2>/dev/null || iptables -t nat -I PREROUTING 2 -j WIREGUARD_MULTIPORT", shell=True)
+        subprocess.run("iptables -t nat -C PREROUTING -j WIREGUARD_MULTIPORT 2>/dev/null || iptables -t nat -I PREROUTING 1 -j WIREGUARD_MULTIPORT", shell=True)
         subprocess.run("iptables -t nat -F WIREGUARD_MULTIPORT", shell=True)
         
         subprocess.run("iptables -N WIREGUARD_MULTIPORT_IN 2>/dev/null || true", shell=True)
-        subprocess.run("iptables -C INPUT -j WIREGUARD_MULTIPORT_IN 2>/dev/null || iptables -I INPUT 2 -j WIREGUARD_MULTIPORT_IN", shell=True)
+        subprocess.run("iptables -C INPUT -j WIREGUARD_MULTIPORT_IN 2>/dev/null || iptables -I INPUT 1 -j WIREGUARD_MULTIPORT_IN", shell=True)
         subprocess.run("iptables -F WIREGUARD_MULTIPORT_IN", shell=True)
         
+        # Clean stray PREROUTING redirect rule if any exists
+        subprocess.run("iptables -t nat -D PREROUTING -p udp -m multiport --dports 51820,51821 -j REDIRECT --to-ports 443 2>/dev/null || true", shell=True)
+
         if cfg.get("enabled", True):
-            target = cfg.get("target_port") or get_active_port("wireguard") or 51820
-            ports = [int(p) for p in cfg.get("ports", []) if int(p) != target]
+            target = int(cfg.get("target_port") or get_active_port("wireguard") or 51820)
+            awg_target = int(get_active_port("amneziawg") or 443)
+            raw_ports = [int(p) for p in cfg.get("ports", [])]
+            ports = [p for p in raw_ports if p != target and p != awg_target]
             if ports:
                 for i in range(0, len(ports), 15):
                     chunk = ports[i:i+15]
                     csv = ",".join(str(p) for p in chunk)
                     subprocess.run(f"iptables -t nat -A WIREGUARD_MULTIPORT -p udp -m multiport --dports {csv} -j REDIRECT --to-ports {target}", shell=True)
                     subprocess.run(f"iptables -A WIREGUARD_MULTIPORT_IN -p udp -m multiport --dports {csv} -j ACCEPT", shell=True)
+            subprocess.run(f"iptables -A WIREGUARD_MULTIPORT_IN -p udp --dport {target} -j ACCEPT", shell=True)
     except Exception as e:
         print(f"Error applying WireGuard multiport iptables: {e}")
 
@@ -6182,14 +6308,18 @@ def apply_awg_multiport_iptables(cfg):
         subprocess.run("iptables -F AMNEZIAWG_MULTIPORT_IN", shell=True)
         
         if cfg.get("enabled", True):
-            target = cfg.get("target_port") or get_active_port("amneziawg") or 443
-            ports = [int(p) for p in cfg.get("ports", []) if int(p) != target]
+            target = int(cfg.get("target_port") or get_active_port("amneziawg") or 443)
+            wg_target = int(get_active_port("wireguard") or 51820)
+            raw_ports = [int(p) for p in cfg.get("ports", [])]
+            excluded = {target, wg_target, 51820, 51821, 53, 3478}
+            ports = [p for p in raw_ports if p not in excluded]
             if ports:
                 for i in range(0, len(ports), 15):
                     chunk = ports[i:i+15]
                     csv = ",".join(str(p) for p in chunk)
                     subprocess.run(f"iptables -t nat -A AMNEZIAWG_MULTIPORT -p udp -m multiport --dports {csv} -j REDIRECT --to-ports {target}", shell=True)
                     subprocess.run(f"iptables -A AMNEZIAWG_MULTIPORT_IN -p udp -m multiport --dports {csv} -j ACCEPT", shell=True)
+            subprocess.run(f"iptables -A AMNEZIAWG_MULTIPORT_IN -p udp --dport {target} -j ACCEPT", shell=True)
     except Exception as e:
         print(f"Error applying AmneziaWG multiport iptables: {e}")
 
@@ -6281,12 +6411,13 @@ def api_wg_client_bulk():
 PrivateKey = {privkey}
 Address = {client_ip}/32
 DNS = {dns_val}
+MTU = 1280
 
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
 AllowedIPs = 0.0.0.0/0
-PersistentKeepalive = 25
+PersistentKeepalive = 21
 """
         sub_token = secrets.token_urlsafe(16)
         created_clients.append({
@@ -6626,12 +6757,13 @@ def api_wg_client():
 PrivateKey = {privkey}
 Address = {client_ip}/32
 DNS = {dns_val}
+MTU = 1280
 
 [Peer]
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
 AllowedIPs = 0.0.0.0/0
-PersistentKeepalive = 25
+PersistentKeepalive = 21
 """
     sub_token = secrets.token_urlsafe(16)
 
@@ -6675,6 +6807,8 @@ PersistentKeepalive = 25
 def api_wg_multiport():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
+    target = int(get_active_port("wireguard") or 51820)
+    awg_target = int(get_active_port("amneziawg") or 443)
     if request.method == "POST":
         data = request.json or {}
         cfg = get_wg_multiport_config()
@@ -6685,21 +6819,25 @@ def api_wg_multiport():
             for p in data["ports"]:
                 try:
                     p_int = int(p)
-                    if 1 <= p_int <= 65535 and p_int not in valid_ports:
+                    if 1 <= p_int <= 65535 and p_int != awg_target and p_int not in valid_ports:
                         valid_ports.append(p_int)
                 except Exception:
                     pass
+            if target not in valid_ports:
+                valid_ports.insert(0, target)
             cfg["ports"] = valid_ports
-        target = get_active_port("wireguard") or 51820
         cfg["target_port"] = target
         try:
             with open(WIREGUARD_MULTIPORT_FILE, "w") as f:
                 json.dump(cfg, f, indent=2)
             apply_wg_multiport_iptables(cfg)
-            return jsonify({"success": True, "config": cfg})
+            optimize_network_and_mss()
+            return jsonify({"success": True, "config": cfg, "main_port": target, "ports": cfg["ports"]})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 500
-    return jsonify(get_wg_multiport_config())
+    cfg = get_wg_multiport_config()
+    cfg["main_port"] = target
+    return jsonify(cfg)
 
 @app.route("/api/wireguard/client/multiport", methods=["GET"])
 def api_wg_client_multiport():
@@ -6721,16 +6859,19 @@ def api_wg_client_multiport():
     domain = get_server_domain() or get_server_public_ip()
     mp_cfg = get_wg_multiport_config()
     ports = list(mp_cfg.get("ports", []))
-    target = mp_cfg.get("target_port") or 51820
+    target = int(mp_cfg.get("target_port") or 51820)
     if target not in ports:
         ports.insert(0, target)
     port_configs = []
     for p in ports:
-        cfg_p = re.sub(r"(Endpoint\s*=\s*[^:\s]+):\d+", rf"\\1:{p}", base_cfg)
-        port_configs.append({"port": p, "endpoint": f"{domain}:{p}", "config": cfg_p})
+        cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
+        port_configs.append({"port": p, "endpoint": f"{domain}:{p}", "config": cfg_p, "is_main": (p == target)})
     return jsonify({
         "success": True,
         "ports": ports,
+        "server_ip": domain,
+        "domain": domain,
+        "target_port": target,
         "configs": port_configs,
         "sub_token": user_data.get("sub_token", ""),
         "name": user_data.get("name", "Client")
@@ -6850,7 +6991,7 @@ def api_wg_client_download_zip():
     mem_file = io.BytesIO()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
-            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
             zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
             
     mem_file.seek(0)
@@ -6889,7 +7030,7 @@ def api_awg_client_download_zip():
     mem_file = io.BytesIO()
     with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
         for p in ports:
-            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
             zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
             
     mem_file.seek(0)
@@ -7374,10 +7515,11 @@ def api_wg_clients_bulk_download():
                 continue
             if len(ports) > 1:
                 for p in ports:
-                    cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+                    cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=False)
                     zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
             else:
-                zf.writestr(f"{uname}.conf", base_cfg)
+                cfg_p = normalize_client_config(base_cfg, domain=domain, port=ports[0] if ports else 51820, is_awg=False)
+                zf.writestr(f"{uname}.conf", cfg_p)
 
     mem_file.seek(0)
     return send_file(
@@ -7489,7 +7631,7 @@ MTU = 1280
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
 AllowedIPs = 0.0.0.0/0
-PersistentKeepalive = 25
+PersistentKeepalive = 21
 """
         sub_token = secrets.token_urlsafe(16)
         created_clients.append({
@@ -7843,7 +7985,7 @@ MTU = 1280
 PublicKey = {server_pubkey}
 Endpoint = {server_ip}:{port}
 AllowedIPs = 0.0.0.0/0
-PersistentKeepalive = 25
+PersistentKeepalive = 21
 """
     sub_token = secrets.token_urlsafe(16)
 
@@ -7887,6 +8029,8 @@ PersistentKeepalive = 25
 def api_awg_multiport():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
+    target = int(get_active_port("amneziawg") or 443)
+    wg_target = int(get_active_port("wireguard") or 51820)
     if request.method == "POST":
         data = request.json or {}
         cfg = get_awg_multiport_config()
@@ -7894,24 +8038,29 @@ def api_awg_multiport():
             cfg["enabled"] = bool(data["enabled"])
         if "ports" in data and isinstance(data["ports"], list):
             valid_ports = []
+            excluded = {wg_target, 51820, 51821, 53, 3478}
             for p in data["ports"]:
                 try:
                     p_int = int(p)
-                    if 1 <= p_int <= 65535 and p_int not in valid_ports:
+                    if 1 <= p_int <= 65535 and p_int not in excluded and p_int not in valid_ports:
                         valid_ports.append(p_int)
                 except Exception:
                     pass
+            if target not in valid_ports:
+                valid_ports.insert(0, target)
             cfg["ports"] = valid_ports
-        target = get_active_port("amneziawg") or 443
         cfg["target_port"] = target
         try:
             with open(AMNEZIAWG_MULTIPORT_FILE, "w") as f:
                 json.dump(cfg, f, indent=2)
             apply_awg_multiport_iptables(cfg)
-            return jsonify({"success": True, "config": cfg})
+            optimize_network_and_mss()
+            return jsonify({"success": True, "config": cfg, "main_port": target, "ports": cfg["ports"]})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 500
-    return jsonify(get_awg_multiport_config())
+    cfg = get_awg_multiport_config()
+    cfg["main_port"] = target
+    return jsonify(cfg)
 
 @app.route("/api/amneziawg/client/multiport", methods=["GET"])
 def api_awg_client_multiport():
@@ -7933,16 +8082,19 @@ def api_awg_client_multiport():
     domain = get_server_domain() or get_server_public_ip()
     mp_cfg = get_awg_multiport_config()
     ports = list(mp_cfg.get("ports", []))
-    target = mp_cfg.get("target_port") or 443
+    target = int(mp_cfg.get("target_port") or 443)
     if target not in ports:
         ports.insert(0, target)
     port_configs = []
     for p in ports:
-        cfg_p = re.sub(r"(Endpoint\s*=\s*[^:\s]+):\d+", rf"\1:{p}", base_cfg)
-        port_configs.append({"port": p, "endpoint": f"{domain}:{p}", "config": cfg_p})
+        cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
+        port_configs.append({"port": p, "endpoint": f"{domain}:{p}", "config": cfg_p, "is_main": (p == target)})
     return jsonify({
         "success": True,
         "ports": ports,
+        "server_ip": domain,
+        "domain": domain,
+        "target_port": target,
         "configs": port_configs,
         "sub_token": user_data.get("sub_token", ""),
         "name": user_data.get("name", "Client")
@@ -8395,10 +8547,11 @@ def api_awg_clients_bulk_download():
                 continue
             if len(ports) > 1:
                 for p in ports:
-                    cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+                    cfg_p = normalize_client_config(base_cfg, domain=domain, port=p, is_awg=True)
                     zf.writestr(f"{uname}/{uname}-port-{p}.conf", cfg_p)
             else:
-                zf.writestr(f"{uname}.conf", base_cfg)
+                cfg_p = normalize_client_config(base_cfg, domain=domain, port=ports[0] if ports else 443, is_awg=True)
+                zf.writestr(f"{uname}.conf", cfg_p)
 
     mem_file.seek(0)
     return send_file(
@@ -26983,6 +27136,56 @@ if __name__ == "__main__":
         restore_all_tunnels()
     except Exception as e:
         print(f"Error restoring tunnels: {e}")
+
+    try:
+        optimize_network_and_mss()
+    except Exception as e:
+        print(f"Error optimizing network and MSS: {e}")
+
+    try:
+        apply_wg_multiport_iptables(get_wg_multiport_config())
+    except Exception as e:
+        print(f"Error applying WireGuard multiport iptables on startup: {e}")
+
+    try:
+        apply_awg_multiport_iptables(get_awg_multiport_config())
+    except Exception as e:
+        print(f"Error applying AmneziaWG multiport iptables on startup: {e}")
+
+    # One-time normalization migration of stored client configs
+    try:
+        domain = get_server_domain() or get_server_public_ip()
+        wg_file = "/www/wwwroot/mhpanel/wg_users.json"
+        if os.path.exists(wg_file):
+            with open(wg_file, "r") as f:
+                wg_u = json.load(f)
+            wg_dirty = False
+            for pk, udata in wg_u.items():
+                orig_cfg = udata.get("config", "")
+                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=51820, is_awg=False)
+                if norm_cfg != orig_cfg:
+                    udata["config"] = norm_cfg
+                    wg_dirty = True
+            if wg_dirty:
+                with open(wg_file, "w") as f:
+                    json.dump(wg_u, f, indent=2, ensure_ascii=False)
+
+        awg_file = "/www/wwwroot/mhpanel/awg_users.json"
+        if os.path.exists(awg_file):
+            with open(awg_file, "r") as f:
+                awg_u = json.load(f)
+            awg_dirty = False
+            for pk, udata in awg_u.items():
+                orig_cfg = udata.get("config", "")
+                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=443, is_awg=True)
+                if norm_cfg != orig_cfg:
+                    udata["config"] = norm_cfg
+                    awg_dirty = True
+            if awg_dirty:
+                with open(awg_file, "w") as f:
+                    json.dump(awg_u, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print(f"Error during client config normalization migration: {e}")
 
     port = get_panel_port()
     app.run(host="0.0.0.0", port=port, ssl_context=ssl_context, debug=False)
