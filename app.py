@@ -6805,8 +6805,11 @@ def api_wireguard_warp_status():
     return jsonify({
         "success": True,
         "active": is_active,
+        "warp_enabled": is_active,
         "warp_svc_active": warp_svc_active,
-        "warp_ip": warp_ip
+        "running": warp_svc_active,
+        "warp_ip": warp_ip,
+        "ip": warp_ip
     })
 
 @app.route("/api/wireguard/warp", methods=["GET", "POST"])
@@ -6839,9 +6842,29 @@ def api_wireguard_warp_toggle():
             
         time.sleep(1)
         svc_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+        warp_svc_active = subprocess.run(["systemctl", "is-active", "warp-svc"], capture_output=True, text=True).stdout.strip() == "active"
         is_active = os.path.exists(WG_WARP_FLAG) and svc_active
+        warp_ip = "-"
+        if is_active:
+            try:
+                res = subprocess.run(["curl", "--interface", "awg-warp", "-s", "--max-time", "3", "https://cloudflare.com/cdn-cgi/trace"], capture_output=True, text=True)
+                for line in res.stdout.splitlines():
+                    if line.startswith("ip="):
+                        warp_ip = line.split("=")[1].strip()
+                        break
+            except Exception:
+                pass
         msg = "خروج ترافیک وایرگارد از WARP فعال شد." if is_active else "خروج ترافیک وایرگارد از WARP غیرفعال شد."
-        return jsonify({"success": True, "active": is_active, "warp_enabled": is_active, "message": msg})
+        return jsonify({
+            "success": True,
+            "active": is_active,
+            "warp_enabled": is_active,
+            "warp_svc_active": warp_svc_active,
+            "running": warp_svc_active,
+            "warp_ip": warp_ip,
+            "ip": warp_ip,
+            "message": msg
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -8077,8 +8100,11 @@ def api_amneziawg_warp_status():
     return jsonify({
         "success": True,
         "active": is_active,
+        "warp_enabled": is_active,
         "warp_svc_active": warp_svc_active,
-        "warp_ip": warp_ip
+        "running": warp_svc_active,
+        "warp_ip": warp_ip,
+        "ip": warp_ip
     })
 
 @app.route("/api/amneziawg/warp", methods=["GET", "POST"])
@@ -8096,18 +8122,35 @@ def api_amneziawg_warp_toggle():
         enable = not cur_active
     try:
         if enable:
-            subprocess.run(["systemctl", "start", "warp-svc"], check=False)
-            subprocess.run(["warp-cli", "--accept-tos", "mode", "proxy"], check=False)
-            subprocess.run(["warp-cli", "--accept-tos", "connect"], check=False)
-            subprocess.run(["systemctl", "enable", "--now", "mhpanel-amnezia-warp"], check=False)
-            subprocess.run(["systemctl", "restart", "mhpanel-amnezia-warp"], check=False)
+            ensure_warp_daemon_running()
+            subprocess.run(["/usr/local/bin/amnezia-warp-up.sh"], check=False)
         else:
             subprocess.run(["systemctl", "disable", "--now", "mhpanel-amnezia-warp"], check=False)
             subprocess.run(["/usr/local/bin/amnezia-warp-down.sh"], check=False)
         time.sleep(1)
         is_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+        warp_svc_active = subprocess.run(["systemctl", "is-active", "warp-svc"], capture_output=True, text=True).stdout.strip() == "active"
+        warp_ip = "-"
+        if is_active:
+            try:
+                res = subprocess.run(["curl", "--interface", "awg-warp", "-s", "--max-time", "3", "https://cloudflare.com/cdn-cgi/trace"], capture_output=True, text=True)
+                for line in res.stdout.splitlines():
+                    if line.startswith("ip="):
+                        warp_ip = line.split("=")[1].strip()
+                        break
+            except Exception:
+                pass
         msg = "خروج ترافیک AmneziaWG از WARP فعال شد." if is_active else "خروج ترافیک AmneziaWG از WARP غیرفعال شد."
-        return jsonify({"success": True, "active": is_active, "warp_enabled": is_active, "message": msg})
+        return jsonify({
+            "success": True,
+            "active": is_active,
+            "warp_enabled": is_active,
+            "warp_svc_active": warp_svc_active,
+            "running": warp_svc_active,
+            "warp_ip": warp_ip,
+            "ip": warp_ip,
+            "message": msg
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

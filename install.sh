@@ -1296,6 +1296,7 @@ Wants=warp-svc.service
 Type=simple
 ExecStartPre=-/sbin/ip link delete awg-warp
 ExecStart=/usr/local/bin/tun2socks --device awg-warp --proxy socks5://127.0.0.1:40000 --tun-post-up /usr/local/bin/amnezia-warp-up.sh --loglevel warn
+ExecStartPost=/usr/local/bin/amnezia-warp-up.sh
 ExecStopPost=/usr/local/bin/amnezia-warp-down.sh
 Restart=on-failure
 RestartSec=3

@@ -24980,19 +24980,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (!res.ok) return;
             const data = await res.json();
 
+            const isSvcRunning = Boolean(data.running || data.warp_svc_active);
+            const isWarpEnabled = Boolean(data.warp_enabled !== undefined ? data.warp_enabled : data.active);
+            const exitIp = data.ip || data.warp_ip || "-";
+
             const svcEl = document.getElementById("wg-warp-svc-status");
             if (svcEl) {
-                svcEl.innerText = data.running ? "آنلاین و متصل (MASQUE)" : "آفلاین / متوقف";
-                svcEl.style.color = data.running ? "#10b981" : "#ef4444";
+                svcEl.innerText = isSvcRunning ? "آنلاین و متصل (MASQUE)" : "آفلاین / متوقف";
+                svcEl.style.color = isSvcRunning ? "#10b981" : "#ef4444";
             }
 
             const ipEl = document.getElementById("wg-warp-exit-ip");
-            if (ipEl) ipEl.innerText = data.ip || "-";
+            if (ipEl) ipEl.innerText = exitIp;
 
             const badge = document.getElementById("wg-warp-status-badge");
             const btn = document.getElementById("wg-warp-toggle-btn");
 
-            if (data.warp_enabled) {
+            if (isWarpEnabled) {
                 if (badge) {
                     badge.innerText = "فعال (خروج از WARP)";
                     badge.style.background = "rgba(16, 185, 129, 0.15)";
@@ -25045,19 +25049,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (!res.ok) return;
             const data = await res.json();
 
+            const isSvcRunning = Boolean(data.running || data.warp_svc_active);
+            const isWarpEnabled = Boolean(data.warp_enabled !== undefined ? data.warp_enabled : data.active);
+            const exitIp = data.ip || data.warp_ip || "-";
+
             const svcEl = document.getElementById("awg-warp-svc-status");
             if (svcEl) {
-                svcEl.innerText = data.running ? "آنلاین و متصل (MASQUE)" : "آفلاین / متوقف";
-                svcEl.style.color = data.running ? "#10b981" : "#ef4444";
+                svcEl.innerText = isSvcRunning ? "آنلاین و متصل (MASQUE)" : "آفلاین / متوقف";
+                svcEl.style.color = isSvcRunning ? "#10b981" : "#ef4444";
             }
 
             const ipEl = document.getElementById("awg-warp-exit-ip");
-            if (ipEl) ipEl.innerText = data.ip || "-";
+            if (ipEl) ipEl.innerText = exitIp;
 
             const badge = document.getElementById("awg-warp-status-badge");
             const btn = document.getElementById("awg-warp-toggle-btn");
 
-            if (data.warp_enabled) {
+            if (isWarpEnabled) {
                 if (badge) {
                     badge.innerText = "فعال (خروج از WARP)";
                     badge.style.background = "rgba(16, 185, 129, 0.15)";
