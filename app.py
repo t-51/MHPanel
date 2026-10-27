@@ -2123,7 +2123,6 @@ persist-key
 persist-tun
 remote-cert-tls server
 cipher AES-256-GCM
-data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
 auth SHA256
 redirect-gateway def1 bypass-dhcp
 dhcp-option DNS 1.1.1.1
