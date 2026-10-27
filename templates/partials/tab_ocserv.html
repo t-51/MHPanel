@@ -142,7 +142,7 @@
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 16px;">
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ocserv_tcp_port_service_tls" style="font-weight:600;">پورت TCP سرویس (TLS)</label>
-<input class="form-input" id="ocserv-tcp-port" max="65535" min="1" required="" style="font-family:'JetBrains Mono', monospace;" type="number" value="10443"/>
+<input class="form-input" id="ocserv-tcp-port" max="65535" min="1" oninput="updateOcservUrlPreview()" required="" style="font-family:'JetBrains Mono', monospace;" type="number" value="10443"/>
 <span data-i18n="ocserv_https_10443_443" style="font-size:11px; color:var(--text-muted);">پورت اصلی HTTPS که کاربران سیسکو به آن وصل می‌شوند (پیش‌فرض: 10443 یا 443)</span>
 </div>
 <div class="form-group" style="margin:0;">
@@ -152,7 +152,7 @@
 </div>
 <div class="form-group" style="margin:0;">
 <label class="form-label" data-i18n="ocserv_server_connection_domain_default_domai" style="font-weight:600;">دامنه اتصال سرور (Default Domain)</label>
-<input class="form-input" id="ocserv-domain" placeholder="vpn.kigaping.com" required="" style="font-family:'JetBrains Mono', monospace;" type="text"/>
+<input class="form-input" id="ocserv-domain" oninput="updateOcservUrlPreview()" placeholder="test.kigaping.com" required="" style="font-family:'JetBrains Mono', monospace;" type="text"/>
 <span data-i18n="ocserv_ssl_2" style="font-size:11px; color:var(--text-muted);">نام دامنه سرور که در گواهی SSL ثبت شده است</span>
 </div>
 </div>
@@ -362,16 +362,16 @@
                 </p>
 <div style="background: var(--bg-surface); border:1px solid rgba(16, 185, 129, 0.3); border-radius:8px; padding:12px 16px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
 <code id="ocserv-connect-url-preview" style="font-family:'JetBrains Mono', monospace; font-size:15px; color: #10b981; font-weight:700;">
-                        vpn.kigaping.com
+                        test.kigaping.com:10443
                     </code>
 <button class="btn btn-secondary btn-sm" onclick="copyOcservConnectUrl()" style="width:auto; padding:6px 14px;" type="button">
 <i data-lucide="copy" style="width:14px; height:14px; margin-right:4px;"></i> <span data-i18n="ssh_copy_address">کپی آدرس</span>
 </button>
 </div>
 <div data-i18n-html="elem_tab_ocserv_28" style="font-size:12px; color: var(--text-muted); margin-top:10px; line-height:1.6;">
-                    • <strong data-i18n="ocserv_main_address_suggested" style="color: #10b981;">آدرس اصلی (پیشنهادی ⚡):</strong> <code>vpn.kigaping.com</code> یا <code>vpn.kigaping.com:443</code> (روی پورت استاندارد ۴۴۳ فعال است، دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br/>
-                    • <strong data-i18n="ocserv_anti_filtering_mode" style="color: #10b981;">حالت ضد فیلترینگ:</strong> ترافیک AnyConnect به عنوان ترافیک امن وب HTTPS استاندارد (TLS 1.3) از پورت ۴۴۳ عبور می‌کند و غیرقابل شناسایی است.<br/>
-                    • <strong data-i18n="ocserv_note" style="color: #10b981;">نکته:</strong> در Cisco AnyConnect نیازی به وارد کردن پورت نیست؛ صرفاً وارد کردن <code>vpn.kigaping.com</code> کافی است.
+                    • <strong data-i18n="ocserv_main_address_suggested" style="color: #10b981;">آدرس اصلی (پیشنهادی ⚡):</strong> <code>test.kigaping.com:10443</code> (دارای گواهی معتبر جهانی Let's Encrypt و کاملاً باز در تمامی اپراتورهای ایران).<br/>
+                    • <strong data-i18n="ocserv_anti_filtering_mode" style="color: #10b981;">حالت امن TLS 1.3:</strong> ترافیک AnyConnect با رمزنگاری مدرن و گواهی رسمی منتقل شده و بدون هیچ هشدار امنیتی روی تمامی دیوایس‌ها متصل می‌شود.<br/>
+                    • <strong data-i18n="ocserv_note" style="color: #10b981;">نکته:</strong> در Cisco AnyConnect حتماً پورت سرویس (مثلاً <code>:10443</code>) را همراه با آدرس دامنه وارد نمایید.
                 </div>
 </div>
 <!-- Client Software Cards -->

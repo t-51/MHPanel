@@ -8496,7 +8496,7 @@
         const webTarget = parseTarget(document.getElementById("mpx-proto-web-target")?.value, 8444);
         const ocservTarget = parseTarget(document.getElementById("mpx-proto-ocserv-target")?.value, 10443);
         const sshTarget = parseTarget(document.getElementById("mpx-proto-ssh-target")?.value, 4444);
-        const openvpnTarget = parseTarget(document.getElementById("mpx-proto-openvpn-target")?.value, 1195);
+        const openvpnTarget = parseTarget(document.getElementById("mpx-proto-openvpn-target")?.value, 1194);
         const sstpTarget = parseTarget(document.getElementById("mpx-proto-sstp-target")?.value, 4443);
         const singboxTarget = parseTarget(document.getElementById("mpx-proto-singbox-target")?.value, 20443);
 
@@ -12139,13 +12139,15 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function updateOcservUrlPreview() {
-        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'vpn.kigaping.com';
+        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'test.kigaping.com';
+        const port = document.getElementById('ocserv-tcp-port')?.value.trim() || '10443';
         const camoCheck = document.getElementById('ocserv-camo-enable')?.checked;
         const secret = document.getElementById('ocserv-camo-secret')?.value.trim() || 'secure_npu_bypass';
         
-        let url = domain;
+        let endpoint = (port && port !== '443') ? `${domain}:${port}` : domain;
+        let url = endpoint;
         if (camoCheck && secret) {
-            url = `https://${domain}/?${secret}`;
+            url = `https://${endpoint}/?${secret}`;
         }
         const previewEl = document.getElementById('ocserv-connect-url-preview');
         if (previewEl) previewEl.innerText = url;

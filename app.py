@@ -2090,21 +2090,51 @@ def client_subscription_ovpn(sub_token):
                     break
             except Exception:
                 pass
+
+    tc_content = ""
+    tc_path = get_openvpn_tc_path()
+    if tc_path and os.path.exists(tc_path):
+        try:
+            with open(tc_path, "r") as f:
+                tc_content = f.read().strip()
+        except Exception:
+            pass
+    if not tc_content:
+        for tcp_candidate in ["/etc/openvpn/tls-crypt.key", "/etc/openvpn/tc.key"]:
+            if os.path.exists(tcp_candidate):
+                try:
+                    with open(tcp_candidate, "r") as f:
+                        tc_content = f.read().strip()
+                        break
+                except Exception:
+                    pass
+
+    auth_block = "auth-user-pass"
+    tc_block = f"<tls-crypt>\n{tc_content}\n</tls-crypt>" if tc_content else ""
+
     ovpn_text = f"""client
 dev tun
-proto udp
-remote {server_host} {port}
+remote {server_host} 1194 udp
+remote {server_host} 1194 tcp
+remote {server_host} 443 tcp
 resolv-retry infinite
 nobind
 persist-key
 persist-tun
 remote-cert-tls server
 cipher AES-256-GCM
+data-ciphers AES-256-GCM:AES-128-GCM:CHACHA20-POLY1305
 auth SHA256
-auth-user-pass
+redirect-gateway def1 bypass-dhcp
+dhcp-option DNS 1.1.1.1
+dhcp-option DNS 8.8.8.8
+mssfix 1360
+verb 3
+{auth_block}
 <ca>
 {ca_content}
 </ca>
+{tc_block}
 """
     return Response(
         ovpn_text,
@@ -14147,7 +14177,15 @@ def save_ocserv_full_config(data):
     ca_cert_line = ""
     if cert_type == "letsencrypt":
         added = set()
-        for d in [default_domain, get_server_domain(), "vpn.kigaping.com", "mhpanel.kigaping.com"]:
+        candidates = [default_domain, get_server_domain(), "test.kigaping.com", "vpn.kigaping.com", "mhpanel.kigaping.com"]
+        if os.path.exists("/etc/letsencrypt/live"):
+            try:
+                for entry in os.listdir("/etc/letsencrypt/live"):
+                    if entry not in candidates:
+                        candidates.append(entry)
+            except Exception:
+                pass
+        for d in candidates:
             if not d: continue
             c_cert = f"/etc/letsencrypt/live/{d}/fullchain.pem"
             c_key = f"/etc/letsencrypt/live/{d}/privkey.pem"
@@ -17703,7 +17741,7 @@ def get_default_multiplexer_config():
                 "enabled": True,
                 "sni": ovpn_sni,
                 "backend_ip": "127.0.0.1",
-                "backend_port": 1195,
+                "backend_port": 1194,
                 "is_default": False,
                 "protocol_type": "openvpn",
                 "desc": "اشتراک پورت ۴۴۳ برای کلاینت‌های OpenVPN TCP"
@@ -17915,7 +17953,7 @@ def generate_haproxy_cfg(config):
         p_sni_str = proto.get("sni", "").strip()
         p_host = proto.get("backend_ip", "127.0.0.1").strip()
         p_port = proto.get("backend_port")
-        if not p_port or (p_id == "ssh" and p_port == 22) or (p_id == "openvpn" and p_port == 1194):
+        if not p_port or (p_id == "ssh" and p_port == 22):
             if p_id == "web":
                 web_srv = config.get("web_server_type", "internal")
                 if web_srv == "internal":
@@ -17928,7 +17966,7 @@ def generate_haproxy_cfg(config):
                     p_port = 8444
             elif p_id == "ocserv": p_port = 10443
             elif p_id == "ssh": p_port = 22
-            elif p_id == "openvpn": p_port = 1195
+            elif p_id == "openvpn": p_port = 1194
             elif p_id == "sstp": p_port = 4443
             elif p_id == "singbox": p_port = 20443
             else: p_port = 8444

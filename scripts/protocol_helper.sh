@@ -646,7 +646,7 @@ session required pam_unix.so
 EOF
 
     allow_port "${port}" "${proto}"
-    allow_port "1195" "tcp"
+    allow_port "1194" "tcp"
     systemctl enable openvpn@server
     systemctl restart openvpn@server
     systemctl enable openvpn@server-tcp >/dev/null 2>&1 || true
@@ -661,7 +661,7 @@ uninstall_openvpn() {
     port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "1194")
     proto=$(grep -Ei '^proto ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' || echo "udp")
     deny_port "${port}" "${proto}"
-    deny_port "1195" "tcp"
+    deny_port "1194" "tcp"
     rm -f /etc/openvpn/server.conf /etc/openvpn/server-tcp.conf /etc/openvpn/tls-crypt.key /etc/pam.d/openvpn
 }
 
@@ -720,6 +720,16 @@ exit 0
 EOF_CS
     chmod 755 /etc/ocserv/connect-script.sh
 
+    local oc_cert="${SERVER_CERT}"
+    local oc_key="${SERVER_KEY}"
+    for le_dir in /etc/letsencrypt/live/*; do
+        if [ -f "$le_dir/fullchain.pem" ] && [ -f "$le_dir/privkey.pem" ]; then
+            oc_cert="$le_dir/fullchain.pem"
+            oc_key="$le_dir/privkey.pem"
+            break
+        fi
+    done
+
     # Write Default Configuration
     cat > /etc/ocserv/ocserv.conf <<EOF
 run-as-user = ocserv
@@ -727,8 +737,8 @@ run-as-group = ocserv
 socket-file = /run/ocserv.socket
 tcp-port = ${port}
 udp-port = ${port}
-server-cert = ${SERVER_CERT}
-server-key = ${SERVER_KEY}
+server-cert = ${oc_cert}
+server-key = ${oc_key}
 ca-cert = ${CA_CERT}
 max-clients = 128
 max-same-clients = 4
