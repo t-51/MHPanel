@@ -26064,6 +26064,18 @@ def get_gas_config():
             "status": "idle"
         }
 
+    # Normalize account types
+    if "accounts" in cfg and isinstance(cfg["accounts"], dict):
+        for acc in cfg["accounts"].values():
+            if not acc.get("type"):
+                if acc.get("account_type"):
+                    acc["type"] = acc["account_type"]
+                elif acc.get("cf_api_token") or acc.get("cf_worker_url"):
+                    acc["type"] = "google_and_cloudflare" if (acc.get("email") or acc.get("access_token")) else "cloudflare_only"
+                else:
+                    acc["type"] = "google_only"
+
+
     return cfg
 
 def save_gas_config(cfg, restart_service=True):

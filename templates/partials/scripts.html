@@ -23363,44 +23363,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    // =====================================================================
-    // GOOGLE APPS SCRIPT (GAS) FULL TUNNEL MODULE SCRIPTS
-    // =====================================================================
-    let gasCachedTemplates = null;
-    let gasCachedConfig = null;
 
-    function scrollGasSubtabs(amount) {
-        const nav = document.getElementById("gas-main-subtabs-nav");
-        if (!nav) return;
-        nav.scrollBy({ left: amount, behavior: "smooth" });
-    }
-
-    function setupHorizontalNavScroll() {
-        const ids = ["gas-main-subtabs-nav"];
-        ids.forEach(id => {
-            const el = document.getElementById(id);
-            if (el && !el.dataset.wheelBound) {
-                el.dataset.wheelBound = "1";
-                el.addEventListener("wheel", (e) => {
-                    if (e.deltaY !== 0) {
-                        e.preventDefault();
-                        el.scrollLeft += (e.deltaY * 1.2);
-                    }
-                }, { passive: false });
-            }
-        });
-        document.querySelectorAll(".gas-client-nav").forEach(el => {
-            if (el && !el.dataset.wheelBound) {
-                el.dataset.wheelBound = "1";
-                el.addEventListener("wheel", (e) => {
-                    if (e.deltaY !== 0) {
-                        e.preventDefault();
-                        el.scrollLeft += (e.deltaY * 1.2);
-                    }
-                }, { passive: false });
-            }
-        });
-    }
 
     // =========================================================================
     // UNIFIED GOOGLE APPS SCRIPT & CLOUDFLARE WORKER CLIENT ENGINE
@@ -23435,6 +23398,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (window.lucide) lucide.createIcons();
         } else if (subtab === 'client-server') {
             fetchGasClientConfigs();
+        }
+        if (window.lucide) {
+            setTimeout(() => lucide.createIcons(), 50);
         }
     }
 
@@ -23566,13 +23532,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const auto_deploy = !!document.getElementById("gas-wz-auto-deploy")?.checked;
         const set_active = !!document.getElementById("gas-wz-set-active")?.checked;
 
-        if (mode in ['google_only', 'google_and_cloudflare'] && !email) {
+        if (['google_only', 'google_and_cloudflare'].includes(mode) && !email) {
             showToast("لطفاً آدرس ایمیل جیمیل را وارد نمایید.", "warning");
             document.getElementById("gas-wz-email")?.focus();
             return;
         }
 
-        if (mode in ['cloudflare_only', 'google_and_cloudflare'] && (!cf_api_token || !cf_account_id)) {
+        if (['cloudflare_only', 'google_and_cloudflare'].includes(mode) && (!cf_api_token || !cf_account_id)) {
             showToast("لطفاً API Token و Account ID کلودفلر را تکمیل فرمایید.", "warning");
             return;
         }
@@ -23950,9 +23916,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 : `<span class="gas-token-badge">سیستمی (Builtin)</span>`;
 
             const rawCode = tpl.code || tpl.google_code || tpl.cf_code || "";
-            const previewLines = rawCode.split('
-').slice(0, 6).join('
-');
+            const previewLines = rawCode.split("\n").slice(0, 6).join("\n");
 
             const deleteBtn = tpl.is_custom
                 ? `<button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasTemplate('${tpl.id}', '${escapeHtml(tpl.name)}');" title="حذف قالب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
@@ -24146,8 +24110,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
         if (editor) editor.value = rawCode;
         if (linesEl) {
-            const lineCount = rawCode.split('
-').length;
+            const lineCount = rawCode.split("\n").length;
             const kbSize = (rawCode.length / 1024).toFixed(1);
             linesEl.textContent = `${lineCount} خط کد (~${kbSize} KB)`;
         }
