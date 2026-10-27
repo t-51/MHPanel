@@ -9843,8 +9843,19 @@
         fetchTestUser();
         
         if (!urlParams.get("no_poll")) {
-            setInterval(fetchStats, 2000);
-            setInterval(fetchProtocols, 6000); // Poll protocols & connections count every 6 seconds
+            setInterval(() => {
+                if (!document.hidden) fetchStats();
+            }, 5000);
+            setInterval(() => {
+                if (!document.hidden) fetchProtocols();
+            }, 12000);
+
+            document.addEventListener("visibilitychange", () => {
+                if (!document.hidden) {
+                    fetchStats();
+                    fetchProtocols();
+                }
+            });
         }
 
         // Setup API Box details
@@ -11728,13 +11739,13 @@
                             </div>
                         </div>
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-                            <a href="/api/ssh/users/${encodeURIComponent(username)}/ssh.json" download="MHPanel-${username}-ssh.json" class="btn btn-primary btn-sm" title="دانلود مستقیم فایل کانفیگ SSH (.json)" style="padding:6px 12px; font-weight:700; display:inline-flex; align-items:center; gap:5px; text-decoration:none;">
-                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ SSH
-                            </a>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSshConfigsModal('${username}')" title="مشاهده اطلاعات اتصال و کانفیگ SSH" style="padding:6px 10px; color:#6366f1; display:inline-flex; align-items:center; gap:4px;">
-                                <i data-lucide="eye" style="width:13px; height:13px;"></i> جزئیات SSH
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openSshConfigsModal('${username}')" title="دانلود فایل‌های کانفیگ و مشاهده اطلاعات اتصال کاربر" style="padding:6px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ‌ها
                             </button>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshConnection('${username}')" title="کپی اطلاعات اتصال این کاربر" style="padding:6px 10px;">
+                            <a href="/api/ssh/users/${encodeURIComponent(username)}/bundle.zip" download="MHPanel-${username}-ssh-configs.zip" class="btn btn-secondary btn-sm" title="دانلود سریع فایل زیپ کلیه کانفیگ‌های SSH" style="padding:6px 10px; display:inline-flex; align-items:center; gap:4px; text-decoration:none;">
+                                <i data-lucide="package" style="width:13px; height:13px; color:#4f46e5;"></i> ZIP
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshConnection('${username}')" title="کپی مشخصات اتصال این کاربر" style="padding:6px 10px;">
                                 <i data-lucide="copy" style="width:13px; height:13px;"></i>
                             </button>
                             <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSshClient('${username}')" title="${info.active ? 'غیرفعال‌سازی اکانت' : 'فعال‌سازی اکانت'}" style="padding:6px 10px;">
@@ -12002,7 +12013,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         copySshText(uri, `لینک هوشمند NapsternetV / NetMod کاربر ${username}`);
     }
 
-    function openSshConfigsModal(username) {
+    async function openSshConfigsModal(username) {
         const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
         const host = getSshHost();
         const pwd = user.password || "";
@@ -12014,9 +12025,40 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const hostEl = document.getElementById("ssh-modal-host");
         if (hostEl) hostEl.innerText = host;
 
+        const uSafe = encodeURIComponent(username);
+
+        // All-in-one ZIP download
+        const zipDl = document.getElementById("ssh-modal-zip-dl");
+        if (zipDl) {
+            zipDl.href = `/api/ssh/users/${uSafe}/bundle.zip`;
+            zipDl.download = `MHPanel-${username}-ssh-configs.zip`;
+        }
+
+        // NetMod JSON download
+        const netmodDl = document.getElementById("ssh-modal-netmod-dl");
+        if (netmodDl) {
+            netmodDl.href = `/api/ssh/users/${uSafe}/netmod.json`;
+            netmodDl.download = `MHPanel-${username}-NetMod.json`;
+        }
+
+        // NapsternetV JSON download
+        const npvDl = document.getElementById("ssh-modal-npv-dl");
+        if (npvDl) {
+            npvDl.href = `/api/ssh/users/${uSafe}/npv.json`;
+            npvDl.download = `MHPanel-${username}-NapsternetV.json`;
+        }
+
+        // Text info download
+        const txtDl = document.getElementById("ssh-modal-txt-dl");
+        if (txtDl) {
+            txtDl.href = `/api/ssh/users/${uSafe}/info.txt`;
+            txtDl.download = `MHPanel-${username}-ssh-info.txt`;
+        }
+
+        // Legacy / fallback button if exists
         const sshDl = document.getElementById("ssh-modal-file-dl");
         if (sshDl) {
-            sshDl.href = `/api/ssh/users/${encodeURIComponent(username)}/ssh.json`;
+            sshDl.href = `/api/ssh/users/${uSafe}/ssh.json`;
             sshDl.download = `MHPanel-${username}-ssh.json`;
         }
 
@@ -12024,12 +12066,26 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const uriBox = document.getElementById("ssh-modal-uri-preview");
         if (uriBox) uriBox.innerText = uri;
 
-        const payloadBox = document.getElementById("ssh-modal-payload-preview");
-        if (payloadBox) {
-            payloadBox.innerText = `GET /ssh HTTP/1.1[c]Host: ${host}[c]Upgrade: websocket[c]Connection: keep-alive[c][c]`;
-        }
-
         window._currentSshModalUri = uri;
+
+        // Fetch full text info for preview & instant 1-click copy
+        const textPreviewBox = document.getElementById("ssh-modal-full-text-preview");
+        window._currentSshModalFullText = "";
+        if (textPreviewBox) {
+            textPreviewBox.innerText = "در حال دریافت اطلاعات کامل اتصال...";
+            try {
+                const txtRes = await fetch(`/api/ssh/users/${uSafe}/info.txt`);
+                if (txtRes.ok) {
+                    const txtContent = await txtRes.text();
+                    textPreviewBox.innerText = txtContent;
+                    window._currentSshModalFullText = txtContent;
+                } else {
+                    textPreviewBox.innerText = `خطا در دریافت مشخصات متنی اتصال.`;
+                }
+            } catch (err) {
+                textPreviewBox.innerText = `خطای شبکه در دریافت مشخصات.`;
+            }
+        }
 
         const modal = document.getElementById("modal-ssh-configs");
         if (modal) modal.classList.add("active");
@@ -12044,6 +12100,14 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function copySshModalUri() {
         if (window._currentSshModalUri) {
             copySshText(window._currentSshModalUri, "لینک هوشمند NapsternetV / NetMod");
+        }
+    }
+
+    function copySshModalFullInfo() {
+        if (window._currentSshModalFullText) {
+            copySshText(window._currentSshModalFullText, "متن کامل مشخصات و دستورات اتصال");
+        } else {
+            showToast("متن اتصال آماده نیست یا خالی است.", "warning");
         }
     }
 
@@ -24296,7 +24360,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     alertContainer.style.display = 'none';
                     alertContainer.innerHTML = '';
                 }
-                showToast(`🎉 استقرار در گوگل با موفقیت انجام شد! شناسه توکن: ${data.deployment_id.substring(0, 15)}...`, "success");
+                let successMsg = `🎉 استقرار در گوگل با موفقیت انجام شد! شناسه توکن: ${data.deployment_id.substring(0, 15)}...`;
+                if (data.cloudflare_auto_deployed) {
+                    successMsg += ` (ورکر کلودفلر نیز به صورت خودکار به‌روزرسانی شد)`;
+                }
+                showToast(successMsg, "success");
                 fetchGoogleScriptConfig();
                 fetchGasDeployments();
                 switchGasSubTab('deploy');
@@ -24991,7 +25059,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     }
                 });
                 if (logBox) logBox.innerHTML = logHtml;
-                showToast(data.message, data.fail_count === 0 ? "success" : "warning");
+                let toastMsg = data.message;
+                if (data.cloudflare_auto_deployed) {
+                    toastMsg += " (همگام‌سازی ورکر کلودفلر با موفقیت انجام شد)";
+                }
+                showToast(toastMsg, data.fail_count === 0 ? "success" : "warning");
                 await fetchGoogleScriptConfig();
             } else {
                 if (logBox) logBox.innerHTML = `<div style="color:#ef4444;">خطا: ${data.error || 'ناشناخته'}</div>`;

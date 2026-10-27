@@ -312,7 +312,7 @@ async def tunnel_stream(reader, writer, session, is_input):
     buffer_size = 8192
     try:
         while session is None or not session.stop_event.is_set():
-            data = await reader.read(buffer_size)
+            data = await asyncio.wait_for(reader.read(buffer_size), timeout=180.0)
             if not data:
                 break
             writer.write(data)
@@ -387,13 +387,18 @@ async def coa_listener(rad_config):
 
 # --- HTTP Proxy Server ---
 async def handle_http_proxy(reader, writer, rad_config, use_radius):
-    client_ip, _ = writer.get_extra_info('peername')
+    try:
+        peer = writer.get_extra_info('peername')
+        client_ip = peer[0] if peer else "127.0.0.1"
+    except Exception:
+        client_ip = "127.0.0.1"
+    session = None
     
     try:
-        # Read HTTP request header
+        # Read HTTP request header with 15s timeout
         header_data = b""
         while b"\r\n\r\n" not in header_data:
-            chunk = await reader.read(4096)
+            chunk = await asyncio.wait_for(reader.read(4096), timeout=15.0)
             if not chunk:
                 break
             header_data += chunk
@@ -401,7 +406,6 @@ async def handle_http_proxy(reader, writer, rad_config, use_radius):
                 break
                 
         if not header_data:
-            writer.close()
             return
             
         parts = header_data.split(b"\r\n\r\n", 1)
@@ -520,22 +524,30 @@ async def handle_http_proxy(reader, writer, rad_config, use_radius):
     finally:
         if session:
             session.remove_connection(asyncio.current_task())
-        writer.close()
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            pass
 
 
 # --- SOCKS5 Proxy Server ---
 async def handle_socks_proxy(reader, writer, rad_config, use_radius):
-    client_ip, _ = writer.get_extra_info('peername')
+    try:
+        peer = writer.get_extra_info('peername')
+        client_ip = peer[0] if peer else "127.0.0.1"
+    except Exception:
+        client_ip = "127.0.0.1"
     session = None
     
     try:
-        # SOCKS5 Handshake
-        version, nmethods = await reader.readexactly(2)
+        # SOCKS5 Handshake with 15s timeout
+        init_bytes = await asyncio.wait_for(reader.readexactly(2), timeout=15.0)
+        version, nmethods = init_bytes[0], init_bytes[1]
         if version != 5:
-            writer.close()
             return
             
-        methods = await reader.readexactly(nmethods)
+        methods = await asyncio.wait_for(reader.readexactly(nmethods), timeout=10.0)
         if use_radius:
             if 2 not in methods: # Username/Password Auth Method
                 # Reject: No acceptable methods
@@ -650,7 +662,11 @@ async def handle_socks_proxy(reader, writer, rad_config, use_radius):
     finally:
         if session:
             session.remove_connection(asyncio.current_task())
-        writer.close()
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            pass
 
 
 # --- Shadowsocks Protocol Implementation ---
@@ -885,10 +901,31 @@ async def handle_ss_proxy(reader, writer, rad_config, use_radius):
     finally:
         if session:
             session.remove_connection(asyncio.current_task())
-        writer.close()
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            pass
 
 
 # --- Main Service Runner ---
+_MAX_CONCURRENT_CLIENTS = 120
+_client_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_CLIENTS)
+
+async def connection_wrapper(r, w, target_handler):
+    if _client_semaphore.locked():
+        try:
+            w.close()
+            await w.wait_closed()
+        except Exception:
+            pass
+        return
+    async with _client_semaphore:
+        try:
+            await target_handler(r, w)
+        except Exception as e:
+            logger.debug(f"Client connection closed with error: {e}")
+
 async def main():
     parser = argparse.ArgumentParser(description="Antigravity VPN Dynamic RADIUS Proxy Server")
     parser.add_argument("--listen", required=True, help="Listen URI, e.g. http://0.0.0.0:8080")
@@ -933,8 +970,9 @@ async def main():
         handler = lambda r, w: handle_ss_proxy(r, w, rad_config, use_radius)
         logger.info(f"Starting Shadowsocks Proxy Server on port {port} (RADIUS: {use_radius})...")
         
-    # Start Proxy Listener
-    server = await asyncio.start_server(handler, "0.0.0.0", port)
+    # Start Proxy Listener with concurrency wrapper and backlog
+    wrapped_handler = lambda r, w: connection_wrapper(r, w, handler)
+    server = await asyncio.start_server(wrapped_handler, "0.0.0.0", port, backlog=256)
     
     # Start CoA Disconnect Listener (Only run if RADIUS is enabled)
     if use_radius:
