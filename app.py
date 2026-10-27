@@ -26967,18 +26967,16 @@ def api_google_script_config():
     save_gas_config(cfg, restart_service=True)
     return jsonify({"success": True, "message": "تنظیمات تونل گوگل اسکریپت با موفقیت ذخیره و اعمال شد.", "config": cfg})
 
-@app.route("/api/google_script/templates", methods=["GET"])
-def api_google_script_templates():
-    if not check_login():
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    cfg = get_gas_config()
+def get_unified_code_templates(cfg=None):
+    if cfg is None:
+        cfg = get_gas_config()
     server_ip = get_server_public_ip()
     port = cfg.get("port", 8448)
     secret = cfg.get("secret", "")
     singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
     
-    templates = get_gas_templates(server_ip, port, secret, singbox_target)
+    # 1. Base GAS templates
+    gas_raw = get_gas_templates(server_ip, port, secret, singbox_target)
     
     manifest_content = json.dumps({
         "timeZone": "Asia/Tehran",
@@ -26991,31 +26989,135 @@ def api_google_script_templates():
         }
     }, indent=2)
     
-    templates["manifest"] = {
+    gas_raw["manifest"] = {
         "name": "فایل مانیفست گوگل (appsscript.json)",
         "file_name": "appsscript.json",
-        "description": "فایل پیکربندی رسمی مانیفست پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE_ANONYMOUS).",
+        "description": "فایل پیکربندی مانیفست رسمی پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE_ANONYMOUS).",
         "google_code": manifest_content,
         "server_code": ""
     }
-    
-    # Add file_name to other templates
-    if "full_tunnel" in templates:
-        templates["full_tunnel"]["file_name"] = "CodeFull.gs"
-    if "singbox_detour" in templates:
-        templates["singbox_detour"]["file_name"] = "CodeSingbox.gs"
-    if "master_http" in templates:
-        templates["master_http"]["file_name"] = "CodeRelay.gs"
-    if "custom" in templates:
-        templates["custom"]["file_name"] = "CustomCode.gs"
+    if "full_tunnel" in gas_raw:
+        gas_raw["full_tunnel"]["file_name"] = "CodeFull.gs"
+    if "singbox_detour" in gas_raw:
+        gas_raw["singbox_detour"]["file_name"] = "CodeSingbox.gs"
+    if "master_http" in gas_raw:
+        gas_raw["master_http"]["file_name"] = "CodeRelay.gs"
+    if "custom" in gas_raw:
+        gas_raw["custom"]["file_name"] = "CustomCode.gs"
 
-    return jsonify({
-        "success": True,
-        "templates": templates,
+    gas_list = []
+    for k in ["full_tunnel", "singbox_detour", "master_http", "manifest"]:
+        if k in gas_raw:
+            item = dict(gas_raw[k])
+            item["id"] = k
+            item["key"] = k
+            item["type"] = "gas"
+            item["is_custom"] = False
+            item["code"] = item.get("google_code", "")
+            gas_list.append(item)
+
+    # 2. Cloudflare Builtin Templates
+    cfg_relay = dict(cfg)
+    cfg_relay["cloudflare"] = dict(cfg.get("cloudflare", {}))
+    cfg_relay["cloudflare"]["routing_mode"] = "gas_relay"
+    cf_code_relay = generate_cloudflare_worker_code(cfg_relay)
+
+    cfg_direct = dict(cfg)
+    cfg_direct["cloudflare"] = dict(cfg.get("cloudflare", {}))
+    cfg_direct["cloudflare"]["routing_mode"] = "direct_vps"
+    cf_code_direct = generate_cloudflare_worker_code(cfg_direct)
+
+    cfg_hybrid = dict(cfg)
+    cfg_hybrid["cloudflare"] = dict(cfg.get("cloudflare", {}))
+    cfg_hybrid["cloudflare"]["routing_mode"] = "hybrid"
+    cf_code_hybrid = generate_cloudflare_worker_code(cfg_hybrid)
+
+    cf_list = [
+        {
+            "id": "cf_gas_relay",
+            "key": "cf_gas_relay",
+            "name": "شتاب‌دهنده چند حسابه کلودفلر (Multi-Account GAS Accelerator)",
+            "type": "cloudflare",
+            "file_name": "WorkerRelay.js",
+            "description": "ورکر فوق‌سریع لبه کلودفلر با لود بالانسر چرخشی (Round-Robin) بین تمام حساب‌های فعال گوگل اسکریپت و عبور خودکار از محدودیت نرخ (429 Bypass).",
+            "code": cf_code_relay,
+            "cf_code": cf_code_relay,
+            "is_custom": False
+        },
+        {
+            "id": "cf_direct_vps",
+            "key": "cf_direct_vps",
+            "name": "تونل لبه کلودفلر به سرور (Cloudflare Direct VPS Tunnel)",
+            "type": "cloudflare",
+            "file_name": "DirectTunnel.js",
+            "description": "پروکسی CDN لبه کلودفلر مستقیم به پورت نود تانل سرور شما با دور زدن کامل گوگل برای مواقع قطعی یا مسدودی سرویس‌های گوگل.",
+            "code": cf_code_direct,
+            "cf_code": cf_code_direct,
+            "is_custom": False
+        },
+        {
+            "id": "cf_hybrid",
+            "key": "cf_hybrid",
+            "name": "ورکر ترکیبی هوشمند (Hybrid Failover Worker)",
+            "type": "cloudflare",
+            "file_name": "HybridWorker.js",
+            "description": "مسیریابی هوشمند: اولویت اتصال با وب‌اپ‌های گوگل اسکریپت؛ در صورت ریت‌لیمیت یا پاسخ ۵xx، پکت‌ها بدون قطعی مستقیماً به نود سرور هدایت می‌شوند.",
+            "code": cf_code_hybrid,
+            "cf_code": cf_code_hybrid,
+            "is_custom": False
+        }
+    ]
+
+    # 3. Custom Templates from Disk
+    customs = load_gas_custom_templates()
+    custom_list = []
+    for k, v in customs.items():
+        tpl_type = v.get("type", "gas")
+        c_code = v.get("code") or (v.get("cf_code") if tpl_type == "cloudflare" else v.get("google_code", ""))
+        item = {
+            "id": k,
+            "key": k,
+            "name": v.get("name", k),
+            "type": tpl_type,
+            "file_name": v.get("file_name", f"{k}.{'js' if tpl_type == 'cloudflare' else 'gs'}"),
+            "description": v.get("description", "قالب سفارشی کاربر"),
+            "code": c_code,
+            "google_code": c_code if tpl_type == "gas" else "",
+            "cf_code": c_code if tpl_type == "cloudflare" else "",
+            "is_custom": True,
+            "created_at": v.get("created_at", "")
+        }
+        custom_list.append(item)
+        if tpl_type == "cloudflare":
+            cf_list.append(item)
+        else:
+            gas_list.append(item)
+
+    all_map = {}
+    for item in gas_list + cf_list:
+        all_map[item["id"]] = item
+
+    return {
+        "gas_templates": gas_list,
+        "cf_templates": cf_list,
+        "custom_templates": custom_list,
+        "templates": all_map,
         "server_ip": server_ip,
         "port": port,
         "secret": secret,
         "singbox_target": singbox_target
+    }
+
+@app.route("/api/google_script/templates", methods=["GET"])
+def api_google_script_templates():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    data = get_unified_code_templates(cfg)
+    return jsonify({
+        "success": True,
+        **data
     })
 
 @app.route("/api/google_script/accounts", methods=["GET"])
@@ -27023,50 +27125,186 @@ def api_google_script_accounts():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     cfg = get_gas_config()
+    acc_list = []
+    for a_id, a in cfg.get("accounts", {}).items():
+        item = dict(a)
+        if "type" not in item:
+            if (item.get("cf_api_token") or item.get("cf_account_id")) and item.get("email"):
+                item["type"] = "google_and_cloudflare"
+            elif item.get("cf_api_token") or item.get("cf_account_id"):
+                item["type"] = "cloudflare_only"
+            else:
+                item["type"] = "google_only"
+        acc_list.append(item)
     return jsonify({
         "success": True,
-        "accounts": list(cfg.get("accounts", {}).values()),
+        "accounts": acc_list,
         "active_account_id": cfg.get("active_account_id", "")
+    })
+
+@app.route("/api/google_script/accounts/wizard", methods=["POST"])
+def api_google_script_account_wizard():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json or {}
+    mode = data.get("mode", "google_only") # "google_only" | "google_and_cloudflare" | "cloudflare_only"
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    google_token = data.get("access_token", "").strip()
+    google_webapp_url = data.get("webapp_url", "").strip()
+    google_project_title = data.get("project_title", "MHPanel-GAS-FullTunnel").strip() or "MHPanel-GAS-FullTunnel"
+    
+    cf_api_token = data.get("cf_api_token", "").strip()
+    cf_account_id = data.get("cf_account_id", "").strip()
+    cf_worker_name = data.get("cf_worker_name", "mhpanel-gas-relay").strip() or "mhpanel-gas-relay"
+    cf_routing_mode = data.get("cf_routing_mode", "gas_relay").strip() or "gas_relay"
+    
+    auto_deploy = bool(data.get("auto_deploy", True))
+    set_active = bool(data.get("set_active", True))
+    
+    if mode in ["google_only", "google_and_cloudflare"] and not email:
+        return jsonify({"success": False, "error": "لطفاً آدرس جیمیل (Gmail) را وارد نمایید."}), 400
+        
+    if mode in ["cloudflare_only", "google_and_cloudflare"]:
+        if not cf_api_token or not cf_account_id:
+            return jsonify({"success": False, "error": "لطفاً API Token و Account ID کلودفلر را تکمیل فرمایید."}), 400
+            
+    if not name:
+        if email:
+            name = email.split("@")[0]
+        else:
+            name = f"کلودفلر ورکر {cf_worker_name}"
+
+    cfg = get_gas_config()
+    acc_id = f"acc_{int(time.time())}_{uuid.uuid4().hex[:4]}"
+    
+    new_acc = {
+        "id": acc_id,
+        "type": mode,
+        "name": name,
+        "email": email,
+        "access_token": google_token,
+        "project_title": google_project_title,
+        "script_id": data.get("script_id", "").strip(),
+        "deployment_id": data.get("deployment_id", "").strip(),
+        "webapp_url": google_webapp_url,
+        "last_deploy_time": "",
+        "cf_api_token": cf_api_token,
+        "cf_account_id": cf_account_id,
+        "cf_worker_name": cf_worker_name,
+        "cf_worker_url": "",
+        "cf_last_deploy_time": "",
+        "cf_routing_mode": cf_routing_mode,
+        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "status": "ready"
+    }
+
+    cfg["accounts"][acc_id] = new_acc
+    if set_active or len(cfg["accounts"]) == 1:
+        cfg["active_account_id"] = acc_id
+        if google_token:
+            cfg["google_access_token"] = google_token
+        if google_webapp_url:
+            cfg["google_webapp_url"] = google_webapp_url
+        if cf_api_token and cf_account_id:
+            cfg["cloudflare"]["api_token"] = cf_api_token
+            cfg["cloudflare"]["account_id"] = cf_account_id
+            cfg["cloudflare"]["worker_name"] = cf_worker_name
+            cfg["cloudflare"]["routing_mode"] = cf_routing_mode
+
+    deploy_errors = []
+    deployed_gas = False
+    deployed_cf = False
+
+    if auto_deploy:
+        server_ip = get_server_public_ip()
+        port = cfg.get("port", 8448)
+        secret = cfg.get("secret", "")
+        singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+        
+        # 1. Deploy GAS if applicable
+        if mode in ["google_only", "google_and_cloudflare"]:
+            if google_token:
+                tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
+                code_gs = tpls["full_tunnel"]["google_code"]
+                ok_gas, res_gas = deploy_gas_to_google(google_token, google_project_title, code_gs, None)
+                if ok_gas:
+                    new_acc["script_id"] = res_gas.get("script_id", "")
+                    new_acc["deployment_id"] = res_gas.get("deployment_id", "")
+                    new_acc["webapp_url"] = res_gas.get("webapp_url", "")
+                    new_acc["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                    deployed_gas = True
+                else:
+                    err_msg = res_gas.get("message") if isinstance(res_gas, dict) else str(res_gas)
+                    deploy_errors.append(f"گوگل اسکریپت: {err_msg}")
+            elif not google_webapp_url:
+                deploy_errors.append("گوگل اسکریپت: به دلیل عدم ارائه توکن یا URL وب‌اپ، استقرار انجام نشد.")
+
+        # 2. Deploy Cloudflare Worker if applicable
+        if mode in ["cloudflare_only", "google_and_cloudflare"]:
+            if cf_api_token and cf_account_id:
+                cfg["cloudflare"]["api_token"] = cf_api_token
+                cfg["cloudflare"]["account_id"] = cf_account_id
+                cfg["cloudflare"]["worker_name"] = cf_worker_name
+                cfg["cloudflare"]["routing_mode"] = cf_routing_mode
+                
+                ok_cf, res_cf = deploy_cloudflare_worker_internal(
+                    cfg, 
+                    api_token=cf_api_token, 
+                    account_id=cf_account_id, 
+                    worker_name=cf_worker_name
+                )
+                if ok_cf:
+                    new_acc["cf_worker_url"] = res_cf.get("worker_url", "")
+                    new_acc["cf_last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                    deployed_cf = True
+                else:
+                    deploy_errors.append(f"کلودفلر ورکر: {res_cf.get('error', 'خطا در استقرار')}")
+
+    if (deployed_gas and deployed_cf) or (mode == "google_only" and deployed_gas) or (mode == "cloudflare_only" and deployed_cf):
+        new_acc["status"] = "deployed"
+    elif deploy_errors:
+        new_acc["status"] = "partial_error" if (deployed_gas or deployed_cf) else "error"
+    else:
+        new_acc["status"] = "ready"
+
+    if cfg.get("active_account_id") == acc_id:
+        cfg["google_access_token"] = new_acc.get("access_token", "")
+        cfg["google_script_id"] = new_acc.get("script_id", "")
+        cfg["google_deployment_id"] = new_acc.get("deployment_id", "")
+        cfg["google_webapp_url"] = new_acc.get("webapp_url", "")
+        cfg["last_deploy_time"] = new_acc.get("last_deploy_time", "")
+        if new_acc.get("cf_worker_url"):
+            cfg["cloudflare"]["worker_url"] = new_acc["cf_worker_url"]
+            cfg["cloudflare"]["last_deploy_time"] = new_acc["cf_last_deploy_time"]
+            cfg["cloudflare"]["enabled"] = True
+
+    save_gas_config(cfg, restart_service=False)
+
+    msg = f"حساب «{name}» با موفقیت افزوده شد."
+    if deployed_gas and deployed_cf:
+        msg += " استقرار خودکار روی گوگل و کلودفلر با موفقیت انجام پذیرفت!"
+    elif deployed_gas:
+        msg += " استقرار خودکار روی گوگل با موفقیت انجام پذیرفت!"
+    elif deployed_cf:
+        msg += " استقرار خودکار ورکر کلودفلر با موفقیت انجام پذیرفت!"
+    if deploy_errors:
+        msg += " هشدار در استقرار: " + " | ".join(deploy_errors)
+
+    return jsonify({
+        "success": True,
+        "message": msg,
+        "account": new_acc,
+        "active_account_id": cfg.get("active_account_id"),
+        "deployed_gas": deployed_gas,
+        "deployed_cf": deployed_cf,
+        "errors": deploy_errors
     })
 
 @app.route("/api/google_script/accounts/add", methods=["POST"])
 def api_google_script_account_add():
-    if not check_login():
-        return jsonify({"error": "Unauthorized"}), 401
-    data = request.json or {}
-    email = data.get("email", "").strip()
-    if not email:
-        return jsonify({"success": False, "error": "لطفاً آدرس جیمیل (Gmail) را وارد نمایید."}), 400
-    name = data.get("name", "").strip() or email.split("@")[0]
-    token = data.get("access_token", "").strip()
-    title = data.get("project_title", "").strip() or "MHPanel-GAS-FullTunnel"
-    
-    cfg = get_gas_config()
-    acc_id = f"acc_{int(time.time())}_{uuid.uuid4().hex[:4]}"
-    new_acc = {
-        "id": acc_id,
-        "email": email,
-        "name": name,
-        "access_token": token,
-        "project_title": title,
-        "script_id": data.get("script_id", "").strip(),
-        "deployment_id": data.get("deployment_id", "").strip(),
-        "webapp_url": data.get("webapp_url", "").strip(),
-        "last_deploy_time": "",
-        "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "status": "ready" if token else "no_token"
-    }
-    cfg["accounts"][acc_id] = new_acc
-    if len(cfg["accounts"]) == 1 or data.get("set_active", True):
-        cfg["active_account_id"] = acc_id
-        cfg["google_access_token"] = token
-        cfg["google_project_title"] = title
-        cfg["google_script_id"] = new_acc["script_id"]
-        cfg["google_deployment_id"] = new_acc["deployment_id"]
-        cfg["google_webapp_url"] = new_acc["webapp_url"]
-        cfg["last_deploy_time"] = ""
-    save_gas_config(cfg, restart_service=False)
-    return jsonify({"success": True, "message": f"حساب جیمیل «{name}» با موفقیت افزوده شد.", "account": new_acc, "active_account_id": cfg["active_account_id"]})
+    return api_google_script_account_wizard()
 
 @app.route("/api/google_script/accounts/<acc_id>/edit", methods=["POST"])
 def api_google_script_account_edit(acc_id):
@@ -27077,16 +27315,14 @@ def api_google_script_account_edit(acc_id):
         return jsonify({"success": False, "error": "حساب کاربری مورد نظر یافت نشد."}), 404
     data = request.json or {}
     acc = cfg["accounts"][acc_id]
-    if "email" in data and data["email"].strip():
+    if "type" in data:
+        acc["type"] = data["type"].strip()
+    if "email" in data:
         acc["email"] = data["email"].strip()
     if "name" in data and data["name"].strip():
         acc["name"] = data["name"].strip()
     if "access_token" in data:
         acc["access_token"] = data["access_token"].strip()
-        if acc["access_token"]:
-            acc["status"] = "ready"
-        elif not acc.get("webapp_url"):
-            acc["status"] = "no_token"
     if "project_title" in data and data["project_title"].strip():
         acc["project_title"] = data["project_title"].strip()
     if "script_id" in data:
@@ -27095,10 +27331,26 @@ def api_google_script_account_edit(acc_id):
         acc["deployment_id"] = data["deployment_id"].strip()
     if "webapp_url" in data:
         acc["webapp_url"] = data["webapp_url"].strip()
-        if acc["webapp_url"]:
-            acc["status"] = "active"
+    if "cf_api_token" in data:
+        acc["cf_api_token"] = data["cf_api_token"].strip()
+    if "cf_account_id" in data:
+        acc["cf_account_id"] = data["cf_account_id"].strip()
+    if "cf_worker_name" in data and data["cf_worker_name"].strip():
+        acc["cf_worker_name"] = data["cf_worker_name"].strip()
+    if "cf_worker_url" in data:
+        acc["cf_worker_url"] = data["cf_worker_url"].strip()
+    if "cf_routing_mode" in data:
+        acc["cf_routing_mode"] = data["cf_routing_mode"].strip()
 
-    # If this is the active account, also sync top-level fields
+    has_deploy = bool(acc.get("webapp_url") or acc.get("cf_worker_url"))
+    has_creds = bool(acc.get("access_token") or (acc.get("cf_api_token") and acc.get("cf_account_id")))
+    if has_deploy:
+        acc["status"] = "deployed"
+    elif has_creds:
+        acc["status"] = "ready"
+    else:
+        acc["status"] = "no_token"
+
     if cfg.get("active_account_id") == acc_id:
         cfg["google_access_token"] = acc.get("access_token", "")
         cfg["google_project_title"] = acc.get("project_title", "")
@@ -27106,9 +27358,95 @@ def api_google_script_account_edit(acc_id):
         cfg["google_deployment_id"] = acc.get("deployment_id", "")
         cfg["google_webapp_url"] = acc.get("webapp_url", "")
         cfg["last_deploy_time"] = acc.get("last_deploy_time", "")
+        if acc.get("cf_api_token"):
+            cfg["cloudflare"]["api_token"] = acc["cf_api_token"]
+        if acc.get("cf_account_id"):
+            cfg["cloudflare"]["account_id"] = acc["cf_account_id"]
+        if acc.get("cf_worker_name"):
+            cfg["cloudflare"]["worker_name"] = acc["cf_worker_name"]
+        if acc.get("cf_worker_url"):
+            cfg["cloudflare"]["worker_url"] = acc["cf_worker_url"]
 
     save_gas_config(cfg, restart_service=False)
-    return jsonify({"success": True, "message": "اطلاعات حساب جیمیل بروزرسانی شد.", "account": acc})
+    return jsonify({"success": True, "message": "اطلاعات حساب بروزرسانی شد.", "account": acc})
+
+@app.route("/api/google_script/accounts/<acc_id>/deploy", methods=["POST"])
+def api_google_script_account_deploy_single(acc_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    acc = cfg.get("accounts", {}).get(acc_id)
+    if not acc:
+        return jsonify({"success": False, "error": "حساب کاربری یافت نشد."}), 404
+        
+    mode = acc.get("type", "google_only")
+    server_ip = get_server_public_ip()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+    
+    results = {"gas": False, "cf": False, "errors": []}
+    
+    # 1. Deploy GAS if applicable
+    if mode in ["google_only", "google_and_cloudflare"]:
+        token = acc.get("access_token", "").strip()
+        if not token:
+            results["errors"].append("فاقد توکن دسترسی گوگل (OAuth Token)")
+        else:
+            title = acc.get("project_title") or "MHPanel-GAS-FullTunnel"
+            script_id = acc.get("script_id")
+            tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
+            code_gs = tpls["full_tunnel"]["google_code"]
+            ok_gas, res_gas = deploy_gas_to_google(token, title, code_gs, script_id)
+            if ok_gas:
+                acc["script_id"] = res_gas.get("script_id", "")
+                acc["deployment_id"] = res_gas.get("deployment_id", "")
+                acc["webapp_url"] = res_gas.get("webapp_url", "")
+                acc["last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                results["gas"] = True
+                results["webapp_url"] = acc["webapp_url"]
+            else:
+                err_msg = res_gas.get("message") if isinstance(res_gas, dict) else str(res_gas)
+                results["errors"].append(f"خطای گوگل: {err_msg}")
+
+    # 2. Deploy Cloudflare if applicable
+    if mode in ["cloudflare_only", "google_and_cloudflare"]:
+        cf_token = acc.get("cf_api_token") or cfg.get("cloudflare", {}).get("api_token", "")
+        cf_acc_id = acc.get("cf_account_id") or cfg.get("cloudflare", {}).get("account_id", "")
+        cf_worker = acc.get("cf_worker_name") or cfg.get("cloudflare", {}).get("worker_name", "mhpanel-gas-relay")
+        
+        if not cf_token or not cf_acc_id:
+            results["errors"].append("فاقد توکن دسترسی یا Account ID کلودفلر")
+        else:
+            ok_cf, res_cf = deploy_cloudflare_worker_internal(
+                cfg,
+                api_token=cf_token,
+                account_id=cf_acc_id,
+                worker_name=cf_worker
+            )
+            if ok_cf:
+                acc["cf_worker_url"] = res_cf.get("worker_url", "")
+                acc["cf_last_deploy_time"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                results["cf"] = True
+                results["worker_url"] = acc["cf_worker_url"]
+            else:
+                results["errors"].append(f"خطای کلودفلر: {res_cf.get('error')}")
+
+    if results["gas"] or results["cf"]:
+        acc["status"] = "deployed"
+    else:
+        acc["status"] = "error"
+        
+    save_gas_config(cfg, restart_service=False)
+    
+    succ = results["gas"] or results["cf"]
+    return jsonify({
+        "success": succ,
+        "results": results,
+        "account": acc,
+        "message": "استقرار با موفقیت انجام شد!" if succ else "استقرار با خطا مواجه گردید: " + " | ".join(results["errors"])
+    })
 
 @app.route("/api/google_script/accounts/<acc_id>/set-active", methods=["POST"])
 def api_google_script_account_set_active(acc_id):
@@ -27125,6 +27463,14 @@ def api_google_script_account_set_active(acc_id):
     cfg["google_webapp_url"] = act.get("webapp_url", "")
     cfg["google_project_title"] = act.get("project_title", cfg.get("google_project_title", ""))
     cfg["last_deploy_time"] = act.get("last_deploy_time", "")
+    if act.get("cf_api_token"):
+        cfg["cloudflare"]["api_token"] = act["cf_api_token"]
+    if act.get("cf_account_id"):
+        cfg["cloudflare"]["account_id"] = act["cf_account_id"]
+    if act.get("cf_worker_name"):
+        cfg["cloudflare"]["worker_name"] = act["cf_worker_name"]
+    if act.get("cf_worker_url"):
+        cfg["cloudflare"]["worker_url"] = act["cf_worker_url"]
     save_gas_config(cfg, restart_service=False)
     return jsonify({"success": True, "message": f"حساب فعال به «{cfg['accounts'][acc_id].get('name')}» تغییر یافت.", "active_account_id": acc_id, "account": cfg["accounts"][acc_id]})
 
@@ -27153,22 +27499,22 @@ def api_google_script_account_delete(acc_id):
             cfg["google_deployment_id"] = ""
             cfg["google_webapp_url"] = ""
     save_gas_config(cfg, restart_service=False)
-    return jsonify({"success": True, "message": "حساب جیمیل با موفقیت حذف گردید.", "active_account_id": cfg.get("active_account_id", "")})
+    return jsonify({"success": True, "message": "حساب با موفقیت حذف گردید.", "active_account_id": cfg.get("active_account_id", "")})
 
-def deploy_cloudflare_worker_internal(cfg):
+def deploy_cloudflare_worker_internal(cfg, api_token=None, account_id=None, worker_name=None, custom_script=None):
     """
     Deploys or synchronizes Cloudflare Worker script with current GAS deployments.
     Returns (success: bool, result_dict: dict)
     """
     cf = cfg.get("cloudflare", {})
-    api_token = cf.get("api_token", "").strip()
-    account_id = cf.get("account_id", "").strip()
-    worker_name = cf.get("worker_name", "mhpanel-gas-relay").strip() or "mhpanel-gas-relay"
+    api_token = (api_token or cf.get("api_token", "")).strip()
+    account_id = (account_id or cf.get("account_id", "")).strip()
+    worker_name = (worker_name or cf.get("worker_name", "mhpanel-gas-relay")).strip() or "mhpanel-gas-relay"
     
     if not api_token or not account_id:
         return False, {"error": "لطفاً API Token و Account ID کلودفلر را در تنظیمات وارد نمایید."}
         
-    worker_script = generate_cloudflare_worker_code(cfg)
+    worker_script = (custom_script.strip() if (custom_script and custom_script.strip()) else generate_cloudflare_worker_code(cfg))
     
     cf_headers = {
         "Authorization": f"Bearer {api_token}",
@@ -27226,6 +27572,9 @@ def deploy_cloudflare_worker_internal(cfg):
             pass
             
     worker_url = f"https://{worker_name}.{subdomain}.workers.dev" if subdomain else cf.get("worker_url", "")
+    cf["api_token"] = api_token
+    cf["account_id"] = account_id
+    cf["worker_name"] = worker_name
     cf["worker_url"] = worker_url
     cf["enabled"] = True
     cf["status"] = "deployed"
@@ -27239,6 +27588,67 @@ def deploy_cloudflare_worker_internal(cfg):
         "worker_name": worker_name,
         "message": f"ورکر '{worker_name}' با موفقیت در کلودفلر مستقر و همگام‌سازی شد!"
     }
+
+@app.route("/api/google_script/cloudflare/verify-token", methods=["POST"])
+def api_google_script_cloudflare_verify_token():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    data = request.json or {}
+    api_token = data.get("api_token", "").strip()
+    account_id = data.get("account_id", "").strip()
+    
+    if not api_token:
+        return jsonify({"success": False, "error": "لطفاً API Token کلودفلر را وارد نمایید."}), 400
+        
+    cf_headers = {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json"
+    }
+    
+    token_status = "active"
+    try:
+        req = urllib.request.Request("https://api.cloudflare.com/client/v4/user/tokens/verify", headers=cf_headers, method="GET")
+        with urllib.request.urlopen(req, timeout=12) as r:
+            res_body = json.loads(r.read().decode("utf-8"))
+            if not res_body.get("success"):
+                return jsonify({"success": False, "valid": False, "error": "توکن کلودفلر نامعتبر است یا منقضی شده است."}), 400
+            token_status = res_body.get("result", {}).get("status", "active")
+    except urllib.error.HTTPError as e:
+        err_b = e.read().decode("utf-8", errors="ignore")
+        return jsonify({"success": False, "valid": False, "error": f"خطای اعتبارسنجی در کلودفلر (کد {e.code}): {err_b}"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "valid": False, "error": f"عدم برقراری ارتباط با Cloudflare: {str(e)}"}), 500
+
+    subdomain = ""
+    if account_id:
+        try:
+            sub_req = urllib.request.Request(
+                f"https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/subdomain",
+                headers=cf_headers,
+                method="GET"
+            )
+            with urllib.request.urlopen(sub_req, timeout=12) as r:
+                sub_res = json.loads(r.read().decode("utf-8"))
+                if sub_res.get("success"):
+                    subdomain = sub_res.get("result", {}).get("subdomain", "")
+        except urllib.error.HTTPError as e:
+            err_b = e.read().decode("utf-8", errors="ignore")
+            return jsonify({
+                "success": False, 
+                "valid": False, 
+                "error": f"توکن معتبر است اما به شناسه حسابی که وارد کردید دسترسی ندارد (کد {e.code}). لطفاً Account ID را بررسی نمایید."
+            }), 400
+        except Exception:
+            pass
+
+    return jsonify({
+        "success": True,
+        "valid": True,
+        "token_status": token_status,
+        "subdomain": subdomain,
+        "message": f"توکن کلودفلر معتبر است! " + (f"ساب‌دامین شما: {subdomain}.workers.dev" if subdomain else "تایید شد.")
+    })
 
 @app.route("/api/google_script/batch-deploy", methods=["POST"])
 def api_google_script_batch_deploy():
@@ -27624,14 +28034,15 @@ def api_google_script_save_template():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
-    key = data.get("key", "").strip()
+    key = data.get("key", "").strip() or data.get("id", "").strip()
     code = data.get("code", "")
     name = data.get("name", "").strip()
     desc = data.get("description", "").strip()
     file_name = data.get("file_name", "").strip()
+    tpl_type = data.get("type", "gas").strip() # "gas" or "cloudflare"
 
     if not key:
-        return jsonify({"success": False, "error": "شناسه قالب الزامی است."}), 400
+        key = f"tpl_{int(time.time())}_{uuid.uuid4().hex[:4]}"
 
     if key == "custom":
         cfg = get_gas_config()
@@ -27641,26 +28052,32 @@ def api_google_script_save_template():
     
     customs = load_gas_custom_templates()
     customs[key] = {
+        "id": key,
+        "key": key,
         "name": name or key,
-        "description": desc or "قالب سفارشی ایجاد شده توسط مدیر",
-        "file_name": file_name or f"{key}.gs",
-        "google_code": code,
+        "type": tpl_type,
+        "description": desc or ("قالب سفارشی کلودفلر ورکر" if tpl_type == "cloudflare" else "قالب سفارشی گوگل اسکریپت"),
+        "file_name": file_name or (f"{key}.js" if tpl_type == "cloudflare" else f"{key}.gs"),
+        "code": code,
+        "google_code": code if tpl_type == "gas" else "",
+        "cf_code": code if tpl_type == "cloudflare" else "",
         "server_code": "",
-        "is_custom": True
+        "is_custom": True,
+        "created_at": customs.get(key, {}).get("created_at") or time.strftime("%Y-%m-%d %H:%M:%S")
     }
     save_gas_custom_templates(customs)
-    return jsonify({"success": True, "message": f"قالب «{name or key}» با موفقیت ذخیره شد."})
+    return jsonify({"success": True, "message": f"قالب «{name or key}» با موفقیت ذخیره شد.", "template": customs[key]})
 
 @app.route("/api/google_script/delete-template", methods=["POST"])
 def api_google_script_delete_template():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
-    key = data.get("key", "").strip()
+    key = data.get("key", "").strip() or data.get("id", "").strip()
     if not key:
         return jsonify({"success": False, "error": "شناسه قالب الزامی است."}), 400
     
-    if key in ["full_tunnel", "singbox_detour", "master_http", "manifest"]:
+    if key in ["full_tunnel", "singbox_detour", "master_http", "manifest", "cf_gas_relay", "cf_direct_vps", "cf_hybrid"]:
         return jsonify({"success": False, "error": "قالب‌های پیش‌فرض اصلی قابل حذف نیستند."}), 400
         
     customs = load_gas_custom_templates()

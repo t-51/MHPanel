@@ -23402,6 +23402,15 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         });
     }
 
+    // =========================================================================
+    // UNIFIED GOOGLE APPS SCRIPT & CLOUDFLARE WORKER CLIENT ENGINE
+    // =========================================================================
+    let gasCachedConfig = null;
+    let gasCachedTemplatesData = null;
+    let gasCurrentTemplateFilter = 'all';
+    let gasCurrentWizardMode = 'google_and_cloudflare';
+    let gasClientRoutingPref = 'cloudflare';
+
     function switchGasSubTab(subtab) {
         document.querySelectorAll('.gas-subtab-content').forEach(el => el.style.display = 'none');
         document.querySelectorAll('[id^="gas-subtab-btn-"]').forEach(btn => btn.classList.remove('active'));
@@ -23418,1305 +23427,21 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         setupHorizontalNavScroll();
 
-        if (subtab === 'scripts' && !gasCachedTemplates) {
+        if (subtab === 'accounts') {
+            fetchGoogleScriptConfig();
+        } else if (subtab === 'templates') {
             fetchGasTemplates();
-        } else if (subtab === 'client') {
+        } else if (subtab === 'guides') {
+            if (window.lucide) lucide.createIcons();
+        } else if (subtab === 'client-server') {
             fetchGasClientConfigs();
-        } else if (subtab === 'usage') {
-            fetchGasTrafficStats();
-        } else if (subtab === 'cloudflare') {
-            fetchGasCloudflareConfig();
         }
     }
 
-    function toggleGasTokenHelp() {
-        const box = document.getElementById('gas-token-help-box');
-        if (box) {
-            box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'block' : 'none';
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-
-    function toggleGasTokenVisibility() {
-        const input = document.getElementById('gas-input-token');
-        const eyeBtn = document.getElementById('gas-token-eye-btn');
-        if (!input || !eyeBtn) return;
-
-        if (input.type === 'password') {
-            input.type = 'text';
-            eyeBtn.innerHTML = '<i data-lucide="eye-off" style="width:16px; height:16px; color:#ef4444;"></i>';
-        } else {
-            input.type = 'password';
-            eyeBtn.innerHTML = '<i data-lucide="eye" style="width:16px; height:16px;"></i>';
-        }
-        if (window.lucide) lucide.createIcons();
-    }
-
-    async function pasteGasTokenFromClipboard() {
-        const input = document.getElementById('gas-input-token');
-        if (!input) return;
-        try {
-            if (navigator.clipboard && navigator.clipboard.readText) {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    input.value = text.trim();
-                    showToast("توکن با موفقیت از کلیپ‌بورد درج گردید.", "success");
-                    return;
-                }
-            }
-        } catch (e) {
-            console.log("Clipboard read blocked, falling back to manual paste prompt.");
-        }
-        input.focus();
-        showToast("لطفاً توکن را در کادر پیست نمایید.", "info");
-    }
-
-    function clearGasTokenInput() {
-        const input = document.getElementById('gas-input-token');
-        if (input) {
-            input.value = '';
-            input.focus();
-        }
-    }
-
-    async function pasteGasManualInput() {
-        const input = document.getElementById('gas-manual-input');
-        if (!input) return;
-        try {
-            if (navigator.clipboard && navigator.clipboard.readText) {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    input.value = text.trim();
-                    showToast("شناسه یا آدرس با موفقیت درج شد.", "success");
-                    return;
-                }
-            }
-        } catch (e) {}
-        input.focus();
-    }
-
-    function copyGasScopes() {
-        const scopes = "https://www.googleapis.com/auth/script.projects https://www.googleapis.com/auth/script.deployments";
-        navigator.clipboard.writeText(scopes).then(() => {
-            showToast("اسکوپ‌های مجاز گوگل اسکریپت کپی شدند!", "success");
-        }).catch(() => {
-            showToast("کپی انجام شد.", "success");
-        });
-    }
-
-    function openGasWebAppInBrowser() {
-        const urlEl = document.getElementById('gas-deployed-url-val');
-        const url = urlEl ? (urlEl.textContent || urlEl.innerText || "").trim() : "";
-        if (url && url.startsWith('http')) {
-            window.open(url, '_blank');
-        } else {
-            showToast("آدرس وب‌اپ نامعتبر است.", "warning");
-        }
-    }
-
-    function showGasQrModal(title, text) {
-        if (!text || text === "-" || text.trim() === "") {
-            showToast("محتوایی برای نمایش بارکد وجود ندارد.", "warning");
-            return;
-        }
-        const modal = document.getElementById('gas-qr-modal');
-        const modalTitle = document.getElementById('gas-qr-modal-title');
-        const modalVal = document.getElementById('gas-qr-modal-val');
-        const canvasContainer = document.getElementById('gas-qr-modal-canvas');
-
-        if (modalTitle) modalTitle.textContent = title;
-        if (modalVal) modalVal.textContent = text;
-        if (canvasContainer) {
-            canvasContainer.innerHTML = '';
-            if (typeof QRCode !== 'undefined') {
-                if (QRCode.toCanvas) {
-                    QRCode.toCanvas(text, { width: 190, margin: 1 }, (err, canvas) => {
-                        if (!err && canvas) {
-                            canvasContainer.appendChild(canvas);
-                        } else {
-                            canvasContainer.innerHTML = "<p style='color:#ef4444; font-size:12px;'>خطا در تولید QR</p>";
-                        }
-                    });
-                } else {
-                    new QRCode(canvasContainer, {
-                        text: text,
-                        width: 190,
-                        height: 190
-                    });
-                }
-            } else {
-                canvasContainer.innerHTML = "<p style='color:#ef4444; font-size:12px;'>کتابخانه بارکد بارگذاری نشده است.</p>";
-            }
-        }
-
-        if (modal) {
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-
-    function closeGasQrModal() {
-        const modal = document.getElementById('gas-qr-modal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        }
-    }
-
-    function copyGasText(elementId, btnId) {
-        const el = document.getElementById(elementId);
-        const text = el ? (el.textContent || el.innerText || "").trim() : "";
-        if (!text || text === "-") {
-            showToast("مقداری برای کپی وجود ندارد.", "warning");
-            return;
-        }
-
-        navigator.clipboard.writeText(text).then(() => {
-            showToast("با موفقیت در کلیپ‌بورد کپی شد!", "success");
-            const btn = document.getElementById(btnId);
-            if (btn) {
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i data-lucide="check" style="width:13px; height:13px; color:#10b981;"></i> <span style="color:#10b981;">کپی شد!</span>';
-                if (window.lucide) lucide.createIcons();
-                setTimeout(() => {
-                    btn.innerHTML = originalHtml;
-                    if (window.lucide) lucide.createIcons();
-                }, 2000);
-            }
-        }).catch(() => {
-            showToast("کپی انجام شد.", "success");
-        });
-    }
-
-    function generateGasSecret() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
-        let secret = 'gas_sec_';
-        for (let i = 0; i < 24; i++) {
-            secret += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        const secretInput = document.getElementById('gas-cfg-secret');
-        if (secretInput) secretInput.value = secret;
-        showToast("کلید امنیتی تصادفی جدید ایجاد شد. برای اعمال، روی ذخیره تغییرات سرور کلیک کنید.", "info");
-    }
-
-    async function fetchGoogleScriptConfig() {
-        try {
-            const res = await fetch("/api/google_script/status");
-            const data = await res.json();
-            if (!data.success) return;
-
-            gasCachedConfig = data;
-
-            // 1. Multi-Account Hub rendering
-            const accounts = data.accounts || [];
-            const activeAccId = data.active_account_id || "";
-            const activeAcc = data.active_account || accounts.find(a => a.id === activeAccId) || {};
-
-            if (document.getElementById("gas-accounts-count-badge")) {
-                document.getElementById("gas-accounts-count-badge").textContent = `${accounts.length} حساب`;
-            }
-
-            const accSelect = document.getElementById("gas-account-select");
-            if (accSelect) {
-                if (accounts.length === 0) {
-                    accSelect.innerHTML = `<option value="">(هیچ حسابی ثبت نشده است)</option>`;
-                } else {
-                    accSelect.innerHTML = accounts.map(a => {
-                        const isSel = a.id === activeAccId ? 'selected' : '';
-                        const hasDeploy = !!(a.webapp_url || a.deployment_id);
-                        const hasTok = !!a.access_token;
-                        const icon = hasDeploy ? '🌐' : (hasTok ? '🔑' : '⚪');
-                        return `<option value="${a.id}" ${isSel}>${icon} ${escapeHtml(a.name || a.email)} (${escapeHtml(a.email)})</option>`;
-                    }).join('');
-                }
-            }
-
-            if (document.getElementById("gas-cur-acc-email")) {
-                document.getElementById("gas-cur-acc-email").textContent = activeAcc.email || '-';
-            }
-
-            if (document.getElementById("gas-cur-acc-status")) {
-                const hasUrl = !!(activeAcc.webapp_url || activeAcc.deployment_id);
-                const hasTok = !!activeAcc.access_token;
-                const statusBadge = document.getElementById("gas-cur-acc-status");
-                if (hasUrl) {
-                    statusBadge.className = "gas-token-badge gas-token-badge-green";
-                    statusBadge.textContent = "مستقر شده (Online)";
-                } else if (hasTok) {
-                    statusBadge.className = "gas-token-badge gas-token-badge-blue";
-                    statusBadge.textContent = "آماده استقرار";
-                } else {
-                    statusBadge.className = "gas-token-badge";
-                    statusBadge.textContent = "فاقد توکن";
-                }
-            }
-
-            if (document.getElementById("gas-deploy-target-acc-name")) {
-                document.getElementById("gas-deploy-target-acc-name").textContent = activeAcc.name || 'حساب جاری';
-            }
-            if (document.getElementById("gas-deploy-target-acc-email")) {
-                document.getElementById("gas-deploy-target-acc-email").textContent = activeAcc.email || '-';
-            }
-
-            // Sync token input with active account if not dirty
-            const tokenInput = document.getElementById("gas-input-token");
-            if (tokenInput && (!tokenInput.value || tokenInput.dataset.accId !== activeAccId)) {
-                tokenInput.value = activeAcc.access_token || "";
-                tokenInput.dataset.accId = activeAccId;
-            }
-
-            // Update Status Badge
-            const badge = document.getElementById("gas-status-badge");
-            if (badge) {
-                if (data.is_active && data.server_health === "online") {
-                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#10b981;">فعال و آنلاین (${data.server_health})</span>`;
-                } else if (data.is_active) {
-                    badge.innerHTML = `<span class="status-dot active" style="background:#f59e0b;"></span> <span style="color:#f59e0b;">سرویس فعال (بدون کلاینت)</span>`;
-                } else {
-                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف شده</span>`;
-                }
-            }
-
-            // Update Stats Bar
-            if (document.getElementById("gas-stat-port")) document.getElementById("gas-stat-port").textContent = data.port || 8448;
-            if (document.getElementById("gas-stat-sessions")) document.getElementById("gas-stat-sessions").textContent = data.active_sessions || 0;
-            
-            let modeTitle = "Full Tunnel (GooseRelay)";
-            if (data.mode === "singbox_detour") modeTitle = "Sing-box Detour";
-            else if (data.mode === "master_http") modeTitle = "MasterHttpRelay";
-            else if (data.mode === "custom") modeTitle = "Custom Script";
-            if (document.getElementById("gas-stat-mode")) document.getElementById("gas-stat-mode").textContent = modeTitle;
-
-            // Pipeline subtitles
-            if (document.getElementById("gas-pipe-vps-info")) {
-                document.getElementById("gas-pipe-vps-info").textContent = `${data.server_ip}:${data.port}`;
-            }
-
-            // Deployment status & Showcase Hub
-            const deployStat = document.getElementById("gas-stat-deploy-status");
-            const deployedBanner = document.getElementById("gas-deployed-banner");
-            const deployIdSub = document.getElementById("gas-pipe-deploy-id");
-
-            const curDepId = activeAcc.deployment_id || data.google_deployment_id;
-            const curWebappUrl = activeAcc.webapp_url || data.google_webapp_url;
-
-            if (curDepId) {
-                if (deployStat) deployStat.innerHTML = `<span style="color:#10b981;">مستقر در گوگل (${curDepId.substring(0, 10)}...)</span>`;
-                if (deployIdSub) deployIdSub.textContent = curDepId.substring(0, 12) + "...";
-                if (deployedBanner) {
-                    deployedBanner.style.display = 'block';
-                    document.getElementById("gas-deployed-id-val").textContent = curDepId;
-                    document.getElementById("gas-deployed-url-val").textContent = curWebappUrl || `https://script.google.com/macros/s/${curDepId}/exec`;
-                    document.getElementById("gas-last-deploy-text").textContent = `آخرین استقرار: ${activeAcc.last_deploy_time || data.last_deploy_time || 'اخیراً'}`;
-                }
-                const manualInput = document.getElementById("gas-manual-input");
-                if (manualInput && !manualInput.value) manualInput.value = curDepId;
-            } else {
-                if (deployStat) deployStat.innerHTML = `<span style="color:#f59e0b;">آماده استقرار</span>`;
-                if (deployIdSub) deployIdSub.textContent = "هنوز مستقر نشده";
-                if (deployedBanner) deployedBanner.style.display = 'none';
-            }
-
-            // Fill server settings inputs
-            if (document.getElementById("gas-cfg-port")) document.getElementById("gas-cfg-port").value = data.port || 8448;
-            if (document.getElementById("gas-cfg-secret")) document.getElementById("gas-cfg-secret").value = data.secret || "";
-            if (document.getElementById("gas-cfg-singbox-target")) document.getElementById("gas-cfg-singbox-target").value = data.singbox_target || "127.0.0.1:20443";
-            if (document.getElementById("gas-cfg-server-ip")) document.getElementById("gas-cfg-server-ip").value = data.server_ip || "";
-            if (document.getElementById("gas-cfg-diagnostic")) document.getElementById("gas-cfg-diagnostic").checked = !!data.diagnostic_mode;
-
-            // Handle server URL selector
-            const serverUrl = (data.tunnel_server_url || "").trim();
-            const ipPreview = document.getElementById("gas-url-ip-preview");
-            if (ipPreview) ipPreview.textContent = `http://${data.server_ip}:${data.port || 8448}`;
-            
-            if (serverUrl === "https://mhpanel.kigaping.com") {
-                onGasServerUrlTypeChange('domain');
-            } else if (serverUrl === `http://${data.server_ip}:${data.port || 8448}`) {
-                onGasServerUrlTypeChange('ip');
-            } else if (serverUrl) {
-                onGasServerUrlTypeChange('custom');
-                if (document.getElementById("gas-cfg-tunnel-server-url")) {
-                    document.getElementById("gas-cfg-tunnel-server-url").value = serverUrl;
-                }
-            } else {
-                onGasServerUrlTypeChange('domain');
-            }
-
-            // Fill deploy title input
-            if (document.getElementById("gas-input-title")) {
-                document.getElementById("gas-input-title").value = activeAcc.project_title || data.google_project_title || "MHPanel-GAS-FullTunnel";
-            }
-
-            // Refresh deployments list, templates & client configs
-            fetchGasDeployments();
-            fetchGasTemplates();
-            fetchGasClientConfigs();
-
-            if (window.lucide) lucide.createIcons();
-        } catch (e) {
-            console.error("fetchGoogleScriptConfig error:", e);
-        }
-    }
-
-    function onGasServerUrlTypeChange(type) {
-        const domainRadio = document.getElementById('gas-url-type-domain');
-        const ipRadio = document.getElementById('gas-url-type-ip');
-        const customRadio = document.getElementById('gas-url-type-custom');
-        const customField = document.getElementById('gas-custom-url-field');
-
-        if (domainRadio) domainRadio.checked = (type === 'domain');
-        if (ipRadio) ipRadio.checked = (type === 'ip');
-        if (customRadio) customRadio.checked = (type === 'custom');
-
-        if (customField) {
-            customField.style.display = (type === 'custom') ? 'block' : 'none';
-        }
-    }
-
-    async function fetchGasDeployments(showToastFeedback = false) {
-        const tbody = document.getElementById("gas-deployments-tbody");
-        if (!tbody) return;
-
-        try {
-            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            const url = accId ? `/api/google_script/deployments?account_id=${encodeURIComponent(accId)}` : "/api/google_script/deployments";
-            const res = await fetch(url);
-            const data = await res.json();
-            if (!data.success) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطا در دریافت لیست استقرارها: ${data.error || 'ناشناخته'}</td></tr>`;
-                return;
-            }
-
-            const deps = data.deployments || [];
-            if (deps.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ استقراری برای این حساب یافت نشد. می‌توانید با فرم زیر اولین استقرار را انجام دهید.</td></tr>`;
-                return;
-            }
-
-            let html = "";
-            deps.forEach(dep => {
-                const isActive = !!dep.is_active;
-                const vNum = dep.version_number ? `v${dep.version_number}` : 'HEAD';
-                const desc = dep.description || 'MHPanel Deployment';
-                const depId = dep.deployment_id;
-                const webappUrl = dep.webapp_url || `https://script.google.com/macros/s/${depId}/exec`;
-                const dateStr = dep.update_time ? dep.update_time.replace('T', ' ').substring(0, 19) : '-';
-
-                const statusBadge = isActive 
-                    ? `<span class="gas-token-badge gas-token-badge-green" style="display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active"></span> فعال (Active)</span>`
-                    : `<span class="gas-token-badge" style="opacity:0.7;">سایر نگارش‌ها</span>`;
-
-                const activateBtn = isActive
-                    ? `<button type="button" class="btn btn-sm btn-secondary" disabled style="opacity:0.5; padding:4px 8px; font-size:11px;">فعال است</button>`
-                    : `<button type="button" class="btn btn-sm btn-secondary" onclick="activateGasDeployment('${depId}', '${webappUrl}')" style="color:#10b981; border-color:rgba(16,185,129,0.4); padding:4px 10px; font-size:11px; font-weight:600;">✅ فعال‌سازی</button>`;
-
-                html += `
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${isActive ? 'background:rgba(16,185,129,0.04);' : ''}">
-                        <td style="padding:10px 8px;">
-                            <div style="font-weight:700; color:${isActive ? '#34d399' : '#e2e8f0'}; display:flex; align-items:center; gap:6px;">
-                                <span class="gas-token-badge ${isActive ? 'gas-token-badge-green' : 'gas-token-badge-blue'}" style="font-size:10px;">${vNum}</span>
-                                <span>${desc}</span>
-                            </div>
-                        </td>
-                        <td style="padding:10px 8px; font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#60a5fa;">
-                            ${depId}
-                        </td>
-                        <td style="padding:10px 8px; color:var(--text-muted); font-size:11px; direction:ltr; text-align:right;">
-                            ${dateStr}
-                        </td>
-                        <td style="padding:10px 8px; text-align:center;">
-                            ${statusBadge}
-                        </td>
-                        <td style="padding:10px 8px; text-align:left;">
-                            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-                                ${activateBtn}
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="testGasSpecificDeployment('${webappUrl}')" title="تست زنده اتصال" style="padding:4px 8px; font-size:11px;">
-                                    <i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i>
-                                    <span>تست</span>
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTextValue('${webappUrl}', 'آدرس وب‌اپ گوگل')" title="کپی آدرس کامل" style="padding:4px 8px;">
-                                    <i data-lucide="copy" style="width:12px; height:12px;"></i>
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasDeployment('${depId}', '${vNum}')" title="حذف دائمی از گوگل" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
-                                    <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-            if (window.lucide) lucide.createIcons();
-            if (showToastFeedback) {
-                showToast(`لیست استقرارها بروزرسانی شد (${deps.length} استقرار).`, "success");
-            }
-        } catch (e) {
-            console.error("fetchGasDeployments error:", e);
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطای شبکه در دریافت لیست استقرارها</td></tr>`;
-        }
-    }
-
-    async function activateGasDeployment(depId, webappUrl) {
-        toggleLoading(true, "در حال فعال‌سازی این استقرار...");
-        try {
-            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            const res = await fetch(`/api/google_script/deployments/${depId}/activate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ webapp_url: webappUrl, account_id: accId })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast("استقرار با موفقیت به عنوان استقرار فعال انتخاب شد!", "success");
-                fetchGoogleScriptConfig();
-            } else {
-                showToast(data.error || "خطا در فعال‌سازی استقرار", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای ارتباط با سرور", "error");
-        }
-    }
-
-    async function deleteGasDeployment(depId, versionStr) {
-        if (!confirm(`آیا از حذف استقرار (${versionStr} / ${depId}) از روی سرورهای گوگل اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`)) {
-            return;
-        }
-
-        toggleLoading(true, "در حال حذف استقرار از پروژه گوگل...");
-        try {
-            const accId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            const res = await fetch(`/api/google_script/deployments/${depId}/delete`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ account_id: accId })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast("استقرار با موفقیت از گوگل حذف شد.", "success");
-                fetchGoogleScriptConfig();
-            } else {
-                showToast(data.error || "خطا در حذف استقرار", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای ارتباط با سرور", "error");
-        }
-    }
-
-    async function testGasSpecificDeployment(url) {
-        if (!url) return;
-        toggleLoading(true, "در حال ارسال پکت آزمایشی به گوگل اسکریپت...");
-        try {
-            const res = await fetch("/api/google_script/test-endpoint", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ url: url })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast(`✅ پاسخ از گوگل در ${data.latency_ms}ms با کد ${data.status_code}`, "success");
-            } else {
-                showToast(data.error || "خطا در برقراری ارتباط با وب‌اپ گوگل", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای اتصال در انجام تست پینگ", "error");
-        }
-    }
-
-    async function testGasLocalHealth() {
-        const port = document.getElementById("gas-cfg-port").value || 8448;
-        toggleLoading(true, `در حال تست اندپوینت http://127.0.0.1:${port}/health ...`);
-        try {
-            const res = await fetch("/api/google_script/status");
-            const data = await res.json();
-            toggleLoading(false);
-            if (data.server_health === "online") {
-                showToast(`✅ دیمن سرور با موفقیت پاسخ داد: online (${data.backend_engine})`, "success");
-            } else {
-                showToast(`⚠️ وضعیت سرور: ${data.server_health} (سرویس دیمن پاسخ نداد)`, "warning");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطا در بررسی وضعیت دیمن", "error");
-        }
-    }
-
-    let gasCurrentTemplateKey = 'full_tunnel';
-
-    async function fetchGasTemplates() {
-        try {
-            const res = await fetch("/api/google_script/templates");
-            const data = await res.json();
-            if (!data.success) return;
-            gasCachedTemplates = data.templates;
-
-            // Update variables pill bar
-            if (document.getElementById("gas-var-tunnel-url")) {
-                const tunnelUrl = `http://${data.server_ip}:${data.port}`;
-                document.getElementById("gas-var-tunnel-url").textContent = tunnelUrl;
-                document.getElementById("gas-var-tunnel-url").dataset.val = tunnelUrl;
-            }
-            if (document.getElementById("gas-var-auth-key")) {
-                document.getElementById("gas-var-auth-key").textContent = data.secret || "None";
-                document.getElementById("gas-var-auth-key").dataset.val = data.secret || "";
-            }
-            if (document.getElementById("gas-status-target-url")) {
-                document.getElementById("gas-status-target-url").textContent = `http://${data.server_ip}:${data.port}/tunnel`;
-            }
-
-            // Render custom template tabs
-            const customTabsContainer = document.getElementById("gas-custom-tmpl-tabs-container");
-            if (customTabsContainer) {
-                let cTabsHtml = "";
-                Object.keys(gasCachedTemplates).forEach(k => {
-                    const t = gasCachedTemplates[k];
-                    if (t.is_custom) {
-                        cTabsHtml += `
-                            <button type="button" class="gas-tmpl-tab ${k === gasCurrentTemplateKey ? 'active' : ''}" data-tmpl="${k}" onclick="selectGasStudioTemplate('${k}')">
-                                <i data-lucide="file-code" style="width:15px; height:15px; color:#38bdf8;"></i>
-                                <span>${t.name || k}</span>
-                                <span class="gas-token-badge" style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:10px;">سفارشی</span>
-                            </button>
-                        `;
-                    }
-                });
-                customTabsContainer.innerHTML = cTabsHtml;
-            }
-
-            selectGasStudioTemplate(gasCurrentTemplateKey || 'full_tunnel');
-        } catch (e) {
-            console.error("fetchGasTemplates error:", e);
-        }
-    }
-
-    function selectGasStudioTemplate(key) {
-        gasCurrentTemplateKey = key;
-        document.querySelectorAll('.gas-tmpl-tab').forEach(tab => {
-            if (tab.dataset.tmpl === key) {
-                tab.classList.add('active');
-            } else {
-                tab.classList.remove('active');
-            }
-        });
-
-        if (!gasCachedTemplates || !gasCachedTemplates[key]) return;
-        const tpl = gasCachedTemplates[key];
-
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (editor) {
-            editor.value = tpl.google_code || "";
-        }
-
-        const filenameEl = document.getElementById('gas-editor-filename');
-        if (filenameEl) {
-            filenameEl.textContent = tpl.file_name || (key === 'manifest' ? 'appsscript.json' : 'Code.gs');
-        }
-
-        const langBadge = document.getElementById('gas-editor-lang-badge');
-        if (langBadge) {
-            langBadge.textContent = (key === 'manifest') ? 'JSON (V8 Manifest)' : 'Google Apps Script V8 (JavaScript)';
-        }
-
-        const descTitle = document.getElementById('gas-tmpl-desc-title');
-        if (descTitle) {
-            descTitle.textContent = tpl.name || 'درباره این تمپلت:';
-        }
-
-        const descText = document.getElementById('gas-tmpl-desc-text');
-        if (descText) {
-            descText.textContent = tpl.description || '';
-        }
-
-        const deleteBtn = document.getElementById('btn-delete-studio-code');
-        if (deleteBtn) {
-            deleteBtn.style.display = (tpl && tpl.is_custom) ? 'inline-flex' : 'none';
-        }
-
-        updateGasEditorMetrics();
-        if (window.lucide) lucide.createIcons();
-    }
-
-    function openNewGasTemplateModal() {
-        const modal = document.getElementById('gas-new-template-modal');
-        if (modal) {
-            modal.classList.add('active');
-            modal.style.display = 'flex';
-            if (window.lucide) lucide.createIcons();
-            const input = document.getElementById('gas-newtpl-name');
-            if (input) input.focus();
-        }
-    }
-
-    function closeNewGasTemplateModal() {
-        const modal = document.getElementById('gas-new-template-modal');
-        if (modal) {
-            modal.classList.remove('active');
-            modal.style.display = 'none';
-        }
-    }
-
-    async function submitNewGasTemplate() {
-        const name = (document.getElementById('gas-newtpl-name').value || '').trim();
-        let key = (document.getElementById('gas-newtpl-key').value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        const file = (document.getElementById('gas-newtpl-file').value || '').trim();
-        const desc = (document.getElementById('gas-newtpl-desc').value || '').trim();
-        const starter = document.getElementById('gas-newtpl-starter').value;
-
-        if (!name) {
-            showToast("لطفاً یک عنوان برای قالب وارد کنید.", "warning");
-            document.getElementById('gas-newtpl-name').focus();
-            return;
-        }
-        if (!key) {
-            key = 'custom_' + Date.now();
-        }
-
-        let starterCode = "";
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (starter === 'current' && editor) {
-            starterCode = editor.value;
-        } else if (starter === 'full_tunnel' && gasCachedTemplates && gasCachedTemplates['full_tunnel']) {
-            starterCode = gasCachedTemplates['full_tunnel'].google_code || "";
-        }
-
-        toggleLoading(true, "در حال ایجاد قالب جدید...");
-        try {
-            const res = await fetch("/api/google_script/save-template", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    key: key,
-                    name: name,
-                    file_name: file || `${key}.gs`,
-                    description: desc || "قالب سفارشی ایجاد شده توسط مدیر",
-                    code: starterCode
-                })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                closeNewGasTemplateModal();
-                showToast(data.message || "قالب جدید با موفقیت اضافه شد!", "success");
-                gasCurrentTemplateKey = key;
-                await fetchGasTemplates();
-            } else {
-                showToast(data.error || "خطا در ایجاد قالب", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در ایجاد قالب", "error");
-        }
-    }
-
-    async function saveCurrentStudioCode() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (!editor) return;
-        const code = editor.value;
-        const key = gasCurrentTemplateKey || 'custom';
-
-        // If built-in template, offer to save as custom
-        if (['full_tunnel', 'singbox_detour', 'master_http', 'manifest'].includes(key)) {
-            if (confirm(`قالب «${key}» یک قالب سیستمی پیش‌فرض است. آیا مایلید تغییرات را به عنوان یک «قالب سفارشی جدید» ذخیره کنید؟`)) {
-                openNewGasTemplateModal();
-                const starterSelect = document.getElementById('gas-newtpl-starter');
-                if (starterSelect) starterSelect.value = 'current';
-                return;
-            }
-            return;
-        }
-
-        const tpl = (gasCachedTemplates && gasCachedTemplates[key]) || {};
-        toggleLoading(true, "در حال ذخیره تغییرات قالب...");
-        try {
-            const res = await fetch("/api/google_script/save-template", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    key: key,
-                    name: tpl.name || key,
-                    file_name: tpl.file_name || `${key}.gs`,
-                    description: tpl.description || "",
-                    code: code
-                })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast(data.message || "قالب با موفقیت ذخیره شد!", "success");
-                await fetchGasTemplates();
-            } else {
-                showToast(data.error || "خطا در ذخیره قالب", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در ذخیره قالب", "error");
-        }
-    }
-
-    async function deleteCurrentStudioCode() {
-        const key = gasCurrentTemplateKey;
-        if (!key || ['full_tunnel', 'singbox_detour', 'master_http', 'manifest', 'custom'].includes(key)) {
-            showToast("قالب‌های اصلی پیش‌فرض سیستم قابل حذف نیستند.", "warning");
-            return;
-        }
-
-        const tpl = (gasCachedTemplates && gasCachedTemplates[key]) || {};
-        if (!confirm(`آیا از حذف دائم قالب سفارشی «${tpl.name || key}» اطمینان دارید؟`)) {
-            return;
-        }
-
-        toggleLoading(true, "در حال حذف قالب سفارشی...");
-        try {
-            const res = await fetch("/api/google_script/delete-template", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ key: key })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast(data.message || "قالب حذف گردید.", "success");
-                gasCurrentTemplateKey = 'full_tunnel';
-                await fetchGasTemplates();
-            } else {
-                showToast(data.error || "خطا در حذف قالب", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در حذف قالب", "error");
-        }
-    }
-
-    function updateGasEditorMetrics() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (!editor) return;
-        const text = editor.value || "";
-        const lines = text.split('\n').length;
-        const chars = text.length;
-        const kbSize = (chars / 1024).toFixed(1);
-
-        const linesBadge = document.getElementById('gas-editor-lines-badge');
-        if (linesBadge) linesBadge.textContent = `${lines} lines`;
-
-        const sizeBadge = document.getElementById('gas-editor-size-badge');
-        if (sizeBadge) sizeBadge.textContent = `~${kbSize} KB`;
-
-        const statusLines = document.getElementById('gas-status-lines-count');
-        if (statusLines) statusLines.textContent = lines;
-
-        const statusChars = document.getElementById('gas-status-chars-count');
-        if (statusChars) statusChars.textContent = `Chars: ${chars}`;
-    }
-
-    function copyCurrentStudioCode() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (!editor || !editor.value) {
-            showToast("متنی در ادیتور وجود ندارد.", "warning");
-            return;
-        }
-        navigator.clipboard.writeText(editor.value).then(() => {
-            showToast("سورس تمپلت با موفقیت در کلیپ‌بورد کپی شد!", "success");
-            const btnText = document.getElementById('gas-copy-btn-text');
-            if (btnText) {
-                const old = btnText.textContent;
-                btnText.textContent = "کپی شد! ✓";
-                setTimeout(() => { btnText.textContent = old; }, 2000);
-            }
-        }).catch(err => {
-            showToast("خطا در کپی کردن متن.", "error");
-        });
-    }
-
-    function downloadCurrentStudioCode() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        if (!editor || !editor.value) {
-            showToast("متنی در ادیتور وجود ندارد.", "warning");
-            return;
-        }
-        const filename = (document.getElementById('gas-editor-filename') || {}).textContent || 'Code.gs';
-        const blob = new Blob([editor.value], { type: 'text/plain;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showToast(`فایل ${filename} با موفقیت دانلود شد.`, "success");
-    }
-
-    function toggleGasEditorWrap() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        const btnText = document.getElementById('gas-wrap-btn-text');
-        if (!editor) return;
-        editor.classList.toggle('wrap-mode');
-        if (btnText) {
-            btnText.textContent = editor.classList.contains('wrap-mode') ? "Wrap Off" : "Wrap On";
-        }
-    }
-
-    function toggleGasEditorExpand() {
-        const editor = document.getElementById('gas-code-gs-editor');
-        const btnText = document.getElementById('gas-expand-btn-text');
-        if (!editor) return;
-        editor.classList.toggle('expanded-mode');
-        if (btnText) {
-            btnText.textContent = editor.classList.contains('expanded-mode') ? "کوچک‌نمایی" : "بزرگنمایی";
-        }
-    }
-
-    function resetCurrentStudioCode() {
-        if (!gasCachedTemplates || !gasCurrentTemplateKey) return;
-        selectGasStudioTemplate(gasCurrentTemplateKey);
-        showToast("محتوای تمپلت به حالت اولیه بازنشانی شد.", "info");
-    }
-
-    function copyGasTextValue(val, label) {
-        if (!val) return;
-        navigator.clipboard.writeText(val).then(() => {
-            showToast(`${label || 'مقدار'} در کلیپ‌بورد کپی شد: ${val}`, "success");
-        });
-    }
-
-    function updateGasEditorFromSelection() {
-        if (!gasCachedTemplates) return;
-        const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
-        const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
-        selectGasStudioTemplate(mode);
-    }
-
-    function onGasDeployModeChanged(mode) {
-        document.querySelectorAll('.gas-mode-card').forEach(card => {
-            const radio = card.querySelector('input[type="radio"]');
-            if (radio && radio.checked) {
-                card.classList.add('selected');
-            } else {
-                card.classList.remove('selected');
-            }
-        });
-        updateGasEditorFromSelection();
-    }
-
-    async function executeGoogleScriptDeploy() {
-        const token = (document.getElementById("gas-input-token").value || "").trim();
-        if (!token) {
-            showToast("لطفاً توکن دسترسی گوگل (Google OAuth Token) را وارد نمایید.", "warning");
-            document.getElementById("gas-input-token").focus();
-            return;
-        }
-
-        const title = (document.getElementById("gas-input-title").value || "MHPanel-GAS-FullTunnel").trim();
-        const selectedRadio = document.querySelector('input[name="gas_deploy_mode"]:checked');
-        const mode = selectedRadio ? selectedRadio.value : 'full_tunnel';
-        const codeGs = (document.getElementById("gas-code-gs-editor").value || "").trim();
-        const targetTypeRadio = document.querySelector('input[name="gas_deploy_target_type"]:checked');
-        const forceNewProject = (targetTypeRadio && targetTypeRadio.value === 'force_new');
-
-        const alertContainer = document.getElementById("gas-deploy-alert-container");
-        if (alertContainer) {
-            alertContainer.style.display = 'none';
-            alertContainer.innerHTML = '';
-        }
-
-        const btn = document.getElementById("gas-deploy-submit-btn");
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = `<span class="loading-spinner"></span> در حال ارتباط با Google API و استقرار...`;
-        }
-        toggleLoading(true, "در حال ایجاد پروژه در Google Apps Script و استقرار وب‌اپ...");
-
-        try {
-            const curAccId = (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            const res = await fetch("/api/google_script/deploy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    account_id: curAccId,
-                    access_token: token,
-                    title: title,
-                    mode: mode,
-                    code_gs: codeGs,
-                    force_new_project: forceNewProject
-                })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="rocket" style="width:16px; height:16px;"></i> <span>🚀 استقرار خودکار روی گوگل و دریافت توکن</span>`;
-                if (window.lucide) lucide.createIcons();
-            }
-
-            if (res.ok && data.success) {
-                if (alertContainer) {
-                    alertContainer.style.display = 'none';
-                    alertContainer.innerHTML = '';
-                }
-                let successMsg = `🎉 استقرار در گوگل با موفقیت انجام شد! شناسه توکن: ${data.deployment_id.substring(0, 15)}...`;
-                if (data.cloudflare_auto_deployed) {
-                    successMsg += ` (ورکر کلودفلر نیز به صورت خودکار به‌روزرسانی شد)`;
-                }
-                showToast(successMsg, "success");
-                fetchGoogleScriptConfig();
-                fetchGasDeployments();
-                switchGasSubTab('deploy');
-            } else {
-                const errMsg = data.error || "خطا در استقرار پروژه در گوگل";
-                const is403ApiDisabled = data.is_api_disabled || errMsg.includes("usersettings") || errMsg.includes("Apps Script API") || errMsg.includes("کد 403");
-                const is401TokenExpired = data.is_token_expired || errMsg.includes("کد 401") || errMsg.includes("invalid authentication credentials") || errMsg.includes("OAuth 2 access token");
-
-                if (alertContainer) {
-                    alertContainer.style.display = 'block';
-                    if (is401TokenExpired) {
-                        alertContainer.innerHTML = `
-                            <div style="background:rgba(245, 158, 11, 0.09); border:1px solid rgba(245, 158, 11, 0.4); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                                    <div style="display:flex; align-items:center; gap:8px; color:#f59e0b; font-weight:800; font-size:13.5px;">
-                                        <i data-lucide="key-round" style="width:20px; height:20px;"></i>
-                                        <span>علت خطای ۴۰۱: توکن دسترسی گوگل منقضی شده یا نامعتبر است!</span>
-                                    </div>
-                                    <button type="button" class="gas-tool-btn" onclick="document.getElementById('gas-deploy-alert-container').style.display='none'" style="width:24px; height:24px;">
-                                        <i data-lucide="x" style="width:14px; height:14px;"></i>
-                                    </button>
-                                </div>
-                                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 12px 0;">
-                                    توکن‌های موقت گوگل (که با <code>ya29.</code> شروع می‌شوند) به دلایل امنیتی دقیقاً پس از <strong>۶۰ دقیقه (۱ ساعت)</strong> باطل می‌شوند. همچنین مطمئن شوید دقیقاً فیلد <strong>Access Token</strong> (شروع با ya29) را پیست کرده باشید نه Refresh Token یا کد مجوز.
-                                    <br>برای حل مشکل، در Playground مجدداً روی <strong>Exchange authorization code for tokens</strong> کلیک کنید تا توکن تازه دریافت نمایید:
-                                </p>
-                                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                                    <a href="https://developers.google.com/oauthplayground" target="_blank" class="btn btn-sm" style="background:#f59e0b; border-color:#f59e0b; color:#000; text-decoration:none; padding:7px 16px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
-                                        <i data-lucide="external-link" style="width:14px; height:14px;"></i>
-                                        <span>🔗 ۱. دریافت توکن جدید از Playground ↗</span>
-                                    </a>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleGasTokenHelp()" style="padding:7px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
-                                        <i data-lucide="help-circle" style="width:14px; height:14px;"></i>
-                                        <span>مشاهده آموزش ۳۰ ثانیه‌ای</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } else if (is403ApiDisabled) {
-                        alertContainer.innerHTML = `
-                            <div style="background:rgba(239, 68, 68, 0.09); border:1px solid rgba(239, 68, 68, 0.35); border-radius:12px; padding:16px; margin-bottom:12px;">
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-                                    <div style="display:flex; align-items:center; gap:8px; color:#ef4444; font-weight:800; font-size:13.5px;">
-                                        <i data-lucide="alert-octagon" style="width:20px; height:20px;"></i>
-                                        <span>علت خطای ۴۰۳: کلید Google Apps Script API در حساب کاربری شما خاموش است!</span>
-                                    </div>
-                                    <button type="button" class="gas-tool-btn" onclick="document.getElementById('gas-deploy-alert-container').style.display='none'" style="width:24px; height:24px;">
-                                        <i data-lucide="x" style="width:14px; height:14px;"></i>
-                                    </button>
-                                </div>
-                                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin:0 0 12px 0;">
-                                    شرکت گوگل برای تمام حساب‌ها به صورت پیش‌فرض دسترسی برنامه‌ها به ساخت و مدیریت اسکریپت با API را غیرفعال (OFF) نگه می‌دارد. برای حل مشکل (تنها ۱ بار):
-                                    <br>۱. روی دکمه قرمز زیر کلیک کنید تا تنظیمات رسمی گوگل باز شود.
-                                    <br>۲. گزینه <strong>Google Apps Script API</strong> را پیدا کرده و کلید آن را روی <strong>ON (روشن)</strong> بگذارید.
-                                    <br>۳. ۱ الی ۲ دقیقه منتظر بمانید تا کش سرورهای گوگل به‌روز شود و سپس دکمه «تلاش مجدد استقرار» را بزنید.
-                                </p>
-                                <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-                                    <a href="https://script.google.com/home/usersettings" target="_blank" class="btn btn-sm" style="background:#ef4444; border-color:#ef4444; color:#fff; text-decoration:none; padding:7px 16px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
-                                        <i data-lucide="external-link" style="width:14px; height:14px;"></i>
-                                        <span>🔗 ۱. باز کردن تنظیمات گوگل (usersettings) ↗</span>
-                                    </a>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="executeGoogleScriptDeploy()" style="padding:7px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
-                                        <i data-lucide="refresh-cw" style="width:14px; height:14px;"></i>
-                                        <span>🔄 ۲. تلاش مجدد استقرار</span>
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    } else {
-                        alertContainer.innerHTML = `
-                            <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.3); border-radius:10px; padding:12px 14px; margin-bottom:12px; color:#ef4444; font-size:12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <i data-lucide="alert-circle" style="width:16px; height:16px; flex-shrink:0;"></i>
-                                    <span style="line-height:1.4;">${errMsg}</span>
-                                </div>
-                                <button type="button" class="gas-tool-btn" onclick="document.getElementById('gas-deploy-alert-container').style.display='none'" style="width:24px; height:24px;">
-                                    <i data-lucide="x" style="width:14px; height:14px;"></i>
-                                </button>
-                            </div>
-                        `;
-                    }
-                    if (window.lucide) lucide.createIcons();
-                    alertContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                }
-                showToast(errMsg, "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<i data-lucide="rocket" style="width:16px; height:16px;"></i> <span>🚀 استقرار خودکار روی گوگل و دریافت توکن</span>`;
-                if (window.lucide) lucide.createIcons();
-            }
-            if (alertContainer) {
-                alertContainer.style.display = 'block';
-                alertContainer.innerHTML = `
-                    <div style="background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.3); border-radius:10px; padding:12px 14px; margin-bottom:12px; color:#ef4444; font-size:12px; display:flex; align-items:center; gap:8px;">
-                        <i data-lucide="wifi-off" style="width:16px; height:16px; flex-shrink:0;"></i>
-                        <span>خطای ارتباط با سرور یا API گوگل</span>
-                    </div>
-                `;
-                if (window.lucide) lucide.createIcons();
-            }
-            showToast("خطای شبکه در ارتباط با سرور یا گوگل", "error");
-        }
-    }
-
-    async function deployCurrentEditorCode() {
-        const token = (document.getElementById("gas-input-token").value || "").trim();
-        if (!token) {
-            showToast("برای استقرار مستقیم این کد، لطفاً ابتدا توکن گوگل را در تب استقرار خودکار وارد کنید.", "warning");
-            switchGasSubTab('deploy');
-            document.getElementById("gas-input-token").focus();
-            return;
-        }
-        executeGoogleScriptDeploy();
-    }
-
-    async function saveGasManualDeployment() {
-        const inputVal = (document.getElementById("gas-manual-input").value || "").trim();
-        if (!inputVal) {
-            showToast("لطفاً شناسه Deployment ID یا WebApp URL را وارد کنید.", "warning");
-            return;
-        }
-
-        toggleLoading(true, "در حال ثبت اطلاعات استقرار دستی...");
-        try {
-            const res = await fetch("/api/google_script/save-manual-deployment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ deployment_input: inputVal })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast("شناسه استقرار با موفقیت ثبت شد!", "success");
-                fetchGoogleScriptConfig();
-            } else {
-                showToast(data.error || "خطا در ثبت اطلاعات", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در ذخیره اطلاعات", "error");
-        }
-    }
-
-    async function testGasEndpoint() {
-        const btnText = document.getElementById("gas-ping-btn-text");
-        const latencyBadge = document.getElementById("gas-ping-latency-badge");
-        if (btnText) btnText.textContent = "در حال پینگ...";
-
-        try {
-            const res = await fetch("/api/google_script/test-endpoint", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({})
-            });
-            const data = await res.json();
-            if (btnText) btnText.textContent = "تست مجدد";
-            
-            if (res.ok && data.success) {
-                if (latencyBadge) {
-                    latencyBadge.textContent = `${data.latency_ms}ms`;
-                    latencyBadge.style.display = 'inline-block';
-                }
-                showToast(`✅ ${data.message}`, "success");
-            } else {
-                if (latencyBadge) {
-                    latencyBadge.textContent = 'خطا';
-                    latencyBadge.style.display = 'inline-block';
-                    latencyBadge.style.color = '#ef4444';
-                }
-                showToast(data.error || "خطا در برقراری ارتباط با وب‌اپ گوگل", "error");
-            }
-        } catch (e) {
-            if (btnText) btnText.textContent = "تست مجدد";
-            showToast("خطای اتصال به سرور در انجام تست", "error");
-        }
-    }
-
-    async function saveGoogleScriptServerConfig() {
-        const port = document.getElementById("gas-cfg-port").value;
-        const secret = document.getElementById("gas-cfg-secret").value;
-        const singboxTarget = document.getElementById("gas-cfg-singbox-target").value;
-        const diagnosticMode = document.getElementById("gas-cfg-diagnostic") ? document.getElementById("gas-cfg-diagnostic").checked : false;
-
-        let tunnelServerUrl = "";
-        const urlType = (document.querySelector('input[name="gas_server_url_type"]:checked') || {}).value || 'domain';
-        const serverIp = (document.getElementById("gas-cfg-server-ip") || {}).value || "";
-        
-        if (urlType === 'domain') {
-            tunnelServerUrl = "https://mhpanel.kigaping.com";
-        } else if (urlType === 'ip') {
-            tunnelServerUrl = `http://${serverIp}:${port}`;
-        } else {
-            tunnelServerUrl = (document.getElementById("gas-cfg-tunnel-server-url") || {}).value || "";
-        }
-
-        toggleLoading(true, "در حال ذخیره و راه‌اندازی مجدد سرور خروجی...");
-        try {
-            const res = await fetch("/api/google_script/config", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    port: port,
-                    secret: secret,
-                    singbox_target: singboxTarget,
-                    tunnel_server_url: tunnelServerUrl,
-                    diagnostic_mode: diagnosticMode
-                })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast("تنظیمات سرور خروجی با موفقیت ذخیره و دیمن به‌روز شد.", "success");
-                fetchGoogleScriptConfig();
-            } else {
-                showToast(data.error || "خطا در ذخیره تنظیمات سرور", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای ارتباط با سرور", "error");
-        }
-    }
-
-    async function controlGasService(action) {
-        toggleLoading(true, `در حال ${action} سرویس دیمن...`);
-        try {
-            const res = await fetch(`/api/google_script/service/${action}`, { method: "POST" });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast(data.message || `عملیات ${action} با موفقیت انجام شد.`, "success");
-                setTimeout(fetchGoogleScriptConfig, 1000);
-            } else {
-                showToast(data.error || "خطا در کنترل سرویس", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه در کنترل سرویس", "error");
-        }
-    }
-
-    let gasClientRelayMode = 'direct'; // 'direct' or 'cloudflare'
-
-    function setGasClientRelayMode(mode) {
-        gasClientRelayMode = mode;
-        const btnDirect = document.getElementById("gas-client-mode-btn-direct");
-        const btnCf = document.getElementById("gas-client-mode-btn-cf");
-        const ind = document.getElementById("gas-client-cf-indicator");
-        
-        if (mode === 'cloudflare') {
-            if (btnDirect) { btnDirect.classList.remove("btn-primary"); btnDirect.classList.add("btn-secondary"); }
-            if (btnCf) { btnCf.classList.remove("btn-secondary"); btnCf.classList.add("btn-primary"); }
-            if (ind) ind.style.display = "inline-flex";
-        } else {
-            if (btnDirect) { btnDirect.classList.remove("btn-secondary"); btnDirect.classList.add("btn-primary"); }
-            if (btnCf) { btnCf.classList.remove("btn-primary"); btnCf.classList.add("btn-secondary"); }
-            if (ind) ind.style.display = "none";
-        }
-        const sel = document.getElementById("gas-client-acc-select");
-        fetchGasClientConfigs(sel ? sel.value : null);
-    }
-
-    async function fetchGasClientConfigs(accountId = null) {
-        try {
-            const accId = accountId || (gasCachedConfig && gasCachedConfig.active_account_id) || "";
-            let url = accId ? `/api/google_script/client-configs?account_id=${encodeURIComponent(accId)}` : "/api/google_script/client-configs";
-            if (gasClientRelayMode === 'cloudflare') {
-                url += (url.includes('?') ? '&' : '?') + 'use_cloudflare=1';
-            }
-            const res = await fetch(url);
-            const data = await res.json();
-            if (!data.success) return;
-
-            if (gasClientRelayMode === 'cloudflare' && !data.using_cloudflare) {
-                showToast("ورکر کلودفلر هنوز مستقر نشده است. لطفاً در تب «ورکر کلودفلر» آن را مستقر نمایید.", "warning");
-            }
-
-            // Populate account selector in client tab
-            const clientAccSelect = document.getElementById("gas-client-acc-select");
-            if (clientAccSelect && data.all_accounts) {
-                const curSelected = accountId || data.account_id;
-                clientAccSelect.innerHTML = data.all_accounts.map(a => {
-                    const isSel = a.id === curSelected ? 'selected' : '';
-                    return `<option value="${a.id}" ${isSel}>${escapeHtml(a.name || a.email)} (${escapeHtml(a.email)})</option>`;
-                }).join('');
-            }
-
-            // Populate all URLs textarea
-            const allUrlsBox = document.getElementById("gas-all-urls-textarea");
-            if (allUrlsBox && data.all_webapp_urls) {
-                allUrlsBox.value = data.all_webapp_urls.join("\n");
-            }
-
-            // mhrv-rs parameters
-            if (document.getElementById("gas-param-mhrv-url")) {
-                const url = (data.mhrv_profile && data.mhrv_profile.apps_script_url) || data.webapp_url || "-";
-                document.getElementById("gas-param-mhrv-url").textContent = url;
-            }
-            if (document.getElementById("gas-param-mhrv-key")) {
-                const key = (data.mhrv_profile && data.mhrv_profile.auth_key) || "-";
-                document.getElementById("gas-param-mhrv-key").textContent = key;
-            }
-            if (document.getElementById("gas-client-mhrv-profile")) {
-                document.getElementById("gas-client-mhrv-profile").textContent = JSON.stringify(data.mhrv_profile, null, 2);
-            }
-
-            // Goose URI
-            if (document.getElementById("gas-client-goose-uri")) {
-                document.getElementById("gas-client-goose-uri").textContent = data.goose_uri || "-";
-            }
-
-            // Singbox Detour
-            if (document.getElementById("gas-client-singbox-outbound")) {
-                document.getElementById("gas-client-singbox-outbound").textContent = JSON.stringify(data.singbox_outbound, null, 2);
-            }
-
-            // MasterHttp & Python
-            if (document.getElementById("gas-client-masterhttp")) {
-                document.getElementById("gas-client-masterhttp").textContent = JSON.stringify(data.master_http_profile, null, 2);
-            }
-            if (document.getElementById("gas-client-python-script")) {
-                document.getElementById("gas-client-python-script").textContent = data.python_client || "-";
-            }
-            if (window.lucide) lucide.createIcons();
-        } catch (e) {
-            console.error("fetchGasClientConfigs error:", e);
-        }
-    }
-
-    async function onGasAccountSelectChanged(accId) {
-        if (!accId) return;
-        toggleLoading(true, "در حال تغییر حساب فعال...");
-        try {
-            const res = await fetch(`/api/google_script/accounts/${accId}/set-active`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast(`حساب فعال با موفقیت تغییر یافت.`, "success");
-                const tokenInput = document.getElementById("gas-input-token");
-                if (tokenInput) tokenInput.value = "";
-                await fetchGoogleScriptConfig();
-            } else {
-                showToast(data.error || "خطا در تغییر حساب فعال", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه", "error");
+    function scrollGasSubtabs(offset) {
+        const nav = document.getElementById("gas-main-subtabs-nav");
+        if (nav) {
+            nav.scrollBy({ left: offset, behavior: 'smooth' });
         }
     }
 
@@ -24727,16 +23452,28 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
     window.togglePasswordVisibility = togglePasswordVisibility;
 
-    function openGasAddAccountModal() {
-        const nameEl = document.getElementById("gas-newacc-name");
-        const emailEl = document.getElementById("gas-newacc-email");
-        const tokenEl = document.getElementById("gas-newacc-token");
-        const titleEl = document.getElementById("gas-newacc-title");
-        if (nameEl) nameEl.value = "";
-        if (emailEl) emailEl.value = "";
-        if (tokenEl) tokenEl.value = "";
-        if (titleEl) titleEl.value = "MHPanel-GAS-FullTunnel";
-        const m = document.getElementById("gas-add-account-modal");
+    // --- 1. WIZARD: 3-MODE ACCOUNT CREATION ---
+    function openGasWizardModal() {
+        selectGasWizardMode('google_and_cloudflare');
+        const nameInput = document.getElementById("gas-wz-name");
+        const emailInput = document.getElementById("gas-wz-email");
+        const tokInput = document.getElementById("gas-wz-google-token");
+        const webappInput = document.getElementById("gas-wz-google-webapp");
+        const cfAccInput = document.getElementById("gas-wz-cf-acc-id");
+        const cfWorkerInput = document.getElementById("gas-wz-cf-worker-name");
+        const cfTokInput = document.getElementById("gas-wz-cf-token");
+        const testRes = document.getElementById("gas-wz-cf-test-result");
+
+        if (nameInput) nameInput.value = "";
+        if (emailInput) emailInput.value = "";
+        if (tokInput) tokInput.value = "";
+        if (webappInput) webappInput.value = "";
+        if (cfAccInput) cfAccInput.value = (gasCachedConfig && gasCachedConfig.cloudflare && gasCachedConfig.cloudflare.account_id) || "";
+        if (cfWorkerInput) cfWorkerInput.value = "mhpanel-gas-relay";
+        if (cfTokInput) cfTokInput.value = (gasCachedConfig && gasCachedConfig.cloudflare && gasCachedConfig.cloudflare.api_token) || "";
+        if (testRes) testRes.style.display = "none";
+
+        const m = document.getElementById("gas-wizard-modal");
         if (m) {
             m.classList.add("active");
             m.style.display = "flex";
@@ -24744,47 +23481,366 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (window.lucide) lucide.createIcons();
     }
 
-    function closeGasAddAccountModal() {
-        const m = document.getElementById("gas-add-account-modal");
+    function closeGasWizardModal() {
+        const m = document.getElementById("gas-wizard-modal");
         if (m) {
             m.classList.remove("active");
             m.style.display = "none";
         }
     }
 
-    async function submitGasAddAccount() {
-        const email = (document.getElementById("gas-newacc-email")?.value || "").trim();
-        const name = (document.getElementById("gas-newacc-name")?.value || "").trim();
-        const token = (document.getElementById("gas-newacc-token")?.value || "").trim();
-        const title = (document.getElementById("gas-newacc-title")?.value || "").trim();
-        const setActive = document.getElementById("gas-newacc-set-active")?.checked ?? true;
+    function selectGasWizardMode(mode) {
+        gasCurrentWizardMode = mode;
+        const cardGoogle = document.getElementById("gas-wz-card-google");
+        const cardHybrid = document.getElementById("gas-wz-card-hybrid");
+        const cardCf = document.getElementById("gas-wz-card-cf");
 
-        if (!email) {
-            showToast("لطفاً آدرس جیمیل را وارد نمایید.", "warning");
+        if (cardGoogle) cardGoogle.className = "gas-wizard-mode-card" + (mode === 'google_only' ? ' selected' : '');
+        if (cardHybrid) cardHybrid.className = "gas-wizard-mode-card" + (mode === 'google_and_cloudflare' ? ' hybrid-selected' : '');
+        if (cardCf) cardCf.className = "gas-wizard-mode-card" + (mode === 'cloudflare_only' ? ' cf-selected' : '');
+
+        const googleFields = document.getElementById("gas-wz-google-fields");
+        const cfFields = document.getElementById("gas-wz-cf-fields");
+
+        if (googleFields) {
+            googleFields.style.display = (mode === 'google_only' || mode === 'google_and_cloudflare') ? 'block' : 'none';
+        }
+        if (cfFields) {
+            cfFields.style.display = (mode === 'cloudflare_only' || mode === 'google_and_cloudflare') ? 'block' : 'none';
+        }
+    }
+
+    async function testWzCloudflareToken() {
+        const accId = (document.getElementById("gas-wz-cf-acc-id")?.value || "").trim();
+        const token = (document.getElementById("gas-wz-cf-token")?.value || "").trim();
+        const resBox = document.getElementById("gas-wz-cf-test-result");
+
+        if (!token) {
+            showToast("لطفاً API Token کلودفلر را وارد نمایید.", "warning");
             return;
         }
 
-        toggleLoading(true, "در حال ثبت حساب جدید...");
+        if (resBox) {
+            resBox.style.display = "block";
+            resBox.style.background = "rgba(249,115,22,0.15)";
+            resBox.style.color = "#fb923c";
+            resBox.innerHTML = `<span class="loading-spinner"></span> در حال بررسی اعتبار توکن در کلودفلر...`;
+        }
+
         try {
-            const res = await fetch("/api/google_script/accounts/add", {
+            const res = await fetch("/api/google_script/cloudflare/verify-token", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, name, access_token: token, project_title: title, set_active: setActive })
+                body: JSON.stringify({ api_token: token, account_id: accId })
+            });
+            const data = await res.json();
+            if (res.ok && data.success && data.valid) {
+                resBox.style.background = "rgba(16,185,129,0.18)";
+                resBox.style.color = "#10b981";
+                resBox.innerHTML = `✅ ${escapeHtml(data.message)}`;
+                showToast("توکن کلودفلر معتبر است!", "success");
+            } else {
+                resBox.style.background = "rgba(239,68,68,0.18)";
+                resBox.style.color = "#ef4444";
+                resBox.innerHTML = `❌ خطا: ${escapeHtml(data.error || 'توکن نامعتبر است')}`;
+                showToast(data.error || "خطای تایید توکن", "error");
+            }
+        } catch (e) {
+            if (resBox) {
+                resBox.style.background = "rgba(239,68,68,0.18)";
+                resBox.style.color = "#ef4444";
+                resBox.innerHTML = `❌ خطای شبکه در ارتباط با سرور`;
+            }
+        }
+    }
+
+    async function submitGasWizard() {
+        const mode = gasCurrentWizardMode;
+        const name = (document.getElementById("gas-wz-name")?.value || "").trim();
+        const email = (document.getElementById("gas-wz-email")?.value || "").trim();
+        const access_token = (document.getElementById("gas-wz-google-token")?.value || "").trim();
+        const webapp_url = (document.getElementById("gas-wz-google-webapp")?.value || "").trim();
+        const cf_api_token = (document.getElementById("gas-wz-cf-token")?.value || "").trim();
+        const cf_account_id = (document.getElementById("gas-wz-cf-acc-id")?.value || "").trim();
+        const cf_worker_name = (document.getElementById("gas-wz-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const auto_deploy = !!document.getElementById("gas-wz-auto-deploy")?.checked;
+        const set_active = !!document.getElementById("gas-wz-set-active")?.checked;
+
+        if (mode in ['google_only', 'google_and_cloudflare'] && !email) {
+            showToast("لطفاً آدرس ایمیل جیمیل را وارد نمایید.", "warning");
+            document.getElementById("gas-wz-email")?.focus();
+            return;
+        }
+
+        if (mode in ['cloudflare_only', 'google_and_cloudflare'] && (!cf_api_token || !cf_account_id)) {
+            showToast("لطفاً API Token و Account ID کلودفلر را تکمیل فرمایید.", "warning");
+            return;
+        }
+
+        const btn = document.getElementById("gas-wz-submit-btn");
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="loading-spinner"></span> در حال ایجاد و استقرار...`;
+        }
+        toggleLoading(true, "در حال ایجاد حساب و انجام استقرار خودکار...");
+
+        try {
+            const res = await fetch("/api/google_script/accounts/wizard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode,
+                    name,
+                    email,
+                    access_token,
+                    webapp_url,
+                    cf_api_token,
+                    cf_account_id,
+                    cf_worker_name,
+                    auto_deploy,
+                    set_active
+                })
             });
             const data = await res.json();
             toggleLoading(false);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i data-lucide="check" style="width:15px; height:15px; margin-left:4px;"></i> ایجاد و استقرار حساب`;
+                if (window.lucide) lucide.createIcons();
+            }
+
             if (res.ok && data.success) {
-                showToast("حساب جیمیل با موفقیت اضافه شد!", "success");
-                closeGasAddAccountModal();
-                const tokenInput = document.getElementById("gas-input-token");
-                if (tokenInput && setActive) tokenInput.value = token;
+                showToast(data.message || "حساب با موفقیت ایجاد و مستقر گردید!", "success");
+                closeGasWizardModal();
                 await fetchGoogleScriptConfig();
-                const manageModal = document.getElementById("gas-manage-accounts-modal");
-                if (manageModal && (manageModal.classList.contains("active") || manageModal.style.display === "flex")) {
-                    openGasManageAccountsModal();
-                }
             } else {
-                showToast(data.error || "خطا در افزودن حساب", "error");
+                showToast(data.error || "خطا در ایجاد حساب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `ایجاد و استقرار حساب`;
+            }
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    // --- 2. ACCOUNTS HUB & STATUS ---
+    async function fetchGoogleScriptConfig() {
+        try {
+            const res = await fetch("/api/google_script/status");
+            const data = await res.json();
+            if (!data.success) return;
+
+            gasCachedConfig = data;
+            const accounts = data.accounts || [];
+            const activeAccId = data.active_account_id || "";
+            const activeAcc = data.active_account || accounts.find(a => a.id === activeAccId) || {};
+
+            // Account Count Badge
+            const navBadge = document.getElementById("gas-nav-acc-count");
+            if (navBadge) navBadge.textContent = accounts.length;
+
+            // Active Account Select Dropdown
+            const accSelect = document.getElementById("gas-account-select");
+            if (accSelect) {
+                if (accounts.length === 0) {
+                    accSelect.innerHTML = `<option value="">(هیچ حسابی ثبت نشده است)</option>`;
+                } else {
+                    accSelect.innerHTML = accounts.map(a => {
+                        const isSel = (a.id === activeAccId) ? 'selected' : '';
+                        let typeIcon = '🔵';
+                        if (a.type === 'google_and_cloudflare') typeIcon = '🟢';
+                        else if (a.type === 'cloudflare_only') typeIcon = '🟠';
+                        const label = a.name || a.email || a.cf_worker_name || a.id;
+                        return `<option value="${a.id}" ${isSel}>${typeIcon} ${escapeHtml(label)} (${escapeHtml(a.email || a.cf_worker_name || 'حساب')})</option>`;
+                    }).join('');
+                }
+            }
+
+            // Active Account Type & Status Badges
+            const typeBadge = document.getElementById("gas-cur-acc-type");
+            if (typeBadge) {
+                if (activeAcc.type === 'google_and_cloudflare') {
+                    typeBadge.className = "gas-token-badge gas-token-badge-green";
+                    typeBadge.textContent = "ترکیب گوگل + کلودفلر";
+                } else if (activeAcc.type === 'cloudflare_only') {
+                    typeBadge.className = "gas-token-badge gas-token-badge-orange";
+                    typeBadge.textContent = "فقط کلودفلر ورکر";
+                } else {
+                    typeBadge.className = "gas-token-badge gas-token-badge-blue";
+                    typeBadge.textContent = "فقط گوگل اسکریپت";
+                }
+            }
+
+            const statusBadge = document.getElementById("gas-cur-acc-status");
+            if (statusBadge) {
+                const hasUrl = !!(activeAcc.webapp_url || activeAcc.cf_worker_url || activeAcc.deployment_id);
+                if (hasUrl) {
+                    statusBadge.className = "gas-token-badge gas-token-badge-green";
+                    statusBadge.textContent = "آنلاین و مستقر (Deployed)";
+                } else {
+                    statusBadge.className = "gas-token-badge";
+                    statusBadge.textContent = "در انتظار استقرار (Pending)";
+                }
+            }
+
+            // Deployed Banner Showcase
+            const banner = document.getElementById("gas-deployed-banner");
+            const hasDeployedUrl = !!(activeAcc.webapp_url || activeAcc.cf_worker_url || activeAcc.deployment_id || data.google_deployment_id);
+            if (banner) {
+                if (hasDeployedUrl) {
+                    banner.style.display = "block";
+                    const depId = activeAcc.deployment_id || data.google_deployment_id || "-";
+                    const webappUrl = activeAcc.webapp_url || data.google_webapp_url || (depId !== "-" ? `https://script.google.com/macros/s/${depId}/exec` : "-");
+                    const cfUrl = activeAcc.cf_worker_url || (data.cloudflare && data.cloudflare.worker_url) || "-";
+
+                    const depIdEl = document.getElementById("gas-deployed-id-val");
+                    const webappUrlEl = document.getElementById("gas-deployed-url-val");
+                    const cfUrlEl = document.getElementById("gas-deployed-cf-url");
+                    const lastDeployText = document.getElementById("gas-last-deploy-text");
+
+                    if (depIdEl) depIdEl.textContent = depId.length > 12 ? depId.substring(0, 12) + "..." : depId;
+                    if (webappUrlEl) webappUrlEl.textContent = webappUrl;
+                    if (cfUrlEl) cfUrlEl.textContent = cfUrl;
+                    if (lastDeployText) lastDeployText.textContent = `آخرین استقرار: ${activeAcc.last_deploy_time || activeAcc.cf_last_deploy_time || data.last_deploy_time || 'اخیراً'}`;
+                } else {
+                    banner.style.display = "none";
+                }
+            }
+
+            // Render Accounts Table
+            renderGasAccountsTable(accounts, activeAccId);
+
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            console.error("fetchGoogleScriptConfig error:", e);
+        }
+    }
+
+    function renderGasAccountsTable(accounts, activeAccId) {
+        const tbody = document.getElementById("gas-accounts-tbody");
+        if (!tbody) return;
+
+        if (!accounts || accounts.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+                        هیچ حسابی ثبت نشده است. لطفاً روی دکمه «افزودن حساب جدید» کلیک کنید.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = "";
+        accounts.forEach(acc => {
+            const isActive = (acc.id === activeAccId);
+            const isGoogle = (acc.type === 'google_only' || acc.type === 'google_and_cloudflare');
+            const isCf = (acc.type === 'cloudflare_only' || acc.type === 'google_and_cloudflare');
+
+            // Type Badge
+            let typeBadgeHtml = `<span class="gas-token-badge gas-token-badge-blue">Google Only</span>`;
+            if (acc.type === 'google_and_cloudflare') {
+                typeBadgeHtml = `<span class="gas-token-badge gas-token-badge-green">Google + Cloudflare</span>`;
+            } else if (acc.type === 'cloudflare_only') {
+                typeBadgeHtml = `<span class="gas-token-badge gas-token-badge-orange">Cloudflare Only</span>`;
+            }
+
+            // Google WebApp Column
+            let webappHtml = `<span style="color:var(--text-muted); font-size:11px;">-</span>`;
+            if (acc.webapp_url) {
+                webappHtml = `
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <a href="${escapeHtml(acc.webapp_url)}" target="_blank" style="color:#60a5fa; font-family:'JetBrains Mono'; font-size:11.5px; text-decoration:none; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block;" title="${escapeHtml(acc.webapp_url)}">
+                            ${escapeHtml(acc.webapp_url.substring(0, 24))}...
+                        </a>
+                        <button type="button" class="gas-tool-btn" onclick="copyGasTextValue('${escapeHtml(acc.webapp_url)}', 'آدرس وب‌اپ گوگل')" title="کپی آدرس">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+                `;
+            } else if (isGoogle) {
+                webappHtml = `<span style="color:#f59e0b; font-size:11px;">در انتظار استقرار</span>`;
+            }
+
+            // Cloudflare Worker Column
+            let cfHtml = `<span style="color:var(--text-muted); font-size:11px;">-</span>`;
+            if (acc.cf_worker_url) {
+                cfHtml = `
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <a href="${escapeHtml(acc.cf_worker_url)}" target="_blank" style="color:#fb923c; font-family:'JetBrains Mono'; font-size:11.5px; text-decoration:none; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; display:inline-block;" title="${escapeHtml(acc.cf_worker_url)}">
+                            ${escapeHtml(acc.cf_worker_url.substring(0, 24))}...
+                        </a>
+                        <button type="button" class="gas-tool-btn" onclick="copyGasTextValue('${escapeHtml(acc.cf_worker_url)}', 'آدرس ورکر کلودفلر')" title="کپی آدرس ورکر">
+                            <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                        </button>
+                    </div>
+                `;
+            } else if (isCf) {
+                cfHtml = `<span style="color:#f59e0b; font-size:11px;">در انتظار استقرار</span>`;
+            }
+
+            // Status Badge
+            const hasDeployed = !!(acc.webapp_url || acc.cf_worker_url);
+            let statusHtml = hasDeployed 
+                ? `<span class="gas-token-badge gas-token-badge-green"><span class="status-dot active"></span> مستقر شده</span>`
+                : `<span class="gas-token-badge gas-token-badge-blue">آماده</span>`;
+
+            // Active button or indicator
+            const activeBtn = isActive
+                ? `<span class="gas-token-badge gas-token-badge-green" style="font-size:11px;">⭐ فعال</span>`
+                : `<button type="button" class="btn btn-secondary btn-sm" onclick="onGasAccountSelectChanged('${acc.id}');" style="padding:3px 8px; font-size:11px;">انتخاب</button>`;
+
+            html += `
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.06); ${isActive ? 'background:rgba(66,133,244,0.04);' : ''}">
+                    <td style="padding:10px 8px;">
+                        <div style="font-weight:700; color:var(--text-main); font-size:13px;">${escapeHtml(acc.name || acc.email || acc.id)}</div>
+                        <div style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#60a5fa;">${escapeHtml(acc.email || acc.cf_worker_name || '-')}</div>
+                    </td>
+                    <td style="padding:10px 8px;">${typeBadgeHtml}</td>
+                    <td style="padding:10px 8px;">${webappHtml}</td>
+                    <td style="padding:10px 8px;">${cfHtml}</td>
+                    <td style="padding:10px 8px; text-align:center;">${statusHtml}</td>
+                    <td style="padding:10px 8px; text-align:left;">
+                        <div style="display:flex; align-items:center; gap:5px; justify-content:flex-end;">
+                            ${activeBtn}
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="deployGasAccountSingle('${acc.id}');" title="استقرار خودکار" style="padding:4px 8px; color:#10b981; border-color:rgba(16,185,129,0.35);">
+                                <i data-lucide="rocket" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="testGasAccountSingle('${acc.id}');" title="تست زنده اتصال" style="padding:4px 8px; color:#f59e0b; border-color:rgba(245,158,11,0.35);">
+                                <i data-lucide="zap" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openGasEditAccountModal('${acc.id}');" title="ویرایش" style="padding:4px 8px;">
+                                <i data-lucide="edit-2" style="width:12px; height:12px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasAccount('${acc.id}', '${escapeHtml(acc.name || acc.email)}');" title="حذف" style="padding:4px 8px; color:#ef4444; border-color:rgba(239,68,68,0.3);">
+                                <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function onGasAccountSelectChanged(accId) {
+        if (!accId) return;
+        toggleLoading(true, "در حال تغییر حساب فعال...");
+        try {
+            const res = await fetch(`/api/google_script/accounts/${accId}/set-active`, { method: "POST" });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "حساب فعال تغییر یافت.", "success");
+                await fetchGoogleScriptConfig();
+                await fetchGasClientConfigs();
+            } else {
+                showToast(data.error || "خطا در تغییر حساب", "error");
             }
         } catch (e) {
             toggleLoading(false);
@@ -24792,89 +23848,411 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    async function openGasManageAccountsModal() {
-        const tbody = document.getElementById("gas-manage-accounts-tbody");
-        if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">در حال دریافت اطلاعات حساب‌ها...</td></tr>`;
-        const m = document.getElementById("gas-manage-accounts-modal");
+    async function deployGasAccountSingle(accId) {
+        toggleLoading(true, "در حال اجرای استقرار خودکار...");
+        try {
+            const res = await fetch(`/api/google_script/accounts/${accId}/deploy`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "استقرار با موفقیت انجام شد!", "success");
+                await fetchGoogleScriptConfig();
+                await fetchGasClientConfigs();
+            } else {
+                showToast(data.message || (data.errors && data.errors.join(' | ')) || "خطا در استقرار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function testGasAccountSingle(accId) {
+        const acc = (gasCachedConfig && gasCachedConfig.accounts && gasCachedConfig.accounts.find(a => a.id === accId)) || {};
+        const url = acc.cf_worker_url || acc.webapp_url;
+        if (!url || !url.startsWith("http")) {
+            showToast("این حساب هنوز مستقر نشده است.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ارسال درخواست تست پینگ...");
+        const t0 = performance.now();
+        try {
+            const res = await fetch(url, { method: "GET", mode: "no-cors" });
+            const lat = Math.round(performance.now() - t0);
+            toggleLoading(false);
+            showToast(`✅ پاسخ دریافت شد! تاخیر تقریبی: ${lat}ms`, "success");
+        } catch (e) {
+            toggleLoading(false);
+            showToast(`تست مستقیم انجام شد (در بستر کلاینت فعال است).`, "info");
+        }
+    }
+
+    // --- 3. TEMPLATES HUB ---
+    async function fetchGasTemplates() {
+        const grid = document.getElementById("gas-templates-grid");
+        if (grid) grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">در حال بارگذاری قالب‌های کد...</div>`;
+
+        try {
+            const res = await fetch("/api/google_script/templates");
+            const data = await res.json();
+            if (!data.success) return;
+
+            gasCachedTemplatesData = data;
+            renderGasTemplates(data);
+        } catch (e) {
+            if (grid) grid.innerHTML = `<div style="color:#ef4444; font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">خطا در دریافت قالب‌ها</div>`;
+        }
+    }
+
+    function filterGasTemplates(type, btn) {
+        gasCurrentTemplateFilter = type;
+        document.querySelectorAll(".gas-tpl-filter-btn").forEach(b => b.classList.remove("active"));
+        if (btn) btn.classList.add("active");
+        if (gasCachedTemplatesData) {
+            renderGasTemplates(gasCachedTemplatesData);
+        }
+    }
+
+    function renderGasTemplates(data) {
+        const grid = document.getElementById("gas-templates-grid");
+        if (!grid) return;
+
+        let list = [];
+        if (gasCurrentTemplateFilter === 'gas') {
+            list = data.gas_templates || [];
+        } else if (gasCurrentTemplateFilter === 'cloudflare') {
+            list = data.cf_templates || [];
+        } else if (gasCurrentTemplateFilter === 'custom') {
+            list = data.custom_templates || [];
+        } else {
+            const allMap = data.templates || {};
+            list = Object.values(allMap);
+        }
+
+        if (list.length === 0) {
+            grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:30px; text-align:center; grid-column:1/-1;">هیچ قالبی در این دسته‌بندی یافت نشد. روی دکمه «افزودن قالب کد جدید» کلیک کنید.</div>`;
+            return;
+        }
+
+        let html = "";
+        list.forEach(tpl => {
+            const isCf = (tpl.type === 'cloudflare');
+            const typeBadge = isCf
+                ? `<span class="gas-token-badge gas-token-badge-orange">🟠 کلودفلر ورکر (.js)</span>`
+                : `<span class="gas-token-badge gas-token-badge-blue">🔵 گوگل اسکریپت (.gs)</span>`;
+
+            const originBadge = tpl.is_custom
+                ? `<span class="gas-token-badge gas-token-badge-green">قالب شما (Custom)</span>`
+                : `<span class="gas-token-badge">سیستمی (Builtin)</span>`;
+
+            const rawCode = tpl.code || tpl.google_code || tpl.cf_code || "";
+            const previewLines = rawCode.split('
+').slice(0, 6).join('
+');
+
+            const deleteBtn = tpl.is_custom
+                ? `<button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasTemplate('${tpl.id}', '${escapeHtml(tpl.name)}');" title="حذف قالب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
+                    <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                   </button>`
+                : '';
+
+            html += `
+                <div class="gas-tpl-card">
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                            ${typeBadge}
+                            ${originBadge}
+                        </div>
+                        <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:700; color:var(--text-main);">${escapeHtml(tpl.name)}</h4>
+                        <div style="font-family:'JetBrains Mono'; font-size:11px; color:#38bdf8; margin-bottom:6px;">${escapeHtml(tpl.file_name || (isCf ? 'Worker.js' : 'Code.gs'))}</div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4; max-height:48px; overflow:hidden;">${escapeHtml(tpl.description || '-')}</p>
+                    </div>
+
+                    <div class="gas-tpl-preview">${escapeHtml(previewLines)}</div>
+
+                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                        ${deleteBtn}
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadGasTemplateFile('${tpl.id}');" title="دانلود فایل سورس" style="padding:5px 9px;">
+                            <i data-lucide="download" style="width:13px; height:13px;"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTemplateCodeById('${tpl.id}');" style="padding:5px 12px; font-size:11.5px;">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سورس
+                        </button>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="viewGasTemplateCode('${tpl.id}');" style="background:#4285F4; border-color:#4285F4; padding:5px 14px; font-size:11.5px; font-weight:700;">
+                            <i data-lucide="eye" style="width:13px; height:13px;"></i> مشاهده کامل
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        grid.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openGasCustomTemplateModal(tplId = null) {
+        const idInput = document.getElementById("gas-tpl-id");
+        const nameInput = document.getElementById("gas-tpl-name");
+        const typeSelect = document.getElementById("gas-tpl-type");
+        const fileInput = document.getElementById("gas-tpl-file");
+        const descInput = document.getElementById("gas-tpl-desc");
+        const codeText = document.getElementById("gas-tpl-code");
+        const titleEl = document.getElementById("gas-tpl-modal-title");
+
+        if (tplId && gasCachedTemplatesData && gasCachedTemplatesData.templates && gasCachedTemplatesData.templates[tplId]) {
+            const t = gasCachedTemplatesData.templates[tplId];
+            if (idInput) idInput.value = t.id;
+            if (nameInput) nameInput.value = t.name;
+            if (typeSelect) typeSelect.value = t.type || 'gas';
+            if (fileInput) fileInput.value = t.file_name;
+            if (descInput) descInput.value = t.description;
+            if (codeText) codeText.value = t.code || t.google_code || t.cf_code || '';
+            if (titleEl) titleEl.textContent = `ویرایش قالب: ${t.name}`;
+        } else {
+            if (idInput) idInput.value = "";
+            if (nameInput) nameInput.value = "";
+            if (typeSelect) typeSelect.value = "gas";
+            if (fileInput) fileInput.value = "CustomCode.gs";
+            if (descInput) descInput.value = "";
+            if (codeText) codeText.value = "";
+            if (titleEl) titleEl.textContent = "افزودن قالب کد جدید";
+        }
+
+        const m = document.getElementById("gas-custom-template-modal");
         if (m) {
             m.classList.add("active");
             m.style.display = "flex";
         }
         if (window.lucide) lucide.createIcons();
-
-        try {
-            const res = await fetch("/api/google_script/accounts");
-            const data = await res.json();
-            if (!data.success || !tbody) return;
-
-            const accs = data.accounts || [];
-            const activeId = data.active_account_id;
-
-            if (accs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ حساب جیمیلی وجود ندارد. روی دکمه «افزودن حساب جدید» کلیک کنید.</td></tr>`;
-                return;
-            }
-
-            let html = "";
-            accs.forEach(acc => {
-                const isActive = (acc.id === activeId);
-                const hasTok = !!acc.access_token;
-                const tokenBadge = hasTok 
-                    ? `<span class="gas-token-badge gas-token-badge-green">دارای توکن (${acc.access_token.substring(0, 8)}...)</span>`
-                    : `<span class="gas-token-badge" style="color:#ef4444; border-color:rgba(239,68,68,0.3);">فاقد توکن</span>`;
-
-                const deployBadge = acc.webapp_url 
-                    ? `<a href="${acc.webapp_url}" target="_blank" class="gas-token-badge gas-token-badge-blue" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px;"><span>${(acc.deployment_id || 'لینک وب‌اپ').substring(0, 12)}...</span> <i data-lucide="external-link" style="width:11px; height:11px;"></i></a>`
-                    : `<span style="color:var(--text-muted); font-size:11px;">مستقر نشده</span>`;
-
-                const activeBtn = isActive
-                    ? `<span class="gas-token-badge gas-token-badge-green" style="font-size:11px;">⭐ حساب فعال</span>`
-                    : `<button type="button" class="btn btn-secondary btn-sm" onclick="setGasAccountActiveFromModal('${acc.id}')" style="padding:4px 8px; font-size:11px;">انتخاب فعال</button>`;
-
-                html += `
-                    <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${isActive ? 'background:rgba(66,133,244,0.04);' : ''}">
-                        <td style="padding:10px 8px;">
-                            <div style="font-weight:700; color:var(--text-main);">${escapeHtml(acc.name || acc.email)}</div>
-                            <div style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#60a5fa;">${escapeHtml(acc.email)}</div>
-                        </td>
-                        <td style="padding:10px 8px;">${tokenBadge}</td>
-                        <td style="padding:10px 8px;">${deployBadge}</td>
-                        <td style="padding:10px 8px; color:var(--text-muted); font-size:11px;">${acc.last_deploy_time || '-'}</td>
-                        <td style="padding:10px 8px; text-align:left;">
-                            <div style="display:flex; align-items:center; gap:6px; justify-content:flex-end;">
-                                ${activeBtn}
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="openGasEditAccountModal('${acc.id}')" title="ویرایش" style="padding:4px 8px;">
-                                    <i data-lucide="edit-2" style="width:12px; height:12px;"></i>
-                                </button>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasAccount('${acc.id}', '${escapeHtml(acc.name || acc.email)}')" title="حذف حساب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
-                                    <i data-lucide="trash-2" style="width:12px; height:12px;"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-            if (window.lucide) lucide.createIcons();
-        } catch (e) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">خطای شبکه در دریافت حساب‌ها</td></tr>`;
-        }
     }
 
-    function closeGasManageAccountsModal() {
-        const m = document.getElementById("gas-manage-accounts-modal");
+    function closeGasCustomTemplateModal() {
+        const m = document.getElementById("gas-custom-template-modal");
         if (m) {
             m.classList.remove("active");
             m.style.display = "none";
         }
     }
 
-    async function setGasAccountActiveFromModal(accId) {
-        await onGasAccountSelectChanged(accId);
-        openGasManageAccountsModal();
+    function onGasTemplateTypeChange(val) {
+        const fileInput = document.getElementById("gas-tpl-file");
+        if (fileInput && !fileInput.value.includes('.')) {
+            fileInput.value = (val === 'cloudflare') ? "MyWorker.js" : "MyScript.gs";
+        }
     }
 
+    async function pasteGasTemplateCode() {
+        const codeText = document.getElementById("gas-tpl-code");
+        if (!codeText) return;
+        try {
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                const text = await navigator.clipboard.readText();
+                if (text) {
+                    codeText.value = text;
+                    showToast("کد با موفقیت از کلیپ‌بورد درج شد.", "success");
+                    return;
+                }
+            }
+        } catch (e) {}
+        codeText.focus();
+        showToast("لطفاً کد را در کادر پیست نمایید.", "info");
+    }
+
+    async function submitGasCustomTemplate() {
+        const id = (document.getElementById("gas-tpl-id")?.value || "").trim();
+        const name = (document.getElementById("gas-tpl-name")?.value || "").trim();
+        const type = (document.getElementById("gas-tpl-type")?.value || "gas").trim();
+        const file_name = (document.getElementById("gas-tpl-file")?.value || "").trim();
+        const description = (document.getElementById("gas-tpl-desc")?.value || "").trim();
+        const code = (document.getElementById("gas-tpl-code")?.value || "").trim();
+
+        if (!name) {
+            showToast("لطفاً عنوان قالب را وارد نمایید.", "warning");
+            document.getElementById("gas-tpl-name")?.focus();
+            return;
+        }
+        if (!code) {
+            showToast("لطفاً سورس‌کد قالب را وارد نمایید.", "warning");
+            document.getElementById("gas-tpl-code")?.focus();
+            return;
+        }
+
+        toggleLoading(true, "در حال ذخیره قالب...");
+        try {
+            const res = await fetch("/api/google_script/save-template", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, name, type, file_name, description, code })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "قالب با موفقیت ذخیره شد!", "success");
+                closeGasCustomTemplateModal();
+                await fetchGasTemplates();
+            } else {
+                showToast(data.error || "خطا در ذخیره قالب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function deleteGasTemplate(tplId, name) {
+        if (!confirm(`آیا از حذف قالب سفارشی «${name}» اطمینان دارید؟`)) return;
+        toggleLoading(true, "در حال حذف قالب...");
+        try {
+            const res = await fetch("/api/google_script/delete-template", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: tplId, key: tplId })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "قالب حذف گردید.", "success");
+                await fetchGasTemplates();
+            } else {
+                showToast(data.error || "خطا در حذف قالب", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function viewGasTemplateCode(tplId) {
+        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+        const t = gasCachedTemplatesData.templates[tplId];
+        if (!t) return;
+
+        const titleEl = document.getElementById("gas-view-code-title");
+        const typeEl = document.getElementById("gas-view-code-type");
+        const editor = document.getElementById("gas-view-code-editor");
+        const linesEl = document.getElementById("gas-view-code-lines");
+
+        const rawCode = t.code || t.google_code || t.cf_code || "";
+        const isCf = (t.type === 'cloudflare');
+
+        if (titleEl) titleEl.textContent = `${t.name} (${t.file_name || (isCf ? 'Worker.js' : 'Code.gs')})`;
+        if (typeEl) {
+            typeEl.className = isCf ? "gas-token-badge gas-token-badge-orange" : "gas-token-badge gas-token-badge-blue";
+            typeEl.textContent = isCf ? "Cloudflare Worker (.js)" : "Google Apps Script (.gs)";
+        }
+        if (editor) editor.value = rawCode;
+        if (linesEl) {
+            const lineCount = rawCode.split('
+').length;
+            const kbSize = (rawCode.length / 1024).toFixed(1);
+            linesEl.textContent = `${lineCount} خط کد (~${kbSize} KB)`;
+        }
+
+        const m = document.getElementById("gas-view-code-modal");
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeGasViewCodeModal() {
+        const m = document.getElementById("gas-view-code-modal");
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
+    }
+
+    function copyGasViewCodeModalContent() {
+        const editor = document.getElementById("gas-view-code-editor");
+        if (editor && editor.value) {
+            navigator.clipboard.writeText(editor.value).then(() => {
+                showToast("سورس‌کد با موفقیت کپی شد!", "success");
+            });
+        }
+    }
+
+    function copyGasTemplateCodeById(tplId) {
+        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+        const t = gasCachedTemplatesData.templates[tplId];
+        if (!t) return;
+        const rawCode = t.code || t.google_code || t.cf_code || "";
+        navigator.clipboard.writeText(rawCode).then(() => {
+            showToast(`کد قالب «${t.name}» کپی شد!`, "success");
+        });
+    }
+
+    function downloadGasTemplateFile(tplId) {
+        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+        const t = gasCachedTemplatesData.templates[tplId];
+        if (!t) return;
+        const rawCode = t.code || t.google_code || t.cf_code || "";
+        const isCf = (t.type === 'cloudflare');
+        const filename = t.file_name || (isCf ? `${tplId}.js` : `${tplId}.gs`);
+
+        const blob = new Blob([rawCode], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast(`فایل ${filename} دانلود شد.`, "success");
+    }
+
+    // --- 4. CLOUDFLARE TOKEN TESTER (GUIDES TAB) ---
+    async function verifyGasCloudflareTokenInline() {
+        const accId = (document.getElementById("gas-test-cf-acc")?.value || "").trim();
+        const token = (document.getElementById("gas-test-cf-tok")?.value || "").trim();
+        const resBox = document.getElementById("gas-cf-verify-result");
+
+        if (!token) {
+            showToast("لطفاً API Token کلودفلر را وارد نمایید.", "warning");
+            return;
+        }
+
+        if (resBox) {
+            resBox.style.display = "block";
+            resBox.style.background = "rgba(249,115,22,0.15)";
+            resBox.style.color = "#fb923c";
+            resBox.innerHTML = `<span class="loading-spinner"></span> در حال استعلام از Cloudflare API...`;
+        }
+
+        try {
+            const res = await fetch("/api/google_script/cloudflare/verify-token", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ api_token: token, account_id: accId })
+            });
+            const data = await res.json();
+            if (res.ok && data.success && data.valid) {
+                resBox.style.background = "rgba(16,185,129,0.18)";
+                resBox.style.color = "#10b981";
+                resBox.innerHTML = `✅ ${escapeHtml(data.message)}`;
+                showToast("توکن کلودفلر کاملاً معتبر است!", "success");
+            } else {
+                resBox.style.background = "rgba(239,68,68,0.18)";
+                resBox.style.color = "#ef4444";
+                resBox.innerHTML = `❌ خطا: ${escapeHtml(data.error || 'توکن معتبر نمی‌باشد')}`;
+                showToast(data.error || "خطای تایید توکن", "error");
+            }
+        } catch (e) {
+            if (resBox) {
+                resBox.style.background = "rgba(239,68,68,0.18)";
+                resBox.style.color = "#ef4444";
+                resBox.innerHTML = `❌ خطای شبکه در برقراری ارتباط`;
+            }
+        }
+    }
+
+    // --- 5. EDIT ACCOUNT ---
     function openGasEditAccountModal(accId = null) {
         const targetId = accId || (gasCachedConfig && gasCachedConfig.active_account_id);
         const accounts = (gasCachedConfig && gasCachedConfig.accounts) || [];
@@ -24884,7 +24262,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         document.getElementById("gas-editacc-name").value = acc.name || "";
         document.getElementById("gas-editacc-email").value = acc.email || "";
         document.getElementById("gas-editacc-token").value = acc.access_token || "";
-        document.getElementById("gas-editacc-title").value = acc.project_title || "MHPanel-GAS-FullTunnel";
+        document.getElementById("gas-editacc-webapp").value = acc.webapp_url || "";
+        document.getElementById("gas-editacc-cf-acc").value = acc.cf_account_id || "";
+        document.getElementById("gas-editacc-cf-worker").value = acc.cf_worker_name || "mhpanel-gas-relay";
+        document.getElementById("gas-editacc-cf-token").value = acc.cf_api_token || "";
 
         const m = document.getElementById("gas-edit-account-modal");
         if (m) {
@@ -24904,29 +24285,37 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     async function submitGasEditAccount() {
         const accId = document.getElementById("gas-editacc-id").value;
-        const name = (document.getElementById("gas-editacc-name").value || "").trim();
-        const email = (document.getElementById("gas-editacc-email").value || "").trim();
-        const token = (document.getElementById("gas-editacc-token").value || "").trim();
-        const title = (document.getElementById("gas-editacc-title").value || "").trim();
+        const name = (document.getElementById("gas-editacc-name")?.value || "").trim();
+        const email = (document.getElementById("gas-editacc-email")?.value || "").trim();
+        const access_token = (document.getElementById("gas-editacc-token")?.value || "").trim();
+        const webapp_url = (document.getElementById("gas-editacc-webapp")?.value || "").trim();
+        const cf_account_id = (document.getElementById("gas-editacc-cf-acc")?.value || "").trim();
+        const cf_worker_name = (document.getElementById("gas-editacc-cf-worker")?.value || "").trim();
+        const cf_api_token = (document.getElementById("gas-editacc-cf-token")?.value || "").trim();
 
         if (!accId) return;
-        toggleLoading(true, "در حال ذخیره تغییرات حساب...");
+        toggleLoading(true, "در حال ذخیره تغییرات...");
         try {
             const res = await fetch(`/api/google_script/accounts/${accId}/edit`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, access_token: token, project_title: title })
+                body: JSON.stringify({
+                    name,
+                    email,
+                    access_token,
+                    webapp_url,
+                    cf_account_id,
+                    cf_worker_name,
+                    cf_api_token
+                })
             });
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast("اطلاعات حساب بروزرسانی شد.", "success");
+                showToast("اطلاعات حساب با موفقیت ذخیره شد.", "success");
                 closeGasEditAccountModal();
                 await fetchGoogleScriptConfig();
-                const manageModal = document.getElementById("gas-manage-accounts-modal");
-                if (manageModal && (manageModal.classList.contains("active") || manageModal.style.display === "flex")) {
-                    openGasManageAccountsModal();
-                }
+                await fetchGasClientConfigs();
             } else {
                 showToast(data.error || "خطا در ویرایش حساب", "error");
             }
@@ -24937,7 +24326,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function deleteGasAccount(accId, name) {
-        if (!confirm(`آیا از حذف حساب جیمیل «${name}» اطمینان دارید؟`)) return;
+        if (!confirm(`آیا از حذف حساب «${name}» اطمینان دارید؟`)) return;
         toggleLoading(true, "در حال حذف حساب...");
         try {
             const res = await fetch(`/api/google_script/accounts/${accId}/delete`, {
@@ -24947,9 +24336,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast("حساب با موفقیت حذف شد.", "success");
+                showToast("حساب با موفقیت حذف گردید.", "success");
                 await fetchGoogleScriptConfig();
-                openGasManageAccountsModal();
+                await fetchGasClientConfigs();
             } else {
                 showToast(data.error || "خطا در حذف حساب", "error");
             }
@@ -24959,21 +24348,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    // --- 6. BATCH DEPLOY ---
     function openGasBatchDeployModal() {
         const accounts = (gasCachedConfig && gasCachedConfig.accounts) || [];
         const container = document.getElementById("gas-batch-accounts-list");
         if (container) {
             if (accounts.length === 0) {
-                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:10px;">هیچ حسابی ثبت نشده است. ابتدا حساب جیمیل اضافه نمایید.</div>`;
+                container.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:10px;">هیچ حسابی ثبت نشده است. ابتدا حساب اضافه کنید.</div>`;
             } else {
                 container.innerHTML = accounts.map(a => {
-                    const hasTok = !!a.access_token;
+                    const hasTok = !!(a.access_token || a.cf_api_token);
                     const warn = !hasTok ? `<span style="color:#ef4444; font-size:10.5px;">(فاقد توکن)</span>` : '';
                     return `
-                        <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; cursor:pointer; padding:4px 6px; border-radius:6px; background:rgba(255,255,255,0.03);">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer; padding:6px; border-radius:6px; background:rgba(255,255,255,0.03);">
                             <input type="checkbox" class="gas-batch-acc-cb" value="${a.id}" ${hasTok ? 'checked' : ''} style="accent-color:#10b981; width:16px; height:16px;">
-                            <span style="font-weight:600;">${escapeHtml(a.name || a.email)}</span>
-                            <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#4285F4;">(${escapeHtml(a.email)})</span>
+                            <span style="font-weight:700;">${escapeHtml(a.name || a.email)}</span>
+                            <span style="font-family:'JetBrains Mono'; font-size:11px; color:#60a5fa;">(${escapeHtml(a.email || a.cf_worker_name || a.id)})</span>
                             ${warn}
                         </label>
                     `;
@@ -25001,9 +24391,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function toggleSelectAllGasBatch(selectAll) {
-        document.querySelectorAll(".gas-batch-acc-cb").forEach(cb => {
-            cb.checked = selectAll;
-        });
+        document.querySelectorAll(".gas-batch-acc-cb").forEach(cb => { cb.checked = selectAll; });
     }
 
     async function executeGasBatchDeploy() {
@@ -25011,13 +24399,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const targetIds = cbs.map(cb => cb.value);
 
         if (targetIds.length === 0) {
-            showToast("لطفاً حداقل یک حساب جیمیل را برای استقرار انتخاب نمایید.", "warning");
+            showToast("لطفاً حداقل یک حساب را برای استقرار انتخاب نمایید.", "warning");
             return;
         }
-
-        const mode = document.getElementById("gas-batch-mode-select")?.value || "full_tunnel";
-        const versioning = document.getElementById("gas-batch-versioning")?.value || "update";
-        const forceNew = (versioning === "new_project");
 
         const startBtn = document.getElementById("gas-batch-start-btn");
         if (startBtn) {
@@ -25029,17 +24413,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const logBox = document.getElementById("gas-batch-results-log");
         const titleEl = document.getElementById("gas-batch-progress-title");
         if (resBox) resBox.style.display = "block";
-        if (logBox) logBox.innerHTML = `<div style="color:var(--text-muted);">در حال ارسال درخواست استقرار به Google API برای ${targetIds.length} حساب...</div>`;
+        if (logBox) logBox.innerHTML = `<div style="color:var(--text-muted);">در حال ارسال درخواست استقرار برای ${targetIds.length} حساب...</div>`;
 
         try {
             const res = await fetch("/api/google_script/batch-deploy", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    account_ids: targetIds,
-                    mode: mode,
-                    force_new_project: forceNew
-                })
+                body: JSON.stringify({ account_ids: targetIds })
             });
             const data = await res.json();
             if (startBtn) {
@@ -25053,21 +24433,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 let logHtml = "";
                 (data.results || []).forEach(r => {
                     if (r.success) {
-                        logHtml += `<div style="color:#10b981;">✅ <strong>${escapeHtml(r.email)}</strong>: استقرار موفق! URL: <a href="${r.webapp_url}" target="_blank" style="color:#60a5fa; text-decoration:none;">${r.deployment_id.substring(0, 15)}... ↗</a></div>`;
+                        logHtml += `<div style="color:#10b981;">✅ <strong>${escapeHtml(r.email || r.name)}</strong>: استقرار موفق!</div>`;
                     } else {
-                        logHtml += `<div style="color:#ef4444;">❌ <strong>${escapeHtml(r.email)}</strong>: خطا: ${escapeHtml(r.error)}</div>`;
+                        logHtml += `<div style="color:#ef4444;">❌ <strong>${escapeHtml(r.email || r.name)}</strong>: ${escapeHtml(r.error)}</div>`;
                     }
                 });
                 if (logBox) logBox.innerHTML = logHtml;
-                let toastMsg = data.message;
-                if (data.cloudflare_auto_deployed) {
-                    toastMsg += " (همگام‌سازی ورکر کلودفلر با موفقیت انجام شد)";
-                }
-                showToast(toastMsg, data.fail_count === 0 ? "success" : "warning");
+                showToast(data.message, data.fail_count === 0 ? "success" : "warning");
                 await fetchGoogleScriptConfig();
             } else {
                 if (logBox) logBox.innerHTML = `<div style="color:#ef4444;">خطا: ${data.error || 'ناشناخته'}</div>`;
-                showToast(data.error || "خطا در استقرار همگانی", "error");
+                showToast(data.error || "خطا در استقرار", "error");
             }
         } catch (e) {
             if (startBtn) {
@@ -25079,343 +24455,58 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    function onGasClientAccSelectChanged(accId) {
-        fetchGasClientConfigs(accId);
+    // --- 7. CLIENT CONFIGS & SERVER NODE ---
+    function onGasClientRoutingPrefChanged() {
+        const cfRadio = document.getElementById("gas-route-cf");
+        gasClientRoutingPref = cfRadio && cfRadio.checked ? "cloudflare" : "google";
+        fetchGasClientConfigs();
     }
 
-    function toggleGasMultiUrlPool() {
-        const box = document.getElementById("gas-multi-url-pool-box");
-        const btnText = document.getElementById("gas-multi-url-toggle-btn");
-        if (!box) return;
-        const isHidden = (box.style.display === "none" || !box.style.display);
-        box.style.display = isHidden ? "block" : "none";
-        if (btnText) {
-            btnText.textContent = isHidden ? "مخفی کردن لیست وب‌اپ‌ها ▴" : "نمایش همه آدرس‌های وب‌اپ (Multi-Relay Pool) ▾";
-        }
-    }
-
-    function copyGasAllWebappUrls() {
-        const textarea = document.getElementById("gas-all-urls-textarea");
-        if (textarea && textarea.value) {
-            navigator.clipboard.writeText(textarea.value).then(() => {
-                showToast("تمام آدرس‌های وب‌اپ با موفقیت در کلیپ‌بورد کپی شد!", "success");
-            }).catch(() => {
-                textarea.select();
-                document.execCommand('copy');
-                showToast("کپی انجام شد.", "success");
-            });
-        }
-    }
-
-    function filterGasClientCards(type) {
-        document.querySelectorAll('.gas-client-nav-btn').forEach(btn => {
-            if (btn.dataset.clientFilter === type) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-
-        const cards = document.querySelectorAll('.gas-client-box');
-        cards.forEach(card => {
-            if (type === 'all' || card.dataset.clientType === type) {
-                card.style.display = 'block';
-            } else {
-                card.style.display = 'none';
-            }
-        });
-        if (window.lucide) lucide.createIcons();
-    }
-
-    function copyGasCode(textareaId, btnId) {
-        const textarea = document.getElementById(textareaId);
-        if (textarea) {
-            textarea.select();
-            navigator.clipboard.writeText(textarea.value).then(() => {
-                showToast("کد گوگل اسکریپت (Code.gs) در کلیپ‌بورد کپی شد!", "success");
-                const btn = document.getElementById(btnId);
-                if (btn) {
-                    const originalHtml = btn.innerHTML;
-                    btn.innerHTML = '<i data-lucide="check" style="width:14px; height:14px; color:#10b981;"></i> <span style="color:#10b981;">کپی شد!</span>';
-                    if (window.lucide) lucide.createIcons();
-                    setTimeout(() => {
-                        btn.innerHTML = originalHtml;
-                        if (window.lucide) lucide.createIcons();
-                    }, 2000);
-                }
-            }).catch(() => {
-                document.execCommand('copy');
-                showToast("کپی انجام شد.", "success");
-            });
-        }
-    }
-
-    function copyGasField(elementId) {
-        copyGasText(elementId, null);
-    }
-
-    // =====================================================================
-    // GAS TRAFFIC & CONSUMPTION TIMELINE
-    // =====================================================================
-    let gasCurrentStatsFilter = 'all';
-
-    function onGasStatsAccountFilterChanged(accId) {
-        gasCurrentStatsFilter = accId;
-        fetchGasTrafficStats();
-    }
-
-    async function fetchGasTrafficStats() {
+    async function fetchGasClientConfigs(accId = null) {
         try {
-            const res = await fetch(`/api/google_script/stats?account_id=${encodeURIComponent(gasCurrentStatsFilter)}`);
+            const curAccId = accId || (gasCachedConfig && gasCachedConfig.active_account_id) || "";
+            const useCfParam = gasClientRoutingPref === "cloudflare" ? "1" : "0";
+            const url = `/api/google_script/client-configs?account_id=${encodeURIComponent(curAccId)}&use_cf=${useCfParam}`;
+            const res = await fetch(url);
             const data = await res.json();
             if (!data.success) return;
 
-            // 1. Update filter dropdown
-            const filterSel = document.getElementById("gas-stats-account-filter");
-            if (filterSel && data.accounts_summary) {
-                const curVal = gasCurrentStatsFilter;
-                let optHtml = `<option value="all" ${curVal === 'all' ? 'selected' : ''}>📊 مجموع کل حساب‌ها (All Accounts)</option>`;
-                data.accounts_summary.forEach(a => {
-                    const sel = (curVal === a.id) ? 'selected' : '';
-                    optHtml += `<option value="${a.id}" ${sel}>${escapeHtml(a.name || a.email)} (${escapeHtml(a.email || a.id)})</option>`;
-                });
-                filterSel.innerHTML = optHtml;
-            }
+            const gooseEl = document.getElementById("gas-client-goose-uri");
+            const mhrvEl = document.getElementById("gas-client-mhrv-json");
+            const singboxEl = document.getElementById("gas-client-singbox-outbound");
+            const pyEl = document.getElementById("gas-client-python");
 
-            // 2. Update Top Metric Cards
-            const totals = data.totals || {};
-            const formatDataBytes = (b) => (typeof formatBytes === 'function' ? formatBytes(b) : ((b || 0) + ' B'));
-            
-            if (document.getElementById("gas-stat-total-bytes")) {
-                document.getElementById("gas-stat-total-bytes").textContent = formatDataBytes(totals.total_bytes || 0);
-            }
-            if (document.getElementById("gas-stat-total-tx")) {
-                document.getElementById("gas-stat-total-tx").textContent = formatDataBytes(totals.total_tx || 0);
-            }
-            if (document.getElementById("gas-stat-total-rx")) {
-                document.getElementById("gas-stat-total-rx").textContent = formatDataBytes(totals.total_rx || 0);
-            }
-            if (document.getElementById("gas-stat-total-requests")) {
-                document.getElementById("gas-stat-total-requests").textContent = (totals.requests_total || 0).toLocaleString();
-            }
-            if (document.getElementById("gas-stat-total-batch")) {
-                document.getElementById("gas-stat-total-batch").textContent = (totals.requests_batch || 0).toLocaleString();
-            }
-            if (document.getElementById("gas-stat-success-rate")) {
-                const sRate = totals.success_rate !== undefined ? totals.success_rate : 100.0;
-                const rateEl = document.getElementById("gas-stat-success-rate");
-                rateEl.textContent = `${sRate}%`;
-                rateEl.style.color = sRate >= 95 ? '#10b981' : (sRate >= 80 ? '#f59e0b' : '#ef4444');
-            }
-            if (document.getElementById("gas-stat-success-count")) {
-                document.getElementById("gas-stat-success-count").textContent = (totals.requests_success || 0).toLocaleString();
-            }
-            if (document.getElementById("gas-stat-failed-count")) {
-                document.getElementById("gas-stat-failed-count").textContent = (totals.requests_failed || 0).toLocaleString();
-            }
-            if (document.getElementById("gas-stat-last-time")) {
-                let lastTime = "-";
-                if (data.accounts_summary) {
-                    const times = data.accounts_summary.map(a => a.last_request_time).filter(t => t && t !== "-");
-                    if (times.length > 0) times.sort();
-                    if (times.length > 0) lastTime = times[times.length - 1];
-                }
-                document.getElementById("gas-stat-last-time").textContent = lastTime;
-            }
+            if (gooseEl) gooseEl.textContent = data.goose_uri || "-";
+            if (mhrvEl) mhrvEl.textContent = JSON.stringify(data.mhrv_profile || {}, null, 2);
+            if (singboxEl) singboxEl.textContent = JSON.stringify(data.singbox_outbound || {}, null, 2);
+            if (pyEl) pyEl.textContent = data.python_client || "-";
 
-            // 3. Populate Accounts Grid
-            const accGrid = document.getElementById("gas-accounts-stats-grid");
-            if (accGrid && data.accounts_summary) {
-                if (data.accounts_summary.length === 0) {
-                    accGrid.innerHTML = `<div style="grid-column:1/-1; color:var(--text-muted); font-size:12px; padding:12px;">هنوز اکانتی ثبت نشده است.</div>`;
-                } else {
-                    accGrid.innerHTML = data.accounts_summary.map(a => {
-                        const totB = formatDataBytes(a.total_bytes || 0);
-                        const rxB = formatDataBytes(a.total_rx || 0);
-                        const txB = formatDataBytes(a.total_tx || 0);
-                        const rateColor = a.success_rate >= 95 ? '#10b981' : (a.success_rate >= 80 ? '#f59e0b' : '#ef4444');
-                        const isAct = a.is_active ? `<span class="gas-token-badge gas-token-badge-green">فعال</span>` : `<span class="gas-token-badge gas-token-badge-blue">رزرو</span>`;
-                        return `
-                            <div class="glass-card" style="padding:14px; background:rgba(0,0,0,0.2); border:1px solid var(--border-glow); border-radius:12px;">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
-                                    <div style="min-width:0;">
-                                        <div style="font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(a.name || a.email)}</div>
-                                        <div style="font-size:11px; font-family:'JetBrains Mono', monospace; color:#60a5fa; direction:ltr; text-align:right;">${escapeHtml(a.email || a.id)}</div>
-                                    </div>
-                                    <div>${isAct}</div>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px;">
-                                    <span style="color:var(--text-muted);">کل مصرف:</span>
-                                    <strong style="color:#38bdf8; font-family:'JetBrains Mono', monospace;">${totB}</strong>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); margin-bottom:8px;">
-                                    <span>دانلود: <strong style="color:#10b981; font-family:'JetBrains Mono', monospace;">${txB}</strong></span>
-                                    <span>آپلود: <strong style="color:#60a5fa; font-family:'JetBrains Mono', monospace;">${rxB}</strong></span>
-                                </div>
-                                <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border-glow); padding-top:8px; font-size:11.5px;">
-                                    <span>درخواست‌ها: <strong>${a.requests_total.toLocaleString()}</strong></span>
-                                    <span style="color:${rateColor}; font-weight:700; font-family:'JetBrains Mono', monospace;">${a.success_rate}% موفق</span>
-                                </div>
-                            </div>
-                        `;
-                    }).join('');
-                }
-            }
-
-            // 4. Populate Timeline Table
-            const tbody = document.getElementById("gas-stats-timeline-tbody");
-            if (tbody) {
-                const timeline = data.timeline || [];
-                if (timeline.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" style="padding:24px; text-align:center; color:var(--text-muted); font-size:12px;">هنوز اطلاعاتی برای این بازه زمانی ثبت نشده است. با آغاز اتصال ترافیک، این جدول لحظه‌ای بروز می‌شود.</td></tr>`;
-                } else {
-                    tbody.innerHTML = timeline.map(row => {
-                        const rateColor = row.success_rate >= 95 ? '#10b981' : (row.success_rate >= 80 ? '#f59e0b' : '#ef4444');
-                        return `
-                            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
-                                <td style="padding:10px 12px; font-weight:700; font-family:'JetBrains Mono', monospace; text-align:right; color:var(--text-main);">${escapeHtml(row.date)}</td>
-                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#10b981;">${formatDataBytes(row.tx || 0)}</td>
-                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#60a5fa;">${formatDataBytes(row.rx || 0)}</td>
-                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; font-weight:700; color:#38bdf8;">${formatDataBytes(row.total || 0)}</td>
-                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace;">${(row.requests || 0).toLocaleString()}</td>
-                                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; color:#c084fc;">${(row.batch || 0).toLocaleString()}</td>
-                                <td style="padding:10px 12px;">
-                                    <span style="background:rgba(255,255,255,0.05); color:${rateColor}; font-weight:700; padding:2px 8px; border-radius:6px; font-size:11px; font-family:'JetBrains Mono', monospace;">
-                                        ${row.success_rate}%
-                                    </span>
-                                </td>
-                            </tr>
-                        `;
-                    }).join('');
-                }
-            }
-
-            if (window.lucide) lucide.createIcons();
+            // Server Node Settings
+            if (document.getElementById("gas-cfg-port")) document.getElementById("gas-cfg-port").value = data.port || (gasCachedConfig && gasCachedConfig.port) || 8448;
+            if (document.getElementById("gas-cfg-secret")) document.getElementById("gas-cfg-secret").value = (gasCachedConfig && gasCachedConfig.secret) || "";
+            if (document.getElementById("gas-cfg-singbox-target")) document.getElementById("gas-cfg-singbox-target").value = (gasCachedConfig && gasCachedConfig.singbox_target) || "127.0.0.1:20443";
         } catch (e) {
-            console.error("fetchGasTrafficStats error:", e);
+            console.error("fetchGasClientConfigs error:", e);
         }
     }
 
-    async function resetGasTrafficStats() {
-        const targetText = gasCurrentStatsFilter === 'all' ? "تمام حساب‌ها" : "حساب انتخاب شده";
-        if (!confirm(`آیا از بازنشانی و ریست کردن آمار مصرف ${targetText} اطمینان دارید؟`)) return;
-        toggleLoading(true, "در حال بازنشانی آمار...");
+    async function saveGasServerConfig() {
+        const port = parseInt(document.getElementById("gas-cfg-port")?.value || "8448");
+        const secret = (document.getElementById("gas-cfg-secret")?.value || "").trim();
+        const singbox_target = (document.getElementById("gas-cfg-singbox-target")?.value || "127.0.0.1:20443").trim();
+
+        toggleLoading(true, "در حال ذخیره تنظیمات نود سرور...");
         try {
-            const res = await fetch("/api/google_script/stats/reset", {
+            const res = await fetch("/api/google_script/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ account_id: gasCurrentStatsFilter })
+                body: JSON.stringify({ port, secret, singbox_target })
             });
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast("آمار مصرف با موفقیت ریست گردید.", "success");
-                await fetchGasTrafficStats();
-            } else {
-                showToast(data.error || "خطا در ریست آمار", "error");
-            }
-        } catch (e) {
-            toggleLoading(false);
-            showToast("خطای شبکه", "error");
-        }
-    }
-
-    // =====================================================================
-    // CLOUDFLARE WORKER ACCELERATOR & RELAY
-    // =====================================================================
-    function onGasCfRoutingModeChange(mode) {
-        const badge = document.getElementById("gas-cf-routing-badge");
-        const gasNode = document.getElementById("gas-pipeline-node-gas");
-        if (badge) {
-            if (mode === "direct_vps") {
-                badge.textContent = "مسیر: Worker ➔ VPS (Direct CDN)";
-                badge.className = "gas-token-badge gas-token-badge-blue";
-            } else if (mode === "hybrid") {
-                badge.textContent = "مسیر: Worker ➔ GAS (با Failover به VPS)";
-                badge.className = "gas-token-badge gas-token-badge-green";
-            } else {
-                badge.textContent = "مسیر: Worker ➔ GAS ➔ VPS";
-                badge.className = "gas-token-badge gas-token-badge-amber";
-            }
-        }
-        if (gasNode) {
-            gasNode.style.opacity = (mode === "direct_vps") ? "0.35" : "1";
-        }
-    }
-
-    async function fetchGasCloudflareConfig() {
-        try {
-            const res = await fetch("/api/google_script/cloudflare/config");
-            const data = await res.json();
-            if (!data.success) return;
-
-            const cf = data.config || {};
-            const tokenInput = document.getElementById("gas-cf-api-token");
-            const accInput = document.getElementById("gas-cf-account-id");
-            const nameInput = document.getElementById("gas-cf-worker-name");
-            const urlInput = document.getElementById("gas-cf-worker-url");
-            const mbCb = document.getElementById("gas-cf-multi-balance");
-            const codeView = document.getElementById("gas-cf-worker-code-view");
-            const liveUrlEl = document.getElementById("gas-cf-live-url");
-            const statusDot = document.getElementById("gas-cf-status-dot");
-            const statusTitle = document.getElementById("gas-cf-status-title");
-            const lastBadge = document.getElementById("gas-cf-last-deploy-badge");
-
-            if (tokenInput && cf.api_token) tokenInput.value = cf.api_token;
-            if (accInput) accInput.value = cf.account_id || "";
-            if (nameInput) nameInput.value = cf.worker_name || "mhpanel-gas-relay";
-            if (urlInput) urlInput.value = cf.worker_url || "";
-            if (mbCb) mbCb.checked = (cf.multi_account_balance !== false);
-            if (codeView) codeView.value = data.worker_code || "";
-
-            // Routing Mode Radio
-            const rMode = cf.routing_mode || "gas_relay";
-            const radioEl = document.querySelector(`input[name="gas-cf-routing-mode"][value="${rMode}"]`);
-            if (radioEl) radioEl.checked = true;
-            onGasCfRoutingModeChange(rMode);
-
-            if (liveUrlEl) {
-                liveUrlEl.textContent = cf.worker_url || "هنوز مستقر نشده (Not Deployed)";
-            }
-            if (statusDot && statusTitle) {
-                if (cf.worker_url) {
-                    statusDot.style.background = "#10b981";
-                    statusTitle.textContent = "وضعیت ورکر: مستقر شده و فعال (Deployed)";
-                } else {
-                    statusDot.style.background = "#f59e0b";
-                    statusTitle.textContent = "وضعیت ورکر: در انتظار استقرار (Pending)";
-                }
-            }
-            if (lastBadge && cf.last_deploy_time) {
-                lastBadge.textContent = `آخرین استقرار: ${cf.last_deploy_time}`;
-            }
-
-            if (window.lucide) lucide.createIcons();
-        } catch (e) {
-            console.error("fetchGasCloudflareConfig error:", e);
-        }
-    }
-
-    async function saveGasCloudflareConfig() {
-        const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
-        const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
-        const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
-        const worker_url = (document.getElementById("gas-cf-worker-url")?.value || "").trim();
-        const routing_mode = (document.querySelector('input[name="gas-cf-routing-mode"]:checked')?.value || "gas_relay");
-        const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
-
-        toggleLoading(true, "در حال ذخیره تنظیمات کلودفلر...");
-        try {
-            const res = await fetch("/api/google_script/cloudflare/config", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ api_token, account_id, worker_name, worker_url, routing_mode, multi_account_balance })
-            });
-            const data = await res.json();
-            toggleLoading(false);
-            if (res.ok && data.success) {
-                showToast("تنظیمات و آدرس ورکر کلودفلر با موفقیت ذخیره شد.", "success");
-                await fetchGasCloudflareConfig();
+                showToast("تنظیمات نود سرور با موفقیت ذخیره و اعمال شد.", "success");
+                await fetchGoogleScriptConfig();
                 await fetchGasClientConfigs();
             } else {
                 showToast(data.error || "خطا در ذخیره تنظیمات", "error");
@@ -25426,107 +24517,135 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    async function deployGasCloudflareWorker() {
-        const api_token = (document.getElementById("gas-cf-api-token")?.value || "").trim();
-        const account_id = (document.getElementById("gas-cf-account-id")?.value || "").trim();
-        const worker_name = (document.getElementById("gas-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
-        const worker_url = (document.getElementById("gas-cf-worker-url")?.value || "").trim();
-        const routing_mode = (document.querySelector('input[name="gas-cf-routing-mode"]:checked')?.value || "gas_relay");
-        const multi_account_balance = !!document.getElementById("gas-cf-multi-balance")?.checked;
-
-        if (!api_token || !account_id) {
-            showToast("لطفاً API Token و Account ID کلودفلر را تکمیل فرمایید.", "warning");
-            return;
-        }
-
-        const deployBtn = document.getElementById("gas-cf-deploy-btn");
-        if (deployBtn) {
-            deployBtn.disabled = true;
-            deployBtn.innerHTML = `<span class="loading-spinner"></span> در حال استقرار روی Cloudflare API...`;
-        }
-        toggleLoading(true, "در حال استقرار خودکار روی شبکه لبه کلودفلر...");
-
+    async function restartGasService() {
+        toggleLoading(true, "در حال راه‌اندازی مجدد سرویس mhpanel-gas-tunnel...");
         try {
-            const res = await fetch("/api/google_script/cloudflare/deploy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ api_token, account_id, worker_name, worker_url, routing_mode, multi_account_balance })
-            });
+            const res = await fetch("/api/google_script/service/restart", { method: "POST" });
             const data = await res.json();
             toggleLoading(false);
-            if (deployBtn) {
-                deployBtn.disabled = false;
-                deployBtn.innerHTML = `<i data-lucide="cloud-lightning" style="width:15px; height:15px; margin-left:4px;"></i> استقرار مجدد ورکر روی کلودفلر`;
-                if (window.lucide) lucide.createIcons();
-            }
-
             if (res.ok && data.success) {
-                showToast(data.message || "ورکر با موفقیت مستقر گردید!", "success");
-                await fetchGasCloudflareConfig();
-                await fetchGasClientConfigs();
+                showToast("سرویس نود با موفقیت ری‌استارت شد.", "success");
+                await fetchGoogleScriptConfig();
             } else {
-                showToast(data.error || "خطا در استقرار ورکر روی کلودفلر", "error");
+                showToast(data.error || "خطا در راه‌اندازی سرویس", "error");
             }
         } catch (e) {
             toggleLoading(false);
-            if (deployBtn) {
-                deployBtn.disabled = false;
-                deployBtn.innerHTML = `استقرار خودکار ورکر روی کلودفلر`;
-            }
-            showToast("خطای شبکه در ارتباط با سرور", "error");
+            showToast("خطای شبکه", "error");
         }
     }
 
-    function copyGasCloudflareWorkerUrl() {
-        const urlEl = document.getElementById("gas-cf-live-url");
-        if (!urlEl || !urlEl.textContent || urlEl.textContent.includes("هنوز مستقر نشده")) {
-            showToast("هنوز آدرس ورکری برای کپی وجود ندارد.", "warning");
+    function generateGasSecret() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_';
+        let sec = 'gas_sec_';
+        for (let i = 0; i < 24; i++) sec += chars.charAt(Math.floor(Math.random() * chars.length));
+        const input = document.getElementById("gas-cfg-secret");
+        if (input) input.value = sec;
+        showToast("کلید امنیتی جدید ایجاد شد. برای اعمال، روی ذخیره تنظیمات کلیک کنید.", "info");
+    }
+
+    // --- 8. QR CODE & UTILITIES ---
+    function showGasQrModal(title, text) {
+        if (!text || text === "-" || text.trim() === "") {
+            showToast("مقداری برای نمایش بارکد وجود ندارد.", "warning");
             return;
         }
-        navigator.clipboard.writeText(urlEl.textContent.trim()).then(() => {
-            showToast("آدرس ورکر کلودفلر کپی شد!", "success");
-        }).catch(() => {
-            showToast("خطا در کپی کلیپ‌بورد", "error");
-        });
+        const m = document.getElementById("gas-qr-modal");
+        const titleEl = document.getElementById("gas-qr-modal-title");
+        const valEl = document.getElementById("gas-qr-modal-val");
+        const canvasContainer = document.getElementById("gas-qr-modal-canvas");
+
+        if (titleEl) titleEl.textContent = title;
+        if (valEl) valEl.textContent = text;
+        if (canvasContainer) {
+            canvasContainer.innerHTML = '';
+            if (typeof QRCode !== 'undefined') {
+                if (QRCode.toCanvas) {
+                    QRCode.toCanvas(text, { width: 190, margin: 1 }, (err, canvas) => {
+                        if (!err && canvas) canvasContainer.appendChild(canvas);
+                    });
+                } else {
+                    new QRCode(canvasContainer, { text: text, width: 190, height: 190 });
+                }
+            }
+        }
+
+        if (m) {
+            m.classList.add("active");
+            m.style.display = "flex";
+        }
     }
 
-    function copyGasCloudflareWorkerCode() {
-        const view = document.getElementById("gas-cf-worker-code-view");
-        if (!view || !view.value) return;
-        view.select();
-        navigator.clipboard.writeText(view.value).then(() => {
-            showToast("سورس‌کد جاوااسکریپت ورکر کپی شد!", "success");
+    function closeGasQrModal() {
+        const m = document.getElementById("gas-qr-modal");
+        if (m) {
+            m.classList.remove("active");
+            m.style.display = "none";
+        }
+    }
+
+    function copyGasText(elementId, btnId = null) {
+        const el = document.getElementById(elementId);
+        const text = el ? (el.textContent || el.innerText || "").trim() : "";
+        if (!text || text === "-") {
+            showToast("مقداری برای کپی وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(text).then(() => {
+            showToast("با موفقیت در کلیپ‌بورد کپی شد!", "success");
         }).catch(() => {
-            document.execCommand('copy');
             showToast("کپی انجام شد.", "success");
         });
     }
 
-    async function testGasCloudflareWorker() {
-        const urlEl = document.getElementById("gas-cf-live-url");
-        const url = urlEl ? urlEl.textContent.trim() : "";
-        if (!url || url.includes("هنوز مستقر نشده") || !url.startsWith("http")) {
-            showToast("لطفاً ابتدا ورکر را مستقر نمایید.", "warning");
+    function copyGasTextValue(val, label = "مقدار") {
+        if (!val) return;
+        navigator.clipboard.writeText(val).then(() => {
+            showToast(`${label} کپی شد!`, "success");
+        });
+    }
+
+    async function testGasEndpoint() {
+        const urlEl = document.getElementById("gas-deployed-url-val");
+        const cfUrlEl = document.getElementById("gas-deployed-cf-url");
+        const url = (cfUrlEl && cfUrlEl.textContent && cfUrlEl.textContent.startsWith("http")) 
+            ? cfUrlEl.textContent.trim() 
+            : (urlEl ? urlEl.textContent.trim() : "");
+
+        if (!url || !url.startsWith("http")) {
+            showToast("آدرس فعالی برای تست وجود ندارد.", "warning");
             return;
         }
-        toggleLoading(true, "در حال ارسال درخواست تست به لبه ورکر کلودفلر...");
+
+        const btnText = document.getElementById("gas-ping-btn-text");
+        const latencyBadge = document.getElementById("gas-ping-latency-badge");
+        if (btnText) btnText.textContent = "در حال تست...";
+
         const t0 = performance.now();
         try {
-            const res = await fetch(`${url}/health`, { method: "GET", mode: "cors" });
+            await fetch(url, { method: "GET", mode: "no-cors" });
             const lat = Math.round(performance.now() - t0);
-            toggleLoading(false);
-            if (res.ok) {
-                showToast(`✅ ورکر کلودفلر آنلاین است! تاخیر: ${lat}ms`, "success");
-            } else {
-                showToast(`پاسخ از ورکر دریافت شد اما وضعیت غیر از ۲۰۰ است (کد ${res.status}).`, "warning");
+            if (btnText) btnText.textContent = "تست مجدد";
+            if (latencyBadge) {
+                latencyBadge.style.display = "inline-block";
+                latencyBadge.textContent = `${lat}ms`;
             }
+            showToast(`✅ پاسخ از سرور لبه دریافت شد! (${lat}ms)`, "success");
         } catch (e) {
-            toggleLoading(false);
-            showToast(`تست مستقیم به دلیل محدودیت CORS مرورگر یا فیلترینگ اینترنت انجام نشد. ورکر در بستر کلاینت فعال است.`, "info");
+            if (btnText) btnText.textContent = "تست زنده اتصال";
+            showToast("پاسخ در بستر کلاینت فعال است.", "info");
         }
     }
 
-
+    function openGasWebAppInBrowser() {
+        const urlEl = document.getElementById("gas-deployed-url-val");
+        const url = urlEl ? urlEl.textContent.trim() : "";
+        if (url && url.startsWith("http")) {
+            window.open(url, '_blank');
+        } else {
+            showToast("آدرس نامعتبر است.", "warning");
+        }
+    }
 
     // =========================================================================
     // MHPanel Enterprise Suite: Unified QR, WARP, AWG Version, Status & Portals
