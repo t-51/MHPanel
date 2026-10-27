@@ -199,7 +199,7 @@ protocol_default_port() {
         sstp) echo "4443" ;;
         l2tp) echo "1701" ;;
         wireguard) echo "51820" ;;
-        amneziawg) echo "443" ;;
+        amneziawg) echo "2053" ;;
         http) echo "8080" ;;
         socks) echo "1080" ;;
         shadowsocks) echo "8388" ;;
@@ -280,7 +280,7 @@ resolve_clean_port() {
         if ss -tlnp 2>/dev/null | grep -qE "(:${final_port}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${final_port}\b)"; then
             case "$proto" in
                 ocserv) final_port=10443 ;;
-                amneziawg) final_port=443 ;;
+                amneziawg) final_port=2053 ;;
                 trojan) final_port=12443 ;;
                 naiveproxy) final_port=13443 ;;
                 hysteria2) final_port=11443 ;;
@@ -303,7 +303,7 @@ resolve_clean_port() {
                 naiveproxy) final_port=13443 ;;
                 stuntls) final_port=3478 ;;
                 wireguard) final_port=51820 ;;
-                amneziawg) final_port=443 ;;
+                amneziawg) final_port=2053 ;;
                 ocserv) final_port=10443 ;;
                 *)
                     local p=$final_port
@@ -656,6 +656,9 @@ enable_bbr_and_sysctl() {
     cat > /etc/sysctl.d/99-mhpanel.conf <<EOF
 # MH Panel Kernel & Network Optimization
 net.ipv4.ip_forward=1
+net.ipv4.tcp_mtu_probing=1
+net.ipv4.conf.all.rp_filter=0
+net.ipv4.conf.default.rp_filter=0
 net.ipv4.tcp_fastopen=3
 net.ipv4.tcp_fin_timeout=15
 net.ipv4.tcp_tw_reuse=1
@@ -1257,13 +1260,15 @@ install_cloudflare_warp() {
         run_apt install --no-install-recommends cloudflare-warp 2>/dev/null || apt-get install -y --no-install-recommends cloudflare-warp 2>/dev/null || true
     fi
 
+    # SAFETY: Keep WARP strictly in proxy mode (SOCKS5 127.0.0.1:40000).
+    # Never hijack the default route or default gateway of the server.
+    # Services are kept stopped and disabled by default until the administrator toggles them from the panel.
     if command -v warp-cli >/dev/null 2>&1; then
-        systemctl enable --now warp-svc >/dev/null 2>&1 || true
-        if warp-cli --accept-tos status 2>/dev/null | grep -qi "Registration missing"; then
-            warp-cli --accept-tos registration new >/dev/null 2>&1 || true
-        fi
+        systemctl stop warp-svc >/dev/null 2>&1 || true
+        systemctl disable warp-svc >/dev/null 2>&1 || true
         warp-cli --accept-tos mode proxy >/dev/null 2>&1 || true
-        warp-cli --accept-tos connect >/dev/null 2>&1 || true
+        warp-cli --accept-tos proxy port 40000 >/dev/null 2>&1 || true
+        warp-cli --accept-tos disconnect >/dev/null 2>&1 || true
     fi
 
     # Install tun2socks binary
@@ -1296,6 +1301,7 @@ Wants=warp-svc.service
 Type=simple
 ExecStartPre=-/sbin/ip link delete awg-warp
 ExecStart=/usr/local/bin/tun2socks --device awg-warp --proxy socks5://127.0.0.1:40000 --tun-post-up /usr/local/bin/amnezia-warp-up.sh --loglevel warn
+ExecStartPost=/usr/local/bin/amnezia-warp-up.sh
 ExecStopPost=/usr/local/bin/amnezia-warp-down.sh
 Restart=on-failure
 RestartSec=3
@@ -1304,6 +1310,12 @@ RestartSec=3
 WantedBy=multi-user.target
 WARPEOF
     systemctl daemon-reload 2>/dev/null || true
+    systemctl disable --now mhpanel-amnezia-warp >/dev/null 2>&1 || true
+    ip rule del table 51821 priority 1000 2>/dev/null || true
+    ip rule del table 51821 priority 1001 2>/dev/null || true
+    ip rule del priority 990 2>/dev/null || true
+    ip route flush table 51821 2>/dev/null || true
+    ip link delete dev awg-warp 2>/dev/null || true
 }
 
 install_tunnel_tools() {
@@ -1783,7 +1795,14 @@ wizard_full_automated() {
         fi
     done
 
-    echo -e "\n${YELLOW}>>> [6/6] Synchronizing firewall rules and saving state...${NC}"
+    echo -e "\n${YELLOW}>>> [6/6] Synchronizing firewall rules, TCP MSS clamping, and routing state...${NC}"
+    local helper_script="${PANEL_DIR}/scripts/protocol_helper.sh"
+    [ -f "$helper_script" ] || helper_script="${SCRIPT_DIR}/scripts/protocol_helper.sh"
+    [ -f "$helper_script" ] || helper_script="/root/mhpanel-repo/scripts/protocol_helper.sh"
+    if [ -f "$helper_script" ]; then
+        chmod +x "$helper_script" 2>/dev/null || true
+        bash "$helper_script" setup-nat 2>/dev/null || true
+    fi
     if command -v iptables-save >/dev/null 2>&1; then
         mkdir -p /etc/iptables
         iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
@@ -3127,10 +3146,15 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/mhpanel-gas-server" -o "${PANEL_DIR}/scripts/daemons/mhpanel-gas-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/subscription.html" -o "${PANEL_DIR}/templates/subscription.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/group_portal.html" -o "${PANEL_DIR}/templates/group_portal.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/styles.html" -o "${PANEL_DIR}/templates/partials/styles.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_terminal.html" -o "${PANEL_DIR}/templates/partials/tab_terminal.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_wireguard.html" -o "${PANEL_DIR}/templates/partials/tab_wireguard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_amneziawg.html" -o "${PANEL_DIR}/templates/partials/tab_amneziawg.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true

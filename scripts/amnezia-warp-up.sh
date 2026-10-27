@@ -19,6 +19,15 @@ fi
 # Enable IP forwarding
 sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
 
+# Detect public network interface
+IFACE=$(ip -4 route show default 2>/dev/null | awk '{print $5}' | head -n1)
+if [[ -z "${IFACE}" ]]; then
+    IFACE=$(ip link | grep -E '^[0-9]+: (eth|ens|enp|eno)' | awk -F': ' '{print $2}' | head -n1)
+fi
+if [[ -z "${IFACE}" ]]; then
+    IFACE="eth0"
+fi
+
 # Wait for interface to exist
 for i in {1..10}; do
     if ip link show awg-warp >/dev/null 2>&1; then
@@ -29,6 +38,7 @@ done
 
 # Assign IP and set UP
 /sbin/ip addr replace 172.16.250.1/24 dev awg-warp 2>/dev/null || /sbin/ip addr add 172.16.250.1/24 dev awg-warp
+/sbin/ip link set dev awg-warp mtu 1280 2>/dev/null || true
 /sbin/ip link set awg-warp up
 
 # Clean previous rules
@@ -45,10 +55,13 @@ done
 
 # NAT Masquerade (wait 5s for xtables lock if busy)
 /sbin/iptables -w 5 -t nat -C POSTROUTING -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE 2>/dev/null || /sbin/iptables -w 5 -t nat -I POSTROUTING 1 -s "$AWG_SUBNET" -o awg-warp -j MASQUERADE
-/sbin/iptables -w 5 -t nat -C POSTROUTING -s "$AWG_SUBNET" -o eth0 -j MASQUERADE 2>/dev/null || /sbin/iptables -w 5 -t nat -I POSTROUTING 2 -s "$AWG_SUBNET" -o eth0 -j MASQUERADE
+/sbin/iptables -w 5 -t nat -C POSTROUTING -s "$AWG_SUBNET" -o "$IFACE" -j MASQUERADE 2>/dev/null || /sbin/iptables -w 5 -t nat -I POSTROUTING 2 -s "$AWG_SUBNET" -o "$IFACE" -j MASQUERADE
 
 # Forwarding acceptance
 /sbin/iptables -w 5 -C FORWARD -i awg0 -o awg-warp -j ACCEPT 2>/dev/null || /sbin/iptables -w 5 -I FORWARD 1 -i awg0 -o awg-warp -j ACCEPT
 /sbin/iptables -w 5 -C FORWARD -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT 2>/dev/null || /sbin/iptables -w 5 -I FORWARD 2 -i awg-warp -o awg0 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# TCP MSS clamping
+/sbin/iptables -w 5 -t mangle -C FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || /sbin/iptables -w 5 -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
 
 exit 0

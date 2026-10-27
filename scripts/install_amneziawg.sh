@@ -4,7 +4,7 @@
 # ==============================================================================
 set -o pipefail
 
-PORT="${1:-443}"
+PORT="${1:-2053}"
 SUBNET="${2:-10.77.77.0/24}"
 DNS="${3:-8.8.8.8, 1.1.1.1}"
 
@@ -219,15 +219,15 @@ fi
 
 # Preserve existing peers & Anti-DPI params if already configured
 PEERS=""
-JC="4"
+JC="3"
 JMIN="40"
 JMAX="70"
 S1="64"
 S2="48"
-H1=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "12345678")
-H2=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "23456789")
-H3=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "34567890")
-H4=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "45678901")
+H1=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "1955038296")
+H2=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "1200571404")
+H3=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "1095244179")
+H4=$(shuf -i 10000000-2147483647 -n 1 2>/dev/null || echo "435642645")
 
 if [[ -f "${AMNEZIA_DIR}/awg0.conf" ]]; then
     get_val() {
@@ -267,8 +267,9 @@ PostUp = iptables -I INPUT -p udp --dport ${PORT} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${IFACE} -o awg0 -j ACCEPT
 PostUp = iptables -I FORWARD -i awg0 -j ACCEPT
 PostUp = iptables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE
-PostUp = iptables -t mangle -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-PostUp = iptables -t nat -A PREROUTING -p udp -m multiport --dports 51820,51821 -j REDIRECT --to-ports ${PORT} 2>/dev/null || true
+PostUp = iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostUp = iptables -t mangle -I POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostUp = iptables -t nat -A PREROUTING -p udp -m multiport --dports 443,1443,8443,2083,2087,2096,8080,8880 -j REDIRECT --to-ports ${PORT} 2>/dev/null || true
 PostUp = ip6tables -I FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
 PostUp = ip6tables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 
@@ -276,8 +277,9 @@ PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT 2>/dev/null || tru
 PostDown = iptables -D FORWARD -i ${IFACE} -o awg0 -j ACCEPT 2>/dev/null || true
 PostDown = iptables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
 PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
-PostDown = iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu 2>/dev/null || true
-PostDown = iptables -t nat -D PREROUTING -p udp -m multiport --dports 51820,51821 -j REDIRECT --to-ports ${PORT} 2>/dev/null || true
+PostDown = iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostDown = iptables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostDown = iptables -t nat -D PREROUTING -p udp -m multiport --dports 443,1443,8443,2083,2087,2096,8080,8880 -j REDIRECT --to-ports ${PORT} 2>/dev/null || true
 PostDown = ip6tables -D FORWARD -i awg0 -j ACCEPT 2>/dev/null || true
 PostDown = ip6tables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
 ${PEERS}

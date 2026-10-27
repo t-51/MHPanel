@@ -4,8 +4,8 @@
 # ==============================================================================
 set -euo pipefail
 
-PORT="${1:-904}"
-SUBNET="${2:-10.66.66.0/24}"
+PORT="${1:-51820}"
+SUBNET="${2:-10.13.0.0/24}"
 DNS="${3:-8.8.8.8, 1.1.1.1}"
 
 echo "[*] Installing WireGuard dependencies..."
@@ -14,9 +14,12 @@ apt-get update -y
 apt-get install -y wireguard wireguard-tools qrencode iptables
 
 # Detect public network interface
-IFACE=$(ip -4 route show default | awk '{print $5}' | head -n1)
+IFACE=$(ip -4 route show default 2>/dev/null | awk '{print $5}' | head -n1)
 if [[ -z "${IFACE}" ]]; then
-    IFACE="ens6"
+    IFACE=$(ip link | grep -E '^[0-9]+: (eth|ens|enp|eno)' | awk -F': ' '{print $2}' | head -n1)
+fi
+if [[ -z "${IFACE}" ]]; then
+    IFACE="eth0"
 fi
 
 # Enable IPv4 forwarding
@@ -53,17 +56,21 @@ cat > /etc/wireguard/wg0.conf <<EOF
 Address = ${SERVER_IP_BASE}/24
 ListenPort = ${PORT}
 PrivateKey = ${SERVER_PRIVKEY}
-MTU = 1300
+MTU = 1280
 
 PostUp = iptables -I INPUT -p udp --dport ${PORT} -j ACCEPT
 PostUp = iptables -I FORWARD -i ${IFACE} -o wg0 -j ACCEPT
 PostUp = iptables -I FORWARD -i wg0 -j ACCEPT
 PostUp = iptables -t nat -A POSTROUTING -o ${IFACE} -j MASQUERADE
+PostUp = iptables -t mangle -I FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostUp = iptables -t mangle -I POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
 
-PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT
-PostDown = iptables -D FORWARD -i ${IFACE} -o wg0 -j ACCEPT
-PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
-PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE
+PostDown = iptables -D INPUT -p udp --dport ${PORT} -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i ${IFACE} -o wg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT 2>/dev/null || true
+PostDown = iptables -t nat -D POSTROUTING -o ${IFACE} -j MASQUERADE 2>/dev/null || true
+PostDown = iptables -t mangle -D FORWARD -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
+PostDown = iptables -t mangle -D POSTROUTING -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1221:65535 -j TCPMSS --set-mss 1220 2>/dev/null || true
 ${PEERS}
 EOF
 

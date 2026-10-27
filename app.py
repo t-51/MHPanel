@@ -6047,6 +6047,9 @@ AWG_WARP_FLAG = "/etc/vpnpanel/awg_warp_enabled.flag"
 def ensure_warp_daemon_running():
     try:
         subprocess.run(["systemctl", "start", "warp-svc"], check=False)
+        st = subprocess.run(["warp-cli", "--accept-tos", "status"], capture_output=True, text=True).stdout
+        if "Registration missing" in st:
+            subprocess.run(["warp-cli", "--accept-tos", "registration", "new"], check=False)
         subprocess.run(["warp-cli", "--accept-tos", "mode", "proxy"], check=False)
         subprocess.run(["warp-cli", "--accept-tos", "proxy", "port", "40000"], check=False)
         subprocess.run(["warp-cli", "--accept-tos", "connect"], check=False)
@@ -6219,6 +6222,14 @@ def optimize_network_and_mss():
         subprocess.run("sysctl -w net.core.wmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
         subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' >/dev/null 2>&1 || true", shell=True)
         subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216' >/dev/null 2>&1 || true", shell=True)
+
+        # Clean up dead WARP routing if WARP is not explicitly enabled
+        if not os.path.exists(WG_WARP_FLAG) and not os.path.exists(AWG_WARP_FLAG):
+            subprocess.run("ip rule del table 51821 priority 1000 2>/dev/null || true", shell=True)
+            subprocess.run("ip rule del table 51821 priority 1001 2>/dev/null || true", shell=True)
+            subprocess.run("ip rule del priority 990 2>/dev/null || true", shell=True)
+            subprocess.run("ip route flush table 51821 2>/dev/null || true", shell=True)
+            subprocess.run("systemctl stop mhpanel-amnezia-warp 2>/dev/null || true", shell=True)
     except Exception as e:
         print(f"Error in optimize_network_and_mss: {e}")
 

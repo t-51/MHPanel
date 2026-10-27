@@ -324,7 +324,16 @@ setup_global_nat() {
         iptables -C FORWARD -o "${iface}" -j ACCEPT 2>/dev/null || iptables -A FORWARD -o "${iface}" -j ACCEPT 2>/dev/null || true
     done
 
-    # 6. Save iptables rules so they persist across reboots
+    # 6. Safety: Clean up broken/stray WARP routing if WARP is not explicitly enabled
+    if [ ! -f "/etc/vpnpanel/awg_warp_enabled.flag" ] && [ ! -f "/etc/vpnpanel/wg_warp_enabled.flag" ]; then
+        ip rule del table 51821 priority 1000 2>/dev/null || true
+        ip rule del table 51821 priority 1001 2>/dev/null || true
+        ip rule del priority 990 2>/dev/null || true
+        ip route flush table 51821 2>/dev/null || true
+        systemctl stop mhpanel-amnezia-warp 2>/dev/null || true
+    fi
+
+    # 7. Save iptables rules so they persist across reboots
     if command -v iptables-save >/dev/null 2>&1; then
         mkdir -p /etc/iptables
         iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
@@ -1897,9 +1906,9 @@ set_port_wireguard() {
 
 # ----------------- AMNEZIAWG PROTOCOL (ANTI-DPI) -----------------
 install_amneziawg() {
-    local port=${1:-51821}
+    local port=${1:-2053}
     if [ -z "$port" ] || [ "$port" = "0" ] || [ "$port" = "443" ]; then
-        port=51821
+        port=2053
     fi
     local script_path="${PANEL_DIR}/scripts/install_amneziawg.sh"
     [ -f "$script_path" ] || script_path="${SCRIPT_DIR}/install_amneziawg.sh"
@@ -3692,7 +3701,7 @@ print_status_report() {
             amneziawg)
                 if [ -f "/etc/amnezia/amneziawg/awg0.conf" ]; then
                     inst="Yes"
-                    port=$(grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf | awk '{print $3}' || echo "51820")
+                    port=$(grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf | awk '{print $3}' || echo "2053")
                     if systemctl is-active awg-quick@awg0 >/dev/null 2>&1; then
                         act="Active"
                         conn=$(get_connections_count "amneziawg")
@@ -3939,7 +3948,7 @@ case "${ACTION}" in
                 ocserv) ARG3=10443 ;;
                 sstp) ARG3=4443 ;;
                 wireguard) ARG3=51820 ;;
-                amneziawg) ARG3=443 ;;
+                amneziawg) ARG3=2053 ;;
                 http) ARG3=8080 ;;
                 socks) ARG3=1080 ;;
                 shadowsocks) ARG3=8388 ;;
@@ -3964,7 +3973,7 @@ case "${ACTION}" in
         if [ "$ARG3" = "80" ] || [ "$ARG3" = "443" ]; then
             case "${PROTOCOL}" in
                 ocserv) ARG3=10443 ;;
-                amneziawg) ARG3=443 ;;
+                amneziawg) ARG3=2053 ;;
                 trojan) ARG3=12443 ;;
                 naiveproxy) ARG3=13443 ;;
                 hysteria2) ARG3=11443 ;;
