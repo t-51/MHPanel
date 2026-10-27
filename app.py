@@ -1617,6 +1617,255 @@ def client_subscription_port_conf_download(sub_token, target_port):
     resp.headers["Content-Disposition"] = f'attachment; filename="{uname}-port{target_port}.conf"'
     return resp
 
+
+@app.route("/sub/<sub_token>/configs.zip")
+def client_subscription_zip_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname or "config" not in udata:
+        return "Configuration Not Found", 404
+    base_cfg = udata["config"]
+    domain = get_server_domain() or get_server_public_ip()
+    if proto_type == "wireguard":
+        mp_cfg = get_wg_multiport_config()
+        target = mp_cfg.get("target_port") or 51820
+    else:
+        mp_cfg = get_awg_multiport_config()
+        target = mp_cfg.get("target_port") or 443
+    
+    ports = list(mp_cfg.get("ports", []))
+    if target not in ports:
+        ports.insert(0, target)
+        
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in ports:
+            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            
+    mem_file.seek(0)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"{uname}-all-ports.zip"
+    )
+
+@app.route("/sub/group/<group_token>")
+def group_subscription_portal(group_token):
+    group_name = find_group_by_token(group_token)
+    if not group_name:
+        return "Group Portal Not Found", 404
+    
+    server_ip = get_server_public_ip()
+    domain = get_server_domain() or server_ip
+    settings = get_sub_settings()
+    
+    # Gather all clients belonging to this group
+    wg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
+                wg_users = json.load(f)
+        except Exception: pass
+        
+    awg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
+                awg_users = json.load(f)
+        except Exception: pass
+        
+    wg_traffic = get_wg_traffic()
+    awg_traffic = get_awg_traffic()
+    now = datetime.now()
+    
+    user_list = []
+    total_used_bytes = 0
+    total_limit_bytes = 0
+    active_count = 0
+    locked_count = 0
+    
+    # WireGuard Users in Group
+    for pk, udata in wg_users.items():
+        if udata.get("group") == group_name:
+            t = wg_traffic.get(pk, {"rx": 0, "tx": 0})
+            usage = t["rx"] + t["tx"]
+            total_used_bytes += usage
+            limit_gb = udata.get("limit_gb")
+            if limit_gb: total_limit_bytes += (limit_gb * (1024**3))
+            
+            is_active = udata.get("active", True)
+            is_exp = False
+            if udata.get("expire_date"):
+                try:
+                    exp_dt = datetime.strptime(str(udata["expire_date"]).split()[0], "%Y-%m-%d")
+                    if exp_dt < now: is_exp = True
+                except Exception: pass
+            is_trf_exp = False
+            if limit_gb and usage >= (limit_gb * (1024**3)):
+                is_trf_exp = True
+                
+            status = "active"
+            if not is_active:
+                status = "locked"
+                locked_count += 1
+            elif is_trf_exp:
+                status = "traffic_expired"
+            elif is_exp:
+                status = "date_expired"
+            else:
+                active_count += 1
+                
+            usage_pct = 0
+            if limit_gb and limit_gb > 0:
+                usage_pct = min(100, round((usage / (limit_gb * (1024**3))) * 100, 1))
+                
+            user_list.append({
+                "name": udata.get("name", "User"),
+                "protocol": "WireGuard",
+                "proto_key": "wireguard",
+                "public_key": pk,
+                "sub_token": udata.get("sub_token", ""),
+                "limit_gb": limit_gb,
+                "expire_date": udata.get("expire_date"),
+                "duration_days": udata.get("duration_days"),
+                "used_gb": round(usage / (1024**3), 2),
+                "rx_gb": round(t["rx"] / (1024**3), 2),
+                "tx_gb": round(t["tx"] / (1024**3), 2),
+                "usage_pct": usage_pct,
+                "status": status,
+                "is_active": is_active,
+                "simultaneous_use": udata.get("simultaneous_use", 1)
+            })
+
+    # AmneziaWG Users in Group
+    for pk, udata in awg_users.items():
+        if udata.get("group") == group_name:
+            t = awg_traffic.get(pk, {"rx": 0, "tx": 0})
+            usage = t["rx"] + t["tx"]
+            total_used_bytes += usage
+            limit_gb = udata.get("limit_gb")
+            if limit_gb: total_limit_bytes += (limit_gb * (1024**3))
+            
+            is_active = udata.get("active", True)
+            is_exp = False
+            if udata.get("expire_date"):
+                try:
+                    exp_dt = datetime.strptime(str(udata["expire_date"]).split()[0], "%Y-%m-%d")
+                    if exp_dt < now: is_exp = True
+                except Exception: pass
+            is_trf_exp = False
+            if limit_gb and usage >= (limit_gb * (1024**3)):
+                is_trf_exp = True
+                
+            status = "active"
+            if not is_active:
+                status = "locked"
+                locked_count += 1
+            elif is_trf_exp:
+                status = "traffic_expired"
+            elif is_exp:
+                status = "date_expired"
+            else:
+                active_count += 1
+                
+            usage_pct = 0
+            if limit_gb and limit_gb > 0:
+                usage_pct = min(100, round((usage / (limit_gb * (1024**3))) * 100, 1))
+                
+            user_list.append({
+                "name": udata.get("name", "User"),
+                "protocol": "AmneziaWG",
+                "proto_key": "amneziawg",
+                "public_key": pk,
+                "sub_token": udata.get("sub_token", ""),
+                "limit_gb": limit_gb,
+                "expire_date": udata.get("expire_date"),
+                "duration_days": udata.get("duration_days"),
+                "used_gb": round(usage / (1024**3), 2),
+                "rx_gb": round(t["rx"] / (1024**3), 2),
+                "tx_gb": round(t["tx"] / (1024**3), 2),
+                "usage_pct": usage_pct,
+                "status": status,
+                "is_active": is_active,
+                "simultaneous_use": udata.get("simultaneous_use", 1)
+            })
+
+    total_used_gb = round(total_used_bytes / (1024**3), 2)
+    total_limit_gb = round(total_limit_bytes / (1024**3), 2) if total_limit_bytes > 0 else 0
+    group_pct = min(100, round((total_used_bytes / total_limit_bytes) * 100, 1)) if total_limit_bytes > 0 else 0
+    
+    return render_template(
+        "group_portal.html",
+        group_name=group_name,
+        group_token=group_token,
+        users=user_list,
+        total_count=len(user_list),
+        active_count=active_count,
+        locked_count=locked_count,
+        total_used_gb=total_used_gb,
+        total_limit_gb=total_limit_gb,
+        group_pct=group_pct,
+        server_host=domain,
+        server_ip=server_ip,
+        settings=settings
+    )
+
+@app.route("/api/sub/group/toggle-user", methods=["POST"])
+def api_group_toggle_user():
+    data = request.json or {}
+    group_token = data.get("group_token")
+    group_name = find_group_by_token(group_token)
+    if not group_name:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    pubkey = data.get("public_key")
+    proto = data.get("protocol", "wireguard").lower()
+    req_active = data.get("active")
+    
+    if proto == "wireguard":
+        path = '/www/wwwroot/mhpanel/wg_users.json'
+        if not os.path.exists(path): return jsonify({"error": "No users"}), 404
+        with open(path, 'r') as f: users = json.load(f)
+        if pubkey not in users or users[pubkey].get("group") != group_name:
+            return jsonify({"error": "User does not belong to this group"}), 403
+        cur_act = users[pubkey].get("active", True)
+        new_act = (not cur_act) if req_active is None else bool(req_active)
+        users[pubkey]["active"] = new_act
+        with open(path, 'w') as f: json.dump(users, f, indent=2, ensure_ascii=False)
+        try:
+            if not new_act:
+                subprocess.run(["wg", "set", "wg0", "peer", pubkey, "remove"], check=False)
+            else:
+                ip = users[pubkey].get("ip")
+                if not ip:
+                    m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", users[pubkey].get("config", ""))
+                    if m_ip: ip = m_ip.group(1)
+                if ip: subprocess.run(["wg", "set", "wg0", "peer", pubkey, "allowed-ips", f"{ip}/32"], check=False)
+        except Exception: pass
+        return jsonify({"success": True, "active": new_act})
+    else:
+        path = '/www/wwwroot/mhpanel/awg_users.json'
+        if not os.path.exists(path): return jsonify({"error": "No users"}), 404
+        with open(path, 'r') as f: users = json.load(f)
+        if pubkey not in users or users[pubkey].get("group") != group_name:
+            return jsonify({"error": "User does not belong to this group"}), 403
+        cur_act = users[pubkey].get("active", True)
+        new_act = (not cur_act) if req_active is None else bool(req_active)
+        users[pubkey]["active"] = new_act
+        with open(path, 'w') as f: json.dump(users, f, indent=2, ensure_ascii=False)
+        try:
+            if not new_act:
+                subprocess.run(["awg", "set", "awg0", "peer", pubkey, "remove"], check=False)
+            else:
+                ip = users[pubkey].get("ip")
+                if not ip:
+                    m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", users[pubkey].get("config", ""))
+                    if m_ip: ip = m_ip.group(1)
+                if ip: subprocess.run(["awg", "set", "awg0", "peer", pubkey, "allowed-ips", f"{ip}/32"], check=False)
+        except Exception: pass
+        return jsonify({"success": True, "active": new_act})
+
 @app.route("/sub/<sub_token>/openvpn.ovpn")
 def client_subscription_ovpn(sub_token):
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
@@ -5649,6 +5898,89 @@ def api_openvpn_client_download():
 WIREGUARD_MULTIPORT_FILE = "/www/wwwroot/mhpanel/wireguard_multiport.json"
 AMNEZIAWG_MULTIPORT_FILE = "/www/wwwroot/mhpanel/amneziawg_multiport.json"
 
+WG_WARP_FLAG = "/etc/vpnpanel/wg_warp_enabled.flag"
+AWG_WARP_FLAG = "/etc/vpnpanel/awg_warp_enabled.flag"
+
+def ensure_warp_daemon_running():
+    try:
+        subprocess.run(["systemctl", "start", "warp-svc"], check=False)
+        subprocess.run(["warp-cli", "--accept-tos", "mode", "proxy"], check=False)
+        subprocess.run(["warp-cli", "--accept-tos", "proxy", "port", "40000"], check=False)
+        subprocess.run(["warp-cli", "--accept-tos", "connect"], check=False)
+        subprocess.run(["systemctl", "enable", "--now", "mhpanel-amnezia-warp"], check=False)
+        subprocess.run(["systemctl", "restart", "mhpanel-amnezia-warp"], check=False)
+    except Exception:
+        pass
+
+def get_wg_subnet():
+    subnet = "10.13.0.0/24"
+    if os.path.exists("/etc/wireguard/wg0.conf"):
+        try:
+            with open("/etc/wireguard/wg0.conf") as f:
+                content = f.read()
+            m = re.search(r"^Address\s*=\s*(\d+\.\d+\.\d+)\.\d+", content, re.MULTILINE | re.IGNORECASE)
+            if m:
+                subnet = f"{m.group(1)}.0/24"
+        except Exception:
+            pass
+    return subnet
+
+def get_awg_subnet():
+    subnet = "10.77.77.0/24"
+    if os.path.exists("/etc/amnezia/amneziawg/awg0.conf"):
+        try:
+            with open("/etc/amnezia/amneziawg/awg0.conf") as f:
+                content = f.read()
+            m = re.search(r"^Address\s*=\s*(\d+\.\d+\.\d+)\.\d+", content, re.MULTILINE | re.IGNORECASE)
+            if m:
+                subnet = f"{m.group(1)}.0/24"
+        except Exception:
+            pass
+    return subnet
+
+
+GROUP_TOKENS_FILE = "/www/wwwroot/mhpanel/group_tokens.json" if not (os.environ.get("DEV_MODE") or os.environ.get("FLASK_ENV") == "development") else os.path.join(DEV_DATA_DIR, "group_tokens.json")
+
+def get_group_tokens():
+    if os.path.exists(GROUP_TOKENS_FILE):
+        try:
+            with open(GROUP_TOKENS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_group_tokens(tokens):
+    os.makedirs(os.path.dirname(GROUP_TOKENS_FILE), exist_ok=True)
+    with open(GROUP_TOKENS_FILE, "w") as f:
+        json.dump(tokens, f, indent=2, ensure_ascii=False)
+
+def get_or_create_group_token(group_name):
+    if not group_name:
+        group_name = "عمومی"
+    group_name = str(group_name).strip() or "عمومی"
+    tokens = get_group_tokens()
+    if group_name in tokens and tokens[group_name].get("token"):
+        return tokens[group_name]["token"]
+    tok = secrets.token_urlsafe(16)
+    tokens[group_name] = {
+        "token": tok,
+        "name": group_name,
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    save_group_tokens(tokens)
+    return tok
+
+def find_group_by_token(token):
+    if not token:
+        return None
+    tokens = get_group_tokens()
+    for gname, gdata in tokens.items():
+        if gdata.get("token") == token:
+            return gname
+    return None
+
+
 def get_wg_multiport_config():
     target = get_active_port("wireguard") or 51820
     default_cfg = {
@@ -5846,6 +6178,9 @@ PersistentKeepalive = 25
         with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
             try: wg_users = json.load(f)
             except: pass
+    sim_use = 1
+    try: sim_use = max(1, int(request.json.get("simultaneous_use", 1)))
+    except: sim_use = 1
     for client in created_clients:
         wg_users[client["public_key"]] = {
             "name": client["name"],
@@ -5856,8 +6191,10 @@ PersistentKeepalive = 25
             "active": True,
             "duration_days": int(expire_days) if expire_days else None,
             "start_on_first_connect": start_on_first_connect,
+            "simultaneous_use": sim_use,
             "config": client["config"]
         }
+        client["simultaneous_use"] = sim_use
     with open('/www/wwwroot/mhpanel/wg_users.json', 'w') as f:
         json.dump(wg_users, f, indent=2)
         
@@ -5935,6 +6272,7 @@ def api_wg_peers():
         peer["duration_days"] = user_data.get("duration_days")
         peer["start_on_first_connect"] = user_data.get("start_on_first_connect", False)
         peer["group"] = user_data.get("group", "عمومی")
+        peer["simultaneous_use"] = user_data.get("simultaneous_use", 1)
         
         # Ensure sub_token exists
         sub_tok = user_data.get("sub_token")
@@ -6069,6 +6407,10 @@ def api_wg_client_edit():
                 
             if active_val is not None:
                 wg_users[pubkey]["active"] = bool(active_val)
+            sim_use_req = request.json.get("simultaneous_use")
+            if sim_use_req is not None:
+                try: wg_users[pubkey]["simultaneous_use"] = max(1, int(sim_use_req))
+                except: pass
                     
             with open('/www/wwwroot/mhpanel/wg_users.json', 'w') as f:
                 json.dump(wg_users, f, indent=2)
@@ -6174,6 +6516,10 @@ PersistentKeepalive = 25
             try: wg_users = json.load(f)
             except: pass
     
+    sim_use = 1
+    try: sim_use = max(1, int(request.json.get("simultaneous_use", 1)))
+    except: sim_use = 1
+
     wg_users[pubkey] = {
         "name": name,
         "group": group_name,
@@ -6183,6 +6529,7 @@ PersistentKeepalive = 25
         "active": True,
         "duration_days": int(expire_days) if expire_days else None,
         "start_on_first_connect": start_on_first_connect,
+        "simultaneous_use": sim_use,
         "config": client_config
     }
     
@@ -6263,6 +6610,265 @@ def api_wg_client_multiport():
         "name": user_data.get("name", "Client")
     })
 
+
+
+@app.route("/api/wireguard/client/toggle-status", methods=["POST"])
+def api_wg_client_toggle_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    pubkey = (request.json or {}).get("public_key")
+    if not pubkey:
+        return jsonify({"error": "Missing public_key"}), 400
+    wg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
+                wg_users = json.load(f)
+        except Exception: pass
+    user_data = wg_users.get(pubkey, {})
+    current_active = user_data.get("active", True)
+    req_active = (request.json or {}).get("active")
+    new_active = (not current_active) if req_active is None else bool(req_active)
+    user_data["active"] = new_active
+    wg_users[pubkey] = user_data
+    with open('/www/wwwroot/mhpanel/wg_users.json', 'w') as f:
+        json.dump(wg_users, f, indent=2, ensure_ascii=False)
+    
+    # Enforce in kernel runtime
+    try:
+        if not new_active:
+            subprocess.run(["wg", "set", "wg0", "peer", pubkey, "remove"], check=False)
+        else:
+            ip = user_data.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", user_data.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["wg", "set", "wg0", "peer", pubkey, "allowed-ips", f"{ip}/32"], check=False)
+            else:
+                subprocess.run("wg syncconf wg0 <(wg-quick strip wg0)", shell=True, executable="/bin/bash")
+    except Exception:
+        pass
+    
+    return jsonify({"success": True, "active": new_active})
+
+@app.route("/api/amneziawg/client/toggle-status", methods=["POST"])
+def api_awg_client_toggle_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    pubkey = (request.json or {}).get("public_key")
+    if not pubkey:
+        return jsonify({"error": "Missing public_key"}), 400
+    awg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
+                awg_users = json.load(f)
+        except Exception: pass
+    user_data = awg_users.get(pubkey, {})
+    current_active = user_data.get("active", True)
+    req_active = (request.json or {}).get("active")
+    new_active = (not current_active) if req_active is None else bool(req_active)
+    user_data["active"] = new_active
+    awg_users[pubkey] = user_data
+    with open('/www/wwwroot/mhpanel/awg_users.json', 'w') as f:
+        json.dump(awg_users, f, indent=2, ensure_ascii=False)
+    
+    # Enforce in kernel runtime
+    try:
+        if not new_active:
+            subprocess.run(["awg", "set", "awg0", "peer", pubkey, "remove"], check=False)
+        else:
+            ip = user_data.get("ip")
+            if not ip:
+                m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", user_data.get("config", ""))
+                if m_ip: ip = m_ip.group(1)
+            if ip:
+                subprocess.run(["awg", "set", "awg0", "peer", pubkey, "allowed-ips", f"{ip}/32"], check=False)
+            else:
+                subprocess.run("awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
+    except Exception:
+        pass
+        
+    return jsonify({"success": True, "active": new_active})
+
+@app.route("/api/wireguard/client/download-zip")
+def api_wg_client_download_zip():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    pubkey = request.args.get("public_key")
+    if not pubkey:
+        return "Missing public_key", 400
+    wg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
+                wg_users = json.load(f)
+        except Exception: pass
+    user_data = wg_users.get(pubkey, {})
+    base_cfg = user_data.get("config", "")
+    uname = user_data.get("name", "wireguard")
+    if not base_cfg:
+        return "Config not found", 404
+    domain = get_server_domain() or get_server_public_ip()
+    mp_cfg = get_wg_multiport_config()
+    ports = list(mp_cfg.get("ports", []))
+    target = mp_cfg.get("target_port") or 51820
+    if target not in ports:
+        ports.insert(0, target)
+        
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in ports:
+            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            
+    mem_file.seek(0)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"{uname}-wireguard-all-ports.zip"
+    )
+
+@app.route("/api/amneziawg/client/download-zip")
+def api_awg_client_download_zip():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    pubkey = request.args.get("public_key")
+    if not pubkey:
+        return "Missing public_key", 400
+    awg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
+                awg_users = json.load(f)
+        except Exception: pass
+    user_data = awg_users.get(pubkey, {})
+    base_cfg = user_data.get("config", "")
+    uname = user_data.get("name", "amneziawg")
+    if not base_cfg:
+        return "Config not found", 404
+    domain = get_server_domain() or get_server_public_ip()
+    mp_cfg = get_awg_multiport_config()
+    ports = list(mp_cfg.get("ports", []))
+    target = mp_cfg.get("target_port") or 443
+    if target not in ports:
+        ports.insert(0, target)
+        
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for p in ports:
+            cfg_p = re.sub(r"(Endpoint\s*=\s*)[^:\s]+:\d+", rf"\g<1>{domain}:{p}", base_cfg)
+            zf.writestr(f"{uname}-port-{p}.conf", cfg_p)
+            
+    mem_file.seek(0)
+    return send_file(
+        mem_file,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"{uname}-amneziawg-all-ports.zip"
+    )
+
+@app.route("/api/wireguard/warp", methods=["GET"])
+def api_wireguard_warp_status():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    is_flag = os.path.exists(WG_WARP_FLAG)
+    svc_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+    warp_svc_active = subprocess.run(["systemctl", "is-active", "warp-svc"], capture_output=True, text=True).stdout.strip() == "active"
+    is_active = is_flag and svc_active
+    
+    warp_ip = "-"
+    if is_active:
+        try:
+            res = subprocess.run(["curl", "--interface", "awg-warp", "-s", "--max-time", "3", "https://cloudflare.com/cdn-cgi/trace"], capture_output=True, text=True)
+            for line in res.stdout.splitlines():
+                if line.startswith("ip="):
+                    warp_ip = line.split("=")[1].strip()
+                    break
+        except Exception:
+            pass
+            
+    return jsonify({
+        "success": True,
+        "active": is_active,
+        "warp_svc_active": warp_svc_active,
+        "warp_ip": warp_ip
+    })
+
+@app.route("/api/wireguard/warp/toggle", methods=["POST"])
+def api_wireguard_warp_toggle():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    enable = bool((request.json or {}).get("enabled", False))
+    wg_sub = get_wg_subnet()
+    os.makedirs("/etc/vpnpanel", exist_ok=True)
+    try:
+        if enable:
+            ensure_warp_daemon_running()
+            with open(WG_WARP_FLAG, "w") as f:
+                f.write("enabled\n")
+            subprocess.run(f"/sbin/ip rule del from {wg_sub} table 51821 priority 1001 2>/dev/null || true", shell=True)
+            subprocess.run(f"/sbin/ip rule add from {wg_sub} table 51821 priority 1001", shell=True)
+            subprocess.run(f"/sbin/iptables -t nat -C POSTROUTING -s {wg_sub} -o awg-warp -j MASQUERADE 2>/dev/null || /sbin/iptables -t nat -I POSTROUTING 1 -s {wg_sub} -o awg-warp -j MASQUERADE", shell=True)
+        else:
+            if os.path.exists(WG_WARP_FLAG):
+                os.remove(WG_WARP_FLAG)
+            subprocess.run(f"/sbin/ip rule del from {wg_sub} table 51821 priority 1001 2>/dev/null || true", shell=True)
+            subprocess.run(f"/sbin/iptables -t nat -D POSTROUTING -s {wg_sub} -o awg-warp -j MASQUERADE 2>/dev/null || true", shell=True)
+            
+        time.sleep(1)
+        svc_active = subprocess.run(["systemctl", "is-active", "mhpanel-amnezia-warp"], capture_output=True, text=True).stdout.strip() == "active"
+        is_active = os.path.exists(WG_WARP_FLAG) and svc_active
+        return jsonify({"success": True, "active": is_active})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/groups/list")
+def api_groups_list():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    groups = set()
+    wg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/wg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/wg_users.json', 'r') as f:
+                wg_users = json.load(f)
+                for u in wg_users.values():
+                    g = u.get("group")
+                    if g: groups.add(g)
+        except Exception: pass
+        
+    awg_users = {}
+    if os.path.exists('/www/wwwroot/mhpanel/awg_users.json'):
+        try:
+            with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
+                awg_users = json.load(f)
+                for u in awg_users.values():
+                    g = u.get("group")
+                    if g: groups.add(g)
+        except Exception: pass
+        
+    if not groups:
+        groups.add("عمومی")
+        
+    res = []
+    base_url = f"{request.scheme}://{request.host}"
+    
+    for gname in sorted(list(groups)):
+        tok = get_or_create_group_token(gname)
+        count = sum(1 for u in wg_users.values() if u.get("group") == gname) +                 sum(1 for u in awg_users.values() if u.get("group") == gname)
+        res.append({
+            "name": gname,
+            "token": tok,
+            "count": count,
+            "portal_url": f"{base_url}/sub/group/{tok}"
+        })
+        
+    return jsonify({"success": True, "groups": res})
 
 @app.route("/api/wireguard/client/delete", methods=["POST"])
 def api_wg_client_delete():
@@ -6441,6 +7047,9 @@ PersistentKeepalive = 25
         with open('/www/wwwroot/mhpanel/awg_users.json', 'r') as f:
             try: awg_users = json.load(f)
             except: pass
+    sim_use = 1
+    try: sim_use = max(1, int(request.json.get("simultaneous_use", 1)))
+    except: sim_use = 1
     for client in created_clients:
         awg_users[client["public_key"]] = {
             "name": client["name"],
@@ -6451,8 +7060,10 @@ PersistentKeepalive = 25
             "active": True,
             "duration_days": int(expire_days) if expire_days else None,
             "start_on_first_connect": start_on_first_connect,
+            "simultaneous_use": sim_use,
             "config": client["config"]
         }
+        client["simultaneous_use"] = sim_use
     with open('/www/wwwroot/mhpanel/awg_users.json', 'w') as f:
         json.dump(awg_users, f, indent=2)
         
@@ -6528,6 +7139,7 @@ def api_awg_peers():
         peer["expire_date"] = user_data.get("expire_date")
         peer["active"] = user_data.get("active", True)
         peer["group"] = user_data.get("group", "عمومی")
+        peer["simultaneous_use"] = user_data.get("simultaneous_use", 1)
         
         # Ensure sub_token exists
         sub_tok = user_data.get("sub_token")
@@ -6671,6 +7283,10 @@ def api_awg_client_edit():
 
             if active_val is not None:
                 awg_users[pubkey]["active"] = bool(active_val)
+            sim_use_req = request.json.get("simultaneous_use")
+            if sim_use_req is not None:
+                try: awg_users[pubkey]["simultaneous_use"] = max(1, int(sim_use_req))
+                except: pass
                     
             with open('/www/wwwroot/mhpanel/awg_users.json', 'w') as f:
                 json.dump(awg_users, f, indent=2)
@@ -6778,6 +7394,10 @@ PersistentKeepalive = 25
             try: awg_users = json.load(f)
             except: pass
     
+    sim_use = 1
+    try: sim_use = max(1, int(request.json.get("simultaneous_use", 1)))
+    except: sim_use = 1
+
     awg_users[pubkey] = {
         "name": name,
         "group": group_name,
@@ -6787,6 +7407,7 @@ PersistentKeepalive = 25
         "active": True,
         "duration_days": int(expire_days) if expire_days else None,
         "start_on_first_connect": start_on_first_connect,
+        "simultaneous_use": sim_use,
         "config": client_config
     }
     
@@ -7124,8 +7745,6 @@ def set_amneziawg_protocol_version(target_ver):
         if h3 in ["3", "0"]: h3 = str(random.randint(10000000, 2147483647))
         if h4 in ["4", "0"]: h4 = str(random.randint(10000000, 2147483647))
         new_obf = f"# Version = 3\nJc = {jc}\nJmin = {jmin}\nJmax = {jmax}\nS1 = {s1}\nS2 = {s2}\nS3 = {s3}\nS4 = {s4}\nH1 = {h1}\nH2 = {h2}\nH3 = {h3}\nH4 = {h4}\n"
-    elif target_ver == "v1":
-        new_obf = f"# Version = 1\nJc = 0\nJmin = 0\nJmax = 0\nS1 = 0\nS2 = 0\nH1 = 1\nH2 = 2\nH3 = 3\nH4 = 4\n"
     else:
         target_ver = "v2"
         if not s1 or s1 == "0": s1 = "56"
@@ -7226,11 +7845,10 @@ def api_amneziawg_version():
         return jsonify({"success": True, "version": ver})
 
     target_ver = (request.json or {}).get("version", "").lower().strip()
-    if target_ver not in ["v1", "v2", "v3", "1", "2", "3"]:
-        return jsonify({"error": "نسخه نامعتبر است. لطفاً v2 یا v3 انتخاب نمایید."}), 400
+    if target_ver not in ["v2", "v3", "2", "3"]:
+        return jsonify({"error": "نسخه نامعتبر است. لطفاً نسخه ۲ (v2) یا نسخه ۳ (v3) را انتخاب نمایید."}), 400
     
-    if target_ver in ["1", "v1"]: target_ver = "v1"
-    elif target_ver in ["3", "v3"]: target_ver = "v3"
+    if target_ver in ["3", "v3"]: target_ver = "v3"
     else: target_ver = "v2"
 
     ok, res = set_amneziawg_protocol_version(target_ver)
@@ -7238,9 +7856,8 @@ def api_amneziawg_version():
         return jsonify({"error": res}), 500
 
     ver_names = {
-        "v1": "نسخه ۱ (پایه و سازگار با WireGuard)",
-        "v2": "نسخه ۲ (پایدار و سازگار با تمامی کلاینت‌ها)",
-        "v3": "نسخه ۳ (ضد فیلترینگ پیشرفته با محافظت لایه انتقال S3/S4)"
+        "v2": "نسخه ۲ (پایدار و استاندارد AmneziaWG v2)",
+        "v3": "نسخه ۳ (ضد فیلترینگ فوق پیشرفته با محافظت لایه انتقال S3/S4)"
     }
     return jsonify({
         "success": True,

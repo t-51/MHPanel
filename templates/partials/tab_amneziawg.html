@@ -84,18 +84,27 @@
                             <span>تاریخ منقضی</span>
                             <span id="awg-filter-count-date" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
                         </button>
+                        <button type="button" class="awg-filter-btn status-locked" id="awg-filter-locked" onclick="filterAwgClients('locked')">
+                            <i data-lucide="lock" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
+                            <span>قفل / متوقف</span>
+                            <span id="awg-filter-count-locked" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
                     </div>
 
                     <!-- Search and Group Filter -->
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="folder" style="width:14px; height:14px;"></i> دسته:</span>
                             <select id="awg-group-filter-select" onchange="filterAwgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:8px; min-width:130px;">
                                 <option value="all">همه دسته‌ها (گروه‌ها)</option>
                             </select>
                         </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentAwgGroupPortalLink()" style="font-size:12px; height:34px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="کپی لینک پرتال اختصاصی این گروه جهت ارائه به مالک گروه">
+                            <i data-lucide="external-link" style="width:13px; height:13px; color:#10b981;"></i>
+                            <span>لینک پرتال گروه</span>
+                        </button>
                         <div style="position:relative;">
-                            <input type="text" id="awg-clients-search" oninput="filterAwgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:180px;">
+                            <input type="text" id="awg-clients-search" oninput="filterAwgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:170px;">
                         </div>
                     </div>
                 </div>
@@ -133,14 +142,18 @@
                             <input class="form-input" id="awg-client-group" list="awg-group-datalist" placeholder="مثلاً VIP، همراه اول، خانواده یا نام جدید..." style="padding-left:14px;" type="text" value="عمومی"/>
                             <datalist id="awg-group-datalist"></datalist>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB) - اختیاری</label>
-                                <input class="form-input" id="awg-client-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number" min="1"/>
+                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
+                                <input class="form-input" id="awg-client-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" min="1"/>
                             </div>
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز) - اختیاری</label>
-                                <input class="form-input" id="awg-client-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
+                                <input class="form-input" id="awg-client-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
+                                <input class="form-input" id="awg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -179,14 +192,18 @@
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
                             <input class="form-input" id="awg-bulk-group" list="awg-group-datalist" placeholder="مثلاً همراه اول، مخابرات..." style="padding-left:14px;" type="text" value="عمومی"/>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="awg-bulk-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="awg-bulk-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="awg-bulk-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="awg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
+                                <input class="form-input" id="awg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -438,8 +455,9 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, 0.06); font-size: 12px;">
                     <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <span>وضعیت سرویس وارپ: <strong id="awg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-color);">-</strong></span>
                         <span>آی‌پی خروجی کلودفلر: <strong id="awg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#ea580c;">-</strong></span>
-                        <span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (SOCKS5 :40000)</strong></span>
+                        <span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (Table 51821)</strong></span>
                     </div>
                 </div>
             </div>
@@ -463,6 +481,12 @@
             </p>
             <div id="awg-client-mp-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;">
                 <!-- Injected via JS -->
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-glow); padding-top:12px; margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="closeAwgClientMultiportModal()" type="button">بستن</button>
+                <a id="awg-modal-mp-zip-btn" href="#" class="btn btn-primary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#059669; border-color:#059669;">
+                    <i data-lucide="archive" style="width:14px; height:14px;"></i> دانلود همه پورت‌ها (فایل ZIP)
+                </a>
             </div>
         </div>
     </div>

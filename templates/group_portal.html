@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پرتال اختصاصی مدیریت گروه {{ group_name }} | MH Panel</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="/static/lucide.min.js"></script>
+    <style>
+        :root {
+            --bg-base: #0a0f1d;
+            --bg-surface: #111827;
+            --bg-card: #151e2e;
+            --bg-card-hover: #1e293b;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(99, 102, 241, 0.25);
+            --text-main: #ffffff;
+            --text-muted: #cbd5e1;
+            --color-primary: #6366f1;
+            --color-primary-glow: rgba(99, 102, 241, 0.35);
+            --color-emerald: #10b981;
+            --color-rose: #f43f5e;
+            --color-warning: #f59e0b;
+        }
+
+        [data-theme="light"] {
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5f9;
+            --border-color: #cbd5e1;
+            --border-glow: rgba(0, 0, 0, 0.06);
+            --text-main: #0f172a;
+            --text-muted: #475569;
+            --color-primary: #4f46e5;
+        }
+
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('/static/fonts/Vazirmatn-Regular.woff2') format('woff2');
+            font-weight: 400;
+        }
+        @font-face {
+            font-family: 'Vazirmatn';
+            src: url('/static/fonts/Vazirmatn-Bold.woff2') format('woff2');
+            font-weight: 700;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Vazirmatn', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .portal-wrapper {
+            width: 100%;
+            max-width: 1100px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .header-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .group-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .group-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .stat-label {
+            font-size: 12.5px;
+            color: var(--text-muted);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', 'Vazirmatn', monospace;
+        }
+
+        .toolbar {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .filter-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 14px;
+            font-size: 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-muted);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filter-btn.active {
+            background: var(--color-primary);
+            color: #ffffff;
+            border-color: var(--color-primary);
+        }
+
+        .search-input {
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-main);
+            font-size: 13px;
+            min-width: 240px;
+            outline: none;
+        }
+
+        .users-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+        }
+
+        .user-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            transition: all 0.2s;
+        }
+
+        .user-card:hover {
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+        }
+
+        .user-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .badge-pill {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .badge-active { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-traffic { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.3); }
+        .badge-date { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-locked { background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); }
+
+        .progress-track {
+            height: 6px;
+            background: rgba(128, 128, 128, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--color-primary);
+            border-radius: 10px;
+        }
+
+        .user-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-surface);
+            color: var(--text-main);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            border-color: var(--color-primary);
+        }
+
+        .btn-lock {
+            color: #f59e0b;
+        }
+        .btn-lock:hover {
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .btn-unlock {
+            color: #10b981;
+        }
+        .btn-unlock:hover {
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        /* Toast notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            padding: 10px 18px;
+            background: #1e293b;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 13px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="portal-wrapper">
+        <!-- Header -->
+        <header class="header-card">
+            <div class="group-title">
+                <div class="group-icon">
+                    <i data-lucide="folder-lock" style="width:26px; height:26px;"></i>
+                </div>
+                <div>
+                    <h2 style="font-size:18px; font-weight:800;">پرتال اختصاصی گروه: {{ group_name }}</h2>
+                    <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        مشاهده مشخصات زیرمجموعه، حجم مصرفی و مدیریت وضعیت اتصال اکانت‌ها
+                    </p>
+                </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <button class="btn-action" onclick="toggleTheme()" type="button" title="تغییر تم">
+                    <i data-lucide="sun-moon" style="width:14px; height:14px;"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">تعداد کل کاربران زیرمجموعه</span>
+                <span class="stat-value" id="stat-total">{{ total_count }} اکانت</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">اکانت‌های فعال و متصل</span>
+                <span class="stat-value" style="color:#10b981;" id="stat-active">{{ active_count }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">اکانت‌های قفل / متوقف شده</span>
+                <span class="stat-value" style="color:#f59e0b;" id="stat-locked">{{ locked_count }}</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">مجموع مصرف حجم گروه</span>
+                <span class="stat-value" style="color:var(--color-primary);">{{ total_used_gb }} GB {% if total_limit_gb > 0 %}/ {{ total_limit_gb }} GB{% endif %}</span>
+                <div class="progress-track" style="margin-top:6px;">
+                    <div class="progress-fill" style="width: {{ group_pct }}%;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Filter Toolbar -->
+        <section class="toolbar">
+            <div class="filter-pills">
+                <button class="filter-btn active" onclick="filterGroupUsers('all')" id="g-filter-all">
+                    <span>همه</span> ({{ total_count }})
+                </button>
+                <button class="filter-btn" onclick="filterGroupUsers('active')" id="g-filter-active">
+                    <span style="color:#10b981;">●</span> <span>فعال</span> ({{ active_count }})
+                </button>
+                <button class="filter-btn" onclick="filterGroupUsers('traffic_expired')" id="g-filter-traffic">
+                    <span style="color:#f43f5e;">●</span> <span>پایان حجم</span>
+                </button>
+                <button class="filter-btn" onclick="filterGroupUsers('date_expired')" id="g-filter-date">
+                    <span style="color:#f59e0b;">●</span> <span>تاریخ منقضی</span>
+                </button>
+                <button class="filter-btn" onclick="filterGroupUsers('locked')" id="g-filter-locked">
+                    <span style="color:#94a3b8;">●</span> <span>قفل شده</span> ({{ locked_count }})
+                </button>
+            </div>
+            <div>
+                <input type="text" class="search-input" id="group-search" placeholder="جستجوی نام کاربر..." oninput="handleGroupSearch()">
+            </div>
+        </section>
+
+        <!-- Users Grid -->
+        <main class="users-grid" id="group-users-container">
+            {% for u in users %}
+            <div class="user-card" id="card-{{ u.public_key|replace('/', '_')|replace('+', '_')|replace('=', '') }}" data-name="{{ u.name|lower }}" data-status="{{ u.status }}">
+                <div class="user-header">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-weight:700; font-size:15px;">{{ u.name }}</span>
+                        <span class="badge-pill" style="background:rgba(99,102,241,0.12); color:#6366f1;">{{ u.protocol }}</span>
+                    </div>
+                    <div>
+                        {% if u.status == 'locked' %}
+                        <span class="badge-pill badge-locked">🔒 قفل شده</span>
+                        {% elif u.status == 'traffic_expired' %}
+                        <span class="badge-pill badge-traffic">پایان حجم</span>
+                        {% elif u.status == 'date_expired' %}
+                        <span class="badge-pill badge-date">تاریخ منقضی</span>
+                        {% else %}
+                        <span class="badge-pill badge-active">🟢 فعال</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
+                        <span>مصرف کل: <strong>{{ u.used_gb }} GB</strong></span>
+                        <span>سقف: {% if u.limit_gb %}{{ u.limit_gb }} GB ({{ u.usage_pct }}%){% else %}نامحدود{% endif %}</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" style="width: {{ u.usage_pct }}%; {% if u.usage_pct >= 90 %}background:#f43f5e;{% elif u.usage_pct >= 75 %}background:#f59e0b;{% endif %}"></div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-muted); padding-top:2px;">
+                        <span>انقضا: {{ u.expire_date or 'نامحدود' }}</span>
+                        <span>📱 کاربران مجاز: {{ u.simultaneous_use }}</span>
+                    </div>
+                </div>
+
+                <div class="user-actions">
+                    {% if u.sub_token %}
+                    <button type="button" class="btn-action" onclick="copyText('{{ request.scheme }}://{{ request.host }}/sub/{{ u.sub_token }}', 'لینک ساب کپی شد!')" title="کپی لینک هوشمند ساب">
+                        <i data-lucide="link" style="width:12px; height:12px;"></i> ساب
+                    </button>
+                    <a href="/sub/{{ u.sub_token }}/configs.zip" class="btn-action" title="دانلود فایل زیپ تمام پورت‌ها">
+                        <i data-lucide="archive" style="width:12px; height:12px;"></i> ZIP
+                    </a>
+                    {% endif %}
+                    <button type="button" class="btn-action {% if u.is_active %}btn-lock{% else %}btn-unlock{% endif %}" onclick="toggleUserLock('{{ group_token }}', '{{ u.public_key }}', '{{ u.proto_key }}', {{ 'false' if u.is_active else 'true' }})">
+                        {% if u.is_active %}
+                        <i data-lucide="lock" style="width:12px; height:12px;"></i> <span>قفل اکانت</span>
+                        {% else %}
+                        <i data-lucide="unlock" style="width:12px; height:12px;"></i> <span>باز کردن</span>
+                        {% endif %}
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </main>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <script>
+        lucide.createIcons();
+
+        function showToast(msg) {
+            const container = document.getElementById("toast-container");
+            const t = document.createElement("div");
+            t.className = "toast";
+            t.innerText = msg;
+            container.appendChild(t);
+            setTimeout(() => { t.remove(); }, 3000);
+        }
+
+        function copyText(txt, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => showToast(successMsg || "کپی شد!"));
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = txt;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand("copy");
+                document.body.removeChild(ta);
+                showToast(successMsg || "کپی شد!");
+            }
+        }
+
+        function toggleTheme() {
+            const cur = document.documentElement.getAttribute("data-theme") || "dark";
+            const next = cur === "dark" ? "light" : "dark";
+            document.documentElement.setAttribute("data-theme", next);
+        }
+
+        let currentFilter = 'all';
+        let currentSearch = '';
+
+        function filterGroupUsers(status) {
+            currentFilter = status;
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            const activeBtn = document.getElementById(`g-filter-${status}`);
+            if (activeBtn) activeBtn.classList.add("active");
+            applyUserFilters();
+        }
+
+        function handleGroupSearch() {
+            currentSearch = document.getElementById("group-search").value.trim().toLowerCase();
+            applyUserFilters();
+        }
+
+        function applyUserFilters() {
+            const cards = document.querySelectorAll(".user-card");
+            cards.forEach(c => {
+                const name = c.getAttribute("data-name") || "";
+                const status = c.getAttribute("data-status") || "";
+                const matchSearch = !currentSearch || name.includes(currentSearch);
+                const matchStatus = (currentFilter === 'all') || (status === currentFilter);
+                if (matchSearch && matchStatus) {
+                    c.style.display = "flex";
+                } else {
+                    c.style.display = "none";
+                }
+            });
+        }
+
+        async function toggleUserLock(token, pubkey, proto, setActive) {
+            try {
+                const res = await fetch("/api/sub/group/toggle-user", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        group_token: token,
+                        public_key: pubkey,
+                        protocol: proto,
+                        active: setActive
+                    })
+                });
+                const d = await res.json();
+                if (d.success) {
+                    showToast(d.active ? "اکانت با موفقیت باز شد!" : "اکانت با موفقیت قفل شد!");
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast(d.error || "خطا در تغییر وضعیت کاربر");
+                }
+            } catch(e) {
+                showToast("خطای اتصال به سرور");
+            }
+        }
+    </script>
+</body>
+</html>

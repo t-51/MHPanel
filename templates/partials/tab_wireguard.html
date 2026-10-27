@@ -72,18 +72,27 @@
                             <span>تاریخ منقضی</span>
                             <span id="wg-filter-count-date" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
                         </button>
+                        <button type="button" class="wg-filter-btn status-locked" id="wg-filter-locked" onclick="filterWgClients('locked')">
+                            <i data-lucide="lock" style="width:12px; height:12px; margin-inline-end:4px; vertical-align:middle;"></i>
+                            <span>قفل / متوقف</span>
+                            <span id="wg-filter-count-locked" style="opacity:0.85; font-size:11px; margin-inline-start:4px;">(0)</span>
+                        </button>
                     </div>
 
                     <!-- Search and Group Filter -->
-                    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="folder" style="width:14px; height:14px;"></i> دسته:</span>
                             <select id="wg-group-filter-select" onchange="filterWgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:8px; min-width:130px;">
                                 <option value="all">همه دسته‌ها (گروه‌ها)</option>
                             </select>
                         </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentWgGroupPortalLink()" style="font-size:12px; height:34px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="کپی لینک پرتال اختصاصی این گروه جهت ارائه به مالک گروه">
+                            <i data-lucide="external-link" style="width:13px; height:13px; color:#6366f1;"></i>
+                            <span>لینک پرتال گروه</span>
+                        </button>
                         <div style="position:relative;">
-                            <input type="text" id="wg-clients-search" oninput="filterWgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:180px;">
+                            <input type="text" id="wg-clients-search" oninput="filterWgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:170px;">
                         </div>
                     </div>
                 </div>
@@ -121,14 +130,18 @@
                             <input class="form-input" id="wg-client-group" list="wg-group-datalist" placeholder="مثلاً VIP، عمومی، خانواده یا نام جدید..." style="padding-left:14px;" type="text" value="عمومی"/>
                             <datalist id="wg-group-datalist"></datalist>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB) - اختیاری</label>
-                                <input class="form-input" id="wg-client-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number" min="1"/>
+                                <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
+                                <input class="form-input" id="wg-client-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" min="1"/>
                             </div>
                             <div class="form-group" style="margin:0;">
-                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز) - اختیاری</label>
-                                <input class="form-input" id="wg-client-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                                <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
+                                <input class="form-input" id="wg-client-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
+                                <input class="form-input" id="wg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -167,14 +180,18 @@
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
                             <input class="form-input" id="wg-bulk-group" list="wg-group-datalist" placeholder="مثلاً VIP، دسته تست..." style="padding-left:14px;" type="text" value="عمومی"/>
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="wg-bulk-limit" placeholder="مثلاً 50" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="wg-bulk-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="مثلاً 30" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
+                                <input class="form-input" id="wg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -355,6 +372,38 @@
                     </button>
                 </form>
             </div>
+
+            <!-- Cloudflare WARP Routing for WireGuard Card -->
+            <div class="glass-card config-card" style="border: 1px solid rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.04); padding: 16px;">
+                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(6, 182, 212, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
+                        </div>
+                        <div>
+                            <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-color);">خروج ترافیک کاربران WireGuard از Cloudflare WARP</h4>
+                            <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
+                                عبور مستقیم ترافیک کلاینت‌ها از شبکه امن وارپ جهت پنهان‌سازی آی‌پی اصلی سرور و رفع مسدودی‌ها
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="badge" id="wg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; color: #475569;">
+                            -
+                        </span>
+                        <button class="btn btn-sm" id="wg-warp-toggle-btn" onclick="toggleWgWarpClick()" style="padding: 6px 14px; font-size: 12px; width:auto;" type="button">
+                            فعال‌سازی وارپ
+                        </button>
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, 0.06); font-size: 12px;">
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <span>وضعیت سرویس وارپ: <strong id="wg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-color);">-</strong></span>
+                        <span>آی‌پی خروجی کلودفلر: <strong id="wg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#0284c7;">-</strong></span>
+                        <span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (Table 51821)</strong></span>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -375,6 +424,12 @@
             </p>
             <div id="wg-client-mp-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;">
                 <!-- Injected via JS -->
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-glow); padding-top:12px; margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="closeWgClientMultiportModal()" type="button">بستن</button>
+                <a id="wg-modal-mp-zip-btn" href="#" class="btn btn-primary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="archive" style="width:14px; height:14px;"></i> دانلود همه پورت‌ها (فایل ZIP)
+                </a>
             </div>
         </div>
     </div>

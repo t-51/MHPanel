@@ -544,6 +544,14 @@
                     </div>
                 </div>
                 <div class="stat-box">
+                    <div class="stat-label">تعداد دستگاه‌های مجاز (Simultaneous Use)</div>
+                    <div class="stat-val" style="color:var(--color-primary); font-size:16px;">📱 {{ user.simultaneous_use or 1 }} کاربر همزمان</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">دسته‌بندی / گروه اکانت</div>
+                    <div class="stat-val" style="font-size:15px; color:#6366f1;">📁 {{ user.group or 'عمومی' }}</div>
+                </div>
+                <div class="stat-box">
                     <div class="stat-label">آی‌پی اختصاصی کلاینت (VPN IP)</div>
                     <div class="stat-val" style="direction:ltr; text-align:left;">{{ user.ip or '10.8.0.x' }}</div>
                 </div>
@@ -582,6 +590,9 @@
                     </button>
                     <a class="btn" id="download-conf-btn" href="/sub/{{ sub_token }}/port/{{ server_port }}.conf" download="{{ username }}-port-{{ server_port }}.conf">
                         <i data-lucide="download" style="width:14px; height:14px;"></i> <span>دانلود فایل .conf</span>
+                    </a>
+                    <a class="btn" style="background:#4f46e5; color:#ffffff;" href="/sub/{{ sub_token }}/configs.zip" download="{{ username }}-all-ports.zip" title="دانلود یکجای تمامی پورت‌ها در یک فایل ZIP">
+                        <i data-lucide="archive" style="width:14px; height:14px;"></i> <span>دانلود تمام پورت‌ها (فایل ZIP)</span>
                     </a>
                     <button class="btn btn-secondary" onclick="showCurrentQrModal()" type="button">
                         <i data-lucide="qr-code" style="width:14px; height:14px;"></i> <span>نمایش بارکد QR</span>

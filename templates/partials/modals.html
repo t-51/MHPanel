@@ -165,6 +165,10 @@
 <input class="form-input" id="edit-client-group" placeholder="عمومی" style="padding-left:16px;" type="text"/>
 </div>
 <div class="form-group" style="margin: 0;">
+<label class="form-label">تعداد کاربر / دستگاه مجاز (Simultaneous Connections)</label>
+<input class="form-input" id="edit-client-sim-use" min="1" max="100" value="1" placeholder="1" style="padding-left:16px;" type="number"/>
+</div>
+<div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="wg_volume_limit_gb_optional">Volume Limit (GB) - Optional</label>
 <input class="form-input" id="edit-client-limit" placeholder="No limit" style="padding-left:16px;" type="number"/>
 </div>
@@ -2546,6 +2550,115 @@
             </div>
             <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
                 <button class="btn btn-primary" type="button" onclick="closeMikrotikScriptModal()">بستن پنجره</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AMNEZIAWG PROTOCOL VERSION MODAL (V2 and V3 ONLY) -->
+<div class="modal" id="awg-version-modal">
+    <div class="modal-card" style="max-width: 520px; border-radius: 16px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="layers" style="color: #6366f1; width: 20px; height: 20px;"></i>
+                <span>انتخاب نسخه پروتکل AmneziaWG</span>
+            </h3>
+            <button class="modal-close" onclick="closeAwgVersionModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 22px; display: flex; flex-direction: column; gap: 16px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin: 0;">
+                پروتکل AmneziaWG در دو نسخه اختصاصی عرضه می‌شود. لطفاً نسخه مورد نظر سرور را انتخاب کنید (نسخه استاندارد وایرگارد در تب جداگانه WireGuard قرار دارد):
+            </p>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Option v2 -->
+                <div class="awg-ver-card" id="awg-ver-opt-v2" onclick="selectAwgVerOption('v2')" style="border: 2px solid var(--border-color); border-radius: 12px; padding: 14px 16px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: all 0.2s;">
+                    <input type="radio" name="awg_version_radio" id="awg-radio-v2" value="v2" style="margin-top: 3px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="font-size: 14.5px; color: var(--text-main);">نسخه ۲ (AmneziaWG v2)</strong>
+                            <span class="badge-pill" style="background: rgba(99, 102, 241, 0.15); color: #6366f1; font-size: 11px;">پایدار و استاندارد</span>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.6;">
+                            مجهز به هدرهای پیشرفته مبهم‌سازی (Jc, Jmin, Jmax, S1, S2, H1-H4). کاملاً سازگار با تمامی نسخه‌های رسمی اپلیکیشن AmneziaWG در اندروید، iOS، ویندوز و لینوکس.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Option v3 -->
+                <div class="awg-ver-card" id="awg-ver-opt-v3" onclick="selectAwgVerOption('v3')" style="border: 2px solid var(--border-color); border-radius: 12px; padding: 14px 16px; cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: all 0.2s;">
+                    <input type="radio" name="awg_version_radio" id="awg-radio-v3" value="v3" style="margin-top: 3px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <strong style="font-size: 14.5px; color: var(--text-main);">نسخه ۳ (AmneziaWG v3)</strong>
+                            <span class="badge-pill" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 11px;">ضد فیلترینگ فوق پیشرفته</span>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.6;">
+                            مجهز به پدینگ ۴ گانه (S1, S2, S3, S4) و شناسه‌های تصادفی کامل هدرها. مقاومت بسیار بالا در برابر فیلترینگ شدید و سیستم‌های پیشرفته DPI اپراتورهای همراه اول و ایرانسل.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button class="btn btn-secondary" type="button" onclick="closeAwgVersionModal()">انصراف</button>
+                <button class="btn btn-primary" type="button" onclick="submitAwgVersionChange()">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                    <span>تغییر و ذخیره نسخه AmneziaWG</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- UNIFIED QR CODE MODAL WITH MULTIPORT SWITCHER -->
+<div class="modal" id="modal-unified-qr">
+    <div class="modal-card" style="max-width: 540px; border-radius: 16px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="qr-code" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                <span id="unified-qr-title">بارکد اتصال (QR Code)</span>
+            </h3>
+            <button class="modal-close" onclick="closeUnifiedQrModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding: 20px; display: flex; flex-direction: column; gap: 16px; align-items: center;">
+            <p style="font-size: 12.5px; color: var(--text-muted); text-align: center; margin: 0;">
+                پورت مورد نظر را برای تولید بارکد انتخاب نمایید. در صورت اختلال در یک پورت، کافیست بارکد پورت دیگر را اسکن کنید:
+            </p>
+
+            <!-- Port switcher pills inside QR modal -->
+            <div id="unified-qr-ports-bar" style="display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; width: 100%;">
+                <!-- Dynamically filled with active multiport buttons -->
+            </div>
+
+            <!-- QR Canvas container -->
+            <div id="unified-qr-canvas-box" style="padding: 14px; background: #ffffff; border-radius: 14px; display: flex; align-items: center; justify-content: center; min-width: 220px; min-height: 220px; box-shadow: 0 4px 16px rgba(0,0,0,0.15);">
+                <!-- QR Code canvas generated here -->
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
+                    <span>متن تنظیمات کانفیگ (پورت انتخابی):</span>
+                    <span id="unified-qr-port-label" style="font-weight: 700; color: var(--color-primary); font-family: monospace;">Port 51820</span>
+                </div>
+                <textarea id="unified-qr-config-text" readonly style="width: 100%; height: 110px; font-family: 'JetBrains Mono', monospace; font-size: 11px; direction: ltr; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-surface); color: var(--text-main); resize: none;"></textarea>
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%;">
+                <button class="btn btn-secondary btn-sm" onclick="copyUnifiedQrConfig()" type="button">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> کپی کانفیگ
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="downloadUnifiedQrPortConf()" type="button" id="unified-qr-dl-conf-btn">
+                    <i data-lucide="download" style="width: 13px; height: 13px;"></i> دانلود .conf این پورت
+                </button>
+                <a class="btn btn-primary btn-sm" id="unified-qr-dl-zip-btn" href="#" download style="background: var(--color-primary); color: #fff;">
+                    <i data-lucide="archive" style="width: 13px; height: 13px;"></i> دانلود تمام پورت‌ها (فایل ZIP)
+                </a>
+            </div>
+
+            <div style="width: 100%; display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 4px;">
+                <button class="btn btn-secondary" type="button" onclick="closeUnifiedQrModal()">بستن پنجره</button>
             </div>
         </div>
     </div>
