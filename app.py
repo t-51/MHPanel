@@ -5680,7 +5680,7 @@ def api_radius_add_user():
         json.dump(users, f, indent=2)
 
     # Mirror to l2tp_users.json, ikev2_users.json & ocserv_users.json
-    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
         try:
             m_users = {}
             if os.path.exists(path):
@@ -5811,7 +5811,7 @@ def api_radius_batch_create():
             "limit_gb": limit_gb or "نامحدود"
         })
 
-        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
             try:
                 m_users = {}
                 if os.path.exists(path):
@@ -5855,7 +5855,7 @@ def api_radius_bulk_delete():
             except Exception:
                 pass
 
-            for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+            for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
                 try:
                     if os.path.exists(path):
                         with open(path, "r") as mf: m_users = json.load(mf)
@@ -5896,7 +5896,7 @@ def api_radius_delete_user(username):
         pass
 
     # Mirror deletion to l2tp_users.json, ikev2_users.json & ocserv_users.json
-    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
         try:
             if os.path.exists(path):
                 with open(path, "r") as mf: m_users = json.load(mf)
@@ -5929,7 +5929,7 @@ def api_radius_toggle_user(username):
             json.dump(users, f, indent=2)
 
         # Mirror toggle to l2tp_users.json, ikev2_users.json & ocserv_users.json
-        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
             try:
                 if os.path.exists(path):
                     with open(path, "r") as mf: m_users = json.load(mf)
@@ -6777,21 +6777,36 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
             
     # 2. Enforce PersistentKeepalive = 21 in [Peer]
     if re.search(r"^\s*PersistentKeepalive\s*=", cfg, flags=re.MULTILINE):
-        cfg = re.sub(r"^\s*PersistentKeepalive\s*=\s*\d+", "PersistentKeepalive = 21", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r"^\s*PersistentKeepalive\s*=\s*\d+", "PersistentKeepalive = 25", cfg, flags=re.MULTILINE)
     else:
         if "[Peer]" in cfg:
-            cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 21", cfg, count=1)
+            cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 25", cfg, count=1)
 
-    # 3. For AmneziaWG: Synchronize anti-censorship parameters from server awg0.conf
+    # 3. For AmneziaWG: Synchronize anti-censorship parameters from server awg0.conf (v2 and v3 aware)
     if is_awg or "H1 =" in cfg or "Jc =" in cfg:
-        cfg = re.sub(r"^\s*S3\s*=.*$", "", cfg, flags=re.MULTILINE)
-        cfg = re.sub(r"^\s*S4\s*=.*$", "", cfg, flags=re.MULTILINE)
         cfg = re.sub(r",\s*fd[0-9a-fA-F:]+/[0-9]+", "", cfg)
         if os.path.exists("/etc/amnezia/amneziawg/awg0.conf"):
             try:
                 with open("/etc/amnezia/amneziawg/awg0.conf", "r") as s_conf:
                     s_text = s_conf.read()
-                for p_name in ["Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4"]:
+                
+                # Detect protocol version from server awg0.conf
+                is_v3 = False
+                m_ver = re.search(r"^#\s*Version\s*=\s*(\w+)", s_text, re.MULTILINE | re.IGNORECASE)
+                if m_ver and "3" in m_ver.group(1):
+                    is_v3 = True
+                elif re.search(r"^S3\s*=\s*([1-9]\d*)", s_text, re.MULTILINE | re.IGNORECASE):
+                    is_v3 = True
+                    
+                if is_v3:
+                    sync_params = ["Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4", "H1", "H2", "H3", "H4"]
+                else:
+                    sync_params = ["Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4"]
+                    # Strip S3 and S4 for v2 configurations only
+                    cfg = re.sub(r"^\s*S3\s*=.*$\n?", "", cfg, flags=re.MULTILINE)
+                    cfg = re.sub(r"^\s*S4\s*=.*$\n?", "", cfg, flags=re.MULTILINE)
+                    
+                for p_name in sync_params:
                     pm = re.search(fr"^\s*{p_name}\s*=\s*([^\n]+)", s_text, re.MULTILINE | re.IGNORECASE)
                     if pm:
                         val = pm.group(1).strip()
@@ -6848,15 +6863,18 @@ def optimize_network_and_mss():
         for iface in ["wg0", "awg0", "awg-warp"]:
             subprocess.run(f"ip link set dev {iface} mtu 1280 2>/dev/null || true", shell=True)
 
-        # Sysctl low-latency & conntrack stability
+        # Sysctl high-performance & conntrack stability (optimized for UDP & WireGuard/AmneziaWG)
         subprocess.run("sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true", shell=True)
         subprocess.run("sysctl -w net.ipv4.tcp_mtu_probing=1 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout=60 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=300 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.core.rmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.core.wmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216' >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_max=524288 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout=120 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=600 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.rmem_max=67108864 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.wmem_max=67108864 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.default_qdisc=fq >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 1048576 67108864' >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 1048576 67108864' >/dev/null 2>&1 || true", shell=True)
 
         # Clean up dead WARP routing if WARP is not explicitly enabled
         if not os.path.exists(WG_WARP_FLAG) and not os.path.exists(AWG_WARP_FLAG):
@@ -7429,7 +7447,7 @@ def api_wg_client():
         server_ip = get_server_public_ip()
             
     with open("/etc/wireguard/wg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\nPersistentKeepalive = 25\n")
         
     subprocess.run(f"wg syncconf wg0 <(wg-quick strip wg0)", shell=True, executable="/bin/bash")
     
@@ -8681,7 +8699,7 @@ def api_awg_client():
         server_ip = get_server_public_ip()
             
     with open("/etc/amnezia/amneziawg/awg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\nPersistentKeepalive = 25\n")
         
     subprocess.run(f"awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
     
@@ -14166,6 +14184,13 @@ def api_get_ssh_users():
                         if not users[uname].get("sub_token") and uinfo.get("sub_token"):
                             users[uname]["sub_token"] = uinfo.get("sub_token")
                     else:
+                        # Only show if user actually exists on the Linux system (ignore ghost/deleted users)
+                        try:
+                            chk = subprocess.run(["id", uname], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            if chk.returncode != 0:
+                                continue
+                        except Exception:
+                            pass
                         users[uname] = {
                             "active": uinfo.get("active", True),
                             "limit_gb": uinfo.get("limit_gb"),
