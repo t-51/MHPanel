@@ -102,6 +102,42 @@
 </button>
 </form>
 </div>
+<!-- SlipNet Android Card for DNSTT -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #6366f1;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#6366f1;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+<span class="badge" style="background:rgba(99,102,241,0.15); color:#6366f1; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص DNSTT</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="dnstt-slipnet-user" onchange="onSlipnetUserChange('dnstt')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="dnstt-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+در برنامه <strong>SlipNet</strong> یا <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> با اسکن یا ایمپورت لینک متصل شوید.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="dnstt-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
+</div>
+</div>
+</div>
+
 <!-- Client Guide Card -->
 <div class="glass-card config-card">
 <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
@@ -196,6 +232,42 @@
 </button>
 </form>
 </div>
+<!-- SlipNet Android Card for VayDNS -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #14b8a6;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#14b8a6;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+<span class="badge" style="background:rgba(20,184,166,0.15); color:#14b8a6; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص VayDNS KCP</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="vaydns-slipnet-user" onchange="onSlipnetUserChange('vaydns')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="vaydns-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+پروتکل VayDNS با متراکم‌سازی کوئری‌های DNS بر بستر KCP برای عبور از فیلترینگ شدید همراه اول و ایرانسل.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="vaydns-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
+</div>
+</div>
+</div>
+
 <!-- Client Guide Card -->
 <div class="glass-card config-card">
 <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
@@ -203,7 +275,7 @@
 <span data-i18n="dns_vaydns_client_command">دستور کلاینت VayDNS</span>
 </h4>
 <div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="vaydns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">vaydns-client -udp 8.8.8.8:53 -pubkey ...</div>
+<div class="code-box" id="vaydns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">vaydns-client -udp 8.8.8.8:53 -pubkey ... -domain ... -listen 127.0.0.1:1080 -dnstt-compat</div>
 <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-client-cmd-box').textContent)" type="button">
 <i data-lucide="copy" style="width:13px; height:13px;"></i>
 </button>
@@ -274,14 +346,66 @@
 </button>
 </form>
 </div>
+<!-- SlipNet Android Card for Slipstream -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #3b82f6;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#3b82f6;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+<span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص Slipstream QUIC</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="slipstream-slipnet-user" onchange="onSlipnetUserChange('slipstream')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+
+<!-- Cloudflare NS Setup Notice -->
+<div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; line-height:1.6;">
+<div style="font-weight:700; color:#d97706; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+<i data-lucide="alert-triangle" style="width:15px; height:15px;"></i>
+<span>الزام ثبت رکورد در Cloudflare جهت کارکرد اینترنت ملی و SlipNet:</span>
+</div>
+<div>
+برای برقراری اتصال تانل در همراه اول/ایرانسل، باید دو رکورد زیر در پنل Cloudflare دامنه ثبت شوند:
+<ul style="margin:6px 0 0 18px; padding:0;">
+<li><strong>رکورد A:</strong> با نام <code>ns</code> و مقدار آی‌پی سرور (<code><span class="dns-srv-ip">212.227.143.16</span></code>) در وضعیت <strong>DNS Only (ابر خاکستری - خاموش)</strong>.</li>
+<li><strong>رکورد NS:</strong> با نام <code>s.vpn</code> و مقدار <code>ns.kigaping.com</code> (یا ساب‌دامین اختصاصی تنظیم‌شده در بالا).</li>
+</ul>
+</div>
+</div>
+
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="slipstream-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+در برنامه اندروید <strong>SlipNet</strong> روی علامت <strong>+</strong> یا <strong>Import from Clipboard</strong> ضربه بزنید تا کانفیگ مستقیماً اضافه شود و سپس دکمه Connect را بزنید.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="slipstream-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
+</div>
+</div>
+</div>
+
 <!-- Client Guide Card -->
 <div class="glass-card config-card">
 <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
 <i data-lucide="terminal" style="width:16px; height:16px; color:#3b82f6;"></i>
-<span data-i18n="dns_slipstream_client_command">دستور کلاینت Slipstream</span>
+<span data-i18n="dns_slipstream_client_command">دستور کلاینت Slipstream (CLI لینوکس و ویندوز)</span>
 </h4>
 <div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="slipstream-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">slipstream-client -l 1080 -d ... -s ...</div>
+<div class="code-box" id="slipstream-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">slipstream-client -l 1080 -d ... -r 8.8.8.8:53</div>
 <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-client-cmd-box').textContent)" type="button">
 <i data-lucide="copy" style="width:13px; height:13px;"></i>
 </button>

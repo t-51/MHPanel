@@ -7271,14 +7271,14 @@
 
                     <!-- Fast Action Buttons -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک مستقیم ضد فیلتر Fake TLS با آی‌پی کپی شد!', 'success');" style="flex:1.2; min-width:160px; padding:6px 12px; font-size:12px;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک Fake TLS (آی‌پی - ضد فیلتر)
+                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک مستقیم ضد فیلتر dd در کلیپ‌بورد کپی شد!', 'success');" style="flex:1.4; min-width:170px; padding:6px 12px; font-size:12px; background:#059669; border-color:#059669;">
+                            <i data-lucide="shield-check" style="width:14px; height:14px; margin-left:4px;"></i> کپی لینک مستقیم dd (سکرت تست‌شده)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک Fake TLS با آی‌پی کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک پوششی Fake TLS با آی‌پی">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> لینک Fake TLS
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک با دامنه کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
                             <i data-lucide="link-2" style="width:13px; height:13px; margin-left:4px;"></i> با دامنه
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک کلاسیک (dd) کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک کلاسیک تلگرام">
-                            <i data-lucide="shield" style="width:13px; height:13px; margin-left:4px;"></i> سکرت dd
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${webTlsLink}'); showToast('لینک تلگرام تحت وب کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم t.me">
                             <i data-lucide="globe" style="width:13px; height:13px; margin-left:4px;"></i> لینک t.me
@@ -14842,6 +14842,55 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         else if (tabName === 'masterdnsvpn') fetchMasterdnsvpnConfig();
     }
 
+    function populateSlipnetCard(proto, data) {
+        const userSelect = document.getElementById(`${proto}-slipnet-user`);
+        const uriBox = document.getElementById(`${proto}-slipnet-uri-box`);
+        
+        if (data.server_ip) {
+            document.querySelectorAll('.dns-srv-ip').forEach(el => el.textContent = data.server_ip);
+        }
+        
+        if (userSelect && data.users && data.users.length) {
+            const currentVal = userSelect.value;
+            userSelect.innerHTML = "";
+            data.users.forEach(u => {
+                const opt = document.createElement("option");
+                opt.value = u.username;
+                opt.textContent = `${u.username} (SSH / VPN)`;
+                userSelect.appendChild(opt);
+            });
+            if (currentVal && Array.from(userSelect.options).some(o => o.value === currentVal)) {
+                userSelect.value = currentVal;
+            }
+        }
+        
+        if (uriBox && data.slipnet_uri) {
+            uriBox.textContent = data.slipnet_uri;
+        }
+        
+        if (data.slipnet_uri) {
+            renderQrCodeHelper(`${proto}-slipnet-qr`, data.slipnet_uri);
+        }
+    }
+
+    async function onSlipnetUserChange(proto) {
+        const userSelect = document.getElementById(`${proto}-slipnet-user`);
+        const uriBox = document.getElementById(`${proto}-slipnet-uri-box`);
+        const user = userSelect ? userSelect.value : "";
+        
+        try {
+            const res = await fetch(`/api/dns/slipnet_config?proto=${encodeURIComponent(proto)}&user=${encodeURIComponent(user)}`);
+            if (!res.ok) return;
+            const d = await res.json();
+            if (d.success && d.uri) {
+                if (uriBox) uriBox.textContent = d.uri;
+                renderQrCodeHelper(`${proto}-slipnet-qr`, d.uri);
+            }
+        } catch(e) {
+            console.error("onSlipnetUserChange error:", e);
+        }
+    }
+
     async function fetchDnsttConfig() {
         try {
             const res = await fetch("/api/dnstt/config");
@@ -14883,7 +14932,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             
             const cmdBox = document.getElementById("dnstt-client-cmd-box");
             if (cmdBox) cmdBox.textContent = data.client_cmd || `dnstt-client -doh https://cloudflare-dns.com/dns-query -pubkey ${data.pubkey || 'PUBKEY'} ${data.domain || 'domain'} 127.0.0.1:1080`;
-            
+            populateSlipnetCard('dnstt', data);
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (err) {
             console.error("fetchDnsttConfig error:", err);
@@ -14960,7 +15009,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             
             const cmdBox = document.getElementById("vaydns-client-cmd-box");
             if (cmdBox) cmdBox.textContent = data.client_cmd || `vaydns-client -udp 8.8.8.8:53 -pubkey ${data.pubkey || 'PUBKEY'} -domain ${data.domain || 'domain'} -listen 127.0.0.1:1080 -dnstt-compat`;
-            
+            populateSlipnetCard('vaydns', data);
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (err) {
             console.error("fetchVaydnsConfig error:", err);
@@ -15032,7 +15081,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             
             const cmdBox = document.getElementById("slipstream-client-cmd-box");
             if (cmdBox) cmdBox.textContent = data.client_cmd || `slipstream-client -l 1080 -d ${data.domain || 'domain'} -r 8.8.8.8:53`;
-            
+            populateSlipnetCard('slipstream', data);
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (err) {
             console.error("fetchSlipstreamConfig error:", err);
