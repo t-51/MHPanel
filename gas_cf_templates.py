@@ -67,6 +67,8 @@ def get_gas_cf_templates(cfg, server_ip, srv_dom, port, secret, singbox_target, 
     # =========================================================================
 
     # 1.1 Full Tunnel (CodeFull.gs)
+    target_acc = cfg.get("accounts", {}).get(acc_id, {})
+    cf_worker_url = target_acc.get("cf_worker_url") or cfg.get("cloudflare", {}).get("worker_url", "")
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
     full_tunnel_raw = ""
     if os.path.exists(code_full_path):
@@ -79,6 +81,9 @@ def get_gas_cf_templates(cfg, server_ip, srv_dom, port, secret, singbox_target, 
             ).replace(
                 'const TUNNEL_SERVER_URL = "https://YOUR_TUNNEL_NODE_URL";',
                 f'const TUNNEL_SERVER_URL = "{tunnel_node_url}";'
+            ).replace(
+                'const CLOUDFLARE_WORKER_URL = "";',
+                f'const CLOUDFLARE_WORKER_URL = "{cf_worker_url}";'
             ).replace(
                 'const TUNNEL_AUTH_KEY = "YOUR_TUNNEL_AUTH_KEY";',
                 f'const TUNNEL_AUTH_KEY = "{secret}";'
@@ -953,14 +958,38 @@ async function handleRequest(request, event) {
     });
   }
 
+  const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+  // 1. Direct tunnel/batch forwarding from Google Apps Script or mhrv-rs
+  if (url.pathname.startsWith("/tunnel") || url.pathname.startsWith("/relay")) {
+    const forwardUrl = VPS_TUNNEL_URL + url.pathname + url.search;
+    const forwardHeaders = new Headers(request.headers);
+    forwardHeaders.set("X-Auth-Key", SECRET_KEY);
+    forwardHeaders.delete("Host");
+    try {
+      const resp = await fetch(forwardUrl, {
+        method: request.method,
+        headers: forwardHeaders,
+        body: bodyBuffer
+      });
+      const outHeaders = new Headers(resp.headers);
+      outHeaders.set("Access-Control-Allow-Origin", "*");
+      outHeaders.set("X-Accelerated-By", "Cloudflare-Edge");
+      return new Response(resp.body, { status: resp.status, headers: outHeaders });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: "VPS Forward Error", detail: String(err) }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }
+
   if (GAS_TARGETS.length === 0) {
     return new Response(JSON.stringify({ error: "No Google Apps Script targets configured" }), {
       status: 502,
       headers: { "Content-Type": "application/json" }
     });
   }
-
-  const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
 
   // Shuffle targets for random load balancing across all deployed accounts
   const pool = [...GAS_TARGETS].sort(() => 0.5 - Math.random());
@@ -1068,6 +1097,30 @@ async function handleRequest(request, event) {
   }
 
   const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+  // 1. Direct tunnel/batch forwarding from Google Apps Script or mhrv-rs
+  if (url.pathname.startsWith("/tunnel") || url.pathname.startsWith("/relay")) {
+    const forwardUrl = VPS_TUNNEL_URL + url.pathname + url.search;
+    const forwardHeaders = new Headers(request.headers);
+    forwardHeaders.set("X-Auth-Key", SECRET_KEY);
+    forwardHeaders.delete("Host");
+    try {
+      const resp = await fetch(forwardUrl, {
+        method: request.method,
+        headers: forwardHeaders,
+        body: bodyBuffer
+      });
+      const outHeaders = new Headers(resp.headers);
+      outHeaders.set("Access-Control-Allow-Origin", "*");
+      outHeaders.set("X-Accelerated-By", "Cloudflare-Edge");
+      return new Response(resp.body, { status: resp.status, headers: outHeaders });
+    } catch (err) {
+      return new Response(JSON.stringify({ error: "VPS Forward Error", detail: String(err) }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }
 
   // Try Google Apps Script targets first
   if (GAS_TARGETS.length > 0) {
@@ -1179,6 +1232,32 @@ export default {
       });
     }
 
+    const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+    // 1. Direct tunnel/batch forwarding from Google Apps Script or mhrv-rs
+    if (url.pathname.startsWith("/tunnel") || url.pathname.startsWith("/relay")) {
+      const forwardUrl = VPS_TUNNEL_URL + url.pathname + url.search;
+      const forwardHeaders = new Headers(request.headers);
+      forwardHeaders.set("X-Auth-Key", SECRET_KEY);
+      forwardHeaders.delete("Host");
+      try {
+        const resp = await fetch(forwardUrl, {
+          method: request.method,
+          headers: forwardHeaders,
+          body: bodyBuffer
+        });
+        const outHeaders = new Headers(resp.headers);
+        outHeaders.set("Access-Control-Allow-Origin", "*");
+        outHeaders.set("X-Accelerated-By", "Cloudflare-Edge");
+        return new Response(resp.body, { status: resp.status, headers: outHeaders });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "VPS Forward Error", detail: String(err) }), {
+          status: 502,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
     if (GAS_TARGETS.length === 0) {
       return new Response(JSON.stringify({ error: "No Google Apps Script targets configured" }), {
         status: 502,
@@ -1260,6 +1339,30 @@ export default {
     }
 
     const bodyBuffer = (request.method !== "GET" && request.method !== "HEAD") ? await request.arrayBuffer() : null;
+
+    // 1. Direct tunnel/batch forwarding from Google Apps Script or mhrv-rs
+    if (url.pathname.startsWith("/tunnel") || url.pathname.startsWith("/relay")) {
+      const forwardUrl = VPS_TUNNEL_URL + url.pathname + url.search;
+      const forwardHeaders = new Headers(request.headers);
+      forwardHeaders.set("X-Auth-Key", SECRET_KEY);
+      forwardHeaders.delete("Host");
+      try {
+        const resp = await fetch(forwardUrl, {
+          method: request.method,
+          headers: forwardHeaders,
+          body: bodyBuffer
+        });
+        const outHeaders = new Headers(resp.headers);
+        outHeaders.set("Access-Control-Allow-Origin", "*");
+        outHeaders.set("X-Accelerated-By", "Cloudflare-Edge");
+        return new Response(resp.body, { status: resp.status, headers: outHeaders });
+      } catch (err) {
+        return new Response(JSON.stringify({ error: "VPS Forward Error", detail: String(err) }), {
+          status: 502,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
 
     // Shuffle GAS targets to balance load
     const shuffled = [...GAS_TARGETS].sort(() => 0.5 - Math.random());
@@ -1555,6 +1658,13 @@ function doGet(e) {
   })).setMimeType(ContentService.MimeType.JSON);
 }
 """)
+
+    # For all hybrid templates, Google Apps Script must run the official full-tunnel CodeFull.gs
+    # which supports mhrv-rs batching, UDP DNS cache, and routes through the Cloudflare Worker accelerator.
+    hybrid_relay_gas_code = full_tunnel_code
+    hybrid_failover_gas_code = full_tunnel_code
+    hybrid_onion_gas_code = full_tunnel_code
+    hybrid_dynamic_gas_code = full_tunnel_code
 
     hybrid_list = [
         {
