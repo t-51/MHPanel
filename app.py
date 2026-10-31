@@ -26829,7 +26829,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443",
     acc_id = account_id or cfg.get("active_account_id") or "acc_primary"
     custom_url = cfg.get("tunnel_server_url", "").strip()
     srv_dom = get_server_domain()
-    default_url = f"http://{srv_dom}:{port}" if srv_dom else f"http://{server_ip}:{port}"
+    default_url = f"http://{srv_dom}" if srv_dom else f"http://{server_ip}"
     tunnel_node_url = custom_url or default_url
 
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
@@ -27365,7 +27365,7 @@ def get_unified_code_templates(cfg=None):
             "secret": secret,
             "singbox_target": singbox_target,
             "singbox_port": "20443",
-            "tunnel_node_url": f"http://{srv_dom or server_ip}:{port}"
+            "tunnel_node_url": f"http://{srv_dom or server_ip}"
         }
 
 @app.route("/api/google_script/templates", methods=["GET"])
@@ -28718,12 +28718,14 @@ def api_google_script_client_configs():
             })
             all_webapp_urls.append(w_url)
 
+    srv_dom = get_server_domain()
     mhrv_profile = {
         "client": "MasterHttpRelayVPN-RUST (mhrv-rs)",
         "mode": "full",
-        "apps_script_url": actual_webapp_url or "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
         "auth_key": secret,
-        "tunnel_server": f"http://{server_ip}:{port}",
+        "script_ids": [deployment_id] if deployment_id else [],
+        "apps_script_url": actual_webapp_url or "https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec",
+        "tunnel_server": f"http://{srv_dom or server_ip}",
         "local_socks5": "127.0.0.1:1080",
         "local_http": "127.0.0.1:8123",
         "batch_mode": True,
@@ -28731,7 +28733,7 @@ def api_google_script_client_configs():
         "via_cloudflare": bool(use_cf and cf_url)
     }
 
-    goose_uri = f"goose://{deployment_id or 'AKfycb_YOUR_DEPLOYMENT_ID'}@{server_ip}:{port}?secret={secret}&mode=full"
+    goose_uri = f"goose://{deployment_id or 'AKfycb_YOUR_DEPLOYMENT_ID'}@{srv_dom or server_ip}?secret={secret}&mode=full"
     
     goose_json = {
         "relay_url": actual_webapp_url,

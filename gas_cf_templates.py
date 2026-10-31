@@ -18,9 +18,9 @@ def get_gas_cf_templates(cfg, server_ip, srv_dom, port, secret, singbox_target, 
     if custom_url:
         tunnel_node_url = custom_url
     elif srv_dom:
-        tunnel_node_url = f"http://{srv_dom}:{port}"
+        tunnel_node_url = f"http://{srv_dom}"
     else:
-        tunnel_node_url = f"http://{server_ip}:{port}"
+        tunnel_node_url = f"http://{server_ip}"
 
     acc_id = cfg.get("active_account_id") or "acc_primary"
 
