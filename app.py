@@ -1115,6 +1115,7 @@ def render_dashboard_response(logged_in):
     from flask import make_response
     user, _ = get_credentials()
     custom_path = get_panel_path()
+    gas_tpls_data = get_unified_code_templates() if logged_in else {}
     resp = make_response(render_template(
         "dashboard.html",
         logged_in=logged_in,
@@ -1123,7 +1124,8 @@ def render_dashboard_response(logged_in):
         api_key=get_api_key(),
         panel_path=custom_path,
         panel_port=get_panel_port(),
-        panel_version=PANEL_VERSION
+        panel_version=PANEL_VERSION,
+        gas_templates_data=gas_tpls_data
     ))
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
@@ -1478,25 +1480,226 @@ def get_ssh_user_info(username):
             pass
     return {"username": username, "password": pwd, "sub_token": sub_tok}
 
+
+SSH_DOMAINS_FILE = "/www/wwwroot/mhpanel/ssh_domains.json"
+
+def get_ssh_cert_paths():
+    le_dir = "/etc/letsencrypt/live"
+    if os.path.isdir(le_dir):
+        candidates = ["vpn.kigaping.com", "mhpanel.kigaping.com"] + [e for e in os.listdir(le_dir) if "." in e and e not in ["clients", "README"]]
+        for cand in candidates:
+            cert = os.path.join(le_dir, cand, "fullchain.pem")
+            key = os.path.join(le_dir, cand, "privkey.pem")
+            if os.path.exists(cert) and os.path.exists(key):
+                return cert, key
+    fallback_cert = "/etc/vpn-ca/vpn-server.crt"
+    fallback_key = "/etc/vpn-ca/vpn-server.key"
+    if os.path.exists(fallback_cert) and os.path.exists(fallback_key):
+        return fallback_cert, fallback_key
+    return None, None
+
+def sync_stunnel_config():
+    try:
+        cert_path, key_path = get_ssh_cert_paths()
+        if not cert_path or not key_path:
+            return False
+        stunnel_conf = f"""pid = /var/run/stunnel4.pid
+
+[ssh-tls]
+client = no
+cert = {cert_path}
+key = {key_path}
+accept = 0.0.0.0:9443
+connect = 127.0.0.1:22
+
+[ssh-tls-cf]
+client = no
+cert = {cert_path}
+key = {key_path}
+accept = 0.0.0.0:2087
+connect = 127.0.0.1:22
+
+[ssh-tls-local]
+client = no
+cert = {cert_path}
+key = {key_path}
+accept = 127.0.0.1:4444
+connect = 127.0.0.1:22
+
+[ssh-ws-local]
+client = no
+cert = {cert_path}
+key = {key_path}
+accept = 127.0.0.1:4445
+connect = 127.0.0.1:8888
+"""
+        with open("/etc/stunnel/stunnel.conf", "w") as f:
+            f.write(stunnel_conf)
+        subprocess.run(["systemctl", "restart", "stunnel4"], check=False)
+        return True
+    except Exception as e:
+        print(f"Error syncing stunnel config: {e}")
+        return False
+
+def sync_apache_ssh_ws():
+    try:
+        vhost_dir = "/www/server/panel/vhost/apache"
+        if os.path.isdir(vhost_dir):
+            conf_file = os.path.join(vhost_dir, "ssh_ws_global.conf")
+            content = """<Location /ssh>
+    ProxyPass ws://127.0.0.1:8888/ssh retry=0 keepalive=On
+    ProxyPassReverse ws://127.0.0.1:8888/ssh
+</Location>
+
+<Location /ws>
+    ProxyPass ws://127.0.0.1:8888/ws retry=0 keepalive=On
+    ProxyPassReverse ws://127.0.0.1:8888/ws
+</Location>
+"""
+            with open(conf_file, "w") as f:
+                f.write(content)
+            if os.path.exists("/www/server/apache/bin/httpd"):
+                subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], check=False)
+            elif shutil.which("apache2ctl"):
+                subprocess.run(["apache2ctl", "graceful"], check=False)
+        return True
+    except Exception as e:
+        print(f"Error syncing apache ssh-ws: {e}")
+        return False
+
+def get_ssh_domains_config():
+    srv_dom = get_server_domain() or ""
+    pub_ip = get_server_public_ip() or "127.0.0.1"
+    if srv_dom and "." in srv_dom:
+        parts = srv_dom.split(".")
+        base_dom = ".".join(parts[-2:]) if len(parts) >= 2 else srv_dom
+    else:
+        base_dom = "kigaping.com"
+    
+    default_cfg = {
+        "direct_domain": srv_dom or pub_ip,
+        "tls_sni": f"ssh.{base_dom}",
+        "ws_sni": f"ws.{base_dom}",
+        "custom_snis": ["shahan.kigaping.com", f"ssh-ws.{base_dom}"],
+        "direct_ports": [22, 2053, 443],
+        "ws_ports": [80, 443, 8088],
+        "tls_ports": [443, 9443, 2087],
+        "udpgw_port": 7300
+    }
+    
+    if os.path.exists(SSH_DOMAINS_FILE):
+        try:
+            with open(SSH_DOMAINS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            if isinstance(saved, dict):
+                for k, v in saved.items():
+                    default_cfg[k] = v
+        except Exception:
+            pass
+    return default_cfg
+
+def save_ssh_domains_config(cfg):
+    with open(SSH_DOMAINS_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+        
+    sync_stunnel_config()
+    sync_apache_ssh_ws()
+    
+    try:
+        mpx_cfg = get_multiplexer_config()
+        protos = mpx_cfg.get("protocols", [])
+        
+        custom_list = cfg.get("custom_snis", [])
+        if isinstance(custom_list, str):
+            custom_list = [s.strip() for s in custom_list.replace(";", ",").split(",") if s.strip()]
+            
+        tls_snis = [cfg.get("tls_sni", "").strip()] + [s.strip() for s in custom_list if ("ssh" in s or "tls" in s) and "ws" not in s]
+        tls_snis = [s for s in tls_snis if s]
+        tls_sni_str = ", ".join(list(dict.fromkeys(tls_snis)))
+        
+        ws_snis = [cfg.get("ws_sni", "").strip()] + [s.strip() for s in custom_list if "ws" in s or "cf" in s]
+        ws_snis = [s for s in ws_snis if s]
+        ws_sni_str = ", ".join(list(dict.fromkeys(ws_snis)))
+        
+        found_ssh = False
+        found_ws = False
+        for p in protos:
+            if p.get("id") == "ssh":
+                p["sni"] = tls_sni_str or "ssh.kigaping.com"
+                p["backend_port"] = 4444
+                p["enabled"] = True
+                p["name"] = "تونل SSH با رمزنگاری TLS (Stunnel)"
+                found_ssh = True
+            elif p.get("id") == "ssh_ws":
+                p["sni"] = ws_sni_str or "ws.kigaping.com"
+                p["backend_port"] = 4445
+                p["enabled"] = True
+                p["name"] = "تونل SSH وب‌سوکت و کلودفلر (WebSocket / WSS)"
+                found_ws = True
+                
+        if not found_ssh:
+            protos.append({
+                "id": "ssh",
+                "name": "تونل SSH با رمزنگاری TLS (Stunnel)",
+                "enabled": True,
+                "sni": tls_sni_str or "ssh.kigaping.com",
+                "backend_ip": "127.0.0.1",
+                "backend_port": 4444,
+                "is_default": False,
+                "protocol_type": "ssh",
+                "desc": "اتصال SSH کلاینت‌ها با لایه رمزنگاری مستقیم TLS/Stunnel روی پورت ۴۴۳"
+            })
+            
+        if not found_ws:
+            protos.append({
+                "id": "ssh_ws",
+                "name": "تونل SSH وب‌سوکت و کلودفلر (WebSocket / WSS)",
+                "enabled": True,
+                "sni": ws_sni_str or "ws.kigaping.com",
+                "backend_ip": "127.0.0.1",
+                "backend_port": 4445,
+                "is_default": False,
+                "protocol_type": "ssh_ws",
+                "desc": "اتصال کلاینت‌های SSH بر بستر وب‌سوکت و شبکه کلودفلر (WSS) روی پورت ۴۴۳"
+            })
+            
+        mpx_cfg["protocols"] = protos
+        save_multiplexer_config(mpx_cfg)
+        
+        cfg_text = generate_haproxy_cfg(mpx_cfg)
+        test_path = "/tmp/haproxy_test_ssh.cfg"
+        with open(test_path, "w") as f:
+            f.write(cfg_text)
+        chk = subprocess.run(["haproxy", "-c", "-f", test_path], capture_output=True, text=True)
+        if chk.returncode == 0:
+            with open("/etc/haproxy/haproxy.cfg", "w") as f:
+                f.write(cfg_text)
+            subprocess.run(["systemctl", "reload", "haproxy"], check=False)
+    except Exception as e:
+        print(f"Error updating multiplexer for SSH: {e}")
+
 def generate_netmod_config_bundle(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or domain
-    ws_payload = f"GET /ssh HTTP/1.1[c]Host: {domain}[c]Upgrade: websocket[c]Connection: keep-alive[c][c]"
+    d_cfg = get_ssh_domains_config()
+    direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
+    ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
+    tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
+    pub_ip = pub_ip or direct_host
+    ws_payload = f"GET /ssh HTTP/1.1[c]Host: {ws_host}[c]Upgrade: websocket[c]Connection: keep-alive[c][c]"
     return {
         "version": "6.3.0",
         "app_name": "NetMod Syna",
         "profile_name": f"MHPanel - {username}",
         "type": "SSH",
         "server": {
-            "host": domain,
+            "host": ws_host,
             "port": 443,
             "username": username,
             "password": password
         },
         "connection_mode": "payload",
         "payload_config": {
-            "sni": domain,
-            "target_host": f"{domain}:443",
+            "sni": ws_host,
+            "target_host": f"{ws_host}:443",
             "payload": ws_payload
         },
         "udpgw": {
@@ -1514,15 +1717,15 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
                 "name": f"MHPanel SSH - {username} (WebSocket 443 TLS)",
                 "type": "SSH",
                 "server": {
-                    "host": domain,
+                    "host": ws_host,
                     "port": 443,
                     "username": username,
                     "password": password
                 },
                 "connection_mode": "payload",
                 "payload_config": {
-                    "sni": domain,
-                    "target_host": f"{domain}:443",
+                    "sni": ws_host,
+                    "target_host": f"{ws_host}:443",
                     "payload": ws_payload
                 },
                 "udpgw": {
@@ -1558,15 +1761,15 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
                 "name": f"MHPanel SSH - {username} (Stunnel SSL 443)",
                 "type": "SSH",
                 "server": {
-                    "host": domain,
+                    "host": tls_host,
                     "port": 443,
                     "username": username,
                     "password": password
                 },
                 "connection_mode": "ssl",
                 "payload_config": {
-                    "sni": domain,
-                    "target_host": f"{domain}:443",
+                    "sni": tls_host,
+                    "target_host": f"{tls_host}:443",
                     "payload": ""
                 },
                 "udpgw": {
@@ -1580,7 +1783,7 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
                 "name": f"MHPanel SSH - {username} (WebSocket HTTP 80)",
                 "type": "SSH",
                 "server": {
-                    "host": domain,
+                    "host": ws_host,
                     "port": 80,
                     "username": username,
                     "password": password
@@ -1588,7 +1791,7 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
                 "connection_mode": "payload",
                 "payload_config": {
                     "sni": "",
-                    "target_host": f"{domain}:80",
+                    "target_host": f"{ws_host}:80",
                     "payload": ws_payload
                 },
                 "udpgw": {
@@ -1601,8 +1804,11 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
     }
 
 def generate_npv_config_bundle(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or domain
+    d_cfg = get_ssh_domains_config()
+    direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
+    ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
+    tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
+    pub_ip = pub_ip or direct_host
     uris = generate_ssh_uris(username, password, domain, pub_ip)
     return {
         "version": 4,
@@ -1614,12 +1820,12 @@ def generate_npv_config_bundle(username, password, domain, pub_ip):
             {
                 "id": f"npv_{username}_ws443",
                 "name": f"MHPanel SSH - {username} (WebSocket TLS 443)",
-                "server": domain,
+                "server": ws_host,
                 "port": 443,
                 "user": username,
                 "password": password,
-                "sni": domain,
-                "host": domain,
+                "sni": ws_host,
+                "host": ws_host,
                 "path": "/ssh",
                 "transport": "ws",
                 "tls": True,
@@ -1639,11 +1845,11 @@ def generate_npv_config_bundle(username, password, domain, pub_ip):
             {
                 "id": f"npv_{username}_stunnel443",
                 "name": f"MHPanel SSH - {username} (Stunnel SSL 443)",
-                "server": domain,
+                "server": tls_host,
                 "port": 443,
                 "user": username,
                 "password": password,
-                "sni": domain,
+                "sni": tls_host,
                 "tls": True,
                 "udpgw_port": 7300,
                 "import_uri": uris[2] if len(uris) > 2 else ""
@@ -1651,11 +1857,11 @@ def generate_npv_config_bundle(username, password, domain, pub_ip):
             {
                 "id": f"npv_{username}_ws80",
                 "name": f"MHPanel SSH - {username} (WebSocket HTTP 80)",
-                "server": domain,
+                "server": ws_host,
                 "port": 80,
                 "user": username,
                 "password": password,
-                "host": domain,
+                "host": ws_host,
                 "path": "/ssh",
                 "transport": "ws",
                 "tls": False,
@@ -1731,19 +1937,25 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     }
 
 def generate_ssh_uris(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or domain
+    d_cfg = get_ssh_domains_config()
+    direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
+    ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
+    tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
+    pub_ip = pub_ip or direct_host
     safe_user = urllib.parse.quote(str(username), safe="")
     safe_pass = urllib.parse.quote(str(password), safe="")
-    uri_ws = f"ssh://{safe_user}:{safe_pass}@{domain}:443?ws=1&path=%2Fssh&sni={domain}&udpgw=7300#MHPanel-{username}-WS443"
+    uri_ws = f"ssh://{safe_user}:{safe_pass}@{ws_host}:443?ws=1&path=%2Fssh&sni={ws_host}&udpgw=7300#MHPanel-{username}-WS443"
     uri_direct = f"ssh://{safe_user}:{safe_pass}@{pub_ip}:22?udpgw=7300#MHPanel-{username}-Direct22"
-    uri_stunnel = f"ssh://{safe_user}:{safe_pass}@{domain}:443?tls=1&sni={domain}&udpgw=7300#MHPanel-{username}-TLS443"
-    uri_http = f"ssh://{safe_user}:{safe_pass}@{domain}:80?ws=1&path=%2Fssh&udpgw=7300#MHPanel-{username}-WS80"
+    uri_stunnel = f"ssh://{safe_user}:{safe_pass}@{tls_host}:443?tls=1&sni={tls_host}&udpgw=7300#MHPanel-{username}-TLS443"
+    uri_http = f"ssh://{safe_user}:{safe_pass}@{ws_host}:80?ws=1&path=%2Fssh&udpgw=7300#MHPanel-{username}-WS80"
     return [uri_ws, uri_direct, uri_stunnel, uri_http]
 
 def generate_ssh_complete_text_info(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or domain
+    d_cfg = get_ssh_domains_config()
+    direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
+    ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
+    tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
+    pub_ip = pub_ip or direct_host
     uris = generate_ssh_uris(username, password, domain, pub_ip)
     
     return f"""======================================================================
@@ -1751,7 +1963,9 @@ def generate_ssh_complete_text_info(username, password, domain, pub_ip):
 ======================================================================
 👤 نام کاربری: {username}
 🔑 کلمه عبور: {password}
-🌐 دامنه سرور: {domain}
+🌐 دامنه / آی‌پی اتصال دایرکت: {direct_host}
+☁️ دامنه / SNI وب‌سوکت و کلودفلر: {ws_host}
+🔒 دامنه / SNI استنل و TLS: {tls_host}
 📍 آی‌پی مستقیم سرور: {pub_ip}
 🎮 پورت BadVPN UDPGW (صوتی و گیمینگ): 7300
 ======================================================================
@@ -1759,13 +1973,13 @@ def generate_ssh_complete_text_info(username, password, domain, pub_ip):
 📡 انواع روش‌های اتصال کلاینت‌ها (SSH Connection Modes):
 
 ۱) حالت وب‌سوکت با TLS / SSL (مخصوص CDN کلودفلر و دورزدن فیلترینگ):
-   • Host / Server: {domain}
+   • Host / Server: {ws_host}
    • Port: 443
-   • SNI: {domain}
+   • SNI: {ws_host}
    • Path: /ssh
    • UDPGW Port: 7300
    • پی‌لود HTTP Custom:
-     GET /ssh HTTP/1.1[crlf]Host: {domain}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
+     GET /ssh HTTP/1.1[crlf]Host: {ws_host}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
 
 ۲) حالت اتصال مستقیم Direct TCP (پورت ۲۲ بدون CDN):
    • Server: {pub_ip}
@@ -1775,16 +1989,16 @@ def generate_ssh_complete_text_info(username, password, domain, pub_ip):
    • UDPGW Port: 7300
 
 ۳) حالت تونل رمزنگاری Stunnel / SSL مستقیم (پورت ۴۴۳):
-   • Server: {domain}
+   • Server: {tls_host}
    • Port: 443
-   • SNI: {domain}
+   • SNI: {tls_host}
    • SSL/TLS: فعال (On)
 
 ۴) حالت وب‌سوکت بدون رمزنگاری (HTTP Direct - پورت ۸۰):
-   • Server: {domain}
+   • Server: {ws_host}
    • Port: 80
    • Path: /ssh
-   • Host Header: {domain}
+   • Host Header: {ws_host}
 
 ======================================================================
 📱 لینک‌های هوشمند جهت Import در برنامه‌ها (NapsternetV / NPV / NetMod):
@@ -5680,7 +5894,7 @@ def api_radius_add_user():
         json.dump(users, f, indent=2)
 
     # Mirror to l2tp_users.json, ikev2_users.json & ocserv_users.json
-    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
         try:
             m_users = {}
             if os.path.exists(path):
@@ -5811,7 +6025,7 @@ def api_radius_batch_create():
             "limit_gb": limit_gb or "نامحدود"
         })
 
-        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
             try:
                 m_users = {}
                 if os.path.exists(path):
@@ -5855,7 +6069,7 @@ def api_radius_bulk_delete():
             except Exception:
                 pass
 
-            for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+            for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
                 try:
                     if os.path.exists(path):
                         with open(path, "r") as mf: m_users = json.load(mf)
@@ -5896,7 +6110,7 @@ def api_radius_delete_user(username):
         pass
 
     # Mirror deletion to l2tp_users.json, ikev2_users.json & ocserv_users.json
-    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+    for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
         try:
             if os.path.exists(path):
                 with open(path, "r") as mf: m_users = json.load(mf)
@@ -5929,7 +6143,7 @@ def api_radius_toggle_user(username):
             json.dump(users, f, indent=2)
 
         # Mirror toggle to l2tp_users.json, ikev2_users.json & ocserv_users.json
-        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json"]:
+        for path in ["/www/wwwroot/mhpanel/l2tp_users.json", "/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/ocserv_users.json", "/www/wwwroot/mhpanel/ssh_users.json"]:
             try:
                 if os.path.exists(path):
                     with open(path, "r") as mf: m_users = json.load(mf)
@@ -6777,21 +6991,36 @@ def normalize_client_config(cfg, domain=None, port=None, is_awg=False):
             
     # 2. Enforce PersistentKeepalive = 21 in [Peer]
     if re.search(r"^\s*PersistentKeepalive\s*=", cfg, flags=re.MULTILINE):
-        cfg = re.sub(r"^\s*PersistentKeepalive\s*=\s*\d+", "PersistentKeepalive = 21", cfg, flags=re.MULTILINE)
+        cfg = re.sub(r"^\s*PersistentKeepalive\s*=\s*\d+", "PersistentKeepalive = 25", cfg, flags=re.MULTILINE)
     else:
         if "[Peer]" in cfg:
-            cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 21", cfg, count=1)
+            cfg = re.sub(r"(\[Peer\])", r"\1\nPersistentKeepalive = 25", cfg, count=1)
 
-    # 3. For AmneziaWG: Synchronize anti-censorship parameters from server awg0.conf
+    # 3. For AmneziaWG: Synchronize anti-censorship parameters from server awg0.conf (v2 and v3 aware)
     if is_awg or "H1 =" in cfg or "Jc =" in cfg:
-        cfg = re.sub(r"^\s*S3\s*=.*$", "", cfg, flags=re.MULTILINE)
-        cfg = re.sub(r"^\s*S4\s*=.*$", "", cfg, flags=re.MULTILINE)
         cfg = re.sub(r",\s*fd[0-9a-fA-F:]+/[0-9]+", "", cfg)
         if os.path.exists("/etc/amnezia/amneziawg/awg0.conf"):
             try:
                 with open("/etc/amnezia/amneziawg/awg0.conf", "r") as s_conf:
                     s_text = s_conf.read()
-                for p_name in ["Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4"]:
+                
+                # Detect protocol version from server awg0.conf
+                is_v3 = False
+                m_ver = re.search(r"^#\s*Version\s*=\s*(\w+)", s_text, re.MULTILINE | re.IGNORECASE)
+                if m_ver and "3" in m_ver.group(1):
+                    is_v3 = True
+                elif re.search(r"^S3\s*=\s*([1-9]\d*)", s_text, re.MULTILINE | re.IGNORECASE):
+                    is_v3 = True
+                    
+                if is_v3:
+                    sync_params = ["Jc", "Jmin", "Jmax", "S1", "S2", "S3", "S4", "H1", "H2", "H3", "H4"]
+                else:
+                    sync_params = ["Jc", "Jmin", "Jmax", "S1", "S2", "H1", "H2", "H3", "H4"]
+                    # Strip S3 and S4 for v2 configurations only
+                    cfg = re.sub(r"^\s*S3\s*=.*$\n?", "", cfg, flags=re.MULTILINE)
+                    cfg = re.sub(r"^\s*S4\s*=.*$\n?", "", cfg, flags=re.MULTILINE)
+                    
+                for p_name in sync_params:
                     pm = re.search(fr"^\s*{p_name}\s*=\s*([^\n]+)", s_text, re.MULTILINE | re.IGNORECASE)
                     if pm:
                         val = pm.group(1).strip()
@@ -6848,15 +7077,18 @@ def optimize_network_and_mss():
         for iface in ["wg0", "awg0", "awg-warp"]:
             subprocess.run(f"ip link set dev {iface} mtu 1280 2>/dev/null || true", shell=True)
 
-        # Sysctl low-latency & conntrack stability
+        # Sysctl high-performance & conntrack stability (optimized for UDP & WireGuard/AmneziaWG)
         subprocess.run("sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true", shell=True)
         subprocess.run("sysctl -w net.ipv4.tcp_mtu_probing=1 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout=60 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=300 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.core.rmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.core.wmem_max=16777216 >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 87380 16777216' >/dev/null 2>&1 || true", shell=True)
-        subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 65536 16777216' >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_max=524288 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout=120 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.netfilter.nf_conntrack_udp_timeout_stream=600 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.rmem_max=67108864 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.wmem_max=67108864 >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.core.default_qdisc=fq >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_congestion_control=bbr >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_rmem='4096 1048576 67108864' >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("sysctl -w net.ipv4.tcp_wmem='4096 1048576 67108864' >/dev/null 2>&1 || true", shell=True)
 
         # Clean up dead WARP routing if WARP is not explicitly enabled
         if not os.path.exists(WG_WARP_FLAG) and not os.path.exists(AWG_WARP_FLAG):
@@ -7429,7 +7661,7 @@ def api_wg_client():
         server_ip = get_server_public_ip()
             
     with open("/etc/wireguard/wg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\nPersistentKeepalive = 25\n")
         
     subprocess.run(f"wg syncconf wg0 <(wg-quick strip wg0)", shell=True, executable="/bin/bash")
     
@@ -8681,7 +8913,7 @@ def api_awg_client():
         server_ip = get_server_public_ip()
             
     with open("/etc/amnezia/amneziawg/awg0.conf", "a") as f:
-        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\n")
+        f.write(f"\n# Name: {name}\n[Peer]\nPublicKey = {pubkey}\nAllowedIPs = {client_ip}/32\nPersistentKeepalive = 25\n")
         
     subprocess.run(f"awg syncconf awg0 <(awg-quick strip awg0)", shell=True, executable="/bin/bash")
     
@@ -14166,6 +14398,13 @@ def api_get_ssh_users():
                         if not users[uname].get("sub_token") and uinfo.get("sub_token"):
                             users[uname]["sub_token"] = uinfo.get("sub_token")
                     else:
+                        # Only show if user actually exists on the Linux system (ignore ghost/deleted users)
+                        try:
+                            chk = subprocess.run(["id", uname], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            if chk.returncode != 0:
+                                continue
+                        except Exception:
+                            pass
                         users[uname] = {
                             "active": uinfo.get("active", True),
                             "limit_gb": uinfo.get("limit_gb"),
@@ -14488,8 +14727,13 @@ def api_get_ssh_config():
             hosts.append(d)
 
     active_ssh_port = get_active_port("ssh") or 22
+    d_cfg = get_ssh_domains_config()
     config_data = {
         "server_ip": pub_ip,
+        "domains_config": d_cfg,
+        "direct_domain": d_cfg.get("direct_domain") or srv_dom or pub_ip,
+        "tls_sni": d_cfg.get("tls_sni") or f"ssh.{srv_dom}",
+        "ws_sni": d_cfg.get("ws_sni") or f"ws.{srv_dom}",
         "hostnames": hosts if hosts else ([pub_ip] if pub_ip else ["127.0.0.1"]),
         "direct_ports": [active_ssh_port, 443] if active_ssh_port != 443 else [443],
         "stunnel_ports": [9443, 2087, 443],
@@ -14564,6 +14808,61 @@ def api_restart_ssh_services():
     if errors:
         return jsonify({"success": False, "errors": errors}), 500
     return jsonify({"success": True})
+
+@app.route("/api/ssh/domains", methods=["GET"])
+def api_get_ssh_domains():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_ssh_domains_config()
+    pub_ip = get_server_public_ip()
+    detected_domains = get_detected_domains()
+    
+    certs = []
+    le_dir = "/etc/letsencrypt/live"
+    if os.path.isdir(le_dir):
+        for entry in os.listdir(le_dir):
+            if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")) and "." in entry and entry not in ["clients", "README"]:
+                certs.append(entry)
+                
+    routing = [
+        {"name": "SSH دایرکت (TCP پورت ۲۲)", "domain": cfg.get("direct_domain") or pub_ip, "port": "22, 2053, 443 (Direct)", "target": "127.0.0.1:22 (OpenSSH)", "type": "Direct TCP", "status": get_service_is_active("ssh") or get_service_is_active("sshd")},
+        {"name": "SSH وب‌سوکت و کلودفلر (WSS)", "domain": cfg.get("ws_sni"), "port": "443 (WSS / SNI)", "target": "127.0.0.1:4445 (Stunnel WS) -> 127.0.0.1:8888 (ssh-ws-proxy)", "type": "Cloudflare / WebSocket TLS", "status": get_service_is_active("ssh-ws")},
+        {"name": "SSH وب‌سوکت ساده (HTTP)", "domain": cfg.get("ws_sni"), "port": "80, 8088 (/ssh)", "target": "127.0.0.1:8888 (ssh-ws-proxy)", "type": "Plain HTTP WebSocket", "status": get_service_is_active("ssh-ws")},
+        {"name": "SSH مستقیم با TLS (Stunnel)", "domain": cfg.get("tls_sni"), "port": "443 (TLS / SNI), 9443, 2087", "target": "127.0.0.1:4444 (Stunnel TLS) -> 127.0.0.1:22", "type": "Stunnel Direct TLS", "status": get_service_is_active("stunnel4")},
+        {"name": "BadVPN UDPGW (صوتی و گیمینگ)", "domain": "Localhost", "port": "7300", "target": "127.0.0.1:7300", "type": "UDP Forwarder", "status": get_service_is_active("badvpn") or get_service_is_active("videocall") or get_service_is_active("badvpn-udpgw")}
+    ]
+    
+    return jsonify({
+        "success": True,
+        "config": cfg,
+        "server_ip": pub_ip,
+        "detected_domains": detected_domains,
+        "certificates": certs,
+        "routing": routing
+    })
+
+@app.route("/api/ssh/domains", methods=["POST"])
+def api_post_ssh_domains():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    
+    direct_domain = data.get("direct_domain", "").strip()
+    tls_sni = data.get("tls_sni", "").strip()
+    ws_sni = data.get("ws_sni", "").strip()
+    custom_snis = data.get("custom_snis", [])
+    
+    if isinstance(custom_snis, str):
+        custom_snis = [s.strip() for s in custom_snis.replace(";", ",").split(",") if s.strip()]
+        
+    cfg = get_ssh_domains_config()
+    if direct_domain: cfg["direct_domain"] = direct_domain
+    if tls_sni: cfg["tls_sni"] = tls_sni
+    if ws_sni: cfg["ws_sni"] = ws_sni
+    cfg["custom_snis"] = custom_snis
+    
+    save_ssh_domains_config(cfg)
+    return jsonify({"success": True, "message": "تنظیمات دامنه‌ها و تفکیک هوشمند ترافیک SSH با موفقیت ذخیره و اعمال شد.", "config": cfg})
 
 OCSERV_CONFIG_FILE = "/etc/vpnpanel/ocserv_config.json"
 
@@ -18483,21 +18782,47 @@ def get_singbox_snis():
                 data = json.load(f)
             inbounds = data.get("inbounds", [])
             for ib in inbounds:
+                l_port = ib.get("listen_port")
                 tls = ib.get("tls", {})
-                if isinstance(tls, dict) and tls.get("enabled"):
+                reality = tls.get("reality", {}) if isinstance(tls, dict) else {}
+                is_reality = isinstance(reality, dict) and reality.get("enabled")
+                
+                # Only check reality inbound or inbounds bound directly to 20443
+                if is_reality:
+                    hs = reality.get("handshake", {})
+                    if isinstance(hs, dict):
+                        hs_server = hs.get("server")
+                        if hs_server:
+                            snis.add(hs_server.strip())
                     sname = tls.get("server_name")
                     if sname:
                         snis.add(sname.strip())
-                    reality = tls.get("reality", {})
-                    if isinstance(reality, dict) and reality.get("enabled"):
-                        hs = reality.get("handshake", {})
-                        if isinstance(hs, dict):
-                            hs_server = hs.get("server")
-                            if hs_server:
-                                snis.add(hs_server.strip())
+                elif l_port == 20443:
+                    sname = tls.get("server_name") if isinstance(tls, dict) else None
+                    if sname:
+                        snis.add(sname.strip())
         except Exception:
             pass
-    return [s for s in snis if s]
+
+    srv_domain = (get_server_domain() or "").strip().lower()
+    excluded = {"localhost", "127.0.0.1"}
+    if srv_domain:
+        excluded.add(srv_domain)
+        excluded.add(f"mhpanel.{srv_domain}")
+        excluded.add(f"panel.{srv_domain}")
+        excluded.add(f"vpn.{srv_domain}")
+        excluded.add(f"ssh.{srv_domain}")
+        excluded.add(f"ws.{srv_domain}")
+
+    clean_snis = []
+    for s in snis:
+        if not s:
+            continue
+        s_lower = s.lower()
+        if s_lower in excluded or s_lower.startswith("mhpanel.") or s_lower.startswith("panel."):
+            continue
+        clean_snis.append(s)
+    return clean_snis
 
 def generate_haproxy_cfg(config):
     listen_ports = config.get("listen_ports", [443])
@@ -18554,9 +18879,12 @@ def generate_haproxy_cfg(config):
     enabled_protos = {p.get("id"): p for p in protocols if p.get("enabled", False)}
     
     backend_blocks = []
-    if "ssh" in enabled_protos:
+    if "ssh" in enabled_protos or "ssh_ws" in enabled_protos:
         lines.append("    use_backend ssh_raw_backend if is_ssh_raw")
         backend_blocks.append("backend ssh_raw_backend\n    mode tcp\n    server ssh_raw 127.0.0.1:22")
+        lines.append("    acl is_ssh_http_ws payload(0,128) -m sub /ssh /ws Upgrade: upgrade:")
+        lines.append("    use_backend ssh_ws_plain_backend if is_http_raw is_ssh_http_ws")
+        backend_blocks.append("backend ssh_ws_plain_backend\n    mode tcp\n    server ssh_ws_plain 127.0.0.1:8888")
     if "openvpn" in enabled_protos:
         lines.append("    use_backend openvpn_backend if is_openvpn_raw")
     if "web" in enabled_protos:
@@ -18611,7 +18939,8 @@ def generate_haproxy_cfg(config):
                 else:
                     p_port = 8444
             elif p_id == "ocserv": p_port = 10443
-            elif p_id == "ssh": p_port = 22
+            elif p_id == "ssh": p_port = 4444
+            elif p_id == "ssh_ws": p_port = 4445
             elif p_id == "openvpn": p_port = 1194
             elif p_id == "sstp": p_port = 4443
             elif p_id == "singbox": p_port = 20443
@@ -18627,15 +18956,27 @@ def generate_haproxy_cfg(config):
             
             # Automatically augment singbox with dynamically parsed reality & decoy SNIs
             if p_id == "singbox":
+                other_snis = set()
+                for op in protocols:
+                    if op.get("id") != "singbox":
+                        for osni in op.get("sni", "").replace(";", ",").split(","):
+                            if osni.strip():
+                                other_snis.add(osni.strip().lower())
                 for s in auto_sb_snis:
-                    if s and s not in sni_items:
+                    if s and (s not in sni_items) and (s.lower() not in other_snis):
                         sni_items.append(s)
 
-            # If default protocol, also map public IP and server domain
+            # If default protocol, only map public IP and server domain if not claimed by other protocols
             if p_id == default_proto_id:
-                if server_pub_ip and server_pub_ip not in sni_items:
+                other_all_snis = set()
+                for op in protocols:
+                    if op.get("id") != p_id:
+                        for osni in op.get("sni", "").replace(";", ",").split(","):
+                            if osni.strip():
+                                other_all_snis.add(osni.strip().lower())
+                if server_pub_ip and server_pub_ip not in sni_items and server_pub_ip.lower() not in other_all_snis:
                     sni_items.append(server_pub_ip)
-                if server_domain and server_domain not in sni_items:
+                if server_domain and server_domain not in sni_items and server_domain.lower() not in other_all_snis:
                     sni_items.append(server_domain)
                     
             for idx_s, s_val in enumerate(sni_items):
@@ -18644,6 +18985,9 @@ def generate_haproxy_cfg(config):
                     wildcard_rules.append((f"    acl {acl_name} req_ssl_sni -m end {s_val[1:]}", f"    use_backend {backend_name} if {acl_name}"))
                 else:
                     exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {s_val}", f"    use_backend {backend_name} if {acl_name}"))
+
+    # Prioritize web exact rules so admin panel and websites never get shadowed by tunnels
+    exact_rules.sort(key=lambda r: 0 if "web_backend" in r[1] else 1)
 
     for a_line, u_line in exact_rules:
         acls.append(a_line)
@@ -26320,11 +26664,13 @@ const GAS_TARGETS = {targets_js};
 const VPS_TUNNEL_URL = "{vps_url}";
 const SECRET_KEY = "{secret}";
 
-addEventListener("fetch", (event) => {{
-  event.respondWith(handleRequest(event.request, event));
-}});
+export default {{
+  async fetch(request, env, ctx) {{
+    return handleRequest(request, env, ctx);
+  }}
+}};
 
-async function handleRequest(request, event) {{
+async function handleRequest(request, env, ctx) {{
   if (request.method === "OPTIONS") {{
     return new Response(null, {{
       status: 204,
@@ -26483,8 +26829,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443",
     acc_id = account_id or cfg.get("active_account_id") or "acc_primary"
     custom_url = cfg.get("tunnel_server_url", "").strip()
     srv_dom = get_server_domain()
-    has_domain_ssl = os.path.exists(f"/etc/letsencrypt/live/{srv_dom}/fullchain.pem") if srv_dom else False
-    default_url = f"https://{srv_dom}" if (has_domain_ssl and srv_dom) else f"http://{server_ip}"
+    default_url = f"http://{srv_dom}:{port}" if srv_dom else f"http://{server_ip}:{port}"
     tunnel_node_url = custom_url or default_url
 
     code_full_path = "/www/wwwroot/mhpanel/templates/gas/CodeFull.gs"
@@ -26930,7 +27275,9 @@ def api_google_script_status():
         "diagnostic_mode": cfg.get("diagnostic_mode", False),
         "accounts": accounts_list,
         "active_account_id": active_acc_id,
-        "active_account": active_account
+        "active_account": active_account,
+        "cloudflare": cfg.get("cloudflare", {}),
+        "server_domain": get_server_domain()
     })
 
 @app.route("/api/google_script/config", methods=["GET", "POST"])
@@ -26986,139 +27333,40 @@ def get_unified_code_templates(cfg=None):
     port = cfg.get("port", 8448)
     secret = cfg.get("secret", "")
     singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
+    srv_dom = get_server_domain()
+    custom_tpls = load_gas_custom_templates()
     
-    # 1. Base GAS templates
-    gas_raw = get_gas_templates(server_ip, port, secret, singbox_target)
-    
-    manifest_content = json.dumps({
-        "timeZone": "Asia/Tehran",
-        "dependencies": {},
-        "exceptionLogging": "STACKDRIVER",
-        "runtimeVersion": "V8",
-        "webapp": {
-            "executeAs": "USER_DEPLOYING",
-            "access": "ANYONE_ANONYMOUS"
+    try:
+        from gas_cf_templates import get_gas_cf_templates
+        return get_gas_cf_templates(cfg, server_ip, srv_dom, port, secret, singbox_target, custom_templates=custom_tpls)
+    except Exception as e:
+        # Fallback if module load issue
+        gas_raw = get_gas_templates(server_ip, port, secret, singbox_target)
+        gas_list = []
+        for k in ["full_tunnel", "singbox_detour", "master_http"]:
+            if k in gas_raw:
+                item = dict(gas_raw[k])
+                item["id"] = k
+                item["key"] = k
+                item["type"] = "gas"
+                item["is_custom"] = False
+                item["code"] = item.get("google_code", "")
+                gas_list.append(item)
+        all_map = {i["id"]: i for i in gas_list}
+        return {
+            "gas_templates": gas_list,
+            "cf_templates": [],
+            "hybrid_templates": [],
+            "custom_templates": [],
+            "templates": all_map,
+            "server_ip": server_ip,
+            "server_domain": srv_dom or server_ip,
+            "port": port,
+            "secret": secret,
+            "singbox_target": singbox_target,
+            "singbox_port": "20443",
+            "tunnel_node_url": f"http://{srv_dom or server_ip}:{port}"
         }
-    }, indent=2)
-    
-    gas_raw["manifest"] = {
-        "name": "فایل مانیفست گوگل (appsscript.json)",
-        "file_name": "appsscript.json",
-        "description": "فایل پیکربندی مانیفست رسمی پروژه گوگل با رانتایم مدرن V8 و سطح دسترسی عمومی وب‌اپ (ANYONE_ANONYMOUS).",
-        "google_code": manifest_content,
-        "server_code": ""
-    }
-    if "full_tunnel" in gas_raw:
-        gas_raw["full_tunnel"]["file_name"] = "CodeFull.gs"
-    if "singbox_detour" in gas_raw:
-        gas_raw["singbox_detour"]["file_name"] = "CodeSingbox.gs"
-    if "master_http" in gas_raw:
-        gas_raw["master_http"]["file_name"] = "CodeRelay.gs"
-    if "custom" in gas_raw:
-        gas_raw["custom"]["file_name"] = "CustomCode.gs"
-
-    gas_list = []
-    for k in ["full_tunnel", "singbox_detour", "master_http", "manifest"]:
-        if k in gas_raw:
-            item = dict(gas_raw[k])
-            item["id"] = k
-            item["key"] = k
-            item["type"] = "gas"
-            item["is_custom"] = False
-            item["code"] = item.get("google_code", "")
-            gas_list.append(item)
-
-    # 2. Cloudflare Builtin Templates
-    cfg_relay = dict(cfg)
-    cfg_relay["cloudflare"] = dict(cfg.get("cloudflare", {}))
-    cfg_relay["cloudflare"]["routing_mode"] = "gas_relay"
-    cf_code_relay = generate_cloudflare_worker_code(cfg_relay)
-
-    cfg_direct = dict(cfg)
-    cfg_direct["cloudflare"] = dict(cfg.get("cloudflare", {}))
-    cfg_direct["cloudflare"]["routing_mode"] = "direct_vps"
-    cf_code_direct = generate_cloudflare_worker_code(cfg_direct)
-
-    cfg_hybrid = dict(cfg)
-    cfg_hybrid["cloudflare"] = dict(cfg.get("cloudflare", {}))
-    cfg_hybrid["cloudflare"]["routing_mode"] = "hybrid"
-    cf_code_hybrid = generate_cloudflare_worker_code(cfg_hybrid)
-
-    cf_list = [
-        {
-            "id": "cf_gas_relay",
-            "key": "cf_gas_relay",
-            "name": "شتاب‌دهنده چند حسابه کلودفلر (Multi-Account GAS Accelerator)",
-            "type": "cloudflare",
-            "file_name": "WorkerRelay.js",
-            "description": "ورکر فوق‌سریع لبه کلودفلر با لود بالانسر چرخشی (Round-Robin) بین تمام حساب‌های فعال گوگل اسکریپت و عبور خودکار از محدودیت نرخ (429 Bypass).",
-            "code": cf_code_relay,
-            "cf_code": cf_code_relay,
-            "is_custom": False
-        },
-        {
-            "id": "cf_direct_vps",
-            "key": "cf_direct_vps",
-            "name": "تونل لبه کلودفلر به سرور (Cloudflare Direct VPS Tunnel)",
-            "type": "cloudflare",
-            "file_name": "DirectTunnel.js",
-            "description": "پروکسی CDN لبه کلودفلر مستقیم به پورت نود تانل سرور شما با دور زدن کامل گوگل برای مواقع قطعی یا مسدودی سرویس‌های گوگل.",
-            "code": cf_code_direct,
-            "cf_code": cf_code_direct,
-            "is_custom": False
-        },
-        {
-            "id": "cf_hybrid",
-            "key": "cf_hybrid",
-            "name": "ورکر ترکیبی هوشمند (Hybrid Failover Worker)",
-            "type": "cloudflare",
-            "file_name": "HybridWorker.js",
-            "description": "مسیریابی هوشمند: اولویت اتصال با وب‌اپ‌های گوگل اسکریپت؛ در صورت ریت‌لیمیت یا پاسخ ۵xx، پکت‌ها بدون قطعی مستقیماً به نود سرور هدایت می‌شوند.",
-            "code": cf_code_hybrid,
-            "cf_code": cf_code_hybrid,
-            "is_custom": False
-        }
-    ]
-
-    # 3. Custom Templates from Disk
-    customs = load_gas_custom_templates()
-    custom_list = []
-    for k, v in customs.items():
-        tpl_type = v.get("type", "gas")
-        c_code = v.get("code") or (v.get("cf_code") if tpl_type == "cloudflare" else v.get("google_code", ""))
-        item = {
-            "id": k,
-            "key": k,
-            "name": v.get("name", k),
-            "type": tpl_type,
-            "file_name": v.get("file_name", f"{k}.{'js' if tpl_type == 'cloudflare' else 'gs'}"),
-            "description": v.get("description", "قالب سفارشی کاربر"),
-            "code": c_code,
-            "google_code": c_code if tpl_type == "gas" else "",
-            "cf_code": c_code if tpl_type == "cloudflare" else "",
-            "is_custom": True,
-            "created_at": v.get("created_at", "")
-        }
-        custom_list.append(item)
-        if tpl_type == "cloudflare":
-            cf_list.append(item)
-        else:
-            gas_list.append(item)
-
-    all_map = {}
-    for item in gas_list + cf_list:
-        all_map[item["id"]] = item
-
-    return {
-        "gas_templates": gas_list,
-        "cf_templates": cf_list,
-        "custom_templates": custom_list,
-        "templates": all_map,
-        "server_ip": server_ip,
-        "port": port,
-        "secret": secret,
-        "singbox_target": singbox_target
-    }
 
 @app.route("/api/google_script/templates", methods=["GET"])
 def api_google_script_templates():
@@ -27174,6 +27422,9 @@ def api_google_script_account_wizard():
     
     auto_deploy = bool(data.get("auto_deploy", True))
     set_active = bool(data.get("set_active", True))
+    template_id = data.get("template_id", "").strip()
+    if not template_id:
+        template_id = "full_tunnel" if mode == "google_only" else ("cf_gas_relay" if mode == "google_and_cloudflare" else "cf_direct_vps")
     
     if mode in ["google_only", "google_and_cloudflare"] and not email:
         return jsonify({"success": False, "error": "لطفاً آدرس جیمیل (Gmail) را وارد نمایید."}), 400
@@ -27208,22 +27459,29 @@ def api_google_script_account_wizard():
         "cf_worker_url": "",
         "cf_last_deploy_time": "",
         "cf_routing_mode": cf_routing_mode,
+        "template_id": template_id,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "status": "ready"
     }
 
     cfg["accounts"][acc_id] = new_acc
+    if "cloudflare" not in cfg or not isinstance(cfg["cloudflare"], dict):
+        cfg["cloudflare"] = {}
+    if cf_api_token:
+        cfg["cloudflare"]["api_token"] = cf_api_token
+    if cf_account_id:
+        cfg["cloudflare"]["account_id"] = cf_account_id
+    if cf_worker_name:
+        cfg["cloudflare"]["worker_name"] = cf_worker_name
+    if cf_routing_mode:
+        cfg["cloudflare"]["routing_mode"] = cf_routing_mode
+
     if set_active or len(cfg["accounts"]) == 1:
         cfg["active_account_id"] = acc_id
         if google_token:
             cfg["google_access_token"] = google_token
         if google_webapp_url:
             cfg["google_webapp_url"] = google_webapp_url
-        if cf_api_token and cf_account_id:
-            cfg["cloudflare"]["api_token"] = cf_api_token
-            cfg["cloudflare"]["account_id"] = cf_account_id
-            cfg["cloudflare"]["worker_name"] = cf_worker_name
-            cfg["cloudflare"]["routing_mode"] = cf_routing_mode
 
     deploy_errors = []
     deployed_gas = False
@@ -27235,11 +27493,16 @@ def api_google_script_account_wizard():
         secret = cfg.get("secret", "")
         singbox_target = cfg.get("singbox_target", "127.0.0.1:20443")
         
+        all_unified_tpls = get_unified_code_templates(cfg).get("templates", {})
+        chosen_tpl = all_unified_tpls.get(template_id) or all_unified_tpls.get("full_tunnel", {})
+
         # 1. Deploy GAS if applicable
         if mode in ["google_only", "google_and_cloudflare"]:
             if google_token:
-                tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
-                code_gs = tpls["full_tunnel"]["google_code"]
+                code_gs = chosen_tpl.get("gas_code") or chosen_tpl.get("google_code") or chosen_tpl.get("code")
+                if not code_gs:
+                    tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
+                    code_gs = tpls["full_tunnel"]["google_code"]
                 ok_gas, res_gas = deploy_gas_to_google(google_token, google_project_title, code_gs, None)
                 if ok_gas:
                     new_acc["script_id"] = res_gas.get("script_id", "")
@@ -27261,11 +27524,13 @@ def api_google_script_account_wizard():
                 cfg["cloudflare"]["worker_name"] = cf_worker_name
                 cfg["cloudflare"]["routing_mode"] = cf_routing_mode
                 
+                code_cf = chosen_tpl.get("cf_code") or chosen_tpl.get("code")
                 ok_cf, res_cf = deploy_cloudflare_worker_internal(
                     cfg, 
                     api_token=cf_api_token, 
                     account_id=cf_account_id, 
-                    worker_name=cf_worker_name
+                    worker_name=cf_worker_name,
+                    custom_script=code_cf
                 )
                 if ok_cf:
                     new_acc["cf_worker_url"] = res_cf.get("worker_url", "")
@@ -27353,6 +27618,8 @@ def api_google_script_account_edit(acc_id):
         acc["cf_worker_url"] = data["cf_worker_url"].strip()
     if "cf_routing_mode" in data:
         acc["cf_routing_mode"] = data["cf_routing_mode"].strip()
+    if "template_id" in data:
+        acc["template_id"] = str(data["template_id"]).strip()
 
     has_deploy = bool(acc.get("webapp_url") or acc.get("cf_worker_url"))
     has_creds = bool(acc.get("access_token") or (acc.get("cf_api_token") and acc.get("cf_account_id")))
@@ -27400,6 +27667,10 @@ def api_google_script_account_deploy_single(acc_id):
     
     results = {"gas": False, "cf": False, "errors": []}
     
+    template_id = acc.get("template_id") or ("full_tunnel" if mode == "google_only" else ("cf_gas_relay" if mode == "google_and_cloudflare" else "cf_direct_vps"))
+    all_unified_tpls = get_unified_code_templates(cfg).get("templates", {})
+    chosen_tpl = all_unified_tpls.get(template_id, {})
+
     # 1. Deploy GAS if applicable
     if mode in ["google_only", "google_and_cloudflare"]:
         token = acc.get("access_token", "").strip()
@@ -27408,8 +27679,10 @@ def api_google_script_account_deploy_single(acc_id):
         else:
             title = acc.get("project_title") or "MHPanel-GAS-FullTunnel"
             script_id = acc.get("script_id")
-            tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
-            code_gs = tpls["full_tunnel"]["google_code"]
+            code_gs = chosen_tpl.get("gas_code") or chosen_tpl.get("google_code") or chosen_tpl.get("code")
+            if not code_gs:
+                tpls = get_gas_templates(server_ip, port, secret, singbox_target, account_id=acc_id)
+                code_gs = tpls["full_tunnel"]["google_code"]
             ok_gas, res_gas = deploy_gas_to_google(token, title, code_gs, script_id)
             if ok_gas:
                 acc["script_id"] = res_gas.get("script_id", "")
@@ -27427,6 +27700,7 @@ def api_google_script_account_deploy_single(acc_id):
         cf_token = acc.get("cf_api_token") or cfg.get("cloudflare", {}).get("api_token", "")
         cf_acc_id = acc.get("cf_account_id") or cfg.get("cloudflare", {}).get("account_id", "")
         cf_worker = acc.get("cf_worker_name") or cfg.get("cloudflare", {}).get("worker_name", "mhpanel-gas-relay")
+        code_cf = chosen_tpl.get("cf_code") or chosen_tpl.get("code")
         
         if not cf_token or not cf_acc_id:
             results["errors"].append("فاقد توکن دسترسی یا Account ID کلودفلر")
@@ -27435,7 +27709,8 @@ def api_google_script_account_deploy_single(acc_id):
                 cfg,
                 api_token=cf_token,
                 account_id=cf_acc_id,
-                worker_name=cf_worker
+                worker_name=cf_worker,
+                custom_script=code_cf
             )
             if ok_cf:
                 acc["cf_worker_url"] = res_cf.get("worker_url", "")
@@ -27654,12 +27929,45 @@ def api_google_script_cloudflare_verify_token():
         except Exception:
             pass
 
+    if data.get("save"):
+        cfg = get_gas_config()
+        if "cloudflare" not in cfg or not isinstance(cfg["cloudflare"], dict):
+            cfg["cloudflare"] = {}
+        cfg["cloudflare"]["api_token"] = api_token
+        cfg["cloudflare"]["account_id"] = account_id
+        save_gas_config(cfg, restart_service=False)
+
     return jsonify({
         "success": True,
         "valid": True,
         "token_status": token_status,
         "subdomain": subdomain,
         "message": f"توکن کلودفلر معتبر است! " + (f"ساب‌دامین شما: {subdomain}.workers.dev" if subdomain else "تایید شد.")
+    })
+
+@app.route("/api/google_script/cloudflare/save-credentials", methods=["POST"])
+def api_google_script_cloudflare_save_credentials():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    api_token = str(data.get("api_token", "")).strip()
+    account_id = str(data.get("account_id", "")).strip()
+    worker_name = str(data.get("worker_name", "")).strip()
+    
+    cfg = get_gas_config()
+    if "cloudflare" not in cfg or not isinstance(cfg["cloudflare"], dict):
+        cfg["cloudflare"] = {}
+    
+    cfg["cloudflare"]["api_token"] = api_token
+    cfg["cloudflare"]["account_id"] = account_id
+    if worker_name:
+        cfg["cloudflare"]["worker_name"] = worker_name
+        
+    save_gas_config(cfg, restart_service=False)
+    return jsonify({
+        "success": True,
+        "message": "اطلاعات اکانت و توکن کلودفلر با موفقیت ذخیره شد و در تمامی فرم‌ها به طور خودکار اعمال می‌گردد.",
+        "cloudflare": cfg["cloudflare"]
     })
 
 @app.route("/api/google_script/batch-deploy", methods=["POST"])

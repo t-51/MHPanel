@@ -2994,6 +2994,562 @@
     </div>
 </div>
 
+<!-- GOOGLE APPS SCRIPT & CLOUDFLARE WORKERS MODALS -->
+    <!-- ============================================================== -->
+    <!-- MODAL 1: 3-MODE ACCOUNT CREATION WIZARD (جامع، زیبا و ساده)    -->
+    <!-- ============================================================== -->
+    <div id="gas-wizard-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasWizardModal();">
+        <div class="glass-card" style="width:100%; max-width:680px; max-height:90vh; overflow-y:auto; border:1px solid rgba(66,133,244,0.4); box-shadow:0 14px 45px rgba(0,0,0,0.6); padding:24px; border-radius:18px; background:var(--bg-surface, #111827);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-glow); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:38px; height:38px; border-radius:10px; background:rgba(66,133,244,0.2); color:#4285F4; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="sparkles" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:16px; font-weight:700;">جادوگر هوشمند افزودن حساب و استقرار</h4>
+                        <span style="font-size:11.5px; color:var(--text-muted);">حالت اتصال مورد نظر خود را انتخاب کنید</span>
+                    </div>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasWizardModal();" style="width:32px; height:32px;">
+                    <i data-lucide="x" style="width:18px; height:18px;"></i>
+                </button>
+            </div>
 
+            <!-- STEP 1: SELECT MODE CARDS -->
+            <label style="font-size:12.5px; font-weight:700; margin-bottom:8px; display:block;">
+                ۱. نوع استقرار و شبکه لبه را انتخاب کنید:
+            </label>
+            <div class="gas-wizard-modes">
+                <!-- Mode 1: Google Only -->
+                <div class="gas-wizard-mode-card" id="gas-wz-card-google" onclick="selectGasWizardMode('google_only');">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <span style="font-size:20px;">🔵</span>
+                            <span class="gas-token-badge gas-token-badge-blue">Google Only</span>
+                        </div>
+                        <div style="font-weight:700; font-size:13.5px; margin-bottom:4px;">فقط گوگل اسکریپت</div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4;">
+                            اتصال مستقیم به وب‌اپ گوگل؛ بدون نیاز به کلودفلر
+                        </p>
+                    </div>
+                </div>
 
+                <!-- Mode 2: Hybrid Google + Cloudflare (Recommended) -->
+                <div class="gas-wizard-mode-card hybrid-selected" id="gas-wz-card-hybrid" onclick="selectGasWizardMode('google_and_cloudflare');">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <span style="font-size:20px;">🟢</span>
+                            <span class="gas-token-badge gas-token-badge-green">پیشنهادی ⭐</span>
+                        </div>
+                        <div style="font-weight:700; font-size:13.5px; margin-bottom:4px; color:#34d399;">ترکیب گوگل + کلودفلر</div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4;">
+                            استقرار همزمان در گوگل و شتاب‌دهنده لبه ورکر کلودفلر با بالاترین سرعت
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Mode 3: Cloudflare Only -->
+                <div class="gas-wizard-mode-card" id="gas-wz-card-cf" onclick="selectGasWizardMode('cloudflare_only');">
+                    <div>
+                        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+                            <span style="font-size:20px;">🟠</span>
+                            <span class="gas-token-badge gas-token-badge-orange">CF Only</span>
+                        </div>
+                        <div style="font-weight:700; font-size:13.5px; margin-bottom:4px;">فقط کلودفلر ورکر</div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4;">
+                            اتصال مستقیم ورکر لبه CDN کلودفلر به سرور، بدون وابستگی به جیمیل
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 2: DYNAMIC INPUT FIELDS BASED ON SELECTION -->
+            <label style="font-size:12.5px; font-weight:700; margin-bottom:8px; display:block;">
+                ۲. اطلاعات حساب را وارد نمایید:
+            </label>
+
+            <!-- General Display Name -->
+            <div class="form-group" style="margin-bottom:12px;">
+                <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">عنوان / برچسب نمایشی حساب</label>
+                <div class="gas-input-composite">
+                    <input type="text" id="gas-wz-name" placeholder="مثلاً: جیمیل شرکت، یا ورکر شماره ۱..." style="direction:rtl;">
+                </div>
+            </div>
+
+            <!-- Google Fields (Shown for google_only and google_and_cloudflare) -->
+            <div id="gas-wz-google-fields" style="background:rgba(66,133,244,0.05); border:1px solid rgba(66,133,244,0.25); border-radius:12px; padding:14px; margin-bottom:14px;">
+                <div style="font-size:12.5px; font-weight:700; color:#60a5fa; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="mail" style="width:15px; height:15px;"></i> اطلاعات حساب جیمیل (Google Apps Script)
+                </div>
+
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">آدرس ایمیل گوگل (Gmail) <span style="color:#ef4444;">*</span></label>
+                    <div class="gas-input-composite">
+                        <input type="email" id="gas-wz-email" placeholder="myaccount@gmail.com" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:12px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <label style="font-size:12px; font-weight:700; margin:0; display:flex; align-items:center; gap:5px;">
+                            <i data-lucide="key" style="width:14px; height:14px; color:#4285F4;"></i>
+                            <span>توکن موقت گوگل (OAuth ya29) جهت استقرار خودکار</span>
+                        </label>
+                        <a href="https://developers.google.com/oauthplayground" target="_blank" style="font-size:11.5px; color:#4285F4; text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:4px;">
+                            <i data-lucide="external-link" style="width:13px; height:13px;"></i> باز کردن Playground ↗
+                        </a>
+                    </div>
+
+                    <!-- Scopes Helper Box for Playground -->
+                    <div style="background:rgba(0,0,0,0.32); border:1px solid rgba(66,133,244,0.35); border-radius:10px; padding:10px 12px; margin-bottom:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                            <span style="font-size:11px; font-weight:700; color:#60a5fa; display:flex; align-items:center; gap:5px;">
+                                <i data-lucide="copy" style="width:12px; height:12px;"></i> مقادیر اسکوپ (Scopes) جهت پیست در کادر Playground:
+                            </span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasScopes();" style="padding:2px 8px; font-size:10.5px; color:#60a5fa; border-color:rgba(66,133,244,0.4);">
+                                <i data-lucide="copy" style="width:11px; height:11px;"></i> کپی هر دو اسکوپ
+                            </button>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:4px;">
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; font-family:'JetBrains Mono'; font-size:10.5px; direction:ltr;">
+                                <span>https://www.googleapis.com/auth/script.projects</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTextValue('https://www.googleapis.com/auth/script.projects', 'اسکوپ پروژه‌ها')" style="padding:1px 6px; font-size:10px;">کپی</button>
+                            </div>
+                            <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); padding:4px 8px; border-radius:6px; font-family:'JetBrains Mono'; font-size:10.5px; direction:ltr;">
+                                <span>https://www.googleapis.com/auth/script.deployments</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTextValue('https://www.googleapis.com/auth/script.deployments', 'اسکوپ استقرار')" style="padding:1px 6px; font-size:10px;">کپی</button>
+                            </div>
+                        </div>
+                        <div style="font-size:10.5px; color:var(--text-muted); margin-top:6px; line-height:1.4;">
+                            💡 <strong>راهنما:</strong> در Playground این دو اسکوپ را در کادر <code>Input your own scopes</code> پیست کرده و <strong>Authorize APIs</strong> را بزنید، اکانت جیمیل را تایید کنید و در Step 2 دکمه آبی <strong>Exchange authorization code</strong> را بزنید تا توکن <code>ya29...</code> ساخته شود.
+                        </div>
+                    </div>
+
+                    <div class="gas-input-composite">
+                        <input type="password" id="gas-wz-google-token" placeholder="توکن تولید شده را اینجا پیست کنید (ya29...)" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        <div class="gas-input-tools">
+                            <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-wz-google-token')">
+                                <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:11.5px; color:var(--text-muted); margin-bottom:4px; display:block;">یا آدرس وب‌اپ گوگل (در صورت استقرار دستی قبلی)</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-wz-google-webapp" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:'JetBrains Mono'; font-size:11.5px; direction:ltr;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cloudflare Fields (Shown for cloudflare_only and google_and_cloudflare) -->
+            <div id="gas-wz-cf-fields" style="background:rgba(249,115,22,0.05); border:1px solid rgba(249,115,22,0.25); border-radius:12px; padding:14px; margin-bottom:14px;">
+                <div style="font-size:12.5px; font-weight:700; color:#fb923c; margin-bottom:10px; display:flex; align-items:center; justify-content:space-between;">
+                    <span style="display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="cloud-lightning" style="width:15px; height:15px;"></i> اطلاعات ورکر کلودفلر (Cloudflare Workers)
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="testWzCloudflareToken();" style="padding:2px 8px; font-size:11px; color:#fb923c;">
+                        تست اعتبار توکن
+                    </button>
+                </div>
+
+                <!-- Auto-fill notice badge -->
+                <div id="gas-wz-cf-autofill-notice" style="display:none; margin-bottom:10px; font-size:11.5px; color:#10b981; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); padding:6px 10px; border-radius:8px;">
+                    <i data-lucide="check-check" style="width:13px; height:13px; display:inline-block; vertical-align:middle; margin-left:4px;"></i>
+                    <span>اطلاعات Account ID و API Token به صورت خودکار از حافظه پنل بارگذاری شدند. (می‌توانید به دلخواه دستی ویرایش کنید)</span>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">Cloudflare Account ID (۳۲ کاراکتر) <span style="color:#ef4444;">*</span></label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-wz-cf-acc-id" placeholder="c1a2b3d4e5f6..." style="font-family:'JetBrains Mono'; direction:ltr;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">نام ورکر در کلودفلر</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-wz-cf-worker-name" value="mhpanel-gas-relay" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">Cloudflare API Token <span style="color:#ef4444;">*</span></label>
+                    <div class="gas-input-composite">
+                        <input type="password" id="gas-wz-cf-token" placeholder="توکن تولید شده با قالب Edit Cloudflare Workers" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        <div class="gas-input-tools">
+                            <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-wz-cf-token')">
+                                <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="gas-wz-cf-test-result" style="display:none; margin-top:8px; font-size:11.5px; padding:6px 10px; border-radius:6px;"></div>
+            </div>
+
+            <!-- STEP 3: TEMPLATE SELECTION (انتخاب قالب کد و استراتژی اتصال) -->
+            <div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.3); border-radius:12px; padding:14px; margin-bottom:14px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                    <span style="font-size:12.5px; font-weight:700; color:#34d399; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="code-2" style="width:16px; height:16px;"></i> ۳. انتخاب قالب کد جهت استقرار روی سرور لبه:
+                    </span>
+                    <span class="gas-token-badge gas-token-badge-green" id="gas-wz-template-count-badge">قالب‌های سازگار</span>
+                </div>
+                <div class="form-group" style="margin-bottom:6px;">
+                    <select id="gas-wz-template-select" onchange="onGasWizardTemplateChanged(this.value);" style="background:rgba(0,0,0,0.4); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); font-size:12.5px; font-weight:600; padding:8px 12px; width:100%; outline:none;">
+                    </select>
+                </div>
+                <div id="gas-wz-template-desc" style="font-size:11px; color:var(--text-muted); line-height:1.45; background:rgba(0,0,0,0.25); border-radius:6px; padding:8px 10px; border:1px solid rgba(255,255,255,0.05);">
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:18px;">
+                <label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="gas-wz-auto-deploy" checked style="accent-color:#10b981; width:16px; height:16px;">
+                    <span style="font-weight:600;">استقرار خودکار بلافاصله پس از ایجاد حساب (Auto-Deploy)</span>
+                </label>
+                <label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="gas-wz-set-active" checked style="accent-color:#4285F4; width:16px; height:16px;">
+                    <span>تنظیم به عنوان حساب فعال پیش‌فرض پنل</span>
+                </label>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasWizardModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" id="gas-wz-submit-btn" onclick="submitGasWizard();" style="background:#4285F4; border-color:#4285F4; padding:8px 24px; font-weight:700;">
+                    <i data-lucide="check" style="width:15px; height:15px; margin-left:4px;"></i> ایجاد و استقرار حساب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 2: CUSTOM TEMPLATE CREATE/EDIT (GOOGLE & CLOUDFLARE)      -->
+    <!-- ============================================================== -->
+    <div id="gas-custom-template-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasCustomTemplateModal();">
+        <div class="glass-card" style="width:100%; max-width:640px; max-height:90vh; overflow-y:auto; border:1px solid rgba(16,185,129,0.4); box-shadow:0 14px 45px rgba(0,0,0,0.6); padding:24px; border-radius:18px; background:var(--bg-surface, #111827);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-glow); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:38px; height:38px; border-radius:10px; background:rgba(16,185,129,0.2); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="code" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:16px; font-weight:700;" id="gas-tpl-modal-title">افزودن قالب کد جدید</h4>
+                        <span style="font-size:11.5px; color:var(--text-muted);">ذخیره قالب با نام و کد دلخواه برای گوگل یا کلودفلر</span>
+                    </div>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasCustomTemplateModal();" style="width:32px; height:32px;">
+                    <i data-lucide="x" style="width:18px; height:18px;"></i>
+                </button>
+            </div>
+
+            <input type="hidden" id="gas-tpl-id">
+
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">عنوان قالب (Name) <span style="color:#ef4444;">*</span></label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-tpl-name" placeholder="مثال: ورکر اختصاصی با ریت‌لیمیت بایپس..." style="direction:rtl;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">نوع قالب (Type) <span style="color:#ef4444;">*</span></label>
+                        <div class="gas-input-composite">
+                            <select id="gas-tpl-type" onchange="onGasTemplateTypeChange(this.value);" style="font-weight:700;">
+                                <option value="gas">🔵 گوگل اسکریپت (.gs)</option>
+                                <option value="cloudflare">🟠 کلودفلر ورکر (.js)</option>
+                                <option value="hybrid">🟢 ترکیب دوگانه (.js + .gs)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">نام فایل سورس (File Name)</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-tpl-file" placeholder="MyWorker.js" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">توضیح کوتاه</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-tpl-desc" placeholder="توضیح جهت یادآوری..." style="direction:rtl;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <label style="font-size:12px; font-weight:600; margin:0;">سورس‌کد کامل (Code Script) <span style="color:#ef4444;">*</span></label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="pasteGasTemplateCode();" style="padding:2px 8px; font-size:11px;">
+                            پیست از کلیپ‌بورد
+                        </button>
+                    </div>
+                    <textarea id="gas-tpl-code" rows="12" placeholder="کد جاوااسکریپت (.js) یا گوگل اسکریپت (.gs) را اینجا قرار دهید..." style="width:100%; background:#080c14; border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; padding:12px; line-height:1.6; direction:ltr; tab-size:2; resize:vertical;"></textarea>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasCustomTemplateModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="submitGasCustomTemplate();" style="background:#10b981; border-color:#10b981; padding:8px 24px; font-weight:700;">
+                    <i data-lucide="save" style="width:15px; height:15px; margin-left:4px;"></i> ذخیره قالب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 3: VIEW / EDIT FULL CODE MODAL                           -->
+    <!-- ============================================================== -->
+    <div id="gas-view-code-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasViewCodeModal();">
+        <div class="glass-card" style="width:100%; max-width:880px; max-height:92vh; display:flex; flex-direction:column; border:1px solid rgba(66,133,244,0.4); box-shadow:0 14px 45px rgba(0,0,0,0.6); padding:22px; border-radius:18px; background:var(--bg-surface, #111827);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid var(--border-glow); padding-bottom:10px; flex-shrink:0; flex-wrap:wrap; gap:8px;">
+                <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                    <span class="gas-token-badge gas-token-badge-blue" id="gas-view-code-type">CODE</span>
+                    <h4 style="margin:0; font-size:15px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="gas-view-code-title">-</h4>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <!-- Dual Download Button for Hybrid -->
+                    <button type="button" class="btn btn-secondary btn-sm" id="gas-view-code-dual-dl-btn" onclick="downloadGasBothFiles();" style="display:none; padding:5px 12px; font-size:12px; color:#10b981; border-color:rgba(16,185,129,0.35);" title="دانلود هر دو فایل (ورکر .js + گوگل .gs)">
+                        <i data-lucide="archive" style="width:13px; height:13px;"></i> دانلود هر دو فایل (.js و .gs)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="gas-view-code-download-btn" onclick="downloadCurrentGasViewModalFile();" style="padding:5px 12px; font-size:12px;" title="دانلود فایل سورس این تب">
+                        <i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="gas-view-code-copy-btn" onclick="copyGasViewCodeModalContent();" style="padding:5px 12px; font-size:12px;" title="کپی کردن سورس کد">
+                        <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی کد
+                    </button>
+                    <button type="button" class="gas-tool-btn" onclick="closeGasViewCodeModal();" style="width:30px; height:30px;">
+                        <i data-lucide="x" style="width:16px; height:16px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FOR HYBRID: TABS SELECTOR -->
+            <div id="gas-modal-hybrid-tabs" style="display:none; margin-bottom:10px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:4px; gap:6px; flex-shrink:0;">
+                <button type="button" class="btn btn-sm gas-modal-tab-btn active" id="gas-modal-tab-cf" onclick="switchGasModalTab('cf');" style="flex:1; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s ease;">
+                    <i data-lucide="cloud" style="width:14px; height:14px; color:#fb923c;"></i>
+                    <span id="gas-modal-tab-cf-title">فایل ۱: ورکر کلودفلر (1_Worker.js)</span>
+                </button>
+                <button type="button" class="btn btn-sm gas-modal-tab-btn" id="gas-modal-tab-gas" onclick="switchGasModalTab('gas');" style="flex:1; border-radius:8px; padding:7px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; gap:6px; transition:all 0.2s ease;">
+                    <i data-lucide="file-code" style="width:14px; height:14px; color:#60a5fa;"></i>
+                    <span id="gas-modal-tab-gas-title">فایل ۲: گوگل اسکریپت رله (2_Relay.gs)</span>
+                </button>
+            </div>
+
+            <!-- DEPLOY INSTRUCTION BANNER -->
+            <div id="gas-modal-deploy-banner" style="display:none; margin-bottom:10px; border-radius:8px; padding:8px 12px; font-size:11.5px; line-height:1.5; flex-shrink:0;"></div>
+
+            <textarea id="gas-view-code-editor" readonly style="flex:1; min-height:360px; background:#080c14; border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; padding:14px; line-height:1.6; direction:ltr; tab-size:2; resize:none;"></textarea>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-shrink:0;">
+                <span style="font-size:11.5px; color:var(--text-muted);" id="gas-view-code-lines">-</span>
+                <button type="button" class="btn btn-secondary" onclick="closeGasViewCodeModal();" style="padding:6px 16px;">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 4: EDIT ACCOUNT MODAL                                    -->
+    <!-- ============================================================== -->
+    <div id="gas-edit-account-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasEditAccountModal();">
+        <div class="glass-card" style="width:100%; max-width:580px; max-height:90vh; overflow-y:auto; border:1px solid rgba(66,133,244,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--border-glow); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(66,133,244,0.18); color:#4285F4; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="edit-3" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">ویرایش مشخصات حساب</h4>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasEditAccountModal();" style="width:30px; height:30px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <input type="hidden" id="gas-editacc-id">
+
+            <div style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">عنوان نمایشی</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-editacc-name" style="direction:rtl;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">آدرس ایمیل جیمیل</label>
+                    <div class="gas-input-composite">
+                        <input type="email" id="gas-editacc-email" style="font-family:'JetBrains Mono'; direction:ltr;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:flex; justify-content:space-between;">
+                        <span>توکن موقت گوگل (ya29)</span>
+                        <a href="https://developers.google.com/oauthplayground" target="_blank" style="font-size:11px; color:#4285F4; text-decoration:none;">Playground ↗</a>
+                    </label>
+
+                    <!-- Scopes Box in Edit Modal -->
+                    <div style="background:rgba(0,0,0,0.3); border:1px solid rgba(66,133,244,0.3); border-radius:8px; padding:8px 10px; margin-bottom:6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <span style="font-size:10.5px; color:#60a5fa; font-weight:700;">اسکوپ‌های مجاز Playground:</span>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasScopes();" style="padding:1px 6px; font-size:10px; color:#60a5fa;">کپی هر دو اسکوپ</button>
+                        </div>
+                        <div style="font-family:'JetBrains Mono'; font-size:10px; color:var(--text-muted); direction:ltr; line-height:1.4;">
+                            https://www.googleapis.com/auth/script.projects<br>
+                            https://www.googleapis.com/auth/script.deployments
+                        </div>
+                    </div>
+
+                    <div class="gas-input-composite">
+                        <input type="password" id="gas-editacc-token" placeholder="یا پیست کنید (ya29...)" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        <div class="gas-input-tools">
+                            <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-editacc-token')">
+                                <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">آدرس وب‌اپ گوگل (Web App URL)</label>
+                    <div class="gas-input-composite">
+                        <input type="text" id="gas-editacc-webapp" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11.5px;">
+                    </div>
+                </div>
+
+                <div style="border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+                    <div style="font-size:12px; font-weight:700; color:#fb923c; margin-bottom:8px;">مشخصات کلودفلر ورکر (در صورت فعال بودن)</div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:11px; font-weight:600; margin-bottom:3px; display:block;">Account ID</label>
+                            <div class="gas-input-composite">
+                                <input type="text" id="gas-editacc-cf-acc" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label style="font-size:11px; font-weight:600; margin-bottom:3px; display:block;">Worker Name</label>
+                            <div class="gas-input-composite">
+                                <input type="text" id="gas-editacc-cf-worker" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:11px; font-weight:600; margin-bottom:3px; display:block;">API Token</label>
+                        <div class="gas-input-composite">
+                            <input type="password" id="gas-editacc-cf-token" style="font-family:'JetBrains Mono'; direction:ltr; font-size:11px;">
+                            <div class="gas-input-tools">
+                                <button type="button" class="gas-tool-btn" onclick="togglePasswordVisibility('gas-editacc-cf-token')">
+                                    <i data-lucide="eye" style="width:14px; height:14px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0; border-top:1px solid rgba(255,255,255,0.08); padding-top:10px;">
+                    <label style="font-size:12px; font-weight:700; color:#34d399; margin-bottom:4px; display:block;">قالب کد اختصاصی جهت استقرار روی سرور لبه</label>
+                    <div class="gas-input-composite">
+                        <select id="gas-editacc-template" style="background:rgba(0,0,0,0.4); border:1px solid var(--border-glow); border-radius:8px; color:var(--text-main); font-size:12px; font-weight:600; padding:6px 10px; width:100%; outline:none;">
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasEditAccountModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" onclick="submitGasEditAccount();" style="background:#4285F4; border-color:#4285F4; padding:8px 22px; font-weight:700;">
+                    ذخیره تغییرات
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 5: BATCH DEPLOY MODAL                                    -->
+    <!-- ============================================================== -->
+    <div id="gas-batch-deploy-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasBatchDeployModal();">
+        <div class="glass-card" style="width:100%; max-width:620px; max-height:85vh; display:flex; flex-direction:column; border:1px solid rgba(16,185,129,0.4); box-shadow:0 12px 35px rgba(0,0,0,0.5); padding:22px; border-radius:16px; background:var(--bg-surface, #111827);">
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--border-glow); padding-bottom:12px; flex-shrink:0;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(16,185,129,0.18); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="zap" style="width:18px; height:18px;"></i>
+                    </div>
+                    <h4 style="margin:0; font-size:16px; font-weight:700;">استقرار همگانی (Batch Deploy)</h4>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasBatchDeployModal();" style="width:30px; height:30px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <div style="flex:1; overflow-y:auto; margin-bottom:16px;">
+                <div style="font-size:12px; font-weight:600; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                    <span>حساب‌های مورد نظر برای استقرار همزمان:</span>
+                    <div style="display:flex; gap:8px;">
+                        <a href="javascript:void(0);" onclick="toggleSelectAllGasBatch(true);" style="font-size:11px; color:#4285F4; text-decoration:none;">انتخاب همه</a>
+                        <a href="javascript:void(0);" onclick="toggleSelectAllGasBatch(false);" style="font-size:11px; color:var(--text-muted); text-decoration:none;">لغو همه</a>
+                    </div>
+                </div>
+
+                <div id="gas-batch-accounts-list" style="max-height:180px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; border:1px solid var(--border-glow); border-radius:10px; padding:10px; margin-bottom:14px; background:rgba(0,0,0,0.25);">
+                </div>
+
+                <div id="gas-batch-results-box" style="display:none; margin-top:12px; border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px; background:rgba(0,0,0,0.35);">
+                    <div style="font-size:12px; font-weight:700; color:#10b981; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+                        <span class="gas-pulse-dot"></span>
+                        <span id="gas-batch-progress-title">در حال استقرار...</span>
+                    </div>
+                    <div id="gas-batch-results-log" style="font-size:11.5px; font-family:'JetBrains Mono', monospace; max-height:140px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; line-height:1.6;">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap:8px; flex-shrink:0;">
+                <button type="button" class="btn btn-secondary" onclick="closeGasBatchDeployModal();" style="padding:8px 16px;">انصراف</button>
+                <button type="button" class="btn btn-primary" id="gas-batch-start-btn" onclick="executeGasBatchDeploy();" style="background:#10b981; border-color:#10b981; padding:8px 22px; font-weight:700;">
+                    <i data-lucide="rocket" style="width:14px; height:14px; margin-left:4px;"></i> شروع استقرار همگانی
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL 6: QR CODE MODAL                                         -->
+    <!-- ============================================================== -->
+    <div id="gas-qr-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasQrModal();">
+        <div class="glass-card" style="max-width:380px; width:100%; border:1px solid rgba(66,133,244,0.4); text-align:center; padding:24px; position:relative; box-shadow:0 10px 40px rgba(0,0,0,0.5);">
+            <button type="button" onclick="closeGasQrModal()" style="position:absolute; top:12px; left:12px; background:transparent; border:none; color:var(--text-muted); cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:50%;">
+                <i data-lucide="x" style="width:18px; height:18px;"></i>
+            </button>
+
+            <h4 style="margin:0 0 4px 0; font-size:16px; font-weight:700; color:#4285F4;" id="gas-qr-modal-title">
+                بارکد QR
+            </h4>
+            <p style="font-size:11.5px; color:var(--text-muted); margin:0 0 16px 0;">
+                دوربین گوشی را مقابل بارکد بگیرید تا اسکن شود:
+            </p>
+
+            <div id="gas-qr-modal-canvas" style="display:inline-flex; padding:12px; background:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.3); margin-bottom:14px; min-width:180px; min-height:180px; align-items:center; justify-content:center;">
+            </div>
+
+            <div id="gas-qr-modal-val" style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-muted); word-break:break-all; max-height:60px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px; direction:ltr; margin-bottom:14px;">
+            </div>
+
+            <button type="button" class="btn btn-secondary" onclick="closeGasQrModal()" style="width:100%; font-weight:600;">
+                بستن پنجره
+            </button>
+        </div>
+    </div>
 

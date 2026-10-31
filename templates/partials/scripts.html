@@ -7171,6 +7171,7 @@
                         </button>
                     </div>
                 `;
+                card.setAttribute("data-username", username);
                 container.appendChild(card);
             });
             if (typeof lucide !== 'undefined') {
@@ -8011,7 +8012,7 @@
         } else if (tabId === "mtproto") {
             fetchMtprotoInstances();
             fetchProxyClients();
-        } else if (tabId === 'ssh') { fetchSshConfig(); fetchSshClients(); fetchSshSessions(); }
+        } else if (tabId === 'ssh') { fetchSshConfig(); fetchSshClients(); fetchSshSessions(); fetchSshDomains(); }
         else if (tabId === 'ocserv') { fetchOcservConfig(); fetchOcservClients(); fetchOcservSessions(); }
         else if (tabId === 'l2tp') { fetchL2tpConfig(); fetchL2tpClients(); fetchL2tpSessions(); fetchL2tpV3Tunnels(); }
         else if (tabId === 'ikev2') { fetchIkev2Config(); fetchIkev2Clients(); }
@@ -8064,6 +8065,7 @@
             fetchProtocolUsers('stuntls');
         } else if (tabId === "google-script") {
             fetchGoogleScriptConfig();
+            fetchGasTemplates();
             if (typeof setupHorizontalNavScroll === "function") {
                 setTimeout(setupHorizontalNavScroll, 100);
             }
@@ -11614,6 +11616,139 @@
         }
     }
 
+    let currentSshSubTab = 'overview';
+    function switchSshSubTab(subTab) {
+        currentSshSubTab = subTab;
+        try {
+            localStorage.setItem("active_ssh_subtab", subTab);
+        } catch (e) {}
+
+        // Update button states
+        document.querySelectorAll("[id^='ssh-subtab-btn-']").forEach(btn => {
+            btn.classList.remove("active");
+            btn.style.fontWeight = "normal";
+        });
+        const activeBtn = document.getElementById("ssh-subtab-btn-" + subTab);
+        if (activeBtn) {
+            activeBtn.classList.add("active");
+            activeBtn.style.fontWeight = "700";
+        }
+
+        // Hide all ssh subpanes
+        document.querySelectorAll(".ssh-subpane").forEach(pane => {
+            pane.style.display = "none";
+        });
+
+        // Show target pane
+        const targetPane = document.getElementById("ssh-subpane-" + subTab);
+        if (targetPane) {
+            targetPane.style.display = "flex";
+        }
+
+        if (subTab === 'users') {
+            fetchSshClients();
+        } else if (subTab === 'domains') {
+            fetchSshDomains();
+        } else if (subTab === 'sessions') {
+            fetchSshSessions();
+        } else if (subTab === 'overview') {
+            fetchSshConfig();
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    async function fetchSshDomains() {
+        try {
+            const res = await fetch("/api/ssh/domains");
+            if (!res.ok) return;
+            const data = await res.json();
+            const cfg = data.config || {};
+            
+            const directInput = document.getElementById("ssh-domain-direct");
+            if (directInput && !directInput.value) directInput.value = cfg.direct_domain || data.server_ip || "";
+            
+            const wsInput = document.getElementById("ssh-domain-ws");
+            if (wsInput && !wsInput.value) wsInput.value = cfg.ws_sni || "";
+            
+            const tlsInput = document.getElementById("ssh-domain-tls");
+            if (tlsInput && !tlsInput.value) tlsInput.value = cfg.tls_sni || "";
+            
+            const customInput = document.getElementById("ssh-domain-custom");
+            if (customInput && !customInput.value) {
+                const cList = cfg.custom_snis || [];
+                customInput.value = Array.isArray(cList) ? cList.join(", ") : cList;
+            }
+
+            const tbody = document.getElementById("ssh-routing-matrix-tbody");
+            if (tbody && data.routing) {
+                tbody.innerHTML = "";
+                data.routing.forEach(item => {
+                    const tr = document.createElement("tr");
+                    tr.style.borderBottom = "1px solid var(--border-glow)";
+                    const statusBadge = item.status ?
+                        `<span style="background:#dcfce7; color:#166534; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:6px; display:inline-flex; align-items:center; gap:4px;"><span style="width:6px; height:6px; border-radius:50%; background:#22c55e;"></span> فعال</span>` :
+                        `<span style="background:#fef2f2; color:#991b1b; font-size:10.5px; font-weight:600; padding:2px 8px; border-radius:6px;">غیرفعال</span>`;
+                    tr.innerHTML = `
+                        <td style="padding:10px 14px; font-weight:700; color:var(--text-main);">${item.name}</td>
+                        <td style="padding:10px 14px; direction:ltr; text-align:right; font-family:'JetBrains Mono',monospace; color:#4f46e5; font-weight:600;">${item.domain || '--'}</td>
+                        <td style="padding:10px 14px; direction:ltr; text-align:right; font-family:'JetBrains Mono',monospace;">${item.port}</td>
+                        <td style="padding:10px 14px; direction:ltr; text-align:right; font-family:'JetBrains Mono',monospace; color:var(--text-muted); font-size:11.5px;">${item.target}</td>
+                        <td style="padding:10px 14px; text-align:center;">${statusBadge}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        } catch (err) {
+            console.error("fetchSshDomains error:", err);
+        }
+    }
+
+    async function saveSshDomains(e) {
+        if (e) e.preventDefault();
+        const direct_domain = (document.getElementById("ssh-domain-direct")?.value || "").trim();
+        const ws_sni = (document.getElementById("ssh-domain-ws")?.value || "").trim();
+        const tls_sni = (document.getElementById("ssh-domain-tls")?.value || "").trim();
+        const custom_raw = (document.getElementById("ssh-domain-custom")?.value || "").trim();
+        const custom_snis = custom_raw ? custom_raw.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+        toggleLoading(true, "در حال ذخیره و بازنویسی مسیرهای مالتی‌پلکسر و Stunnel...");
+        try {
+            const res = await fetch("/api/ssh/domains", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ direct_domain, ws_sni, tls_sni, custom_snis })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                showToast("تنظیمات دامنه‌ها و تفکیک ترافیک با موفقیت اعمال شد", "success");
+                fetchSshDomains();
+                fetchSshConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات", "error");
+            }
+        } catch (err) {
+            showToast("خطا در ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    function filterSshUsers(query) {
+        const q = (query || "").toLowerCase().trim();
+        const container = document.getElementById("ssh-clients");
+        if (!container) return;
+        const cards = container.querySelectorAll(".client-item");
+        cards.forEach(card => {
+            const uname = card.getAttribute("data-username") || "";
+            if (!q || uname.toLowerCase().includes(q)) {
+                card.style.display = "block";
+            } else {
+                card.style.display = "none";
+            }
+        });
+    }
+
     async function fetchSshConfig() {
         try {
             const res = await fetch("/api/ssh/config");
@@ -11635,28 +11770,38 @@
                 }
             }
 
-            const sshHostMain = (data.hostnames && data.hostnames[0]) || data.server_ip || window.location.hostname;
+            const dCfg = data.domains_config || {};
+            const directHost = data.direct_domain || (data.hostnames && data.hostnames[0]) || data.server_ip || window.location.hostname;
+            const wsHost = data.ws_sni || `ws.${directHost}`;
+            const tlsHost = data.tls_sni || `ssh.${directHost}`;
             const directPort = (data.direct_ports && data.direct_ports[0]) || 22;
 
             const ipDisp = document.getElementById("ssh-server-ip-display");
             if (ipDisp) ipDisp.innerText = data.server_ip || window.location.hostname;
             const domDisp = document.getElementById("ssh-server-domain-display");
-            if (domDisp) domDisp.innerText = sshHostMain;
+            if (domDisp) domDisp.innerText = directHost;
             const guideHost = document.getElementById("ssh-guide-host");
-            if (guideHost) guideHost.innerText = sshHostMain;
+            if (guideHost) guideHost.innerText = directHost;
 
             const socksCmd = document.getElementById("ssh-box-socks5-cmd");
-            if (socksCmd) socksCmd.innerText = `ssh -N -D 1080 [username]@${sshHostMain} -p ${directPort}`;
+            if (socksCmd) socksCmd.innerText = `ssh -N -D 1080 [username]@${directHost} -p ${directPort}`;
 
             const wsPayload = document.getElementById("ssh-box-ws-payload");
-            if (wsPayload) wsPayload.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${sshHostMain}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]`;
+            if (wsPayload) wsPayload.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${wsHost}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]`;
 
             const stunnelBox = document.getElementById("ssh-box-stunnel-info");
-            if (stunnelBox) stunnelBox.innerText = `Host: ${sshHostMain} | Ports: ${directPort}, 443 | SNI: ${sshHostMain}`;
+            if (stunnelBox) stunnelBox.innerText = `Host: ${tlsHost} | Ports: 443, 9443, 2087 | SNI: ${tlsHost}`;
 
-            document.querySelectorAll(".ssh-dynamic-host").forEach(el => el.innerText = sshHostMain);
-            document.querySelectorAll(".ssh-dynamic-ip").forEach(el => el.innerText = data.server_ip || sshHostMain);
-            document.querySelectorAll(".ssh-dynamic-payload").forEach(el => el.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${sshHostMain}[crlf]Upgrade: websocket[crlf][crlf]`);
+            document.querySelectorAll(".ssh-dynamic-host").forEach(el => el.innerText = directHost);
+            document.querySelectorAll(".ssh-dynamic-direct-host").forEach(el => el.innerText = directHost);
+            document.querySelectorAll(".ssh-dynamic-ws-host").forEach(el => el.innerText = wsHost);
+            document.querySelectorAll(".ssh-dynamic-tls-host").forEach(el => el.innerText = tlsHost);
+            document.querySelectorAll(".ssh-dynamic-ip").forEach(el => el.innerText = data.server_ip || directHost);
+            document.querySelectorAll(".ssh-dynamic-payload").forEach(el => el.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${wsHost}[crlf]Upgrade: websocket[crlf][crlf]`);
+
+            if (data.slowdns?.nameservers && document.getElementById("ssh-slowdns-ns")) {
+                document.getElementById("ssh-slowdns-ns").innerText = data.slowdns.nameservers[0] || "t.kigaping.com";
+            }
 
             if (data.direct_ports && document.getElementById("ssh-stat-direct-ports")) {
                 document.getElementById("ssh-stat-direct-ports").innerText = data.direct_ports.join(", ");
@@ -11694,6 +11839,10 @@
             
             const countBadge = document.getElementById("ssh-client-count-badge");
             if (countBadge) countBadge.innerText = `${userKeys.length} ${window.t("common_users_unit", "کاربر")}`;
+            const subtabBadge = document.getElementById("ssh-subtab-users-badge");
+            if (subtabBadge) subtabBadge.innerText = userKeys.length;
+            const sideBadge = document.getElementById("sidebar-ssh-users-count");
+            if (sideBadge) sideBadge.innerText = userKeys.length;
             
             if (userKeys.length === 0) {
                 container.innerHTML = `<div style='text-align:center; padding:30px; color:var(--text-muted); font-size:13px;'>${window.t("no_users_found_create_form", "هیچ کاربری یافت نشد. می‌توانید با فرم روبرو یک اکانت جدید بسازید.")}</div>`;
@@ -11776,6 +11925,8 @@
             tbody.innerHTML = "";
 
             const sessions = data.sessions || [];
+            const sessBadge = document.getElementById("ssh-subtab-sessions-badge");
+            if (sessBadge) sessBadge.innerText = sessions.length;
             if (sessions.length === 0) {
                 tbody.innerHTML = `
                     <tr>
@@ -23369,7 +23520,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     // UNIFIED GOOGLE APPS SCRIPT & CLOUDFLARE WORKER CLIENT ENGINE
     // =========================================================================
     let gasCachedConfig = null;
-    let gasCachedTemplatesData = null;
+    let gasCachedTemplatesData = (typeof window !== 'undefined' && window.gasInitialTemplatesData && window.gasInitialTemplatesData.templates) ? window.gasInitialTemplatesData : null;
     let gasCurrentTemplateFilter = 'all';
     let gasCurrentWizardMode = 'google_and_cloudflare';
     let gasClientRoutingPref = 'cloudflare';
@@ -23434,15 +23585,26 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (emailInput) emailInput.value = "";
         if (tokInput) tokInput.value = "";
         if (webappInput) webappInput.value = "";
-        if (cfAccInput) cfAccInput.value = (gasCachedConfig && gasCachedConfig.cloudflare && gasCachedConfig.cloudflare.account_id) || "";
-        if (cfWorkerInput) cfWorkerInput.value = "mhpanel-gas-relay";
-        if (cfTokInput) cfTokInput.value = (gasCachedConfig && gasCachedConfig.cloudflare && gasCachedConfig.cloudflare.api_token) || "";
+        const savedCf = (gasCachedConfig && gasCachedConfig.cloudflare) || {};
+        const hasSavedCf = !!(savedCf.account_id || savedCf.api_token);
+        if (cfAccInput) cfAccInput.value = savedCf.account_id || "";
+        if (cfWorkerInput) cfWorkerInput.value = savedCf.worker_name || "mhpanel-gas-relay";
+        if (cfTokInput) cfTokInput.value = savedCf.api_token || "";
         if (testRes) testRes.style.display = "none";
+
+        const autoNotice = document.getElementById("gas-wz-cf-autofill-notice");
+        if (autoNotice) {
+            autoNotice.style.display = hasSavedCf ? "block" : "none";
+        }
 
         const m = document.getElementById("gas-wizard-modal");
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
         if (window.lucide) lucide.createIcons();
     }
@@ -23451,9 +23613,86 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const m = document.getElementById("gas-wizard-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
+
+    function copyGasScopes() {
+        const s1 = "https://www.googleapis.com/auth/script.projects";
+        const s2 = "https://www.googleapis.com/auth/script.deployments";
+        const combined = s1 + " " + s2;
+        navigator.clipboard.writeText(combined).then(() => {
+            showToast("هر دو اسکوپ کپی شدند! در کادر Input your own scopes در Playground پیست کنید.", "success");
+        });
+    }
+    window.copyGasScopes = copyGasScopes;
+
+    function populateWizardTemplates(mode, preselectedId = null) {
+        const sel = document.getElementById("gas-wz-template-select");
+        const desc = document.getElementById("gas-wz-template-desc");
+        const badge = document.getElementById("gas-wz-template-count-badge");
+        if (!sel) return;
+
+        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) {
+            if (typeof window !== "undefined" && window.gasInitialTemplatesData && window.gasInitialTemplatesData.templates) {
+                gasCachedTemplatesData = window.gasInitialTemplatesData;
+            } else {
+                fetch("/api/google_script/templates").then(r => r.json()).then(data => {
+                    if (data && data.success) {
+                        gasCachedTemplatesData = data;
+                        populateWizardTemplates(mode, preselectedId);
+                    }
+                }).catch(e => console.error(e));
+            }
+        }
+
+        const tpls = (gasCachedTemplatesData && gasCachedTemplatesData.templates) ? gasCachedTemplatesData.templates : {};
+        let matchedList = [];
+
+        if (mode === 'google_only') {
+            matchedList = Object.values(tpls).filter(t => t.type === 'gas');
+            if (badge) badge.textContent = `${matchedList.length} قالب گوگل اسکریپت`;
+        } else if (mode === 'google_and_cloudflare') {
+            matchedList = Object.values(tpls).filter(t => t.type === 'hybrid');
+            if (badge) badge.textContent = `${matchedList.length} قالب ترکیبی دوگانه`;
+        } else {
+            matchedList = Object.values(tpls).filter(t => t.type === 'cloudflare');
+            if (badge) badge.textContent = `${matchedList.length} قالب ورکر کلودفلر`;
+        }
+
+        const customList = Object.values(tpls).filter(t => t.is_custom && (
+            (mode === 'google_only' && t.type === 'gas') ||
+            (mode === 'google_and_cloudflare' && t.type === 'hybrid') ||
+            (mode === 'cloudflare_only' && t.type === 'cloudflare')
+        ));
+
+        const finalMap = {};
+        matchedList.concat(customList).forEach(t => { finalMap[t.id] = t; });
+        const finalList = Object.values(finalMap);
+
+        sel.innerHTML = finalList.map(t => {
+            const isSel = (preselectedId && preselectedId === t.id) ? 'selected' : '';
+            return `<option value="${escapeHtml(t.id)}" ${isSel}>${escapeHtml(t.name)} (${escapeHtml(t.file_name || t.id)})</option>`;
+        }).join("");
+
+        if (finalList.length > 0) {
+            const initialTpl = (preselectedId && finalMap[preselectedId]) ? finalMap[preselectedId] : finalList[0];
+            if (desc) desc.textContent = initialTpl.description || "قالب فعال جهت استقرار خودکار روی سرور لبه.";
+        } else {
+            if (desc) desc.textContent = "هیچ قالبی در این دسته یافت نشد.";
+        }
+    }
+    window.populateWizardTemplates = populateWizardTemplates;
+
+    function onGasWizardTemplateChanged(tplId) {
+        const desc = document.getElementById("gas-wz-template-desc");
+        if (!desc || !gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+        const t = gasCachedTemplatesData.templates[tplId];
+        if (t) {
+            desc.textContent = t.description || "قالب انتخابی جهت استقرار.";
+        }
+    }
+    window.onGasWizardTemplateChanged = onGasWizardTemplateChanged;
 
     function selectGasWizardMode(mode) {
         gasCurrentWizardMode = mode;
@@ -23474,6 +23713,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (cfFields) {
             cfFields.style.display = (mode === 'cloudflare_only' || mode === 'google_and_cloudflare') ? 'block' : 'none';
         }
+        populateWizardTemplates(mode);
     }
 
     async function testWzCloudflareToken() {
@@ -23563,6 +23803,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     cf_api_token,
                     cf_account_id,
                     cf_worker_name,
+                    template_id,
                     auto_deploy,
                     set_active
                 })
@@ -23673,6 +23914,43 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (lastDeployText) lastDeployText.textContent = `آخرین استقرار: ${activeAcc.last_deploy_time || activeAcc.cf_last_deploy_time || data.last_deploy_time || 'اخیراً'}`;
                 } else {
                     banner.style.display = "none";
+                }
+            }
+
+            // Update Cloudflare credentials in Live Tester & saved indicator
+            const cfInfo = data.cloudflare || {};
+            const testCfAcc = document.getElementById("gas-test-cf-acc");
+            const testCfTok = document.getElementById("gas-test-cf-tok");
+            const cfStatusEl = document.getElementById("gas-cf-stored-status");
+
+            if (cfInfo.account_id && testCfAcc && !testCfAcc.value) {
+                testCfAcc.value = cfInfo.account_id;
+            }
+            if (cfInfo.api_token && testCfTok && !testCfTok.value) {
+                testCfTok.value = cfInfo.api_token;
+            }
+
+            if (cfStatusEl) {
+                if (cfInfo.account_id || cfInfo.api_token) {
+                    const maskedTok = (cfInfo.api_token && cfInfo.api_token.length > 8) 
+                        ? cfInfo.api_token.substring(0, 4) + "••••••••" + cfInfo.api_token.slice(-3) 
+                        : "••••••";
+                    cfStatusEl.innerHTML = `
+                        <div style="display:flex; align-items:center; gap:8px; color:#10b981; flex-wrap:wrap;">
+                            <span class="gas-pulse-dot" style="background:#10b981;"></span>
+                            <span style="font-weight:700;">مشخصات کلودفلر در پنل ذخیره است:</span>
+                            <code style="background:rgba(0,0,0,0.3); color:#38bdf8; padding:2px 8px; border-radius:6px; font-size:11px;">ID: ${escapeHtml(cfInfo.account_id || '-')}</code>
+                            <code style="background:rgba(0,0,0,0.3); color:#fb923c; padding:2px 8px; border-radius:6px; font-size:11px;">Token: ${escapeHtml(maskedTok)}</code>
+                        </div>
+                        <span class="gas-token-badge gas-token-badge-green" style="font-size:10px;">خودکار در تمام فرم‌ها اعمال می‌شود</span>
+                    `;
+                } else {
+                    cfStatusEl.innerHTML = `
+                        <span style="color:var(--text-muted); display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="info" style="width:13px; height:13px;"></i>
+                            <span>هنوز مشخصات کلودفلر در پنل ذخیره نشده است. با پر کردن فیلدهای زیر و زدن دکمه «ذخیره دائمی»، نیازی به ورود مجدد نخواهید داشت.</span>
+                        </span>
+                    `;
                 }
             }
 
@@ -23860,7 +24138,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     // --- 3. TEMPLATES HUB ---
     async function fetchGasTemplates() {
         const grid = document.getElementById("gas-templates-grid");
-        if (grid) grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">در حال بارگذاری قالب‌های کد...</div>`;
+        const tbody = document.getElementById("gas-templates-tbody");
+        // Only show placeholder if empty
+        if (grid && grid.children.length === 0) {
+            grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:20px; text-align:center; grid-column:1/-1;"><span class="loading-spinner"></span> در حال استعلام و به‌روزرسانی قالب‌های کد...</div>`;
+        }
 
         try {
             const res = await fetch("/api/google_script/templates");
@@ -23868,196 +24150,405 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (!data.success) return;
 
             gasCachedTemplatesData = data;
+            window.gasCachedTemplatesData = data;
             renderGasTemplates(data);
         } catch (e) {
-            if (grid) grid.innerHTML = `<div style="color:#ef4444; font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">خطا در دریافت قالب‌ها</div>`;
+            if (grid && grid.children.length === 0) {
+                grid.innerHTML = `<div style="color:#ef4444; font-size:12px; padding:20px; text-align:center; grid-column:1/-1;">خطا در دریافت قالب‌ها</div>`;
+            }
         }
     }
+    window.fetchGasTemplates = fetchGasTemplates;
 
     function filterGasTemplates(type, btn) {
         gasCurrentTemplateFilter = type;
         document.querySelectorAll(".gas-tpl-filter-btn").forEach(b => b.classList.remove("active"));
         if (btn) btn.classList.add("active");
-        if (gasCachedTemplatesData) {
+
+        // 1. Instant client-side DOM filtering on Table Rows
+        document.querySelectorAll(".gas-tpl-row").forEach(row => {
+            const rowType = row.getAttribute("data-tpl-type");
+            const isCustom = (row.getAttribute("data-is-custom") === "true");
+            if (type === "all") {
+                row.style.display = "";
+            } else if (type === "custom") {
+                row.style.display = isCustom ? "" : "none";
+            } else {
+                row.style.display = (rowType === type) ? "" : "none";
+            }
+        });
+
+        // 2. Instant client-side DOM filtering on Cards
+        document.querySelectorAll(".gas-tpl-card").forEach(card => {
+            const cardType = card.getAttribute("data-tpl-type");
+            const isCustom = (card.getAttribute("data-is-custom") === "true");
+            if (type === "all") {
+                card.style.display = "flex";
+            } else if (type === "custom") {
+                card.style.display = isCustom ? "flex" : "none";
+            } else {
+                card.style.display = (cardType === type) ? "flex" : "none";
+            }
+        });
+
+        // 3. Sync memory cache from window if needed
+        if (!gasCachedTemplatesData && typeof window !== "undefined" && window.gasInitialTemplatesData && window.gasInitialTemplatesData.templates) {
+            gasCachedTemplatesData = window.gasInitialTemplatesData;
+        }
+
+        // 4. Update via renderGasTemplates if cache is populated
+        if (gasCachedTemplatesData && gasCachedTemplatesData.templates) {
             renderGasTemplates(gasCachedTemplatesData);
+        } else {
+            fetchGasTemplates();
         }
     }
+    window.filterGasTemplates = filterGasTemplates;
 
     function renderGasTemplates(data) {
-        const grid = document.getElementById("gas-templates-grid");
-        if (!grid) return;
+        if (!data) return;
 
+        // 1. Update filter counts
+        const cntAll = document.getElementById("gas-count-all");
+        const cntGas = document.getElementById("gas-count-gas");
+        const cntCf = document.getElementById("gas-count-cf");
+        const cntHyb = document.getElementById("gas-count-hybrid");
+        const cntCust = document.getElementById("gas-count-custom");
+
+        if (cntAll) cntAll.textContent = data.templates ? Object.keys(data.templates).length : 14;
+        if (cntGas) cntGas.textContent = data.gas_templates ? data.gas_templates.length : 6;
+        if (cntCf) cntCf.textContent = data.cf_templates ? data.cf_templates.length : 4;
+        if (cntHyb) cntHyb.textContent = data.hybrid_templates ? data.hybrid_templates.length : 4;
+        if (cntCust) cntCust.textContent = data.custom_templates ? data.custom_templates.length : 0;
+
+        // 2. Update server specs banner
+        const specsEl = document.getElementById("gas-tpl-server-specs-text");
+        if (specsEl) {
+            const srvHost = data.server_domain || data.server_ip || "-";
+            specsEl.innerHTML = `آدرس سرور: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">${escapeHtml(srvHost)}</code> | پورت نود تانل: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">${data.port || 8448}</code> | پورت اینباند سینگ‌باکس: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">${data.singbox_port || 20443}</code> | کلید امنیتی: <code style="color:#10b981; background:rgba(16,185,129,0.15); padding:1px 6px; border-radius:4px;">${data.secret ? "فعال و تزریق شده" : "پیش‌فرض"}</code>`;
+        }
+
+        // 3. Filter list
         let list = [];
-        if (gasCurrentTemplateFilter === 'gas') {
+        if (gasCurrentTemplateFilter === "gas") {
             list = data.gas_templates || [];
-        } else if (gasCurrentTemplateFilter === 'cloudflare') {
+        } else if (gasCurrentTemplateFilter === "cloudflare") {
             list = data.cf_templates || [];
-        } else if (gasCurrentTemplateFilter === 'custom') {
+        } else if (gasCurrentTemplateFilter === "hybrid") {
+            list = data.hybrid_templates || [];
+        } else if (gasCurrentTemplateFilter === "custom") {
             list = data.custom_templates || [];
         } else {
             const allMap = data.templates || {};
             list = Object.values(allMap);
         }
 
-        if (list.length === 0) {
-            grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:30px; text-align:center; grid-column:1/-1;">هیچ قالبی در این دسته‌بندی یافت نشد. روی دکمه «افزودن قالب کد جدید» کلیک کنید.</div>`;
-            return;
+        // 4. Update Script Files Table List
+        const tbody = document.getElementById("gas-templates-tbody");
+        if (tbody) {
+            if (list.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">هیچ فایلی در این دسته‌بندی یافت نشد.</td></tr>`;
+            } else {
+                tbody.innerHTML = list.map(tpl => {
+                    let typeBadge = `<span class="gas-token-badge gas-token-badge-blue">🔵 گوگل (.gs)</span>`;
+                    if (tpl.type === "cloudflare") {
+                        typeBadge = `<span class="gas-token-badge gas-token-badge-orange">🟠 ورکر (.js)</span>`;
+                    } else if (tpl.type === "hybrid") {
+                        typeBadge = `<span class="gas-token-badge gas-token-badge-green">🟢 ترکیبی (.js+.gs)</span>`;
+                    } else if (tpl.is_custom) {
+                        typeBadge = `<span class="gas-token-badge">سفارشی</span>`;
+                    }
+
+                    const srvTarget = `${escapeHtml(data.server_domain || data.server_ip || "-")}:${data.port || 8448}`;
+                    const isHybrid = (tpl.type === "hybrid");
+
+                    let fileCellHtml = "";
+                    let actionsCellHtml = "";
+
+                    if (isHybrid) {
+                        fileCellHtml = `
+                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                <span style="font-family:'JetBrains Mono'; font-weight:700; color:#fb923c; font-size:11.5px; display:inline-flex; align-items:center; gap:5px;" title="فایل اول ورکر کلودفلر">
+                                    <i data-lucide="cloud" style="width:13px; height:13px; vertical-align:middle;"></i>
+                                    ${escapeHtml(tpl.cf_file_name || '1_Worker.js')}
+                                    <span class="gas-token-badge gas-token-badge-orange" style="font-size:9.5px; padding:0 5px;">ورکر (.js)</span>
+                                </span>
+                                <span style="font-family:'JetBrains Mono'; font-weight:700; color:#60a5fa; font-size:11.5px; display:inline-flex; align-items:center; gap:5px;" title="فایل دوم گوگل اسکریپت رله">
+                                    <i data-lucide="file-code" style="width:13px; height:13px; vertical-align:middle;"></i>
+                                    ${escapeHtml(tpl.gas_file_name || '2_Relay.gs')}
+                                    <span class="gas-token-badge gas-token-badge-blue" style="font-size:9.5px; padding:0 5px;">گوگل (.gs)</span>
+                                </span>
+                            </div>
+                        `;
+
+                        actionsCellHtml = `
+                            <div style="display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}', 'cf');" title="کپی کد فایل ۱: ورکر کلودفلر (.js)" style="padding:3px 7px; font-size:10.5px; color:#fb923c; border-color:rgba(249,115,22,0.35);">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i> کپی ورکر
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}', 'gas');" title="کپی کد فایل ۲: گوگل اسکریپت (.gs)" style="padding:3px 7px; font-size:10.5px; color:#60a5fa; border-color:rgba(66,133,244,0.35);">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i> کپی گوگل
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadGasTemplateFile('${tpl.id}', 'cf');" title="دانلود فایل ۱: ورکر کلودفلر (.js)" style="padding:3px 6px; font-size:10.5px; color:#fb923c;">
+                                    <i data-lucide="download" style="width:11px; height:11px;"></i> .js
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadGasTemplateFile('${tpl.id}', 'gas');" title="دانلود فایل ۲: گوگل اسکریپت (.gs)" style="padding:3px 6px; font-size:10.5px; color:#60a5fa;">
+                                    <i data-lucide="download" style="width:11px; height:11px;"></i> .gs
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); viewGasTemplateCode('${tpl.id}');" title="مشاهده هر دو سورس‌کد در تب‌های جداگانه" style="background:#10b981; border-color:#10b981; padding:3px 8px; font-size:10.5px; font-weight:700;">
+                                    <i data-lucide="eye" style="width:11px; height:11px;"></i> مشاهده هر دو
+                                </button>
+                            </div>
+                        `;
+                    } else {
+                        const fileName = tpl.file_name || (tpl.type === "gas" ? "Code.gs" : "Worker.js");
+                        fileCellHtml = `
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; color:#38bdf8;">
+                                <i data-lucide="file-text" style="width:13px; height:13px; vertical-align:middle; margin-left:4px;"></i>
+                                ${escapeHtml(fileName)}
+                            </span>
+                        `;
+                        actionsCellHtml = `
+                            <div style="display:inline-flex; align-items:center; gap:5px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadGasTemplateFile('${tpl.id}');" title="دانلود فایل سورس" style="padding:4px 8px; font-size:11px;">
+                                    <i data-lucide="download" style="width:12px; height:12px;"></i> دانلود
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}');" title="کپی سورس‌کد" style="padding:4px 9px; font-size:11px;">
+                                    <i data-lucide="copy" style="width:12px; height:12px;"></i> کپی
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); viewGasTemplateCode('${tpl.id}');" title="مشاهده کامل سورس‌کد" style="background:#4285F4; border-color:#4285F4; padding:4px 10px; font-size:11px; font-weight:700;">
+                                    <i data-lucide="eye" style="width:12px; height:12px;"></i> کد
+                                </button>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <tr class="gas-tpl-row" data-tpl-type="${tpl.type}" data-is-custom="${tpl.is_custom ? "true" : "false"}" style="border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer;" onclick="viewGasTemplateCode('${tpl.id}');">
+                            <td style="padding:10px 8px;">${fileCellHtml}</td>
+                            <td style="padding:10px 8px;">${typeBadge}</td>
+                            <td style="padding:10px 8px;">
+                                <div style="font-weight:700; color:var(--text-main); margin-bottom:2px;">${escapeHtml(tpl.name)}</div>
+                                <div style="font-size:11px; color:var(--text-muted); max-width:380px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                                    ${isHybrid ? '<span style="color:#10b981; font-weight:600;">[دو فایلی]</span> ' : ''}${escapeHtml(tpl.description || "-")}
+                                </div>
+                            </td>
+                            <td style="padding:10px 8px; font-family:'JetBrains Mono'; font-size:11px; color:#10b981;">
+                                ${srvTarget}
+                            </td>
+                            <td style="padding:10px 8px; text-align:left;" onclick="event.stopPropagation();">
+                                ${actionsCellHtml}
+                            </td>
+                        </tr>
+                    `;
+                }).join("");
+            }
         }
 
-        let html = "";
-        list.forEach(tpl => {
-            const isCf = (tpl.type === 'cloudflare');
-            const typeBadge = isCf
-                ? `<span class="gas-token-badge gas-token-badge-orange">🟠 کلودفلر ورکر (.js)</span>`
-                : `<span class="gas-token-badge gas-token-badge-blue">🔵 گوگل اسکریپت (.gs)</span>`;
+        // 5. Update Script Cards Grid
+        const grid = document.getElementById("gas-templates-grid");
+        if (grid) {
+            if (list.length === 0) {
+                grid.innerHTML = `<div style="color:var(--text-muted); font-size:12px; padding:30px; text-align:center; grid-column:1/-1;">هیچ قالبی در این دسته‌بندی یافت نشد. روی دکمه «افزودن قالب کد جدید» کلیک کنید.</div>`;
+            } else {
+                let html = "";
+                list.forEach(tpl => {
+                    let typeBadge = `<span class="gas-token-badge gas-token-badge-blue">🔵 گوگل اسکریپت (.gs)</span>`;
+                    if (tpl.type === "cloudflare") {
+                        typeBadge = `<span class="gas-token-badge gas-token-badge-orange">🟠 کلودفلر ورکر (.js)</span>`;
+                    } else if (tpl.type === "hybrid") {
+                        typeBadge = `<span class="gas-token-badge gas-token-badge-green">🟢 ترکیب دوگانه (.js + .gs)</span>`;
+                    }
 
-            const originBadge = tpl.is_custom
-                ? `<span class="gas-token-badge gas-token-badge-green">قالب شما (Custom)</span>`
-                : `<span class="gas-token-badge">سیستمی (Builtin)</span>`;
+                    const originBadge = tpl.is_custom
+                        ? `<span class="gas-token-badge gas-token-badge-green">قالب شما (Custom)</span>`
+                        : `<span class="gas-token-badge">سیستمی (Builtin)</span>`;
 
-            const rawCode = tpl.code || tpl.google_code || tpl.cf_code || "";
-            const previewLines = rawCode.split("\n").slice(0, 6).join("\n");
+                    const serverBadge = `<span class="gas-token-badge" style="background:rgba(56,189,248,0.1); border-color:rgba(56,189,248,0.3); color:#38bdf8; font-size:10.5px;" title="آدرس سرور به طور خودکار در سورس این قالب درج شده است"><i data-lucide="server" style="width:11px; height:11px;"></i> ${escapeHtml(data.server_domain || data.server_ip)}:${data.port || 8448}</span>`;
 
-            const deleteBtn = tpl.is_custom
-                ? `<button type="button" class="btn btn-secondary btn-sm" onclick="deleteGasTemplate('${tpl.id}', '${escapeHtml(tpl.name)}');" title="حذف قالب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
-                    <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
-                   </button>`
-                : '';
+                    const isHybrid = (tpl.type === "hybrid");
+                    const rawCode = tpl.code || tpl.google_code || tpl.cf_code || "";
+                    const previewLines = rawCode.split("\n").slice(0, 6).join("\n");
 
-            html += `
-                <div class="gas-tpl-card">
-                    <div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
-                            ${typeBadge}
-                            ${originBadge}
+                    const deleteBtn = tpl.is_custom
+                        ? `<button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); deleteGasTemplate('${tpl.id}', '${escapeHtml(tpl.name)}');" title="حذف قالب" style="color:#ef4444; border-color:rgba(239,68,68,0.3); padding:4px 8px;">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                           </button>`
+                        : "";
+
+                    let cardFileBlock = "";
+                    let cardActionsHtml = "";
+
+                    if (isHybrid) {
+                        cardFileBlock = `
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-bottom:8px; background:rgba(0,0,0,0.3); padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                                    <span style="color:#fb923c; font-family:'JetBrains Mono'; font-weight:700; display:flex; align-items:center; gap:4px;">
+                                        <i data-lucide="cloud" style="width:12px; height:12px;"></i> ${escapeHtml(tpl.cf_file_name || '1_Worker.js')}
+                                    </span>
+                                    <span class="gas-token-badge gas-token-badge-orange" style="font-size:9.5px; padding:0 5px;">ورکر کلودفلر</span>
+                                </div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px;">
+                                    <span style="color:#60a5fa; font-family:'JetBrains Mono'; font-weight:700; display:flex; align-items:center; gap:4px;">
+                                        <i data-lucide="file-code" style="width:12px; height:12px;"></i> ${escapeHtml(tpl.gas_file_name || '2_Relay.gs')}
+                                    </span>
+                                    <span class="gas-token-badge gas-token-badge-blue" style="font-size:9.5px; padding:0 5px;">گوگل اسکریپت</span>
+                                </div>
+                            </div>
+                            <div style="font-size:10.5px; color:#10b981; margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+                                <i data-lucide="info" style="width:12px; height:12px;"></i>
+                                <span>استقرار ۲ طرفه: ورکر در کلودفلر + اسکریپت در گوگل</span>
+                            </div>
+                        `;
+
+                        cardActionsHtml = `
+                            ${deleteBtn}
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}', 'cf');" style="padding:4px 8px; font-size:11px; color:#fb923c;" title="کپی کد ورکر">
+                                <i data-lucide="copy" style="width:11px; height:11px;"></i> کپی ورکر
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}', 'gas');" style="padding:4px 8px; font-size:11px; color:#60a5fa;" title="کپی کد گوگل">
+                                <i data-lucide="copy" style="width:11px; height:11px;"></i> کپی گوگل
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadGasTemplateFile('${tpl.id}');" title="دانلود هر دو فایل" style="padding:4px 8px; font-size:11px;">
+                                <i data-lucide="download" style="width:11px; height:11px;"></i> دانلود دو فایل
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); viewGasTemplateCode('${tpl.id}');" style="background:#10b981; border-color:#10b981; padding:5px 12px; font-size:11.5px; font-weight:700;">
+                                <i data-lucide="eye" style="width:13px; height:13px;"></i> مشاهده هر دو
+                            </button>
+                        `;
+                    } else {
+                        const fileName = tpl.file_name || (tpl.type === "gas" ? "Code.gs" : "Worker.js");
+                        cardFileBlock = `
+                            <div style="font-family:'JetBrains Mono'; font-size:11px; color:#38bdf8; margin-bottom:6px;">
+                                ${escapeHtml(fileName)}
+                            </div>
+                        `;
+
+                        cardActionsHtml = `
+                            ${deleteBtn}
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); downloadGasTemplateFile('${tpl.id}');" title="دانلود فایل سورس" style="padding:5px 9px;">
+                                <i data-lucide="download" style="width:13px; height:13px;"></i>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); copyGasTemplateCodeById('${tpl.id}');" style="padding:5px 12px; font-size:11.5px;">
+                                <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سورس
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); viewGasTemplateCode('${tpl.id}');" style="background:#4285F4; border-color:#4285F4; padding:5px 14px; font-size:11.5px; font-weight:700;">
+                                <i data-lucide="eye" style="width:13px; height:13px;"></i> مشاهده کامل
+                            </button>
+                        `;
+                    }
+
+                    html += `
+                        <div class="gas-tpl-card" data-tpl-type="${tpl.type}" data-is-custom="${tpl.is_custom ? "true" : "false"}" onclick="viewGasTemplateCode('${tpl.id}');" style="cursor:pointer;" title="کلیک جهت مشاهده کامل سورس‌کد و کپی">
+                            <div>
+                                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                        ${typeBadge}
+                                        ${serverBadge}
+                                    </div>
+                                    ${originBadge}
+                                </div>
+                                <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:700; color:var(--text-main);">${escapeHtml(tpl.name)}</h4>
+                                ${cardFileBlock}
+                                <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4; max-height:48px; overflow:hidden;">${escapeHtml(tpl.description || "-")}</p>
+                            </div>
+
+                            <div class="gas-tpl-preview" onclick="event.stopPropagation(); viewGasTemplateCode('${tpl.id}');" style="cursor:pointer;" title="کلیک جهت باز شدن و مشاهده کامل سورس">
+                                <span class="gas-tpl-preview-hover-tag"><i data-lucide="eye" style="width:11px; height:11px;"></i> مشاهده سورس</span>
+                                ${escapeHtml(previewLines)}
+                            </div>
+
+                            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
+                                ${cardActionsHtml}
+                            </div>
                         </div>
-                        <h4 style="margin:0 0 4px 0; font-size:14px; font-weight:700; color:var(--text-main);">${escapeHtml(tpl.name)}</h4>
-                        <div style="font-family:'JetBrains Mono'; font-size:11px; color:#38bdf8; margin-bottom:6px;">${escapeHtml(tpl.file_name || (isCf ? 'Worker.js' : 'Code.gs'))}</div>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.4; max-height:48px; overflow:hidden;">${escapeHtml(tpl.description || '-')}</p>
-                    </div>
+                    `;
+                });
+                grid.innerHTML = html;
+            }
+        }
 
-                    <div class="gas-tpl-preview">${escapeHtml(previewLines)}</div>
-
-                    <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
-                        ${deleteBtn}
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="downloadGasTemplateFile('${tpl.id}');" title="دانلود فایل سورس" style="padding:5px 9px;">
-                            <i data-lucide="download" style="width:13px; height:13px;"></i>
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyGasTemplateCodeById('${tpl.id}');" style="padding:5px 12px; font-size:11.5px;">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی سورس
-                        </button>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="viewGasTemplateCode('${tpl.id}');" style="background:#4285F4; border-color:#4285F4; padding:5px 14px; font-size:11.5px; font-weight:700;">
-                            <i data-lucide="eye" style="width:13px; height:13px;"></i> مشاهده کامل
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-
-        grid.innerHTML = html;
         if (window.lucide) lucide.createIcons();
     }
+    window.renderGasTemplates = renderGasTemplates;
 
     function openGasCustomTemplateModal(tplId = null) {
-        const idInput = document.getElementById("gas-tpl-id");
-        const nameInput = document.getElementById("gas-tpl-name");
-        const typeSelect = document.getElementById("gas-tpl-type");
-        const fileInput = document.getElementById("gas-tpl-file");
-        const descInput = document.getElementById("gas-tpl-desc");
-        const codeText = document.getElementById("gas-tpl-code");
-        const titleEl = document.getElementById("gas-tpl-modal-title");
+        const titleEl = document.getElementById("gas-custom-modal-title");
+        const keyInput = document.getElementById("gas-custom-tpl-key");
+        const nameInput = document.getElementById("gas-custom-tpl-name");
+        const typeSelect = document.getElementById("gas-custom-tpl-type");
+        const fileInput = document.getElementById("gas-custom-tpl-file");
+        const descInput = document.getElementById("gas-custom-tpl-desc");
+        const codeInput = document.getElementById("gas-custom-tpl-code");
 
         if (tplId && gasCachedTemplatesData && gasCachedTemplatesData.templates && gasCachedTemplatesData.templates[tplId]) {
             const t = gasCachedTemplatesData.templates[tplId];
-            if (idInput) idInput.value = t.id;
-            if (nameInput) nameInput.value = t.name;
-            if (typeSelect) typeSelect.value = t.type || 'gas';
-            if (fileInput) fileInput.value = t.file_name;
-            if (descInput) descInput.value = t.description;
-            if (codeText) codeText.value = t.code || t.google_code || t.cf_code || '';
-            if (titleEl) titleEl.textContent = `ویرایش قالب: ${t.name}`;
+            if (titleEl) titleEl.textContent = "ویرایش قالب سفارشی";
+            if (keyInput) { keyInput.value = tplId; keyInput.readOnly = true; }
+            if (nameInput) nameInput.value = t.name || "";
+            if (typeSelect) typeSelect.value = t.type || "gas";
+            if (fileInput) fileInput.value = t.file_name || "";
+            if (descInput) descInput.value = t.description || "";
+            if (codeInput) codeInput.value = t.code || t.google_code || t.cf_code || "";
         } else {
-            if (idInput) idInput.value = "";
+            if (titleEl) titleEl.textContent = "افزودن قالب کد جدید";
+            if (keyInput) { keyInput.value = ""; keyInput.readOnly = false; }
             if (nameInput) nameInput.value = "";
             if (typeSelect) typeSelect.value = "gas";
-            if (fileInput) fileInput.value = "CustomCode.gs";
+            if (fileInput) fileInput.value = "";
             if (descInput) descInput.value = "";
-            if (codeText) codeText.value = "";
-            if (titleEl) titleEl.textContent = "افزودن قالب کد جدید";
+            if (codeInput) codeInput.value = "";
         }
 
         const m = document.getElementById("gas-custom-template-modal");
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
         if (window.lucide) lucide.createIcons();
     }
+    window.openGasCustomTemplateModal = openGasCustomTemplateModal;
 
     function closeGasCustomTemplateModal() {
         const m = document.getElementById("gas-custom-template-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
+    window.closeGasCustomTemplateModal = closeGasCustomTemplateModal;
 
-    function onGasTemplateTypeChange(val) {
-        const fileInput = document.getElementById("gas-tpl-file");
-        if (fileInput && !fileInput.value.includes('.')) {
-            fileInput.value = (val === 'cloudflare') ? "MyWorker.js" : "MyScript.gs";
-        }
-    }
+    async function saveGasCustomTemplate() {
+        const key = (document.getElementById("gas-custom-tpl-key")?.value || "").trim();
+        const name = (document.getElementById("gas-custom-tpl-name")?.value || "").trim();
+        const type = document.getElementById("gas-custom-tpl-type")?.value || "gas";
+        const file_name = (document.getElementById("gas-custom-tpl-file")?.value || "").trim();
+        const description = (document.getElementById("gas-custom-tpl-desc")?.value || "").trim();
+        const code = (document.getElementById("gas-custom-tpl-code")?.value || "").trim();
 
-    async function pasteGasTemplateCode() {
-        const codeText = document.getElementById("gas-tpl-code");
-        if (!codeText) return;
-        try {
-            if (navigator.clipboard && navigator.clipboard.readText) {
-                const text = await navigator.clipboard.readText();
-                if (text) {
-                    codeText.value = text;
-                    showToast("کد با موفقیت از کلیپ‌بورد درج شد.", "success");
-                    return;
-                }
-            }
-        } catch (e) {}
-        codeText.focus();
-        showToast("لطفاً کد را در کادر پیست نمایید.", "info");
-    }
-
-    async function submitGasCustomTemplate() {
-        const id = (document.getElementById("gas-tpl-id")?.value || "").trim();
-        const name = (document.getElementById("gas-tpl-name")?.value || "").trim();
-        const type = (document.getElementById("gas-tpl-type")?.value || "gas").trim();
-        const file_name = (document.getElementById("gas-tpl-file")?.value || "").trim();
-        const description = (document.getElementById("gas-tpl-desc")?.value || "").trim();
-        const code = (document.getElementById("gas-tpl-code")?.value || "").trim();
-
-        if (!name) {
-            showToast("لطفاً عنوان قالب را وارد نمایید.", "warning");
-            document.getElementById("gas-tpl-name")?.focus();
-            return;
-        }
-        if (!code) {
-            showToast("لطفاً سورس‌کد قالب را وارد نمایید.", "warning");
-            document.getElementById("gas-tpl-code")?.focus();
+        if (!name || !code) {
+            showToast("لطفاً نام قالب و سورس کد را وارد نمایید.", "warning");
             return;
         }
 
-        toggleLoading(true, "در حال ذخیره قالب...");
         try {
-            const res = await fetch("/api/google_script/save-template", {
+            toggleLoading(true, "در حال ذخیره قالب سفارشی...");
+            const res = await fetch("/api/google_script/templates/custom", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id, name, type, file_name, description, code })
+                body: JSON.stringify({ key, name, type, file_name, description, code })
             });
             const data = await res.json();
             toggleLoading(false);
+
             if (res.ok && data.success) {
-                showToast(data.message || "قالب با موفقیت ذخیره شد!", "success");
+                showToast(data.message || "قالب با موفقیت ذخیره شد.", "success");
                 closeGasCustomTemplateModal();
-                await fetchGasTemplates();
+                fetchGasTemplates(true);
             } else {
                 showToast(data.error || "خطا در ذخیره قالب", "error");
             }
@@ -24066,21 +24557,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             showToast("خطای شبکه", "error");
         }
     }
+    window.saveGasCustomTemplate = saveGasCustomTemplate;
 
-    async function deleteGasTemplate(tplId, name) {
-        if (!confirm(`آیا از حذف قالب سفارشی «${name}» اطمینان دارید؟`)) return;
-        toggleLoading(true, "در حال حذف قالب...");
+    async function deleteGasTemplate(tplKey, tplName) {
+        if (!confirm(`آیا از حذف قالب سفارشی «${tplName}» اطمینان دارید؟`)) return;
+
         try {
-            const res = await fetch("/api/google_script/delete-template", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: tplId, key: tplId })
+            toggleLoading(true, "در حال حذف قالب...");
+            const res = await fetch(`/api/google_script/templates/custom?key=${encodeURIComponent(tplKey)}`, {
+                method: "DELETE"
             });
             const data = await res.json();
             toggleLoading(false);
+
             if (res.ok && data.success) {
-                showToast(data.message || "قالب حذف گردید.", "success");
-                await fetchGasTemplates();
+                showToast("قالب سفارشی حذف شد.", "success");
+                fetchGasTemplates(true);
             } else {
                 showToast(data.error || "خطا در حذف قالب", "error");
             }
@@ -24089,74 +24581,301 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             showToast("خطای شبکه", "error");
         }
     }
+    window.deleteGasTemplate = deleteGasTemplate;
 
-    function viewGasTemplateCode(tplId) {
-        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+    window.gasCurrentModalTab = 'cf';
+
+    function switchGasModalTab(targetTab) {
+        window.gasCurrentModalTab = targetTab;
+        const tplId = window.gasCurrentViewedTemplateId;
+        if (!tplId || !gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
         const t = gasCachedTemplatesData.templates[tplId];
         if (!t) return;
+
+        const btnCf = document.getElementById("gas-modal-tab-cf");
+        const btnGas = document.getElementById("gas-modal-tab-gas");
+        const editor = document.getElementById("gas-view-code-editor");
+        const linesEl = document.getElementById("gas-view-code-lines");
+        const banner = document.getElementById("gas-modal-deploy-banner");
+        const dlBtn = document.getElementById("gas-view-code-download-btn");
+        const copyBtn = document.getElementById("gas-view-code-copy-btn");
+        const titleEl = document.getElementById("gas-view-code-title");
+
+        if (targetTab === "cf") {
+            if (btnCf) {
+                btnCf.className = "btn btn-sm gas-modal-tab-btn active";
+                btnCf.style.background = "rgba(249,115,22,0.2)";
+                btnCf.style.borderColor = "#fb923c";
+                btnCf.style.color = "#fb923c";
+            }
+            if (btnGas) {
+                btnGas.className = "btn btn-sm gas-modal-tab-btn";
+                btnGas.style.background = "transparent";
+                btnGas.style.borderColor = "transparent";
+                btnGas.style.color = "var(--text-muted)";
+            }
+            const code = t.cf_code || t.code || "";
+            if (editor) editor.value = code;
+            if (linesEl) {
+                const lCount = code ? code.split("\n").length : 0;
+                const kb = (code.length / 1024).toFixed(1);
+                linesEl.textContent = `${lCount} خط کد ورکر (~${kb} KB) | نام فایل: ${t.cf_file_name || 'Worker.js'}`;
+            }
+            if (titleEl) titleEl.textContent = `${t.name} — [فایل ۱: ورکر کلودفلر]`;
+            if (dlBtn) dlBtn.innerHTML = `<i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل ورکر (.js)`;
+            if (copyBtn) copyBtn.innerHTML = `<i data-lucide="copy" style="width:13px; height:13px;"></i> کپی کد ورکر (.js)`;
+            if (banner) {
+                banner.style.display = "block";
+                banner.style.background = "rgba(249, 115, 22, 0.12)";
+                banner.style.border = "1px solid rgba(249, 115, 22, 0.35)";
+                banner.style.color = "#fb923c";
+                banner.innerHTML = `<strong>📍 نحوه استقرار در کلودفلر:</strong> وارد بخش <strong>Workers & Pages</strong> شوید > روی <strong>Create application</strong> بزنید > حتماً تب <strong>Workers</strong> (نه Pages!) را انتخاب و روی <strong>Create Worker</strong> کلیک کنید > سپس دکمه <strong>Edit code</strong> را بزنید، این کد را پیست و <strong>Save and deploy</strong> نمایید. <span style="display:block; margin-top:3px; color:#f87171; font-size:11px;">⚠️ نکته مهم: از آپلود فایل به صورت Direct Upload در بخش Pages خودداری کنید زیرا مخصوص وب‌سایت‌های HTML است.</span>`;
+            }
+        } else {
+            if (btnGas) {
+                btnGas.className = "btn btn-sm gas-modal-tab-btn active";
+                btnGas.style.background = "rgba(66,133,244,0.2)";
+                btnGas.style.borderColor = "#60a5fa";
+                btnGas.style.color = "#60a5fa";
+            }
+            if (btnCf) {
+                btnCf.className = "btn btn-sm gas-modal-tab-btn";
+                btnCf.style.background = "transparent";
+                btnCf.style.borderColor = "transparent";
+                btnCf.style.color = "var(--text-muted)";
+            }
+            const code = t.gas_code || t.google_code || "";
+            if (editor) editor.value = code;
+            if (linesEl) {
+                const lCount = code ? code.split("\n").length : 0;
+                const kb = (code.length / 1024).toFixed(1);
+                linesEl.textContent = `${lCount} خط کد گوگل اسکریپت (~${kb} KB) | نام فایل: ${t.gas_file_name || 'Relay.gs'}`;
+            }
+            if (titleEl) titleEl.textContent = `${t.name} — [فایل ۲: گوگل اسکریپت رله]`;
+            if (dlBtn) dlBtn.innerHTML = `<i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل گوگل (.gs)`;
+            if (copyBtn) copyBtn.innerHTML = `<i data-lucide="copy" style="width:13px; height:13px;"></i> کپی کد گوگل (.gs)`;
+            if (banner) {
+                banner.style.display = "block";
+                banner.style.background = "rgba(66, 133, 244, 0.12)";
+                banner.style.border = "1px solid rgba(66, 133, 244, 0.35)";
+                banner.style.color = "#60a5fa";
+                banner.innerHTML = `<strong>📍 محل استقرار این فایل:</strong> وارد <a href="https://script.google.com" target="_blank" style="color:#60a5fa; text-decoration:underline; font-weight:700;">script.google.com ↗</a> شده، پروژه جدید بسازید، این کد را در Code.gs قرار دهید و روی <strong>Deploy > New deployment</strong> (نوع Web app با دسترسی <strong>Anyone</strong>) کلیک کنید. سپس لینک وب‌اپ را در پنل ذخیره کنید.`;
+            }
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+    window.switchGasModalTab = switchGasModalTab;
+
+    async function viewGasTemplateCode(tplId, subType = null) {
+        if (!tplId) return;
+
+        // Auto-fetch if cache not yet populated
+        if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates || !gasCachedTemplatesData.templates[tplId]) {
+            try {
+                toggleLoading(true, "در حال واکشی اطلاعات قالب کد...");
+                const res = await fetch("/api/google_script/templates");
+                const data = await res.json();
+                toggleLoading(false);
+                if (data && data.success) {
+                    gasCachedTemplatesData = data;
+                }
+            } catch (e) {
+                toggleLoading(false);
+                showToast("خطای شبکه در دریافت قالب کد", "error");
+                return;
+            }
+        }
+
+        const t = (gasCachedTemplatesData && gasCachedTemplatesData.templates) ? gasCachedTemplatesData.templates[tplId] : null;
+        if (!t) {
+            showToast("قالب مورد نظر یافت نشد.", "error");
+            return;
+        }
+
+        window.gasCurrentViewedTemplateId = tplId;
 
         const titleEl = document.getElementById("gas-view-code-title");
         const typeEl = document.getElementById("gas-view-code-type");
         const editor = document.getElementById("gas-view-code-editor");
         const linesEl = document.getElementById("gas-view-code-lines");
+        const hybridTabs = document.getElementById("gas-modal-hybrid-tabs");
+        const deployBanner = document.getElementById("gas-modal-deploy-banner");
+        const dualDlBtn = document.getElementById("gas-view-code-dual-dl-btn");
+        const dlBtn = document.getElementById("gas-view-code-download-btn");
+        const copyBtn = document.getElementById("gas-view-code-copy-btn");
 
-        const rawCode = t.code || t.google_code || t.cf_code || "";
+        const isHybrid = (t.type === 'hybrid');
         const isCf = (t.type === 'cloudflare');
 
-        if (titleEl) titleEl.textContent = `${t.name} (${t.file_name || (isCf ? 'Worker.js' : 'Code.gs')})`;
-        if (typeEl) {
-            typeEl.className = isCf ? "gas-token-badge gas-token-badge-orange" : "gas-token-badge gas-token-badge-blue";
-            typeEl.textContent = isCf ? "Cloudflare Worker (.js)" : "Google Apps Script (.gs)";
-        }
-        if (editor) editor.value = rawCode;
-        if (linesEl) {
-            const lineCount = rawCode.split("\n").length;
-            const kbSize = (rawCode.length / 1024).toFixed(1);
-            linesEl.textContent = `${lineCount} خط کد (~${kbSize} KB)`;
+        if (isHybrid) {
+            if (typeEl) {
+                typeEl.className = "gas-token-badge gas-token-badge-green";
+                typeEl.textContent = "🟢 قالب دوگانه (ورکر + گوگل)";
+            }
+            if (hybridTabs) {
+                hybridTabs.style.display = "flex";
+                const tab1Label = document.getElementById("gas-modal-tab-cf-title");
+                const tab2Label = document.getElementById("gas-modal-tab-gas-title");
+                if (tab1Label) tab1Label.textContent = `فایل ۱: ورکر کلودفلر (${t.cf_file_name || '1_Worker.js'})`;
+                if (tab2Label) tab2Label.textContent = `فایل ۲: گوگل اسکریپت (${t.gas_file_name || '2_Relay.gs'})`;
+            }
+            if (dualDlBtn) dualDlBtn.style.display = "inline-flex";
+
+            switchGasModalTab(subType || "cf");
+        } else {
+            if (hybridTabs) hybridTabs.style.display = "none";
+            if (deployBanner) deployBanner.style.display = "none";
+            if (dualDlBtn) dualDlBtn.style.display = "none";
+
+            const rawCode = t.code || t.google_code || t.cf_code || "";
+            if (titleEl) titleEl.textContent = `${t.name} (${t.file_name || (isCf ? 'Worker.js' : 'Code.gs')})`;
+            if (typeEl) {
+                if (isCf) {
+                    typeEl.className = "gas-token-badge gas-token-badge-orange";
+                    typeEl.textContent = "🟠 کلودفلر ورکر (.js)";
+                } else {
+                    typeEl.className = "gas-token-badge gas-token-badge-blue";
+                    typeEl.textContent = "🔵 گوگل اسکریپت (.gs)";
+                }
+            }
+            if (dlBtn) dlBtn.innerHTML = `<i data-lucide="download" style="width:13px; height:13px;"></i> دانلود فایل`;
+            if (copyBtn) copyBtn.innerHTML = `<i data-lucide="copy" style="width:13px; height:13px;"></i> کپی کد`;
+            if (editor) editor.value = rawCode;
+            if (linesEl) {
+                const lineCount = rawCode ? rawCode.split("\n").length : 0;
+                const kbSize = (rawCode.length / 1024).toFixed(1);
+                linesEl.textContent = `${lineCount} خط کد (~${kbSize} KB) | نام فایل: ${t.file_name || (isCf ? 'Worker.js' : 'Code.gs')}`;
+            }
         }
 
         const m = document.getElementById("gas-view-code-modal");
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
         if (window.lucide) lucide.createIcons();
     }
+    window.viewGasTemplateCode = viewGasTemplateCode;
 
     function closeGasViewCodeModal() {
         const m = document.getElementById("gas-view-code-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
+    window.closeGasViewCodeModal = closeGasViewCodeModal;
+
+    function downloadCurrentGasViewModalFile() {
+        if (!window.gasCurrentViewedTemplateId) return;
+        const t = (gasCachedTemplatesData && gasCachedTemplatesData.templates) ? gasCachedTemplatesData.templates[window.gasCurrentViewedTemplateId] : null;
+        if (t && t.type === 'hybrid') {
+            downloadGasTemplateFile(window.gasCurrentViewedTemplateId, window.gasCurrentModalTab || 'cf');
+        } else {
+            downloadGasTemplateFile(window.gasCurrentViewedTemplateId);
+        }
+    }
+    window.downloadCurrentGasViewModalFile = downloadCurrentGasViewModalFile;
+
+    function downloadGasBothFiles(tplId = null) {
+        const id = tplId || window.gasCurrentViewedTemplateId;
+        if (!id || !gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+        const t = gasCachedTemplatesData.templates[id];
+        if (!t) return;
+
+        // Download File 1: Worker (.js)
+        const cfCode = t.cf_code || t.code || "";
+        const cfName = t.cf_file_name || "1_Cloudflare_Worker.js";
+        const blob1 = new Blob([cfCode], { type: 'text/plain;charset=utf-8' });
+        const u1 = URL.createObjectURL(blob1);
+        const a1 = document.createElement('a');
+        a1.href = u1;
+        a1.download = cfName;
+        document.body.appendChild(a1);
+        a1.click();
+        document.body.removeChild(a1);
+        URL.revokeObjectURL(u1);
+
+        // Download File 2: Google Apps Script (.gs) after 350ms
+        setTimeout(() => {
+            const gasCode = t.gas_code || t.google_code || "";
+            const gasName = t.gas_file_name || "2_Google_Apps_Script.gs";
+            const blob2 = new Blob([gasCode], { type: 'text/plain;charset=utf-8' });
+            const u2 = URL.createObjectURL(blob2);
+            const a2 = document.createElement('a');
+            a2.href = u2;
+            a2.download = gasName;
+            document.body.appendChild(a2);
+            a2.click();
+            document.body.removeChild(a2);
+            URL.revokeObjectURL(u2);
+            showToast(`هر دو فایل ${cfName} و ${gasName} با موفقیت دانلود شدند!`, "success");
+        }, 350);
+    }
+    window.downloadGasBothFiles = downloadGasBothFiles;
 
     function copyGasViewCodeModalContent() {
         const editor = document.getElementById("gas-view-code-editor");
         if (editor && editor.value) {
             navigator.clipboard.writeText(editor.value).then(() => {
-                showToast("سورس‌کد با موفقیت کپی شد!", "success");
+                showToast("سورس‌کد با موفقیت در کلیپ‌بورد کپی شد!", "success");
             });
         }
     }
+    window.copyGasViewCodeModalContent = copyGasViewCodeModalContent;
 
-    function copyGasTemplateCodeById(tplId) {
+    function copyGasTemplateCodeById(tplId, subType = null) {
         if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
         const t = gasCachedTemplatesData.templates[tplId];
         if (!t) return;
-        const rawCode = t.code || t.google_code || t.cf_code || "";
-        navigator.clipboard.writeText(rawCode).then(() => {
-            showToast(`کد قالب «${t.name}» کپی شد!`, "success");
+
+        let codeToCopy = "";
+        let label = t.name;
+
+        if (subType === 'cf') {
+            codeToCopy = t.cf_code || t.code || "";
+            label = `فایل ۱ ورکر (${t.cf_file_name || 'Worker.js'})`;
+        } else if (subType === 'gas') {
+            codeToCopy = t.gas_code || t.google_code || "";
+            label = `فایل ۲ گوگل اسکریپت (${t.gas_file_name || 'Relay.gs'})`;
+        } else {
+            codeToCopy = t.code || t.google_code || t.cf_code || "";
+        }
+
+        navigator.clipboard.writeText(codeToCopy).then(() => {
+            showToast(`سورس‌کد «${label}» با موفقیت کپی شد!`, "success");
         });
     }
+    window.copyGasTemplateCodeById = copyGasTemplateCodeById;
 
-    function downloadGasTemplateFile(tplId) {
+    function downloadGasTemplateFile(tplId, subType = null) {
         if (!gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
         const t = gasCachedTemplatesData.templates[tplId];
         if (!t) return;
-        const rawCode = t.code || t.google_code || t.cf_code || "";
-        const isCf = (t.type === 'cloudflare');
-        const filename = t.file_name || (isCf ? `${tplId}.js` : `${tplId}.gs`);
+
+        if (t.type === 'hybrid' && !subType) {
+            downloadGasBothFiles(tplId);
+            return;
+        }
+
+        let rawCode = "";
+        let filename = "";
+
+        if (subType === 'cf') {
+            rawCode = t.cf_code || t.code || "";
+            filename = t.cf_file_name || `${tplId}_Worker.js`;
+        } else if (subType === 'gas') {
+            rawCode = t.gas_code || t.google_code || "";
+            filename = t.gas_file_name || `${tplId}_Relay.gs`;
+        } else {
+            rawCode = t.code || t.google_code || t.cf_code || "";
+            const isCf = (t.type === 'cloudflare');
+            filename = t.file_name || (isCf ? `${tplId}.js` : `${tplId}.gs`);
+        }
 
         const blob = new Blob([rawCode], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -24169,8 +24888,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         URL.revokeObjectURL(url);
         showToast(`فایل ${filename} دانلود شد.`, "success");
     }
+    window.downloadGasTemplateFile = downloadGasTemplateFile;
 
-    // --- 4. CLOUDFLARE TOKEN TESTER (GUIDES TAB) ---
+
+        // --- 4. CLOUDFLARE TOKEN TESTER & PERSISTENT STORAGE (GUIDES TAB) ---
     async function verifyGasCloudflareTokenInline() {
         const accId = (document.getElementById("gas-test-cf-acc")?.value || "").trim();
         const token = (document.getElementById("gas-test-cf-tok")?.value || "").trim();
@@ -24198,8 +24919,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (res.ok && data.success && data.valid) {
                 resBox.style.background = "rgba(16,185,129,0.18)";
                 resBox.style.color = "#10b981";
-                resBox.innerHTML = `✅ ${escapeHtml(data.message)}`;
+                resBox.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                        <span>✅ ${escapeHtml(data.message)}</span>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="saveGasCloudflareGlobalCredentials();" style="background:#10b981; border-color:#10b981; padding:3px 10px; font-size:11px; font-weight:700;">
+                            <i data-lucide="save" style="width:12px; height:12px;"></i> ذخیره این اطلاعات در پنل
+                        </button>
+                    </div>
+                `;
                 showToast("توکن کلودفلر کاملاً معتبر است!", "success");
+                if (window.lucide) lucide.createIcons();
             } else {
                 resBox.style.background = "rgba(239,68,68,0.18)";
                 resBox.style.color = "#ef4444";
@@ -24215,6 +24944,63 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    async function saveGasCloudflareGlobalCredentials() {
+        const accId = (document.getElementById("gas-test-cf-acc")?.value || "").trim();
+        const token = (document.getElementById("gas-test-cf-tok")?.value || "").trim();
+
+        if (!accId || !token) {
+            showToast("لطفاً هر دو فیلد Account ID و API Token را وارد نمایید.", "warning");
+            return;
+        }
+
+        toggleLoading(true, "در حال ذخیره دائمی مشخصات کلودفلر...");
+        try {
+            const res = await fetch("/api/google_script/cloudflare/save-credentials", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ account_id: accId, api_token: token })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast("اطلاعات حساب کلودفلر با موفقیت ذخیره شد و در تمامی فرم‌ها به صورت خودکار قرار می‌گیرد.", "success");
+                await fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره اطلاعات کلودفلر", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function clearGasCloudflareGlobalCredentials() {
+        if (!confirm("آیا از پاک کردن مشخصات ذخیره شده کلودفلر از حافظه پنل اطمینان دارید؟")) return;
+        toggleLoading(true, "در حال حذف مشخصات کلودفلر...");
+        try {
+            const res = await fetch("/api/google_script/cloudflare/save-credentials", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ account_id: "", api_token: "" })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                const accInput = document.getElementById("gas-test-cf-acc");
+                const tokInput = document.getElementById("gas-test-cf-tok");
+                if (accInput) accInput.value = "";
+                if (tokInput) tokInput.value = "";
+                showToast("اطلاعات کلودفلر با موفقیت پاکسازی گردید.", "info");
+                await fetchGoogleScriptConfig();
+            } else {
+                showToast(data.error || "خطا در پاکسازی", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
     // --- 5. EDIT ACCOUNT ---
     function openGasEditAccountModal(accId = null) {
         const targetId = accId || (gasCachedConfig && gasCachedConfig.active_account_id);
@@ -24226,14 +25012,42 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         document.getElementById("gas-editacc-email").value = acc.email || "";
         document.getElementById("gas-editacc-token").value = acc.access_token || "";
         document.getElementById("gas-editacc-webapp").value = acc.webapp_url || "";
-        document.getElementById("gas-editacc-cf-acc").value = acc.cf_account_id || "";
-        document.getElementById("gas-editacc-cf-worker").value = acc.cf_worker_name || "mhpanel-gas-relay";
-        document.getElementById("gas-editacc-cf-token").value = acc.cf_api_token || "";
+        const savedCf = (gasCachedConfig && gasCachedConfig.cloudflare) || {};
+        document.getElementById("gas-editacc-cf-acc").value = acc.cf_account_id || savedCf.account_id || "";
+        document.getElementById("gas-editacc-cf-worker").value = acc.cf_worker_name || savedCf.worker_name || "mhpanel-gas-relay";
+        document.getElementById("gas-editacc-cf-token").value = acc.cf_api_token || savedCf.api_token || "";
+
+        const tplSel = document.getElementById("gas-editacc-template");
+        const populateEditTpl = () => {
+            if (!tplSel || !gasCachedTemplatesData || !gasCachedTemplatesData.templates) return;
+            const accType = acc.type || "google_only";
+            const allTpls = Object.values(gasCachedTemplatesData.templates);
+            tplSel.innerHTML = allTpls.map(t => {
+                const isSel = (t.id === (acc.template_id || (accType === 'google_only' ? 'full_tunnel' : (accType === 'google_and_cloudflare' ? 'cf_gas_relay' : 'cf_direct_vps')))) ? 'selected' : '';
+                return `<option value="${escapeHtml(t.id)}" ${isSel}>[${escapeHtml(t.type)}] ${escapeHtml(t.name)}</option>`;
+            }).join("");
+        };
+        if (tplSel) {
+            if (gasCachedTemplatesData && gasCachedTemplatesData.templates) {
+                populateEditTpl();
+            } else {
+                fetch("/api/google_script/templates").then(r => r.json()).then(data => {
+                    if (data && data.success) {
+                        gasCachedTemplatesData = data;
+                        populateEditTpl();
+                    }
+                }).catch(e => console.error(e));
+            }
+        }
 
         const m = document.getElementById("gas-edit-account-modal");
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
         if (window.lucide) lucide.createIcons();
     }
@@ -24242,7 +25056,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const m = document.getElementById("gas-edit-account-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
 
@@ -24255,6 +25069,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const cf_account_id = (document.getElementById("gas-editacc-cf-acc")?.value || "").trim();
         const cf_worker_name = (document.getElementById("gas-editacc-cf-worker")?.value || "").trim();
         const cf_api_token = (document.getElementById("gas-editacc-cf-token")?.value || "").trim();
+        const template_id = (document.getElementById("gas-editacc-template")?.value || "").trim();
 
         if (!accId) return;
         toggleLoading(true, "در حال ذخیره تغییرات...");
@@ -24269,7 +25084,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     webapp_url,
                     cf_account_id,
                     cf_worker_name,
-                    cf_api_token
+                    cf_api_token,
+                    template_id
                 })
             });
             const data = await res.json();
@@ -24339,8 +25155,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const m = document.getElementById("gas-batch-deploy-modal");
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
         if (window.lucide) lucide.createIcons();
     }
@@ -24349,7 +25169,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const m = document.getElementById("gas-batch-deploy-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
 
@@ -24534,8 +25354,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (m) {
+            if (m.parentElement !== document.body) document.body.appendChild(m);
             m.classList.add("active");
-            m.style.display = "flex";
+            m.style.setProperty("display", "flex", "important");
+            m.style.setProperty("opacity", "1", "important");
+            m.style.setProperty("pointer-events", "auto", "important");
+            m.style.setProperty("visibility", "visible", "important");
         }
     }
 
@@ -24543,7 +25367,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const m = document.getElementById("gas-qr-modal");
         if (m) {
             m.classList.remove("active");
-            m.style.display = "none";
+            m.style.setProperty("display", "none", "important");
         }
     }
 
@@ -25090,14 +25914,18 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     // --- 6. GLOBAL ROBUST MODAL CLOSING (BACKDROP CLICK & ESCAPE KEY) ---
     document.addEventListener("click", function(e) {
-        // If clicking on the backdrop of any active modal
-        if (e.target && e.target.classList && e.target.classList.contains("modal") && e.target.classList.contains("active")) {
+        // If clicking on the backdrop of any active modal or gas-modal-overlay
+        if (e.target && (e.target.classList.contains("modal") || e.target.classList.contains("gas-modal-overlay")) && e.target.classList.contains("active")) {
             e.target.classList.remove("active");
+            e.target.style.setProperty("display", "none", "important");
         }
         // If clicking on any .modal-close or [data-close-modal]
         if (e.target && (e.target.closest(".modal-close") || e.target.closest("[data-close-modal]"))) {
-            const modal = e.target.closest(".modal");
-            if (modal) modal.classList.remove("active");
+            const modal = e.target.closest(".modal") || e.target.closest(".gas-modal-overlay");
+            if (modal) {
+                modal.classList.remove("active");
+                modal.style.setProperty("display", "none", "important");
+            }
         }
     });
 
@@ -25105,13 +25933,20 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (e.key === "Escape" || e.keyCode === 27) {
             document.querySelectorAll(".modal.active, .gas-modal-overlay.active").forEach(m => {
                 m.classList.remove("active");
-                m.style.display = "none";
+                m.style.setProperty("display", "none", "important");
             });
         }
     });
 
     // --- 7. DEEP LINKING & TAB ROUTER (URL PARAM / HASH) ---
     window.addEventListener("DOMContentLoaded", function() {
+        // Ensure all GAS and cloudflare modals reside directly under body
+        document.querySelectorAll(".gas-modal-overlay").forEach(function(m) {
+            if (m.parentElement !== document.body) {
+                document.body.appendChild(m);
+            }
+        });
+
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const targetTab = urlParams.get("tab") || (window.location.hash ? window.location.hash.replace("#", "") : null);
@@ -25123,6 +25958,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         setTimeout(function() {
                             if (targetTab === 'wireguard' && typeof switchWgSubTab === "function") switchWgSubTab(targetSubTab);
                             if (targetTab === 'amneziawg' && typeof switchAwgSubTab === "function") switchAwgSubTab(targetSubTab);
+                            if (targetTab === 'google-script' && typeof switchGasSubTab === "function") switchGasSubTab(targetSubTab);
                         }, 250);
                     }
                 }, 350);
