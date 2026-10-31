@@ -11538,62 +11538,112 @@ def get_dns_tunnel_users():
     return users
 
 
-def generate_slipnet_uri(proto, domain, pubkey="", upstream="127.0.0.1:22", username="", password="", name="", resolvers="8.8.8.8:53:0,1.1.1.1:53:0"):
+def generate_slipnet_uri(proto, domain="", pubkey="", upstream="127.0.0.1:22", username="", password="", name="", resolvers="8.8.8.8:53:0,1.1.1.1:53:0", doh_url="https://cloudflare-dns.com/dns-query", bridge_line="", port="443", socks_port="9050"):
     """
     Generates a standard slipnet:// URI compatible with the SlipNet Android VPN app (v22).
+    Supports Slipstream, DNSTT, VayDNS, NoizDNS (SayeDNS stealth), MasterdnsVPN, DoH, NaiveProxy, and Tor (obfs4).
     """
     import base64
     fields = [""] * 60
     fields[0] = "22"
     
-    is_ssh = (":22" in upstream or ":2222" in upstream or not upstream or upstream.endswith("22"))
+    is_ssh = (":22" in str(upstream) or ":2222" in str(upstream) or not upstream or str(upstream).endswith("22"))
     
     if proto == "slipstream":
         fields[1] = "slipstream_ssh" if is_ssh else "ss"
+        proto_label = "Slipstream"
     elif proto == "dnstt":
         fields[1] = "dnstt_ssh" if is_ssh else "dnstt"
+        proto_label = "DNSTT"
     elif proto == "vaydns":
         fields[1] = "vaydns_ssh" if is_ssh else "vaydns"
+        proto_label = "VayDNS"
+        fields[41] = "1"
     elif proto == "noizdns":
         fields[1] = "sayedns_ssh" if is_ssh else "sayedns"
+        proto_label = "NoizDNS"
+        fields[38] = "1"
+    elif proto == "masterdnsvpn":
+        fields[1] = "dnstt_ssh" if is_ssh else "dnstt"
+        proto_label = "MasterDNS"
+    elif proto == "doh":
+        fields[1] = "dnstt_ssh" if is_ssh else "dnstt"
+        proto_label = "DoH-DNSTT"
+        fields[22] = "doh"
+        fields[21] = doh_url or "https://cloudflare-dns.com/dns-query"
+    elif proto in ["naive", "naiveproxy"]:
+        fields[1] = "naive"
+        proto_label = "NaiveProxy"
+        fields[28] = str(port or 13443)
+        fields[29] = username
+        fields[30] = base64.b64encode(password.encode("utf-8")).decode("utf-8") if password else ""
+        fields[12] = username
+        fields[13] = password
+        is_ssh = False
+    elif proto == "tor":
+        fields[1] = "socks5"
+        proto_label = "Tor (obfs4)"
+        fields[8] = str(socks_port or 9050)
+        fields[9] = "127.0.0.1"
+        if bridge_line:
+            fields[26] = base64.b64encode(bridge_line.strip().encode("utf-8")).decode("utf-8")
+        is_ssh = False
     else:
         fields[1] = "slipstream_ssh" if is_ssh else "ss"
+        proto_label = proto.upper()
         
-    proto_label = "Slipstream" if proto == "slipstream" else proto.upper()
-    user_suffix = f" ({username})" if username else ""
+    user_suffix = f" ({username})" if username and proto != "tor" else ""
     fields[2] = name or f"{proto_label}{user_suffix}"
     fields[3] = (domain or "").strip()
     fields[4] = resolvers or "8.8.8.8:53:0,1.1.1.1:53:0"
     fields[5] = "0"
     fields[6] = "5000"
     fields[7] = "bbr"
-    fields[8] = "1080"
-    fields[9] = "127.0.0.1"
+    if not fields[8]:
+        fields[8] = "1080"
+    if not fields[9]:
+        fields[9] = "127.0.0.1"
     fields[10] = "0"
     fields[11] = (pubkey or "").strip()
-    fields[12] = "" if is_ssh else username
-    fields[13] = "" if is_ssh else password
-    fields[14] = "1" if is_ssh else "0"
-    fields[15] = username if is_ssh else ""
-    fields[16] = password if is_ssh else ""
     
-    ssh_port = "22"
-    if ":" in upstream:
-        ssh_port = upstream.split(":")[-1]
-    fields[17] = ssh_port if is_ssh else "22"
+    if is_ssh:
+        fields[12] = ""
+        fields[13] = ""
+        fields[14] = "1"
+        fields[15] = username
+        fields[16] = password
+        ssh_port = "22"
+        if ":" in str(upstream):
+            ssh_port = str(upstream).split(":")[-1]
+        fields[17] = ssh_port
+        fields[19] = "127.0.0.1"
+    elif proto not in ["naive", "naiveproxy", "tor"]:
+        fields[12] = username
+        fields[13] = password
+        fields[14] = "0"
+        fields[15] = ""
+        fields[16] = ""
+        fields[17] = "22"
+        fields[19] = "127.0.0.1"
+        
     fields[18] = "0"
-    fields[19] = "127.0.0.1"
     fields[20] = "0"
-    fields[21] = ""
-    fields[22] = "udp"
+    if not fields[21]:
+        fields[21] = ""
+    if not fields[22]:
+        fields[22] = "udp"
     fields[23] = "password"
     fields[24] = ""
     fields[25] = ""
-    fields[26] = ""
+    if not fields[26]:
+        fields[26] = ""
     fields[27] = "0"
-    fields[28] = "443"
-    fields[29] = ""
-    fields[30] = ""
+    if not fields[28]:
+        fields[28] = "443"
+    if not fields[29]:
+        fields[29] = ""
+    if not fields[30]:
+        fields[30] = ""
     fields[31] = "0"
     fields[32] = ""
     fields[33] = "0"
@@ -11601,10 +11651,12 @@ def generate_slipnet_uri(proto, domain, pubkey="", upstream="127.0.0.1:22", user
     fields[35] = ""
     fields[36] = "0"
     fields[37] = ""
-    fields[38] = "0"
+    if not fields[38]:
+        fields[38] = "0"
     fields[39] = "0"
     fields[40] = "1080"
-    fields[41] = "1" if proto == "vaydns" else "0"
+    if not fields[41]:
+        fields[41] = "0"
     fields[42] = "txt"
     fields[43] = "101"
     fields[44] = "0"
@@ -11925,6 +11977,7 @@ def api_dns_slipnet_config():
     password = request.args.get("pass") or (request.json.get("pass") if request.is_json and request.json else "")
     domain = request.args.get("domain") or (request.json.get("domain") if request.is_json and request.json else "")
     resolvers = request.args.get("resolvers") or (request.json.get("resolvers") if request.is_json and request.json else "8.8.8.8:53:0,1.1.1.1:53:0")
+    doh_url = request.args.get("doh_url") or (request.json.get("doh_url") if request.is_json and request.json else "https://cloudflare-dns.com/dns-query")
     
     # If password not provided, find from tunnel users
     if username and not password:
@@ -11935,6 +11988,10 @@ def api_dns_slipnet_config():
                 
     pubkey = ""
     upstream = "127.0.0.1:22"
+    bridge_line = ""
+    port = "443"
+    socks_port = "9050"
+
     if proto == "slipstream":
         cfg_file = "/etc/vpnpanel/slipstream.json"
     elif proto == "vaydns":
@@ -11945,6 +12002,76 @@ def api_dns_slipnet_config():
                     pubkey = f.read().strip()
             except Exception:
                 pass
+    elif proto == "masterdnsvpn":
+        cfg_file = "/etc/vpnpanel/masterdnsvpn.json"
+        if os.path.exists("/etc/dnstt/server.pub"):
+            try:
+                with open("/etc/dnstt/server.pub") as f:
+                    pubkey = f.read().strip()
+            except Exception:
+                pass
+    elif proto in ["noizdns", "doh"]:
+        cfg_file = "/etc/vpnpanel/dnstt.json"
+        if os.path.exists("/etc/dnstt/server.pub"):
+            try:
+                with open("/etc/dnstt/server.pub") as f:
+                    pubkey = f.read().strip()
+            except Exception:
+                pass
+    elif proto in ["naive", "naiveproxy"]:
+        cfg_file = "/etc/vpnpanel/naiveproxy.json"
+        if os.path.exists(cfg_file):
+            try:
+                with open(cfg_file) as f:
+                    d = json.load(f)
+                inb = d.get("inbounds", [{}])[0]
+                port = str(inb.get("listen_port", 13443))
+                users = inb.get("users", [{}])
+                if not username and users:
+                    username = users[0].get("username", "admin")
+                    password = users[0].get("password", "mhpanel_naive_secret")
+                if not domain:
+                    domain = inb.get("tls", {}).get("server_name", get_server_domain())
+            except Exception:
+                pass
+    elif proto == "tor":
+        cfg_file = "/etc/vpnpanel/tor_bridge.json"
+        cert = ""
+        obfs4_file = "/var/lib/tor/pt_state/obfs4_bridgeline.txt"
+        if os.path.exists(obfs4_file):
+            try:
+                with open(obfs4_file, "r") as f:
+                    for line in f:
+                        if "cert=" in line:
+                            for token in line.split():
+                                if token.startswith("cert="):
+                                    cert = token
+                                    break
+            except Exception:
+                pass
+        fingerprint = ""
+        for fp_path in ["/var/lib/tor/fingerprint", "/var/lib/tor/pt_state/obfs4_bridgeline.txt"]:
+            if os.path.exists(fp_path):
+                try:
+                    with open(fp_path, "r") as f:
+                        content = f.read().strip()
+                    if "Bridge" in content:
+                        parts = content.split()
+                        if len(parts) >= 4:
+                            fingerprint = parts[3]
+                    else:
+                        parts = content.split()
+                        if len(parts) >= 2:
+                            fingerprint = parts[1]
+                        elif parts:
+                            fingerprint = parts[0]
+                    if fingerprint:
+                        break
+                except Exception:
+                    pass
+        srv_ip = get_server_public_ip() or get_server_domain()
+        cert_str = cert or "cert=AUTO"
+        bridge_line = f"Bridge obfs4 {srv_ip}:9002 {fingerprint} {cert_str} iat-mode=0"
     else:
         cfg_file = "/etc/vpnpanel/dnstt.json"
         if os.path.exists("/etc/dnstt/server.pub"):
@@ -11954,7 +12081,7 @@ def api_dns_slipnet_config():
             except Exception:
                 pass
 
-    if os.path.exists(cfg_file):
+    if proto not in ["tor", "naive", "naiveproxy"] and os.path.exists(cfg_file):
         try:
             with open(cfg_file) as f:
                 c = json.load(f)
@@ -11964,7 +12091,7 @@ def api_dns_slipnet_config():
         except Exception:
             pass
             
-    uri = generate_slipnet_uri(proto, domain, pubkey=pubkey, upstream=upstream, username=username, password=password, resolvers=resolvers)
+    uri = generate_slipnet_uri(proto, domain, pubkey=pubkey, upstream=upstream, username=username, password=password, resolvers=resolvers, doh_url=doh_url, bridge_line=bridge_line, port=port, socks_port=socks_port)
     return jsonify({"success": True, "uri": uri, "proto": proto, "domain": domain, "username": username})
 
 
@@ -12477,6 +12604,7 @@ def api_naiveproxy_config():
         "listen": "socks://127.0.0.1:1080",
         "proxy": f"https://{username}:{password}@{sni}:{port}"
     }
+    slipnet_uri = generate_slipnet_uri("naiveproxy", domain=sni or domain, port=str(port), username=username, password=password)
     return jsonify({
         "port": port,
         "username": username,
@@ -12484,6 +12612,7 @@ def api_naiveproxy_config():
         "sni": sni,
         "domain": domain,
         "client_link": client_link,
+        "slipnet_uri": slipnet_uri,
         "client_config_json": json.dumps(naive_client_config, indent=2),
         "installed": is_installed("naiveproxy"),
         "active": get_protocol_active("naiveproxy"),
@@ -12627,6 +12756,30 @@ def api_noizdns_config():
     cfg["active"] = get_protocol_active("noizdns")
     cfg["connections"] = get_connection_count("noizdns")
     cfg["client_cmd"] = f"noizdns-client -server {get_server_domain()}:{cfg.get('port')} -local 127.0.0.1:53"
+
+    # Pubkey & domain for SlipNet stealth NoizDNS mode
+    pubkey = ""
+    if os.path.exists("/etc/dnstt/server.pub"):
+        try:
+            with open("/etc/dnstt/server.pub") as f:
+                pubkey = f.read().strip()
+        except Exception:
+            pass
+    dnstt_domain = ""
+    if os.path.exists("/etc/vpnpanel/dnstt.json"):
+        try:
+            with open("/etc/vpnpanel/dnstt.json") as f:
+                dnstt_domain = json.load(f).get("domain", "")
+        except Exception:
+            pass
+    cfg["pubkey"] = pubkey
+    cfg["domain"] = dnstt_domain or f"t.{get_server_domain()}"
+    cfg["server_ip"] = get_server_public_ip()
+    users = get_dns_tunnel_users()
+    cfg["users"] = users
+    first_user = users[0]["username"] if users else ""
+    first_pass = users[0].get("password", "") if users else ""
+    cfg["slipnet_uri"] = generate_slipnet_uri("noizdns", domain=cfg["domain"], pubkey=pubkey, username=first_user, password=first_pass)
     return jsonify(cfg)
 
 
@@ -12666,6 +12819,21 @@ def api_masterdnsvpn_config():
     cfg["active"] = get_protocol_active("masterdnsvpn")
     cfg["connections"] = get_connection_count("masterdnsvpn")
     cfg["client_cmd"] = f"masterdnsvpn-client -domain {cfg.get('domain')} -key {cfg.get('auth_key')} -l 1080"
+
+    pubkey = ""
+    if os.path.exists("/etc/dnstt/server.pub"):
+        try:
+            with open("/etc/dnstt/server.pub") as f:
+                pubkey = f.read().strip()
+        except Exception:
+            pass
+    cfg["pubkey"] = pubkey
+    cfg["server_ip"] = get_server_public_ip()
+    users = get_dns_tunnel_users()
+    cfg["users"] = users
+    first_user = users[0]["username"] if users else ""
+    first_pass = users[0].get("password", "") if users else ""
+    cfg["slipnet_uri"] = generate_slipnet_uri("masterdnsvpn", domain=cfg.get("domain"), pubkey=pubkey, upstream=cfg.get("upstream", "127.0.0.1:22"), username=first_user, password=first_pass)
     return jsonify(cfg)
 
 
@@ -12730,6 +12898,21 @@ DataDirectory /var/lib/tor
         except Exception:
             pass
 
+    # Extract cert from obfs4_bridgeline.txt if present
+    cert = ""
+    obfs4_file = "/var/lib/tor/pt_state/obfs4_bridgeline.txt"
+    if os.path.exists(obfs4_file):
+        try:
+            with open(obfs4_file, "r") as f:
+                for line in f:
+                    if "cert=" in line:
+                        for token in line.split():
+                            if token.startswith("cert="):
+                                cert = token
+                                break
+        except Exception:
+            pass
+
     # Extract fingerprint
     fingerprint = ""
     for fp_path in ["/var/lib/tor/fingerprint", "/var/lib/tor/pt_state/obfs4_bridgeline.txt"]:
@@ -12738,20 +12921,26 @@ DataDirectory /var/lib/tor
                 with open(fp_path, "r") as f:
                     content = f.read().strip()
                 if "Bridge" in content:
-                    fingerprint = content
+                    parts = content.split()
+                    if len(parts) >= 4:
+                        fingerprint = parts[3]
                 else:
                     parts = content.split()
                     if len(parts) >= 2:
                         fingerprint = parts[1]
+                    elif parts:
+                        fingerprint = parts[0]
                 if fingerprint:
                     break
             except Exception:
                 pass
 
     cfg["fingerprint"] = fingerprint or "GENERATING_AFTER_FIRST_CONNECT"
-    server_ip = get_server_domain() or get_server_public_ip()
+    server_ip = get_server_public_ip() or get_server_domain()
     cfg["server_ip"] = server_ip
-    cfg["bridge_line"] = f"Bridge obfs4 {server_ip}:{cfg.get('bridge_port')} {cfg.get('fingerprint')} cert=AUTO iat-mode=0"
+    cert_param = cert or "cert=AUTO"
+    cfg["bridge_line"] = f"Bridge obfs4 {server_ip}:{cfg.get('bridge_port', 9002)} {cfg.get('fingerprint')} {cert_param} iat-mode=0"
+    cfg["slipnet_uri"] = generate_slipnet_uri("tor", bridge_line=cfg["bridge_line"], socks_port=cfg.get("socks_port", 9050))
     cfg["installed"] = is_installed("tor")
     cfg["active"] = get_protocol_active("tor")
     cfg["connections"] = get_connection_count("tor")

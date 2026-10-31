@@ -27,6 +27,9 @@
 <button class="btn btn-sm btn-secondary" id="dns-tab-btn-masterdnsvpn" onclick="switchDnsSubTab('masterdnsvpn')" style="padding:6px 14px; font-weight:600;" type="button">
                     MasterdnsVPN (Chunked)
                 </button>
+<button class="btn btn-sm btn-secondary" id="dns-tab-btn-doh" onclick="switchDnsSubTab('doh')" style="padding:6px 14px; font-weight:600;" type="button">
+                    DoH (DNS over HTTPS)
+                </button>
 </div>
 </div>
 </div>
@@ -489,6 +492,42 @@
 </div>
 </div>
 </div>
+<!-- SlipNet Android Card for NoizDNS -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#8b5cf6;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (حالت ضد فیلتر NoizDNS Stealth)</span>
+<span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6; font-size:11px; padding:2px 8px; border-radius:12px;">SayeDNS + Stealth</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="noizdns-slipnet-user" onchange="onSlipnetUserChange('noizdns')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="noizdns-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+پروتکل SayeDNS/NoizDNS با افزودن نویز تصادفی و پدینگ متغیر بسته‌ها، سیستم‌های DPI و فیلترینگ عمیق اینترنت را دور می‌زند. در برنامه <strong>SlipNet</strong> با اسکن QR Code متصل شوید.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="noizdns-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
+</div>
+</div>
+</div>
+</div>
 <!-- ================= SUB-PANE 5: MASTERDNSVPN ================= -->
 <div id="dns-subpane-masterdnsvpn" style="display:none;">
 <div class="glass-card config-card" style="margin-bottom: 20px;">
@@ -555,7 +594,7 @@
 </form>
 </div>
 <!-- Client Guide Card -->
-<div class="glass-card config-card">
+<div class="glass-card config-card" style="margin-bottom: 20px;">
 <h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
 <i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
 <span data-i18n="client_guide">دستور کلاینت MasterdnsVPN</span>
@@ -565,6 +604,110 @@
 <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-client-cmd-box').textContent)" type="button">
 <i data-lucide="copy" style="width:13px; height:13px;"></i>
 </button>
+</div>
+</div>
+
+<!-- SlipNet Android Card for MasterdnsVPN -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #0284c7;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#0284c7;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (مستر دی‌ان‌اس VPN)</span>
+<span class="badge" style="background:rgba(2,132,199,0.15); color:#0284c7; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص MasterDNS</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="masterdnsvpn-slipnet-user" onchange="onSlipnetUserChange('masterdnsvpn')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="masterdnsvpn-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+تونل MasterdnsVPN با رمزنگاری پیشرفته و چانک کوئری‌های DNS، اینترنت بدون فیلتر ارائه می‌دهد. مستقیماً در اپلیکیشن <strong>SlipNet</strong> اسکن نمایید.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="masterdnsvpn-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ================= SUB-PANE 6: DoH (DNS over HTTPS) ================= -->
+<div id="dns-subpane-doh" style="display:none;">
+<div class="glass-card config-card" style="margin-bottom: 20px;">
+<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+<div style="display:flex; align-items:center; gap:8px;">
+<span class="status-dot active"></span>
+<strong style="font-size:15px;">تونل DNS بر بستر HTTPS (DoH - Encrypted HTTPS Transport)</strong>
+</div>
+<span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:12px; padding:4px 10px; border-radius:12px;">پروتکل ضد فیلتر پورت ۵۳</span>
+</div>
+<p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.7;">
+در زمان اختلال یا مسدودی پورت ۵۳ (UDP) توسط اپراتورها، ترنسپورت DoH تمام کوئری‌های تونل را درون ترافیک رمزنگاری‌شده TLS پورت ۴۴۳ به سرورهای کلودفلر یا گوگل کپسوله می‌کند و از مسدودی سیستم فیلترینگ بدون نیاز به پورت باز UDP عبور می‌نماید.
+</p>
+<!-- Provider Selector & Stats -->
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
+<div style="background: var(--bg-base); padding:12px; border-radius:8px; border: 1px solid var(--border-glow);">
+<label class="form-label" style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">ارائه‌دهنده سرویس DoH (Endpoint):</label>
+<select class="form-input" id="doh-provider-select" onchange="onDohConfigChange()" style="font-size:12px; font-family:'JetBrains Mono',monospace;">
+<option value="https://cloudflare-dns.com/dns-query" selected>Cloudflare DoH (cloudflare-dns.com)</option>
+<option value="https://dns.google/dns-query">Google DoH (dns.google)</option>
+<option value="https://dns.adguard-dns.com/dns-query">AdGuard DoH (dns.adguard-dns.com)</option>
+<option value="https://doh.opendns.com/dns-query">OpenDNS DoH (doh.opendns.com)</option>
+</select>
+</div>
+<div style="background: var(--bg-base); padding:12px; border-radius:8px; border: 1px solid var(--border-glow);">
+<div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">دامنه معتبر معکوس (NS):</div>
+<div id="doh-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace; font-size:13px;">t.vpn.kigaping.com</div>
+</div>
+</div>
+</div>
+
+<!-- SlipNet Android Card for DoH -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #10b981;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+<i data-lucide="smartphone" style="width:18px; height:18px; color:#10b981;"></i>
+<span>اتصال آسان در اپلیکیشن SlipNet (حالت امن DoH)</span>
+<span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:11px; padding:2px 8px; border-radius:12px;">DoH Mode</span>
+</h4>
+<div style="display:flex; align-items:center; gap:8px;">
+<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+<select class="form-input" id="doh-slipnet-user" onchange="onDohConfigChange()" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
+<option value="">(در حال دریافت کاربران...)</option>
+</select>
+</div>
+</div>
+<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+<div style="flex:1; min-width:260px;">
+<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet DoH (One-Tap URI):</label>
+<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+<div class="code-box" id="doh-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('doh-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+<i data-lucide="copy" style="width:14px; height:14px;"></i>
+</button>
+</div>
+<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+این کانفیگ مستقیماً از طریق بسته‌های رمزنگاری‌شده HTTPS به کلودفلر ارسال شده و از مسدودسازی پورت ۵۳ عبور می‌کند. کافیست در نرم‌افزار <strong>SlipNet</strong> اسکن کنید.
+</p>
+</div>
+<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+<div id="doh-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
+</div>
 </div>
 </div>
 </div>

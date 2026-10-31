@@ -194,5 +194,35 @@
             </div>
         </div>
 
+        <!-- SlipNet Android Card for NaiveProxy -->
+        <div class="glass-card config-card" style="border-left: 4px solid #f59e0b;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                <h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="smartphone" style="width:18px; height:18px; color:#f59e0b;"></i>
+                    <span>اتصال در اپلیکیشن SlipNet (پروتکل ضد فیلتر NaiveProxy)</span>
+                    <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:11px; padding:2px 8px; border-radius:12px;">Naive HTTP/2</span>
+                </h4>
+            </div>
+            <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+                <div style="flex:1; min-width:260px;">
+                    <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet NaiveProxy (One-Tap URI):</label>
+                    <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                        <div class="code-box" id="naiveproxy-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
+                        <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('naiveproxy-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
+                            <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                        </button>
+                    </div>
+                    <p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
+                        <i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
+                        پروتکل NaiveProxy ترافیک شما را در پکت‌های مجاز مرورگر کروم و استاندارد HTTP/2 کپسوله می‌کند و بالاترین مقاومت در برابر قطع اینترنت را دارد. با اسکن QR Code در <strong>SlipNet</strong> متصل شوید.
+                    </p>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+                    <div id="naiveproxy-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
+                    <span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
+                </div>
+            </div>
+        </div>
+
     </section>
 </div>

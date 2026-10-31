@@ -14817,7 +14817,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     // --- DNS Tunnels Management ---
     function switchDnsSubTab(tabName) {
-        const tabs = ['dnstt', 'vaydns', 'slipstream', 'noizdns', 'masterdnsvpn'];
+        const tabs = ['dnstt', 'vaydns', 'slipstream', 'noizdns', 'masterdnsvpn', 'doh'];
         tabs.forEach(t => {
             const pane = document.getElementById(`dns-subpane-${t}`);
             const btn = document.getElementById(`dns-tab-btn-${t}`);
@@ -14840,6 +14840,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         else if (tabName === 'slipstream') fetchSlipstreamConfig();
         else if (tabName === 'noizdns') fetchNoizdnsConfig();
         else if (tabName === 'masterdnsvpn') fetchMasterdnsvpnConfig();
+        else if (tabName === 'doh') fetchDohConfig();
     }
 
     function populateSlipnetCard(proto, data) {
@@ -14888,6 +14889,72 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
         } catch(e) {
             console.error("onSlipnetUserChange error:", e);
+        }
+    }
+
+    async function fetchDohConfig() {
+        try {
+            const userSelect = document.getElementById('doh-slipnet-user');
+            const providerSelect = document.getElementById('doh-provider-select');
+            const dohUrl = providerSelect ? providerSelect.value : "https://cloudflare-dns.com/dns-query";
+            const user = userSelect ? userSelect.value : "";
+            
+            // Populate users if empty
+            if (userSelect && userSelect.options.length <= 1) {
+                const uRes = await fetch("/api/dnstt/config");
+                if (uRes.ok) {
+                    const uData = await uRes.json();
+                    if (uData.users && uData.users.length) {
+                        userSelect.innerHTML = "";
+                        uData.users.forEach(u => {
+                            const opt = document.createElement("option");
+                            opt.value = u.username;
+                            opt.textContent = `${u.username} (SSH / VPN)`;
+                            userSelect.appendChild(opt);
+                        });
+                    }
+                    if (uData.domain && document.getElementById('doh-stat-domain')) {
+                        document.getElementById('doh-stat-domain').textContent = uData.domain;
+                    }
+                }
+            }
+
+            const activeUser = userSelect ? userSelect.value : "";
+            const res = await fetch(`/api/dns/slipnet_config?proto=doh&user=${encodeURIComponent(activeUser)}&doh_url=${encodeURIComponent(dohUrl)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            
+            if (data.domain && document.getElementById('doh-stat-domain')) {
+                document.getElementById('doh-stat-domain').textContent = data.domain;
+            }
+            
+            const uriBox = document.getElementById('doh-slipnet-uri-box');
+            if (uriBox && data.uri) {
+                uriBox.textContent = data.uri;
+                renderQrCodeHelper('doh-slipnet-qr', data.uri);
+            }
+        } catch(e) {
+            console.error("fetchDohConfig error:", e);
+        }
+    }
+
+    async function onDohConfigChange() {
+        const userSelect = document.getElementById('doh-slipnet-user');
+        const providerSelect = document.getElementById('doh-provider-select');
+        const uriBox = document.getElementById('doh-slipnet-uri-box');
+        const user = userSelect ? userSelect.value : "";
+        const dohUrl = providerSelect ? providerSelect.value : "https://cloudflare-dns.com/dns-query";
+        
+        try {
+            const res = await fetch(`/api/dns/slipnet_config?proto=doh&user=${encodeURIComponent(user)}&doh_url=${encodeURIComponent(dohUrl)}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            if (data && data.uri) {
+                if (uriBox) uriBox.textContent = data.uri;
+                renderQrCodeHelper('doh-slipnet-qr', data.uri);
+            }
+        } catch(e) {
+            console.error("onDohConfigChange error:", e);
         }
     }
 
@@ -18841,6 +18908,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("naiveproxy-clash-snippet")) {
                 document.getElementById("naiveproxy-clash-snippet").value = clashNaive;
             }
+            if (data.slipnet_uri) {
+                const naiveUriBox = document.getElementById("naiveproxy-slipnet-uri-box");
+                if (naiveUriBox) naiveUriBox.textContent = data.slipnet_uri;
+                renderQrCodeHelper("naiveproxy-slipnet-qr", data.slipnet_uri);
+            }
         } catch (e) {
             console.error("fetchNaiveProxyConfig error:", e);
         }
@@ -18953,6 +19025,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("tor-cfg-nickname")) document.getElementById("tor-cfg-nickname").value = data.nickname;
             if (document.getElementById("tor-cfg-contact")) document.getElementById("tor-cfg-contact").value = data.contact;
             if (document.getElementById("tor-client-bridgeline")) document.getElementById("tor-client-bridgeline").value = data.bridge_line || "";
+            if (data.slipnet_uri) {
+                const torUriBox = document.getElementById("tor-slipnet-uri-box");
+                if (torUriBox) torUriBox.textContent = data.slipnet_uri;
+                renderQrCodeHelper("tor-slipnet-qr", data.slipnet_uri);
+            }
         } catch (e) {
             console.error("fetchTorConfig error:", e);
         }
@@ -19006,6 +19083,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("noizdns-padmin-input")) document.getElementById("noizdns-padmin-input").value = data.padding_min || 16;
             if (document.getElementById("noizdns-padmax-input")) document.getElementById("noizdns-padmax-input").value = data.padding_max || 64;
             if (document.getElementById("noizdns-client-cmd-box")) document.getElementById("noizdns-client-cmd-box").textContent = data.client_cmd || "";
+            populateSlipnetCard('noizdns', data);
         } catch (e) {
             console.error("fetchNoizdnsConfig error:", e);
         }
@@ -19059,6 +19137,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("masterdnsvpn-key-input")) document.getElementById("masterdnsvpn-key-input").value = data.auth_key;
             if (document.getElementById("masterdnsvpn-upstream-select")) document.getElementById("masterdnsvpn-upstream-select").value = data.upstream;
             if (document.getElementById("masterdnsvpn-client-cmd-box")) document.getElementById("masterdnsvpn-client-cmd-box").textContent = data.client_cmd || "";
+            populateSlipnetCard('masterdnsvpn', data);
         } catch (e) {
             console.error("fetchMasterdnsvpnConfig error:", e);
         }
