@@ -3553,3 +3553,107 @@
         </div>
     </div>
 
+    <!-- ============================================================== -->
+    <!-- MODAL: SERVER NODE CONFIG & LIVE STATUS INSPECTOR              -->
+    <!-- ============================================================== -->
+    <div id="gas-server-inspect-modal" class="gas-modal-overlay modal" onclick="if(event.target === this) closeGasServerInspectModal();">
+        <div class="glass-card" style="width:100%; max-width:850px; max-height:92vh; overflow-y:auto; border:1px solid rgba(56,189,248,0.4); background:linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(30,41,59,0.96) 100%); border-radius:16px; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+            
+            <!-- Modal Header -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px; height:36px; border-radius:10px; background:rgba(56,189,248,0.15); color:#38bdf8; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="server" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin:0; font-size:16px; font-weight:700;">بررسی کانفیگ و وضعیت زنده نود سرور (Server Node Inspector)</h3>
+                        <span style="font-size:12px; color:var(--text-muted);">
+                            مشاهده بلادرنگ وضعیت سرویس، مشخصات پورت و فایل‌های کانفیگ فعال روی سرور
+                        </span>
+                    </div>
+                </div>
+                <button type="button" class="gas-tool-btn" onclick="closeGasServerInspectModal();" style="width:32px; height:32px;">
+                    <i data-lucide="x" style="width:16px; height:16px;"></i>
+                </button>
+            </div>
+
+            <!-- Top Row: 4 Metric Cards -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:12px; margin-bottom:18px;">
+                <div class="glass-card" style="padding:12px; border:1px solid rgba(16,185,129,0.3); background:rgba(16,185,129,0.06); border-radius:10px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">وضعیت سرویس (Systemd)</div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="gas-pulse-dot" id="gas-inspect-pulse" style="background:#10b981;"></span>
+                        <span style="font-weight:700; font-size:13px; color:#10b981;" id="gas-inspect-service-status">Active (Running)</span>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="gas-inspect-pid-mem">PID: - | RAM: -</div>
+                </div>
+
+                <div class="glass-card" style="padding:12px; border:1px solid rgba(56,189,248,0.3); background:rgba(56,189,248,0.06); border-radius:10px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">هسته و انجین سرور</div>
+                    <div style="font-weight:700; font-size:13px; color:#38bdf8;" id="gas-inspect-engine">Rust v1.9.38</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">mhrv-tunnel-node</div>
+                </div>
+
+                <div class="glass-card" style="padding:12px; border:1px solid rgba(245,158,11,0.3); background:rgba(245,158,11,0.06); border-radius:10px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">پورت محلی (:8448/health)</div>
+                    <div style="font-weight:700; font-size:13px; color:#f59e0b;" id="gas-inspect-local-health">200 OK (آنلاین)</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="gas-inspect-port">Port: 8448</div>
+                </div>
+
+                <div class="glass-card" style="padding:12px; border:1px solid rgba(168,85,247,0.3); background:rgba(168,85,247,0.06); border-radius:10px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">پروکسی وب (پورت ۸۰/۴۴۳)</div>
+                    <div style="font-weight:700; font-size:13px; color:#a855f7;" id="gas-inspect-apache-health">200 OK (پروکسی فعال)</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="gas-inspect-domain">Apache Reverse Proxy</div>
+                </div>
+            </div>
+
+            <!-- Tab Buttons for File Viewers -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-sm btn-secondary gas-inspect-tab-btn active" id="gas-itab-btn-env" onclick="switchGasInspectTab('env');" style="border-radius:8px; font-size:12px;">
+                        📄 فایل gas_tunnel.env
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary gas-inspect-tab-btn" id="gas-itab-btn-apache" onclick="switchGasInspectTab('apache');" style="border-radius:8px; font-size:12px;">
+                        🌐 پروکسی آپاچی (.conf)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary gas-inspect-tab-btn" id="gas-itab-btn-json" onclick="switchGasInspectTab('json');" style="border-radius:8px; font-size:12px;">
+                        ⚙️ کانفیگ پنل (JSON)
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary gas-inspect-tab-btn" id="gas-itab-btn-logs" onclick="switchGasInspectTab('logs');" style="border-radius:8px; font-size:12px;">
+                        📋 لاگ‌های زنده سرویس
+                    </button>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="loadGasServerInspectData();" title="تازه‌سازی" style="padding:4px 10px;">
+                        <i data-lucide="refresh-cw" style="width:13px; height:13px;"></i> تازه‌سازی
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="copyCurrentGasInspectCode();" style="background:#38bdf8; border-color:#38bdf8; color:#0f172a; font-weight:700; padding:4px 12px;">
+                        <i data-lucide="copy" style="width:13px; height:13px;"></i> کپی محتوا
+                    </button>
+                </div>
+            </div>
+
+            <!-- File Viewer Code Box -->
+            <div style="position:relative; margin-bottom:16px;">
+                <pre id="gas-inspect-code-box" style="margin:0; background:rgba(0,0,0,0.65); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:14px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#e2e8f0; max-height:340px; overflow-y:auto; line-height:1.6; direction:ltr; white-space:pre-wrap; word-break:break-all;">در حال بارگذاری اطلاعات نود سرور...</pre>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:14px;">
+                <span style="font-size:11.5px; color:var(--text-muted);">
+                    مسیر باینری نود: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">/usr/local/bin/mhrv-tunnel-node</code>
+                </span>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="restartGasService();" style="display:inline-flex; align-items:center; gap:5px;">
+                        <i data-lucide="rotate-cw" style="width:13px; height:13px;"></i> راه‌اندازی مجدد سرویس نود
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeGasServerInspectModal();">
+                        بستن
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+

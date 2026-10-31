@@ -25270,6 +25270,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("gas-cfg-port")) document.getElementById("gas-cfg-port").value = data.port || (gasCachedConfig && gasCachedConfig.port) || 8448;
             if (document.getElementById("gas-cfg-secret")) document.getElementById("gas-cfg-secret").value = (gasCachedConfig && gasCachedConfig.secret) || "";
             if (document.getElementById("gas-cfg-singbox-target")) document.getElementById("gas-cfg-singbox-target").value = (gasCachedConfig && gasCachedConfig.singbox_target) || "127.0.0.1:20443";
+            if (document.getElementById("gas-cfg-tunnel-url")) document.getElementById("gas-cfg-tunnel-url").value = (gasCachedConfig && gasCachedConfig.tunnel_server_url) || (data.tunnel_server_url) || (data.server_domain ? ('http://' + data.server_domain) : "");
         } catch (e) {
             console.error("fetchGasClientConfigs error:", e);
         }
@@ -25279,13 +25280,14 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const port = parseInt(document.getElementById("gas-cfg-port")?.value || "8448");
         const secret = (document.getElementById("gas-cfg-secret")?.value || "").trim();
         const singbox_target = (document.getElementById("gas-cfg-singbox-target")?.value || "127.0.0.1:20443").trim();
+        const tunnel_server_url = (document.getElementById("gas-cfg-tunnel-url")?.value || "").trim();
 
         toggleLoading(true, "در حال ذخیره تنظیمات نود سرور...");
         try {
             const res = await fetch("/api/google_script/config", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ port, secret, singbox_target })
+                body: JSON.stringify({ port, secret, singbox_target, tunnel_server_url })
             });
             const data = await res.json();
             toggleLoading(false);
@@ -25327,6 +25329,118 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const input = document.getElementById("gas-cfg-secret");
         if (input) input.value = sec;
         showToast("کلید امنیتی جدید ایجاد شد. برای اعمال، روی ذخیره تنظیمات کلیک کنید.", "info");
+    }
+
+    // ==============================================================
+    // SERVER NODE CONFIG & LIVE STATUS INSPECTOR
+    // ==============================================================
+    let gasInspectCachedData = null;
+    let gasCurrentInspectTab = 'env';
+
+    async function openGasServerInspectModal() {
+        const modal = document.getElementById("gas-server-inspect-modal");
+        if (modal) {
+            modal.classList.add("show");
+            modal.style.display = "flex";
+        }
+        await loadGasServerInspectData();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeGasServerInspectModal() {
+        const modal = document.getElementById("gas-server-inspect-modal");
+        if (modal) {
+            modal.classList.remove("show");
+            modal.style.display = "none";
+        }
+    }
+
+    async function loadGasServerInspectData() {
+        const codeBox = document.getElementById("gas-inspect-code-box");
+        if (codeBox) codeBox.textContent = "در حال ارتباط با سرور و بررسی فایل‌های کانفیگ...";
+
+        try {
+            const res = await fetch("/api/google_script/server_inspect");
+            const data = await res.json();
+            if (!data.success) {
+                if (codeBox) codeBox.textContent = "خطا در دریافت اطلاعات نود سرور: " + (data.error || "خطای ناشناخته");
+                return;
+            }
+
+            gasInspectCachedData = data;
+
+            // Update top cards
+            const servEl = document.getElementById("gas-inspect-service-status");
+            const pulseEl = document.getElementById("gas-inspect-pulse");
+            if (servEl) {
+                servEl.textContent = data.is_active ? "Active (Running)" : "Inactive (Stopped)";
+                servEl.style.color = data.is_active ? "#10b981" : "#ef4444";
+            }
+            if (pulseEl) pulseEl.style.background = data.is_active ? "#10b981" : "#ef4444";
+
+            const pidMemEl = document.getElementById("gas-inspect-pid-mem");
+            if (pidMemEl) pidMemEl.textContent = `PID: ${data.pid || '-'} | RAM: ${data.memory || '-'}`;
+
+            const engEl = document.getElementById("gas-inspect-engine");
+            if (engEl) engEl.textContent = data.backend_engine || "Rust Core";
+
+            const locEl = document.getElementById("gas-inspect-local-health");
+            if (locEl) locEl.textContent = data.local_health || "-";
+
+            const portEl = document.getElementById("gas-inspect-port");
+            if (portEl) portEl.textContent = `Port: ${data.port || '8448'}`;
+
+            const apEl = document.getElementById("gas-inspect-apache-health");
+            if (apEl) apEl.textContent = data.apache_health || "-";
+
+            const domEl = document.getElementById("gas-inspect-domain");
+            if (domEl) domEl.textContent = data.server_domain || "vpn.kigaping.com";
+
+            renderGasInspectTabContent();
+        } catch (e) {
+            console.error("loadGasServerInspectData error:", e);
+            if (codeBox) codeBox.textContent = "خطای ارتباط با سرور: " + String(e);
+        }
+    }
+
+    function switchGasInspectTab(tab) {
+        gasCurrentInspectTab = tab;
+        document.querySelectorAll(".gas-inspect-tab-btn").forEach(btn => btn.classList.remove("active"));
+        const activeBtn = document.getElementById(`gas-itab-btn-${tab}`);
+        if (activeBtn) activeBtn.classList.add("active");
+        renderGasInspectTabContent();
+    }
+
+    function renderGasInspectTabContent() {
+        const codeBox = document.getElementById("gas-inspect-code-box");
+        if (!codeBox || !gasInspectCachedData) return;
+
+        let content = "";
+        switch (gasCurrentInspectTab) {
+            case "env":
+                content = `# مسیر فایل در سرور: /etc/vpnpanel/gas_tunnel.env\n# متغیرهای محیطی سرویس mhpanel-gas-tunnel\n\n` + (gasInspectCachedData.env_content || "# فایلی یافت نشد");
+                break;
+            case "apache":
+                content = `# مسیر فایل در سرور: /www/server/panel/vhost/apache/gas_tunnel_proxy.conf\n# ریورس پروکسی آپاچی برای پورت‌های استاندارد ۸۰ و ۴۴۳ به نود سرور\n\n` + (gasInspectCachedData.apache_proxy_conf || "# کانفیگی یافت نشد");
+                break;
+            case "json":
+                content = `// مسیر فایل در سرور: /etc/vpnpanel/google_script.json\n// ساختار کامل دیتابیس پنل شامل اکانت‌ها، ورکرها و توکن‌ها\n\n` + (gasInspectCachedData.gas_json_content || "{}");
+                break;
+            case "logs":
+                content = `// آخرین ۲۰ لاگ ژورنال سرویس mhpanel-gas-tunnel:\n\n` + (gasInspectCachedData.recent_logs || "لاگی ثبت نشده است.");
+                break;
+        }
+        codeBox.textContent = content;
+    }
+
+    function copyCurrentGasInspectCode() {
+        const codeBox = document.getElementById("gas-inspect-code-box");
+        if (!codeBox || !codeBox.textContent) return;
+        navigator.clipboard.writeText(codeBox.textContent).then(() => {
+            showToast("محتوای فایل کانفیگ در حافظه کپی شد.", "success");
+        }).catch(() => {
+            showToast("خطا در کپی کردن متن", "error");
+        });
     }
 
     // --- 8. QR CODE & UTILITIES ---

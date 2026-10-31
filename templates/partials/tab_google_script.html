@@ -1289,11 +1289,15 @@
             <div class="glass-card config-card" style="border:1px solid var(--border-glow);">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
                     <div>
-                        <h4 style="margin:0; font-size:15px; font-weight:700;">تنظیمات سرویس نود خروجی سرور (mhpanel-gas-tunnel)</h4>
-                        <span style="font-size:12px; color:var(--text-muted);">پورت و کلید احراز هویت سرویس mhrv-tunnel-node</span>
+                        <h4 style="margin:0; font-size:15px; font-weight:700;">تنظیمات و بررسی کانفیگ سرور (mhrv-tunnel-node)</h4>
+                        <span style="font-size:12px; color:var(--text-muted);">پورت، دامنه، کلید امنیتی و وضعیت زنده کانفیگ‌های سمت سرور</span>
                     </div>
-                    <div style="display:flex; gap:8px;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="restartGasService();" style="padding:6px 12px;">
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-sm btn-info" onclick="openGasServerInspectModal();" style="background:rgba(56,189,248,0.15); border:1px solid rgba(56,189,248,0.4); color:#38bdf8; display:inline-flex; align-items:center; gap:6px; padding:6px 14px; font-weight:600;">
+                            <i data-lucide="terminal" style="width:14px; height:14px;"></i>
+                            <span>بررسی کامل کانفیگ سرور (Inspector)</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="restartGasService();" style="padding:6px 12px; display:inline-flex; align-items:center; gap:5px;">
                             <i data-lucide="rotate-cw" style="width:13px; height:13px;"></i> راه‌اندازی مجدد سرویس
                         </button>
                     </div>
@@ -1301,7 +1305,14 @@
 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
                     <div class="form-group" style="margin-bottom:0;">
-                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">پورت شنود سرور (Port)</label>
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">دامنه یا آدرس سرور (Tunnel URL)</label>
+                        <div class="gas-input-composite">
+                            <input type="text" id="gas-cfg-tunnel-url" placeholder="http://vpn.kigaping.com" style="font-family:'JetBrains Mono'; direction:ltr;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">پورت شنود محلی سرور (Port)</label>
                         <div class="gas-input-composite">
                             <input type="number" id="gas-cfg-port" value="8448" style="font-family:'JetBrains Mono'; direction:ltr;">
                         </div>
@@ -1328,6 +1339,18 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Quick Server Status Bar -->
+                <div id="gas-server-quick-status-bar" style="margin-bottom:14px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:10px 14px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; font-size:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="gas-pulse-dot" id="gas-server-status-dot" style="background:#10b981;"></span>
+                        <span style="font-weight:700; color:var(--text-main);" id="gas-server-status-label">سرویس نود سرور: فعال (mhrv-tunnel-node Rust)</span>
+                        <span style="color:var(--text-muted); margin-right:8px;" id="gas-server-status-details">پورت محلی: ۸۴۴۸ | پروکسی وب آپاچی: فعال روی پورت ۸۰/۴۴۳</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openGasServerInspectModal();" style="font-size:11.5px; padding:4px 12px; display:inline-flex; align-items:center; gap:5px;">
+                        <i data-lucide="file-text" style="width:13px; height:13px;"></i> مشاهده فایل‌های کانفیگ سمت سرور
+                    </button>
                 </div>
 
                 <div style="display:flex; justify-content:flex-end;">

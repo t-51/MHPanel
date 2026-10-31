@@ -16,7 +16,10 @@ def get_gas_cf_templates(cfg, server_ip, srv_dom, port, secret, singbox_target, 
     custom_url = cfg.get("tunnel_server_url", "").strip()
     
     if custom_url:
-        tunnel_node_url = custom_url
+        if not custom_url.startswith("http://") and not custom_url.startswith("https://"):
+            tunnel_node_url = f"http://{custom_url}"
+        else:
+            tunnel_node_url = custom_url
     elif srv_dom:
         tunnel_node_url = f"http://{srv_dom}"
     else:

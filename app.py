@@ -26838,6 +26838,7 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443",
         try:
             with open(code_full_path, "r", encoding="utf-8") as f:
                 full_tunnel_gas = f.read()
+            cf_worker_url = cfg.get("cloudflare", {}).get("worker_url", "")
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const AUTH_KEY = "CHANGE_ME_TO_A_STRONG_SECRET";',
                 f'const AUTH_KEY = "{secret}";\nconst GAS_ACCOUNT_ID = "{acc_id}";'
@@ -26845,6 +26846,10 @@ def get_gas_templates(server_ip, port, secret, singbox_target="127.0.0.1:20443",
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const TUNNEL_SERVER_URL = "https://YOUR_TUNNEL_NODE_URL";',
                 f'const TUNNEL_SERVER_URL = "{tunnel_node_url}";'
+            )
+            full_tunnel_gas = full_tunnel_gas.replace(
+                'const CLOUDFLARE_WORKER_URL = "";',
+                f'const CLOUDFLARE_WORKER_URL = "{cf_worker_url}";'
             )
             full_tunnel_gas = full_tunnel_gas.replace(
                 'const TUNNEL_AUTH_KEY = "YOUR_TUNNEL_AUTH_KEY";',
@@ -27278,6 +27283,102 @@ def api_google_script_status():
         "active_account": active_account,
         "cloudflare": cfg.get("cloudflare", {}),
         "server_domain": get_server_domain()
+    })
+
+@app.route("/api/google_script/server_inspect", methods=["GET"])
+def api_google_script_server_inspect():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    cfg = get_gas_config()
+    port = cfg.get("port", 8448)
+    secret = cfg.get("secret", "")
+    srv_dom = get_server_domain() or get_server_public_ip()
+    
+    # 1. Systemctl status
+    res = subprocess.run(["systemctl", "is-active", "mhpanel-gas-tunnel"], capture_output=True, text=True)
+    is_active = (res.stdout.strip() == "active")
+    
+    status_output = subprocess.run(["systemctl", "status", "mhpanel-gas-tunnel", "--no-pager"], capture_output=True, text=True).stdout
+    
+    # 2. Extract PID and memory
+    pid = "-"
+    mem = "-"
+    for line in status_output.splitlines():
+        if "Main PID:" in line:
+            parts = line.split("Main PID:")
+            if len(parts) > 1:
+                pid = parts[1].split()[0]
+        if "Memory:" in line:
+            parts = line.split("Memory:")
+            if len(parts) > 1:
+                mem = parts[1].strip()
+
+    # 3. Local health test
+    local_health = "offline"
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}/health")
+        with urllib.request.urlopen(req, timeout=1.5) as r:
+            if r.status == 200:
+                local_health = "200 OK (پاسخ معتبر)"
+    except Exception as e:
+        local_health = f"خطا: {str(e)}"
+
+    # 4. Apache proxy health test
+    apache_health = "offline"
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1/health")
+        with urllib.request.urlopen(req, timeout=1.5) as r:
+            if r.status == 200:
+                apache_health = "200 OK (پروکسی پورت ۸۰ و ۴۴۳ فعال)"
+    except Exception as e:
+        apache_health = f"خطا: {str(e)}"
+
+    # 5. Read config files
+    env_content = ""
+    if os.path.exists("/etc/vpnpanel/gas_tunnel.env"):
+        try:
+            with open("/etc/vpnpanel/gas_tunnel.env", "r", encoding="utf-8") as f:
+                env_content = f.read()
+        except Exception:
+            pass
+
+    apache_proxy_conf = ""
+    apache_conf_path = "/www/server/panel/vhost/apache/gas_tunnel_proxy.conf"
+    if os.path.exists(apache_conf_path):
+        try:
+            with open(apache_conf_path, "r", encoding="utf-8") as f:
+                apache_proxy_conf = f.read()
+        except Exception:
+            pass
+
+    gas_json_content = ""
+    if os.path.exists(GAS_CONFIG_FILE):
+        try:
+            with open(GAS_CONFIG_FILE, "r", encoding="utf-8") as f:
+                gas_json_content = f.read()
+        except Exception:
+            pass
+
+    # 6. Recent logs
+    logs_output = subprocess.run(["journalctl", "-u", "mhpanel-gas-tunnel", "-n", "20", "--no-pager"], capture_output=True, text=True).stdout
+
+    return jsonify({
+        "success": True,
+        "is_active": is_active,
+        "pid": pid,
+        "memory": mem,
+        "port": port,
+        "secret": secret,
+        "tunnel_server_url": cfg.get("tunnel_server_url") or f"http://{srv_dom}",
+        "server_domain": srv_dom,
+        "backend_engine": "mhrv-tunnel-node v1.9.38 (Official Rust Core)",
+        "local_health": local_health,
+        "apache_health": apache_health,
+        "env_content": env_content,
+        "apache_proxy_conf": apache_proxy_conf,
+        "gas_json_content": gas_json_content,
+        "recent_logs": logs_output
     })
 
 @app.route("/api/google_script/config", methods=["GET", "POST"])
