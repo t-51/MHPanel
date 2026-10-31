@@ -23769,6 +23769,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const cf_api_token = (document.getElementById("gas-wz-cf-token")?.value || "").trim();
         const cf_account_id = (document.getElementById("gas-wz-cf-acc-id")?.value || "").trim();
         const cf_worker_name = (document.getElementById("gas-wz-cf-worker-name")?.value || "mhpanel-gas-relay").trim();
+        const template_id = (document.getElementById("gas-wz-template-select")?.value || "").trim();
         const auto_deploy = !!document.getElementById("gas-wz-auto-deploy")?.checked;
         const set_active = !!document.getElementById("gas-wz-set-active")?.checked;
 
@@ -23824,12 +23825,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 showToast(data.error || "خطا در ایجاد حساب", "error");
             }
         } catch (e) {
+            console.error("submitGasWizard error:", e);
             toggleLoading(false);
             if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = `ایجاد و استقرار حساب`;
             }
-            showToast("خطای شبکه در ارتباط با سرور", "error");
+            showToast("خطا در ایجاد/استقرار: " + (e.message || "خطای ارتباط با سرور"), "error");
         }
     }
 

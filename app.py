@@ -27803,34 +27803,32 @@ def deploy_cloudflare_worker_internal(cfg, api_token=None, account_id=None, work
         
     worker_script = (custom_script.strip() if (custom_script and custom_script.strip()) else generate_cloudflare_worker_code(cfg))
     
-    cf_headers = {
-        "Authorization": f"Bearer {api_token}",
-        "Content-Type": "application/javascript"
-    }
-    
     script_url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/workers/scripts/{worker_name}"
     try:
-        req = urllib.request.Request(
-            script_url,
-            data=worker_script.encode("utf-8"),
-            headers=cf_headers,
-            method="PUT"
-        )
-        with urllib.request.urlopen(req, timeout=25) as r:
-            res_body = json.loads(r.read().decode("utf-8"))
-            if not res_body.get("success"):
-                err_msg = "; ".join([e.get("message", "") for e in res_body.get("errors", [])])
-                return False, {"error": f"خطای کلودفلر: {err_msg}"}
-    except urllib.error.HTTPError as e:
-        err_content = e.read().decode("utf-8", errors="ignore")
+        import requests
+        if "export default" in worker_script:
+            files = {
+                "metadata": (None, json.dumps({"main_module": "worker.js", "compatibility_date": "2026-01-01"}), "application/json"),
+                "worker.js": ("worker.js", worker_script.encode("utf-8"), "application/javascript+module")
+            }
+            r = requests.put(script_url, headers={"Authorization": f"Bearer {api_token}"}, files=files, timeout=25)
+        else:
+            cf_headers = {
+                "Authorization": f"Bearer {api_token}",
+                "Content-Type": "application/javascript"
+            }
+            r = requests.put(script_url, headers=cf_headers, data=worker_script.encode("utf-8"), timeout=25)
+
         try:
-            err_json = json.loads(err_content)
-            err_msg = "; ".join([x.get("message", "") for x in err_json.get("errors", [])])
+            res_body = r.json()
         except Exception:
-            err_msg = err_content
-        return False, {"error": f"خطا در ارتباط با Cloudflare (کد {e.code}): {err_msg}"}
+            res_body = {}
+
+        if not r.ok or not res_body.get("success"):
+            err_msg = "; ".join([e.get("message", "") for e in res_body.get("errors", [])]) or r.text
+            return False, {"error": f"خطای کلودفلر: {err_msg}"}
     except Exception as e:
-        return False, {"error": f"خطای شبکه: {str(e)}"}
+        return False, {"error": f"خطای ارتباط با کلودفلر: {str(e)}"}
 
     subdomain = ""
     try:
