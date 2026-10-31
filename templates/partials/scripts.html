@@ -7067,6 +7067,80 @@
     });
 
     // --- MTProto Multi-Proxy & Sponsorship Management ---
+    function generateHex32() {
+        try {
+            const bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+            return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+            let s = '';
+            for (let i = 0; i < 32; i++) s += Math.floor(Math.random() * 16).toString(16);
+            return s;
+        }
+    }
+
+    function generateRandomGlobalAdTag() {
+        const tag = generateHex32();
+        const input = document.getElementById("global-mtproto-ad-tag");
+        if (input) {
+            input.value = tag;
+            showToast("تگ هکس ۳۲ کاراکتری تولید شد. جهت اعمال دکمه «ثبت و اعمال» را بزنید.", "info");
+        }
+    }
+
+    function generateNewInstanceSecret() {
+        const secret = generateHex32();
+        const input = document.getElementById("mtproto-secret");
+        if (input) {
+            input.value = secret;
+            showToast("کلید سکرت جدید هگز تولید شد", "info");
+        }
+    }
+
+    function generateNewInstanceAdTag() {
+        const tag = generateHex32();
+        const input = document.getElementById("mtproto-ad-tag");
+        if (input) {
+            input.value = tag;
+            showToast("تگ هکس ۳۲ کاراکتری تولید شد", "info");
+        }
+    }
+
+    let _lastMtprotoInstances = [];
+    function copyFirstInstanceHostPort() {
+        if (_lastMtprotoInstances.length > 0) {
+            const inst = _lastMtprotoInstances[0];
+            const host = inst.server_domain || inst.server_ip || window.location.hostname;
+            const text = `${host}:${inst.port}`;
+            navigator.clipboard.writeText(text);
+            showToast(`آدرس دامنه ${text} در کلیپ‌بورد کپی شد`, "success");
+        } else {
+            showToast("ابتدا یک اینستنس پروکسی بسازید", "warning");
+        }
+    }
+
+    function copyFirstInstanceIpPort() {
+        if (_lastMtprotoInstances.length > 0) {
+            const inst = _lastMtprotoInstances[0];
+            const ip = inst.server_ip || window.location.hostname;
+            const text = `${ip}:${inst.port}`;
+            navigator.clipboard.writeText(text);
+            showToast(`آدرس آی‌پی ${text} در کلیپ‌بورد کپی شد`, "success");
+        } else {
+            showToast("ابتدا یک اینستنس پروکسی بسازید", "warning");
+        }
+    }
+
+    function copyFirstInstanceSecret() {
+        if (_lastMtprotoInstances.length > 0 && _lastMtprotoInstances[0].secret) {
+            const secret = _lastMtprotoInstances[0].secret;
+            navigator.clipboard.writeText(secret);
+            showToast(`کلید سکرت هگز در کلیپ‌بورد کپی شد`, "success");
+        } else {
+            showToast("سکرت یافت نشد", "warning");
+        }
+    }
+
     async function fetchMtprotoInstances() {
         const container = document.getElementById("mtproto-instances");
         if (!container) return;
@@ -7074,6 +7148,7 @@
         try {
             const res = await fetch("/api/mtproto/instances");
             const instances = await res.json();
+            _lastMtprotoInstances = instances || [];
             
             const countBadge = document.getElementById("mtproto-instances-count");
             if (countBadge) {
@@ -7086,10 +7161,15 @@
                     countBadge.textContent = `${activeCount} فعال از ${instances.length} پروکسی`;
                 }
             }
+
+            const secretInput = document.getElementById("mtproto-secret");
+            if (secretInput && !secretInput.value) {
+                secretInput.value = generateHex32();
+            }
             
             container.innerHTML = "";
             if (instances.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding:24px; font-size:13px; color:var(--text-muted); background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1;">${window.t("no_telegram_proxy_instance_create", "هیچ اینستنس پروکسی تلگرامی تعریف نشده است. می‌توانید از کادر سمت چپ اینستنس جدید بسازید.")}</div>`;
+                container.innerHTML = `<div style="text-align:center; padding:24px; font-size:13px; color:var(--text-muted); background:#f8fafc; border-radius:10px; border:1px dashed #cbd5e1;">${window.t ? window.t("no_telegram_proxy_instance_create", "هیچ اینستنس پروکسی تلگرامی تعریف نشده است. می‌توانید از کادر سمت چپ اینستنس جدید بسازید.") : "هیچ اینستنس پروکسی تلگرامی تعریف نشده است."}</div>`;
                 return;
             }
             
@@ -7103,15 +7183,18 @@
             instances.forEach(inst => {
                 const serverHost = inst.server_domain || window.location.hostname;
                 const serverIp = inst.server_ip || window.location.hostname;
+                const hostPort = `${serverHost}:${inst.port}`;
+                const ipPort = `${serverIp}:${inst.port}`;
                 const card = document.createElement("div");
                 card.className = "wg-client-item";
                 card.style.cssText = "display:flex; flex-direction:column; gap:12px; padding:16px; background:#ffffff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.02);";
                 
-                const fakeTlsLink = `tg://proxy?server=${serverHost}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
-                const webTlsLink = `https://t.me/proxy?server=${serverHost}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
-                const classicLink = `tg://proxy?server=${serverHost}&port=${inst.port}&secret=${inst.standard_secret || ('dd' + inst.secret)}`;
+                const fakeTlsIpLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
+                const fakeTlsDomainLink = `tg://proxy?server=${serverHost}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
+                const webTlsLink = `https://t.me/proxy?server=${serverIp}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
+                const classicLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.standard_secret || ('dd' + inst.secret)}`;
                 
-                const hasSponsor = inst.has_sponsor || (inst.ad_tag && inst.ad_tag.length >= 16);
+                const hasSponsor = inst.has_sponsor || (inst.ad_tag && inst.ad_tag.length === 32);
                 
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
@@ -7120,45 +7203,85 @@
                                 Port :${inst.port}
                             </span>
                             ${inst.active 
-                                ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active" style="width:6px; height:6px;"></span> ${window.t("فعال")}</span>` 
-                                : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot inactive" style="width:6px; height:6px;"></span> ${window.t("متوقف")}</span>`}
+                                ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active" style="width:6px; height:6px;"></span> ${window.t ? window.t("فعال") : "فعال"}</span>` 
+                                : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot inactive" style="width:6px; height:6px;"></span> ${window.t ? window.t("متوقف") : "متوقف"}</span>`}
                             ${hasSponsor
-                                ? `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="megaphone" style="width:12px; height:12px;"></i> ${window.t("اسپانسر فعال")}</span>`
-                                : `<span style="font-size:11px; background:#fef3c7; color:#b45309; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="alert-circle" style="width:12px; height:12px;"></i> ${window.t("بدون اسپانسر")}</span>`}
+                                ? `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="megaphone" style="width:12px; height:12px;"></i> تگ اسپانسر هکس فعال</span>`
+                                : `<span style="font-size:11px; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i> بدون اسپانسر (اتصال مستقیم Core DC)</span>`}
                         </div>
                         <div style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:6px;">
                             <i data-lucide="users" style="width:14px; height:14px; color:#0284c7;"></i>
-                            ${window.t("اتصالات فعال:")} <strong style="color:#0f172a;">${inst.active ? inst.connections : 0}</strong>
+                            اتصالات فعال: <strong style="color:#0f172a;">${inst.active ? inst.connections : 0}</strong>
                         </div>
                     </div>
 
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.05); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:6px; font-size:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                            <span style="color:#64748b;">کلید سکرت (Secret):</span>
-                            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#334155; word-break:break-all;">${inst.secret}</span>
+                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.05); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="color:#64748b; font-weight:600;">آدرس آی‌پی (پیشنهادی اتصال):</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#0369a1; font-weight:700;">${ipPort}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${ipPort}'); showToast('آدرس آی‌پی و پورت کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی آی‌پی:پورت">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="color:#64748b; font-weight:600;">آدرس دامنه:</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#475569;">${hostPort}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${hostPort}'); showToast('آدرس دامنه و پورت کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی دامنه:پورت">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="color:#64748b; font-weight:600;">سکرت هگز (Secret):</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#334155; word-break:break-all;">${inst.secret}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inst.secret}'); showToast('سکرت هگز جهت ارسال به ربات کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی سکرت هگز جهت ارسال به ربات">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="editInstanceSecret(${inst.port}, '${inst.secret}')" style="padding:2px 7px; font-size:11px;" title="تغییر یا ساخت سکرت جدید">
+                                    <i data-lucide="refresh-cw" style="width:11px; height:11px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="color:#64748b; font-weight:600;">تگ اسپانسر تلگرام (Ad Tag):</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:${hasSponsor ? '#0284c7' : '#94a3b8'}; word-break:break-all;">
+                                    ${inst.ad_tag ? inst.ad_tag : 'تنظیم نشده (بدون کانال - اتصال مستقیم فعال)'}
+                                </span>
+                                ${inst.ad_tag ? `<button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inst.ad_tag}'); showToast('تگ هکس اسپانسر کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی تگ"><i data-lucide="copy" style="width:11px; height:11px;"></i></button>` : ''}
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="setInstanceAdTag(${inst.port}, '${inst.ad_tag || ''}')" style="padding:2px 7px; font-size:11px;" title="تنظیم یا حذف تگ اسپانسر">
+                                    <i data-lucide="edit-3" style="width:11px; height:11px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
                             <span style="color:#64748b;">پوشش Fake TLS:</span>
-                            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#0284c7;">${inst.tls_domain || 'www.cloudflare.com'}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                            <span style="color:#64748b;">تگ اسپانسر (Ad Tag):</span>
-                            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:${hasSponsor ? '#0284c7' : '#94a3b8'}; word-break:break-all;">
-                                ${inst.ad_tag ? inst.ad_tag : 'تنظیم نشده (بدون کانال)'}
-                            </span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#0284c7;">${inst.tls_domain || 'www.cloudflare.com'}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="editInstanceTlsDomain(${inst.port}, '${inst.tls_domain || 'www.cloudflare.com'}')" style="padding:2px 7px; font-size:11px;" title="تغییر دامنه پوششی Fake TLS">
+                                    <i data-lucide="globe" style="width:11px; height:11px;"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Fast Action Buttons -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsLink}'); showToast('لینک ضد فیلتر Fake TLS در کلیپ‌بورد کپی شد!', 'success');" style="flex:1; min-width:140px; padding:6px 12px; font-size:12px;">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک Fake TLS (ضد فیلتر)
+                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک مستقیم ضد فیلتر Fake TLS با آی‌پی کپی شد!', 'success');" style="flex:1.2; min-width:160px; padding:6px 12px; font-size:12px;">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک Fake TLS (آی‌پی - ضد فیلتر)
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک با دامنه کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
+                            <i data-lucide="link-2" style="width:13px; height:13px; margin-left:4px;"></i> با دامنه
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک کلاسیک (dd) کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک کلاسیک تلگرام">
+                            <i data-lucide="shield" style="width:13px; height:13px; margin-left:4px;"></i> سکرت dd
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${webTlsLink}'); showToast('لینک تلگرام تحت وب کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم t.me">
-                            <i data-lucide="globe" style="width:13px; height:13px; margin-left:4px;"></i> لینک وب
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="setInstanceAdTag(${inst.port}, '${inst.ad_tag || ''}')" style="width:auto; padding:6px 10px; font-size:12px;" title="تنظیم یا تغییر تگ اسپانسر این پورت">
-                            <i data-lucide="megaphone" style="width:13px; height:13px; margin-left:4px;"></i> ${hasSponsor ? 'تغییر تگ اسپانسر' : 'افزودن اسپانسر'}
+                            <i data-lucide="globe" style="width:13px; height:13px; margin-left:4px;"></i> لینک t.me
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMtprotoInstance(${inst.port}, '${inst.active ? 'stop' : 'start'}')" style="width:auto; padding:6px 10px; font-size:12px;">
                             <i data-lucide="${inst.active ? 'power-off' : 'play'}" style="width:13px; height:13px; margin-left:4px;"></i> ${inst.active ? 'توقف' : 'شروع'}
@@ -7171,7 +7294,7 @@
                         </button>
                     </div>
                 `;
-                card.setAttribute("data-username", username);
+                card.setAttribute("data-port", inst.port);
                 container.appendChild(card);
             });
             if (typeof lucide !== 'undefined') {
@@ -7180,6 +7303,54 @@
         } catch (err) {
             console.error("fetchMtprotoInstances error:", err);
         }
+    }
+
+    async function editInstanceSecret(port, currentSecret) {
+        const promptVal = prompt(`کلید سکرت هگز ۳۲ رقمی برای پورت ${port} را وارد کنید (جهت تولید خودکار سکرت تصادفی خالی بگذارید):`, currentSecret || "");
+        if (promptVal === null) return;
+        const secret = promptVal.trim() || generateHex32();
+        toggleLoading(true, `در حال بروزرسانی سکرت پورت ${port}...`);
+        try {
+            const res = await fetch(`/api/mtproto/instances/${port}/secret`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ secret: secret })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("کلید سکرت جدید با موفقیت اعمال شد", "success");
+                fetchMtprotoInstances();
+            } else {
+                showToast(data.error || "خطا در تنظیم سکرت", "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    async function generateAndSetInstanceTag(port) {
+        const tag = generateHex32();
+        if (!confirm(`آیا می‌خواهید یک تگ هکس ۳۲ رقمی جدید (${tag}) برای پورت ${port} ساخته و ذخیره شود؟`)) return;
+        toggleLoading(true, `در حال ذخیره تگ هکس پورت ${port}...`);
+        try {
+            const res = await fetch(`/api/mtproto/instances/${port}/ad-tag`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ad_tag: tag })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(`تگ هکس جدید (${tag}) اعمال شد`, "success");
+                fetchMtprotoInstances();
+                fetchProtocols();
+            } else {
+                showToast(data.error || "خطا در ثبت تگ", "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
     }
 
     async function saveGlobalMtprotoAdTag() {
@@ -7236,7 +7407,7 @@
     }
 
     async function setInstanceAdTag(port, currentTag) {
-        const newTag = prompt(`تگ اسپانسر دریافتی از @MTProxybot برای پورت ${port} را وارد کنید (جهت غیرفعال‌سازی خالی بگذارید):`, currentTag || "");
+        const newTag = prompt(`تگ اسپانسر دریافتی از @MTProxybot برای پورت ${port} را وارد کنید (جهت غیرفعال‌سازی و اتصال مستقیم خالی بگذارید):`, currentTag || "");
         if (newTag === null) return;
         
         toggleLoading(true, `در حال بروزرسانی تگ اسپانسر پورت ${port}...`);
@@ -7255,6 +7426,30 @@
                 showToast(data.error || "خطا در تنظیم تگ", "error");
             }
         } catch (err) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
+    }
+
+    async function editInstanceTlsDomain(port, currentDomain) {
+        const promptVal = prompt(`دامنه پوششی Fake TLS برای پورت ${port} را وارد کنید (پیش‌فرض: www.cloudflare.com یا dl.google.com):`, currentDomain || "www.cloudflare.com");
+        if (promptVal === null) return;
+        const domain = promptVal.trim() || "www.cloudflare.com";
+        toggleLoading(true, `در حال بروزرسانی دامنه TLS پورت ${port}...`);
+        try {
+            const res = await fetch(`/api/mtproto/instances/${port}/tls-domain`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ tls_domain: domain })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("دامنه Fake TLS با موفقیت تغییر کرد", "success");
+                fetchMtprotoInstances();
+            } else {
+                showToast(data.error || "خطا در تغییر دامنه TLS", "error");
+            }
+        } catch (e) {
             showToast("خطای ارتباط با سرور", "error");
         }
         toggleLoading(false);
@@ -7327,7 +7522,9 @@
 
     document.getElementById("mtproto-add-btn")?.addEventListener("click", async () => {
         const portVal = parseInt(document.getElementById("mtproto-port").value);
+        const secretVal = (document.getElementById("mtproto-secret")?.value || "").trim();
         const adTagVal = (document.getElementById("mtproto-ad-tag")?.value || "").trim();
+        const tlsDomainVal = (document.getElementById("mtproto-tls-domain")?.value || "").trim();
         if (!portVal) {
             showToast("لطفاً شماره پورت را وارد کنید", "warning");
             return;
@@ -7338,12 +7535,18 @@
             const res = await fetch("/api/mtproto/instances", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ port: portVal, ad_tag: adTagVal })
+                body: JSON.stringify({ 
+                    port: portVal, 
+                    secret: secretVal, 
+                    ad_tag: adTagVal, 
+                    tls_domain: tlsDomainVal 
+                })
             });
             const data = await res.json();
             if (res.ok && data.success) {
                 showToast(`پروکسی تلگرام روی پورت ${portVal} با موفقیت ساخته شد`, "success");
                 if (document.getElementById("mtproto-port")) document.getElementById("mtproto-port").value = "";
+                if (document.getElementById("mtproto-secret")) document.getElementById("mtproto-secret").value = generateHex32();
                 if (document.getElementById("mtproto-ad-tag")) document.getElementById("mtproto-ad-tag").value = "";
                 fetchMtprotoInstances();
                 fetchProtocols();
@@ -8021,6 +8224,8 @@
             fetchDnsttConfig();
             fetchVaydnsConfig();
             fetchSlipstreamConfig();
+            fetchNoizdnsConfig();
+            fetchMasterdnsvpnConfig();
         } else if (tabId === "ssl") {
             fetchSSLStatus();
             fetchImportedCertificates();
@@ -10786,6 +10991,8 @@
             fetchDnsttConfig();
             fetchVaydnsConfig();
             fetchSlipstreamConfig();
+            fetchNoizdnsConfig();
+            fetchMasterdnsvpnConfig();
         }
         if (tabId === 'system') {
             fetchPanelAccess();
@@ -11889,7 +12096,10 @@
                         </div>
                         <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
                             <button type="button" class="btn btn-primary btn-sm" onclick="openSshConfigsModal('${username}')" title="دانلود فایل‌های کانفیگ و مشاهده اطلاعات اتصال کاربر" style="padding:6px 14px; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
-                                <i data-lucide="download" style="width:14px; height:14px;"></i> دانلود کانفیگ‌ها
+                                <i data-lucide="download" style="width:14px; height:14px;"></i> کانفیگ‌های ۹گانه
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyUserSshSubLink('${username}')" title="کپی لینک ساب این کاربر مخصوص NapsternetV" style="padding:6px 11px; font-weight:700; color:#059669; display:inline-flex; align-items:center; gap:4px;">
+                                <i data-lucide="rss" style="width:13px; height:13px;"></i> لینک ساب
                             </button>
                             <a href="/api/ssh/users/${encodeURIComponent(username)}/bundle.zip" download="MHPanel-${username}-ssh-configs.zip" class="btn btn-secondary btn-sm" title="دانلود سریع فایل زیپ کلیه کانفیگ‌های SSH" style="padding:6px 10px; display:inline-flex; align-items:center; gap:4px; text-decoration:none;">
                                 <i data-lucide="package" style="width:13px; height:13px; color:#4f46e5;"></i> ZIP
@@ -12164,10 +12374,28 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         copySshText(uri, `لینک هوشمند NapsternetV / NetMod کاربر ${username}`);
     }
 
+    function copyUserSshSubLink(username) {
+        const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
+        const subTok = user.sub_token || "";
+        if (!subTok) {
+            showToast("توکن ساب برای این کاربر یافت نشد.", "warning");
+            return;
+        }
+        const host = window.location.host;
+        const proto = window.location.protocol;
+        const url = `${proto}//${host}/sub/${subTok}/b64`;
+        copySshText(url, `لینک ساب هوشمند کاربر ${username}`);
+    }
+
+    let currentSshModalModes = [];
+    let currentSshActiveModeId = "ssh_direct";
+    let currentSshModalSubUrl = "";
+
     async function openSshConfigsModal(username) {
         const user = (typeof currentSshUsersData !== 'undefined' && currentSshUsersData[username]) || {};
         const host = getSshHost();
         const pwd = user.password || "";
+        const subTok = user.sub_token || "";
 
         const userEl = document.getElementById("ssh-modal-user");
         if (userEl) userEl.innerText = username;
@@ -12177,6 +12405,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (hostEl) hostEl.innerText = host;
 
         const uSafe = encodeURIComponent(username);
+        const subUrl = subTok ? `${window.location.protocol}//${window.location.host}/sub/${subTok}/b64` : "";
+        currentSshModalSubUrl = subUrl;
+
+        const subInput = document.getElementById("ssh-modal-sub-url");
+        if (subInput) subInput.value = subUrl ? subUrl : "لینک ساب در دسترس نیست";
 
         // All-in-one ZIP download
         const zipDl = document.getElementById("ssh-modal-zip-dl");
@@ -12185,18 +12418,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             zipDl.download = `MHPanel-${username}-ssh-configs.zip`;
         }
 
-        // NetMod JSON download
-        const netmodDl = document.getElementById("ssh-modal-netmod-dl");
-        if (netmodDl) {
-            netmodDl.href = `/api/ssh/users/${uSafe}/netmod.json`;
-            netmodDl.download = `MHPanel-${username}-NetMod.json`;
-        }
-
-        // NapsternetV JSON download
-        const npvDl = document.getElementById("ssh-modal-npv-dl");
-        if (npvDl) {
-            npvDl.href = `/api/ssh/users/${uSafe}/npv.json`;
-            npvDl.download = `MHPanel-${username}-NapsternetV.json`;
+        // All-in-one NPV .npvs format download
+        const npvAllDl = document.getElementById("ssh-modal-npv-all-dl");
+        if (npvAllDl) {
+            npvAllDl.href = `/api/ssh/users/${uSafe}/npv.npvs`;
+            npvAllDl.download = `MHPanel-${username}.npvs`;
         }
 
         // Text info download
@@ -12206,18 +12432,24 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             txtDl.download = `MHPanel-${username}-ssh-info.txt`;
         }
 
-        // Legacy / fallback button if exists
-        const sshDl = document.getElementById("ssh-modal-file-dl");
-        if (sshDl) {
-            sshDl.href = `/api/ssh/users/${uSafe}/ssh.json`;
-            sshDl.download = `MHPanel-${username}-ssh.json`;
+        // Fetch full 9 modes from backend
+        try {
+            const modesRes = await fetch(`/api/ssh/users/${uSafe}/all-modes`);
+            if (modesRes.ok) {
+                const mData = await modesRes.json();
+                currentSshModalModes = mData.modes || [];
+                if (mData.sub_url && !subUrl) {
+                    currentSshModalSubUrl = mData.sub_url;
+                    if (subInput) subInput.value = mData.sub_url;
+                }
+            }
+        } catch (e) {
+            console.error("Error loading ssh modes:", e);
         }
 
-        const uri = getUserSshUri(username);
-        const uriBox = document.getElementById("ssh-modal-uri-preview");
-        if (uriBox) uriBox.innerText = uri;
-
-        window._currentSshModalUri = uri;
+        // Render 9 Pills
+        renderSshModePills();
+        switchSshModeTab(currentSshActiveModeId || "ssh_direct");
 
         // Fetch full text info for preview & instant 1-click copy
         const textPreviewBox = document.getElementById("ssh-modal-full-text-preview");
@@ -12241,6 +12473,146 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const modal = document.getElementById("modal-ssh-configs");
         if (modal) modal.classList.add("active");
         if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function renderSshModePills() {
+        const container = document.getElementById("ssh-mode-pills-container");
+        if (!container) return;
+        container.innerHTML = "";
+        if (!currentSshModalModes || currentSshModalModes.length === 0) return;
+
+        currentSshModalModes.forEach(m => {
+            const isActive = (m.id === currentSshActiveModeId);
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`;
+            btn.style.fontSize = "11px";
+            btn.style.padding = "5px 11px";
+            btn.style.borderRadius = "8px";
+            btn.style.fontWeight = isActive ? "700" : "500";
+            if (isActive) {
+                btn.style.background = "#4f46e5";
+                btn.style.borderColor = "#4f46e5";
+            }
+            btn.innerText = m.name;
+            btn.onclick = () => switchSshModeTab(m.id);
+            container.appendChild(btn);
+        });
+    }
+
+    function switchSshModeTab(modeId) {
+        currentSshActiveModeId = modeId;
+        renderSshModePills();
+        const m = currentSshModalModes.find(item => item.id === modeId);
+        if (!m) return;
+
+        const badge = document.getElementById("ssh-active-mode-badge");
+        if (badge) badge.innerText = m.name;
+        const title = document.getElementById("ssh-active-mode-title");
+        if (title) title.innerText = m.title;
+        const desc = document.getElementById("ssh-active-mode-desc");
+        if (desc) desc.innerText = m.desc;
+
+        // Single mode download button (.npvs format)
+        const userEl = document.getElementById("ssh-modal-user");
+        const uName = userEl ? userEl.innerText.trim() : "";
+        const dlBtn = document.getElementById("ssh-active-mode-dl-btn");
+        if (dlBtn && uName) {
+            dlBtn.href = `/api/ssh/users/${encodeURIComponent(uName)}/mode/${m.id}.npvs`;
+            dlBtn.download = `MHPanel-${uName}-${m.name}.npvs`;
+        }
+
+        // NPV Deep Link (npvt-ssh://) preview
+        const npvtEl = document.getElementById("ssh-active-mode-npvt-text");
+        if (npvtEl) npvtEl.innerText = m.npvt_uri || m.uri;
+
+        // Generic URI string preview
+        const uriEl = document.getElementById("ssh-active-mode-uri-text");
+        if (uriEl) uriEl.innerText = m.uri;
+
+        // Payload row
+        const payloadRow = document.getElementById("ssh-active-mode-payload-row");
+        const payloadText = document.getElementById("ssh-active-mode-payload-text");
+        if (m.payload) {
+            if (payloadRow) payloadRow.style.display = "flex";
+            if (payloadText) payloadText.innerText = m.payload;
+        } else {
+            if (payloadRow) payloadRow.style.display = "none";
+        }
+
+        // Parameter table
+        const tbody = document.getElementById("ssh-active-mode-table");
+        if (tbody) {
+            let rowsHtml = `
+                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted); width:130px;">Server / Host:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--text-main); direction:ltr; text-align:left;">${m.server}</td></tr>
+                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">Port:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:var(--text-main); direction:ltr; text-align:left;">${m.port}${m.alt_port ? ' (یا ' + m.alt_port + ')' : ''}</td></tr>
+                <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">User / Password:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:#4f46e5; direction:ltr; text-align:left;">${m.username} / ${m.password}</td></tr>
+            `;
+            if (m.sni) {
+                rowsHtml += `<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">SNI / ServerName:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:#059669; direction:ltr; text-align:left;">${m.sni}</td></tr>`;
+            }
+            if (m.proxy_host) {
+                rowsHtml += `<tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">Proxy Host & Port:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:#d97706; direction:ltr; text-align:left;">${m.proxy_host}:${m.proxy_port}</td></tr>`;
+            }
+            if (m.dns_nameserver) {
+                rowsHtml += `
+                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">DNS Nameserver (NS):</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:#6366f1; direction:ltr; text-align:left;">${m.dns_nameserver}</td></tr>
+                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">DNSTT Public Key:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; font-size:10.5px; color:#64748b; direction:ltr; text-align:left; word-break:break-all;">${m.dnstt_pubkey}</td></tr>
+                    <tr style="border-bottom:1px solid rgba(0,0,0,0.05);"><td style="padding:4px 8px; color:var(--text-muted);">DNS Resolver:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:var(--text-main); direction:ltr; text-align:left;">${m.dns_resolver}</td></tr>
+                `;
+            }
+            rowsHtml += `<tr><td style="padding:4px 8px; color:var(--text-muted);">UDPGW Port:</td><td style="padding:4px 8px; font-family:'JetBrains Mono',monospace; color:var(--text-main); direction:ltr; text-align:left;">${m.udpgw_port}</td></tr>`;
+            tbody.innerHTML = rowsHtml;
+        }
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function copySshSubUrl() {
+        if (currentSshModalSubUrl) {
+            copySshText(currentSshModalSubUrl, "لینک ساب هوشمند NapsternetV");
+        } else {
+            showToast("لینک ساب برای این کاربر در دسترس نیست.", "warning");
+        }
+    }
+
+    function showSshSubQr() {
+        if (!currentSshModalSubUrl) {
+            showToast("لینک ساب برای این کاربر در دسترس نیست.", "warning");
+            return;
+        }
+        if (typeof showQrModal === 'function') {
+            const userEl = document.getElementById("ssh-modal-user");
+            const u = userEl ? userEl.innerText.trim() : "کاربر";
+            showQrModal(currentSshModalSubUrl, `لینک ساب NapsternetV کاربر ${u}`);
+        } else {
+            copySshSubUrl();
+        }
+    }
+
+    function copyCurrentModePayload() {
+        const m = currentSshModalModes.find(item => item.id === currentSshActiveModeId);
+        if (m && m.payload) {
+            copySshText(m.payload, `پی‌لود حالت ${m.name}`);
+        } else {
+            showToast("این حالت نیازی به پی‌لود ندارد.", "info");
+        }
+    }
+
+    function copyCurrentModeNpvtUri() {
+        const m = currentSshModalModes.find(item => item.id === currentSshActiveModeId);
+        if (m && m.npvt_uri) {
+            copySshText(m.npvt_uri, `لینک اختصاصی نپسترنت‌وی (npvt-ssh) حالت ${m.name}`);
+        } else if (m && m.uri) {
+            copySshText(m.uri, `لینک حالت ${m.name}`);
+        }
+    }
+
+    function copyCurrentModeUri() {
+        const m = currentSshModalModes.find(item => item.id === currentSshActiveModeId);
+        if (m && m.uri) {
+            copySshText(m.uri, `لینک URI حالت ${m.name}`);
+        }
     }
 
     function closeSshConfigsModal() {
@@ -14418,6 +14790,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 if (proto === 'dnstt') fetchDnsttConfig();
                 else if (proto === 'vaydns') fetchVaydnsConfig();
                 else if (proto === 'slipstream') fetchSlipstreamConfig();
+                else if (proto === 'noizdns') fetchNoizdnsConfig();
+                else if (proto === 'masterdnsvpn') fetchMasterdnsvpnConfig();
                 else fetchProtocols();
             } else {
                 showToast(`خطا: ${data.error || 'عملیات ناموفق بود'}`, "error");
@@ -14585,7 +14959,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (inCompat) inCompat.checked = (data.compat !== false);
             
             const cmdBox = document.getElementById("vaydns-client-cmd-box");
-            if (cmdBox) cmdBox.textContent = data.client_cmd || `vaydns-client -udp 8.8.8.8:53 -pubkey ${data.pubkey || 'PUBKEY'} -domain ${data.domain || 'domain'} 127.0.0.1:1080`;
+            if (cmdBox) cmdBox.textContent = data.client_cmd || `vaydns-client -udp 8.8.8.8:53 -pubkey ${data.pubkey || 'PUBKEY'} -domain ${data.domain || 'domain'} -listen 127.0.0.1:1080 -dnstt-compat`;
             
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (err) {
@@ -14657,7 +15031,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (inUpstream && data.upstream) inUpstream.value = data.upstream;
             
             const cmdBox = document.getElementById("slipstream-client-cmd-box");
-            if (cmdBox) cmdBox.textContent = data.client_cmd || `slipstream-client -l 1080 -d ${data.domain || 'domain'} -s ${data.server_domain || 'server'}`;
+            if (cmdBox) cmdBox.textContent = data.client_cmd || `slipstream-client -l 1080 -d ${data.domain || 'domain'} -r 8.8.8.8:53`;
             
             if (typeof lucide !== 'undefined') lucide.createIcons();
         } catch (err) {
@@ -17014,7 +17388,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 flagBadge = `<span style="display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; border-radius:6px; background:#fef3c7; color:#b45309; font-weight:800; font-family:'JetBrains Mono'; font-size:12px;" title="Inactive / خاموش">I</span>`;
             }
 
-            const isServer = (tun.role || "server") === "server";
+            const isServer = (tun.role || tun.mode || "server") === "server";
             const roleBadge = isServer 
                 ? `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(20,184,166,0.12); color:#0d9488; font-weight:700;"><i data-lucide="server" style="width:11px; height:11px;"></i> سرور خارج</span>`
                 : `<span style="display:inline-flex; align-items:center; gap:4px; font-size:11px; padding:2px 8px; border-radius:6px; background:rgba(14,165,233,0.12); color:#0284c7; font-weight:700;"><i data-lucide="laptop" style="width:11px; height:11px;"></i> کلاینت ایران</span>`;
@@ -17160,7 +17534,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const modeRadios = document.getElementsByName("dns_tun_mode");
         for (const r of modeRadios) {
-            r.checked = (r.value === (tun.role || "server"));
+            r.checked = (r.value === (tun.role || tun.mode || "server"));
         }
         onDnsTunnelModeChange();
 
@@ -17253,6 +17627,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const payload = {
             name: name,
+            mode: selectedMode,
             role: selectedMode,
             domain: domain,
             privkey: privkey,
@@ -17327,7 +17702,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const nameEl = document.getElementById("dns-script-modal-name");
                 const codeArea = document.getElementById("dns-tunnel-script-code");
 
-                if (nameEl) nameEl.innerText = `${data.tunnel.name} (${data.tunnel.role === 'server' ? 'سرور خارج' : 'کلاینت ایران'})`;
+                const mRole = data.tunnel.role || data.tunnel.mode || "server";
+                if (nameEl) nameEl.innerText = `${data.tunnel.name} (${mRole === 'server' ? 'سرور خارج' : 'کلاینت ایران'})`;
                 if (codeArea) codeArea.value = data.script || "";
 
                 const modal = document.getElementById("modal-dns-tunnel-script");

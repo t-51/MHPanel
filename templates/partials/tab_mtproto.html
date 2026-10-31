@@ -62,62 +62,82 @@
 <i data-lucide="external-link" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="mtproto_unlocking_official_mtproxybot_bot">باز کردن ربات رسمی @MTProxybot</span>
 </a>
 </div>
-<!-- 4-Step Visual Process Guide -->
+<!-- Visual Process Guide for @MTProxybot -->
+<div style="background: rgba(2, 132, 199, 0.06); border: 1px dashed rgba(2, 132, 199, 0.35); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.7; color: #0369a1;">
+    <div style="display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:4px;">
+        <i data-lucide="info" style="width:16px; height:16px;"></i> راهنمای اتصال سریع یا تنظیم کانال اسپانسر:
+    </div>
+    اگر نیازی به پین شدن کانال تلگرام ندارید، <strong>اصلاً نیازی به تگ اسپانسر یا ربات تلگرام نیست!</strong> پروکسی شما بدون تگ اسپانسر در حالت مستقیم (Direct Core DC) با بالاترین پایداری و سرعت فعال است و بلافاصله با دکمه <strong>«کپی لینک Fake TLS»</strong> کار می‌کند. تنظیمات ۴ مرحله‌ای زیر تنها در صورتی نیاز است که می‌خواهید کانال تلگرام‌تان بالای چت‌های کاربران متصل پین شود.
+</div>
+
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:18px;">
 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
 <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">1</span>
-<strong data-i18n="mtproto_item_5" style="font-size:12.5px; color:#0369a1;">ثبت پروکسی در ربات</strong>
+<strong style="font-size:12.5px; color:#0369a1;">شروع در ربات تلگرام</strong>
 </div>
-<p data-i18n-html="elem_tab_mtproto_21" style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
-                        در تلگرام به ربات <code>@MTProxybot</code> پیام دهید و دستور <code>/newproxy</code> را ارسال کنید.
-                    </p>
+<p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
+    در تلگرام به ربات <code>@MTProxybot</code> پیام دهید و دستور <code>/newproxy</code> را ارسال کنید.
+</p>
 </div>
 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
 <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">2</span>
-<strong data-i18n="mtproto_send_host_key" style="font-size:12.5px; color:#0369a1;">ارسال هاست و کلید</strong>
+<strong style="font-size:12.5px; color:#0369a1;">ارسال هاست و پورت</strong>
 </div>
-<p data-i18n-html="elem_tab_mtproto_22" style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
-                        آدرس <code>vpn.kigaping.com:4433</code> (یا آی‌پی) و کلید Secret هگز را به ربات بفرستید.
-                    </p>
+<p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
+    وقتی ربات آدرس خواست، آی‌پی:پورت یا دامنه:پورت را برای ربات بفرستید.
+</p>
+<div style="margin-top:6px; display:flex; gap:6px; flex-wrap:wrap;">
+    <button class="btn btn-secondary btn-sm" onclick="copyFirstInstanceIpPort()" style="padding:3px 8px; font-size:11px;" type="button">
+        <i data-lucide="copy" style="width:11px; height:11px; margin-left:3px;"></i> کپی آی‌پی:پورت
+    </button>
+    <button class="btn btn-secondary btn-sm" onclick="copyFirstInstanceHostPort()" style="padding:3px 8px; font-size:11px;" type="button">
+        <i data-lucide="copy" style="width:11px; height:11px; margin-left:3px;"></i> کپی دامنه:پورت
+    </button>
+</div>
 </div>
 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
 <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">3</span>
-<strong data-i18n="mtproto_get_tag_save_panel" style="font-size:12.5px; color:#0369a1;">دریافت تگ و ذخیره در پنل</strong>
+<strong style="font-size:12.5px; color:#0369a1;">ارسال سکرت هگز به ربات</strong>
 </div>
-<p data-i18n="mtproto_bot_will_give_you_32" style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
-                        ربات یک تگ ۳۲ کاراکتری (Proxy Tag) به شما می‌دهد. آن را در کادر زیر وارد و ذخیره کنید.
-                    </p>
+<p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
+    وقتی ربات گفت <code>specify its secret in hex</code>، سکرت هگز تولید شده در سرور را بفرستید.
+</p>
+<div style="margin-top:6px;">
+    <button class="btn btn-secondary btn-sm" onclick="copyFirstInstanceSecret()" style="padding:3px 8px; font-size:11px;" type="button">
+        <i data-lucide="copy" style="width:11px; height:11px; margin-left:3px;"></i> کپی سکرت هگز
+    </button>
+</div>
 </div>
 <div style="background: var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.2); border-radius:10px; padding:12px 14px;">
 <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
 <span style="width:22px; height:22px; border-radius:50%; background:#0284c7; color:#fff; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center;">4</span>
-<strong data-i18n="mtproto_choosing_sponsor_channel" style="font-size:12.5px; color:#0369a1;">انتخاب کانال اسپانسر</strong>
+<strong style="font-size:12.5px; color:#0369a1;">دریافت تگ هکس از ربات</strong>
 </div>
-<p data-i18n-html="elem_tab_mtproto_23" style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
-                        در ربات با دستور <code>/myproxies</code> پروکسی را انتخاب کرده و با <code>Set promotion</code> کانال خود را لینک دهید!
-                    </p>
+<p style="font-size:11.5px; color:#475569; margin:0; line-height:1.6;">
+    اکنون ربات پیام <code>Here is your tag</code> با یک کد ۳۲ رقمی می‌دهد. آن را در کادر زیر وارد کنید.
+</p>
 </div>
 </div>
 <!-- Quick Ad Tag Form -->
 <div style="background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 10px; padding: 14px 18px; display:flex; flex-direction:column; gap:10px;">
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-<label class="form-label" data-i18n="mtproto_quick_setting_sponsor_advertising_tag" style="margin:0; font-weight:700; color:#1e293b;">
-                        تنظیم سریع تگ تبلیغاتی اسپانسر (Global Ad Tag):
-                    </label>
-<span data-i18n="mtproto_tag_received_from_mtproxybot_32" style="font-size:11.5px; color:var(--text-muted);">
-                        تگ دریافتی از @MTProxybot (۳۲ کاراکتر هگزادسیمال)
-                    </span>
+<label class="form-label" style="margin:0; font-weight:700; color:#1e293b;">
+    تنظیم تگ تبلیغاتی اسپانسر (Ad Tag دریافتی از ربات تلگرام):
+</label>
+<span style="font-size:11.5px; color:var(--text-muted);">
+    کد ۳۲ کاراکتری که تلگرام پس از دریافت سکرت با پیام <code>Here is your tag</code> ارسال می‌کند
+</span>
 </div>
 <div style="display:flex; gap:10px; flex-wrap:wrap;">
-<input class="form-input" data-i18n-placeholder="mtproto_5e6c7d8a9b0c1d2e3f4a5b6c7d8e9f0a" id="global-mtproto-ad-tag" placeholder="مثال: 5e6c7d8a9b0c1d2e3f4a5b6c7d8e9f0a" style="flex:1; min-width:280px; font-family:'JetBrains Mono', monospace; font-size:13px; direction:ltr;" type="text"/>
+<input class="form-input" id="global-mtproto-ad-tag" placeholder="تگ ۳۲ کاراکتری دریافتی از @MTProxybot (خالی = بدون اسپانسر و پرسرعت)" style="flex:1; min-width:280px; font-family:'JetBrains Mono', monospace; font-size:13px; direction:ltr;" type="text"/>
 <button class="btn btn-primary" onclick="saveGlobalMtprotoAdTag()" style="width:auto; padding:9px 20px;" type="button">
-<i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="mtproto_register_apply_sponsor_tag">ثبت و اعمال تگ اسپانسر</span>
+<i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span>ثبت و اعمال تگ اسپانسر</span>
 </button>
-<button class="btn btn-secondary" onclick="clearGlobalMtprotoAdTag()" style="width:auto; padding:9px 16px;" type="button">
-<i data-lucide="x" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="mtproto_remove_tag">حذف تگ</span>
+<button class="btn btn-secondary" onclick="clearGlobalMtprotoAdTag()" style="width:auto; padding:9px 16px;" type="button" title="حذف تگ جهت فعال‌سازی اتصال مستقیم بدون اسپانسر">
+<i data-lucide="x" style="width:16px; height:16px; margin-left:6px;"></i> <span>حذف تگ (اتصال مستقیم)</span>
 </button>
 </div>
 </div>
@@ -131,8 +151,8 @@
 <i data-lucide="radio" style="color: #0284c7; width: 20px; height: 20px;"></i> <span data-i18n="mtproto_active_telegram_proxy_instances_mtpro">اینستنس‌های فعال پروکسی تلگرام (MTProto)</span>
 </h3>
 <span id="mtproto-instances-count" style="font-size:12px; background:rgba(14, 165, 233, 0.1); color:#0284c7; padding:4px 10px; border-radius:12px; font-weight:600;">
-                        -
-                    </span>
+    -
+</span>
 </div>
 <div id="mtproto-instances" style="display:flex; flex-direction:column; gap:14px;">
 <!-- Dynamic MTProto instances inject here -->
@@ -150,22 +170,39 @@
 <label class="form-label" data-i18n="mtproto_proxy_port">پورت پروکسی (Port)</label>
 <input class="form-input" data-i18n-placeholder="mtproto_example_8443_4434" id="mtproto-port" placeholder="مثال: 8443 یا 4434" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number"/>
 <span data-i18n="mtproto_port_through_which_you_want" style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
-                            پورتی که مایلید تلگرام از طریق آن متصل شود (نباید با سایر پروتکل‌ها تداخل داشته باشد).
-                        </span>
+    پورتی که مایلید تلگرام از طریق آن متصل شود (نباید با سایر پروتکل‌ها تداخل داشته باشد).
+</span>
 </div>
 <div>
-<label class="form-label" data-i18n="mtproto_ad_tag">تگ تبلیغاتی اسپانسر (اختیاری - Ad Tag)</label>
-<input class="form-input" data-i18n-placeholder="mtproto_mtproxybot" id="mtproto-ad-tag" placeholder="۳۲ کاراکتر هگز دریافتی از @MTProxybot" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text"/>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <label class="form-label" style="margin:0;">کلید سکرت هگز (Secret - ۳۲ رقم)</label>
+    <button class="btn btn-secondary btn-sm" onclick="generateNewInstanceSecret()" style="padding:2px 8px; font-size:11px;" type="button">
+        <i data-lucide="refresh-cw" style="width:11px; height:11px; margin-left:3px;"></i> تولید جدید
+    </button>
+</div>
+<input class="form-input" id="mtproto-secret" placeholder="۳۲ کاراکتر هگز (به ربات تلگرام ارسال می‌شود)" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text"/>
+<span style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
+    کلید اختصاصی هگز ۳۲ رقمی که تلگرام جهت رمزنگاری و اتصال به آن نیاز دارد.
+</span>
+</div>
+<div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+    <label class="form-label" data-i18n="mtproto_ad_tag" style="margin:0;">تگ تبلیغاتی اسپانسر (اختیاری - Ad Tag)</label>
+    <button class="btn btn-secondary btn-sm" onclick="generateNewInstanceAdTag()" style="padding:2px 8px; font-size:11px;" type="button">
+        <i data-lucide="sparkles" style="width:11px; height:11px; margin-left:3px;"></i> ساخت تگ هکس
+    </button>
+</div>
+<input class="form-input" data-i18n-placeholder="mtproto_mtproxybot" id="mtproto-ad-tag" placeholder="۳۲ کاراکتر هگز دریافتی از @MTProxybot یا تولید شده" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text"/>
 <span data-i18n="mtproto_if_you_want_telegram_channel" style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
-                            اگر می‌خواهید کانال تلگرام برای این اینستنس متصل باشد تگ را اینجا وارد کنید.
-                        </span>
+    تگ هگز ۳۲ رقمی که به کانال تلگرام متصل می‌شود.
+</span>
 </div>
 <div>
 <label class="form-label" data-i18n="mtproto_anti_filter_fake_domain_fake">دامنه جعلی ضد فیلتر (Fake TLS Domain)</label>
-<input class="form-input" id="mtproto-tls-domain" readonly="" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" value="www.cloudflare.com"/>
+<input class="form-input" id="mtproto-tls-domain" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" value="www.cloudflare.com"/>
 <span data-i18n="mtproto_dpi_cloudflare" style="font-size:11px; color:var(--text-muted); margin-top:4px; display:block;">
-                            جهت عبور بدون اختلال از سیستم فیلترینگ DPI، ترافیک تحت پوشش Cloudflare مبدل می‌شود.
-                        </span>
+    جهت عبور بدون اختلال از سیستم فیلترینگ DPI، ترافیک تحت پوشش Cloudflare مبدل می‌شود.
+</span>
 </div>
 <button class="btn btn-primary" id="mtproto-add-btn" style="margin-top:4px;" type="button">
 <i class="btn-icon" data-lucide="plus"></i> <span data-i18n="mtproto_setting_up_proxy_instance">راه‌اندازی اینستنس پروکسی</span>

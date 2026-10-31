@@ -1486,7 +1486,7 @@ SSH_DOMAINS_FILE = "/www/wwwroot/mhpanel/ssh_domains.json"
 def get_ssh_cert_paths():
     le_dir = "/etc/letsencrypt/live"
     if os.path.isdir(le_dir):
-        candidates = ["vpn.kigaping.com", "mhpanel.kigaping.com"] + [e for e in os.listdir(le_dir) if "." in e and e not in ["clients", "README"]]
+        candidates = ["ssh.kigaping.com", "ws.kigaping.com", "vpn.kigaping.com", "mhpanel.kigaping.com"] + [e for e in os.listdir(le_dir) if "." in e and e not in ["clients", "README"]]
         for cand in candidates:
             cert = os.path.join(le_dir, cand, "fullchain.pem")
             key = os.path.join(le_dir, cand, "privkey.pem")
@@ -1803,71 +1803,486 @@ def generate_netmod_config_bundle(username, password, domain, pub_ip):
         ]
     }
 
-def generate_npv_config_bundle(username, password, domain, pub_ip):
+def make_npv_ssh_uri(m, username, password):
+    safe_user = urllib.parse.quote(str(username), safe="")
+    safe_pass = urllib.parse.quote(str(password), safe="")
+    target = f"{m['server']}:{m['port']}"
+    
+    q = {}
+    q["remarks"] = f"MHPanel - {username} ({m['name']})"
+    q["sshConfigType"] = str(m["name"])
+    if m.get("proxy_host") and m.get("proxy_port"):
+        q["httpProxy"] = f"{m['proxy_host']}:{m['proxy_port']}"
+    if m.get("sni"):
+        q["sni"] = str(m["sni"])
+        q["tlsVersion"] = "DEFAULT"
+    if m.get("udpgw_port"):
+        q["udpgw"] = str(m["udpgw_port"])
+    if m.get("dns_nameserver"):
+        q["dnsTTMode"] = "UDP"
+        q["nameserver"] = str(m["dns_nameserver"])
+        q["dnsServer"] = str(m.get("dns_resolver", "8.8.8.8"))
+        q["publicKey"] = str(m.get("dnstt_pubkey", ""))
+        
+    qs = urllib.parse.urlencode(sorted(q.items()))
+    payload = str(m.get("payload", ""))
+    return f"ssh://{safe_user}:{safe_pass}@{target}?{qs}#{payload}"
+
+def generate_npv_all_modes(username, password, domain, pub_ip):
     d_cfg = get_ssh_domains_config()
     direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
     ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
     tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
     pub_ip = pub_ip or direct_host
-    uris = generate_ssh_uris(username, password, domain, pub_ip)
+    udpgw_port = int(d_cfg.get("udpgw_port", 7300))
+    
+    dnstt_ns = "t.vpn.kigaping.com"
+    if os.path.exists("/etc/vpnpanel/dnstt.json"):
+        try:
+            with open("/etc/vpnpanel/dnstt.json", "r") as f:
+                d_dnstt = json.load(f)
+                if d_dnstt.get("domain"):
+                    dnstt_ns = d_dnstt["domain"].strip()
+        except Exception:
+            pass
+    dnstt_pubkey = "b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31"
+    if os.path.exists("/etc/dnstt/server.pub"):
+        try:
+            with open("/etc/dnstt/server.pub", "r") as f:
+                k = f.read().strip()
+                if k: dnstt_pubkey = k
+        except Exception: pass
+
+    ws_payload = f"GET /ssh HTTP/1.1[crlf]Host: {ws_host}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]"
+
+    safe_user = urllib.parse.quote(str(username), safe="")
+    safe_pass = urllib.parse.quote(str(password), safe="")
+
+    modes = [
+        {
+            "id": "ssh_direct",
+            "name": "ssh-Direct",
+            "title": "اتصال مستقیم بدون پروکسی (Direct TCP)",
+            "desc": "سریع‌ترین و پایدارترین حالت اتصال مستقیم روی پورت ۲۰۵۳ (بدون فیلتر) و ۲۲",
+            "category": "direct",
+            "server": direct_host,
+            "port": 2053,
+            "alt_port": 22,
+            "username": username,
+            "password": password,
+            "tls": False,
+            "sni": "",
+            "payload": "",
+            "proxy_host": "",
+            "proxy_port": "",
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (ssh-Direct)",
+                "type": "SSH",
+                "sub_type": "ssh-Direct",
+                "server": direct_host,
+                "port": 2053,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_proxy",
+            "name": "SSH-PROXY",
+            "title": "اتصال از طریق پروکسی HTTP (HTTP Proxy Connect)",
+            "desc": "اتصال به پورت ۲۰۵۳ از بستر پروکسی واسط HTTP/WS (۸۰۸۸) جهت دورزدن فیلترینگ پورت",
+            "category": "proxy",
+            "server": pub_ip,
+            "port": 2053,
+            "username": username,
+            "password": password,
+            "tls": False,
+            "sni": "",
+            "payload": "",
+            "proxy_host": pub_ip,
+            "proxy_port": 8088,
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-PROXY)",
+                "type": "SSH",
+                "sub_type": "SSH-PROXY",
+                "server": pub_ip,
+                "port": 2053,
+                "proxy_ip": pub_ip,
+                "proxy_port": 8088,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_payload",
+            "name": "SSH-PAYLOAD",
+            "title": "اینجکشن پی‌لود وب‌سوکت روی پورت ۸۰ (HTTP Custom / WS)",
+            "desc": "ارسال پی‌لود HTTP Upgrade به پورت ۸۰ جهت اتصال وب‌سوکت بدون رمزنگاری TLS",
+            "category": "payload",
+            "server": ws_host,
+            "port": 80,
+            "username": username,
+            "password": password,
+            "tls": False,
+            "sni": "",
+            "payload": ws_payload,
+            "path": "/ssh",
+            "proxy_host": "",
+            "proxy_port": "",
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-PAYLOAD)",
+                "type": "SSH",
+                "sub_type": "SSH-PAYLOAD",
+                "server": ws_host,
+                "port": 80,
+                "payload": ws_payload,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_proxy_payload",
+            "name": "SSH-PROXY-PAYLOAD",
+            "title": "پروکسی واسط همراه با پی‌لود وب‌سوکت",
+            "desc": "اتصال از طریق پروکسی واسط پورت ۸۰۸۸ به همراه اینجکشن پی‌لود وب‌سوکت",
+            "category": "payload",
+            "server": ws_host,
+            "port": 80,
+            "username": username,
+            "password": password,
+            "tls": False,
+            "sni": "",
+            "payload": ws_payload,
+            "proxy_host": pub_ip,
+            "proxy_port": 8088,
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-PROXY-PAYLOAD)",
+                "type": "SSH",
+                "sub_type": "SSH-PROXY-PAYLOAD",
+                "server": ws_host,
+                "port": 80,
+                "proxy_ip": pub_ip,
+                "proxy_port": 8088,
+                "payload": ws_payload,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_tls",
+            "name": "SSH-TLS",
+            "title": "تونل رمزنگاری امن TLS / Stunnel روی پورت ۴۴۳",
+            "desc": "بسته‌بندی نشست SSH داخل لایه رمزنگاری TLS با گواهینامه معتبر Let's Encrypt",
+            "category": "tls",
+            "server": tls_host,
+            "port": 443,
+            "alt_ports": [9443, 2087],
+            "username": username,
+            "password": password,
+            "tls": True,
+            "sni": tls_host,
+            "payload": "",
+            "proxy_host": "",
+            "proxy_port": "",
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-TLS 443)",
+                "type": "SSH",
+                "sub_type": "SSH-TLS",
+                "server": tls_host,
+                "port": 443,
+                "tls": True,
+                "sni": tls_host,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_tls_proxy",
+            "name": "SSH-TLS-PROXY",
+            "title": "تونل TLS با پروکسی واسط (TLS over HTTP Proxy)",
+            "desc": "اتصال امن TLS به پورت ۴۴۳ از طریق آی‌پی پروکسی واسط ۸۰۸۸",
+            "category": "tls",
+            "server": tls_host,
+            "port": 443,
+            "username": username,
+            "password": password,
+            "tls": True,
+            "sni": tls_host,
+            "payload": "",
+            "proxy_host": pub_ip,
+            "proxy_port": 8088,
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-TLS-PROXY)",
+                "type": "SSH",
+                "sub_type": "SSH-TLS-PROXY",
+                "server": tls_host,
+                "port": 443,
+                "proxy_ip": pub_ip,
+                "proxy_port": 8088,
+                "tls": True,
+                "sni": tls_host,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_tls_payload",
+            "name": "SSH-TLS-PAYLOAD",
+            "title": "تونل وب‌سوکت ایمن WSS (TLS + وب‌سوکت + پی‌لود ۴۴۳)",
+            "desc": "اتصال امن TLS روی پورت ۴۴۳ با اینجکشن پی‌لود وب‌سوکت و تفکیک با SNI اختصاصی",
+            "category": "wss",
+            "server": ws_host,
+            "port": 443,
+            "username": username,
+            "password": password,
+            "tls": True,
+            "sni": ws_host,
+            "path": "/ssh",
+            "payload": ws_payload,
+            "proxy_host": "",
+            "proxy_port": "",
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-TLS-PAYLOAD)",
+                "type": "SSH",
+                "sub_type": "SSH-TLS-PAYLOAD",
+                "server": ws_host,
+                "port": 443,
+                "tls": True,
+                "sni": ws_host,
+                "payload": ws_payload,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_tls_proxy_payload",
+            "name": "SSH-TLS-PROXY-PAYLOAD",
+            "title": "تونل WSS به همراه پروکسی واسط و پی‌لود",
+            "desc": "اتصال WSS روی پورت ۴۴۳ از طریق پروکسی واسط به همراه هدر Host و SNI",
+            "category": "wss",
+            "server": ws_host,
+            "port": 443,
+            "username": username,
+            "password": password,
+            "tls": True,
+            "sni": ws_host,
+            "path": "/ssh",
+            "payload": ws_payload,
+            "proxy_host": pub_ip,
+            "proxy_port": 8088,
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-TLS-PROXY-PAYLOAD)",
+                "type": "SSH",
+                "sub_type": "SSH-TLS-PROXY-PAYLOAD",
+                "server": ws_host,
+                "port": 443,
+                "proxy_ip": pub_ip,
+                "proxy_port": 8088,
+                "tls": True,
+                "sni": ws_host,
+                "payload": ws_payload,
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        },
+        {
+            "id": "ssh_dnstt",
+            "name": "SSH-DNSTT",
+            "title": "تونل SlowDNS دی‌ان‌اس (عبور از اینترنت ملی و قطعی کامل)",
+            "desc": "عبور ترافیک SSH به صورت پکت‌های رمزنگاری شده DNS حتی در زمان قطعی شدید اینترنت بین‌الملل",
+            "category": "dnstt",
+            "server": "127.0.0.1",
+            "port": 22,
+            "username": username,
+            "password": password,
+            "dns_nameserver": dnstt_ns,
+            "dnstt_pubkey": dnstt_pubkey,
+            "dns_resolver": "8.8.8.8",
+            "udpgw_port": udpgw_port,
+            "npv_config": {
+                "name": f"MHPanel - {username} (SSH-DNSTT)",
+                "type": "SSH",
+                "sub_type": "SSH-DNSTT",
+                "server": "127.0.0.1",
+                "port": 22,
+                "nameserver": dnstt_ns,
+                "public_key": dnstt_pubkey,
+                "dns_resolver": "8.8.8.8",
+                "user": username,
+                "password": password,
+                "udpgw_port": udpgw_port
+            }
+        }
+    ]
+
+    for m in modes:
+        m["uri"] = make_npv_ssh_uri(m, username, password)
+        m["npvt_uri"] = m["uri"]
+
+    return modes
+
+def generate_npv_open_envelope(username, password, domain, pub_ip):
+    modes = generate_npv_all_modes(username, password, domain, pub_ip)
+    configs = []
+    for m in modes:
+        proxy_str = f"{m['proxy_host']}:{m['proxy_port']}" if m.get("proxy_host") else ""
+        ssh_cfg = {
+            "sshConfigType": m["name"],
+            "sshHost": str(m["server"]),
+            "sshPort": str(m["port"]),
+            "sshUsername": str(username),
+            "sshPassword": str(password),
+            "udpgwPort": str(m.get("udpgw_port", 7300))
+        }
+        if m.get("sni"):
+            ssh_cfg["sni"] = str(m["sni"])
+            ssh_cfg["tlsVersion"] = "DEFAULT"
+        if m.get("payload"):
+            ssh_cfg["payload"] = str(m["payload"])
+        if proxy_str:
+            ssh_cfg["httpProxy"] = proxy_str
+        if m.get("dns_nameserver"):
+            ssh_cfg["nameserver"] = str(m["dns_nameserver"])
+            ssh_cfg["dnsServer"] = str(m.get("dns_resolver", "8.8.8.8"))
+            ssh_cfg["publicKey"] = str(m.get("dnstt_pubkey", ""))
+            ssh_cfg["dnsTTMode"] = "UDP"
+
+        cfg_entry = {
+            "name": f"MHPanel - {username} ({m['name']})",
+            "address": f"{m['server']}:{m['port']}",
+            "sshConfig": ssh_cfg
+        }
+        configs.append(cfg_entry)
+
+    envelope_obj = {"configs": configs}
+    return "NPVO1\n" + json.dumps(envelope_obj, indent=2, ensure_ascii=False)
+
+def generate_single_mode_npvs(mode_obj, username, password):
+    m = mode_obj
+    proxy_str = f"{m['proxy_host']}:{m['proxy_port']}" if m.get("proxy_host") else ""
+    ssh_cfg = {
+        "sshConfigType": m["name"],
+        "sshHost": str(m["server"]),
+        "sshPort": str(m["port"]),
+        "sshUsername": str(username),
+        "sshPassword": str(password),
+        "udpgwPort": str(m.get("udpgw_port", 7300))
+    }
+    if m.get("sni"):
+        ssh_cfg["sni"] = str(m["sni"])
+        ssh_cfg["tlsVersion"] = "DEFAULT"
+    if m.get("payload"):
+        ssh_cfg["payload"] = str(m["payload"])
+    if proxy_str:
+        ssh_cfg["httpProxy"] = proxy_str
+    if m.get("dns_nameserver"):
+        ssh_cfg["nameserver"] = str(m["dns_nameserver"])
+        ssh_cfg["dnsServer"] = str(m.get("dns_resolver", "8.8.8.8"))
+        ssh_cfg["publicKey"] = str(m.get("dnstt_pubkey", ""))
+        ssh_cfg["dnsTTMode"] = "UDP"
+
+    cfg_entry = {
+        "name": f"MHPanel - {username} ({m['name']})",
+        "address": f"{m['server']}:{m['port']}",
+        "sshConfig": ssh_cfg
+    }
+    return "NPVO1\n" + json.dumps({"configs": [cfg_entry]}, indent=2, ensure_ascii=False)
+
+def generate_npv_encrypted_envelope(username, password, domain, pub_ip):
+    tables_file = "/www/wwwroot/mhpanel/npv_tables.json"
+    if not os.path.exists(tables_file):
+        return None
+    try:
+        from whitebox_aes import NPVTDecrypter
+        with open(tables_file, "r", encoding="utf-8") as f:
+            tbl = json.load(f)
+        wb = NPVTDecrypter(tbl)
+        modes = generate_npv_all_modes(username, password, domain, pub_ip)
+        configs = []
+        for m in modes:
+            proxy_str = f"{m['proxy_host']}:{m['proxy_port']}" if m.get("proxy_host") else ""
+            ssh_cfg = {
+                "sshConfigType": m["name"],
+                "sshHost": str(m["server"]),
+                "sshPort": str(m["port"]),
+                "sshUsername": str(username),
+                "sshPassword": str(password),
+                "udpgwPort": str(m.get("udpgw_port", 7300))
+            }
+            if m.get("sni"):
+                ssh_cfg["sni"] = str(m["sni"])
+                ssh_cfg["tlsVersion"] = "DEFAULT"
+            if m.get("payload"):
+                ssh_cfg["payload"] = str(m["payload"])
+            if proxy_str:
+                ssh_cfg["httpProxy"] = proxy_str
+            if m.get("dns_nameserver"):
+                ssh_cfg["nameserver"] = str(m["dns_nameserver"])
+                ssh_cfg["dnsServer"] = str(m.get("dns_resolver", "8.8.8.8"))
+                ssh_cfg["publicKey"] = str(m.get("dnstt_pubkey", ""))
+                ssh_cfg["dnsTTMode"] = "UDP"
+
+            configs.append({
+                "name": f"MHPanel - {username} ({m['name']})",
+                "address": f"{m['server']}:{m['port']}",
+                "sshConfig": ssh_cfg
+            })
+        plaintext = json.dumps({"configs": configs}).encode("utf-8")
+        nonce = os.urandom(16)
+        ciphertext = wb._ctr(nonce, plaintext)
+        blob = nonce + ciphertext
+        return "NPVT1" + base64.b64encode(blob).decode("utf-8")
+    except Exception as e:
+        logger.error(f"Error encrypting NPVT: {e}")
+        return None
+
+def generate_npv_config_bundle(username, password, domain, pub_ip):
+    d_cfg = get_ssh_domains_config()
+    udpgw_port = int(d_cfg.get("udpgw_port", 7300))
+    modes = generate_npv_all_modes(username, password, domain, pub_ip)
     return {
         "version": 4,
         "app_name": "NapsternetV",
         "profile_name": f"MHPanel - {username}",
         "type": "ssh",
-        "udpgw_port": 7300,
+        "udpgw_port": udpgw_port,
         "configs": [
             {
-                "id": f"npv_{username}_ws443",
-                "name": f"MHPanel SSH - {username} (WebSocket TLS 443)",
-                "server": ws_host,
-                "port": 443,
+                "id": f"npv_{username}_{m['id']}",
+                "name": f"MHPanel - {username} ({m['name']})",
+                "mode": m["name"],
+                "server": m["server"],
+                "port": m["port"],
                 "user": username,
                 "password": password,
-                "sni": ws_host,
-                "host": ws_host,
-                "path": "/ssh",
-                "transport": "ws",
-                "tls": True,
-                "udpgw_port": 7300,
-                "import_uri": uris[0] if len(uris) > 0 else ""
-            },
-            {
-                "id": f"npv_{username}_direct22",
-                "name": f"MHPanel SSH - {username} (Direct TCP 22)",
-                "server": pub_ip,
-                "port": 22,
-                "user": username,
-                "password": password,
-                "udpgw_port": 7300,
-                "import_uri": uris[1] if len(uris) > 1 else ""
-            },
-            {
-                "id": f"npv_{username}_stunnel443",
-                "name": f"MHPanel SSH - {username} (Stunnel SSL 443)",
-                "server": tls_host,
-                "port": 443,
-                "user": username,
-                "password": password,
-                "sni": tls_host,
-                "tls": True,
-                "udpgw_port": 7300,
-                "import_uri": uris[2] if len(uris) > 2 else ""
-            },
-            {
-                "id": f"npv_{username}_ws80",
-                "name": f"MHPanel SSH - {username} (WebSocket HTTP 80)",
-                "server": ws_host,
-                "port": 80,
-                "user": username,
-                "password": password,
-                "host": ws_host,
-                "path": "/ssh",
-                "transport": "ws",
-                "tls": False,
-                "udpgw_port": 7300,
-                "import_uri": uris[3] if len(uris) > 3 else ""
+                "sni": m.get("sni", ""),
+                "tls": m.get("tls", False),
+                "payload": m.get("payload", ""),
+                "proxy_host": m.get("proxy_host", ""),
+                "proxy_port": m.get("proxy_port", ""),
+                "nameserver": m.get("dns_nameserver", ""),
+                "public_key": m.get("dnstt_pubkey", ""),
+                "dns_resolver": m.get("dns_resolver", ""),
+                "udpgw_port": udpgw_port,
+                "import_uri": m["uri"],
+                "npvt_uri": m.get("npvt_uri", "")
             }
+            for m in modes
         ]
     }
 
@@ -1937,99 +2352,130 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     }
 
 def generate_ssh_uris(username, password, domain, pub_ip):
-    d_cfg = get_ssh_domains_config()
-    direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
-    ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
-    tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or direct_host
-    safe_user = urllib.parse.quote(str(username), safe="")
-    safe_pass = urllib.parse.quote(str(password), safe="")
-    uri_ws = f"ssh://{safe_user}:{safe_pass}@{ws_host}:443?ws=1&path=%2Fssh&sni={ws_host}&udpgw=7300#MHPanel-{username}-WS443"
-    uri_direct = f"ssh://{safe_user}:{safe_pass}@{pub_ip}:22?udpgw=7300#MHPanel-{username}-Direct22"
-    uri_stunnel = f"ssh://{safe_user}:{safe_pass}@{tls_host}:443?tls=1&sni={tls_host}&udpgw=7300#MHPanel-{username}-TLS443"
-    uri_http = f"ssh://{safe_user}:{safe_pass}@{ws_host}:80?ws=1&path=%2Fssh&udpgw=7300#MHPanel-{username}-WS80"
-    return [uri_ws, uri_direct, uri_stunnel, uri_http]
+    modes = generate_npv_all_modes(username, password, domain, pub_ip)
+    uris = []
+    # 1. Primary: NapsternetV / NetMod / Terminal ssh:// URIs
+    for m in modes:
+        if m.get("uri"):
+            uris.append(m["uri"])
+
+    # 2. Singbox / V2Ray inbounds if configured
+    try:
+        sb_file = "/etc/sing-box/config.json"
+        if os.path.exists(sb_file):
+            with open(sb_file, "r") as f:
+                sb_cfg = json.load(f)
+            uinfo = get_ssh_user_info(username)
+            u_uuid = uinfo.get("uuid", "1b4f4c94-0cfc-4d37-8e6d-6fa6b12f6b55")
+            target_u = {"username": username, "password": password, "uuid": u_uuid}
+            server_host = domain or pub_ip
+            for ib in sb_cfg.get("inbounds", []):
+                itype = ib.get("type")
+                if itype in ["vless", "vmess", "trojan", "shadowsocks", "hysteria2", "tuic"]:
+                    slink = generate_singbox_share_link(ib, server_host, target_user=target_u)
+                    if slink:
+                        uris.append(slink)
+    except Exception as e:
+        logger.error(f"Error appending singbox links to subscription: {e}")
+
+    return uris
 
 def generate_ssh_complete_text_info(username, password, domain, pub_ip):
+    modes = generate_npv_all_modes(username, password, domain, pub_ip)
     d_cfg = get_ssh_domains_config()
     direct_host = d_cfg.get("direct_domain") or domain or pub_ip or "127.0.0.1"
     ws_host = d_cfg.get("ws_sni") or domain or pub_ip or "127.0.0.1"
     tls_host = d_cfg.get("tls_sni") or domain or pub_ip or "127.0.0.1"
     pub_ip = pub_ip or direct_host
-    uris = generate_ssh_uris(username, password, domain, pub_ip)
     
-    return f"""======================================================================
-               اطلاعات اتصال کاربر SSH - پنل MHPanel
+    uinfo = get_ssh_user_info(username)
+    sub_tok = uinfo.get("sub_token", "")
+    server_dom = get_server_domain() or direct_host
+    sub_url = f"https://{server_dom}/sub/{sub_tok}/b64" if sub_tok else ""
+
+    body = f"""======================================================================
+               مشخصات اتصال کامل کاربر SSH - پنل MHPanel
 ======================================================================
 👤 نام کاربری: {username}
 🔑 کلمه عبور: {password}
-🌐 دامنه / آی‌پی اتصال دایرکت: {direct_host}
-☁️ دامنه / SNI وب‌سوکت و کلودفلر: {ws_host}
-🔒 دامنه / SNI استنل و TLS: {tls_host}
+🌐 دامنه اتصال دایرکت: {direct_host}
+☁️ دامنه وب‌سوکت و WSS: {ws_host}
+🔒 دامنه استنل و TLS: {tls_host}
 📍 آی‌پی مستقیم سرور: {pub_ip}
-🎮 پورت BadVPN UDPGW (صوتی و گیمینگ): 7300
+🎮 پورت BadVPN UDPGW: 7300
+
+🔗 لینک ساب هوشمند (Subscription Link) جهت ایمپورت در NapsternetV / NPV / NetMod:
+{sub_url}
+(کافیست این لینک را در NapsternetV در بخش Subscription وارد کنید تا همه سرورها خودکار لود شوند)
 ======================================================================
 
-📡 انواع روش‌های اتصال کلاینت‌ها (SSH Connection Modes):
+📡 راهنمای تنظیم دستی ۹ حالت برنامه NapsternetV (NPV Tunnel):
+"""
+    for idx, m in enumerate(modes, 1):
+        body += f"\n{idx}) حالت {m['name']} ({m['title']}):\n"
+        body += f"   • Server / Host: {m['server']}\n"
+        body += f"   • Port: {m['port']}\n"
+        if m.get('sni'):
+            body += f"   • SNI: {m['sni']}\n"
+        if m.get('proxy_host'):
+            body += f"   • Proxy Host: {m['proxy_host']}:{m['proxy_port']}\n"
+        if m.get('payload'):
+            body += f"   • Payload: {m['payload']}\n"
+        if m.get('dns_nameserver'):
+            body += f"   • Nameserver (NS): {m['dns_nameserver']}\n"
+            body += f"   • Public Key: {m['dnstt_pubkey']}\n"
+            body += f"   • DNS Resolver: {m['dns_resolver']}\n"
+        body += f"   • User: {username} | Pass: {password}\n"
+        body += f"   • لینک اختصاصی NapsternetV (npvt-ssh):\n     {m.get('npvt_uri', m['uri'])}\n"
+        body += f"   • لینک عمومی (ssh://):\n     {m['uri']}\n"
 
-۱) حالت وب‌سوکت با TLS / SSL (مخصوص CDN کلودفلر و دورزدن فیلترینگ):
-   • Host / Server: {ws_host}
-   • Port: 443
-   • SNI: {ws_host}
-   • Path: /ssh
-   • UDPGW Port: 7300
-   • پی‌لود HTTP Custom:
-     GET /ssh HTTP/1.1[crlf]Host: {ws_host}[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
-
-۲) حالت اتصال مستقیم Direct TCP (پورت ۲۲ بدون CDN):
-   • Server: {pub_ip}
-   • Port: 22
-   • Username: {username}
-   • Password: {password}
-   • UDPGW Port: 7300
-
-۳) حالت تونل رمزنگاری Stunnel / SSL مستقیم (پورت ۴۴۳):
-   • Server: {tls_host}
-   • Port: 443
-   • SNI: {tls_host}
-   • SSL/TLS: فعال (On)
-
-۴) حالت وب‌سوکت بدون رمزنگاری (HTTP Direct - پورت ۸۰):
-   • Server: {ws_host}
-   • Port: 80
-   • Path: /ssh
-   • Host Header: {ws_host}
-
-======================================================================
-📱 لینک‌های هوشمند جهت Import در برنامه‌ها (NapsternetV / NPV / NetMod):
-
-• لینک ۱ (وب‌سوکت CDN پورت ۴۴۳):
-  {uris[0]}
-
-• لینک ۲ (اتصال مستقیم پورت ۲۲):
-  {uris[1]}
-
-• لینک ۳ (تونل Stunnel SSL پورت ۴۴۳):
-  {uris[2]}
-
-• لینک ۴ (وب‌سوکت معمولی پورت ۸۰):
-  {uris[3]}
-
-راهنما: کافیست یکی از لینک‌های بالا را کپی کنید، وارد برنامه NapsternetV شوید، علامت '+' بالا را لمس کرده و گزینه 'Import from Clipboard' را بزنید.
-
-======================================================================
-💻 دستورات خط فرمان ترمینال (Linux / macOS / OpenSSH):
-
-• پروکسی ساکس ۵ سریع روی سیستم محلی:
+    body += f"""\n======================================================================
+💻 دستورات ترمینال لینوکس و مک (OpenSSH):
+• پروکسی ساکس ۵ سریع محلی روی پورت ۱۰۸۰:
   ssh -N -D 1080 {username}@{pub_ip} -p 22
 
-• پروکسی ساکس ۵ با sshpass (بدون نیاز به تایپ رمز):
-  sshpass -p '{password}' ssh -N -D 1080 -o StrictHostKeyChecking=no {username}@{pub_ip} -p 22
-
-• اتصال به شل لینوکس:
+• شل مستقیم لینوکس:
   ssh {username}@{pub_ip} -p 22
 ======================================================================
 """
+    return body
+
+def build_ssh_user_configs_zip(username, password, domain, pub_ip):
+    domain = domain or pub_ip or "127.0.0.1"
+    pub_ip = pub_ip or domain
+    modes = generate_npv_all_modes(username, password, domain, pub_ip)
+    netmod_cfg = generate_netmod_config_bundle(username, password, domain, pub_ip)
+    npvs_content = generate_npv_open_envelope(username, password, domain, pub_ip)
+    npvt_content = generate_npv_encrypted_envelope(username, password, domain, pub_ip)
+    info_text = generate_ssh_complete_text_info(username, password, domain, pub_ip)
+
+    mem_file = io.BytesIO()
+    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(f"00-MHPanel-{username}-NapsternetV-AllInOne.npvs", npvs_content)
+        if npvt_content:
+            zf.writestr(f"00-MHPanel-{username}-NapsternetV-AllInOne.npvt", npvt_content)
+        zf.writestr(f"00-MHPanel-{username}-NetMod-AllInOne.json", json.dumps(netmod_cfg, indent=2, ensure_ascii=False))
+        zf.writestr(f"MHPanel-{username}-info.txt", info_text)
+        
+        mode_order = [
+            ("01-SSH-Direct.npvs", "ssh_direct"),
+            ("02-SSH-PROXY.npvs", "ssh_proxy"),
+            ("03-SSH-PAYLOAD.npvs", "ssh_payload"),
+            ("04-SSH-PROXY-PAYLOAD.npvs", "ssh_proxy_payload"),
+            ("05-SSH-TLS.npvs", "ssh_tls"),
+            ("06-SSH-TLS-PROXY.npvs", "ssh_tls_proxy"),
+            ("07-SSH-TLS-PAYLOAD.npvs", "ssh_tls_payload"),
+            ("08-SSH-TLS-PROXY-PAYLOAD.npvs", "ssh_tls_proxy_payload"),
+            ("09-SSH-DNSTT.npvs", "ssh_dnstt")
+        ]
+        for fname, mid in mode_order:
+            m = next((item for item in modes if item["id"] == mid), None)
+            if m:
+                single_npvs = generate_single_mode_npvs(m, username, password)
+                zf.writestr(f"NapsternetV-Modes/{fname}", single_npvs)
+
+    mem_file.seek(0)
+    return mem_file
 
 def generate_client_ovpn_text(uname, server_host):
     ca_content = ""
@@ -2079,22 +2525,6 @@ verb 3
 {tc_block}
 """
 
-def build_ssh_user_configs_zip(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    pub_ip = pub_ip or domain
-    netmod_cfg = generate_netmod_config_bundle(username, password, domain, pub_ip)
-    npv_cfg = generate_npv_config_bundle(username, password, domain, pub_ip)
-    info_text = generate_ssh_complete_text_info(username, password, domain, pub_ip)
-
-    mem_file = io.BytesIO()
-    with zipfile.ZipFile(mem_file, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr(f"MHPanel-{username}-NetMod.json", json.dumps(netmod_cfg, indent=2, ensure_ascii=False))
-        zf.writestr(f"MHPanel-{username}-NapsternetV.json", json.dumps(npv_cfg, indent=2, ensure_ascii=False))
-        zf.writestr(f"MHPanel-{username}-ssh-info.txt", info_text)
-        zf.writestr(f"MHPanel-{username}-ssh.json", json.dumps(netmod_cfg, indent=2, ensure_ascii=False))
-
-    mem_file.seek(0)
-    return mem_file
 
 def find_user_by_sub_token(token):
     if not token:
@@ -2279,6 +2709,10 @@ def client_subscription_view(sub_token):
     domain = get_server_domain() or server_ip
     
     fmt = str(request.args.get("format", "")).lower()
+    ua = (request.headers.get("User-Agent") or "").lower()
+    is_client_app = any(app in ua for app in ["napsternet", "npv", "v2ray", "nekoray", "streisand", "clash", "sing-box", "curl", "wget"])
+    if fmt in ["b64", "base64"] or request.args.get("b64") or (is_client_app and fmt != "html"):
+        return client_sub_b64(sub_token)
     
     # 1. WireGuard & AmneziaWG special subscriptions
     if proto_type in ["wireguard", "amneziawg"]:
@@ -2886,7 +3320,85 @@ def client_sub_b64(sub_token):
     pub_ip = get_server_public_ip()
     uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
-    return Response(b64_str, mimetype="text/plain; charset=utf-8")
+    resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
+    resp.headers["Profile-Title"] = f"MHPanel - {uname}"
+    resp.headers["Profile-Update-Interval"] = "24"
+    rx = (udata.get("rx", 0) if isinstance(udata, dict) else 0)
+    tx = (udata.get("tx", 0) if isinstance(udata, dict) else 0)
+    limit_gb = (udata.get("limit_gb") if isinstance(udata, dict) else None)
+    limit_bytes = int(float(limit_gb) * (1024**3)) if limit_gb else 0
+    expire_str = (udata.get("expire_date") if isinstance(udata, dict) else None)
+    exp_ts = 0
+    if expire_str:
+        try:
+            exp_ts = int(time.mktime(datetime.strptime(str(expire_str).split()[0], "%Y-%m-%d").timetuple()))
+        except Exception:
+            pass
+    resp.headers["Subscription-Userinfo"] = f"upload={tx}; download={rx}; total={limit_bytes}; expire={exp_ts}"
+    return resp
+
+@app.route("/sub/<sub_token>/config.npvs")
+@app.route("/sub/<sub_token>/npv.npvs")
+def client_sub_npvs_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    npvs_txt = generate_npv_open_envelope(uname, pwd, domain, pub_ip)
+    resp = Response(npvs_txt, mimetype="application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}.npvs"'
+    return resp
+
+@app.route("/sub/<sub_token>/config.npvt")
+@app.route("/sub/<sub_token>/npv.npvt")
+def client_sub_npvt_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    npvt_txt = generate_npv_encrypted_envelope(uname, pwd, domain, pub_ip)
+    if not npvt_txt:
+        return "Not Found", 404
+    resp = Response(npvt_txt, mimetype="application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}.npvt"'
+    return resp
+
+@app.route("/sub/<sub_token>/npv.json")
+def client_sub_npv_json(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    cfg = generate_npv_config_bundle(uname, pwd, domain, pub_ip)
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-NapsternetV.json"'
+    return resp
+
+@app.route("/sub/<sub_token>/bundle.zip")
+def client_sub_bundle_zip(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    zip_buf = build_ssh_user_configs_zip(uname, pwd, domain, pub_ip)
+    return send_file(
+        zip_buf,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name=f"MHPanel-SSH-{uname}-Complete.zip"
+    )
 
 @app.route("/api/sub/settings", methods=["GET", "POST"])
 def api_sub_settings():
@@ -4313,7 +4825,12 @@ def api_mtproto_ad_tag():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
 
-    ad_tag = (request.json or {}).get("ad_tag", "").strip()
+    ad_tag = str((request.json or {}).get("ad_tag", "")).strip().lower()
+    if ad_tag:
+        ad_tag = re.sub(r"[^a-f0-9]", "", ad_tag)
+        if len(ad_tag) != 32:
+            return jsonify({"success": False, "error": "تگ اسپانسر تلگرام (Ad Tag) باید ۳۲ کاراکتر هگزادسیمال باشد."}), 400
+
     import glob
     for fpath in glob.glob("/etc/vpnpanel/mtproto_config_*.py"):
         try:
@@ -10086,7 +10603,7 @@ def api_mtproto_instances():
     instances = []
     config_dir = "/etc/vpnpanel"
     if os.path.exists(config_dir):
-        for filename in os.listdir(config_dir):
+        for filename in sorted(os.listdir(config_dir)):
             if filename.startswith("mtproto_config_") and filename.endswith(".py"):
                 filepath = os.path.join(config_dir, filename)
                 try:
@@ -10094,16 +10611,37 @@ def api_mtproto_instances():
                         content = f.read()
                     
                     port_match = re.search(r"PORT\s*=\s*(\d+)", content)
-                    secret_match = re.search(r"\"mhpanel\"\s*:\s*\"([a-fA-F0-9]+)\"", content)
-                    ad_tag_match = re.search(r"AD_TAG\s*=\s*\"([^\"]*)\"", content)
+                    # Support any user in USERS dict (mhpanel, aethervpn, user0, etc.)
+                    secret_match = re.search(r"[\"'](?:\w+)[\"']\s*:\s*[\"']([a-fA-F0-9]{32})[\"']", content)
+                    if not secret_match:
+                        secret_match = re.search(r"[\"']([a-fA-F0-9]{32})[\"']", content)
+
+                    ad_tag_match = re.search(r"AD_TAG\s*=\s*[\"']([^\"']*)[\"']", content)
                     
                     if port_match:
                         port = int(port_match.group(1))
-                        secret = secret_match.group(1) if secret_match else ""
-                        ad_tag = ad_tag_match.group(1) if ad_tag_match else ""
-                        tls_domain_match = re.search(r"TLS_DOMAIN\s*=\s*\"([^\"]*)\"", content)
-                        tls_domain = tls_domain_match.group(1) if tls_domain_match else "www.cloudflare.com"
+                        secret = secret_match.group(1).lower() if secret_match else ""
+                        ad_tag = (ad_tag_match.group(1).strip().lower() if ad_tag_match else "")
+                        tls_domain_match = re.search(r"TLS_DOMAIN\s*=\s*[\"']([^\"']*)[\"']", content)
+                        tls_domain = tls_domain_match.group(1).strip() if tls_domain_match and tls_domain_match.group(1).strip() else "www.cloudflare.com"
                         
+                        # Self-heal missing secret
+                        if not secret:
+                            secret = secrets.token_hex(16)
+                            try:
+                                with open(filepath, "w") as fw:
+                                    fw.write(f"""PORT = {port}
+USERS = {{
+    "mhpanel": "{secret}",
+}}
+MODES = {{"classic": True, "secure": True, "tls": True}}
+TLS_DOMAIN = "{tls_domain}"
+AD_TAG = "{ad_tag}"
+""")
+                                subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
+                            except Exception:
+                                pass
+
                         tls_hex = tls_domain.encode("utf-8").hex()
                         tls_secret = f"ee{secret}{tls_hex}" if secret else ""
                         standard_secret = f"dd{secret}" if secret else ""
@@ -10119,6 +10657,8 @@ def api_mtproto_instances():
                             except Exception:
                                 pass
                                 
+                        server_domain = get_server_domain()
+                        server_ip = get_server_public_ip()
                         instances.append({
                             "port": port,
                             "secret": secret,
@@ -10126,23 +10666,76 @@ def api_mtproto_instances():
                             "tls_secret": tls_secret,
                             "tls_domain": tls_domain,
                             "ad_tag": ad_tag,
-                            "has_sponsor": bool(ad_tag and len(ad_tag) >= 16),
+                            "has_sponsor": bool(ad_tag and len(ad_tag) == 32),
                             "active": active,
                             "connections": connections,
-                            "server_domain": get_server_domain(),
-                            "server_ip": get_server_public_ip()
+                            "server_domain": server_domain,
+                            "server_ip": server_ip
                         })
                 except Exception:
                     pass
                     
     return jsonify(instances)
 
+@app.route("/api/mtproto/generate-hex", methods=["GET"])
+def api_mtproto_generate_hex():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    return jsonify({
+        "success": True,
+        "tag": secrets.token_hex(16),
+        "secret": secrets.token_hex(16)
+    })
+
+@app.route("/api/mtproto/instances/<int:port>/secret", methods=["POST"])
+def api_mtproto_instance_set_secret(port):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    secret = str(data.get("secret", "")).strip().lower()
+    if secret:
+        secret = re.sub(r"[^a-f0-9]", "", secret)
+        if len(secret) != 32:
+            return jsonify({"success": False, "error": "کلید سکرت باید ۳۲ کاراکتر هگزادسیمال باشد."}), 400
+    else:
+        secret = secrets.token_hex(16)
+        
+    config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
+    if not os.path.exists(config_file):
+        return jsonify({"success": False, "error": "اینستنس پروکسی یافت نشد."}), 404
+    try:
+        with open(config_file, "r") as f:
+            content = f.read()
+        if re.search(r"USERS\s*=\s*\{[^}]*\}", content):
+            content = re.sub(r"USERS\s*=\s*\{[^}]*\}", f'USERS = {{\n    "mhpanel": "{secret}",\n}}', content)
+        else:
+            content += f'\nUSERS = {{\n    "mhpanel": "{secret}",\n}}\n'
+        with open(config_file, "w") as f:
+            f.write(content)
+        subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
+        
+        tls_domain_match = re.search(r"TLS_DOMAIN\s*=\s*[\"']([^\"']*)[\"']", content)
+        tls_domain = tls_domain_match.group(1).strip() if tls_domain_match and tls_domain_match.group(1).strip() else "www.cloudflare.com"
+        tls_hex = tls_domain.encode("utf-8").hex()
+        return jsonify({
+            "success": True, 
+            "secret": secret,
+            "tls_secret": f"ee{secret}{tls_hex}",
+            "standard_secret": f"dd{secret}"
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/mtproto/instances/<int:port>/ad-tag", methods=["POST"])
 def api_mtproto_instance_set_ad_tag(port):
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
-    ad_tag = data.get("ad_tag", "").strip()
+    ad_tag = str(data.get("ad_tag", "")).strip().lower()
+    if ad_tag:
+        ad_tag = re.sub(r"[^a-f0-9]", "", ad_tag)
+        if len(ad_tag) != 32:
+            return jsonify({"success": False, "error": "تگ اسپانسر تلگرام (Ad Tag) باید ۳۲ کاراکتر هگزادسیمال باشد."}), 400
     config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
     if not os.path.exists(config_file):
         return jsonify({"success": False, "error": "اینستنس پروکسی یافت نشد."}), 404
@@ -10156,7 +10749,30 @@ def api_mtproto_instance_set_ad_tag(port):
         with open(config_file, "w") as f:
             f.write(content)
         subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
-        return jsonify({"success": True, "ad_tag": ad_tag, "has_sponsor": bool(ad_tag and len(ad_tag) >= 16)})
+        return jsonify({"success": True, "ad_tag": ad_tag, "has_sponsor": bool(ad_tag and len(ad_tag) == 32)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/mtproto/instances/<int:port>/tls-domain", methods=["POST"])
+def api_mtproto_instance_tls_domain_set(port):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    domain = str((request.json or {}).get("tls_domain", "")).strip() or "www.cloudflare.com"
+    config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
+    if not os.path.exists(config_file):
+        return jsonify({"success": False, "error": "اینستنس پروکسی یافت نشد."}), 404
+    try:
+        with open(config_file, "r") as f:
+            content = f.read()
+        if re.search(r"^TLS_DOMAIN\s*=", content, re.MULTILINE):
+            content = re.sub(r"^TLS_DOMAIN\s*=.*", f'TLS_DOMAIN = "{domain}"', content, flags=re.MULTILINE)
+        else:
+            content += f'\nTLS_DOMAIN = "{domain}"\n'
+        with open(config_file, "w") as f:
+            f.write(content)
+        subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
+        return jsonify({"success": True, "tls_domain": domain})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -10166,23 +10782,38 @@ def api_mtproto_instances_create():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
         
-    data = request.json
+    data = request.json or {}
     try:
         port = int(data.get("port"))
-        ad_tag = data.get("ad_tag", "").strip()
     except (ValueError, TypeError):
-        return jsonify({"success": False, "error": "Invalid port number"}), 400
+        return jsonify({"success": False, "error": "شماره پورت نامعتبر است"}), 400
         
     for proto in ["ssh", "openvpn", "ocserv", "sstp", "wireguard", "http", "socks", "shadowsocks"]:
         if is_installed(proto) and str(get_active_port(proto)) == str(port):
-            return jsonify({"success": False, "error": f"Port {port} is already used by {proto}"}), 400
+            return jsonify({"success": False, "error": f"پورت {port} در حال حاضر توسط {proto} استفاده می‌شود"}), 400
             
     config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
     if os.path.exists(config_file):
-        return jsonify({"success": False, "error": f"MTProto instance on port {port} already exists"}), 400
+        return jsonify({"success": False, "error": f"پروکسی روی پورت {port} از قبل ساخته شده است"}), 400
         
-    secret = secrets.token_hex(16)
-    
+    req_secret = str(data.get("secret", "")).strip().lower()
+    if req_secret:
+        req_secret = re.sub(r"[^a-f0-9]", "", req_secret)
+        if len(req_secret) == 32:
+            secret = req_secret
+        else:
+            secret = secrets.token_hex(16)
+    else:
+        secret = secrets.token_hex(16)
+
+    ad_tag = str(data.get("ad_tag", "")).strip().lower()
+    if ad_tag:
+        ad_tag = re.sub(r"[^a-f0-9]", "", ad_tag)
+        if len(ad_tag) != 32:
+            return jsonify({"success": False, "error": "تگ اسپانسر تلگرام (Ad Tag) باید ۳۲ کاراکتر هگزادسیمال باشد."}), 400
+
+    tls_domain = str(data.get("tls_domain", "")).strip() or "www.cloudflare.com"
+
     try:
         os.makedirs("/etc/vpnpanel", exist_ok=True)
         with open(config_file, "w") as f:
@@ -10191,16 +10822,26 @@ USERS = {{
     "mhpanel": "{secret}",
 }}
 MODES = {{"classic": True, "secure": True, "tls": True}}
-TLS_DOMAIN = "www.cloudflare.com"
+TLS_DOMAIN = "{tls_domain}"
 AD_TAG = "{ad_tag}"
 """)
-        subprocess.run(["ufw", "allow", f"{port}/tcp"], check=False)
+        subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], check=False)
+        import shutil
+        if shutil.which("ufw"):
+            subprocess.run(["ufw", "allow", f"{port}/tcp"], check=False)
         
         subprocess.run(["systemctl", "daemon-reload"], check=True)
         subprocess.run(["systemctl", "enable", f"mhpanel-mtproto@{port}"], check=True)
         subprocess.run(["systemctl", "start", f"mhpanel-mtproto@{port}"], check=True)
         
-        return jsonify({"success": True, "port": port, "secret": secret})
+        tls_hex = tls_domain.encode("utf-8").hex()
+        return jsonify({
+            "success": True, 
+            "port": port, 
+            "secret": secret, 
+            "tls_secret": f"ee{secret}{tls_hex}",
+            "ad_tag": ad_tag
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
@@ -10213,8 +10854,10 @@ def api_mtproto_instances_delete(port):
     try:
         subprocess.run(["systemctl", "stop", f"mhpanel-mtproto@{port}"], check=False)
         subprocess.run(["systemctl", "disable", f"mhpanel-mtproto@{port}"], check=False)
-        
-        subprocess.run(["ufw", "delete", "allow", f"{port}/tcp"], check=False)
+        subprocess.run(["iptables", "-D", "INPUT", "-p", "tcp", "--dport", str(port), "-j", "ACCEPT"], check=False)
+        import shutil
+        if shutil.which("ufw"):
+            subprocess.run(["ufw", "delete", "allow", f"{port}/tcp"], check=False)
         
         if os.path.exists(config_file):
             os.remove(config_file)
@@ -10228,7 +10871,7 @@ def api_mtproto_instances_control(port):
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
         
-    action = request.json.get("action", "")
+    action = (request.json or {}).get("action", "")
     if action not in ["start", "stop", "restart"]:
         return jsonify({"success": False, "error": "Invalid action"}), 400
         
@@ -10857,6 +11500,215 @@ def api_system_panel_access():
     })
 
 
+
+# --- DNS Masq Route Synchronizer for DNS Tunnels ---
+def get_dns_tunnel_users():
+    """
+    Returns active users with passwords suitable for DNS tunnel client connections.
+    """
+    users = []
+    seen = set()
+    # 1. radius_users.json (Primary system & VPN users)
+    rad_file = "/www/wwwroot/mhpanel/radius_users.json"
+    if os.path.exists(rad_file):
+        try:
+            with open(rad_file, "r", encoding="utf-8") as f:
+                rdata = json.load(f)
+                for uname, uinfo in rdata.items():
+                    if uinfo.get("active", True) and uname not in seen:
+                        users.append({"username": uname, "password": uinfo.get("password", "")})
+                        seen.add(uname)
+        except Exception:
+            pass
+    # 2. proxy_users.json (SOCKS5 users)
+    p_file = "/etc/vpnpanel/proxy_users.json"
+    if os.path.exists(p_file):
+        try:
+            with open(p_file, "r", encoding="utf-8") as f:
+                pdata = json.load(f)
+                for uname, uinfo in pdata.items():
+                    if uinfo.get("enabled", True) and uname not in seen:
+                        users.append({"username": uname, "password": uinfo.get("password", "")})
+                        seen.add(uname)
+        except Exception:
+            pass
+    # 3. Fallback to NPU or default if empty
+    if not users:
+        users.append({"username": "NPU", "password": ""})
+    return users
+
+
+def generate_slipnet_uri(proto, domain, pubkey="", upstream="127.0.0.1:22", username="", password="", name="", resolvers="8.8.8.8:53:0,1.1.1.1:53:0"):
+    """
+    Generates a standard slipnet:// URI compatible with the SlipNet Android VPN app (v22).
+    """
+    import base64
+    fields = [""] * 60
+    fields[0] = "22"
+    
+    is_ssh = (":22" in upstream or ":2222" in upstream or not upstream or upstream.endswith("22"))
+    
+    if proto == "slipstream":
+        fields[1] = "slipstream_ssh" if is_ssh else "ss"
+    elif proto == "dnstt":
+        fields[1] = "dnstt_ssh" if is_ssh else "dnstt"
+    elif proto == "vaydns":
+        fields[1] = "vaydns_ssh" if is_ssh else "vaydns"
+    elif proto == "noizdns":
+        fields[1] = "sayedns_ssh" if is_ssh else "sayedns"
+    else:
+        fields[1] = "slipstream_ssh" if is_ssh else "ss"
+        
+    proto_label = "Slipstream" if proto == "slipstream" else proto.upper()
+    user_suffix = f" ({username})" if username else ""
+    fields[2] = name or f"{proto_label}{user_suffix}"
+    fields[3] = (domain or "").strip()
+    fields[4] = resolvers or "8.8.8.8:53:0,1.1.1.1:53:0"
+    fields[5] = "0"
+    fields[6] = "5000"
+    fields[7] = "bbr"
+    fields[8] = "1080"
+    fields[9] = "127.0.0.1"
+    fields[10] = "0"
+    fields[11] = (pubkey or "").strip()
+    fields[12] = "" if is_ssh else username
+    fields[13] = "" if is_ssh else password
+    fields[14] = "1" if is_ssh else "0"
+    fields[15] = username if is_ssh else ""
+    fields[16] = password if is_ssh else ""
+    
+    ssh_port = "22"
+    if ":" in upstream:
+        ssh_port = upstream.split(":")[-1]
+    fields[17] = ssh_port if is_ssh else "22"
+    fields[18] = "0"
+    fields[19] = "127.0.0.1"
+    fields[20] = "0"
+    fields[21] = ""
+    fields[22] = "udp"
+    fields[23] = "password"
+    fields[24] = ""
+    fields[25] = ""
+    fields[26] = ""
+    fields[27] = "0"
+    fields[28] = "443"
+    fields[29] = ""
+    fields[30] = ""
+    fields[31] = "0"
+    fields[32] = ""
+    fields[33] = "0"
+    fields[34] = "0"
+    fields[35] = ""
+    fields[36] = "0"
+    fields[37] = ""
+    fields[38] = "0"
+    fields[39] = "0"
+    fields[40] = "1080"
+    fields[41] = "1" if proto == "vaydns" else "0"
+    fields[42] = "txt"
+    fields[43] = "101"
+    fields[44] = "0"
+    fields[45] = "0"
+    fields[46] = "0"
+    fields[47] = "0"
+    fields[48] = "0"
+    fields[49] = "0"
+    fields[50] = "0"
+    fields[51] = ""
+    fields[52] = ""
+    fields[53] = "8080"
+    fields[54] = ""
+    fields[55] = "0"
+    fields[56] = "/"
+    fields[57] = "1"
+    fields[58] = ""
+    fields[59] = ""
+    
+    payload = "|".join(fields)
+    b64_str = base64.b64encode(payload.encode("utf-8")).decode("utf-8")
+    return f"slipnet://{b64_str}"
+
+
+def sync_dnsmasq_routes():
+    """
+    Synchronizes authoritative DNS tunnel domains from all protocols (DNSTT, VayDNS,
+    Slipstream, MasterdnsVPN) and custom DNS tunnels into dnsmasq routing rules
+    so incoming standard UDP port 53 DNS queries are routed to the proper local daemon.
+    """
+    try:
+        routes = {}
+
+        def _add_route(domain, port):
+            d = (domain or "").strip().lower()
+            if d and d not in routes:
+                try:
+                    routes[d] = int(port)
+                except Exception:
+                    pass
+
+        # 1. Standard protocol configs
+        configs = [
+            ("/etc/vpnpanel/dnstt.json", 5300),
+            ("/etc/vpnpanel/vaydns.json", 5353),
+            ("/etc/vpnpanel/slipstream.json", 5354),
+            ("/etc/vpnpanel/masterdnsvpn.json", 5356)
+        ]
+        for cfg_path, def_port in configs:
+            if os.path.exists(cfg_path):
+                try:
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        c = json.load(f)
+                        _add_route(c.get("domain"), c.get("port", def_port))
+                except Exception:
+                    pass
+
+        # 2. Custom DNS tunnels from tunnels_config.json
+        tun_cfg = "/www/wwwroot/mhpanel/tunnels_config.json"
+        if not os.path.exists(tun_cfg):
+            tun_cfg = "/etc/mhpanel/tunnels_config.json"
+        if os.path.exists(tun_cfg):
+            try:
+                with open(tun_cfg, "r", encoding="utf-8") as f:
+                    tdata = json.load(f)
+                    for dt in tdata.get("dns_tunnels", []):
+                        if dt.get("enabled", True) and (dt.get("mode", "server") == "server" or dt.get("role", "server") == "server"):
+                            _add_route(dt.get("domain"), dt.get("listen_port", 5300))
+            except Exception:
+                pass
+
+        # 3. Ensure listener config exists for dnsmasq with optimized tunnel forwarding parameters
+        os.makedirs("/etc/dnsmasq.d", exist_ok=True)
+        listen_conf = "/etc/dnsmasq.d/00-listen.conf"
+        listen_content = (
+            "interface=ens6\n"
+            "interface=lo\n"
+            "bind-dynamic\n"
+            "query-port=53053\n"
+            "cache-size=0\n"
+            "no-negcache\n"
+            "dns-forward-max=1000\n"
+            "edns-packet-max=1232\n"
+        )
+        with open(listen_conf, "w", encoding="utf-8") as f:
+            f.write(listen_content)
+
+        # 4. Write slowdns.conf
+        slowdns_conf = "/etc/dnsmasq.d/slowdns.conf"
+        lines = ["# MHPanel DNS Tunnels Dispatcher - Auto-generated\n"]
+        for d, p in routes.items():
+            lines.append(f"server=/{d}/127.0.0.1#{p}\n")
+
+        with open(slowdns_conf, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+
+        # 5. Reload / Restart dnsmasq
+        subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True)
+        return True
+    except Exception as e:
+        print(f"[DNSMasq Sync Error] {e}")
+        return False
+
+
 # --- DNSTT Protocol API ---
 @app.route("/api/dnstt/config", methods=["GET", "POST"])
 def api_dnstt_config():
@@ -10905,6 +11757,7 @@ WantedBy=multi-user.target
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
         subprocess.run(["systemctl", "restart", "mhpanel-dnstt"], capture_output=True)
+        sync_dnsmasq_routes()
         return jsonify({"success": True})
         
     cfg = {"port": 5300, "domain": f"t.{get_server_domain()}", "upstream": "127.0.0.1:22", "mtu": 1232, "pubkey": pubkey}
@@ -10918,7 +11771,12 @@ WantedBy=multi-user.target
     cfg["installed"] = is_installed("dnstt")
     cfg["connections"] = get_connection_count("dnstt")
     cfg["server_domain"] = get_server_domain()
+    cfg["server_ip"] = get_server_ip()
     cfg["client_cmd"] = f"dnstt-client -doh https://cloudflare-dns.com/dns-query -pubkey {pubkey} {cfg.get('domain')} 127.0.0.1:1080"
+    tun_users = get_dns_tunnel_users()
+    def_u = tun_users[0] if tun_users else {"username": "", "password": ""}
+    cfg["users"] = tun_users
+    cfg["slipnet_uri"] = generate_slipnet_uri("dnstt", cfg.get("domain", ""), pubkey=pubkey, upstream=cfg.get("upstream", "127.0.0.1:22"), username=def_u["username"], password=def_u["password"])
     return jsonify(cfg)
 
 
@@ -10972,6 +11830,7 @@ WantedBy=multi-user.target
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
         subprocess.run(["systemctl", "restart", "mhpanel-vaydns"], capture_output=True)
+        sync_dnsmasq_routes()
         return jsonify({"success": True})
         
     cfg = {"port": 5353, "domain": f"v.{get_server_domain()}", "upstream": "127.0.0.1:22", "mtu": 1232, "compat": True, "pubkey": pubkey}
@@ -10985,7 +11844,13 @@ WantedBy=multi-user.target
     cfg["installed"] = is_installed("vaydns")
     cfg["connections"] = get_connection_count("vaydns")
     cfg["server_domain"] = get_server_domain()
-    cfg["client_cmd"] = f"vaydns-client -udp 8.8.8.8:53 -pubkey {pubkey} -domain {cfg.get('domain')} 127.0.0.1:1080"
+    cfg["server_ip"] = get_server_ip()
+    compat_arg = " -dnstt-compat" if cfg.get("compat", True) else ""
+    cfg["client_cmd"] = f"vaydns-client -udp 8.8.8.8:53 -pubkey {pubkey} -domain {cfg.get('domain')} -listen 127.0.0.1:1080{compat_arg}"
+    tun_users = get_dns_tunnel_users()
+    def_u = tun_users[0] if tun_users else {"username": "", "password": ""}
+    cfg["users"] = tun_users
+    cfg["slipnet_uri"] = generate_slipnet_uri("vaydns", cfg.get("domain", ""), pubkey=pubkey, upstream=cfg.get("upstream", "127.0.0.1:22"), username=def_u["username"], password=def_u["password"])
     return jsonify(cfg)
 
 
@@ -11028,6 +11893,7 @@ WantedBy=multi-user.target
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(port), "-j", "ACCEPT"], capture_output=True)
         subprocess.run(["systemctl", "restart", "mhpanel-slipstream"], capture_output=True)
+        sync_dnsmasq_routes()
         return jsonify({"success": True})
         
     cfg = {"port": 5354, "domain": f"s.{get_server_domain()}", "upstream": "127.0.0.1:22"}
@@ -11041,8 +11907,66 @@ WantedBy=multi-user.target
     cfg["installed"] = is_installed("slipstream")
     cfg["connections"] = get_connection_count("slipstream")
     cfg["server_domain"] = get_server_domain()
-    cfg["client_cmd"] = f"slipstream-client -l 1080 -d {cfg.get('domain')} -s {get_server_domain()}"
+    cfg["server_ip"] = get_server_ip()
+    cfg["client_cmd"] = f"slipstream-client -l 1080 -d {cfg.get('domain')} -r 8.8.8.8:53"
+    tun_users = get_dns_tunnel_users()
+    def_u = tun_users[0] if tun_users else {"username": "", "password": ""}
+    cfg["users"] = tun_users
+    cfg["slipnet_uri"] = generate_slipnet_uri("slipstream", cfg.get("domain", ""), upstream=cfg.get("upstream", "127.0.0.1:22"), username=def_u["username"], password=def_u["password"])
     return jsonify(cfg)
+
+
+@app.route("/api/dns/slipnet_config", methods=["GET", "POST"])
+def api_dns_slipnet_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    proto = request.args.get("proto") or (request.json.get("proto") if request.is_json and request.json else "slipstream")
+    username = request.args.get("user") or (request.json.get("user") if request.is_json and request.json else "")
+    password = request.args.get("pass") or (request.json.get("pass") if request.is_json and request.json else "")
+    domain = request.args.get("domain") or (request.json.get("domain") if request.is_json and request.json else "")
+    resolvers = request.args.get("resolvers") or (request.json.get("resolvers") if request.is_json and request.json else "8.8.8.8:53:0,1.1.1.1:53:0")
+    
+    # If password not provided, find from tunnel users
+    if username and not password:
+        for u in get_dns_tunnel_users():
+            if u["username"] == username:
+                password = u.get("password", "")
+                break
+                
+    pubkey = ""
+    upstream = "127.0.0.1:22"
+    if proto == "slipstream":
+        cfg_file = "/etc/vpnpanel/slipstream.json"
+    elif proto == "vaydns":
+        cfg_file = "/etc/vpnpanel/vaydns.json"
+        if os.path.exists("/etc/vaydns/server.pub"):
+            try:
+                with open("/etc/vaydns/server.pub") as f:
+                    pubkey = f.read().strip()
+            except Exception:
+                pass
+    else:
+        cfg_file = "/etc/vpnpanel/dnstt.json"
+        if os.path.exists("/etc/dnstt/server.pub"):
+            try:
+                with open("/etc/dnstt/server.pub") as f:
+                    pubkey = f.read().strip()
+            except Exception:
+                pass
+
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file) as f:
+                c = json.load(f)
+                if not domain:
+                    domain = c.get("domain", "")
+                upstream = c.get("upstream", upstream)
+        except Exception:
+            pass
+            
+    uri = generate_slipnet_uri(proto, domain, pubkey=pubkey, upstream=upstream, username=username, password=password, resolvers=resolvers)
+    return jsonify({"success": True, "uri": uri, "proto": proto, "domain": domain, "username": username})
+
 
 
 # ==============================================================================
@@ -11728,6 +12652,7 @@ def api_masterdnsvpn_config():
         if not os.path.exists("/etc/systemd/system/mhpanel-masterdnsvpn.service"):
             run_helper("install", "masterdnsvpn", str(port))
         subprocess.run(["systemctl", "restart", "mhpanel-masterdnsvpn"], capture_output=True)
+        sync_dnsmasq_routes()
         return jsonify({"success": True})
 
     cfg = {"port": 5356, "domain": f"t.{get_server_domain()}", "auth_key": "master-secret-key-mhpanel", "upstream": "127.0.0.1:1080", "mtu": 1280}
@@ -14549,6 +15474,57 @@ def api_ssh_user_netmod_download(username):
     resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-NetMod.json"'
     return resp
 
+@app.route("/api/ssh/users/<username>/npv.npvs", methods=["GET"])
+@app.route("/api/ssh/users/<username>/all-modes.npvs", methods=["GET"])
+def api_ssh_user_npvs_download(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    npvs_txt = generate_npv_open_envelope(username, pwd, domain, pub_ip)
+    resp = Response(npvs_txt, mimetype="application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}.npvs"'
+    return resp
+
+@app.route("/api/ssh/users/<username>/npv.npvt", methods=["GET"])
+def api_ssh_user_npvt_download(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    npvt_txt = generate_npv_encrypted_envelope(username, pwd, domain, pub_ip)
+    if not npvt_txt:
+        return jsonify({"error": "جدول‌های NPV یافت نشد"}), 404
+    resp = Response(npvt_txt, mimetype="application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}.npvt"'
+    return resp
+
+@app.route("/api/ssh/users/<username>/mode/<mode_id>.npvs", methods=["GET"])
+def api_ssh_user_single_mode_npvs(username, mode_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    modes = generate_npv_all_modes(username, pwd, domain, pub_ip)
+    found = None
+    for m in modes:
+        if m["id"] == mode_id:
+            found = m
+            break
+    if not found:
+        return jsonify({"error": "حالت مورد نظر یافت نشد"}), 404
+
+    npvs_txt = generate_single_mode_npvs(found, username, pwd)
+    resp = Response(npvs_txt, mimetype="application/octet-stream")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-{found["name"]}.npvs"'
+    return resp
+
 @app.route("/api/ssh/users/<username>/npv.json", methods=["GET"])
 def api_ssh_user_npv_download(username):
     if not check_login():
@@ -14604,6 +15580,56 @@ def api_ssh_user_configs_zip(username):
         as_attachment=True,
         download_name=f"MHPanel-{username}-ssh-configs.zip"
     )
+
+@app.route("/api/ssh/users/<username>/all-modes", methods=["GET"])
+def api_ssh_user_all_modes(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    modes = generate_npv_all_modes(username, pwd, domain, pub_ip)
+    sub_tok = uinfo.get("sub_token", "")
+    server_dom = get_server_domain() or pub_ip
+    sub_url = f"https://{server_dom}/sub/{sub_tok}/b64" if sub_tok else ""
+    return jsonify({
+        "success": True,
+        "username": username,
+        "password": pwd,
+        "sub_token": sub_tok,
+        "sub_url": sub_url,
+        "modes": modes
+    })
+
+@app.route("/api/ssh/users/<username>/mode/<mode_id>.json", methods=["GET"])
+def api_ssh_user_single_mode_json(username, mode_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    uinfo = get_ssh_user_info(username)
+    pwd = uinfo.get("password", "")
+    domain = get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+    modes = generate_npv_all_modes(username, pwd, domain, pub_ip)
+    found = None
+    for m in modes:
+        if m["id"] == mode_id:
+            found = m
+            break
+    if not found:
+        return jsonify({"error": "حالت مورد نظر یافت نشد"}), 404
+
+    cfg = {
+        "version": 4,
+        "app_name": "NapsternetV",
+        "profile_name": f"MHPanel - {username} - {found['name']}",
+        "type": "ssh",
+        "udpgw_port": found.get("udpgw_port", 7300),
+        "config": found["npv_config"]
+    }
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{username}-{found["name"]}.json"'
+    return resp
 
 @app.route("/api/ssh/users/<username>", methods=["DELETE"])
 def api_delete_ssh_user(username):
@@ -20149,6 +21175,8 @@ def apply_tunnel_interface(tun):
             subprocess.run(["ip", "-6", "addr", "add", inner_local, "dev", name], capture_output=True)
         else:
             subprocess.run(["ip", "addr", "add", inner_local, "dev", name], capture_output=True)
+    if tun.get("tunnel_local_ipv6") and ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
+        subprocess.run(["ip", "-6", "addr", "add", tun["tunnel_local_ipv6"], "dev", name], capture_output=True)
     if ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
         subprocess.run(["ip", "link", "set", name, "mtu", str(mtu), "up"], capture_output=True)
 
@@ -20870,7 +21898,7 @@ def remove_port_relay(relay):
 def apply_dns_tunnel(dns):
     dns_id = dns["id"]
     name = dns.get("name", "dnstt")
-    mode = dns.get("mode", "server")
+    mode = (dns.get("mode") or dns.get("role") or "server").lower()
     domain = dns.get("domain", "").strip()
     try:
         listen_port = int(dns.get("listen_port") or (5300 if mode == "server" else 1080))
@@ -20884,6 +21912,7 @@ def apply_dns_tunnel(dns):
 
     remove_dns_tunnel(dns)
     if not enabled:
+        sync_dnsmasq_routes()
         return True, "Disabled"
 
     os.makedirs("/etc/mhpanel", exist_ok=True)
@@ -20891,6 +21920,23 @@ def apply_dns_tunnel(dns):
     unit_path = f"/etc/systemd/system/{unit_name}"
 
     if mode == "server":
+        # Resolve UDP port conflict if listen_port is occupied by another service
+        def _is_udp_port_busy(p):
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.bind(("0.0.0.0", int(p)))
+                s.close()
+                return False
+            except Exception:
+                return True
+
+        if _is_udp_port_busy(listen_port):
+            for cand in range(5301, 5350):
+                if not _is_udp_port_busy(cand):
+                    listen_port = cand
+                    dns["listen_port"] = cand
+                    break
+
         key_file = f"/etc/mhpanel/dnstt_{dns_id}.key"
         with open(key_file, "w", encoding="utf-8") as f:
             f.write(privkey + "\n")
@@ -20926,13 +21972,15 @@ WantedBy=multi-user.target
 
     subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
     subprocess.run(["systemctl", "enable", "--now", unit_name], capture_output=True)
+    sync_dnsmasq_routes()
     return True, "OK"
 
 def remove_dns_tunnel(dns):
     dns_id = dns["id"]
     unit_name = f"mhdns_{dns_id}.service"
     listen_port = dns.get("listen_port")
-    if listen_port and dns.get("mode") == "server":
+    mode = (dns.get("mode") or dns.get("role") or "server").lower()
+    if listen_port and mode == "server":
         subprocess.run(["iptables", "-D", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
         subprocess.run(["ip6tables", "-D", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
 
@@ -20947,16 +21995,17 @@ def remove_dns_tunnel(dns):
         try: os.remove(key_file)
         except Exception: pass
     subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
+    sync_dnsmasq_routes()
 
 def generate_dns_tunnel_script(dns):
     name = dns.get("name", "dnstt_tun")
-    mode = dns.get("mode", "server")
+    mode = (dns.get("mode") or dns.get("role") or "server").lower()
     domain = dns.get("domain", "")
     pubkey = dns.get("pubkey", "")
-    listen_port = dns.get("listen_port", 1080)
     target_addr = dns.get("target_addr", "127.0.0.1:443")
     resolver = dns.get("resolver", "https://1.1.1.1/dns-query")
     safe_name = re.sub(r'[^a-zA-Z0-9_]', '_', name)
+    client_port = dns.get("listen_port") if mode == "client" else 1080
 
     if mode == "server":
         res_flag = f"-doh {resolver}" if resolver.startswith("http") else (f"-dot {resolver}" if "853" in resolver else f"-udp {resolver}")
@@ -20987,7 +22036,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{listen_port}
+ExecStart=/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{client_port}
 Restart=always
 RestartSec=3
 LimitNOFILE=65536
@@ -20998,16 +22047,17 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now mhdns_{safe_name}.service
-echo "=== DNSTT Client is running locally on 127.0.0.1:{listen_port} ==="
+echo "=== DNSTT Client is running locally on 127.0.0.1:{client_port} ==="
 systemctl status mhdns_{safe_name}.service --no-pager
 """
     else:
+        server_port = dns.get("listen_port", 5300)
         return f"""#!/bin/bash
 # ====================================================================
 # راهنمای سرور SlowDNS برای تونل {name}
 # ====================================================================
 # در سرور خارج دستور زیر را اجرا کنید:
-# dnstt-server -udp :53 -privkey-file server.key {domain} {target_addr}
+# dnstt-server -udp :{server_port} -privkey-file server.key {domain} {target_addr}
 """
 
 def update_boot_tunnels_script(data):
@@ -21966,7 +23016,10 @@ def api_ping_tunnel(tun_id):
     if not tun:
         return jsonify({"error": "تونل یافت نشد."}), 404
 
-    target = tun.get("tunnel_remote_ip", "").strip()
+    req = request.get_json() or {} if request.is_json else {}
+    target = (req.get("target") or tun.get("tunnel_remote_ip", "")).strip()
+    if not target and req.get("ipv6") and tun.get("tunnel_remote_ipv6"):
+        target = tun.get("tunnel_remote_ipv6", "").strip()
     if "/" in target:
         target = target.split("/")[0]
     if not target:
@@ -22300,7 +23353,7 @@ def api_create_dns_tunnel():
         return jsonify({"error": "Unauthorized"}), 401
     req = request.get_json() or {}
     name = (req.get("name") or "").strip()
-    mode = (req.get("mode") or "server").strip().lower()
+    mode = (req.get("mode") or req.get("role") or "server").strip().lower()
     domain = (req.get("domain") or "").strip().lower()
 
     if not name:
@@ -22337,6 +23390,7 @@ def api_create_dns_tunnel():
         "id": dns_id,
         "name": name,
         "mode": mode,
+        "role": mode,
         "domain": domain,
         "listen_port": listen_port,
         "target_addr": target_addr,
@@ -22354,6 +23408,7 @@ def api_create_dns_tunnel():
     data = load_tunnels_data()
     data.setdefault("dns_tunnels", []).append(dns)
     save_tunnels_data(data)
+    sync_dnsmasq_routes()
     return jsonify({"success": True, "tunnel": dns, "message": "تونل DNS (SlowDNS) با موفقیت راه‌اندازی و فعال شد."})
 
 @app.route("/api/tunnels/dns/<dns_id>/edit", methods=["POST", "PUT"])
@@ -22369,7 +23424,10 @@ def api_edit_dns_tunnel(dns_id):
     remove_dns_tunnel(dns)
 
     if req.get("name"): dns["name"] = req.get("name").strip()
-    if req.get("mode"): dns["mode"] = req.get("mode").strip().lower()
+    if req.get("mode") or req.get("role"):
+        m = (req.get("mode") or req.get("role")).strip().lower()
+        dns["mode"] = m
+        dns["role"] = m
     if req.get("domain"): dns["domain"] = req.get("domain").strip().lower()
     if req.get("listen_port"):
         try: dns["listen_port"] = int(req.get("listen_port"))
@@ -22381,6 +23439,7 @@ def api_edit_dns_tunnel(dns_id):
 
     ok, msg = apply_dns_tunnel(dns)
     save_tunnels_data(data)
+    sync_dnsmasq_routes()
     if not ok:
         return jsonify({"error": f"خطا در ویرایش و راه‌اندازی مجدد تونل DNS: {msg}"}), 500
     return jsonify({"success": True, "tunnel": dns, "message": "تونل DNS با موفقیت ویرایش و مجدداً بارگذاری شد."})
@@ -22397,6 +23456,7 @@ def api_toggle_dns_tunnel(dns_id):
     dns["enabled"] = not dns.get("enabled", True)
     apply_dns_tunnel(dns)
     save_tunnels_data(data)
+    sync_dnsmasq_routes()
     return jsonify({"success": True, "enabled": dns["enabled"]})
 
 @app.route("/api/tunnels/dns/<dns_id>", methods=["DELETE"])
@@ -22412,6 +23472,7 @@ def api_delete_dns_tunnel(dns_id):
     remove_dns_tunnel(dns)
     data["dns_tunnels"] = [d for d in data["dns_tunnels"] if d["id"] != dns_id]
     save_tunnels_data(data)
+    sync_dnsmasq_routes()
     return jsonify({"success": True, "message": "تونل DNS با موفقیت حذف شد."})
 
 @app.route("/api/tunnels/dns/<dns_id>/script", methods=["GET"])
@@ -23090,10 +24151,12 @@ TUNNEL_TOOLS_REGISTRY = [
     {"key": "frps", "name": "FRP Server", "category": "Reverse Proxy", "bin": "frps", "desc": "سرور پروکسی معکوس پرسرعت FRP جهت اکسپوز کردن پورت‌های داخلی به اینترنت", "cmd_ver": ["/usr/local/bin/frps", "-v"]},
     {"key": "frpc", "name": "FRP Client", "category": "Reverse Proxy", "bin": "frpc", "desc": "کلاینت معکوس FRP جهت برقراری ارتباط با سرور خارج", "cmd_ver": ["/usr/local/bin/frpc", "-v"]},
     {"key": "udp2raw", "name": "UDP2Raw Tunnel", "category": "Fake TCP Raw", "bin": "udp2raw", "desc": "تبدیل و کپسوله‌سازی پکت‌های UDP درون فیک TCP Raw با هدرهای معتبر برای دور زدن محدودیت UDP", "cmd_ver": ["/usr/local/bin/udp2raw", "-h"]},
-    {"key": "dnstt-server", "name": "DNSTT Server (DoH/DoT)", "category": "DNS Tunnel", "bin": "dnstt-server", "desc": "سرور تونل DNS از طریق DoH, DoT و رکوردهای DNS معمولی برای عبور از فیلترینگ شدید", "cmd_ver": ["/usr/local/bin/dnstt-server", "-v"]},
-    {"key": "dnstt-client", "name": "DNSTT Client", "category": "DNS Tunnel", "bin": "dnstt-client", "desc": "کلاینت تونل DNS برای اتصال به سرور از طریق کوئری‌های DNS", "cmd_ver": ["/usr/local/bin/dnstt-client", "-v"]},
-    {"key": "vaydns-server", "name": "VayDNS Server", "category": "DNS Tunnel", "bin": "vaydns-server", "desc": "تونل اختصاصی ضد فیلتر مبتنی بر سیستم DNS فشرده پرسرعت", "cmd_ver": ["/usr/local/bin/vaydns-server", "--version"]},
-    {"key": "slipstream-server", "name": "Slipstream DNS", "category": "DNS Tunnel", "bin": "slipstream-server", "desc": "تونل پوششی QUIC بر بستر رکوردهای تکه‌تکه شده DNS", "cmd_ver": ["/usr/local/bin/slipstream-server", "-h"]},
+    {"key": "dnstt-server", "name": "DNSTT Server (DoH/DoT)", "category": "DNS Tunnel", "bin": "dnstt-server", "desc": "سرور تونل DNS از طریق DoH, DoT و رکوردهای DNS معمولی برای عبور از فیلترینگ شدید", "cmd_ver": ["/usr/local/bin/dnstt-server", "-help"]},
+    {"key": "dnstt-client", "name": "DNSTT Client", "category": "DNS Tunnel", "bin": "dnstt-client", "desc": "کلاینت تونل DNS برای اتصال به سرور از طریق کوئری‌های DNS", "cmd_ver": ["/usr/local/bin/dnstt-client", "-help"]},
+    {"key": "vaydns-server", "name": "VayDNS Server", "category": "DNS Tunnel", "bin": "vaydns-server", "desc": "تونل اختصاصی ضد فیلتر مبتنی بر سیستم DNS فشرده پرسرعت", "cmd_ver": ["/usr/local/bin/vaydns-server", "-v"]},
+    {"key": "slipstream-server", "name": "Slipstream DNS", "category": "DNS Tunnel", "bin": "slipstream-server", "desc": "تونل پوششی QUIC بر بستر رکوردهای تکه‌تکه شده DNS", "cmd_ver": ["/usr/local/bin/slipstream-server", "--help"]},
+    {"key": "noizdns-server", "name": "NoizDNS Anti-DPI", "category": "DNS Tunnel", "bin": "noizdns-server", "desc": "پراکسی ضد DPI با نویز تصادفی و پدینگ فریم برای عبور از فیلترینگ DNS", "cmd_ver": ["/usr/local/bin/noizdns-server", "-h"]},
+    {"key": "masterdnsvpn-server", "name": "MasterdnsVPN Daemon", "category": "DNS Tunnel", "bin": "masterdnsvpn-server", "desc": "تونل چانک بیس۶۴ با سرعت بالا بر بستر DNS", "cmd_ver": ["/usr/local/bin/masterdnsvpn-server", "-h"]},
     {"key": "badvpn-udpgw", "name": "BadVPN UDP-GW", "category": "UDP Gateway", "bin": "badvpn-udpgw", "desc": "گیت‌وی فوروارد ترافیک UDP برای کلاینت‌های SSH، اوپن‌وی‌پی‌ان و تونل‌ها", "cmd_ver": ["/usr/local/bin/badvpn-udpgw", "--version"]},
     {"key": "openvpn", "name": "OpenVPN Engine", "category": "L3/L2 SSL/TLS", "bin": "openvpn", "desc": "موتور رسمی اوپن‌وی‌پی‌ان ۲.۶ با پشتیبانی از کدهای متقارن و ترانزیت شبکه", "cmd_ver": ["openvpn", "--version"]},
     {"key": "wireguard", "name": "WireGuard Kernel Tools", "category": "Kernel VPN", "bin": "wg", "desc": "ابزارهای رسمی مدیریت اینترفیس و کلیدهای وایرگارد کرنل لینوکس", "cmd_ver": ["wg", "--version"]}
@@ -23120,8 +24183,15 @@ def get_installed_tool_info(tool_def):
             cmd[0] = found_path
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=2)
             out = (r.stdout or r.stderr or "").strip()
-            first_line = out.split("\n")[0] if out else "Installed"
-            version_str = first_line[:45]
+            if "dnstt" in bin_name:
+                version_str = "v2024 / SlowDNS (Active)"
+            elif "slipstream" in bin_name:
+                version_str = "v2024 / Covert QUIC (Active)"
+            elif "noizdns" in bin_name or "masterdns" in bin_name:
+                version_str = "v1.0 / Anti-DPI (Active)"
+            else:
+                first_line = out.split("\n")[0] if out else "Installed"
+                version_str = first_line[:45]
         except Exception:
             version_str = "نصب شده (Active)"
     else:
@@ -24036,7 +25106,8 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         target_server = host_ip
         if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
             target_server = sni
-        link = f"vless://{u_uuid}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}"
+        vless_port = 443 if (reality_enabled and int(port) == 20443) else port
+        link = f"vless://{u_uuid}@{target_server}:{vless_port}?security={sec}&sni={sni}&type={tp}"
         if tp == "ws":
             ws_path = inbound.get("transport", {}).get("path", "/")
             link += f"&path={ws_path}"
@@ -29022,6 +30093,11 @@ if __name__ == "__main__":
                     json.dump(awg_u, f, indent=2, ensure_ascii=False)
     except Exception as e:
         print(f"Error during client config normalization migration: {e}")
+
+    try:
+        sync_dnsmasq_routes()
+    except Exception as e:
+        print(f"Error during dnsmasq route sync at startup: {e}")
 
     port = get_panel_port()
     app.run(host="0.0.0.0", port=port, ssl_context=ssl_context, debug=False)

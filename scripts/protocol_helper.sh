@@ -2264,6 +2264,7 @@ USERS = {
     "mhpanel": "${secret}",
 }
 MODES = {"classic": True, "secure": True, "tls": True}
+TLS_DOMAIN = "www.cloudflare.com"
 AD_TAG = "${ad_tag}"
 EOF
     chmod 600 "${config}"
