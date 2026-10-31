@@ -26452,6 +26452,28 @@ def save_gas_config(cfg, restart_service=True):
         diag = "1" if cfg.get("diagnostic_mode") else "0"
         with open(env_file, "w", encoding="utf-8") as f:
             f.write(f"PORT={port}\nTUNNEL_AUTH_KEY={secret}\nMHRV_DIAGNOSTIC={diag}\n")
+
+        # Synchronize Apache reverse proxy for port 80/443
+        apache_path = "/www/server/panel/vhost/apache/gas_tunnel_proxy.conf"
+        apache_conf = f"""<Location /tunnel>
+    ProxyPass http://127.0.0.1:{port}/tunnel
+    ProxyPassReverse http://127.0.0.1:{port}/tunnel
+</Location>
+
+<Location /relay>
+    ProxyPass http://127.0.0.1:{port}/tunnel
+    ProxyPassReverse http://127.0.0.1:{port}/tunnel
+</Location>
+
+<Location /health>
+    ProxyPass http://127.0.0.1:{port}/health
+    ProxyPassReverse http://127.0.0.1:{port}/health
+</Location>
+"""
+        os.makedirs(os.path.dirname(apache_path), exist_ok=True)
+        with open(apache_path, "w", encoding="utf-8") as f:
+            f.write(apache_conf)
+        subprocess.run(["/etc/init.d/httpd", "reload"], check=False)
     except Exception:
         pass
     if restart_service:
@@ -27408,7 +27430,10 @@ def api_google_script_config():
     if "default_upstream" in data:
         cfg["default_upstream"] = str(data["default_upstream"]).strip()
     if "tunnel_server_url" in data:
-        cfg["tunnel_server_url"] = str(data["tunnel_server_url"]).strip()
+        t_url = str(data["tunnel_server_url"]).strip()
+        if t_url and not t_url.startswith("http://") and not t_url.startswith("https://"):
+            t_url = f"http://{t_url}"
+        cfg["tunnel_server_url"] = t_url
     if "diagnostic_mode" in data:
         cfg["diagnostic_mode"] = bool(data["diagnostic_mode"])
     if "google_project_title" in data:
