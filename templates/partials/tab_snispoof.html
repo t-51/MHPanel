@@ -1,0 +1,358 @@
+<div class="tab-pane" id="tab-snispoof">
+    <section style="max-width: 1080px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+
+        <!-- Header & Core Status -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(236, 72, 153, 0.25);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:46px; height:46px; border-radius:14px; background: rgba(236, 72, 153, 0.12); color:#ec4899; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(236, 72, 153, 0.2);">
+                        <i data-lucide="shield-check" style="width:26px; height:26px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:18px; display:flex; align-items:center; gap:8px;" data-i18n="snispoof_title">
+                            سامانه جامع جعل SNI و دورزدن DPI (SNI Spoofing Hub)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:3px;" data-i18n="snispoof_subtitle">
+                            فناوری فریب فایروال‌های بازرسی عمیق بسته‌ها (DPI) در سطح هسته شبکه با تزریق پکت‌های جعلی TLS، تغییر شماره سریال، شکستن بسته (Fragmentation) و تونلینگ ریورس
+                        </p>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span id="snispoof-status-badge" style="font-size: 13px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                        <span class="status-dot active"></span> <span data-i18n="checking_status">در حال بررسی...</span>
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="restartSniSpoofService();" style="width:auto; padding: 7px 14px; border-color: rgba(236, 72, 153, 0.3);" title="ریستارت سرویس">
+                        <i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSniSpoofConfig();" style="width:auto; padding: 7px 14px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 18px; font-size: 13px;">
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="snispoof_stat_port">پورت شنود سرویس</div>
+                    <div style="font-weight: 700; color: #ec4899; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="snispoof-stat-port">15443</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="snispoof_stat_strategy">استراتژی فعال Evasion</div>
+                    <div style="font-weight: 700; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="snispoof-stat-strategy">TLS Fragment (SNI Slice)</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="upstream">مقصد فوروارد (Upstream)</div>
+                    <div style="font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="snispoof-stat-upstream">127.0.0.1:22 (SSH)</div>
+                </div>
+                <div style="background: var(--bg-base); padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-glow);">
+                    <div style="color: var(--text-muted); font-size: 11px;" data-i18n="online_conns">اتصالات فعال / کل</div>
+                    <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 3px;" id="snispoof-stat-connections">0 / 0</div>
+                </div>
+            </div>
+
+            <!-- Architecture Diagram Pipeline -->
+            <div style="background: var(--bg-base); border-radius: 12px; padding: 16px; border: 1px dashed rgba(236, 72, 153, 0.3); margin-bottom: 20px;">
+                <div style="font-size: 12px; font-weight: 700; color: #ec4899; margin-bottom: 12px; display:flex; align-items:center; gap:6px;">
+                    <i data-lucide="network" style="width:16px; height:16px;"></i>
+                    <span data-i18n="snispoof_pipeline_title">فرآیند مهندسی عبور پکت‌ها از دیواره آتش (DPI Bypass Pipeline):</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 11px;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 120px; background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px;">
+                        <i data-lucide="laptop" style="width: 20px; height: 20px; color: #94a3b8;"></i>
+                        <span style="font-weight: 600;" data-i18n="snispoof_pipe_client">کلاینت / سرور ایران</span>
+                        <span style="font-size: 10px; color: var(--text-muted);">ClientHello + Fake SNI</span>
+                    </div>
+                    <i data-lucide="arrow-left" style="color: #ec4899; width: 16px; height: 16px;"></i>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 140px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); padding: 10px; border-radius: 8px;">
+                        <i data-lucide="shield-alert" style="width: 20px; height: 20px; color: #ef4444;"></i>
+                        <span style="font-weight: 700; color: #f87171;" data-i18n="snispoof_pipe_dpi">فایروال DPI / بازرسی پکت</span>
+                        <span style="font-size: 10px; color: #34d399;">فریب‌خورده (تأیید دامنه‌سفید)</span>
+                    </div>
+                    <i data-lucide="arrow-left" style="color: #ec4899; width: 16px; height: 16px;"></i>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 130px; background: rgba(236, 72, 153, 0.08); border: 1px solid rgba(236, 72, 153, 0.2); padding: 10px; border-radius: 8px;">
+                        <i data-lucide="server" style="width: 20px; height: 20px; color: #ec4899;"></i>
+                        <span style="font-weight: 700; color: #ec4899;" data-i18n="snispoof_pipe_server">سرور نود MHPanel (:15443)</span>
+                        <span style="font-size: 10px; color: var(--text-muted);">Reassembly &amp; Relay</span>
+                    </div>
+                    <i data-lucide="arrow-left" style="color: #ec4899; width: 16px; height: 16px;"></i>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 120px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 10px; border-radius: 8px;">
+                        <i data-lucide="terminal" style="width: 20px; height: 20px; color: #10b981;"></i>
+                        <span style="font-weight: 700; color: #10b981;" data-i18n="snispoof_pipe_upstream">هسته داخلی (Upstream)</span>
+                        <span style="font-size: 10px; color: var(--text-muted);">SSH / Singbox / Trojan</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form: Configuration -->
+            <form id="snispoof-config-form" onsubmit="saveSniSpoofConfig(event);">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                    
+                    <!-- Listen Port -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="font-weight: 600; font-size: 12.5px;" data-i18n="port">پورت شنود (TCP Port)</label>
+                        <input type="number" class="form-input" id="snispoof-cfg-port" min="1" max="65535" value="15443" required>
+                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;" data-i18n="snispoof_port_hint">
+                            پورت پیش‌فرض ۱۵۴۴۳ (یا پورت‌های معتبر ۴۴۳، ۴۰۴۴۳، ۸۴۴۳).
+                        </span>
+                    </div>
+
+                    <!-- Role / Operating Mode -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="font-weight: 600; font-size: 12.5px;" data-i18n="snispoof_role_label">نقش اجرایی سرور (Operational Role)</label>
+                        <select class="form-input" id="snispoof-cfg-role" onchange="toggleSniSpoofRoleFields();">
+                            <option value="inbound_relay">پروکسی معکوس ورودی (Inbound Reverse Proxy)</option>
+                            <option value="reverse_client">نود کلاینت تونل ریورس (Reverse Tunnel Client)</option>
+                        </select>
+                        <span style="font-size: 11px; color: var(--text-muted); margin-top: 4px; display: block;" data-i18n="snispoof_role_hint">
+                            در حالت Inbound، سرور پکت‌های جعلی را دریافت کرده و به Upstream فوروارد می‌کند.
+                        </span>
+                    </div>
+
+                    <!-- Upstream Target Service -->
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" style="font-weight: 600; font-size: 12.5px;" data-i18n="upstream">سرویس مقصد (Local Upstream Destination)</label>
+                        <select class="form-input" id="snispoof-cfg-upstream-select" onchange="syncSniSpoofUpstream();">
+                            <option value="127.0.0.1:22">127.0.0.1:22 (SSH Tunnel)</option>
+                            <option value="127.0.0.1:20443">127.0.0.1:20443 (Sing-box Core)</option>
+                            <option value="127.0.0.1:8388">127.0.0.1:8388 (Shadowsocks)</option>
+                            <option value="127.0.0.1:12443">127.0.0.1:12443 (Trojan TLS)</option>
+                            <option value="custom">سفارشی (Custom IP:Port)...</option>
+                        </select>
+                        <input type="text" class="form-input" id="snispoof-cfg-upstream-custom" placeholder="127.0.0.1:PORT" style="margin-top:6px; display:none;">
+                    </div>
+                </div>
+
+                <!-- Reverse Tunnel Fields (Conditional) -->
+                <div id="snispoof-reverse-fields" style="display:none; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                    <div style="font-weight: 700; font-size: 13px; color: #ec4899; margin-bottom: 10px; display:flex; align-items:center; gap:6px;">
+                        <i data-lucide="shuffle" style="width:16px; height:16px;"></i>
+                        <span data-i18n="snispoof_reverse_settings_title">تنظیمات نود سرور ریورس (Reverse Tunnel Settings)</span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                        <div>
+                            <label class="form-label" style="font-size: 11.5px;" data-i18n="snispoof_rev_target_host">آی‌پی یا دامنه سرور مقصد (Target Host)</label>
+                            <input type="text" class="form-input" id="snispoof-cfg-rev-host" placeholder="e.g. 89.169.52.68">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 11.5px;" data-i18n="snispoof_rev_target_port">پورت سرور مقصد (Target Port)</label>
+                            <input type="number" class="form-input" id="snispoof-cfg-rev-port" min="1" max="65535" value="15443">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Strategy & Evasion Engine Selection -->
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="cpu" style="width:18px; height:18px; color:#ec4899;"></i>
+                        <span data-i18n="snispoof_strategies_title">مدل‌ها و استراتژی‌های ضد فیلترینگ (Anti-DPI Strategies)</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 16px;">
+                        
+                        <!-- Strategy 1: Wrong Sequence -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#ec4899;">۱. توالی اشتباه (Wrong Sequence)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="wrong_seq" id="strat-wrong-seq">
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                تزریق پکت جعلی با شماره سریال خارج از پنجره دریافت TCP؛ فایروال DPI فریب خورده و تأیید می‌کند، اما سرور آن را دراپ می‌کند.
+                            </p>
+                        </div>
+
+                        <!-- Strategy 2: Bad Checksum -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#3b82f6;">۲. چک‌سام نامعتبر (Bad Checksum)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="wrong_checksum" id="strat-wrong-checksum">
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                پکت جعلی با چک‌سام اشتباه ارسال می‌شود؛ فایروال DPI به دلیل پردازش سنگین چک‌سام را چک نکرده و پکت را تایید می‌کند.
+                            </p>
+                        </div>
+
+                        <!-- Strategy 3: Low TTL -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#f59e0b;">۳. کاهش TTL (Hop-Limit Low TTL)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="low_ttl" id="strat-low-ttl">
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                ارسال پکت با TTL پایین (مثلاً ۵ جهش) که بعد از عبور از فایروال داخلی منقضی شده و به سرور مقصد نمی‌رسد.
+                            </p>
+                        </div>
+
+                        <!-- Strategy 4: TLS Fragment -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#10b981;">۴. تقطیع SNI (TLS Fragmentation)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="tls_fragment" id="strat-tls-fragment" checked>
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                شکستن هدر TLS ClientHello دقیقا در محل رشته نام دامنه به چند تکه کوچک و ارسال با تاخیر میکروثانیه‌ای (محبوب‌ترین متد).
+                            </p>
+                        </div>
+
+                        <!-- Strategy 5: Dynamic Rotation -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#a855f7;">۵. چرخش استخر دامنه‌ها (SNI Rotation)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="sni_rotation" id="strat-sni-rotation">
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                انتخاب تصادفی یا نوبتی دامنه‌های سفید از استخر دامنه‌ها در هر نشست جهت جلوگیری از شناسایی رفتاری و آماری.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Fine-Tuning Parameters -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; padding-top: 8px; border-top: 1px solid var(--border-glow);">
+                        <div>
+                            <label class="form-label" style="font-size:11.5px;" data-i18n="snispoof_param_ttl">تعداد جهش Low TTL (Hops):</label>
+                            <input type="number" class="form-input" id="snispoof-cfg-hops" min="1" max="15" value="5">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11.5px;" data-i18n="snispoof_param_frag_size">اندازه قطعه فرگمنت (بایت):</label>
+                            <input type="number" class="form-input" id="snispoof-cfg-frag-size" min="1" max="100" value="2">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11.5px;" data-i18n="snispoof_param_frag_delay">تاخیر بین قطعات (میلی‌ثانیه):</label>
+                            <input type="number" class="form-input" id="snispoof-cfg-frag-delay" min="1" max="50" value="3">
+                        </div>
+                        <div style="display:flex; align-items:center; gap:8px; margin-top:20px;">
+                            <input type="checkbox" id="snispoof-cfg-jitter" checked style="width:18px; height:18px; cursor:pointer;">
+                            <label for="snispoof-cfg-jitter" style="font-size:12px; font-weight:600; cursor:pointer;" data-i18n="snispoof_jitter_label">فعال‌سازی شبیه‌ساز نوسان (Jitter)</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Decoy SNI Pool Management -->
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="list-checks" style="width:18px; height:18px; color:#10b981;"></i>
+                            <span data-i18n="snispoof_pool_title">استخر دامنه‌های سفید مجاز (Whitelisted Decoy SNI Pool)</span>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="scanSniPool();" style="width:auto; padding: 6px 12px; border-color: rgba(16, 185, 129, 0.4);">
+                            <i data-lucide="activity" style="width:14px; height:14px; margin-left:6px; color:#10b981;"></i>
+                            <span data-i18n="snispoof_test_all_btn">تست و اسکن زنده دامنه‌ها</span>
+                        </button>
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-bottom:12px;">
+                        <input type="text" class="form-input" id="snispoof-new-sni-input" placeholder="مثال: sanjesh.org یا dl.google.com" style="flex:1;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addSniToPool();" style="width:auto; padding: 8px 16px;">
+                            <i data-lucide="plus" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="add">افزودن</span>
+                        </button>
+                    </div>
+
+                    <!-- Tag List -->
+                    <div id="snispoof-sni-tags" style="display:flex; flex-wrap:wrap; gap:8px; min-height: 40px; padding:8px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div style="display:flex; justify-content:flex-end; gap:10px;">
+                    <button type="submit" class="btn btn-primary" style="padding: 10px 24px; font-weight:700; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border:none; box-shadow:0 4px 14px rgba(236,72,153,0.35);">
+                        <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span data-i18n="save_changes">ذخیره و اعمال تنظیمات</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Client Connection & Downloads Hub -->
+        <div class="glass-card config-card" style="border: 1px solid var(--border-glow);">
+            <div class="config-header" style="margin-bottom: 16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background: rgba(59, 130, 246, 0.12); color:#3b82f6; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="download-cloud" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="snispoof_client_hub_title">
+                            مرکز اتصال و دریافت اسکریپت‌ها و برنامه‌های کلاینت (Client Hub)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="snispoof_client_hub_sub">
+                            دستورات تک‌خطی و کلاینت‌های اختصاصی ویندوز، لینوکس، مک و کانفیگ‌های Sing-box / Xray
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Download Buttons Bar -->
+            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <a href="/download/snispoof-client.exe" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px; border-color: rgba(59, 130, 246, 0.3);">
+                    <i data-lucide="binary" style="width:16px; height:16px; margin-left:6px; color:#3b82f6;"></i>
+                    <span>دانلود کلاینت ویندوز (EXE)</span>
+                </a>
+                <a href="/download/snispoof-client.ps1" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; margin-left:6px; color:#06b6d4;"></i>
+                    <span>دانلود اسکریپت PowerShell</span>
+                </a>
+                <a href="/download/snispoof-client.bat" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
+                    <i data-lucide="play" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
+                    <span>دانلود لانچر Batch (.bat)</span>
+                </a>
+                <a href="/download/snispoof-client.py" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
+                    <i data-lucide="file-code" style="width:16px; height:16px; margin-left:6px; color:#f59e0b;"></i>
+                    <span>دانلود کلاینت پایتون (.py)</span>
+                </a>
+            </div>
+
+            <!-- Terminal Tabs for Client Commands -->
+            <div style="background: #0f172a; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
+                <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); overflow-x:auto;">
+                    <button type="button" class="snispoof-tab-btn active" onclick="switchSniCliTab('powershell')" style="padding:10px 16px; border:none; background:none; color:#38bdf8; font-weight:700; font-size:12px; cursor:pointer; border-bottom:2px solid #38bdf8;">Windows PowerShell</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('python')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Python CLI</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Sing-box Outbound JSON</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('xray')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Xray VLESS Fragment JSON</button>
+                </div>
+
+                <!-- PowerShell View -->
+                <div id="snispoof-cli-powershell" class="snispoof-cli-content" style="padding:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#94a3b8;">دستور اجرای مستقیم در PowerShell (ایجاد ساکس ۵ لوکال روی پورت 10808):</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-cmd-ps')" style="padding:4px 10px; font-size:11px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                    <textarea id="snispoof-cmd-ps" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Python View -->
+                <div id="snispoof-cli-python" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#94a3b8;">دستور اجرای کلاینت با پایتون (لینوکس / مک / ویندوز):</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-cmd-py')" style="padding:4px 10px; font-size:11px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                    <textarea id="snispoof-cmd-py" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#4ade80; font-family:'JetBrains Mono', monospace; font-size:12px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Sing-box JSON View -->
+                <div id="snispoof-cli-singbox" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#94a3b8;">کانفیگ رسمی Sing-box با قابلیت TLS Fragment و Fake SNI:</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-snippet-singbox')" style="padding:4px 10px; font-size:11px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                    <textarea id="snispoof-snippet-singbox" readonly style="width:100%; height:140px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fcd34d; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Xray JSON View -->
+                <div id="snispoof-cli-xray" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <span style="font-size:11px; color:#94a3b8;">کانفیگ رسمی Xray Outbound با فیلتر Fragment و SNI Whitelist:</span>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-snippet-xray')" style="padding:4px 10px; font-size:11px;">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
+                        </button>
+                    </div>
+                    <textarea id="snispoof-snippet-xray" readonly style="width:100%; height:140px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#c084fc; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+            </div>
+        </div>
+
+    </section>
+</div>

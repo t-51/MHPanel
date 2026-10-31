@@ -414,6 +414,7 @@
 </button>
 </div>
 </div>
+</div>
 <!-- ================= SUB-PANE 4: NOIZDNS ================= -->
 <div id="dns-subpane-noizdns" style="display:none;">
 <div class="glass-card config-card" style="margin-bottom: 20px;">
@@ -491,7 +492,6 @@
 </button>
 </div>
 </div>
-</div>
 <!-- SlipNet Android Card for NoizDNS -->
 <div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
@@ -526,6 +526,96 @@
 <span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
 </div>
 </div>
+</div>
+
+<!-- NoizDNS Usage & Setup Guide Card -->
+<div class="glass-card config-card" style="margin-top: 20px; border-top: 3px solid #ec4899;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+        <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px; color:var(--text-main);">
+            <i data-lucide="book-open" style="width:20px; height:20px; color:#ec4899;"></i>
+            <span>راهنمای جامع راه‌اندازی و استفاده از نویز دی‌ان‌اس (NoizDNS Anti-DPI)</span>
+        </h4>
+        <span class="badge" style="background:rgba(236,72,153,0.15); color:#ec4899; font-size:12px; padding:3px 10px; border-radius:12px; font-weight:600;">
+            Anti-DPI & Stealth Protocol
+        </span>
+    </div>
+
+    <!-- Intro box -->
+    <div style="background:rgba(236,72,153,0.06); border:1px solid rgba(236,72,153,0.2); border-radius:10px; padding:14px; margin-bottom:20px; font-size:13px; line-height:1.7; color:var(--text-main);">
+        <strong style="color:#ec4899;">💡 پروتکل NoizDNS چیست و چگونه کار می‌کند؟</strong><br>
+        در فیلترینگ شدید (DPI) و اختلالات ملی، سیستم‌های فیلترینگ الگوی بسته‌های DNS و طول فریم‌ها را رصد و مسدود می‌کنند. پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های نویز تصادفی (Padding Random Noise) بین ۱۶ الی ۶۴ بایت به هر بسته DNS و دگرگون‌سازی هدر پکت‌ها، اثر انگشت (Fingerprint) ترافیک را مخدوش کرده و بدون امکان مسدودسازی از دیواره‌های آتش عبور می‌کند.
+    </div>
+
+    <!-- Step-by-step Apps Grid -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
+        
+        <!-- App 1: SlipNet -->
+        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:rgba(139,92,246,0.15); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <strong style="font-size:14px; display:block;">۱. اپلیکیشن SlipNet (اندروید)</strong>
+                    <span style="font-size:11px; color:#10b981; font-weight:600;">اتصال آسان ۱ کلیک (پیشنهادی)</span>
+                </div>
+            </div>
+            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                <li>در کادر بالا کاربر SSH مورد نظر را انتخاب کنید.</li>
+                <li>با برنامه <strong>SlipNet</strong> کد QR را اسکن کنید یا روی دکمه کپی لینک <code style="color:#8b5cf6;">slipnet://</code> کلیک کرده و در برنامه وارد نمایید.</li>
+                <li>پروتکل به صورت خودکار روی حالت <strong>SayeDNS Stealth</strong> تنظیم شده و تنها با فشردن دکمه <strong>Connect</strong> اینترنت آزاد در دسترس شماست.</li>
+            </ul>
+        </div>
+
+        <!-- App 2: HTTP Custom & NapsternetV -->
+        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:rgba(20,184,166,0.15); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <strong style="font-size:14px; display:block;">۲. نرم‌افزارهای HTTP Custom / NapsternetV</strong>
+                    <span style="font-size:11px; color:var(--text-muted);">اندروید و آی‌او‌اس</span>
+                </div>
+            </div>
+            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                <li>در نرم‌افزار حالت اتصال را روی <strong>SlowDNS / DNS Tunnel</strong> قرار دهید.</li>
+                <li>در فیلد DNS Server آی‌پی سرور خود و پورت <code style="color:#14b8a6;">5355</code> (UDP) را وارد نمایید.</li>
+                <li>در بخش SSH، آی‌پی سرور و پورت SSH (معمولاً ۲۲) و نام کاربری و رمز عبور کاربر خود را ثبت کرده و متصل شوید.</li>
+            </ul>
+        </div>
+
+        <!-- App 3: Desktop / Linux Client -->
+        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:36px; height:36px; border-radius:8px; background:rgba(59,130,246,0.15); color:#3b82f6; display:flex; align-items:center; justify-content:center;">
+                    <i data-lucide="terminal" style="width:20px; height:20px;"></i>
+                </div>
+                <div>
+                    <strong style="font-size:14px; display:block;">۳. کلاینت NoizDNS (ویندوز / مک / لینوکس)</strong>
+                    <span style="font-size:11px; color:var(--text-muted);">تونل کل سیستم و دسکتاپ</span>
+                </div>
+            </div>
+            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                <li>کلاینت NoizDNS را در سیستم خود اجرا کرده و دستور جعبه دستور اتصال را فراخوانی کنید.</li>
+                <li>کلاینت پورت محلی <code style="color:#3b82f6;">127.0.0.1:53</code> را ایجاد می‌کند که کلیه درخواست‌های DNS سیستم شما با نویز ضد فیلتر ارسال شود.</li>
+                <li>ترافیک DNS کل سیستم به صورت کاملاً رمزنگاری و نویزگذاری شده بدون فیلترینگ عبور داده می‌شود.</li>
+            </ul>
+        </div>
+
+    </div>
+
+    <!-- Troubleshooting Tips -->
+    <div style="background:var(--bg-muted); border-radius:8px; padding:12px 16px; font-size:12px; line-height:1.6; border:1px solid var(--border-glow);">
+        <strong style="color:#f59e0b; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+            <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> نکات فنی برای حداکثر پایداری و دور زدن فیلترینگ:
+        </strong>
+        <div style="display:flex; flex-direction:column; gap:4px; color:var(--text-muted);">
+            <div>• پورت پیش‌فرض شنود سرور ۵۳۵۵ (UDP) است؛ در صورت بسته‌بودن رنج پورت‌ها در اپراتور، می‌توانید در فرم بالا پورت را به ۵۳ یا دیگر پورت‌های باز تغییر دهید.</div>
+            <div>• اگر سرعت انتقال کوئری‌ها کند بود، DNS بالادستی (Upstream) را روی <code>1.1.1.1:53</code> یا <code>8.8.8.8:53</code> تنظیم کنید.</div>
+            <div>• برای خطوط همراه اول و ایرانسل با محدودیت پکت بالا، مقدار حداقل پدینگ را روی <code>32</code> و حداکثر را روی <code>128</code> بایت قرار دهید.</div>
+        </div>
+    </div>
 </div>
 </div>
 <!-- ================= SUB-PANE 5: MASTERDNSVPN ================= -->
@@ -707,7 +797,6 @@
 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
 <div id="doh-slipnet-qr" style="width:130px; height:130px; display:flex; align-items:center; justify-content:center; background:#fff; padding:6px; border-radius:6px;"></div>
 <span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
-</div>
 </div>
 </div>
 </div>

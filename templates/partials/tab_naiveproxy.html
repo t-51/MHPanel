@@ -224,5 +224,131 @@
             </div>
         </div>
 
+        <!-- NaiveProxy Comprehensive Usage & Client Guide Card -->
+        <div class="glass-card config-card" style="border-top: 3px solid #f59e0b;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px; color:var(--text-main);">
+                    <i data-lucide="book-open" style="width:20px; height:20px; color:#f59e0b;"></i>
+                    <span>راهنمای جامع کلاینت‌ها و آموزش استفاده از پروتکل NaiveProxy</span>
+                </h4>
+                <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:12px; padding:3px 10px; border-radius:12px; font-weight:600;">
+                    Chromium Network Stack • 100% Stealth
+                </span>
+            </div>
+
+            <!-- Intro explanation -->
+            <div style="background:rgba(245,158,11,0.06); border:1px solid rgba(245,158,11,0.2); border-radius:10px; padding:14px; margin-bottom:20px; font-size:13px; line-height:1.7; color:var(--text-main);">
+                <strong style="color:#f59e0b;">💡 چرا NaiveProxy قوی‌ترین و ضد فیلترترین پروتکل است؟</strong><br>
+                بر خلاف سایر فیلترشکن‌ها که پکت‌های ساختگی یا فینگرپرینت‌های شبیه‌سازی‌شده تولید می‌کنند، <strong>NaiveProxy</strong> مستقیماً از سورس کد رسمی هسته شبکه گوگل کروم (Chromium Network Stack) استفاده می‌کند. ترافیک شما دقیقاً مشابه یک اتصال مرورگر کروم واقعی به وب‌سایتی با استاندارد HTTP/2 و رمزنگاری TLS 1.3 است. سیستم‌های فیلترینگ هوشمند و مانیتورینگ ترافیک (GFW / DPI) توانایی تشخیص یا تفکیک آن از یک بازدید معمولی وب را به هیچ وجه ندارند.
+            </div>
+
+            <!-- Client Platforms Grid -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
+                
+                <!-- Client 1: SlipNet -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:rgba(245,158,11,0.15); color:#f59e0b; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size:14px; display:block;">۱. اپلیکیشن SlipNet (اندروید)</strong>
+                            <span style="font-size:11px; color:#10b981; font-weight:600;">اسکن فوری QR Code (پیشنهادی)</span>
+                        </div>
+                    </div>
+                    <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                        <li>اپلیکیشن <strong>SlipNet</strong> را در گوشی اندروید خود باز کنید.</li>
+                        <li>روی آیکون اسکن QR در SlipNet زده و بارکد کادر NaiveProxy در بالا را اسکن کنید.</li>
+                        <li>پیکربندی ترافیک به صورت خودکار بارگذاری می‌شود؛ با زدن دکمه <strong>Connect</strong> بلافاصله با بالاترین سرعت و مقاومت متصل خواهید شد.</li>
+                    </ul>
+                </div>
+
+                <!-- Client 2: NekoBox / Matsuri / v2rayNG -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:rgba(16,185,129,0.15); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="box" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size:14px; display:block;">۲. نرم‌افزار NekoBox / Matsuri (اندروید)</strong>
+                            <span style="font-size:11px; color:var(--text-muted);">پشتیبانی پیش‌فرض از هسته Naive</span>
+                        </div>
+                    </div>
+                    <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                        <li>آدرس موجود در فیلد <strong>لینک کلاینت (Naive URI)</strong> را کپی کنید.</li>
+                        <li>در برنامه <strong>NekoBox</strong> دکمه + را بزنید و گزینه <strong>Import from Clipboard</strong> را انتخاب نمایید.</li>
+                        <li>پلاگین NaiveProxy در NekoBox به طور خودکار فعال شده و بدون افت پینگ ترافیک شما تونل می‌شود.</li>
+                    </ul>
+                </div>
+
+                <!-- Client 3: Clash Meta / Mihomo -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:rgba(99,102,241,0.15); color:#6366f1; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="layers" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size:14px; display:block;">۳. کلاینت Clash Meta / Mihomo</strong>
+                            <span style="font-size:11px; color:var(--text-muted);">ویندوز، مک، لینوکس و اندروید</span>
+                        </div>
+                    </div>
+                    <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                        <li>روی دکمه <strong>کپی کانفیگ Clash</strong> در کادر بالا کلیک کنید.</li>
+                        <li>در فایل پروفایل کلش متا (Mihomo) قطعه کد را ذیل بخش <code>proxies:</code> قرار دهید و نام آن را به پروکسی‌گروپ خود اضافه کنید.</li>
+                        <li>هسته کلش متا درخواست‌های HTTP/2 ایمن NaiveProxy را مستقیم هدایت می‌کند.</li>
+                    </ul>
+                </div>
+
+                <!-- Client 4: iOS / Shadowrocket -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:rgba(236,72,153,0.15); color:#ec4899; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="apple" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size:14px; display:block;">۴. سیستم‌عامل iOS (آیفون / آیپد)</strong>
+                            <span style="font-size:11px; color:var(--text-muted);">Shadowrocket / Streisand / Loon</span>
+                        </div>
+                    </div>
+                    <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                        <li>در برنامه <strong>Shadowrocket</strong> دکمه + (Add Server) را بزنید.</li>
+                        <li>نوع (Type) را روی <strong>HTTP</strong> قرار دهید؛ دامنه سرور، پورت (مثلاً ۸۴۴۴)، یوزر و پسورد را وارد کنید.</li>
+                        <li>گزینه <strong>TLS</strong> را روشن کنید و در تنظیمات پیشرفته تیک <strong>HTTP/2</strong> را فعال نمایید.</li>
+                    </ul>
+                </div>
+
+                <!-- Client 5: Official Naive Core Client -->
+                <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="width:36px; height:36px; border-radius:8px; background:rgba(14,165,233,0.15); color:#0ea5e9; display:flex; align-items:center; justify-content:center;">
+                            <i data-lucide="cpu" style="width:20px; height:20px;"></i>
+                        </div>
+                        <div>
+                            <strong style="font-size:14px; display:block;">۵. کلاینت رسمی NaiveProxy Core</strong>
+                            <span style="font-size:11px; color:var(--text-muted);">ویندوز، مک و لینوکس</span>
+                        </div>
+                    </div>
+                    <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
+                        <li>کلاینت باینری Naive را از گیت‌هاب رسمی klzgrad/naiveproxy دانلود کنید.</li>
+                        <li>متن جعبه <strong>JSON کلاینت</strong> در بالا را کپی کرده و در فایلی با نام <code>config.json</code> در کنار باینری ذخیره کنید.</li>
+                        <li>دستور <code>naive config.json</code> را اجرا کنید. یک پروکسی SOCKS5 روی <code>127.0.0.1:1080</code> در سیستم شما فعال می‌شود.</li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <!-- Requirements Box -->
+            <div style="background:var(--bg-muted); border-radius:8px; padding:12px 16px; font-size:12px; line-height:1.6; border:1px solid var(--border-glow);">
+                <strong style="color:#10b981; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                    <i data-lucide="check-circle-2" style="width:15px; height:15px;"></i> الزامات مهم برای کارکرد صحیح NaiveProxy:
+                </strong>
+                <div style="display:flex; flex-direction:column; gap:4px; color:var(--text-muted);">
+                    <div>• دامنه وارد شده در پنل باید دارای رکورد DNS نوع A به آی‌پی سرور باشد و گواهی معتبر SSL روی آن فعال باشد.</div>
+                    <div>• پورت NaiveProxy (پیش‌فرض ۸۴۴۴) باید در فایروال سرور (UFW / Iptables) به صورت TCP باز باشد.</div>
+                    <div>• در صورت استفاده از کلودفلر، مطمئن شوید پروتکل gRPC و HTTP/2 در تب Network کلودفلر فعال است یا اتصال را بدون پروکسی کلودفلر (DNS Only) متصل کنید.</div>
+                </div>
+            </div>
+        </div>
+
     </section>
 </div>

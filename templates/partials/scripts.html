@@ -8134,6 +8134,60 @@
             clearSidebarFilter();
         }
 
+        const dnsSubtabs = ['noizdns', 'masterdnsvpn', 'dnstt', 'vaydns', 'slipstream', 'doh'];
+        if (dnsSubtabs.includes(tabId)) {
+            // Hide all tab panes
+            const panes = document.querySelectorAll(".tab-pane");
+            panes.forEach(pane => {
+                pane.classList.remove("active");
+            });
+
+            // Show selected tab pane (DNS Tunnels)
+            const targetPane = document.getElementById("tab-dns-tunnels");
+            if (targetPane) {
+                targetPane.classList.add("active");
+            }
+
+            // Activate specific DNS subpane
+            if (typeof switchDnsSubTab === 'function') {
+                switchDnsSubTab(tabId);
+            }
+
+            // Update active state on sidebar links
+            const links = document.querySelectorAll(".sidebar-nav-item");
+            links.forEach(link => link.classList.remove("active"));
+            let targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabId}')"]`);
+            if (!targetLink) {
+                targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('dns-tunnels')"]`);
+            }
+            if (targetLink) {
+                targetLink.classList.add("active");
+                const parentSubmenu = targetLink.closest('.sidebar-submenu');
+                if (parentSubmenu) {
+                    parentSubmenu.style.display = 'flex';
+                    const parentDropdownBtn = parentSubmenu.previousElementSibling;
+                    if (parentDropdownBtn) {
+                        const icon = parentDropdownBtn.querySelector('.dropdown-icon');
+                        if (icon) icon.style.transform = 'rotate(180deg)';
+                    }
+                }
+            }
+
+            // Update active mobile bottom nav item
+            const mobNavItems = document.querySelectorAll(".mob-nav-item");
+            mobNavItems.forEach(item => {
+                if (item.dataset.tab === 'dns-tunnels' || item.dataset.tab === tabId) {
+                    item.classList.add("active");
+                } else {
+                    item.classList.remove("active");
+                }
+            });
+
+            // Save active tab in localStorage
+            localStorage.setItem("active_tab", tabId);
+            return;
+        }
+
         // Hide all tab panes
         const panes = document.querySelectorAll(".tab-pane");
         panes.forEach(pane => {
@@ -8268,6 +8322,8 @@
         } else if (tabId === "stuntls") {
             fetchStunTlsConfig();
             fetchProtocolUsers('stuntls');
+        } else if (tabId === "snispoof") {
+            fetchSniSpoofConfig();
         } else if (tabId === "google-script") {
             fetchGoogleScriptConfig();
             fetchGasTemplates();
@@ -14841,6 +14897,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         else if (tabName === 'noizdns') fetchNoizdnsConfig();
         else if (tabName === 'masterdnsvpn') fetchMasterdnsvpnConfig();
         else if (tabName === 'doh') fetchDohConfig();
+
+        localStorage.setItem("active_tab", tabName);
+        const subLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabName}')"]`);
+        if (subLink) {
+            document.querySelectorAll(".sidebar-nav-item").forEach(link => link.classList.remove("active"));
+            subLink.classList.add("active");
+        }
     }
 
     function populateSlipnetCard(proto, data) {
@@ -19000,6 +19063,300 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         } catch (e) {
             toggleLoading(false);
             showToast("خطای شبکه", "error");
+        }
+    }
+
+    // --- SNI Spoofing & Anti-DPI Protocol Functions ---
+    let currentSniPool = [];
+
+    function renderSniTags(pool, scanResults = {}) {
+        currentSniPool = Array.isArray(pool) ? pool : [];
+        const container = document.getElementById("snispoof-sni-tags");
+        if (!container) return;
+        container.innerHTML = "";
+        if (currentSniPool.length === 0) {
+            container.innerHTML = `<span style="font-size:11px; color:var(--text-muted);">هیچ دامنه‌ای ثبت نشده است.</span>`;
+            return;
+        }
+        currentSniPool.forEach((domain) => {
+            const tag = document.createElement("div");
+            tag.style.cssText = "display:inline-flex; align-items:center; gap:6px; background:rgba(236,72,153,0.12); border:1px solid rgba(236,72,153,0.3); color:#f472b6; padding:4px 10px; border-radius:6px; font-size:11.5px; font-family:'JetBrains Mono', monospace;";
+            
+            let statusBadge = "";
+            if (scanResults[domain]) {
+                const res = scanResults[domain];
+                if (res.ok) {
+                    statusBadge = `<span style="background:#10b981; color:#fff; font-size:9.5px; padding:1px 5px; border-radius:4px;">${res.latency}ms</span>`;
+                } else {
+                    statusBadge = `<span style="background:#ef4444; color:#fff; font-size:9.5px; padding:1px 5px; border-radius:4px;">خطا</span>`;
+                }
+            }
+
+            tag.innerHTML = `
+                <span>${domain}</span>
+                ${statusBadge}
+                <button type="button" onclick="removeSniFromPool('${domain}')" style="background:none; border:none; color:inherit; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.7;" title="حذف">
+                    <i data-lucide="x" style="width:12px; height:12px;"></i>
+                </button>
+            `;
+            container.appendChild(tag);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function addSniToPool() {
+        const input = document.getElementById("snispoof-new-sni-input");
+        if (!input) return;
+        const val = input.value.trim().toLowerCase();
+        if (!val) return;
+        if (!currentSniPool.includes(val)) {
+            currentSniPool.push(val);
+            renderSniTags(currentSniPool);
+            input.value = "";
+        }
+    }
+
+    function removeSniFromPool(domain) {
+        currentSniPool = currentSniPool.filter(d => d !== domain);
+        renderSniTags(currentSniPool);
+    }
+
+    function toggleSniSpoofRoleFields() {
+        const role = document.getElementById("snispoof-cfg-role").value;
+        const revDiv = document.getElementById("snispoof-reverse-fields");
+        if (revDiv) {
+            revDiv.style.display = (role === "reverse_client") ? "block" : "none";
+        }
+    }
+
+    function syncSniSpoofUpstream() {
+        const sel = document.getElementById("snispoof-cfg-upstream-select");
+        const custom = document.getElementById("snispoof-cfg-upstream-custom");
+        if (sel && custom) {
+            if (sel.value === "custom") {
+                custom.style.display = "block";
+            } else {
+                custom.style.display = "none";
+                custom.value = sel.value;
+            }
+        }
+    }
+
+    function switchSniCliTab(tabName) {
+        document.querySelectorAll(".snispoof-tab-btn").forEach(btn => {
+            btn.style.color = "#94a3b8";
+            btn.style.borderBottom = "none";
+            btn.classList.remove("active");
+        });
+        document.querySelectorAll(".snispoof-cli-content").forEach(c => c.style.display = "none");
+
+        const target = document.getElementById("snispoof-cli-" + tabName);
+        if (target) target.style.display = "block";
+
+        if (window.event && window.event.target) {
+            const clickedBtn = window.event.target;
+            clickedBtn.style.color = "#38bdf8";
+            clickedBtn.style.borderBottom = "2px solid #38bdf8";
+            clickedBtn.classList.add("active");
+        }
+    }
+
+    function copySniText(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            navigator.clipboard.writeText(el.value).then(() => {
+                showToast("با موفقیت در کلیپ‌بورد کپی شد", "success");
+            }).catch(() => {
+                el.select();
+                document.execCommand("copy");
+                showToast("کپی شد", "success");
+            });
+        }
+    }
+
+    async function fetchSniSpoofConfig() {
+        try {
+            const res = await fetch("/api/snispoof/config");
+            if (!res.ok) return;
+            const data = await res.json();
+
+            const badge = document.getElementById("snispoof-status-badge");
+            if (badge) {
+                badge.innerHTML = data.active
+                    ? `<span class="status-dot active"></span> <span style="color:#10b981;">فعال (Active)</span>`
+                    : `<span class="status-dot inactive"></span> <span style="color:#ef4444;">متوقف (Stopped)</span>`;
+            }
+
+            if (document.getElementById("snispoof-stat-port")) document.getElementById("snispoof-stat-port").textContent = data.port || 15443;
+            if (document.getElementById("snispoof-stat-strategy")) {
+                const stratNames = {
+                    "wrong_seq": "Wrong Sequence (توالی اشتباه)",
+                    "wrong_checksum": "Bad Checksum (چک‌سام غلط)",
+                    "low_ttl": "Low TTL (کاهش طول عمر)",
+                    "tls_fragment": "TLS Fragment (SNI Slicing)",
+                    "sni_rotation": "SNI Pool Rotation (چرخش استخر)"
+                };
+                document.getElementById("snispoof-stat-strategy").textContent = stratNames[data.default_strategy] || data.default_strategy;
+            }
+            if (document.getElementById("snispoof-stat-upstream")) document.getElementById("snispoof-stat-upstream").textContent = data.upstream || "127.0.0.1:22";
+            if (document.getElementById("snispoof-stat-connections")) {
+                document.getElementById("snispoof-stat-connections").textContent = `${data.stats?.active_connections || 0} / ${data.stats?.total_connections || 0}`;
+            }
+
+            // Inputs
+            if (document.getElementById("snispoof-cfg-port")) document.getElementById("snispoof-cfg-port").value = data.port || 15443;
+            if (document.getElementById("snispoof-cfg-role")) {
+                document.getElementById("snispoof-cfg-role").value = data.role || "inbound_relay";
+                toggleSniSpoofRoleFields();
+            }
+
+            // Upstream
+            const upVal = data.upstream || "127.0.0.1:22";
+            const upSelect = document.getElementById("snispoof-cfg-upstream-select");
+            const upCustom = document.getElementById("snispoof-cfg-upstream-custom");
+            if (upSelect && upCustom) {
+                let found = false;
+                for (let opt of upSelect.options) {
+                    if (opt.value === upVal) {
+                        upSelect.value = upVal;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    upSelect.value = "custom";
+                    upCustom.style.display = "block";
+                    upCustom.value = upVal;
+                } else {
+                    upCustom.style.display = "none";
+                    upCustom.value = upVal;
+                }
+            }
+
+            // Strategy Radio
+            const strat = data.default_strategy || "tls_fragment";
+            const radio = document.querySelector(`input[name="snispoof_strategy_radio"][value="${strat}"]`);
+            if (radio) radio.checked = true;
+
+            // Fine tuning params
+            if (document.getElementById("snispoof-cfg-hops")) document.getElementById("snispoof-cfg-hops").value = data.low_ttl_hops || 5;
+            if (document.getElementById("snispoof-cfg-frag-size")) document.getElementById("snispoof-cfg-frag-size").value = data.fragment_size || 2;
+            if (document.getElementById("snispoof-cfg-frag-delay")) document.getElementById("snispoof-cfg-frag-delay").value = data.fragment_delay_ms || 3;
+            if (document.getElementById("snispoof-cfg-jitter")) document.getElementById("snispoof-cfg-jitter").checked = Boolean(data.jitter_enabled);
+
+            // Reverse fields
+            if (document.getElementById("snispoof-cfg-rev-host")) document.getElementById("snispoof-cfg-rev-host").value = data.reverse_target_host || "";
+            if (document.getElementById("snispoof-cfg-rev-port")) document.getElementById("snispoof-cfg-rev-port").value = data.reverse_target_port || 15443;
+
+            // Pool tags
+            renderSniTags(data.sni_pool || []);
+
+            // Client Hub Commands
+            if (document.getElementById("snispoof-cmd-ps")) document.getElementById("snispoof-cmd-ps").value = data.client_cmd_powershell || "";
+            if (document.getElementById("snispoof-cmd-py")) document.getElementById("snispoof-cmd-py").value = data.client_cmd_python || "";
+            if (document.getElementById("snispoof-snippet-singbox")) document.getElementById("snispoof-snippet-singbox").value = data.singbox_snippet || "";
+            if (document.getElementById("snispoof-snippet-xray")) document.getElementById("snispoof-snippet-xray").value = data.xray_snippet || "";
+
+        } catch (e) {
+            console.error("fetchSniSpoofConfig error:", e);
+        }
+    }
+
+    async function saveSniSpoofConfig(event) {
+        if (event) event.preventDefault();
+        const port = parseInt(document.getElementById("snispoof-cfg-port").value) || 15443;
+        const role = document.getElementById("snispoof-cfg-role").value;
+
+        let upstream = document.getElementById("snispoof-cfg-upstream-select").value;
+        if (upstream === "custom") {
+            upstream = document.getElementById("snispoof-cfg-upstream-custom").value.trim() || "127.0.0.1:22";
+        }
+
+        const stratRadio = document.querySelector('input[name="snispoof_strategy_radio"]:checked');
+        const default_strategy = stratRadio ? stratRadio.value : "tls_fragment";
+
+        const low_ttl_hops = parseInt(document.getElementById("snispoof-cfg-hops").value) || 5;
+        const fragment_size = parseInt(document.getElementById("snispoof-cfg-frag-size").value) || 2;
+        const fragment_delay_ms = parseInt(document.getElementById("snispoof-cfg-frag-delay").value) || 3;
+        const jitter_enabled = document.getElementById("snispoof-cfg-jitter").checked;
+
+        const reverse_target_host = document.getElementById("snispoof-cfg-rev-host").value.trim();
+        const reverse_target_port = parseInt(document.getElementById("snispoof-cfg-rev-port").value) || 15443;
+
+        toggleLoading(true, "ذخیره و اعمال تنظیمات SNI Spoofing...");
+        try {
+            const res = await fetch("/api/snispoof/config", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    port,
+                    role,
+                    upstream,
+                    default_strategy,
+                    low_ttl_hops,
+                    fragment_size,
+                    fragment_delay_ms,
+                    jitter_enabled,
+                    reverse_target_host,
+                    reverse_target_port,
+                    sni_pool: currentSniPool
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات جعل SNI و ضد DPI با موفقیت اعمال و سرویس ریستارت شد", "success");
+                fetchSniSpoofConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function restartSniSpoofService() {
+        toggleLoading(true, "در حال راه‌اندازی مجدد سرویس...");
+        try {
+            const res = await fetch("/api/snispoof/control", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ action: "restart" })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("سرویس SNI Spoofing با موفقیت راه‌اندازی مجدد شد", "success");
+                fetchSniSpoofConfig();
+            } else {
+                showToast(data.error || "خطا در راه‌اندازی مجدد", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    async function scanSniPool() {
+        toggleLoading(true, "در حال اسکن و تست زنده دامنه‌های SNI...");
+        try {
+            const res = await fetch("/api/snispoof/scan", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ domains: currentSniPool })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("اسکن دامنه‌ها انجام شد", "success");
+                renderSniTags(currentSniPool, data.results || {});
+            } else {
+                showToast("خطا در اسکن دامنه‌ها", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در اسکن", "error");
         }
     }
 

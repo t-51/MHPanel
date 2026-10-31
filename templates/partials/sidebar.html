@@ -166,6 +166,13 @@
                 <span class="sidebar-badge sidebar-badge-purple">STUN</span>
             </button>
 
+            <!-- SNI Spoofing (Anti-DPI Bypass) -->
+            <button class="sidebar-nav-item" onclick="switchTab('snispoof')">
+                <i data-lucide="shield-check" style="color: #ec4899;"></i>
+                <span data-i18n="nav_snispoof">جعل SNI (SNI Spoofing)</span>
+                <span class="sidebar-badge sidebar-badge-pink">Anti-DPI</span>
+            </button>
+
             <!-- Google Apps Script Full Tunnel Relay -->
             <button class="sidebar-nav-item" onclick="switchTab('google-script')">
                 <i data-lucide="cloud-lightning" style="color: #4285F4;"></i>
@@ -178,6 +185,20 @@
                 <i data-lucide="globe" style="color: #14b8a6;"></i>
                 <span data-i18n="nav_dns_tunnels">تونل‌های DNS (SlowDNS)</span>
                 <span class="sidebar-badge sidebar-badge-green">Anti-Filter</span>
+            </button>
+
+            <!-- NoizDNS Anti-DPI -->
+            <button class="sidebar-nav-item" onclick="switchTab('noizdns')">
+                <i data-lucide="radio" style="color: #ec4899;"></i>
+                <span data-i18n="nav_noizdns">نویز دی‌ان‌اس (NoizDNS)</span>
+                <span class="sidebar-badge sidebar-badge-purple">Stealth</span>
+            </button>
+
+            <!-- MasterdnsVPN Core -->
+            <button class="sidebar-nav-item" onclick="switchTab('masterdnsvpn')">
+                <i data-lucide="activity" style="color: #06b6d4;"></i>
+                <span data-i18n="nav_masterdnsvpn">مستر دی‌ان‌اس (MasterdnsVPN)</span>
+                <span class="sidebar-badge sidebar-badge-blue">Core</span>
             </button>
 
             <!-- Tor Bridges -->
@@ -212,9 +233,19 @@
             </button>
 
             <!-- SSH Tunnel -->
-            <button class="sidebar-nav-item" onclick="switchTab('ssh')">
+            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('overview');">
                 <i data-lucide="terminal" style="color: #059669;"></i>
-                <span data-i18n="nav_ssh">تونل SSH</span>
+                <span data-i18n="nav_ssh">تونل SSH (داشبورد)</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('users');" style="font-size: 12.5px; padding-right: 32px;">
+                <i data-lucide="users" style="color: #3b82f6; width: 16px; height: 16px;"></i>
+                <span>کاربران SSH</span>
+                <span class="badge-pill" id="sidebar-ssh-users-count" style="font-size:10px; padding:1px 6px;">۰</span>
+            </button>
+            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('domains');" style="font-size: 12.5px; padding-right: 32px;">
+                <i data-lucide="globe" style="color: #10b981; width: 16px; height: 16px;"></i>
+                <span>دامنه‌ها و تفکیک SNI</span>
+                <span class="sidebar-badge sidebar-badge-blue" style="font-size:9px;">SNI</span>
             </button>
 
             <!-- IKEv2 / IPsec -->

@@ -176,7 +176,7 @@ VPN_SERVER_CERT = os.path.join(VPN_CERT_DIR, "vpn-server.crt")
 VPN_SERVER_KEY = os.path.join(VPN_CERT_DIR, "vpn-server.key")
 PANEL_CERT = os.path.join(PANEL_SSL_DIR, "panel.crt")
 PANEL_KEY = os.path.join(PANEL_SSL_DIR, "panel.key")
-PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "noizdns", "masterdnsvpn", "tor", "singbox", "tunnels", "google_script"]
+PROTOCOLS_LIST = ["ssh", "openvpn", "ocserv", "ikev2", "sstp", "pptp", "l2tp", "wireguard", "amneziawg", "http", "socks", "shadowsocks", "mtproto", "tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "trojan", "naiveproxy", "stuntls", "snispoof", "noizdns", "masterdnsvpn", "tor", "singbox", "tunnels", "google_script"]
 PROTOCOL_DEFAULT_PORTS = {
     "ssh": 22,
     "openvpn": 1194,
@@ -199,6 +199,7 @@ PROTOCOL_DEFAULT_PORTS = {
     "trojan": 12443,
     "naiveproxy": 13443,
     "stuntls": 3478,
+    "snispoof": 15443,
     "noizdns": 5355,
     "masterdnsvpn": 5356,
     "tor": 9001,
@@ -228,6 +229,7 @@ PROTOCOL_SERVICE_MAP = {
     "trojan": "mhpanel-trojan",
     "naiveproxy": "mhpanel-naiveproxy",
     "stuntls": "mhpanel-stuntls",
+    "snispoof": "mhpanel-snispoof",
     "noizdns": "mhpanel-noizdns",
     "masterdnsvpn": "mhpanel-masterdnsvpn",
     "tor": "mhpanel-tor",
@@ -554,6 +556,8 @@ def is_installed(protocol):
         return os.path.exists("/etc/vpnpanel/naiveproxy.json") and (os.path.exists("/usr/local/bin/sing-box") or os.path.exists("/etc/systemd/system/mhpanel-naiveproxy.service"))
     elif protocol == "stuntls":
         return os.path.exists("/etc/vpnpanel/stuntls.json") and (os.path.exists("/usr/local/bin/stuntls-server") or os.path.exists("/etc/systemd/system/mhpanel-stuntls.service"))
+    elif protocol == "snispoof":
+        return os.path.exists("/etc/vpnpanel/snispoof.json") and (os.path.exists("/usr/local/bin/mhpanel-snispoof") or os.path.exists("/etc/systemd/system/mhpanel-snispoof.service"))
     elif protocol == "noizdns":
         return os.path.exists("/etc/vpnpanel/noizdns.json") and (os.path.exists("/usr/local/bin/noizdns-server") or os.path.exists("/etc/systemd/system/mhpanel-noizdns.service"))
     elif protocol == "masterdnsvpn":
@@ -738,6 +742,13 @@ def get_active_port(protocol):
                         return int(json.load(f).get("port", 3478))
                 except Exception: pass
             return 3478
+        elif protocol == "snispoof":
+            if os.path.exists("/etc/vpnpanel/snispoof.json"):
+                try:
+                    with open("/etc/vpnpanel/snispoof.json", "r") as f:
+                        return int(json.load(f).get("port", 15443))
+                except Exception: pass
+            return 15443
         elif protocol == "noizdns":
             if os.path.exists("/etc/vpnpanel/noizdns.json"):
                 try:
@@ -4224,6 +4235,7 @@ def get_protocol_bandwidth_stats():
         {"id": "masterdnsvpn", "name": "MasterDNS VPN", "fa_name": "مستر دی‌ان‌اس VPN", "icon": "globe", "color": "#0284c7", "tab": "dns-tunnels"},
         {"id": "naiveproxy", "name": "NaiveProxy", "fa_name": "نایوپروکسی (Chromium)", "icon": "shield", "color": "#f59e0b", "tab": "naiveproxy"},
         {"id": "stuntls", "name": "StunTLS", "fa_name": "استون تی‌ال‌اس (Anti-DPI)", "icon": "eye-off", "color": "#ec4899", "tab": "stuntls"},
+        {"id": "snispoof", "name": "SNI Spoofing", "fa_name": "جعل SNI و ضد DPI", "icon": "shield-check", "color": "#ec4899", "tab": "snispoof"},
         {"id": "tunnels", "name": "MikroTik Tunnels", "fa_name": "تونل‌های میکروتیک و لینوکس", "icon": "layers", "color": "#4f46e5", "tab": "tunnels"},
         {"id": "openvpn", "name": "OpenVPN", "fa_name": "اوپن‌وی‌پی‌ان", "icon": "lock", "color": "#ea580c", "tab": "openvpn"},
         {"id": "ocserv", "name": "Cisco AnyConnect", "fa_name": "سیسکو انی‌کانکت", "icon": "radio", "color": "#0284c7", "tab": "ocserv"},
@@ -4980,6 +4992,8 @@ def get_service_names(protocol):
         return ["mhpanel-naiveproxy"]
     elif protocol == "stuntls":
         return ["mhpanel-stuntls"]
+    elif protocol == "snispoof":
+        return ["mhpanel-snispoof"]
     elif protocol == "noizdns":
         return ["mhpanel-noizdns"]
     elif protocol == "masterdnsvpn":
@@ -12711,6 +12725,240 @@ def api_download_stuntls_client_ps1():
         path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.ps1")
     if os.path.exists(path):
         return send_file(path, as_attachment=True, download_name="stuntls-client.ps1", mimetype="text/plain")
+    return "File not found", 404
+
+
+# --- SNI Spoofing & Anti-DPI Protocol API ---
+@app.route("/api/snispoof/config", methods=["GET", "POST"])
+def api_snispoof_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg_file = "/etc/vpnpanel/snispoof.json"
+
+    if request.method == "POST":
+        data = request.json or {}
+        port = int(data.get("port") or 15443)
+        role = (data.get("role") or "inbound_relay").strip()
+        upstream = (data.get("upstream") or "127.0.0.1:22").strip()
+        default_strategy = (data.get("default_strategy") or "tls_fragment").strip()
+        low_ttl_hops = int(data.get("low_ttl_hops") or 5)
+        fragment_size = int(data.get("fragment_size") or 2)
+        fragment_delay_ms = int(data.get("fragment_delay_ms") or 3)
+        jitter_enabled = bool(data.get("jitter_enabled", True))
+        reverse_target_host = (data.get("reverse_target_host") or "").strip()
+        reverse_target_port = int(data.get("reverse_target_port") or 15443)
+        sni_pool = data.get("sni_pool") or ["sanjesh.org", "dl.google.com"]
+
+        cfg = {
+            "port": port,
+            "role": role,
+            "upstream": upstream,
+            "default_strategy": default_strategy,
+            "active_strategies": ["wrong_seq", "wrong_checksum", "low_ttl", "tls_fragment", "sni_rotation"],
+            "low_ttl_hops": low_ttl_hops,
+            "fragment_size": fragment_size,
+            "fragment_delay_ms": fragment_delay_ms,
+            "jitter_enabled": jitter_enabled,
+            "jitter_min_ms": 2,
+            "jitter_max_ms": 15,
+            "sni_pool": sni_pool,
+            "sni_selection": "rotation",
+            "reverse_target_host": reverse_target_host,
+            "reverse_target_port": reverse_target_port,
+            "users": []
+        }
+
+        os.makedirs(os.path.dirname(cfg_file), exist_ok=True)
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+
+        subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
+        subprocess.run(["systemctl", "restart", "mhpanel-snispoof"], capture_output=True)
+
+        return jsonify({"success": True})
+
+    # GET
+    cfg = {
+        "port": 15443,
+        "role": "inbound_relay",
+        "upstream": "127.0.0.1:22",
+        "default_strategy": "tls_fragment",
+        "low_ttl_hops": 5,
+        "fragment_size": 2,
+        "fragment_delay_ms": 3,
+        "jitter_enabled": True,
+        "sni_pool": ["sanjesh.org", "shaparak.ir", "speedtest.net", "dl.google.com"],
+        "reverse_target_host": "",
+        "reverse_target_port": 15443
+    }
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+
+    cfg["installed"] = is_installed("snispoof")
+    cfg["active"] = get_protocol_active("snispoof")
+    cfg["connections"] = get_connection_count("snispoof")
+
+    # Load stats if available
+    stats_file = "/run/mhpanel-snispoof-stats.json"
+    if os.path.exists(stats_file):
+        try:
+            with open(stats_file, "r") as sf:
+                cfg["stats"] = json.load(sf)
+        except Exception:
+            cfg["stats"] = {}
+    else:
+        cfg["stats"] = {"active_connections": 0, "total_connections": 0}
+
+    srv = get_server_domain() or get_server_public_ip()
+    port = cfg.get("port", 15443)
+    strat = cfg.get("default_strategy", "tls_fragment")
+    panel_port = get_panel_port()
+
+    cfg["server_host"] = srv
+    cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{$true}}; Invoke-WebRequest -Uri 'https://{srv}:{panel_port}/download/snispoof-client.exe' -OutFile 'snispoof-client.exe'; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
+    cfg["client_cmd_python"] = f"python3 snispoof-client.py -s {srv} -p {port} -l 10808 --strategy {strat}"
+
+    # Sing-box snippet
+    sample_sni = (cfg.get("sni_pool") or ["sanjesh.org"])[0]
+    singbox_config = {
+        "type": "vless",
+        "tag": "snispoof-vless",
+        "server": srv,
+        "server_port": port,
+        "uuid": "YOUR_UUID_HERE",
+        "tls": {
+            "enabled": True,
+            "server_name": sample_sni,
+            "insecure": True,
+            "fragment": {
+                "enabled": True,
+                "length": f"1-{cfg.get('fragment_size', 2)}",
+                "interval": f"2-{cfg.get('fragment_delay_ms', 3)}"
+            }
+        }
+    }
+    cfg["singbox_snippet"] = json.dumps(singbox_config, indent=2)
+
+    # Xray snippet
+    xray_config = {
+        "tag": "snispoof-xray",
+        "protocol": "vless",
+        "settings": {
+            "vnext": [{
+                "address": srv,
+                "port": port,
+                "users": [{"id": "YOUR_UUID_HERE", "encryption": "none"}]
+            }]
+        },
+        "streamSettings": {
+            "network": "tcp",
+            "security": "tls",
+            "tlsSettings": {
+                "serverName": sample_sni,
+                "allowInsecure": True
+            },
+            "sockopt": {
+                "dialerProxy": "fragment",
+                "tcpKeepAliveInterval": 15
+            }
+        }
+    }
+    cfg["xray_snippet"] = json.dumps(xray_config, indent=2)
+
+    return jsonify(cfg)
+
+
+@app.route("/api/snispoof/control", methods=["POST"])
+def api_snispoof_control():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    action = data.get("action", "restart")
+    if action in ["start", "stop", "restart"]:
+        subprocess.run(["systemctl", action, "mhpanel-snispoof"], capture_output=True)
+        return jsonify({"success": True})
+    return jsonify({"error": "Invalid action"}), 400
+
+
+@app.route("/api/snispoof/scan", methods=["POST"])
+def api_snispoof_scan():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    domains = data.get("domains") or ["sanjesh.org", "dl.google.com"]
+    results = {}
+
+    import socket, time
+    for d in domains:
+        t0 = time.time()
+        ok = False
+        latency = 0
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(1.8)
+            s.connect((d, 443))
+            latency = int((time.time() - t0) * 1000)
+            ok = True
+            s.close()
+        except Exception:
+            latency = 0
+            ok = False
+        results[d] = {"ok": ok, "latency": latency}
+
+    return jsonify({"success": True, "results": results})
+
+
+# Download routes for SNI Spoofing clients
+@app.route("/download/snispoof-client.exe", methods=["GET"])
+def api_download_snispoof_client_exe():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client.exe"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client.exe", mimetype="application/vnd.microsoft.portable-executable")
+    return "File not found", 404
+
+@app.route("/download/snispoof-client", methods=["GET"])
+def api_download_snispoof_client_bin():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client", mimetype="application/octet-stream")
+    return "File not found", 404
+
+@app.route("/download/snispoof-client.py", methods=["GET"])
+def api_download_snispoof_client_py():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client.py"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client.py", mimetype="text/x-python")
+    return "File not found", 404
+
+@app.route("/download/snispoof-client.ps1", methods=["GET"])
+def api_download_snispoof_client_ps1():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client.ps1"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client.ps1", mimetype="text/plain")
+    return "File not found", 404
+
+@app.route("/download/snispoof-client.bat", methods=["GET"])
+def api_download_snispoof_client_bat():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client.bat"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client.bat", mimetype="application/x-bat")
+    return "File not found", 404
+
+@app.route("/download/snispoof-client.go", methods=["GET"])
+def api_download_snispoof_client_go():
+    from flask import send_file
+    path = "/www/wwwroot/mhpanel/bin/snispoof-client.go"
+    if os.path.exists(path):
+        return send_file(path, as_attachment=True, download_name="snispoof-client.go", mimetype="text/x-go")
     return "File not found", 404
 
 

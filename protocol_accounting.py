@@ -19,7 +19,7 @@ DB_PATH = "/etc/vpnpanel/protocol_accounting.db"
 RADIUS_USERS_FILE = "/www/wwwroot/mhpanel/radius_users.json"
 FREERADIUS_USERS_FILE = "/etc/freeradius/3.0/mhpanel_users"
 
-SUPPORTED_PROTOCOLS = ["shadowsocks", "tuic", "hysteria2", "trojan", "stuntls"]
+SUPPORTED_PROTOCOLS = ["shadowsocks", "tuic", "hysteria2", "trojan", "stuntls", "snispoof"]
 
 def get_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
@@ -354,6 +354,8 @@ def sync_daemon_users(protocol=None):
                 _sync_hysteria2(active_users)
             elif proto == "stuntls":
                 _sync_stuntls(active_users)
+            elif proto == "snispoof":
+                _sync_snispoof(active_users)
         except Exception as e:
             print(f"[Accounting] Error syncing daemon users for {proto}: {e}")
 
@@ -485,6 +487,24 @@ def _sync_stuntls(active_users):
         json.dump(cfg, f, indent=2)
 
     subprocess.run(["systemctl", "restart", "mhpanel-stuntls"], capture_output=True)
+
+def _sync_snispoof(active_users):
+    cfg_file = "/etc/vpnpanel/snispoof.json"
+    if not os.path.exists(cfg_file):
+        return
+    try:
+        with open(cfg_file, "r") as f:
+            cfg = json.load(f)
+        st_users = []
+        if active_users:
+            for u in active_users:
+                st_users.append({"name": u["username"], "secret": u.get("password", "")})
+        cfg["users"] = st_users
+        with open(cfg_file, "w") as f:
+            json.dump(cfg, f, indent=2)
+        subprocess.run(["systemctl", "restart", "mhpanel-snispoof"], capture_output=True)
+    except Exception as e:
+        print(f"[Accounting] Error syncing snispoof users: {e}")
 
 def authenticate_hysteria_webhook(addr, auth_str):
     """
