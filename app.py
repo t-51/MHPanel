@@ -13147,7 +13147,7 @@ def get_snispoof_reality_and_client_configs():
 
     # Extract Sing-box Reality settings & live user credentials
     r_port = 20443
-    r_sni = "dl.google.com"
+    r_sni = "swdist.apple.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
     r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
@@ -25992,7 +25992,7 @@ def build_default_singbox_full_suite():
             except Exception: pass
 
     inbounds = [
-        # 1. VLESS Reality Vision (TCP)
+        # 1. VLESS Reality Vision (TCP) - Camouflage with unblocked Apple CDN
         {
             "type": "vless",
             "tag": "vless-reality-in",
@@ -26002,16 +26002,16 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
             "tls": {
                 "enabled": True,
-                "server_name": "dl.google.com",
+                "server_name": "swdist.apple.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "handshake": {"server": "swdist.apple.com", "server_port": 443},
                     "private_key": reality_priv,
-                    "short_id": ["86d7ec6343d000b6"]
+                    "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 2. VLESS Reality gRPC
+        # 2. VLESS Reality gRPC - Camouflage with Unsplash Fastly CDN
         {
             "type": "vless",
             "tag": "vless-reality-grpc",
@@ -26025,16 +26025,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "dl.google.com",
+                "server_name": "images.unsplash.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "handshake": {"server": "images.unsplash.com", "server_port": 443},
                     "private_key": reality_priv,
-                    "short_id": ["86d7ec6343d000b6"]
+                    "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 3. VLESS Reality HTTPUpgrade
+        # 3. VLESS Reality HTTPUpgrade - Camouflage with JSDelivr CDN
         {
             "type": "vless",
             "tag": "vless-reality-upgrade",
@@ -26048,12 +26048,12 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "dl.google.com",
+                "server_name": "cdn.jsdelivr.net",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "handshake": {"server": "cdn.jsdelivr.net", "server_port": 443},
                     "private_key": reality_priv,
-                    "short_id": ["86d7ec6343d000b6"]
+                    "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
@@ -26490,7 +26490,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "dl.google.com")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "swdist.apple.com")
 
     users = inbound.get("users", [])
     user0 = users[0] if users else {}
@@ -26577,7 +26577,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         if reality_enabled:
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
-            link += "&fp=chrome"
+            link += "&fp=chrome&spx=%2F"
 
         link += f"#{tag_name}"
         return link
@@ -27157,10 +27157,10 @@ def build_inbound_from_request(req, existing_inbound=None):
         reality_obj = existing.get("tls", {}).get("reality", {})
         priv_k = (req.get("reality_private_key") or reality_obj.get("private_key") or "").strip()
         pub_k = (req.get("reality_public_key") or reality_obj.get("public_key") or "").strip()
-        short_id_raw = req.get("reality_short_id") or reality_obj.get("short_id") or "86d7ec6343d000b6"
-        hs_srv = (req.get("handshake_server") or req.get("sni") or reality_obj.get("handshake", {}).get("server") or "dl.google.com").strip()
+        short_id_raw = req.get("reality_short_id") if req.get("reality_short_id") is not None else reality_obj.get("short_id", ["86d7ec6343d000b6", ""])
+        hs_srv = (req.get("handshake_server") or req.get("sni") or reality_obj.get("handshake", {}).get("server") or "swdist.apple.com").strip()
         hs_port = int(req.get("handshake_port") or reality_obj.get("handshake", {}).get("server_port") or 443)
-        max_time_diff = (req.get("reality_max_time_diff") or reality_obj.get("max_time_difference") or "1m").strip()
+        max_time_diff = (req.get("reality_max_time_diff") or reality_obj.get("max_time_difference") or "").strip()
 
         # AUTOMATIC REALITY KEYPAIR GENERATION IF EMPTY
         if not priv_k:
@@ -27177,15 +27177,17 @@ def build_inbound_from_request(req, existing_inbound=None):
         if priv_k and not pub_k:
             pub_k = get_reality_public_key(priv_k)
 
-        # Process Short IDs
+        # Process Short IDs (support both with & without short_id)
         if isinstance(short_id_raw, list):
-            sids = [s.strip() for s in short_id_raw if s and str(s).strip()]
+            sids = [str(s).strip() for s in short_id_raw]
         elif isinstance(short_id_raw, str):
             sids = [s.strip() for s in short_id_raw.replace("،", ",").split(",") if s.strip()]
         else:
             sids = []
         if not sids:
-            sids = [secrets.token_hex(8)]
+            sids = [secrets.token_hex(8), ""]
+        elif "" not in sids:
+            sids.append("")
 
         reality_block = {
             "enabled": True,
@@ -27194,9 +27196,10 @@ def build_inbound_from_request(req, existing_inbound=None):
                 "server_port": hs_port
             },
             "private_key": priv_k,
-            "short_id": sids,
-            "max_time_difference": max_time_diff
+            "short_id": sids
         }
+        if max_time_diff and max_time_diff != "0":
+            reality_block["max_time_difference"] = max_time_diff
 
         inbound["tls"] = {
             "enabled": True,
@@ -27391,12 +27394,12 @@ def api_singbox_inbound_details(tag):
         "multiplex": bool(inbound.get("multiplex", {}).get("enabled", False) if isinstance(inbound.get("multiplex"), dict) else inbound.get("multiplex", False)),
         "tls_mode": "reality" if is_reality else ("tls" if is_tls else "none"),
         "sni": tls.get("server_name") or reality.get("handshake", {}).get("server", ""),
-        "reality_dest": reality.get("handshake", {}).get("server", tls.get("server_name", "dl.google.com")),
+        "reality_dest": reality.get("handshake", {}).get("server", tls.get("server_name", "swdist.apple.com")),
         "reality_dest_port": reality.get("handshake", {}).get("server_port", 443),
         "reality_privkey": priv_k,
         "reality_pubkey": pub_k,
         "reality_shortid": short_id_str,
-        "reality_max_time_diff": reality.get("max_time_difference", "1m"),
+        "reality_max_time_diff": reality.get("max_time_difference", ""),
         "tls_cert": tls.get("certificate_path", "/etc/vpnpanel/ssl/panel.crt"),
         "tls_key": tls.get("key_path", "/etc/vpnpanel/ssl/panel.key"),
         "tls_alpn": ", ".join(tls.get("alpn", [])) if isinstance(tls.get("alpn"), list) else str(tls.get("alpn", "")),

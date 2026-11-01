@@ -21045,7 +21045,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     const flowEl = document.getElementById("sb-user-flow");
                     if (flowEl) flowEl.value = "xtls-rprx-vision";
                     const destEl = document.getElementById("sb-reality-dest");
-                    if (destEl) destEl.value = "dl.google.com";
+                    if (destEl) destEl.value = "swdist.apple.com";
                     generateSingboxRealityKeys();
                 }
             },
@@ -21092,7 +21092,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (flowEl) flowEl.value = "";
                     const grpcEl = document.getElementById("sb-grpc-service");
                     if (grpcEl) grpcEl.value = "GunService";
-                    document.getElementById("sb-reality-dest").value = "dl.google.com";
+                    document.getElementById("sb-reality-dest").value = "images.unsplash.com";
                     generateSingboxRealityKeys();
                 }
             },
@@ -21769,6 +21769,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (httpupBox) httpupBox.style.display = (tr === "httpupgrade") ? "flex" : "none";
     }
 
+    function setSingboxDest(domain, mode) {
+        if (mode === 'edit') {
+            const el = document.getElementById('sb-edit-reality-dest');
+            if (el) { el.value = domain; el.focus(); }
+        } else {
+            const el = document.getElementById('sb-reality-dest');
+            if (el) { el.value = domain; el.focus(); }
+        }
+        showToast("دامنه استتار ضد فیلتر " + domain + " انتخاب شد.", "info");
+    }
+
     async function generateSingboxRealityKeys() {
         try {
             const res = await fetch("/api/singbox/generate-keys");
@@ -21837,16 +21848,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (tlsMode === "reality") {
-            payload.sni = document.getElementById("sb-reality-dest").value.trim();
-            payload.handshake_server = document.getElementById("sb-reality-dest").value.trim();
+            payload.sni = document.getElementById("sb-reality-dest").value.trim() || "swdist.apple.com";
+            payload.handshake_server = document.getElementById("sb-reality-dest").value.trim() || "swdist.apple.com";
             payload.handshake_port = document.getElementById("sb-reality-dest-port").value;
             payload.reality_private_key = document.getElementById("sb-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-reality-pubkey").value.trim();
             payload.reality_short_id = document.getElementById("sb-reality-shortid").value.trim();
             const mtdEl = document.getElementById("sb-reality-max-time-diff");
-            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim() || "1m";
+            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim();
         } else if (tlsMode === "tls") {
-            payload.sni = document.getElementById("sb-tls-sni").value.trim() || "dl.google.com";
+            payload.sni = document.getElementById("sb-tls-sni").value.trim();
             payload.certificate_path = document.getElementById("sb-tls-cert").value.trim();
             payload.key_path = document.getElementById("sb-tls-key").value.trim();
         }
@@ -22076,7 +22087,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             tlsModeSelect.value = tlsMode;
 
             if (isReality) {
-                const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "dl.google.com";
+                const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "swdist.apple.com";
                 const hsPort = (rawReality.handshake && rawReality.handshake.server_port) || d.reality_dest_port || 443;
                 document.getElementById("sb-edit-reality-dest").value = hsServer;
                 document.getElementById("sb-edit-reality-dest-port").value = hsPort;
@@ -22085,7 +22096,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const sids = rawReality.short_id || d.reality_shortid || [];
                 document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? sids.join(", ") : (sids || "");
                 const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
-                if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "1m";
+                if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "";
             } else if (isTls) {
                 document.getElementById("sb-edit-tls-sni").value = rawTls.server_name || d.sni || "";
                 document.getElementById("sb-edit-tls-cert").value = rawTls.certificate_path || d.tls_cert || "/etc/vpnpanel/ssl/panel.crt";
@@ -22249,16 +22260,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (tlsMode === "reality") {
-            payload.sni = document.getElementById("sb-edit-reality-dest").value.trim();
-            payload.handshake_server = document.getElementById("sb-edit-reality-dest").value.trim();
+            payload.sni = document.getElementById("sb-edit-reality-dest").value.trim() || "swdist.apple.com";
+            payload.handshake_server = document.getElementById("sb-edit-reality-dest").value.trim() || "swdist.apple.com";
             payload.handshake_port = document.getElementById("sb-edit-reality-dest-port").value;
             payload.reality_private_key = document.getElementById("sb-edit-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-edit-reality-pubkey").value.trim();
             payload.reality_short_id = document.getElementById("sb-edit-reality-shortid").value.trim();
             const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
-            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim() || "1m";
+            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim();
         } else if (tlsMode === "tls") {
-            payload.sni = document.getElementById("sb-edit-tls-sni").value.trim() || "dl.google.com";
+            payload.sni = document.getElementById("sb-edit-tls-sni").value.trim();
             payload.certificate_path = document.getElementById("sb-edit-tls-cert").value.trim();
             payload.key_path = document.getElementById("sb-edit-tls-key").value.trim();
             const alpnEl = document.getElementById("sb-edit-tls-alpn");
@@ -24579,13 +24590,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             content: `
                 <div style="margin-bottom: 8px;"><strong>ویژگی‌های یک Dest ایده‌آل برای عبور از فیلترینگ ایران:</strong></div>
                 <ol style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:5px;">
-                    <li><strong>پشتیبانی الزامی از TLS 1.3 و ALPN h2:</strong> سایت هدف باید در پورت ۴۴۳ حتماً از پروتکل‌های مدرن HTTP/2 و TLS 1.3 پشتیبانی کند.</li>
-                    <li><strong>فیلتر نبودن در ایران:</strong> سایت هدف نباید فیلتر باشد! (مثلاً یوتیوب یا توییتر را Dest نگذارید؛ چون آی‌پی آنها مسدود است).</li>
-                    <li><strong>پینگ پایین سرور شما تا Dest:</strong> ترجیحاً از سرورهای ابری گوگل، اپل، مایکروسافت، یاهو یا سامسونگ استفاده شود.</li>
+                    <li><strong>پشتیبانی الزامی از TLS 1.3 و ALPN h2:</strong> سایت هدف باید در پورت ۴۴۳ حتماً از پروتکل‌های مدرن HTTP/2 و TLS 1.3 و تبادل کلید X25519 پشتیبانی کند.</li>
+                    <li><strong>عدم استفاده از دامنه‌های مشهور (بسیار مهم):</strong> هرگز از <code>google.com</code>, <code>dl.google.com</code>, <code>microsoft.com</code> یا <code>yahoo.com</code> استفاده نکنید! فایروال با بررسی عدم تطابق IP سرور شما با ASN گوگل/مایکروسافت، پکت‌ها را فوراً فیلتر یا دستکاری می‌کند.</li>
+                    <li><strong>استفاده از دامنه‌های CDN جهانی و نامشهود:</strong> از شبکه‌های توزیع محتوا نظیر Apple CDN, Unsplash, JSDelivr, Samsung Akamai استفاده نمایید.</li>
                 </ol>
-                <div style="background: rgba(59,130,246,0.1); border-left: 3px solid #3b82f6; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px;">
-                    ✨ <strong>نمونه دامنه‌های آزمایش‌شده و قدرتمند:</strong><br>
-                    <code>dl.google.com:443</code> • <code>gateway.icloud.com:443</code> • <code>update.microsoft.com:443</code> • <code>swdist.apple.com:443</code> • <code>www.yahoo.com:443</code> • <code>cdn.samsungcloud.com:443</code>
+                <div style="background: rgba(16,185,129,0.1); border-left: 3px solid #10b981; padding: 8px 12px; border-radius: 6px; margin-bottom: 8px;">
+                    ✨ <strong>نمونه دامنه‌های آزمایش‌شده ضد فیلتر و بدون مسدودی (TLS 1.3 + H2):</strong><br>
+                    <code>swdist.apple.com:443</code> • <code>images.unsplash.com:443</code> • <code>cdn.jsdelivr.net:443</code> • <code>www.samsung.com:443</code> • <code>download.docker.com:443</code> • <code>addons.mozilla.org:443</code>
                 </div>
             `
         },
@@ -24992,8 +25003,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:14px; font-weight:700;">📋 دستورالعمل مدیر سیستم برای انتخاب SNI و Dest پایدار:</h5>
                     <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:5px; font-size:12px;">
                         <li><strong>پشتیبانی الزامی از TLSv1.3 و ALPN h2:</strong> دامنه‌ای که انتخاب می‌کنید حتماً باید از پروتکل‌های وب مدرن پشتیبانی کند.</li>
-                        <li><strong>خط قرمز:</strong> هرگز از دامنه‌های فیلترشده (مانند یوتیوب یا اینستاگرام) به عنوان SNI در Reality استفاده نکنید؛ چون فایروال با خواندن نام دامنه ارتباط را فوراً قطع خواهد کرد.</li>
-                        <li><strong>دامنه‌های تست‌شده پیشنهادی:</strong> <code>dl.google.com</code> ، <code>gateway.icloud.com</code> ، <code>update.microsoft.com</code> ، <code>cdn.samsungcloud.com</code> ، <code>swdist.apple.com</code>.</li>
+                        <li><strong>قانون طلایی ضد فیلترینگ:</strong> هرگز از دامنه‌های مشهور (مانند گوگل، مایکروسافت، یاهو) استفاده نکنید، زیرا فایروال با تطبیق عدم تعلق IP به آن شرکت‌ها ارتباط را قطع می‌کند. همچنین از دامنه‌های فیلترشده (مانند یوتیوب یا توییتر) نیز استفاده نکنید.</li>
+                        <li><strong>دامنه‌های تست‌شده و توصیه‌شده (بدون مسدودی):</strong> <code>swdist.apple.com</code> ، <code>images.unsplash.com</code> ، <code>cdn.jsdelivr.net</code> ، <code>www.samsung.com</code> ، <code>download.docker.com</code>.</li>
                     </ul>
                 </div>
             `;
@@ -25016,10 +25027,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
                         <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. نوآوری سرقت هندشیک در REALITY</h5>
                         <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
-                            در گذشته برای ایجاد تونل امن، ملزم به خرید دامنه و دریافت سرتیفیکیت بودید. REALITY نیازی به هیچ گواهینامه‌ای ندارد؛ سرور شما در برابر اسکنرهای فعال، ادای وب‌سایت‌های غول اینترنتی (نظیر <code>dl.google.com</code> یا <code>gateway.icloud.com</code>) را درمی‌آورد.
+                            در گذشته برای ایجاد تونل امن، ملزم به خرید دامنه و دریافت سرتیفیکیت بودید. REALITY نیازی به هیچ گواهینامه‌ای ندارد؛ سرور شما در برابر اسکنرهای فعال، ادای وب‌سایت‌های CDN معتبر جهانی (نظیر <code>swdist.apple.com</code> یا <code>images.unsplash.com</code>) را درمی‌آورد.
                         </p>
                         <p style="font-size:12px; line-height:1.7; margin:0;">
-                            هنگامی که پروپ‌های فیلترینگ پورت شما را بررسی می‌کنند، چون کلید احراز هویت ندارند، سرور بسته را فوراً به سرور اصلی گوگل فوروارد می‌کند؛ اسکنر فایروال نیز پاسخ ۱۰۰٪ رسمی گوگل را دریافت کرده و این سرور را یک سرور قانونی می‌داند.
+                            هنگامی که پروب‌های فیلترینگ پورت شما را بررسی می‌کنند، چون کلید احراز هویت ندارند، سرور بسته را فوراً به سرور اصلی فوروارد می‌کند؛ اسکنر فایروال نیز پاسخ ۱۰۰٪ رسمی دریافت کرده و این سرور را یک سرور عادی وب می‌داند.
                         </p>
                     </div>
 
@@ -25037,8 +25048,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
                     <h5 style="color:#059669; margin:0 0 10px 0; font-size:14px; font-weight:700;">راهنمای تنظیم بهینه پارامترها در REALITY برای اینترنت ایران:</h5>
                     <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
-                        <li><strong>انتخاب Handshake Dest:</strong> از دامنه‌هایی استفاده کنید که در ایران مسدود نیستند، از پروتکل TLS 1.3 و ALPN h2 پشتیبانی می‌کنند. بهترین گزینه‌ها: <code>dl.google.com:443</code>, <code>update.microsoft.com:443</code>, <code>swdist.apple.com:443</code>.</li>
-                        <li><strong>Short ID:</strong> حتماً یک رشته ۱۶ کاراکتری هگز تصادفی وارد کنید تا از کاوش فایروال جلوگیری شود.</li>
+                        <li><strong>انتخاب Handshake Dest:</strong> هرگز از گوگل و دامنه‌های مشهور استفاده نکنید. بهترین گزینه‌ها CDNهای سریع با TLS 1.3 و ALPN h2 هستند: <code>swdist.apple.com:443</code>, <code>images.unsplash.com:443</code>, <code>cdn.jsdelivr.net:443</code>.</li>
+                        <li><strong>حداکثر اختلاف زمانی (Max Time Diff):</strong> حتماً خالی بگذارید تا اعتبارسنجی ساعت غیرفعال باشد و ناهماهنگی جزئی ساعت دیوایس کلاینت موجب قطعی نگردد.</li>
+                        <li><strong>Short ID:</strong> پنل به شکل خودکار پشتیبانی از کلاینت‌های با شناسه و بدون شناسه را فراهم می‌کند.</li>
                         <li><strong>ترانسپورت:</strong> فقط روی حالت <strong>TCP مستقیم</strong> قرار دهید تا Vision بتواند بسته‌ها را پدینگ کند.</li>
                     </ul>
                 </div>

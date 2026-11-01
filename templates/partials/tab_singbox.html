@@ -597,12 +597,23 @@
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">سرور هدف شبیه‌سازی (Handshake Dest / SNI):</label>
-                                <input type="text" class="form-input" id="sb-reality-dest" value="dl.google.com" placeholder="e.g. dl.google.com">
-                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
+                                <input type="text" class="form-input" id="sb-reality-dest" value="swdist.apple.com" placeholder="e.g. swdist.apple.com">
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
+                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">پیشنهاد دامنه‌های ضدفیلتر (بدون مسدودی):</span>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('swdist.apple.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🍎 swdist.apple.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('images.unsplash.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🖼️ images.unsplash.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('cdn.jsdelivr.net', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">⚡ cdn.jsdelivr.net</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('www.samsung.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">📱 www.samsung.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('download.docker.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🐳 download.docker.com</button>
+                                </div>
+                                <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 6px 10px; margin-top: 6px; font-size: 10px; color: #dc2626; line-height: 1.5;">
+                                    <strong>⚠️ اخطار مهم ضد فیلترینگ:</strong> هرگز از دامنه‌های مشهور (مانند <code>google.com</code>, <code>dl.google.com</code>, <code>microsoft.com</code>, <code>yahoo.com</code>) استفاده نکنید! فایروال با تطبیق IP سرور شما و ASN این غول‌ها، ارتباط Reality را فوراً مسدود یا آلوده می‌کند. حتماً از CDNهای کمترشناخته‌شده بالا استفاده کنید.
+                                </div>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 4px; display: block; line-height: 1.45;">
                                     <strong>🎯 کاربرد:</strong> دامنه‌ای که در برابر اسکنرهای فایروال نقش آن بازی می‌شود.<br>
-                                    <strong>⚙️ نحوه کارکرد:</strong> در SNI بسته قرار می‌گیرد؛ اگر پروب فایروال وارد شود، بسته مستقیماً به این سرور ارسال و پاسخ واقعی بازگردانده می‌شود.<br>
+                                    <strong>⚙️ نحوه کارکرد:</strong> در هدر SNI قرار می‌گیرد؛ در صورت دریافت پروب‌های مشکوک فایروال، درخواست بدون افشای پروکسی به این سایت هدایت می‌شود.<br>
                                     <strong>✨ مزیت:</strong> عدم نیاز به خرید دامنه و خنثی‌سازی ۱۰۰٪ اسکنرهای فعال فایروال.<br>
-                                    <strong>💡 سناریوی مناسب:</strong> دامنه‌های فیلترنشده با TLS 1.3 و H2 (مانند <code>dl.google.com</code> یا <code>gateway.icloud.com</code>).
+                                    <strong>💡 سناریوی مناسب:</strong> دامنه‌های با TLS 1.3 و H2 که در ایران مسدود نیستند (نظیر <code>swdist.apple.com</code> یا <code>images.unsplash.com</code>).
                                 </small>
                             </div>
                             <div>
@@ -629,17 +640,16 @@
                                 <input type="text" class="form-input" id="sb-reality-shortid" value="86d7ec6343d000b6" placeholder="Short ID (hex e.g. 86d7ec6343d000b6)">
                                 <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
                                     <strong>🎯 کاربرد:</strong> شناسه هگزادسیمال ۱۶ کاراکتری فیلتر اولیه کلاینت مجاز.<br>
-                                    <strong>⚙️ نحوه کارکرد:</strong> اگر شناسه تطابق نداشته باشد، بسته بدون افشای پروکسی به سرور Dest فوروارد می‌شود.<br>
+                                    <strong>⚙️ نحوه کارکرد:</strong> پنل به صورت خودکار حالت بدون Short ID را هم در کنار این کلید فعال می‌کند تا اتصال تمام نسخه‌های کلاینت‌ها پایدار باشد.<br>
                                     <strong>✨ مزیت:</strong> سد محکم در برابر حملات Replay Attack و نفوذ پروب‌های فایروال.
                                 </small>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">حداکثر اختلاف زمان (Max Time Diff):</label>
-                                <input type="text" class="form-input" id="sb-reality-max-time-diff" value="1m" placeholder="e.g. 1m or 60s">
+                                <input type="text" class="form-input" id="sb-reality-max-time-diff" value="" placeholder="خالی (غیرفعال - پیشنهادی)">
                                 <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
                                     <strong>🎯 کاربرد:</strong> بازه مجاز ناهماهنگی ساعت سیستم کلاینت با سرور.<br>
-                                    <strong>⚙️ نحوه کارکرد:</strong> مقایسه تایم‌استمپ بسته هندشیک جهت جلوگیری از بازپخش بسته‌ها توسط فایروال.<br>
-                                    <strong>💡 سناریوی مناسب:</strong> پیش‌فرض ۱ دقیقه (<code>1m</code>).
+                                    <strong>💡 توصیه مهم:</strong> این فیلد را **خالی** بگذارید تا اعتبارسنجی ساعت غیرفعال شود. تنظیم روی 1m باعث قطعی کاربرانی می‌شود که ساعت گوشی آن‌ها حتی چند ثانیه اختلاف دارد یا درگیر تغییر ساعت تابستانی هستند.
                                 </small>
                             </div>
                         </div>
@@ -838,7 +848,15 @@
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px;">سرور هدف شبیه‌سازی (Handshake Dest):</label>
-                                <input type="text" class="form-input" id="sb-edit-reality-dest" placeholder="e.g. dl.google.com">
+                                <input type="text" class="form-input" id="sb-edit-reality-dest" placeholder="e.g. swdist.apple.com">
+                                <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
+                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">دامنه‌های ضدفیلتر پیشنهادی:</span>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('swdist.apple.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🍎 swdist.apple.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('images.unsplash.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🖼️ images.unsplash.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('cdn.jsdelivr.net', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">⚡ cdn.jsdelivr.net</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('www.samsung.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">📱 www.samsung.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('download.docker.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🐳 download.docker.com</button>
+                                </div>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px;">پورت هدف:</label>
@@ -862,7 +880,7 @@
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px;">حداکثر اختلاف زمان (Max Time Diff):</label>
-                                <input type="text" class="form-input" id="sb-edit-reality-max-time-diff" value="1m" placeholder="e.g. 1m or 60s">
+                                <input type="text" class="form-input" id="sb-edit-reality-max-time-diff" value="" placeholder="خالی (غیرفعال - پیشنهادی)">
                             </div>
                         </div>
                     </div>
