@@ -279,48 +279,55 @@
                 </div>
             </div>
 
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 10px; padding: 14px; margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-start;">
+                <div style="color: #ef4444; font-size: 20px; line-height: 1; margin-top: 2px;">⚠️</div>
+                <div style="font-size: 12.5px; line-height: 1.6; color: var(--text-base);">
+                    <strong style="color: #f87171; font-size: 13.5px;">قانون طلایی معماری شبکه: تفاوت بنیادین Reality و تکنیک جعل SNI / Fragment</strong><br>
+                    ۱. <strong>پروتکل REALITY:</strong> پروتکل ریالتی ذاتاً رمزنگاری رمزپایه uTLS دارد و پکت را دقیقا مشابه مرورگر گوگل کروم واقعی با مقصد قانونی (مانند <code>swdist.apple.com</code>) ارسال می‌کند. <strong>ریالتی به هیچ عنوان نباید با نرم‌افزارهای جعل SNI یا گزینه Fragment در v2rayNG ترکیب شود</strong>، چرا که تزریق پکت‌های جعلی یا خرد کردن هدر TLS ساختار رمزنگاری X25519 ریالتی را تخریب کرده و سرور آن را پس می‌زند (خطای <code>processed invalid connection</code>). کانفیگ‌های Reality را همواره <strong>مستقیماً و بدون Fragment</strong> استفاده کنید.<br>
+                    ۲. <strong>تکنیک SNI Spoofing / Fragment:</strong> این ابزارها مخصوص پروتکل‌های سنتی (مانند VMess, VLESS-TLS معمولی، Trojan و SSH) هستند که از دامنه‌های ثبت‌شده یا فیلترشده استفاده می‌کنند و با تکه‌تکه کردن هدر، فیلترینگ DPI را فریب می‌دهند.
+                </div>
+            </div>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 14px; font-size: 12.5px;">
                 
-                <!-- Server Side Card -->
-                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(236, 72, 153, 0.2);">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#ec4899;">
-                        <i data-lucide="server" style="width:16px; height:16px;"></i>
-                        <span>۱. وضعیت و اقدامات سمت سرور (Server-Side)</span>
+                <!-- Reality Direct Card -->
+                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#10b981;">
+                        <i data-lucide="shield-check" style="width:16px; height:16px;"></i>
+                        <span>۱. اتصال مستقیم به Reality (پایداری حداکثری و بالاترین سرعت)</span>
                     </div>
                     <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
-                        <li>هسته اصلی <strong>Sing-box Reality</strong> روی پورت <code>20443</code> به صورت پیش‌فرض فعال و با کلیدهای امنیتی X25519 در حال کار است.</li>
-                        <li>سرویس <strong>MHPanel SNI Spoofing</strong> روی پورت <code>15443</code> فعال است و ورودی را دریافت کرده و پس از سرهم‌بندی پکت‌های قطعه‌قطعه شده به هسته لوکال (Upstream: <code>127.0.0.1:20443</code>) رله می‌کند.</li>
-                        <li>پورت‌های فایروال <code>15443</code> و <code>20443</code> به صورت خودکار در فایروال سرور (UFW/Iptables) باز شده‌اند.</li>
+                        <li>هسته اصلی <strong>Sing-box Reality</strong> روی پورت‌های <code>20443</code> (TCP Vision)، <code>20452</code> (gRPC) و <code>20453</code> فعال است.</li>
+                        <li><strong>نحوه اتصال:</strong> لینک Reality کاربر را مستقیماً در نرم‌افزار کلاینت (v2rayNG, Sing-box, Nekobox) وارد کنید.</li>
+                        <li><strong>نکته حیاتی:</strong> گزینه <strong>Fragment</strong> در تنظیمات v2rayNG باید حتماً <strong>خاموش (Disabled)</strong> باشد تا پکت‌های Vision دچار تغییر اندازه ناخواسته نشوند.</li>
                     </ul>
                 </div>
 
-                <!-- Client Side V2Ray Card -->
+                <!-- Client Side V2Ray Fragment Card -->
                 <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(59, 130, 246, 0.2);">
                     <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#38bdf8;">
-                        <i data-lucide="smartphone" style="width:16px; height:16px;"></i>
-                        <span>۲. اتصال با کلاینت V2Ray (v2rayN / v2rayNG)</span>
+                        <i data-lucide="split" style="width:16px; height:16px;"></i>
+                        <span>۲. تکنیک Fragment برای کانفیگ‌های معمولی (VMess / TLS)</span>
                     </div>
                     <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
-                        <li><strong>گام اول:</strong> لینک <code>vless://...</code> آماده در تب زیر را کپی کرده و در برنامه پیست (Import) کنید.</li>
-                        <li><strong>گام دوم (فعال‌سازی Fragment):</strong> در تنظیمات (Settings) برنامه v2rayN یا v2rayNG گزینه <strong>Fragment</strong> را فعال کنید:
+                        <li><strong>کاربرد:</strong> دور زدن فیلترینگ دامنه‌های فیلترشده در کانفیگ‌های معمولی (غیر Reality).</li>
+                        <li>در صورت نیاز به عبور از اختلالات شدید روی دامنه‌ها، در تنظیمات v2rayNG مقادیر زیر را برای کانفیگ‌های معمولی ست کنید:
                             <div style="background:rgba(0,0,0,0.3); border-radius:6px; padding:4px 8px; margin:4px 0; font-family:'JetBrains Mono',monospace; color:#38bdf8; font-size:11px;">
                                 Packets: 1-3 | Length: 10-100 | Interval: 2-5ms
                             </div>
                         </li>
-                        <li><strong>عملکرد:</strong> پکت Handshake به قطعات بسیار ریز خرد شده و سیستم بازرسی عمیق پکت (DPI) فیلترینگ قادر به خواندن SNI نبوده و اجازه عبور می‌دهد.</li>
                     </ul>
                 </div>
 
                 <!-- Client Side Sing-box Card -->
-                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
-                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#10b981;">
+                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(168, 85, 247, 0.2);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#c084fc;">
                         <i data-lucide="box" style="width:16px; height:16px;"></i>
-                        <span>۳. کانفیگ کامل Sing-box (عبور فوری از فیلترینگ)</span>
+                        <span>۳. کانفیگ کامل Sing-box رسمی (JSON)</span>
                     </div>
                     <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
-                        <li><strong>کانفیگ آماده:</strong> یک فایل JSON کامل حاوی اینباند TUN (وی‌پی‌ان کامل سیستم)، تونل Mixed Socks/HTTP و دور زدن سایت‌های ایرانی تولید شده است.</li>
-                        <li>روی دکمه <strong>«دانلود فایل JSON سینگ‌باکس»</strong> کلیک کنید یا متن کانفیگ را کپی کرده و در اپلیکیشن Sing-box ویندوز، اندروید (SFA)، مک یا آیفون (SFI) وارد کنید.</li>
-                        <li>تنظیمات تقطیع TLS Fragment مستقیماً داخل بلاک <code>outbounds</code> فایل کانفیگ تعبیه شده و بدون نیاز به تنظیم دستی فعال است.</li>
+                        <li><strong>کانفیگ استاندارد:</strong> فایل JSON استاندارد حاوی حالت TUN (کل سیستم) و مسیریابی خودکار ترافیک داخلی ایران.</li>
+                        <li>روی دکمه <strong>«دانلود کانفیگ کامل Sing-box»</strong> کلیک کنید یا فایل را در Sing-box رسمی ایمپورت نمایید.</li>
                     </ul>
                 </div>
 

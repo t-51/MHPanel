@@ -13123,13 +13123,13 @@ def get_snispoof_reality_and_client_configs():
     cfg = {
         "port": 15443,
         "role": "inbound_relay",
-        "upstream": "127.0.0.1:20443",
+        "upstream": "127.0.0.1:20456",
         "default_strategy": "tls_fragment",
         "low_ttl_hops": 5,
         "fragment_size": 2,
         "fragment_delay_ms": 3,
         "jitter_enabled": True,
-        "sni_pool": ["dl.google.com", "sanjesh.org", "shaparak.ir", "speedtest.net"],
+        "sni_pool": ["sanjesh.org", "shaparak.ir", "speedtest.net"],
         "reverse_target_host": "",
         "reverse_target_port": 15443
     }
@@ -13268,11 +13268,6 @@ def get_snispoof_reality_and_client_configs():
                         "enabled": True,
                         "public_key": r_pubkey,
                         "short_id": r_shortid
-                    },
-                    "fragment": {
-                        "enabled": True,
-                        "length": f"1-{frag_size}",
-                        "interval": f"2-{frag_delay}"
                     }
                 },
                 "packet_encoding": "xudp"
@@ -13356,7 +13351,7 @@ def get_snispoof_reality_and_client_configs():
                         "port": r_port,
                         "users": [{
                             "id": r_uuid,
-                            "flow": "xtls-rprx-vision",
+                            "flow": "",
                             "encryption": "none"
                         }]
                     }]
