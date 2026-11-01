@@ -787,7 +787,7 @@
                         <div>
                             <span style="font-weight:700; color:#38bdf8;">تزریق خودکار مشخصات سرور فعال:</span>
                             <span style="color:var(--text-muted); margin-right:6px;" id="gas-tpl-server-specs-text">
-                                آدرس سرور: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.server_domain or gas_templates_data.server_ip if gas_templates_data else 'vpn.kigaping.com' }}</code> | پورت نود تانل: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.port if gas_templates_data else 8448 }}</code> | پورت اینباند سینگ‌باکس: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.singbox_port if gas_templates_data else '20443' }}</code> | کلید امنیتی: <code style="color:#10b981; background:rgba(16,185,129,0.15); padding:1px 6px; border-radius:4px;">فعال و تزریق شده</code>
+                                آدرس سرور: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.server_domain or gas_templates_data.server_ip if gas_templates_data else 'vpn.example.com' }}</code> | پورت نود تانل: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.port if gas_templates_data else 8448 }}</code> | پورت اینباند سینگ‌باکس: <code style="color:#fff; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px;">{{ gas_templates_data.singbox_port if gas_templates_data else '20443' }}</code> | کلید امنیتی: <code style="color:#10b981; background:rgba(16,185,129,0.15); padding:1px 6px; border-radius:4px;">فعال و تزریق شده</code>
                             </span>
                         </div>
                     </div>
@@ -1307,7 +1307,7 @@
                     <div class="form-group" style="margin-bottom:0;">
                         <label style="font-size:12px; font-weight:600; margin-bottom:4px; display:block;">دامنه یا آدرس سرور (Tunnel URL)</label>
                         <div class="gas-input-composite">
-                            <input type="text" id="gas-cfg-tunnel-url" placeholder="http://vpn.kigaping.com" style="font-family:'JetBrains Mono'; direction:ltr;">
+                            <input type="text" id="gas-cfg-tunnel-url" placeholder="http://vpn.example.com" style="font-family:'JetBrains Mono'; direction:ltr;">
                         </div>
                     </div>
 

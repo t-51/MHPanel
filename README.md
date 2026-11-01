@@ -36,7 +36,7 @@ Version **1.7.0** represents a massive leap forward in anti-censorship resilienc
 2. 📡 **Universal Smart Subscription Engine (SlipNet, V2Ray, Sing-box & Hiddify):**
    - 1-click **Base64 Smart Subscription** delivering all 23 active Sing-box configurations + SSH configs in a single unified link.
    - Fully optimized for **SlipNet**, **v2rayNG**, **NekoBox**, **Hiddify**, **v2rayN**, and **Streisand**.
-   - Automatic TLS SNI routing prioritizing valid SSL domains (`mhpanel.kigaping.com`) to eliminate certificate mismatch and handshake errors.
+   - Automatic TLS SNI routing prioritizing active and valid server SSL domains to eliminate certificate mismatch and handshake errors.
    - 1-click direct clipboard copy button in the users table with immediate visual toast notification.
 
 3. 🎛️ **Ergonomic Single-Line Inbounds UI & Interactive Management Modal:**

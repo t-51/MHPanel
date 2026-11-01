@@ -1542,10 +1542,14 @@ def get_ssh_user_info(username):
 SSH_DOMAINS_FILE = "/www/wwwroot/mhpanel/ssh_domains.json"
 
 def get_ssh_cert_paths():
+    srv_dom = get_server_domain()
     le_dir = "/etc/letsencrypt/live"
     if os.path.isdir(le_dir):
-        candidates = ["ssh.kigaping.com", "ws.kigaping.com", "vpn.kigaping.com", "mhpanel.kigaping.com"] + [e for e in os.listdir(le_dir) if "." in e and e not in ["clients", "README"]]
+        live_dirs = [e for e in os.listdir(le_dir) if "." in e and e not in ["clients", "README"]]
+        candidates = ([srv_dom] if srv_dom else []) + live_dirs
         for cand in candidates:
+            if not cand:
+                continue
             cert = os.path.join(le_dir, cand, "fullchain.pem")
             key = os.path.join(le_dir, cand, "privkey.pem")
             if os.path.exists(cert) and os.path.exists(key):
@@ -1632,13 +1636,13 @@ def get_ssh_domains_config():
         parts = srv_dom.split(".")
         base_dom = ".".join(parts[-2:]) if len(parts) >= 2 else srv_dom
     else:
-        base_dom = "kigaping.com"
+        base_dom = "example.com"
     
     default_cfg = {
         "direct_domain": srv_dom or pub_ip,
         "tls_sni": f"ssh.{base_dom}",
         "ws_sni": f"ws.{base_dom}",
-        "custom_snis": ["shahan.kigaping.com", f"ssh-ws.{base_dom}"],
+        "custom_snis": [f"ssh.{base_dom}", f"ssh-ws.{base_dom}"],
         "direct_ports": [22, 2053, 443],
         "ws_ports": [80, 443, 8088],
         "tls_ports": [443, 9443, 2087],
@@ -1683,13 +1687,13 @@ def save_ssh_domains_config(cfg):
         found_ws = False
         for p in protos:
             if p.get("id") == "ssh":
-                p["sni"] = tls_sni_str or "ssh.kigaping.com"
+                p["sni"] = tls_sni_str or "ssh.example.com"
                 p["backend_port"] = 4444
                 p["enabled"] = True
                 p["name"] = "تونل SSH با رمزنگاری TLS (Stunnel)"
                 found_ssh = True
             elif p.get("id") == "ssh_ws":
-                p["sni"] = ws_sni_str or "ws.kigaping.com"
+                p["sni"] = ws_sni_str or "ws.example.com"
                 p["backend_port"] = 4445
                 p["enabled"] = True
                 p["name"] = "تونل SSH وب‌سوکت و کلودفلر (WebSocket / WSS)"
@@ -1700,7 +1704,7 @@ def save_ssh_domains_config(cfg):
                 "id": "ssh",
                 "name": "تونل SSH با رمزنگاری TLS (Stunnel)",
                 "enabled": True,
-                "sni": tls_sni_str or "ssh.kigaping.com",
+                "sni": tls_sni_str or "ssh.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 4444,
                 "is_default": False,
@@ -1713,7 +1717,7 @@ def save_ssh_domains_config(cfg):
                 "id": "ssh_ws",
                 "name": "تونل SSH وب‌سوکت و کلودفلر (WebSocket / WSS)",
                 "enabled": True,
-                "sni": ws_sni_str or "ws.kigaping.com",
+                "sni": ws_sni_str or "ws.example.com",
                 "backend_ip": "127.0.0.1",
                 "backend_port": 4445,
                 "is_default": False,
@@ -1894,7 +1898,7 @@ def generate_npv_all_modes(username, password, domain, pub_ip):
     pub_ip = pub_ip or direct_host
     udpgw_port = int(d_cfg.get("udpgw_port", 7300))
     
-    dnstt_ns = "t.vpn.kigaping.com"
+    dnstt_ns = f"t.{domain}" if (domain and domain != "127.0.0.1") else "t.example.com"
     if os.path.exists("/etc/vpnpanel/dnstt.json"):
         try:
             with open("/etc/vpnpanel/dnstt.json", "r") as f:
@@ -10850,7 +10854,7 @@ SERVER_DOMAIN_FILE = "/etc/vpnpanel/server_domain.txt"
 def get_panel_sub_domain():
     """
     Returns the public HTTPS domain specifically serving the MHPanel web interface and subscriptions.
-    Prefers mhpanel.kigaping.com if available, or the current web request host.
+    Prefers the current web request host, panel_domain.txt, or active Let's Encrypt certificates.
     """
     try:
         from flask import has_request_context, request
@@ -10860,12 +10864,33 @@ def get_panel_sub_domain():
                 return host
     except Exception:
         pass
-    if os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com"):
-        return "mhpanel.kigaping.com"
+
+    # Check panel_domain.txt
+    panel_dom_file = "/etc/vpnpanel/panel_domain.txt"
+    if os.path.exists(panel_dom_file):
+        try:
+            with open(panel_dom_file, "r") as f:
+                d = f.read().strip()
+                if d and "." in d and not d.startswith("#"):
+                    return d
+        except Exception:
+            pass
+
+    # Check Let's Encrypt certificates for a panel domain
+    le_dir = "/etc/letsencrypt/live"
+    if os.path.isdir(le_dir):
+        try:
+            for entry in os.listdir(le_dir):
+                if entry.startswith("panel.") or entry.startswith("mhpanel."):
+                    if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")):
+                        return entry
+        except Exception:
+            pass
+
     d = get_server_domain()
     if d and not d.startswith("vpn."):
         return d
-    return "mhpanel.kigaping.com"
+    return d or get_server_public_ip() or "127.0.0.1"
 
 def get_server_domain():
     # 1. User explicitly set domain
@@ -13461,7 +13486,7 @@ def api_tor_config():
         transport = (data.get("transport") or "obfs4").strip()
         bridge_port = int(data.get("bridge_port") or 9002)
         nickname = (data.get("nickname") or "MHPanelBridge").strip()
-        contact = (data.get("contact") or "admin@kigaping.com").strip()
+        contact = (data.get("contact") or "admin@example.com").strip()
 
         cfg = {
             "or_port": or_port,
@@ -13499,7 +13524,7 @@ DataDirectory /var/lib/tor
         "bridge_port": 9002,
         "socks_port": 9050,
         "nickname": "MHPanelBridge",
-        "contact": "admin@kigaping.com"
+        "contact": "admin@example.com"
     }
     if os.path.exists(cfg_file):
         try:
@@ -13951,7 +13976,7 @@ def api_ssl_issue():
 
     potential_webroots = [
         f"/www/wwwroot/{domain}",
-        "/www/wwwroot/mhpanel.kigaping.com",
+        "/www/wwwroot/mhpanel",
         "/var/www/html"
     ]
     webroot_path = None
@@ -16562,7 +16587,7 @@ def api_get_ssh_config():
         "ws_paths": ["/ssh", "/ws"],
         "slowdns": {
             "pubkey": slowdns_pub,
-            "nameservers": [f"t.{srv_dom}", f"dns.{srv_dom}"] if srv_dom else ["t.kigaping.com", "dns.kigaping.com"],
+            "nameservers": [f"t.{srv_dom}", f"dns.{srv_dom}"] if srv_dom else ["t.example.com", "dns.example.com"],
             "port": "UDP 53 / 5300",
             "upstream_dns": "8.8.8.8"
         },
@@ -16921,7 +16946,7 @@ def save_ocserv_full_config(data):
     camouflage_secret = str(data.get("camouflage_secret", "myvpnsecret")).strip()
     camouflage_realm = str(data.get("camouflage_realm", "Restricted Content")).strip()
     cert_type = data.get("cert_type", "letsencrypt")
-    default_domain = data.get("default_domain", "").strip() or get_server_domain() or get_server_public_ip() or "vpn.kigaping.com"
+    default_domain = data.get("default_domain", "").strip() or get_server_domain() or get_server_public_ip() or "vpn.example.com"
     ipv4_network = data.get("ipv4_network", "10.9.0.0").strip()
     ipv4_netmask = data.get("ipv4_netmask", "255.255.255.0").strip()
     dns1 = data.get("dns1", "8.8.8.8").strip()
@@ -16943,7 +16968,7 @@ def save_ocserv_full_config(data):
     ca_cert_line = ""
     if cert_type == "letsencrypt":
         added = set()
-        candidates = [default_domain, get_server_domain(), "test.kigaping.com", "vpn.kigaping.com", "mhpanel.kigaping.com"]
+        candidates = [default_domain, get_server_domain()]
         if os.path.exists("/etc/letsencrypt/live"):
             try:
                 for entry in os.listdir("/etc/letsencrypt/live"):
@@ -17665,7 +17690,7 @@ def get_sstp_config():
                 default_cfg.update(data)
         except Exception:
             pass
-    if default_cfg.get("sni") == "sstp.kigaping.com":
+    if not default_cfg.get("sni") or default_cfg.get("sni") in ["sstp.example.com"]:
         d = get_server_domain()
         default_cfg["sni"] = f"sstp.{d}" if d else "sstp.example.com"
     return default_cfg
@@ -28208,7 +28233,7 @@ DECOY_CONFIG_FILE = "/etc/mhpanel/decoy_wp.json"
 def get_decoy_wp_config():
     default_cfg = {
         "installed": False,
-        "domain": "blog.kigaping.com",
+        "domain": "blog.example.com",
         "site_title": "Cloud Computing & Modern Dev Journal",
         "theme": "twentytwentythree",
         "port": 8444,

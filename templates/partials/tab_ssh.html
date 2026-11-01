@@ -78,7 +78,7 @@
                             اتصال مستقیم TCP با پورت‌های ۲۲، ۲۰۵۳ و ۴۴۳ (از طریق مولتی‌پلکسر HAProxy) با قابلیت فوروارد نامحدود.
                         </p>
 <div id="ssh-box-socks5-cmd" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            ssh -N -D 1080 [username]@test.kigaping.com -p 22
+                            ssh -N -D 1080 [username]@vpn.example.com -p 22
                         </div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-socks5-cmd').innerText, 'دستور ساکس ۵')" style="width:100%;" type="button">
@@ -96,7 +96,7 @@
                             مناسب اتصال از پشت شبکه کلودفلر، آروان‌کلود و پورت‌های 80 و 443 با مسیر <code>/ssh</code> و <code>/ws</code>.
                         </p>
 <div id="ssh-box-ws-payload" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            GET /ssh HTTP/1.1[crlf]Host: test.kigaping.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
+                            GET /ssh HTTP/1.1[crlf]Host: vpn.example.com[crlf]Upgrade: websocket[crlf]Connection: Upgrade[crlf][crlf]
                         </div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-ws-payload').innerText, 'پی‌لود وب‌سوکت')" style="width:100%;" type="button">
@@ -114,7 +114,7 @@
                             پنهان‌سازی فریم‌های SSH در لایه TLS با گواهی معتبر Let's Encrypt جهت عبور از DPI. پورت‌های ۹۴۴۳، ۲۰۸۷ و ۴۴۳.
                         </p>
 <div id="ssh-box-stunnel-info" style="background:#0f172a; color:#f8fafc; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:11px; direction:ltr; word-break:break-all;">
-                            Host: test.kigaping.com | Ports: 22, 443 | SNI: test.kigaping.com
+                            Host: vpn.example.com | Ports: 22, 443 | SNI: vpn.example.com
                         </div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshStunnelInfo()" style="width:100%;" type="button">
@@ -135,7 +135,7 @@
 <div id="ssh-box-slowdns-key" style="background:#0f172a; color:#38bdf8; padding:8px 12px; border-radius:8px; font-family:'JetBrains Mono', monospace; font-size:10px; direction:ltr; word-break:break-all;">
                             b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31
                         </div>
-<div style="font-size:11px; color:var(--text-muted); margin-top:6px;"><span data-i18n="ssh_dns_half_server_nameserver">نیم‌سرور دی‌ان‌اس (Nameserver):</span> <code style="direction:ltr; font-family:'JetBrains Mono',monospace; color:#4f46e5;">t.kigaping.com</code></div>
+<div style="font-size:11px; color:var(--text-muted); margin-top:6px;"><span data-i18n="ssh_dns_half_server_nameserver">نیم‌سرور دی‌ان‌اس (Nameserver):</span> <code style="direction:ltr; font-family:'JetBrains Mono',monospace; color:#4f46e5;">t.example.com</code></div>
 </div>
 <button class="btn btn-secondary btn-sm" onclick="copySshText(document.getElementById('ssh-box-slowdns-key').innerText, 'کلید عمومی SlowDNS')" style="width:100%;" type="button">
 <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="ssh_copy_slowdns_public_key">کپی کلید عمومی SlowDNS</span>
@@ -238,9 +238,9 @@
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
 <li data-i18n-html="elem_tab_ssh_48"><strong data-i18n="ssh_protocol_type">نوع پروتکل:</strong> SSH (با فعال‌سازی گزینه SSL / TLS)</li>
-<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">vpn.example.com</code></li>
 <li data-i18n-html="elem_tab_ssh_49"><strong data-i18n="ssh_port">Port (پورت):</strong> <code>22</code> یا <code>443</code></li>
-<li><strong>Server Name Indication (SNI):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li><strong>Server Name Indication (SNI):</strong> <code class="ssh-dynamic-host">vpn.example.com</code></li>
 <li data-i18n-html="elem_tab_ssh_50"><strong data-i18n="ssh_item_7">نام کاربری و رمز:</strong> اکانت ساخته‌شده در پنل</li>
 </ul>
 </div>
@@ -253,7 +253,7 @@
                             اتصال مستقیم SSH روی پورت استاندارد ۴۴۳ (بدون نیاز به پورت خاص):
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li data-i18n-html="elem_tab_ssh_51"><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">vpn.example.com</code></li>
 <li><strong data-i18n="ssh_port">Port (پورت):</strong> <code>443</code></li>
 <li data-i18n-html="elem_tab_ssh_52"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> خاموش (در حالت Direct SSH) یا روشن (با SNI)</li>
 </ul>
@@ -270,7 +270,7 @@
 <li><strong data-i18n="ssh_connection_type">نوع اتصال:</strong> SSH + WebSocket</li>
 <li data-i18n-html="elem_tab_ssh_53"><strong data-i18n="wg_port_2">پورت:</strong> <code>80</code> (بدون SSL) یا <code>443</code> (با SSL) یا <code>8088</code></li>
 <li data-i18n-html="elem_tab_ssh_54"><strong data-i18n="ssh_path">مسیر (Path):</strong> <code>/ssh</code> یا <code>/ws</code></li>
-<li><strong data-i18n="ssh_item_4">پی‌لود:</strong> <code class="ssh-dynamic-payload">GET /ssh HTTP/1.1[crlf]Host: test.kigaping.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
+<li><strong data-i18n="ssh_item_4">پی‌لود:</strong> <code class="ssh-dynamic-payload">GET /ssh HTTP/1.1[crlf]Host: vpn.example.com[crlf]Upgrade: websocket[crlf][crlf]</code></li>
 </ul>
 </div>
 <!-- Method 4: Direct SSH without TLS -->
@@ -282,7 +282,7 @@
                             مناسب برنامه‌های ویندوزی مانند Bitvise و PuTTY و کلاینت‌های ساده:
                         </p>
 <ul style="margin:0; padding-right:18px; font-size:12px; color:var(--text-main); display:flex; flex-direction:column; gap:3px;">
-<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">test.kigaping.com</code></li>
+<li><strong data-i18n="ssh_host_server">Host (سرور):</strong> <code class="ssh-dynamic-host">vpn.example.com</code></li>
 <li data-i18n-html="elem_tab_ssh_55"><strong data-i18n="ssh_ports">پورت‌ها:</strong> <code>22</code> (استاندارد) یا <code>443</code></li>
 <li data-i18n-html="elem_tab_ssh_56"><strong data-i18n="ssh_ssl_tls">تیک SSL/TLS:</strong> خاموش (غیرفعال)</li>
 </ul>

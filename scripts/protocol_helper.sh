@@ -2486,6 +2486,8 @@ install_trojan() {
     # If missing or invalid sing-box config, regenerate fresh clean config
     if [ ! -f /etc/vpnpanel/trojan.json ] || ! /usr/local/bin/sing-box check -c /etc/vpnpanel/trojan.json >/dev/null 2>&1; then
         local secret=$(openssl rand -hex 16)
+        local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+        [ -z "$srv_dom" ] && srv_dom="vpn.example.com"
         cat > /etc/vpnpanel/trojan.json <<EOF
 {
   "log": {"level": "warn"},
@@ -2499,7 +2501,7 @@ install_trojan() {
       "users": [{"name": "default_user", "password": "${secret}"}],
       "tls": {
         "enabled": true,
-        "server_name": "vpn.kigaping.com",
+        "server_name": "${srv_dom}",
         "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
         "key_path": "/etc/vpnpanel/ssl/panel.key"
       },
@@ -2595,6 +2597,8 @@ install_naiveproxy() {
     # If missing or invalid sing-box config, regenerate fresh clean config
     if [ ! -f /etc/vpnpanel/naiveproxy.json ] || ! /usr/local/bin/sing-box check -c /etc/vpnpanel/naiveproxy.json >/dev/null 2>&1; then
         local secret=$(openssl rand -hex 16)
+        local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+        [ -z "$srv_dom" ] && srv_dom="vpn.example.com"
         cat > /etc/vpnpanel/naiveproxy.json <<EOF
 {
   "log": {"level": "warn"},
@@ -2608,7 +2612,7 @@ install_naiveproxy() {
       "users": [{"username": "admin", "password": "${secret}"}],
       "tls": {
         "enabled": true,
-        "server_name": "vpn.kigaping.com",
+        "server_name": "${srv_dom}",
         "certificate_path": "/etc/vpnpanel/ssl/panel.crt",
         "key_path": "/etc/vpnpanel/ssl/panel.key"
       }
@@ -2809,12 +2813,15 @@ set_port_noizdns() {
 # ----------------- MASTERDNSVPN -----------------
 install_masterdnsvpn() {
     local port=${1:-5356}
+    local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+    local dns_dom="t.example.com"
+    [ -n "$srv_dom" ] && dns_dom="t.${srv_dom}"
     mkdir -p /etc/vpnpanel
     if [ ! -f /etc/vpnpanel/masterdnsvpn.json ]; then
         cat > /etc/vpnpanel/masterdnsvpn.json <<EOF
 {
   "port": ${port},
-  "domain": "t.kigaping.com",
+  "domain": "${dns_dom}",
   "auth_key": "master-secret-key-mhpanel",
   "upstream": "127.0.0.1:1080",
   "mtu": 1280
@@ -2890,12 +2897,15 @@ install_dnstt() {
         pubkey=$(cat /etc/dnstt/server.pub | tr -d '\r\n ')
     fi
 
-    local domain="t.vpn.kigaping.com"
+    local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+    local def_domain="t.example.com"
+    [ -n "$srv_dom" ] && def_domain="t.${srv_dom}"
+    local domain="${def_domain}"
     local upstream="127.0.0.1:22"
     local mtu=1232
 
     if [ -f /etc/vpnpanel/dnstt.json ]; then
-        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.vpn.kigaping.com")
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "${def_domain}")
         upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/dnstt.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:22")
         mtu=$(grep -oE '"mtu":\s*[0-9]+' /etc/vpnpanel/dnstt.json 2>/dev/null | awk '{print $2}' || echo "1232")
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/dnstt.json
@@ -2979,11 +2989,14 @@ install_vaydns() {
         pubkey_v=$(cat /etc/vaydns/server.pub | tr -d '\r\n ')
     fi
 
-    local domain="v.vpn.kigaping.com"
+    local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+    local def_domain="v.example.com"
+    [ -n "$srv_dom" ] && def_domain="v.${srv_dom}"
+    local domain="${def_domain}"
     local upstream="127.0.0.1:22"
 
     if [ -f /etc/vpnpanel/vaydns.json ]; then
-        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "v.vpn.kigaping.com")
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "${def_domain}")
         upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/vaydns.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:22")
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/vaydns.json
     else
@@ -3061,11 +3074,14 @@ install_slipstream() {
         openssl req -x509 -newkey rsa:2048 -nodes -keyout /etc/slipstream/key.pem -out /etc/slipstream/cert.pem -days 3650 -subj "/CN=dns-tunnel" 2>/dev/null || true
     fi
 
-    local domain="t.kigaping.com"
+    local srv_dom=$(cat /etc/vpnpanel/server_domain.txt 2>/dev/null || true)
+    local def_domain="t.example.com"
+    [ -n "$srv_dom" ] && def_domain="t.${srv_dom}"
+    local domain="${def_domain}"
     local upstream="127.0.0.1:1080"
 
     if [ -f /etc/vpnpanel/slipstream.json ]; then
-        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/slipstream.json 2>/dev/null | awk -F'"' '{print $4}' || echo "t.kigaping.com")
+        domain=$(grep -oE '"domain":\s*"[^"]+"' /etc/vpnpanel/slipstream.json 2>/dev/null | awk -F'"' '{print $4}' || echo "${def_domain}")
         upstream=$(grep -oE '"upstream":\s*"[^"]+"' /etc/vpnpanel/slipstream.json 2>/dev/null | awk -F'"' '{print $4}' || echo "127.0.0.1:1080")
         sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/slipstream.json
     else
@@ -3169,7 +3185,7 @@ BridgeRelay 1
 ServerTransportPlugin obfs4 exec ${obfs_bin}
 ServerTransportListenAddr obfs4 0.0.0.0:${bridge_port}
 PublishServerDescriptor 0
-ContactInfo admin@kigaping.com
+ContactInfo admin@example.com
 Nickname MHPanelBridge
 DataDirectory /var/lib/tor
 EOF

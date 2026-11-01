@@ -471,7 +471,7 @@
                             <option value="none">بدون رمزنگاری TLS (Plain / مستقیم)</option>
                         </select>
                         <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; line-height: 1.4;">
-                            💡 حالت <strong>REALITY</strong> بدون نیاز به دامنه یا سرتیفیکیت، امضای سایت‌های خارجی (مانند گوگل) را سرقت می‌کند. حالت <strong>TLS</strong> برای پروتکل‌های وب و CDN با سرتیفیکیت معتبر Let's Encrypt دامنه mhpanel.kigaping.com کار می‌کند.
+                            💡 حالت <strong>REALITY</strong> بدون نیاز به دامنه یا سرتیفیکیت، امضای سایت‌های خارجی (مانند گوگل) را سرقت می‌کند. حالت <strong>TLS</strong> برای پروتکل‌های وب و CDN با سرتیفیکیت معتبر Let's Encrypt سرور کار می‌کند.
                         </small>
                     </div>
 
@@ -531,17 +531,17 @@
                         <div>
                             <label class="form-label" style="font-size: 11px; font-weight: 600;">دامنه / نام سرور (SNI / Server Name):</label>
                             <input type="text" class="form-input" id="sb-tls-sni" placeholder="yourdomain.com یا خالی برای آی‌پی سرور">
-                            <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">نام دامنه‌ای که در هدر TLS ارسال می‌شود (پیش‌فرض سرور: mhpanel.kigaping.com).</small>
+                            <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">نام دامنه‌ای که در هدر TLS ارسال می‌شود (پیش‌فرض: دامنه یا SNI سرور).</small>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">مسیر گواهی (Cert Path):</label>
-                                <input type="text" class="form-input" id="sb-tls-cert" value="/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem">
+                                <input type="text" class="form-input" id="sb-tls-cert" placeholder="/etc/letsencrypt/live/domain/fullchain.pem" value="">
                                 <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">مسیر فایل گواهینامه معتبر SSL روی سرور.</small>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">مسیر کلید (Key Path):</label>
-                                <input type="text" class="form-input" id="sb-tls-key" value="/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem">
+                                <input type="text" class="form-input" id="sb-tls-key" placeholder="/etc/letsencrypt/live/domain/privkey.pem" value="">
                                 <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">مسیر فایل کلید خصوصی منطبق با گواهینامه SSL.</small>
                             </div>
                         </div>

@@ -12063,7 +12063,7 @@
             document.querySelectorAll(".ssh-dynamic-payload").forEach(el => el.innerText = `GET /ssh HTTP/1.1[crlf]Host: ${wsHost}[crlf]Upgrade: websocket[crlf][crlf]`);
 
             if (data.slowdns?.nameservers && document.getElementById("ssh-slowdns-ns")) {
-                document.getElementById("ssh-slowdns-ns").innerText = data.slowdns.nameservers[0] || "t.kigaping.com";
+                document.getElementById("ssh-slowdns-ns").innerText = data.slowdns.nameservers[0] || "t.example.com";
             }
 
             if (data.direct_ports && document.getElementById("ssh-stat-direct-ports")) {
@@ -12874,7 +12874,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function updateOcservUrlPreview() {
-        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'test.kigaping.com';
+        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'vpn.example.com';
         const port = document.getElementById('ocserv-tcp-port')?.value.trim() || '10443';
         const camoCheck = document.getElementById('ocserv-camo-enable')?.checked;
         const secret = document.getElementById('ocserv-camo-secret')?.value.trim() || 'secure_npu_bypass';
@@ -12946,7 +12946,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById('ocserv-camo-secret')) document.getElementById('ocserv-camo-secret').value = data.camouflage_secret || 'secure_npu_bypass';
             if (document.getElementById('ocserv-camo-realm')) document.getElementById('ocserv-camo-realm').value = data.camouflage_realm || 'Restricted Area';
 
-            if (document.getElementById('ocserv-domain')) document.getElementById('ocserv-domain').value = data.default_domain || 'vpn.kigaping.com';
+            if (document.getElementById('ocserv-domain')) document.getElementById('ocserv-domain').value = data.default_domain || 'vpn.example.com';
 
             // Cert radios
             if (data.cert_type === 'letsencrypt') {
@@ -20986,6 +20986,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    function applySbTlsDefaults() {
+        let host = (window.currentServerDomain || window.location.hostname || "example.com");
+        if (host.includes(":")) host = host.split(":")[0];
+        const sniEl = document.getElementById("sb-tls-sni");
+        const certEl = document.getElementById("sb-tls-cert");
+        const keyEl = document.getElementById("sb-tls-key");
+        if (sniEl) sniEl.value = host;
+        if (certEl) certEl.value = `/etc/letsencrypt/live/${host}/fullchain.pem`;
+        if (keyEl) keyEl.value = `/etc/letsencrypt/live/${host}/privkey.pem`;
+    }
+
     const SINGBOX_PRESETS = {
         vless: [
             {
@@ -21031,10 +21042,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (flowEl) flowEl.value = "";
                     const wsEl = document.getElementById("sb-ws-path");
                     if (wsEl) wsEl.value = "/vless-ws";
-                    const sniEl = document.getElementById("sb-tls-sni");
-                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21081,10 +21089,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (flowEl) flowEl.value = "";
                     const upEl = document.getElementById("sb-httpupgrade-path");
                     if (upEl) upEl.value = "/vless-upgrade";
-                    const sniEl = document.getElementById("sb-tls-sni");
-                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21105,10 +21110,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const flowEl = document.getElementById("sb-user-flow");
                     if (flowEl) flowEl.value = "";
-                    const sniEl = document.getElementById("sb-tls-sni");
-                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             }
         ],
@@ -21131,10 +21133,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const wsEl = document.getElementById("sb-ws-path");
                     if (wsEl) wsEl.value = "/vmess-ws";
-                    const sniEl = document.getElementById("sb-tls-sni");
-                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21155,10 +21154,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const grpcEl = document.getElementById("sb-grpc-service");
                     if (grpcEl) grpcEl.value = "VMessGun";
-                    const sniEl = document.getElementById("sb-tls-sni");
-                    if (sniEl) sniEl.value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21199,9 +21195,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const obfsEl = document.getElementById("sb-hy2-obfs");
                     if (obfsEl) obfsEl.value = Math.random().toString(36).substring(2, 10);
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21224,9 +21218,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     const downEl = document.getElementById("sb-hy2-down");
                     if (upEl) upEl.value = 100;
                     if (downEl) downEl.value = 200;
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21249,9 +21241,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     const downEl = document.getElementById("sb-hy2-down");
                     if (upEl) upEl.value = 30;
                     if (downEl) downEl.value = 50;
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             }
         ],
@@ -21274,9 +21264,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const ccEl = document.getElementById("sb-tuic-cc");
                     if (ccEl) ccEl.value = "bbr";
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21297,9 +21285,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const ccEl = document.getElementById("sb-tuic-cc");
                     if (ccEl) ccEl.value = "cubic";
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             }
         ],
@@ -21320,9 +21306,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     document.getElementById("sb-inbound-tag").value = "trojan_tls_" + Math.floor(1000 + Math.random() * 9000);
                     onSingboxTlsModeChange();
                     onSingboxTransportChange();
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21343,9 +21327,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const wsEl = document.getElementById("sb-ws-path");
                     if (wsEl) wsEl.value = "/trojan-ws";
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21366,9 +21348,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const grpcEl = document.getElementById("sb-grpc-service");
                     if (grpcEl) grpcEl.value = "TrojanGun";
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             },
             {
@@ -21389,9 +21369,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     onSingboxTransportChange();
                     const upEl = document.getElementById("sb-httpupgrade-path");
                     if (upEl) upEl.value = "/trojan-upgrade";
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             }
         ],
@@ -21472,9 +21450,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     document.getElementById("sb-inbound-tag").value = "naive_chrome_" + Math.floor(1000 + Math.random() * 9000);
                     onSingboxTlsModeChange();
                     onSingboxTransportChange();
-                    document.getElementById("sb-tls-sni").value = "mhpanel.kigaping.com";
-                    document.getElementById("sb-tls-cert").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem";
-                    document.getElementById("sb-tls-key").value = "/etc/letsencrypt/live/mhpanel.kigaping.com/privkey.pem";
+                    applySbTlsDefaults();
                 }
             }
         ],
@@ -24042,7 +24018,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             badge_color: "#10b981",
             content: `
                 <p>فایروال‌های DPI ایرانسرور و ارتباطات بین‌الملل، گواهینامه‌های خودساخته (Self-Signed) را در جا شناسایی کرده و ارتباط را به عنوان ترافیک مشکوک قطع می‌کنند.</p>
-                <p>پنل <code>mhpanel</code> برای پروتکل‌های مبتنی بر TLS (مانند تروجان، وب‌سوکت و هیستریا) به طور خودکار از سرتیفیکیت معتبر بین‌المللی دامنه پنل (<code>/etc/letsencrypt/live/mhpanel.kigaping.com/fullchain.pem</code>) استفاده می‌کند تا اصالت ارتباط ۱۰۰٪ تایید شود.</p>
+                <p>پنل <code>mhpanel</code> برای پروتکل‌های مبتنی بر TLS (مانند تروجان، وب‌سوکت و هیستریا) به طور خودکار از سرتیفیکیت معتبر بین‌المللی دامنه سرور استفاده می‌کند تا اصالت ارتباط ۱۰۰٪ تایید شود.</p>
             `
         }
     };
@@ -26628,7 +26604,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (apEl) apEl.textContent = data.apache_health || "-";
 
             const domEl = document.getElementById("gas-inspect-domain");
-            if (domEl) domEl.textContent = data.server_domain || "vpn.kigaping.com";
+            if (domEl) domEl.textContent = data.server_domain || window.location.hostname || "vpn.example.com";
 
             renderGasInspectTabContent();
         } catch (e) {
