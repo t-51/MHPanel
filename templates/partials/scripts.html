@@ -10,6 +10,24 @@
     var lastSSLData = null;
     var currentRadiusUsers = {};
 
+    // Sing-box Global State Variables (hoisted to top to prevent TDZ ReferenceErrors)
+    var activeSingboxInbounds = [];
+    var activeSingboxUsers = [];
+    var activeSingboxCategories = [];
+    var currentSingboxCategoryFilter = "ALL";
+    var selectedSingboxUsers = new Set();
+    var currentExportData = { linksText: "", csvText: "", subUrlsText: "", subB64UrlsText: "", subJsonUrlsText: "", subUserLinksText: "", category: "", userCount: 0, subCount: 0, linkCount: 0, activeTab: "sub" };
+    var currentSingboxSubTab = "inbounds";
+    var singboxLogAutoRefreshTimer = null;
+    var singboxCachedLogs = "";
+    var editingSingboxUsername = null;
+    var currentSingboxUserConfigs = [];
+    var currentSingboxUserLinksData = null;
+    var currentManageInboundsUsername = null;
+    var currentManageAvailableInbounds = [];
+    var currentManageUserInboundTags = new Set();
+    var currentSingboxInboundShareData = null;
+
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
         return String(str)
@@ -210,7 +228,8 @@
     }
 
     function updateChartsLanguage(lang) {
-        const dict = I18N_TRANSLATIONS[lang] || I18N_TRANSLATIONS.fa;
+        const trans = (typeof I18N_TRANSLATIONS !== 'undefined' && I18N_TRANSLATIONS) || (typeof window !== 'undefined' && window.I18N_TRANSLATIONS) || {};
+        const dict = trans[lang] || trans.fa || {};
         const tCpu = dict.chart_cpu || "CPU Usage (%)";
         const tRam = dict.chart_ram || "RAM Usage (%)";
         const tRx = dict.chart_rx || "Download (Rx) KB/s";
@@ -20562,17 +20581,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     // --- 4. Sing-box Universal Suite Frontend Engine ---
-    let activeSingboxInbounds = [];
-    let activeSingboxUsers = [];
-    let activeSingboxCategories = [];
-    let currentSingboxCategoryFilter = "ALL";
-    let selectedSingboxUsers = new Set();
-    let currentExportData = { linksText: "", csvText: "", subUrlsText: "", subB64UrlsText: "", subJsonUrlsText: "", subUserLinksText: "", category: "", userCount: 0, subCount: 0, linkCount: 0, activeTab: "sub" };
-    let currentSingboxSubTab = "inbounds";
-    let singboxLogAutoRefreshTimer = null;
-    let singboxCachedLogs = "";
-    let editingSingboxUsername = null;
-    let currentSingboxUserConfigs = [];
+    // (State variables hoisted to top to prevent TDZ ReferenceErrors)
 
     async function loadSingboxData() {
         try {
@@ -20902,8 +20911,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function stopSingboxLogAutoRefresh() {
-        if (singboxLogAutoRefreshTimer) {
-            clearInterval(singboxLogAutoRefreshTimer);
+        if (typeof singboxLogAutoRefreshTimer !== 'undefined' && singboxLogAutoRefreshTimer) {
+            try { clearInterval(singboxLogAutoRefreshTimer); } catch (_) {}
             singboxLogAutoRefreshTimer = null;
         }
     }
@@ -22301,7 +22310,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     // --- Sing-box Local Users Engine ---
-    let currentSingboxUserLinksData = null;
+    // (currentSingboxUserLinksData hoisted to top)
 
     async function loadSingboxCategories() {
         try {
@@ -23882,9 +23891,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     // --- User Inbounds Manager Modal ---
-    let currentManageInboundsUsername = null;
-    let currentManageAvailableInbounds = [];
-    let currentManageUserInboundTags = new Set();
+    // (User inbound manager variables hoisted to top)
 
     async function openSingboxManageUserInboundsModal(username) {
         currentManageInboundsUsername = username;
@@ -24232,7 +24239,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    let currentSingboxInboundShareData = null;
+    // (currentSingboxInboundShareData hoisted to top)
 
     function switchSingboxInboundDetailView(view) {
         const qrView = document.getElementById("sb-inbound-qr-view");
