@@ -18617,13 +18617,20 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (el) el.value = res;
     }
 
-    function renderQrCodeHelper(containerId, text) {
+    function renderQrCodeHelper(containerId, text, customWidth) {
         const el = document.getElementById(containerId);
         if (!el || !text) return;
         el.innerHTML = "";
+        const targetWidth = customWidth || 210;
         if (typeof QRCode !== 'undefined' && QRCode.toCanvas) {
-            QRCode.toCanvas(text, { width: 140, margin: 1 }, (err, canvas) => {
-                if (!err && canvas) el.appendChild(canvas);
+            QRCode.toCanvas(text, { width: targetWidth, margin: 1 }, (err, canvas) => {
+                if (!err && canvas) {
+                    canvas.style.maxWidth = '100%';
+                    canvas.style.height = 'auto';
+                    canvas.style.borderRadius = '8px';
+                    canvas.style.display = 'block';
+                    el.appendChild(canvas);
+                }
             });
         }
     }

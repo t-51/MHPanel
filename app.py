@@ -11599,6 +11599,8 @@ def generate_slipnet_uri(proto, domain="", pubkey="", upstream="127.0.0.1:22", u
         proto_label = "Tor (obfs4)"
         fields[8] = str(socks_port or 9050)
         fields[9] = "127.0.0.1"
+        if not domain:
+            domain = get_server_domain() or get_server_public_ip() or "127.0.0.1"
         if bridge_line:
             fields[26] = base64.b64encode(bridge_line.strip().encode("utf-8")).decode("utf-8")
         is_ssh = False
@@ -11608,6 +11610,8 @@ def generate_slipnet_uri(proto, domain="", pubkey="", upstream="127.0.0.1:22", u
         
     user_suffix = f" ({username})" if username and proto != "tor" else ""
     fields[2] = name or f"{proto_label}{user_suffix}"
+    if not domain:
+        domain = get_server_domain() or get_server_public_ip() or "127.0.0.1"
     fields[3] = (domain or "").strip()
     fields[4] = resolvers or "8.8.8.8:53:0,1.1.1.1:53:0"
     fields[5] = "0"
@@ -12064,26 +12068,22 @@ def api_dns_slipnet_config():
             except Exception:
                 pass
         fingerprint = ""
-        for fp_path in ["/var/lib/tor/fingerprint", "/var/lib/tor/pt_state/obfs4_bridgeline.txt"]:
-            if os.path.exists(fp_path):
-                try:
-                    with open(fp_path, "r") as f:
-                        content = f.read().strip()
-                    if "Bridge" in content:
-                        parts = content.split()
-                        if len(parts) >= 4:
-                            fingerprint = parts[3]
-                    else:
-                        parts = content.split()
-                        if len(parts) >= 2:
-                            fingerprint = parts[1]
-                        elif parts:
-                            fingerprint = parts[0]
-                    if fingerprint:
-                        break
-                except Exception:
-                    pass
+        if os.path.exists("/var/lib/tor/fingerprint"):
+            try:
+                with open("/var/lib/tor/fingerprint", "r") as f:
+                    for line in f:
+                        parts = line.strip().split()
+                        for p in parts:
+                            if len(p) == 40 and all(c in "0123456789abcdefABCDEF" for c in p):
+                                fingerprint = p
+                                break
+                        if fingerprint:
+                            break
+            except Exception:
+                pass
         srv_ip = get_server_public_ip() or get_server_domain()
+        if not domain:
+            domain = get_server_domain() or srv_ip
         cert_str = cert or "cert=AUTO"
         bridge_line = f"Bridge obfs4 {srv_ip}:9002 {fingerprint} {cert_str} iat-mode=0"
     else:
@@ -13163,32 +13163,28 @@ DataDirectory /var/lib/tor
 
     # Extract fingerprint
     fingerprint = ""
-    for fp_path in ["/var/lib/tor/fingerprint", "/var/lib/tor/pt_state/obfs4_bridgeline.txt"]:
-        if os.path.exists(fp_path):
-            try:
-                with open(fp_path, "r") as f:
-                    content = f.read().strip()
-                if "Bridge" in content:
-                    parts = content.split()
-                    if len(parts) >= 4:
-                        fingerprint = parts[3]
-                else:
-                    parts = content.split()
-                    if len(parts) >= 2:
-                        fingerprint = parts[1]
-                    elif parts:
-                        fingerprint = parts[0]
-                if fingerprint:
-                    break
-            except Exception:
-                pass
+    if os.path.exists("/var/lib/tor/fingerprint"):
+        try:
+            with open("/var/lib/tor/fingerprint", "r") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    for p in parts:
+                        if len(p) == 40 and all(c in "0123456789abcdefABCDEF" for c in p):
+                            fingerprint = p
+                            break
+                    if fingerprint:
+                        break
+        except Exception:
+            pass
 
     cfg["fingerprint"] = fingerprint or "GENERATING_AFTER_FIRST_CONNECT"
     server_ip = get_server_public_ip() or get_server_domain()
     cfg["server_ip"] = server_ip
+    domain = get_server_domain() or server_ip
+    cfg["domain"] = domain
     cert_param = cert or "cert=AUTO"
     cfg["bridge_line"] = f"Bridge obfs4 {server_ip}:{cfg.get('bridge_port', 9002)} {cfg.get('fingerprint')} {cert_param} iat-mode=0"
-    cfg["slipnet_uri"] = generate_slipnet_uri("tor", bridge_line=cfg["bridge_line"], socks_port=cfg.get("socks_port", 9050))
+    cfg["slipnet_uri"] = generate_slipnet_uri("tor", domain=domain, bridge_line=cfg["bridge_line"], socks_port=cfg.get("socks_port", 9050))
     cfg["installed"] = is_installed("tor")
     cfg["active"] = get_protocol_active("tor")
     cfg["connections"] = get_connection_count("tor")
