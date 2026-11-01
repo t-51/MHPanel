@@ -21831,6 +21831,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             payload.reality_private_key = document.getElementById("sb-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-reality-pubkey").value.trim();
             payload.reality_short_id = document.getElementById("sb-reality-shortid").value.trim();
+            const mtdEl = document.getElementById("sb-reality-max-time-diff");
+            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim() || "1m";
         } else if (tlsMode === "tls") {
             payload.sni = document.getElementById("sb-tls-sni").value.trim() || "dl.google.com";
             payload.certificate_path = document.getElementById("sb-tls-cert").value.trim();
@@ -21844,6 +21846,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         } else if (transportType === "httpupgrade") {
             payload.httpupgrade_path = document.getElementById("sb-httpupgrade-path") ? document.getElementById("sb-httpupgrade-path").value.trim() : "/vless-upgrade";
         }
+
+        // Advanced Inbound Engine Options
+        const sniffEl = document.getElementById("sb-inbound-sniff");
+        payload.sniff = sniffEl ? sniffEl.checked : true;
+        const sniffOvEl = document.getElementById("sb-inbound-sniff-override");
+        payload.sniff_override_destination = sniffOvEl ? sniffOvEl.checked : false;
+        const sniffToEl = document.getElementById("sb-inbound-sniff-timeout");
+        if (sniffToEl) payload.sniff_timeout = sniffToEl.value.trim() || "300ms";
+        const dsEl = document.getElementById("sb-inbound-domain-strategy");
+        if (dsEl && dsEl.value) payload.domain_strategy = dsEl.value;
+        const tfoEl = document.getElementById("sb-inbound-tfo");
+        payload.tcp_fast_open = tfoEl ? tfoEl.checked : false;
+        const mptcpEl = document.getElementById("sb-inbound-mptcp");
+        payload.tcp_multi_path = mptcpEl ? mptcpEl.checked : false;
+        const mpxEl = document.getElementById("sb-inbound-multiplex");
+        payload.multiplex = mpxEl ? mpxEl.checked : false;
 
         toggleLoading(true, "در حال ایجاد و اعتبارسنجی اینباند...");
         try {
@@ -21880,7 +21898,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 return;
             }
 
-            const d = data.inbound;
+            const d = data.inbound || {};
+            const raw = data.raw || {};
+            const rawTls = raw.tls || {};
+            const rawReality = rawTls.reality || {};
+
             document.getElementById("sb-edit-orig-tag").value = tag;
             document.getElementById("sb-edit-inbound-type").value = d.type;
 
@@ -21896,6 +21918,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const portInput = document.getElementById("sb-edit-inbound-port");
             if (portInput) portInput.value = d.listen_port;
 
+            // Transport Settings
+            const rawTr = raw.transport || {};
+            const trSelect = document.getElementById("sb-edit-transport-type");
+            const trType = rawTr.type || d.transport_type || "tcp";
+            trSelect.value = trType;
+
+            const wsPathInput = document.getElementById("sb-edit-ws-path");
+            if (wsPathInput) wsPathInput.value = rawTr.path || d.ws_path || "/vless-ws";
+
+            const grpcSvcInput = document.getElementById("sb-edit-grpc-service");
+            if (grpcSvcInput) grpcSvcInput.value = rawTr.service_name || d.grpc_service_name || "vless-grpc";
+
+            const httpupPathInput = document.getElementById("sb-edit-httpupgrade-path");
+            if (httpupPathInput) httpupPathInput.value = rawTr.path || d.httpupgrade_path || "/vless-upgrade";
+
+            onSingboxEditTransportChange();
+
             // Render Dynamic Fields
             const dynContainer = document.getElementById("sb-edit-dynamic-protocol-fields");
             let html = "";
@@ -21903,8 +21942,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
             if (p === "vless" || p === "vmess") {
                 const u = (d.users && d.users[0]) ? d.users[0] : {};
-                const uuidVal = u.uuid || (crypto.randomUUID ? crypto.randomUUID() : "");
-                const flowVal = u.flow || "xtls-rprx-vision";
+                const uuidVal = u.uuid || d.uuid || (crypto.randomUUID ? crypto.randomUUID() : "");
+                const isTcp = trType === "tcp";
+                const flowVal = isTcp ? (u.flow || d.flow || "xtls-rprx-vision") : "";
                 html = `
                     <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                         <div>
@@ -21916,15 +21956,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         </div>
                         <div>
                             <label class="form-label" style="font-size:11.5px;">الگوریتم Flow</label>
-                            <select class="form-input" id="sb-edit-user-flow">
+                            <select class="form-input" id="sb-edit-user-flow" ${!isTcp ? 'disabled' : ''}>
                                 <option value="xtls-rprx-vision" ${flowVal === 'xtls-rprx-vision' ? 'selected' : ''}>xtls-rprx-vision (ضد فیلتر)</option>
                                 <option value="" ${!flowVal ? 'selected' : ''}>None (عادی)</option>
                             </select>
+                            ${!isTcp ? '<small style="color:var(--text-muted);font-size:10px;display:block;margin-top:2px;">(فلو Vision مختص ترانسپورت TCP است)</small>' : ''}
                         </div>
                     </div>`;
             } else if (p === "hysteria2") {
-                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : "";
-                const obfsVal = (d.obfs && d.obfs.password) ? d.obfs.password : "";
+                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
+                const obfsVal = (d.obfs && d.obfs.password) ? d.obfs.password : (d.obfs_password || "");
                 const upVal = (d.up_mbps !== undefined) ? d.up_mbps : 100;
                 const downVal = (d.down_mbps !== undefined) ? d.down_mbps : 100;
                 html = `
@@ -21949,8 +21990,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         </div>
                     </div>`;
             } else if (p === "tuic") {
-                const uuidVal = (d.users && d.users[0] && d.users[0].uuid) ? d.users[0].uuid : "";
-                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : "";
+                const uuidVal = (d.users && d.users[0] && d.users[0].uuid) ? d.users[0].uuid : (d.uuid || "");
+                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
                 const ccVal = d.congestion_control || "bbr";
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -21972,7 +22013,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         </select>
                     </div>`;
             } else if (p === "trojan") {
-                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : "";
+                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
                 html = `
                     <div>
                         <label class="form-label" style="font-size:11.5px;">رمز عبور Trojan (Password)</label>
@@ -21998,8 +22039,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         </div>
                     </div>`;
             } else if (p === "naive") {
-                const uVal = (d.users && d.users[0] && d.users[0].username) ? d.users[0].username : "naiveuser";
-                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : "";
+                const uVal = (d.users && d.users[0] && d.users[0].username) ? d.users[0].username : (d.user_name || "naiveuser");
+                const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
@@ -22014,35 +22055,55 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
             dynContainer.innerHTML = html;
 
-            // TLS / Reality Fields
+            // TLS / Reality Fields Detection & Population
             const tlsModeSelect = document.getElementById("sb-edit-tls-mode");
-            let tlsMode = "none";
-            if (d.tls && d.tls.enabled) {
-                if (d.tls.reality && d.tls.reality.enabled) {
-                    tlsMode = "reality";
-                    document.getElementById("sb-edit-reality-dest").value = (d.tls.reality.handshake && d.tls.reality.handshake.server) || d.tls.server_name || "dl.google.com";
-                    document.getElementById("sb-edit-reality-dest-port").value = (d.tls.reality.handshake && d.tls.reality.handshake.server_port) || 443;
-                    document.getElementById("sb-edit-reality-privkey").value = d.tls.reality.private_key || "";
-                    document.getElementById("sb-edit-reality-pubkey").value = (d.tls.reality.public_key || "");
-                    const sids = d.tls.reality.short_id;
-                    document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? (sids[0] || "") : (sids || "");
-                } else {
-                    tlsMode = "tls";
-                    document.getElementById("sb-edit-tls-sni").value = d.tls.server_name || "";
-                    document.getElementById("sb-edit-tls-cert").value = d.tls.certificate_path || "/etc/vpnpanel/ssl/panel.crt";
-                    document.getElementById("sb-edit-tls-key").value = d.tls.key_path || "/etc/vpnpanel/ssl/panel.key";
-                }
-            }
+            let isReality = (d.tls_mode === "reality") || !!(rawReality && rawReality.enabled);
+            let isTls = !isReality && ((d.tls_mode === "tls") || !!(rawTls && rawTls.enabled));
+            let tlsMode = isReality ? "reality" : (isTls ? "tls" : "none");
+
             tlsModeSelect.value = tlsMode;
+
+            if (isReality) {
+                const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "dl.google.com";
+                const hsPort = (rawReality.handshake && rawReality.handshake.server_port) || d.reality_dest_port || 443;
+                document.getElementById("sb-edit-reality-dest").value = hsServer;
+                document.getElementById("sb-edit-reality-dest-port").value = hsPort;
+                document.getElementById("sb-edit-reality-privkey").value = rawReality.private_key || d.reality_privkey || "";
+                document.getElementById("sb-edit-reality-pubkey").value = rawReality.public_key || d.reality_pubkey || "";
+                const sids = rawReality.short_id || d.reality_shortid || [];
+                document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? sids.join(", ") : (sids || "");
+                const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
+                if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "1m";
+            } else if (isTls) {
+                document.getElementById("sb-edit-tls-sni").value = rawTls.server_name || d.sni || "";
+                document.getElementById("sb-edit-tls-cert").value = rawTls.certificate_path || d.tls_cert || "/etc/vpnpanel/ssl/panel.crt";
+                document.getElementById("sb-edit-tls-key").value = rawTls.key_path || d.tls_key || "/etc/vpnpanel/ssl/panel.key";
+                const alpnEl = document.getElementById("sb-edit-tls-alpn");
+                if (alpnEl) alpnEl.value = Array.isArray(rawTls.alpn) ? rawTls.alpn.join(", ") : (d.tls_alpn || "");
+            }
             onSingboxEditTlsModeChange();
 
-            // Transport Settings
-            const trSelect = document.getElementById("sb-edit-transport-type");
-            const trType = (d.transport && d.transport.type) ? d.transport.type : "tcp";
-            trSelect.value = trType;
-            const wsPathInput = document.getElementById("sb-edit-ws-path");
-            if (wsPathInput) wsPathInput.value = (d.transport && d.transport.path) ? d.transport.path : "/";
-            onSingboxEditTransportChange();
+            // Advanced Inbound Engine Options
+            const sniffEl = document.getElementById("sb-edit-sniff");
+            if (sniffEl) sniffEl.checked = (raw.sniff !== undefined) ? !!raw.sniff : (d.sniff !== undefined ? !!d.sniff : true);
+
+            const sniffOvEl = document.getElementById("sb-edit-sniff-override");
+            if (sniffOvEl) sniffOvEl.checked = (raw.sniff_override_destination !== undefined) ? !!raw.sniff_override_destination : (d.sniff_override_destination !== undefined ? !!d.sniff_override_destination : false);
+
+            const sniffToEl = document.getElementById("sb-edit-sniff-timeout");
+            if (sniffToEl) sniffToEl.value = raw.sniff_timeout || d.sniff_timeout || "300ms";
+
+            const dsEl = document.getElementById("sb-edit-domain-strategy");
+            if (dsEl) dsEl.value = raw.domain_strategy || d.domain_strategy || "";
+
+            const tfoEl = document.getElementById("sb-edit-tfo");
+            if (tfoEl) tfoEl.checked = !!(raw.tcp_fast_open || d.tcp_fast_open);
+
+            const mptcpEl = document.getElementById("sb-edit-mptcp");
+            if (mptcpEl) mptcpEl.checked = !!(raw.tcp_multi_path || d.tcp_multi_path);
+
+            const mpxEl = document.getElementById("sb-edit-multiplex");
+            if (mpxEl) mpxEl.checked = !!((raw.multiplex && raw.multiplex.enabled) || (d.multiplex && d.multiplex.enabled) || (d.multiplex === true));
 
             const modal = document.getElementById("modal-singbox-edit-inbound");
             if (modal) {
@@ -22052,6 +22113,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (window.lucide) lucide.createIcons();
         } catch (e) {
             toggleLoading(false);
+            console.error("openSingboxEditInboundModal error:", e);
             showToast("خطای شبکه در دریافت اطلاعات اینباند", "error");
         }
     }
@@ -22072,6 +22134,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (mode === "reality") {
             realityBox.style.display = "flex";
             tlsBox.style.display = "none";
+            if (!document.getElementById("sb-edit-reality-privkey").value) {
+                generateSingboxEditRealityKeys();
+            }
         } else if (mode === "tls") {
             realityBox.style.display = "none";
             tlsBox.style.display = "flex";
@@ -22084,7 +22149,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function onSingboxEditTransportChange() {
         const tr = document.getElementById("sb-edit-transport-type").value;
         const wsBox = document.getElementById("sb-edit-ws-fields");
-        if (wsBox) wsBox.style.display = (tr === "ws" || tr === "httpupgrade") ? "grid" : "none";
+        const grpcBox = document.getElementById("sb-edit-grpc-fields");
+        const httpupBox = document.getElementById("sb-edit-httpupgrade-fields");
+
+        if (wsBox) wsBox.style.display = (tr === "ws") ? "flex" : "none";
+        if (grpcBox) grpcBox.style.display = (tr === "grpc") ? "flex" : "none";
+        if (httpupBox) httpupBox.style.display = (tr === "httpupgrade") ? "flex" : "none";
+
+        // If VLESS flow element exists, disable vision when transport is not tcp
+        const flowEl = document.getElementById("sb-edit-user-flow");
+        if (flowEl) {
+            if (tr === "tcp") {
+                flowEl.disabled = false;
+            } else {
+                flowEl.value = "";
+                flowEl.disabled = true;
+            }
+        }
     }
 
     async function generateSingboxEditRealityKeys() {
@@ -22123,7 +22204,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const uuidEl = document.getElementById("sb-edit-user-uuid");
             if (uuidEl) payload.uuid = uuidEl.value.trim();
             const flowEl = document.getElementById("sb-edit-user-flow");
-            if (flowEl) payload.flow = flowEl.value;
+            if (flowEl) payload.flow = (transportType === "tcp") ? flowEl.value : "";
         } else if (itype === "hysteria2") {
             const passEl = document.getElementById("sb-edit-hy2-pass");
             if (passEl) payload.password = passEl.value.trim();
@@ -22162,15 +22243,39 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             payload.reality_private_key = document.getElementById("sb-edit-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-edit-reality-pubkey").value.trim();
             payload.reality_short_id = document.getElementById("sb-edit-reality-shortid").value.trim();
+            const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
+            if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim() || "1m";
         } else if (tlsMode === "tls") {
             payload.sni = document.getElementById("sb-edit-tls-sni").value.trim() || "dl.google.com";
             payload.certificate_path = document.getElementById("sb-edit-tls-cert").value.trim();
             payload.key_path = document.getElementById("sb-edit-tls-key").value.trim();
+            const alpnEl = document.getElementById("sb-edit-tls-alpn");
+            if (alpnEl) payload.alpn = alpnEl.value.trim();
         }
 
         if (transportType === "ws") {
-            payload.ws_path = document.getElementById("sb-edit-ws-path").value.trim();
+            payload.ws_path = document.getElementById("sb-edit-ws-path") ? document.getElementById("sb-edit-ws-path").value.trim() : "/vless-ws";
+        } else if (transportType === "grpc") {
+            payload.grpc_service_name = document.getElementById("sb-edit-grpc-service") ? document.getElementById("sb-edit-grpc-service").value.trim() : "vless-grpc";
+        } else if (transportType === "httpupgrade") {
+            payload.httpupgrade_path = document.getElementById("sb-edit-httpupgrade-path") ? document.getElementById("sb-edit-httpupgrade-path").value.trim() : "/vless-upgrade";
         }
+
+        // Advanced Inbound Engine Options for Edit
+        const sniffEl = document.getElementById("sb-edit-sniff");
+        payload.sniff = sniffEl ? sniffEl.checked : true;
+        const sniffOvEl = document.getElementById("sb-edit-sniff-override");
+        payload.sniff_override_destination = sniffOvEl ? sniffOvEl.checked : false;
+        const sniffToEl = document.getElementById("sb-edit-sniff-timeout");
+        if (sniffToEl) payload.sniff_timeout = sniffToEl.value.trim() || "300ms";
+        const dsEl = document.getElementById("sb-edit-domain-strategy");
+        if (dsEl && dsEl.value) payload.domain_strategy = dsEl.value;
+        const tfoEl = document.getElementById("sb-edit-tfo");
+        payload.tcp_fast_open = tfoEl ? tfoEl.checked : false;
+        const mptcpEl = document.getElementById("sb-edit-mptcp");
+        payload.tcp_multi_path = mptcpEl ? mptcpEl.checked : false;
+        const mpxEl = document.getElementById("sb-edit-multiplex");
+        payload.multiplex = mpxEl ? mpxEl.checked : false;
 
         toggleLoading(true, "در حال ذخیره تغییرات و بازسازی کانفیگ...");
         try {

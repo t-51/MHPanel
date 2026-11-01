@@ -3664,7 +3664,9 @@ def client_sub_b64(sub_token):
                 for ib in sb_cfg.get("inbounds", []):
                     tag = ib.get("tag")
                     if not user_inbounds or tag in user_inbounds:
-                        slink = generate_singbox_share_link(ib, domain, target_user=udata)
+                        is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
+                        target_host = pub_ip if is_real else domain
+                        slink = generate_singbox_share_link(ib, target_host, target_user=udata)
                         if slink:
                             uris.append(slink)
         except Exception as e:
@@ -26526,30 +26528,57 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     display_title = friendly_names.get(clean_tag, tag)
     tag_name = f"MHPanel - {display_title} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}"
 
+    def _check_ip(address):
+        if not address or not isinstance(address, str):
+            return False
+        try:
+            import ipaddress
+            ipaddress.ip_address(address.strip())
+            return True
+        except Exception:
+            return False
+
+    server_pub_ip = get_server_public_ip()
+    if reality_enabled:
+        target_server = host_ip if _check_ip(host_ip) else server_pub_ip
+    else:
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
+
     if itype == "vless":
         tp = inbound.get("transport", {}).get("type", "tcp")
-        flow = user0.get("flow") or ("xtls-rprx-vision" if (reality_enabled and tp == "tcp") else "")
+        flow = (user0.get("flow") or ("xtls-rprx-vision" if reality_enabled else "")) if tp == "tcp" else ""
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
-        sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
-        target_server = host_ip
-        if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
-            target_server = sni
-        vless_port = 443 if (reality_enabled and int(port) == 20443) else port
-        link = f"vless://{u_uuid}@{target_server}:{vless_port}?security={sec}&sni={sni}&type={tp}"
-        if tp == "ws":
+        sids = reality_obj.get("short_id", [""])
+        sid = sids[0] if (isinstance(sids, list) and sids) else str(sids or "")
+
+        link = f"vless://{u_uuid}@{target_server}:{port}?security={sec}&encryption=none&type={tp}"
+        if sni:
+            link += f"&sni={sni}"
+
+        if tp == "tcp":
+            link += "&headerType=none"
+            if flow and (sec == "reality" or sec == "tls"):
+                link += f"&flow={flow}"
+        elif tp == "ws":
             ws_path = inbound.get("transport", {}).get("path", "/vless-ws")
             link += f"&path={ws_path}"
+            if sni:
+                link += f"&host={sni}"
         elif tp == "grpc":
             svc = inbound.get("transport", {}).get("service_name", "vless-grpc")
-            link += f"&serviceName={svc}"
+            link += f"&serviceName={svc}&mode=gun"
         elif tp == "httpupgrade":
             hpath = inbound.get("transport", {}).get("path", "/vless-upgrade")
             link += f"&path={hpath}"
-        if flow and reality_enabled and tp == "tcp": link += f"&flow={flow}"
-        if pbk: link += f"&pbk={pbk}"
-        if sid: link += f"&sid={sid}"
-        if reality_enabled: link += "&fp=chrome"
+            if sni:
+                link += f"&host={sni}"
+
+        if reality_enabled:
+            if pbk: link += f"&pbk={pbk}"
+            if sid: link += f"&sid={sid}"
+            link += "&fp=chrome"
+
         link += f"#{tag_name}"
         return link
 
@@ -26936,12 +26965,73 @@ def build_inbound_from_request(req, existing_inbound=None):
         "type": itype,
         "tag": tag,
         "listen": req.get("listen") or existing.get("listen") or "::",
-        "listen_port": listen_port,
-        "sniff": bool(req.get("sniff", existing.get("sniff", True)))
+        "listen_port": listen_port
     }
     if existing.get("disabled") is not None:
         inbound["disabled"] = existing.get("disabled")
 
+    # Advanced Inbound Engine Options
+    sniff_val = req.get("sniff")
+    if sniff_val is not None:
+        inbound["sniff"] = bool(sniff_val) if not isinstance(sniff_val, str) else (sniff_val.lower() in ["true", "1", "yes"])
+    elif "sniff" in existing:
+        inbound["sniff"] = existing["sniff"]
+    else:
+        inbound["sniff"] = True
+
+    sniff_ov = req.get("sniff_override_destination")
+    if sniff_ov is not None:
+        inbound["sniff_override_destination"] = bool(sniff_ov) if not isinstance(sniff_ov, str) else (sniff_ov.lower() in ["true", "1", "yes"])
+    elif "sniff_override_destination" in existing:
+        inbound["sniff_override_destination"] = existing["sniff_override_destination"]
+
+    sniff_to = (req.get("sniff_timeout") or existing.get("sniff_timeout") or "300ms").strip()
+    if sniff_to:
+        inbound["sniff_timeout"] = sniff_to
+
+    dom_strat = (req.get("domain_strategy") or existing.get("domain_strategy") or "").strip()
+    if dom_strat:
+        inbound["domain_strategy"] = dom_strat
+
+    tfo_val = req.get("tcp_fast_open")
+    if tfo_val is not None:
+        inbound["tcp_fast_open"] = bool(tfo_val) if not isinstance(tfo_val, str) else (tfo_val.lower() in ["true", "1", "yes"])
+    elif "tcp_fast_open" in existing:
+        inbound["tcp_fast_open"] = existing["tcp_fast_open"]
+
+    mptcp_val = req.get("tcp_multi_path")
+    if mptcp_val is not None:
+        inbound["tcp_multi_path"] = bool(mptcp_val) if not isinstance(mptcp_val, str) else (mptcp_val.lower() in ["true", "1", "yes"])
+    elif "tcp_multi_path" in existing:
+        inbound["tcp_multi_path"] = existing["tcp_multi_path"]
+
+    mpx_val = req.get("multiplex")
+    if mpx_val is not None:
+        is_mpx = bool(mpx_val) if not isinstance(mpx_val, str) else (mpx_val.lower() in ["true", "1", "yes"])
+        if is_mpx:
+            inbound["multiplex"] = {"enabled": True, "padding": True}
+    elif "multiplex" in existing:
+        inbound["multiplex"] = existing["multiplex"]
+
+    # Transport settings determination
+    transport_type = (req.get("transport_type") or (existing.get("transport", {}).get("type") if existing.get("transport") else "tcp")).strip().lower()
+    is_tcp = (transport_type == "tcp")
+
+    if transport_type == "ws":
+        ws_path = req.get("ws_path") or existing.get("transport", {}).get("path") or "/vless-ws"
+        inbound["transport"] = {"type": "ws", "path": ws_path}
+    elif transport_type == "grpc":
+        svc = req.get("grpc_service_name") or existing.get("transport", {}).get("service_name") or "vless-grpc"
+        inbound["transport"] = {"type": "grpc", "service_name": svc}
+    elif transport_type == "httpupgrade":
+        host = req.get("httpupgrade_host") or req.get("sni") or existing.get("transport", {}).get("host") or ""
+        path = req.get("httpupgrade_path") or existing.get("transport", {}).get("path") or "/vless-upgrade"
+        inbound["transport"] = {"type": "httpupgrade", "path": path}
+        if host: inbound["transport"]["host"] = host
+    else:
+        inbound.pop("transport", None)
+
+    # Users handling with strict flow checking
     existing_users = existing.get("users", [])
 
     if itype in ["vless", "vmess"]:
@@ -26949,14 +27039,22 @@ def build_inbound_from_request(req, existing_inbound=None):
         user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or f"{itype}-user"
         user_obj = {"name": user_name, "uuid": uuid_val}
         if itype == "vless":
-            flow = req.get("flow", (existing_users[0].get("flow") if existing_users else "xtls-rprx-vision"))
-            if flow:
-                user_obj["flow"] = flow
+            # Flow 'xtls-rprx-vision' is strictly for TCP transport ONLY
+            if is_tcp:
+                flow = req.get("flow", (existing_users[0].get("flow") if existing_users else "xtls-rprx-vision"))
+                if flow:
+                    user_obj["flow"] = flow
         elif itype == "vmess":
             user_obj["alterId"] = 0
 
         if len(existing_users) > 1:
-            inbound["users"] = [user_obj] + existing_users[1:]
+            rest_users = []
+            for u in existing_users[1:]:
+                u_c = dict(u)
+                if not is_tcp and "flow" in u_c:
+                    u_c.pop("flow", None)
+                rest_users.append(u_c)
+            inbound["users"] = [user_obj] + rest_users
         else:
             inbound["users"] = [user_obj]
 
@@ -27057,24 +27155,53 @@ def build_inbound_from_request(req, existing_inbound=None):
 
     if tls_mode == "reality":
         reality_obj = existing.get("tls", {}).get("reality", {})
-        priv_k = req.get("reality_private_key") or reality_obj.get("private_key") or ""
-        pub_k = req.get("reality_public_key") or reality_obj.get("public_key") or ""
-        short_id = req.get("reality_short_id") or (reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else "") or "86d7ec6343d000b6"
-        hs_srv = req.get("handshake_server") or req.get("sni") or reality_obj.get("handshake", {}).get("server") or "dl.google.com"
+        priv_k = (req.get("reality_private_key") or reality_obj.get("private_key") or "").strip()
+        pub_k = (req.get("reality_public_key") or reality_obj.get("public_key") or "").strip()
+        short_id_raw = req.get("reality_short_id") or reality_obj.get("short_id") or "86d7ec6343d000b6"
+        hs_srv = (req.get("handshake_server") or req.get("sni") or reality_obj.get("handshake", {}).get("server") or "dl.google.com").strip()
         hs_port = int(req.get("handshake_port") or reality_obj.get("handshake", {}).get("server_port") or 443)
+        max_time_diff = (req.get("reality_max_time_diff") or reality_obj.get("max_time_difference") or "1m").strip()
+
+        # AUTOMATIC REALITY KEYPAIR GENERATION IF EMPTY
+        if not priv_k:
+            try:
+                r_key = subprocess.run(["/usr/local/bin/sing-box", "generate", "reality-keypair"], capture_output=True, text=True)
+                for line in (r_key.stdout or "").splitlines():
+                    if "PrivateKey:" in line:
+                        priv_k = line.split("PrivateKey:")[1].strip()
+                    elif "PublicKey:" in line:
+                        pub_k = line.split("PublicKey:")[1].strip()
+            except Exception:
+                pass
+
+        if priv_k and not pub_k:
+            pub_k = get_reality_public_key(priv_k)
+
+        # Process Short IDs
+        if isinstance(short_id_raw, list):
+            sids = [s.strip() for s in short_id_raw if s and str(s).strip()]
+        elif isinstance(short_id_raw, str):
+            sids = [s.strip() for s in short_id_raw.replace("،", ",").split(",") if s.strip()]
+        else:
+            sids = []
+        if not sids:
+            sids = [secrets.token_hex(8)]
+
+        reality_block = {
+            "enabled": True,
+            "handshake": {
+                "server": hs_srv,
+                "server_port": hs_port
+            },
+            "private_key": priv_k,
+            "short_id": sids,
+            "max_time_difference": max_time_diff
+        }
 
         inbound["tls"] = {
             "enabled": True,
             "server_name": hs_srv,
-            "reality": {
-                "enabled": True,
-                "handshake": {
-                    "server": hs_srv,
-                    "server_port": hs_port
-                },
-                "private_key": priv_k,
-                "short_id": [short_id] if isinstance(short_id, str) else short_id
-            }
+            "reality": reality_block
         }
 
     elif tls_mode == "tls":
@@ -27089,24 +27216,12 @@ def build_inbound_from_request(req, existing_inbound=None):
         }
         alpn = req.get("alpn") or existing.get("tls", {}).get("alpn")
         if alpn:
-            inbound["tls"]["alpn"] = alpn if isinstance(alpn, list) else [alpn]
+            if isinstance(alpn, str):
+                inbound["tls"]["alpn"] = [x.strip() for x in alpn.replace("،", ",").split(",") if x.strip()]
+            else:
+                inbound["tls"]["alpn"] = alpn
     else:
         inbound.pop("tls", None)
-
-    # Transport settings
-    transport_type = req.get("transport_type") or (existing.get("transport", {}).get("type") if existing.get("transport") else "tcp")
-    if transport_type == "ws":
-        ws_path = req.get("ws_path") or existing.get("transport", {}).get("path") or "/"
-        inbound["transport"] = {"type": "ws", "path": ws_path}
-    elif transport_type == "grpc":
-        svc = req.get("grpc_service_name") or existing.get("transport", {}).get("service_name") or "GunService"
-        inbound["transport"] = {"type": "grpc", "service_name": svc}
-    elif transport_type == "httpupgrade":
-        host = req.get("httpupgrade_host") or req.get("sni") or existing.get("transport", {}).get("host") or ""
-        path = req.get("httpupgrade_path") or existing.get("transport", {}).get("path") or "/"
-        inbound["transport"] = {"type": "httpupgrade", "host": host, "path": path}
-    else:
-        inbound.pop("transport", None)
 
     return inbound, ""
 
@@ -27253,23 +27368,42 @@ def api_singbox_inbound_details(tag):
     users = inbound.get("users", [])
     u0 = users[0] if users else {}
 
+    is_reality = bool(reality.get("enabled"))
+    is_tls = bool(tls.get("enabled")) and not is_reality
+
+    priv_k = reality.get("private_key", "")
+    pub_k = reality.get("public_key") or (get_reality_public_key(priv_k) if priv_k else "")
+    sids = reality.get("short_id", [])
+    short_id_str = ", ".join(sids) if isinstance(sids, list) else str(sids or "")
+
     details = {
         "tag": inbound.get("tag"),
         "type": inbound.get("type"),
         "listen": inbound.get("listen", "::"),
         "listen_port": inbound.get("listen_port", 20443),
         "disabled": inbound.get("disabled", False),
-        "tls_mode": "reality" if reality.get("enabled") else ("tls" if tls.get("enabled") else "none"),
+        "sniff": inbound.get("sniff", True),
+        "sniff_override_destination": inbound.get("sniff_override_destination", False),
+        "sniff_timeout": inbound.get("sniff_timeout", "300ms"),
+        "domain_strategy": inbound.get("domain_strategy", ""),
+        "tcp_fast_open": inbound.get("tcp_fast_open", False),
+        "tcp_multi_path": inbound.get("tcp_multi_path", False),
+        "multiplex": bool(inbound.get("multiplex", {}).get("enabled", False) if isinstance(inbound.get("multiplex"), dict) else inbound.get("multiplex", False)),
+        "tls_mode": "reality" if is_reality else ("tls" if is_tls else "none"),
         "sni": tls.get("server_name") or reality.get("handshake", {}).get("server", ""),
-        "reality_dest": reality.get("handshake", {}).get("server", "dl.google.com"),
+        "reality_dest": reality.get("handshake", {}).get("server", tls.get("server_name", "dl.google.com")),
         "reality_dest_port": reality.get("handshake", {}).get("server_port", 443),
-        "reality_privkey": reality.get("private_key", ""),
-        "reality_pubkey": reality.get("public_key") or get_reality_public_key(reality.get("private_key", "")),
-        "reality_shortid": (reality.get("short_id", [""])[0] if reality.get("short_id") else ""),
+        "reality_privkey": priv_k,
+        "reality_pubkey": pub_k,
+        "reality_shortid": short_id_str,
+        "reality_max_time_diff": reality.get("max_time_difference", "1m"),
         "tls_cert": tls.get("certificate_path", "/etc/vpnpanel/ssl/panel.crt"),
         "tls_key": tls.get("key_path", "/etc/vpnpanel/ssl/panel.key"),
+        "tls_alpn": ", ".join(tls.get("alpn", [])) if isinstance(tls.get("alpn"), list) else str(tls.get("alpn", "")),
         "transport_type": transport.get("type", "tcp"),
-        "ws_path": transport.get("path", "/"),
+        "ws_path": transport.get("path", "/vless-ws"),
+        "grpc_service_name": transport.get("service_name", "vless-grpc"),
+        "httpupgrade_path": transport.get("path", "/vless-upgrade"),
         "uuid": u0.get("uuid", ""),
         "flow": u0.get("flow", ""),
         "password": inbound.get("password") or u0.get("password", ""),

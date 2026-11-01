@@ -593,10 +593,17 @@
                                 <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">کلید عمومی که در لینک اشتراک کلاینت جهت احراز هویت قرار می‌گیرد.</small>
                             </div>
                         </div>
-                        <div>
-                            <label class="form-label" style="font-size: 11px; font-weight: 600;">کلید کوتاه شناسایی (Short ID):</label>
-                            <input type="text" class="form-input" id="sb-reality-shortid" value="86d7ec6343d000b6" placeholder="Short ID (hex)">
-                            <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">رشته تصادفی ۱۶ کاراکتری هگز که از کشف شدن پورت توسط پروپ‌های فعال فیلترینگ جلوگیری می‌کند.</small>
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">کلید کوتاه شناسایی (Short ID):</label>
+                                <input type="text" class="form-input" id="sb-reality-shortid" value="86d7ec6343d000b6" placeholder="Short ID (hex e.g. 86d7ec6343d000b6)">
+                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">شناسه هگزادسیمال ۱۶ کاراکتری جهت عبور ایمن از فیلترینگ فعال.</small>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">حداکثر اختلاف زمان (Max Time Diff):</label>
+                                <input type="text" class="form-input" id="sb-reality-max-time-diff" value="1m" placeholder="e.g. 1m or 60s">
+                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">بازه مجاز ناهماهنگی ساعت کلاینت و سرور.</small>
+                            </div>
                         </div>
                     </div>
 
@@ -662,6 +669,58 @@
                         <input type="text" class="form-input" id="sb-httpupgrade-path" value="/vless-upgrade" placeholder="e.g. /vless-upgrade">
                         <small style="color: var(--text-muted); font-size: 10.5px;">مسیر ارتقای پروتکل بدون سربار هدرهای سنتی وب‌سوکت؛ پینگ بهتر در سرورهای ابری CDN.</small>
                     </div>
+
+                    <!-- Advanced Sing-box Inbound Engine Options -->
+                    <details style="border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: rgba(99, 102, 241, 0.03); margin-top: 6px;">
+                        <summary style="cursor: pointer; font-weight: 600; font-size: 12px; color: #6366f1; display: flex; align-items: center; justify-content: space-between;">
+                            <span>⚙️ تنظیمات تخصصی هسته سینگ‌باکس (Sniffing، TFO، مالتی‌پلکس، استراتژی IP)</span>
+                            <span style="font-size: 10.5px; opacity: 0.7;">(کلیک برای باز کردن)</span>
+                        </summary>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label class="form-label" style="font-size: 11px;">استراتژی آدرس‌دهی IP (Domain Strategy):</label>
+                                    <select class="form-input" id="sb-inbound-domain-strategy">
+                                        <option value="">پیش‌فرض سیستم (System Default)</option>
+                                        <option value="prefer_ipv4" selected>ترجیح IPv4 (پایدارترین در شبکه‌های ایران)</option>
+                                        <option value="prefer_ipv6">ترجیح IPv6</option>
+                                        <option value="ipv4_only">فقط IPv4</option>
+                                        <option value="ipv6_only">فقط IPv6</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size: 11px;">مهلت اسنیفینگ پروتکل (Sniff Timeout):</label>
+                                    <input type="text" class="form-input" id="sb-inbound-sniff-timeout" value="300ms" placeholder="e.g. 300ms">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-inbound-sniff" checked>
+                                    <span>فعال‌سازی اسنیفر پروتکل (Sniff)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-inbound-sniff-override">
+                                    <span>بازنویسی مقصد با دامنه اسنیف‌شده (Override Dest)</span>
+                                </label>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-inbound-tfo">
+                                    <span>TCP Fast Open (TFO)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-inbound-mptcp">
+                                    <span>TCP Multi-Path (MPTCP)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-inbound-multiplex">
+                                    <span>Multiplex (smux / h2mux)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </details>
 
                     <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
                         <button class="btn btn-secondary" type="button" onclick="closeSingboxAddModal()" data-i18n="btn_cancel">انصراف</button>
@@ -750,17 +809,29 @@
                                 <input type="text" class="form-input" id="sb-edit-reality-pubkey">
                             </div>
                         </div>
-                        <div>
-                            <label class="form-label" style="font-size: 11px;">کلید کوتاه شناسایی (Short ID):</label>
-                            <input type="text" class="form-input" id="sb-edit-reality-shortid" placeholder="Short ID (hex)">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">کلید کوتاه شناسایی (Short ID):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-shortid" placeholder="Short ID (hex)">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">حداکثر اختلاف زمان (Max Time Diff):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-max-time-diff" value="1m" placeholder="e.g. 1m or 60s">
+                            </div>
                         </div>
                     </div>
 
                     <div id="sb-edit-tls-fields" style="display: none; flex-direction: column; gap: 10px; background: rgba(16, 185, 129, 0.05); padding: 14px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
                         <div style="font-size: 12px; font-weight: 700; color: #059669;">تنظیمات گواهی امنیتی TLS:</div>
-                        <div>
-                            <label class="form-label" style="font-size: 11px;">دامنه / نام سرور (SNI / Server Name):</label>
-                            <input type="text" class="form-input" id="sb-edit-tls-sni">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">دامنه / نام سرور (SNI / Server Name):</label>
+                                <input type="text" class="form-input" id="sb-edit-tls-sni">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px;">پروتکل‌های ALPN:</label>
+                                <input type="text" class="form-input" id="sb-edit-tls-alpn" placeholder="h2, http/1.1">
+                            </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div>
@@ -785,10 +856,72 @@
                         </select>
                     </div>
 
-                    <div id="sb-edit-ws-fields" style="display: none; flex-direction: column; gap: 10px;">
+                    <div id="sb-edit-ws-fields" style="display: none; flex-direction: column; gap: 6px;">
                         <label class="form-label" style="font-size: 11px;">مسیر وب‌سوکت (WS Path):</label>
-                        <input type="text" class="form-input" id="sb-edit-ws-path" value="/" placeholder="e.g. /ws-path">
+                        <input type="text" class="form-input" id="sb-edit-ws-path" value="/vless-ws" placeholder="e.g. /vless-ws">
                     </div>
+
+                    <div id="sb-edit-grpc-fields" style="display: none; flex-direction: column; gap: 6px;">
+                        <label class="form-label" style="font-size: 11px;">نام سرویس gRPC (Service Name):</label>
+                        <input type="text" class="form-input" id="sb-edit-grpc-service" value="vless-grpc" placeholder="e.g. vless-grpc">
+                    </div>
+
+                    <div id="sb-edit-httpupgrade-fields" style="display: none; flex-direction: column; gap: 6px;">
+                        <label class="form-label" style="font-size: 11px;">مسیر HTTPUpgrade (Path):</label>
+                        <input type="text" class="form-input" id="sb-edit-httpupgrade-path" value="/vless-upgrade" placeholder="e.g. /vless-upgrade">
+                    </div>
+
+                    <!-- Advanced Sing-box Inbound Engine Options for Edit -->
+                    <details style="border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: rgba(99, 102, 241, 0.03); margin-top: 6px;">
+                        <summary style="cursor: pointer; font-weight: 600; font-size: 12px; color: #6366f1; display: flex; align-items: center; justify-content: space-between;">
+                            <span>⚙️ تنظیمات تخصصی هسته سینگ‌باکس (Sniffing، TFO، مالتی‌پلکس، استراتژی IP)</span>
+                            <span style="font-size: 10.5px; opacity: 0.7;">(کلیک برای باز کردن)</span>
+                        </summary>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border-color);">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <div>
+                                    <label class="form-label" style="font-size: 11px;">استراتژی آدرس‌دهی IP (Domain Strategy):</label>
+                                    <select class="form-input" id="sb-edit-domain-strategy">
+                                        <option value="">پیش‌فرض سیستم (System Default)</option>
+                                        <option value="prefer_ipv4">ترجیح IPv4 (پایدارترین در شبکه‌های ایران)</option>
+                                        <option value="prefer_ipv6">ترجیح IPv6</option>
+                                        <option value="ipv4_only">فقط IPv4</option>
+                                        <option value="ipv6_only">فقط IPv6</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-size: 11px;">مهلت اسنیفینگ پروتکل (Sniff Timeout):</label>
+                                    <input type="text" class="form-input" id="sb-edit-sniff-timeout" value="300ms" placeholder="e.g. 300ms">
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-edit-sniff">
+                                    <span>فعال‌سازی اسنیفر پروتکل (Sniff)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-edit-sniff-override">
+                                    <span>بازنویسی مقصد با دامنه اسنیف‌شده (Override Dest)</span>
+                                </label>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-edit-tfo">
+                                    <span>TCP Fast Open (TFO)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-edit-mptcp">
+                                    <span>TCP Multi-Path (MPTCP)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
+                                    <input type="checkbox" id="sb-edit-multiplex">
+                                    <span>Multiplex (smux / h2mux)</span>
+                                </label>
+                            </div>
+                        </div>
+                    </details>
 
                     <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 14px;">
                         <button class="btn btn-secondary" type="button" onclick="closeSingboxEditModal()" data-i18n="btn_cancel">انصراف</button>
