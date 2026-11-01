@@ -21967,7 +21967,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const u = (d.users && d.users[0]) ? d.users[0] : {};
                 const uuidVal = u.uuid || d.uuid || (crypto.randomUUID ? crypto.randomUUID() : "");
                 const isTcp = trType === "tcp";
-                const flowVal = isTcp ? (u.flow || d.flow || "xtls-rprx-vision") : "";
+                const flowVal = isTcp ? ((u && u.flow) ? u.flow : ((d && d.flow) ? d.flow : "")) : "";
                 html = `
                     <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                         <div>
@@ -21980,8 +21980,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         <div>
                             <label class="form-label" style="font-size:11.5px;">الگوریتم Flow</label>
                             <select class="form-input" id="sb-edit-user-flow" ${!isTcp ? 'disabled' : ''}>
-                                <option value="xtls-rprx-vision" ${flowVal === 'xtls-rprx-vision' ? 'selected' : ''}>xtls-rprx-vision (ضد فیلتر)</option>
-                                <option value="" ${!flowVal ? 'selected' : ''}>None (عادی)</option>
+                                <option value="xtls-rprx-vision" ${flowVal === 'xtls-rprx-vision' ? 'selected' : ''}>xtls-rprx-vision (ضد فیلتر - پدینگ پکت)</option>
+                                <option value="" ${flowVal !== 'xtls-rprx-vision' ? 'selected' : ''}>None (عادی - بدون فلو)</option>
                             </select>
                             ${!isTcp ? '<small style="color:var(--text-muted);font-size:10px;display:block;margin-top:2px;">(فلو Vision مختص ترانسپورت TCP است)</small>' : ''}
                         </div>

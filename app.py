@@ -26541,7 +26541,8 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
 
     if itype == "vless":
         tp = inbound.get("transport", {}).get("type", "tcp")
-        flow = (user0.get("flow") or ("xtls-rprx-vision" if reality_enabled else "")) if tp == "tcp" else ""
+        user_flow = target_user.get("flow") if (target_user and "flow" in target_user) else user0.get("flow")
+        flow = (user_flow or "") if tp == "tcp" else ""
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sids = reality_obj.get("short_id", [""])
@@ -26859,11 +26860,11 @@ def sync_singbox_users_to_config():
         if itype in ["vless", "vmess"]:
             users_arr = []
             is_tcp_trans = ib.get("transport", {}).get("type", "tcp") == "tcp"
-            default_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "xtls-rprx-vision" if (ib.get("tls", {}).get("reality", {}).get("enabled") and is_tcp_trans) else "")
+            existing_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "") if is_tcp_trans else ""
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
-                if itype == "vless" and default_flow and is_tcp_trans:
-                    u_entry["flow"] = default_flow
+                if itype == "vless" and existing_flow and is_tcp_trans:
+                    u_entry["flow"] = existing_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
                 users_arr.append(u_entry)
@@ -27035,23 +27036,30 @@ def build_inbound_from_request(req, existing_inbound=None):
         user_obj = {"name": user_name, "uuid": uuid_val}
         if itype == "vless":
             # Flow 'xtls-rprx-vision' is strictly for TCP transport ONLY
-            if is_tcp:
-                flow = req.get("flow", (existing_users[0].get("flow") if existing_users else "xtls-rprx-vision"))
-                if flow:
-                    user_obj["flow"] = flow
+            flow_val = (req.get("flow") or "").strip() if is_tcp else ""
+            if flow_val:
+                user_obj["flow"] = flow_val
+            else:
+                user_obj.pop("flow", None)
+
+            if len(existing_users) > 1:
+                rest_users = []
+                for u in existing_users[1:]:
+                    u_c = dict(u)
+                    if flow_val and is_tcp:
+                        u_c["flow"] = flow_val
+                    else:
+                        u_c.pop("flow", None)
+                    rest_users.append(u_c)
+                inbound["users"] = [user_obj] + rest_users
+            else:
+                inbound["users"] = [user_obj]
         elif itype == "vmess":
             user_obj["alterId"] = 0
-
-        if len(existing_users) > 1:
-            rest_users = []
-            for u in existing_users[1:]:
-                u_c = dict(u)
-                if not is_tcp and "flow" in u_c:
-                    u_c.pop("flow", None)
-                rest_users.append(u_c)
-            inbound["users"] = [user_obj] + rest_users
-        else:
-            inbound["users"] = [user_obj]
+            if len(existing_users) > 1:
+                inbound["users"] = [user_obj] + existing_users[1:]
+            else:
+                inbound["users"] = [user_obj]
 
     elif itype == "trojan":
         password = req.get("password") or (existing_users[0].get("password") if existing_users else "") or secrets.token_urlsafe(16)
