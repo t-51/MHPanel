@@ -1449,9 +1449,37 @@ def ensure_all_users_sub_tokens():
         except Exception:
             pass
 
+    # 6. Singbox local users
+    sb_u_file = "/etc/sing-box/local_users.json"
+    if os.path.exists(sb_u_file):
+        try:
+            with open(sb_u_file, "r", encoding="utf-8") as f:
+                sb_users = json.load(f)
+            changed = False
+            for u in sb_users:
+                if not u.get("sub_token"):
+                    uname = u.get("username")
+                    tok = None
+                    if os.path.exists(s_file):
+                        try:
+                            with open(s_file, "r") as sf:
+                                sdata = json.load(sf)
+                                if uname in sdata and sdata[uname].get("sub_token"):
+                                    tok = sdata[uname]["sub_token"]
+                        except Exception:
+                            pass
+                    u["sub_token"] = tok or secrets.token_urlsafe(16)
+                    changed = True
+            if changed:
+                with open(sb_u_file, "w", encoding="utf-8") as f:
+                    json.dump(sb_users, f, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
 def get_ssh_user_info(username):
     pwd = ""
     sub_tok = ""
+    u_uuid = ""
     # 1. radius_users.json
     r_file = "/www/wwwroot/mhpanel/radius_users.json"
     if os.path.exists(r_file):
@@ -1474,6 +1502,8 @@ def get_ssh_user_info(username):
                         pwd = s_users[username].get("password", "")
                     if not sub_tok:
                         sub_tok = s_users[username].get("sub_token", "")
+                    if s_users[username].get("uuid"):
+                        u_uuid = s_users[username]["uuid"]
         except Exception:
             pass
     # 3. test_user.json
@@ -1489,7 +1519,24 @@ def get_ssh_user_info(username):
                         sub_tok = t_user.get("sub_token", "")
         except Exception:
             pass
-    return {"username": username, "password": pwd, "sub_token": sub_tok}
+    # 4. sing-box local_users.json
+    sb_u_file = "/etc/sing-box/local_users.json"
+    if os.path.exists(sb_u_file):
+        try:
+            with open(sb_u_file, "r", encoding="utf-8") as f:
+                sb_users = json.load(f)
+            for sbu in sb_users:
+                if sbu.get("username") == username:
+                    if not pwd and sbu.get("password"):
+                        pwd = sbu["password"]
+                    if not sub_tok and sbu.get("sub_token"):
+                        sub_tok = sbu["sub_token"]
+                    if not u_uuid and sbu.get("uuid"):
+                        u_uuid = sbu["uuid"]
+                    break
+        except Exception:
+            pass
+    return {"username": username, "password": pwd, "sub_token": sub_tok, "uuid": u_uuid}
 
 
 SSH_DOMAINS_FILE = "/www/wwwroot/mhpanel/ssh_domains.json"
@@ -2299,10 +2346,227 @@ def generate_npv_config_bundle(username, password, domain, pub_ip):
 
 def generate_singbox_ssh_config(username, password, domain, pub_ip):
     domain = domain or pub_ip or "127.0.0.1"
+    host_ip = pub_ip or domain
+    uinfo = get_ssh_user_info(username)
+    u_uuid = uinfo.get("uuid") or "1b4f4c94-0cfc-4d37-8e6d-6fa6b12f6b55"
+    if not password and uinfo.get("password"):
+        password = uinfo["password"]
+
+    outbounds = []
+    proxy_tags = []
+
+    sb_file = "/etc/sing-box/config.json"
+    if os.path.exists(sb_file):
+        try:
+            with open(sb_file, "r", encoding="utf-8") as f:
+                sb_cfg = json.load(f)
+            for ib in sb_cfg.get("inbounds", []):
+                tag = ib.get("tag", "")
+                itype = ib.get("type", "")
+                port = ib.get("listen_port")
+                tls_obj = ib.get("tls", {})
+                tls_enabled = tls_obj.get("enabled", False)
+                reality_obj = tls_obj.get("reality", {})
+                reality_enabled = reality_obj.get("enabled", False)
+                sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "dl.google.com")
+                tp_obj = ib.get("transport", {})
+                tp_type = tp_obj.get("type", "tcp")
+
+                ob = None
+                out_tag = f"MHPanel-{tag}"
+
+                if itype == "vless":
+                    target_srv = host_ip
+                    target_port = 443 if (reality_enabled and int(port) == 20443) else port
+                    if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
+                        target_srv = sni
+                    ob = {
+                        "type": "vless",
+                        "tag": out_tag,
+                        "server": target_srv,
+                        "server_port": target_port,
+                        "uuid": u_uuid
+                    }
+                    if reality_enabled:
+                        if tp_type == "tcp":
+                            ob["flow"] = "xtls-rprx-vision"
+                        pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
+                        sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
+                        ob["tls"] = {
+                            "enabled": True,
+                            "server_name": sni,
+                            "utls": {"enabled": True, "fingerprint": "chrome"},
+                            "reality": {
+                                "enabled": True,
+                                "public_key": pbk,
+                                "short_id": sid
+                            }
+                        }
+                    elif tls_enabled:
+                        ob["tls"] = {
+                            "enabled": True,
+                            "server_name": sni
+                        }
+                    if tp_type == "ws":
+                        ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/vless-ws")}
+                    elif tp_type == "grpc":
+                        ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "vless-grpc")}
+                    elif tp_type == "httpupgrade":
+                        ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vless-upgrade")}
+
+                elif itype == "vmess":
+                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    ob = {
+                        "type": "vmess",
+                        "tag": out_tag,
+                        "server": target_srv,
+                        "server_port": port,
+                        "uuid": u_uuid,
+                        "alter_id": 0,
+                        "security": "auto"
+                    }
+                    if tls_enabled:
+                        ob["tls"] = {"enabled": True, "server_name": sni}
+                    if tp_type == "ws":
+                        ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/vmess-ws")}
+                    elif tp_type == "grpc":
+                        ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "vmess-grpc")}
+                    elif tp_type == "httpupgrade":
+                        ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vmess-up")}
+
+                elif itype == "trojan":
+                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    ob = {
+                        "type": "trojan",
+                        "tag": out_tag,
+                        "server": target_srv,
+                        "server_port": port,
+                        "password": password
+                    }
+                    if tls_enabled:
+                        ob["tls"] = {"enabled": True, "server_name": sni}
+                    if tp_type == "ws":
+                        ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/trojan-ws")}
+                    elif tp_type == "grpc":
+                        ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "trojan-grpc")}
+                    elif tp_type == "httpupgrade":
+                        ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/trojan-up")}
+
+                elif itype == "hysteria2":
+                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    ob = {
+                        "type": "hysteria2",
+                        "tag": out_tag,
+                        "server": target_srv,
+                        "server_port": port,
+                        "password": password,
+                        "tls": {"enabled": True, "server_name": sni}
+                    }
+                    obfs_obj = ib.get("obfs", {})
+                    if obfs_obj.get("type") and obfs_obj.get("password"):
+                        ob["obfs"] = {"type": obfs_obj["type"], "password": obfs_obj["password"]}
+
+                elif itype == "tuic":
+                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    ob = {
+                        "type": "tuic",
+                        "tag": out_tag,
+                        "server": target_srv,
+                        "server_port": port,
+                        "uuid": u_uuid,
+                        "password": password,
+                        "congestion_control": ib.get("congestion_control", "bbr"),
+                        "tls": {"enabled": True, "server_name": sni, "alpn": ["h3"]}
+                    }
+
+                elif itype == "shadowsocks":
+                    ob = {
+                        "type": "shadowsocks",
+                        "tag": out_tag,
+                        "server": host_ip,
+                        "server_port": port,
+                        "method": ib.get("method", "2022-blake3-aes-128-gcm"),
+                        "password": ib.get("password", "")
+                    }
+
+                elif itype == "shadowtls":
+                    ob = {
+                        "type": "shadowtls",
+                        "tag": out_tag,
+                        "server": host_ip,
+                        "server_port": port,
+                        "version": ib.get("version", 3),
+                        "password": ib.get("password", ""),
+                        "tls": {"enabled": True, "server_name": ib.get("handshake", {}).get("server", "dl.google.com")},
+                        "detour": "MHPanel-shadowsocks-in"
+                    }
+
+                elif itype in ["mixed", "socks", "http"]:
+                    ob = {
+                        "type": "socks",
+                        "tag": out_tag,
+                        "server": host_ip,
+                        "server_port": port
+                    }
+                    if username and password:
+                        ob["username"] = username
+                        ob["password"] = password
+
+                if ob:
+                    outbounds.append(ob)
+                    proxy_tags.append(out_tag)
+        except Exception as e:
+            logger.error(f"Error building singbox outbounds from config: {e}")
+
+    # SSH outbounds
+    ssh_tags = [f"MHPanel-SSH-WS-443", f"MHPanel-SSH-Direct-22"]
+    outbounds.append({
+        "type": "ssh",
+        "tag": f"MHPanel-SSH-WS-443",
+        "server": domain,
+        "server_port": 443,
+        "user": username,
+        "password": password
+    })
+    outbounds.append({
+        "type": "ssh",
+        "tag": f"MHPanel-SSH-Direct-22",
+        "server": domain,
+        "server_port": 22,
+        "user": username,
+        "password": password
+    })
+    proxy_tags.extend(ssh_tags)
+
+    selector_outbound = {
+        "type": "selector",
+        "tag": "🚀 انتخاب سرور (PROXY)",
+        "outbounds": proxy_tags + ["direct"]
+    }
+    urltest_outbound = {
+        "type": "urltest",
+        "tag": "⚡ خودکار سریع‌ترین (AUTO)",
+        "outbounds": list(proxy_tags),
+        "url": "http://cp.cloudflare.com/generate_204",
+        "interval": "3m",
+        "tolerance": 50
+    }
+    direct_outbound = {"type": "direct", "tag": "direct"}
+    dns_outbound = {"type": "dns", "tag": "dns-out"}
+
+    all_outbounds = [selector_outbound, urltest_outbound] + outbounds + [direct_outbound, dns_outbound]
+
     return {
         "log": {
             "level": "warn",
             "timestamp": True
+        },
+        "dns": {
+            "servers": [
+                {"tag": "dns-remote", "address": "tcp://1.1.1.1", "detour": "🚀 انتخاب سرور (PROXY)"},
+                {"tag": "dns-direct", "address": "8.8.8.8", "detour": "direct"}
+            ],
+            "strategy": "ipv4_only"
         },
         "inbounds": [
             {
@@ -2321,43 +2585,13 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                 "sniff": True
             }
         ],
-        "outbounds": [
-            {
-                "type": "ssh",
-                "tag": f"MHPanel-SSH-WS-443",
-                "server": domain,
-                "server_port": 443,
-                "user": username,
-                "password": password
-            },
-            {
-                "type": "ssh",
-                "tag": f"MHPanel-SSH-Direct-22",
-                "server": domain,
-                "server_port": 22,
-                "user": username,
-                "password": password
-            },
-            {
-                "type": "direct",
-                "tag": "direct"
-            },
-            {
-                "type": "dns",
-                "tag": "dns-out"
-            }
-        ],
+        "outbounds": all_outbounds,
         "route": {
             "rules": [
-                {
-                    "protocol": "dns",
-                    "outbound": "dns-out"
-                },
-                {
-                    "ip_is_private": True,
-                    "outbound": "direct"
-                }
+                {"protocol": "dns", "outbound": "dns-out"},
+                {"ip_is_private": True, "outbound": "direct"}
             ],
+            "final": "🚀 انتخاب سرور (PROXY)",
             "auto_detect_interface": True
         }
     }
@@ -2374,15 +2608,17 @@ def generate_ssh_uris(username, password, domain, pub_ip):
     try:
         sb_file = "/etc/sing-box/config.json"
         if os.path.exists(sb_file):
-            with open(sb_file, "r") as f:
+            with open(sb_file, "r", encoding="utf-8") as f:
                 sb_cfg = json.load(f)
             uinfo = get_ssh_user_info(username)
-            u_uuid = uinfo.get("uuid", "1b4f4c94-0cfc-4d37-8e6d-6fa6b12f6b55")
+            u_uuid = uinfo.get("uuid") or "1b4f4c94-0cfc-4d37-8e6d-6fa6b12f6b55"
+            if not password and uinfo.get("password"):
+                password = uinfo["password"]
             target_u = {"username": username, "password": password, "uuid": u_uuid}
             server_host = domain or pub_ip
             for ib in sb_cfg.get("inbounds", []):
                 itype = ib.get("type")
-                if itype in ["vless", "vmess", "trojan", "shadowsocks", "hysteria2", "tuic"]:
+                if itype in ["vless", "vmess", "trojan", "shadowsocks", "hysteria2", "tuic", "naive", "shadowtls", "mixed", "socks"]:
                     slink = generate_singbox_share_link(ib, server_host, target_user=target_u)
                     if slink:
                         uris.append(slink)
@@ -2644,6 +2880,18 @@ def find_user_by_sub_token(token):
         except Exception:
             pass
 
+    # 6. Singbox Local Users
+    sb_file = "/etc/sing-box/local_users.json"
+    if os.path.exists(sb_file):
+        try:
+            with open(sb_file, "r", encoding="utf-8") as f:
+                sb_users = json.load(f)
+            for u in sb_users:
+                if u.get("sub_token") == token:
+                    return u.get("username"), u, "singbox"
+        except Exception:
+            pass
+
     return None, None, None
 
 def get_proto_active_port(proto, default_port):
@@ -2721,7 +2969,7 @@ def client_subscription_view(sub_token):
     
     fmt = str(request.args.get("format", "")).lower()
     ua = (request.headers.get("User-Agent") or "").lower()
-    is_client_app = any(app in ua for app in ["napsternet", "npv", "v2ray", "nekoray", "streisand", "clash", "sing-box", "curl", "wget"])
+    is_client_app = any(app in ua for app in ["napsternet", "npv", "v2ray", "nekoray", "streisand", "clash", "sing-box", "singbox", "slipnet", "v2rayng", "nekobox", "clashmeta", "shadowrocket", "curl", "wget"])
     if fmt in ["b64", "base64"] or request.args.get("b64") or (is_client_app and fmt != "html"):
         return client_sub_b64(sub_token)
     
@@ -2833,7 +3081,61 @@ def client_subscription_view(sub_token):
             group=udata.get("group", "عمومی")
         )
 
-    # 2. Radius / Standard User Subscription
+    # 2. Singbox User Subscription
+    if proto_type == "singbox":
+        rx = udata.get("download_bytes", 0)
+        tx = udata.get("upload_bytes", 0)
+        used_bytes = udata.get("used_traffic_bytes", 0) or (rx + tx)
+        used_gb = round(used_bytes / (1024**3), 2)
+        limit_gb = udata.get("traffic_limit_gb")
+        limit_gb_label = f"{limit_gb:g} GB" if limit_gb and float(limit_gb) > 0 else "نامحدود"
+        traffic_pct = udata.get("traffic_percent", 0)
+        days_left = udata.get("days_remaining")
+        sub_url = request.url
+        ports = {
+            "vless_reality": 20443,
+            "trojan": 20444,
+            "hysteria2": 20445,
+            "tuic": 20446,
+            "shadowsocks": 20447,
+            "naive": 20449,
+            "mixed": 2080
+        }
+        if fmt == "json":
+            return jsonify({
+                "status": "success",
+                "panel_version": PANEL_VERSION,
+                "protocol_type": "singbox",
+                "user": {
+                    "username": uname,
+                    "active": udata.get("enabled", True),
+                    "expire_date": udata.get("expire_date"),
+                    "days_left": days_left,
+                    "used_gb": used_gb,
+                    "limit_gb": limit_gb
+                },
+                "server": {"ip": server_ip, "domain": domain},
+                "ports": ports
+            })
+        return render_template(
+            "subscription.html",
+            proto_type="singbox",
+            username=uname,
+            user=udata,
+            settings=settings,
+            server_host=domain,
+            sstp_host=domain,
+            sub_token=sub_token,
+            sub_url=sub_url,
+            used_gb=used_gb,
+            limit_gb_label=limit_gb_label,
+            traffic_pct=traffic_pct,
+            days_left=days_left,
+            ports=ports,
+            l2tp_psk="vpn"
+        )
+
+    # 3. Radius / Standard User Subscription
     traffic = get_ovpn_traffic().get(uname, {})
     rx = traffic.get("rx", 0) + udata.get("rx", 0)
     tx = traffic.get("tx", 0) + udata.get("tx", 0)
@@ -3334,9 +3636,9 @@ def client_sub_b64(sub_token):
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
     resp.headers["Profile-Title"] = f"MHPanel - {uname}"
     resp.headers["Profile-Update-Interval"] = "24"
-    rx = (udata.get("rx", 0) if isinstance(udata, dict) else 0)
-    tx = (udata.get("tx", 0) if isinstance(udata, dict) else 0)
-    limit_gb = (udata.get("limit_gb") if isinstance(udata, dict) else None)
+    rx = (udata.get("rx", 0) if isinstance(udata, dict) else 0) or (udata.get("download_bytes", 0) if isinstance(udata, dict) else 0)
+    tx = (udata.get("tx", 0) if isinstance(udata, dict) else 0) or (udata.get("upload_bytes", 0) if isinstance(udata, dict) else 0)
+    limit_gb = (udata.get("limit_gb") if isinstance(udata, dict) else None) or (udata.get("traffic_limit_gb") if isinstance(udata, dict) else None)
     limit_bytes = int(float(limit_gb) * (1024**3)) if limit_gb else 0
     expire_str = (udata.get("expire_date") if isinstance(udata, dict) else None)
     exp_ts = 0
@@ -25268,6 +25570,7 @@ def build_default_singbox_full_suite():
             except Exception: pass
 
     inbounds = [
+        # 1. VLESS Reality Vision (TCP)
         {
             "type": "vless",
             "tag": "vless-reality-in",
@@ -25286,6 +25589,191 @@ def build_default_singbox_full_suite():
                 }
             }
         },
+        # 2. VLESS Reality gRPC
+        {
+            "type": "vless",
+            "tag": "vless-reality-grpc",
+            "listen": "::",
+            "listen_port": 20452,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "grpc",
+                "service_name": "vless-grpc"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": "dl.google.com",
+                "reality": {
+                    "enabled": True,
+                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "private_key": reality_priv,
+                    "short_id": ["86d7ec6343d000b6"]
+                }
+            }
+        },
+        # 3. VLESS Reality HTTPUpgrade
+        {
+            "type": "vless",
+            "tag": "vless-reality-upgrade",
+            "listen": "::",
+            "listen_port": 20453,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "httpupgrade",
+                "path": "/vless-upgrade"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": "dl.google.com",
+                "reality": {
+                    "enabled": True,
+                    "handshake": {"server": "dl.google.com", "server_port": 443},
+                    "private_key": reality_priv,
+                    "short_id": ["86d7ec6343d000b6"]
+                }
+            }
+        },
+        # 4. VLESS WS TLS
+        {
+            "type": "vless",
+            "tag": "vless-ws-in",
+            "listen": "::",
+            "listen_port": 20451,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "ws",
+                "path": "/vless-ws"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 5. VLESS gRPC TLS
+        {
+            "type": "vless",
+            "tag": "vless-grpc-tls",
+            "listen": "::",
+            "listen_port": 20454,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "grpc",
+                "service_name": "vless-grpc-tls"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 6. VLESS HTTPUpgrade TLS
+        {
+            "type": "vless",
+            "tag": "vless-upgrade-tls",
+            "listen": "::",
+            "listen_port": 20455,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "httpupgrade",
+                "path": "/vless-up-tls"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 7. VLESS TCP TLS
+        {
+            "type": "vless",
+            "tag": "vless-tcp-tls",
+            "listen": "::",
+            "listen_port": 20456,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 8. VMess TCP (Direct / CDN Plain)
+        {
+            "type": "vmess",
+            "tag": "vmess-in",
+            "listen": "::",
+            "listen_port": 20448,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vmess_uuid}]
+        },
+        # 9. VMess WS TLS
+        {
+            "type": "vmess",
+            "tag": "vmess-ws-tls",
+            "listen": "::",
+            "listen_port": 20457,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vmess_uuid}],
+            "transport": {
+                "type": "ws",
+                "path": "/vmess-ws"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 10. VMess gRPC TLS
+        {
+            "type": "vmess",
+            "tag": "vmess-grpc-tls",
+            "listen": "::",
+            "listen_port": 20458,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vmess_uuid}],
+            "transport": {
+                "type": "grpc",
+                "service_name": "vmess-grpc"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 11. VMess HTTPUpgrade TLS
+        {
+            "type": "vmess",
+            "tag": "vmess-upgrade-tls",
+            "listen": "::",
+            "listen_port": 20459,
+            "sniff": True,
+            "users": [{"name": "default-user", "uuid": vmess_uuid}],
+            "transport": {
+                "type": "httpupgrade",
+                "path": "/vmess-up"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 12. Trojan TCP TLS
         {
             "type": "trojan",
             "tag": "trojan-in",
@@ -25300,6 +25788,64 @@ def build_default_singbox_full_suite():
                 "key_path": key_path
             }
         },
+        # 13. Trojan WS TLS
+        {
+            "type": "trojan",
+            "tag": "trojan-ws-tls",
+            "listen": "::",
+            "listen_port": 20460,
+            "sniff": True,
+            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+            "transport": {
+                "type": "ws",
+                "path": "/trojan-ws"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 14. Trojan gRPC TLS
+        {
+            "type": "trojan",
+            "tag": "trojan-grpc-tls",
+            "listen": "::",
+            "listen_port": 20461,
+            "sniff": True,
+            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+            "transport": {
+                "type": "grpc",
+                "service_name": "trojan-grpc"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 15. Trojan HTTPUpgrade TLS
+        {
+            "type": "trojan",
+            "tag": "trojan-upgrade-tls",
+            "listen": "::",
+            "listen_port": 20462,
+            "sniff": True,
+            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+            "transport": {
+                "type": "httpupgrade",
+                "path": "/trojan-up"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 16. Hysteria 2 Salamander Obfs
         {
             "type": "hysteria2",
             "tag": "hysteria2-in",
@@ -25319,6 +25865,23 @@ def build_default_singbox_full_suite():
                 "key_path": key_path
             }
         },
+        # 17. Hysteria 2 Standard (No Obfs)
+        {
+            "type": "hysteria2",
+            "tag": "hysteria2-standard",
+            "listen": "::",
+            "listen_port": 20463,
+            "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
+            "up_mbps": 100,
+            "down_mbps": 100,
+            "tls": {
+                "enabled": True,
+                "server_name": sni_domain,
+                "certificate_path": cert_path,
+                "key_path": key_path
+            }
+        },
+        # 18. TUIC v5 BBR
         {
             "type": "tuic",
             "tag": "tuic-in",
@@ -25334,6 +25897,7 @@ def build_default_singbox_full_suite():
                 "key_path": key_path
             }
         },
+        # 19. Shadowsocks 2022 Blake3
         {
             "type": "shadowsocks",
             "tag": "shadowsocks-in",
@@ -25342,6 +25906,16 @@ def build_default_singbox_full_suite():
             "method": "2022-blake3-aes-128-gcm",
             "password": psk16
         },
+        # 20. Shadowsocks AEAD AES-256-GCM
+        {
+            "type": "shadowsocks",
+            "tag": "shadowsocks-aead",
+            "listen": "::",
+            "listen_port": 20464,
+            "method": "aes-256-gcm",
+            "password": secrets.token_urlsafe(16)
+        },
+        # 21. ShadowTLS v3
         {
             "type": "shadowtls",
             "tag": "shadowtls-in",
@@ -25356,32 +25930,7 @@ def build_default_singbox_full_suite():
             },
             "detour": "shadowsocks-in"
         },
-        {
-            "type": "vless",
-            "tag": "vless-ws-in",
-            "listen": "::",
-            "listen_port": 20451,
-            "sniff": True,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
-            "transport": {
-                "type": "ws",
-                "path": "/vless-ws"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        {
-            "type": "vmess",
-            "tag": "vmess-in",
-            "listen": "::",
-            "listen_port": 20448,
-            "sniff": True,
-            "users": [{"name": "default-user", "uuid": vmess_uuid}]
-        },
+        # 22. NaiveProxy HTTP/2 TLS
         {
             "type": "naive",
             "tag": "naive-in",
@@ -25395,6 +25944,7 @@ def build_default_singbox_full_suite():
                 "key_path": key_path
             }
         },
+        # 23. Mixed Proxy (SOCKS5 + HTTP)
         {
             "type": "mixed",
             "tag": "mixed-in",
@@ -25528,29 +26078,57 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     u_uuid = (target_user.get("uuid") if target_user else None) or user0.get("uuid", "")
     u_pass = (target_user.get("password") if target_user else None) or user0.get("password", "")
     u_name = (target_user.get("username") if target_user else None) or user0.get("name") or user0.get("username", "")
-    tag_name = f"{tag}-{u_name}" if target_user and u_name else tag
+
+    clean_tag = tag.replace("-in", "")
+    friendly_names = {
+        "vless-reality": "VLESS-Reality-Vision",
+        "vless-reality-grpc": "VLESS-Reality-gRPC",
+        "vless-reality-upgrade": "VLESS-Reality-HTTPUpgrade",
+        "vless-ws": "VLESS-WS-TLS",
+        "vless-grpc-tls": "VLESS-gRPC-TLS",
+        "vless-upgrade-tls": "VLESS-HTTPUpgrade-TLS",
+        "vless-tcp-tls": "VLESS-TCP-TLS",
+        "vmess": "VMess-TCP",
+        "vmess-ws-tls": "VMess-WS-TLS",
+        "vmess-grpc-tls": "VMess-gRPC-TLS",
+        "vmess-upgrade-tls": "VMess-HTTPUpgrade-TLS",
+        "trojan": "Trojan-TCP-TLS",
+        "trojan-ws-tls": "Trojan-WS-TLS",
+        "trojan-grpc-tls": "Trojan-gRPC-TLS",
+        "trojan-upgrade-tls": "Trojan-HTTPUpgrade-TLS",
+        "hysteria2": "Hysteria2-Salamander-Obfs",
+        "hysteria2-standard": "Hysteria2-Standard",
+        "tuic": "TUIC-v5-BBR",
+        "shadowsocks": "Shadowsocks-2022-Blake3",
+        "shadowsocks-aead": "Shadowsocks-AEAD-AES256",
+        "shadowtls": "ShadowTLS-v3",
+        "naive": "NaiveProxy-HTTP2",
+        "mixed": "Mixed-SOCKS5"
+    }
+    display_title = friendly_names.get(clean_tag, tag)
+    tag_name = f"MHPanel - {display_title} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}"
 
     if itype == "vless":
-        flow = user0.get("flow") or ("xtls-rprx-vision" if reality_enabled else "")
+        tp = inbound.get("transport", {}).get("type", "tcp")
+        flow = user0.get("flow") or ("xtls-rprx-vision" if (reality_enabled and tp == "tcp") else "")
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
-        tp = inbound.get("transport", {}).get("type", "tcp")
         target_server = host_ip
         if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
             target_server = sni
         vless_port = 443 if (reality_enabled and int(port) == 20443) else port
         link = f"vless://{u_uuid}@{target_server}:{vless_port}?security={sec}&sni={sni}&type={tp}"
         if tp == "ws":
-            ws_path = inbound.get("transport", {}).get("path", "/")
+            ws_path = inbound.get("transport", {}).get("path", "/vless-ws")
             link += f"&path={ws_path}"
         elif tp == "grpc":
-            svc = inbound.get("transport", {}).get("service_name", "GunService")
+            svc = inbound.get("transport", {}).get("service_name", "vless-grpc")
             link += f"&serviceName={svc}"
         elif tp == "httpupgrade":
-            hpath = inbound.get("transport", {}).get("path", "/")
+            hpath = inbound.get("transport", {}).get("path", "/vless-upgrade")
             link += f"&path={hpath}"
-        if flow and reality_enabled: link += f"&flow={flow}"
+        if flow and reality_enabled and tp == "tcp": link += f"&flow={flow}"
         if pbk: link += f"&pbk={pbk}"
         if sid: link += f"&sid={sid}"
         if reality_enabled: link += "&fp=chrome"
@@ -25558,18 +26136,28 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         return link
 
     elif itype == "vmess":
+        tp = inbound.get("transport", {}).get("type", "tcp")
+        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        v_path = ""
+        if tp == "ws":
+            v_path = inbound.get("transport", {}).get("path", "/vmess-ws")
+        elif tp == "grpc":
+            v_path = inbound.get("transport", {}).get("service_name", "vmess-grpc")
+        elif tp == "httpupgrade":
+            v_path = inbound.get("transport", {}).get("path", "/vmess-up")
+
         vmess_dict = {
             "v": "2",
             "ps": tag_name,
-            "add": host_ip,
+            "add": target_server,
             "port": str(port),
             "id": u_uuid,
             "aid": "0",
             "scy": "auto",
-            "net": inbound.get("transport", {}).get("type", "tcp"),
+            "net": tp,
             "type": "none",
-            "host": sni,
-            "path": inbound.get("transport", {}).get("path", ""),
+            "host": sni if tls_enabled else "",
+            "path": v_path,
             "tls": "tls" if tls_enabled else ""
         }
         b64_json = base64.b64encode(json.dumps(vmess_dict).encode()).decode()
@@ -25587,7 +26175,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
             svc = inbound.get("transport", {}).get("service_name", "trojan-grpc")
             link += f"&serviceName={svc}"
         elif tp == "httpupgrade":
-            hpath = inbound.get("transport", {}).get("path", "/trojan-upgrade")
+            hpath = inbound.get("transport", {}).get("path", "/trojan-up")
             link += f"&path={hpath}"
         link += f"#{tag_name}"
         return link
@@ -25819,10 +26407,11 @@ def sync_singbox_users_to_config():
 
         if itype in ["vless", "vmess"]:
             users_arr = []
-            default_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "xtls-rprx-vision" if ib.get("tls", {}).get("reality", {}).get("enabled") else "")
+            is_tcp_trans = ib.get("transport", {}).get("type", "tcp") == "tcp"
+            default_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "xtls-rprx-vision" if (ib.get("tls", {}).get("reality", {}).get("enabled") and is_tcp_trans) else "")
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
-                if itype == "vless" and default_flow:
+                if itype == "vless" and default_flow and is_tcp_trans:
                     u_entry["flow"] = default_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
@@ -26778,12 +27367,22 @@ def api_singbox_user_links(username):
                 "share_link": link
             })
 
+    sub_token = target.get("sub_token", "")
+    domain = get_server_domain() or server_ip
+    sub_url = f"https://{domain}/sub/{sub_token}" if sub_token else ""
+    sub_b64_url = f"https://{domain}/sub/{sub_token}/b64" if sub_token else ""
+    sub_json_url = f"https://{domain}/sub/{sub_token}/singbox.json" if sub_token else ""
+
     return jsonify({
         "success": True,
         "username": username,
         "user": target,
         "configs": configs,
-        "configs_count": len(configs)
+        "configs_count": len(configs),
+        "sub_token": sub_token,
+        "sub_url": sub_url,
+        "sub_b64_url": sub_b64_url,
+        "sub_json_url": sub_json_url
     })
 
 

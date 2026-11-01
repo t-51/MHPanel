@@ -23199,15 +23199,28 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             currentSingboxUserLinksData = data;
             const cfgs = data.configs || [];
 
-            if (cfgs.length === 0) {
+            // Set subscription URL input and download link
+            const subInp = document.getElementById("sb-user-sub-url-input");
+            if (subInp) subInp.value = data.sub_b64_url || data.sub_url || "";
+            const dlJsonA = document.getElementById("sb-user-dl-singbox-json");
+            if (dlJsonA) {
+                dlJsonA.href = data.sub_json_url || "#";
+                dlJsonA.download = `MHPanel-${username}-SingBox.json`;
+            }
+
+            if (cfgs.length === 0 && !data.sub_b64_url) {
                 if (sel) sel.innerHTML = `<option value="">هیچ کانفیگ فعالی برای این کاربر یافت نشد</option>`;
                 if (qrContainer) qrContainer.innerHTML = '<span style="font-size:12px; color:var(--text-muted);">(هیچ کانفیگی برای این کاربر تخصیص نیافته است)</span>';
                 return;
             }
 
             let optsHtml = "";
+            if (data.sub_b64_url || data.sub_url) {
+                optsHtml += `<option value="__SUB_LINK__">🌐 لینک سابسکرایب جامع (همه ۲۳ کانفیگ هوشمند)</option>`;
+            }
             cfgs.forEach(c => {
-                optsHtml += `<option value="${escapeHtml(c.tag)}">${c.type.toUpperCase()} - پورت ${c.listen_port} (${escapeHtml(c.tag)})</option>`;
+                const portVal = c.port || c.listen_port || "";
+                optsHtml += `<option value="${escapeHtml(c.tag)}">${c.type.toUpperCase()} - پورت ${portVal} (${escapeHtml(c.tag)})</option>`;
             });
             if (sel) sel.innerHTML = optsHtml;
 
@@ -23218,18 +23231,49 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function onSingboxUserProtoSelectChange() {
-        if (!currentSingboxUserLinksData || !currentSingboxUserLinksData.configs) return;
+        if (!currentSingboxUserLinksData) return;
         const sel = document.getElementById("sb-user-links-proto-select");
         if (!sel) return;
 
         const selectedTag = sel.value;
-        const cfg = currentSingboxUserLinksData.configs.find(c => c.tag === selectedTag);
+        if (selectedTag === "__SUB_LINK__") {
+            const subUrl = currentSingboxUserLinksData.sub_b64_url || currentSingboxUserLinksData.sub_url || "";
+            const uriInp = document.getElementById("sb-user-link-uri-input");
+            if (uriInp) uriInp.value = subUrl;
+            renderQrCodeHelper("sb-user-qr-canvas-container", subUrl);
+            return;
+        }
+
+        const cfg = (currentSingboxUserLinksData.configs || []).find(c => c.tag === selectedTag);
         if (!cfg) return;
 
         const uriInp = document.getElementById("sb-user-link-uri-input");
         if (uriInp) uriInp.value = cfg.share_link || "";
 
         renderQrCodeHelper("sb-user-qr-canvas-container", cfg.share_link || "");
+    }
+
+    function copySingboxUserSubUrl() {
+        const subInp = document.getElementById("sb-user-sub-url-input");
+        if (!subInp || !subInp.value) {
+            showToast("لینک ساب در دسترس نیست.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(subInp.value).then(() => {
+            showToast("لینک سابسکرایب کاربر با موفقیت کپی شد.", "success");
+        }).catch(() => {
+            subInp.select();
+            document.execCommand("copy");
+            showToast("لینک سابسکرایب کپی شد.", "success");
+        });
+    }
+
+    function showSingboxUserSubQr() {
+        const sel = document.getElementById("sb-user-links-proto-select");
+        if (sel) {
+            sel.value = "__SUB_LINK__";
+            onSingboxUserProtoSelectChange();
+        }
     }
 
     function copySingboxUserSelectedUri() {
