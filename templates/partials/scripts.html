@@ -8245,6 +8245,9 @@
         }
 
         // Trigger specific page fetches on switch
+        if (tabId !== "singbox" && typeof stopSingboxLogAutoRefresh === "function") {
+            stopSingboxLogAutoRefresh();
+        }
         if (tabId === "overview") {
             fetchStats();
         } else if (tabId === "protocols") {
@@ -10114,9 +10117,14 @@
             }, 12000);
 
             document.addEventListener("visibilitychange", () => {
-                if (!document.hidden) {
+                if (document.hidden) {
+                    if (typeof stopSingboxLogAutoRefresh === "function") stopSingboxLogAutoRefresh();
+                } else {
                     fetchStats();
                     fetchProtocols();
+                    if (typeof currentSingboxSubTab !== "undefined" && currentSingboxSubTab === "logs" && document.getElementById("tab-singbox")?.classList.contains("active")) {
+                        if (typeof startSingboxLogAutoRefresh === "function") startSingboxLogAutoRefresh();
+                    }
                 }
             });
         }
@@ -19269,11 +19277,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             // Pool tags
             renderSniTags(data.sni_pool || []);
 
-            // Client Hub Commands
+            // Client Hub Commands & Full Configs
             if (document.getElementById("snispoof-cmd-ps")) document.getElementById("snispoof-cmd-ps").value = data.client_cmd_powershell || "";
             if (document.getElementById("snispoof-cmd-py")) document.getElementById("snispoof-cmd-py").value = data.client_cmd_python || "";
+            if (document.getElementById("snispoof-v2ray-vless")) document.getElementById("snispoof-v2ray-vless").value = data.v2ray_vless_uri || "";
+            if (document.getElementById("snispoof-full-singbox")) document.getElementById("snispoof-full-singbox").value = data.singbox_full_json || "";
+            if (document.getElementById("snispoof-full-xray")) document.getElementById("snispoof-full-xray").value = data.xray_full_json || "";
             if (document.getElementById("snispoof-snippet-singbox")) document.getElementById("snispoof-snippet-singbox").value = data.singbox_snippet || "";
             if (document.getElementById("snispoof-snippet-xray")) document.getElementById("snispoof-snippet-xray").value = data.xray_snippet || "";
+            if (document.getElementById("snispoof-vless-params-hint") && data.fragment_packets) {
+                document.getElementById("snispoof-vless-params-hint").textContent = `packets: ${data.fragment_packets}, length: ${data.fragment_length || "10-100"}, interval: ${data.fragment_interval || "2-5"}`;
+            }
 
         } catch (e) {
             console.error("fetchSniSpoofConfig error:", e);
@@ -20552,7 +20566,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     let activeSingboxUsers = [];
     let activeSingboxCategories = [];
     let currentSingboxCategoryFilter = "ALL";
-    let currentExportData = { linksText: "", csvText: "", category: "", userCount: 0, linkCount: 0 };
+    let selectedSingboxUsers = new Set();
+    let currentExportData = { linksText: "", csvText: "", subUrlsText: "", subB64UrlsText: "", subJsonUrlsText: "", subUserLinksText: "", category: "", userCount: 0, subCount: 0, linkCount: 0, activeTab: "sub" };
     let currentSingboxSubTab = "inbounds";
     let singboxLogAutoRefreshTimer = null;
     let singboxCachedLogs = "";
@@ -20877,10 +20892,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function startSingboxLogAutoRefresh() {
         stopSingboxLogAutoRefresh();
         singboxLogAutoRefreshTimer = setInterval(() => {
-            if (currentSingboxSubTab === "logs") {
+            const pane = document.getElementById("tab-singbox");
+            if (currentSingboxSubTab === "logs" && !document.hidden && pane && pane.classList.contains("active")) {
                 fetchSingboxLogs();
+            } else if (pane && !pane.classList.contains("active")) {
+                stopSingboxLogAutoRefresh();
             }
-        }, 2500);
+        }, 5000);
     }
 
     function stopSingboxLogAutoRefresh() {
@@ -22295,7 +22313,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (!activeSingboxUsers || activeSingboxUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                    <td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="users" style="width:36px; height:36px; opacity:0.35;"></i>
                             <span>هنوز هیچ کاربر محلی برای هسته Sing-box تعریف نشده است.</span>
@@ -22313,6 +22331,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </td>
                 </tr>`;
             if (window.lucide) lucide.createIcons();
+            updateSingboxBulkBar();
             return;
         }
 
@@ -22324,7 +22343,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (filteredUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                    <td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="filter" style="width:32px; height:32px; opacity:0.35;"></i>
                             <span>هیچ کاربری در دسته‌بندی «<strong>${escapeHtml(currentSingboxCategoryFilter)}</strong>» یافت نشد.</span>
@@ -22335,6 +22354,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </td>
                 </tr>`;
             if (window.lucide) lucide.createIcons();
+            updateSingboxBulkBar();
             return;
         }
 
@@ -22342,6 +22362,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         filteredUsers.forEach(u => {
             const isEnabled = (u.enabled !== false);
             const userCategory = u.category || "عمومی (Default)";
+            const isChecked = selectedSingboxUsers.has(u.username);
 
             const inbCount = (u.inbounds || []).length;
             let inboundsHtml = "";
@@ -22468,7 +22489,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
 
             html += `
-            <tr style="border-bottom: 1px solid var(--border-color); ${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'opacity:0.75;' : ''}">
+            <tr style="border-bottom: 1px solid var(--border-color); ${isChecked ? 'background: rgba(99, 102, 241, 0.08);' : ''} ${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'opacity:0.75;' : ''}" id="sb-user-row-${escapeHtml(u.username)}">
+                <td style="width: 40px; padding: 12px 14px; text-align: center;">
+                    <input type="checkbox" class="sb-user-checkbox" value="${escapeHtml(u.username)}" ${isChecked ? 'checked' : ''} onchange="onSingboxUserCheckboxChange()" onclick="event.stopPropagation()" style="width: 16px; height: 16px; cursor: pointer;">
+                </td>
                 <td style="padding: 12px 16px;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <span class="status-dot ${(isEnabled && !u.is_expired && !u.is_quota_exceeded) ? 'active' : ''}" style="${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'background:#ef4444;' : ''}"></span>
@@ -22534,6 +22558,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        updateSingboxBulkBar();
     }
 
     function setSingboxUserQuotaPreset(gb) {
@@ -23022,12 +23047,313 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    // --- Bulk Links & Category Export Engine ---
+    // --- Sing-box Users Bulk Selection & Actions Engine ---
+    function toggleSelectAllSingboxUsers(checked) {
+        const checkboxes = document.querySelectorAll(".sb-user-checkbox");
+        checkboxes.forEach(cb => {
+            cb.checked = checked;
+            const row = document.getElementById("sb-user-row-" + cb.value);
+            if (checked) {
+                selectedSingboxUsers.add(cb.value);
+                if (row) row.style.background = "rgba(99, 102, 241, 0.08)";
+            } else {
+                selectedSingboxUsers.delete(cb.value);
+                if (row) row.style.background = "";
+            }
+        });
+        updateSingboxBulkBar();
+    }
+
+    function onSingboxUserCheckboxChange() {
+        const checkboxes = document.querySelectorAll(".sb-user-checkbox");
+        checkboxes.forEach(cb => {
+            const row = document.getElementById("sb-user-row-" + cb.value);
+            if (cb.checked) {
+                selectedSingboxUsers.add(cb.value);
+                if (row) row.style.background = "rgba(99, 102, 241, 0.08)";
+            } else {
+                selectedSingboxUsers.delete(cb.value);
+                if (row) row.style.background = "";
+            }
+        });
+        updateSingboxBulkBar();
+    }
+
+    function deselectAllSingboxUsers() {
+        selectedSingboxUsers.clear();
+        document.querySelectorAll(".sb-user-checkbox").forEach(cb => {
+            cb.checked = false;
+            const row = document.getElementById("sb-user-row-" + cb.value);
+            if (row) row.style.background = "";
+        });
+        const masterCb = document.getElementById("sb-users-select-all");
+        if (masterCb) {
+            masterCb.checked = false;
+            masterCb.indeterminate = false;
+        }
+        updateSingboxBulkBar();
+    }
+
+    function updateSingboxBulkBar() {
+        const bar = document.getElementById("sb-users-bulk-bar");
+        const countBadge = document.getElementById("sb-bulk-selected-count");
+        const masterCb = document.getElementById("sb-users-select-all");
+        const count = selectedSingboxUsers.size;
+
+        if (bar) {
+            bar.style.display = count > 0 ? "flex" : "none";
+        }
+        if (countBadge) {
+            countBadge.textContent = `${count} کاربر انتخاب شده`;
+        }
+
+        const visibleCbs = document.querySelectorAll(".sb-user-checkbox");
+        if (masterCb && visibleCbs.length > 0) {
+            const allChecked = Array.from(visibleCbs).every(cb => cb.checked);
+            const someChecked = Array.from(visibleCbs).some(cb => cb.checked);
+            masterCb.checked = allChecked;
+            masterCb.indeterminate = (!allChecked && someChecked);
+        } else if (masterCb) {
+            masterCb.checked = false;
+            masterCb.indeterminate = false;
+        }
+    }
+
+    async function bulkActionSingboxUsers(action) {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+
+        const usernames = Array.from(selectedSingboxUsers);
+
+        if (action === "delete") {
+            if (!confirm(`آیا از حذف کامل ${count} کاربر انتخاب شده اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`)) {
+                return;
+            }
+        } else if (action === "reset_traffic") {
+            if (!confirm(`آیا از صفر کردن ترافیک مصرفی ${count} کاربر انتخاب شده اطمینان دارید؟`)) {
+                return;
+            }
+        }
+
+        toggleLoading(true, `در حال اجرای عملیات دسته‌جمعی روی ${count} کاربر...`);
+        try {
+            const res = await fetch("/api/singbox/users/bulk-action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action, usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                showToast(data.message || "عملیات دسته‌جمعی با موفقیت انجام شد.", "success");
+                deselectAllSingboxUsers();
+                await loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در انجام اقدام دسته‌جمعی", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    // Modal Bulk Action: Change Category
+    function openBulkChangeCategoryModal() {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+        const lbl = document.getElementById("sb-bulk-cat-count-label");
+        if (lbl) lbl.textContent = `${count} کاربر`;
+
+        const sel = document.getElementById("sb-bulk-cat-select");
+        if (sel) {
+            let opts = '<option value="">-- انتخاب دسته‌بندی موجود --</option>';
+            (activeSingboxCategories || []).forEach(cat => {
+                opts += `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`;
+            });
+            sel.innerHTML = opts;
+        }
+        const newInp = document.getElementById("sb-bulk-cat-new-input");
+        if (newInp) newInp.value = "";
+
+        const modal = document.getElementById("modal-singbox-bulk-category");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    async function executeBulkChangeCategory() {
+        const selVal = document.getElementById("sb-bulk-cat-select")?.value || "";
+        const customVal = (document.getElementById("sb-bulk-cat-new-input")?.value || "").trim();
+        const newCat = customVal || selVal;
+
+        if (!newCat) {
+            showToast("لطفاً نام دسته‌بندی را مشخص نمایید.", "warning");
+            return;
+        }
+
+        const usernames = Array.from(selectedSingboxUsers);
+        closeSingboxBulkModal("category");
+        toggleLoading(true, "در حال تغییر دسته‌بندی کاربران...");
+        try {
+            const res = await fetch("/api/singbox/users/bulk-action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "set_category", category: newCat, usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "دسته‌بندی تغییر یافت.", "success");
+                deselectAllSingboxUsers();
+                await loadSingboxCategories();
+                await loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در تغییر دسته‌بندی", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // Modal Bulk Action: Extend Expiry
+    function openBulkExtendExpiryModal() {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+        const lbl = document.getElementById("sb-bulk-expiry-count-label");
+        if (lbl) lbl.textContent = `${count} کاربر`;
+
+        const modal = document.getElementById("modal-singbox-bulk-expiry");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    async function executeBulkExtendExpiry() {
+        const days = parseInt(document.getElementById("sb-bulk-expiry-days")?.value) || 30;
+        const usernames = Array.from(selectedSingboxUsers);
+        closeSingboxBulkModal("expiry");
+
+        toggleLoading(true, `در حال افزایش ${days} روز به اعتبار کاربران...`);
+        try {
+            const res = await fetch("/api/singbox/users/bulk-action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "extend_expiry", days, usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "اعتبار کاربران افزایش یافت.", "success");
+                deselectAllSingboxUsers();
+                await loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در تمدید اعتبار", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    // Modal Bulk Action: Set Traffic Limit
+    function openBulkSetTrafficLimitModal() {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+        const lbl = document.getElementById("sb-bulk-traffic-count-label");
+        if (lbl) lbl.textContent = `${count} کاربر`;
+
+        const modal = document.getElementById("modal-singbox-bulk-traffic");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    async function executeBulkSetTrafficLimit() {
+        const gb = parseFloat(document.getElementById("sb-bulk-traffic-gb")?.value) || 0;
+        const usernames = Array.from(selectedSingboxUsers);
+        closeSingboxBulkModal("traffic");
+
+        toggleLoading(true, "در حال تغییر سقف ترافیک کاربران...");
+        try {
+            const res = await fetch("/api/singbox/users/bulk-action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "set_traffic_limit", traffic_limit_gb: gb, usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "سقف ترافیک بروزرسانی شد.", "success");
+                deselectAllSingboxUsers();
+                await loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در تنظیم ترافیک", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
+        }
+    }
+
+    function closeSingboxBulkModal(name) {
+        const modal = document.getElementById(`modal-singbox-bulk-${name}`);
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    // --- Sub-Link & Category Export Engine (Enhanced Multi-Tab) ---
+    async function exportSingboxSubLinks(targetCat) {
+        const cat = targetCat || currentSingboxCategoryFilter || "ALL";
+        const catLabel = (cat === "ALL") ? "همه دسته‌ها" : cat;
+
+        toggleLoading(true, `در حال استخراج کلیه ساب‌لینک‌های کاربران «${catLabel}»...`);
+        try {
+            const res = await fetch(`/api/singbox/category/${encodeURIComponent(cat)}/export`);
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                openSingboxExportModal(
+                    `خروجی ساب‌لینک‌های اتصال (${catLabel})`,
+                    data,
+                    "sub"
+                );
+            } else {
+                showToast(data.error || "خطا در استخراج ساب‌لینک‌ها", "warning");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای شبکه در خروجی ساب‌لینک‌ها", "error");
+        }
+    }
+
     async function exportCurrentCategoryLinks() {
         const targetCat = currentSingboxCategoryFilter || "ALL";
         const catNameLabel = (targetCat === "ALL") ? "همه دسته‌ها" : targetCat;
 
-        toggleLoading(true, `در حال استخراج کلیه لینک‌های کانفیگ برای دسته‌بندی «${catNameLabel}»...`);
+        toggleLoading(true, `در حال استخراج کلیه کانفیگ‌های خام برای دسته‌بندی «${catNameLabel}»...`);
         try {
             const res = await fetch(`/api/singbox/category/${encodeURIComponent(targetCat)}/export`);
             const data = await res.json();
@@ -23035,12 +23361,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
             if (res.ok && data.success) {
                 openSingboxExportModal(
-                    `خروجی لینک‌های اتصال (${catNameLabel})`,
-                    data.all_links_text || "",
-                    data.csv_text || "",
-                    data.users_count || 0,
-                    data.links_count || 0,
-                    catNameLabel
+                    `خروجی کانفیگ‌های خام (${catNameLabel})`,
+                    data,
+                    "raw"
                 );
             } else {
                 showToast(data.error || "خطا در خروجی لینک‌های دسته", "warning");
@@ -23051,13 +23374,51 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    function openSingboxExportModal(title, linksText, csvText, usersCount, linksCount, catName) {
+    async function exportSelectedSingboxUsers(type) {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+        const usernames = Array.from(selectedSingboxUsers);
+        toggleLoading(true, `در حال دریافت خروجی برای ${count} کاربر انتخابی...`);
+        try {
+            const res = await fetch("/api/singbox/users/bulk-export", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (res.ok && data.success) {
+                openSingboxExportModal(
+                    `خروجی ${count} کاربر انتخابی`,
+                    data,
+                    type || "sub"
+                );
+            } else {
+                showToast(data.error || "خطا در خروجی کاربران انتخابی", "warning");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در خروجی کاربران", "error");
+        }
+    }
+
+    function openSingboxExportModal(title, data, initialTab) {
         currentExportData = {
-            linksText: linksText || "",
-            csvText: csvText || "",
-            category: catName || "-",
-            userCount: usersCount || 0,
-            linkCount: linksCount || 0
+            linksText: data.all_links_text || "",
+            csvText: data.csv_text || "",
+            subUrlsText: data.all_sub_urls_text || "",
+            subB64UrlsText: data.all_sub_b64_urls_text || "",
+            subJsonUrlsText: data.all_sub_json_urls_text || "",
+            subUserLinksText: data.sub_links_formatted_text || "",
+            category: data.category || "-",
+            userCount: data.users_count || 0,
+            subCount: data.sub_links_count || (data.users_count || 0),
+            linkCount: data.links_count || 0,
+            activeTab: initialTab || "sub"
         };
 
         const modal = document.getElementById("modal-singbox-export-links");
@@ -23067,20 +23428,73 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (titleEl) titleEl.textContent = title;
 
         const catBadge = document.getElementById("sb-export-badge-cat");
-        if (catBadge) catBadge.textContent = catName || "-";
+        if (catBadge) catBadge.textContent = currentExportData.category;
 
         const usersBadge = document.getElementById("sb-export-badge-users");
-        if (usersBadge) usersBadge.textContent = `${usersCount} کاربر`;
+        if (usersBadge) usersBadge.textContent = `${currentExportData.userCount} کاربر`;
+
+        const subsBadge = document.getElementById("sb-export-badge-subs");
+        if (subsBadge) subsBadge.textContent = `${currentExportData.subCount} ساب‌لینک`;
 
         const linksBadge = document.getElementById("sb-export-badge-links");
-        if (linksBadge) linksBadge.textContent = `${linksCount} لینک اتصال`;
-
-        const txtArea = document.getElementById("sb-export-links-textarea");
-        if (txtArea) txtArea.value = linksText || "(هیچ لینکی برای این انتخاب تولید نشده است)";
+        if (linksBadge) linksBadge.textContent = `${currentExportData.linkCount} کانفیگ خام`;
 
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+
+        switchSingboxExportTab(initialTab || "sub");
+    }
+
+    function switchSingboxExportTab(tabName) {
+        currentExportData.activeTab = tabName;
+
+        document.querySelectorAll(".sb-export-tab-btn").forEach(btn => {
+            btn.style.background = "none";
+            btn.style.color = "var(--text-muted)";
+            btn.style.borderBottom = "none";
+            btn.classList.remove("active");
+        });
+
+        const activeBtn = document.getElementById("sb-tab-btn-" + tabName);
+        if (activeBtn) {
+            activeBtn.style.background = "rgba(16, 185, 129, 0.12)";
+            activeBtn.style.color = "#10b981";
+            activeBtn.style.borderBottom = "2px solid #10b981";
+            activeBtn.classList.add("active");
+        }
+
+        const txtArea = document.getElementById("sb-export-links-textarea");
+        const lbl = document.getElementById("sb-export-textarea-label");
+        const hint = document.getElementById("sb-export-textarea-hint");
+        const copyBtnText = document.getElementById("sb-export-copy-btn-text");
+
+        if (tabName === "sub") {
+            if (txtArea) txtArea.value = currentExportData.subUrlsText || "(هیچ ساب‌لینکی یافت نشد)";
+            if (lbl) lbl.textContent = "متن ساب‌لینک‌های جامع (Subscription URLs):";
+            if (hint) hint.textContent = "هر سطر شامل لینک ساب یک کاربر است";
+            if (copyBtnText) copyBtnText.textContent = "کپی کردن ساب‌لینک‌ها (Copy Subs)";
+        } else if (tabName === "sub_b64") {
+            if (txtArea) txtArea.value = currentExportData.subB64UrlsText || "(هیچ ساب‌لینک Base64 یافت نشد)";
+            if (lbl) lbl.textContent = "لینک‌های ساب Base64 (مخصوص v2rayNG / v2rayN):";
+            if (hint) hint.textContent = "فرمت Base64 بهینه‌شده برای کلاینت‌های V2Ray";
+            if (copyBtnText) copyBtnText.textContent = "کپی ساب‌های Base64";
+        } else if (tabName === "sub_user") {
+            if (txtArea) txtArea.value = currentExportData.subUserLinksText || "(هیچ داده‌ای یافت نشد)";
+            if (lbl) lbl.textContent = "لیست تفکیک‌شده ساب به همراه نام کاربران (Username : Sub):";
+            if (hint) hint.textContent = "مناسب برای ارسال جداگانه به کاربران یا ذخیره در اکسل";
+            if (copyBtnText) copyBtnText.textContent = "کپی لیست نام و ساب کاربران";
+        } else if (tabName === "raw") {
+            if (txtArea) txtArea.value = currentExportData.linksText || "(هیچ کانفیگ خامی تولید نشده است)";
+            if (lbl) lbl.textContent = "متن لینک‌های خام کانفیگ (Raw Share Links):";
+            if (hint) hint.textContent = "شامل تمام لینک‌های vless://، vmess:// و...";
+            if (copyBtnText) copyBtnText.textContent = "کپی کردن کلیه کانفیگ‌های خام (Copy All)";
+        } else if (tabName === "csv") {
+            if (txtArea) txtArea.value = currentExportData.csvText || "(داده CSV موجود نیست)";
+            if (lbl) lbl.textContent = "پیش‌نمایش داده‌های اکسل و CSV:";
+            if (hint) hint.textContent = "حاوی نام کاربری، پسورد، UUID، دسته، ساب‌لینک و کانفیگ";
+            if (copyBtnText) copyBtnText.textContent = "کپی متن CSV";
+        }
     }
 
     function closeSingboxExportModal() {
@@ -23092,18 +23506,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function copyExportedLinks() {
-        if (!currentExportData.linksText) {
-            showToast("هیچ لینکی برای کپی وجود ندارد.", "warning");
+        const txtArea = document.getElementById("sb-export-links-textarea");
+        const textToCopy = txtArea ? txtArea.value : "";
+        if (!textToCopy) {
+            showToast("هیچ متنی برای کپی وجود ندارد.", "warning");
             return;
         }
-        navigator.clipboard.writeText(currentExportData.linksText).then(() => {
-            showToast(`کلیه ${currentExportData.linkCount} لینک اتصال با موفقیت در کلیپ‌بورد کپی شدند.`, "success");
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast("متن انتخاب شده با موفقیت در کلیپ‌بورد کپی شد.", "success");
         }).catch(() => {
-            const txtArea = document.getElementById("sb-export-links-textarea");
             if (txtArea) {
                 txtArea.select();
                 document.execCommand("copy");
-                showToast("لینک‌ها در کلیپ‌بورد کپی شدند.", "success");
+                showToast("متن در کلیپ‌بورد کپی شد.", "success");
             }
         });
     }
@@ -23112,7 +23527,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         let content = "";
         let filename = "";
         let mimeType = "";
-        const sanitizedCat = (currentExportData.category || "category").replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, "_");
+        const sanitizedCat = (currentExportData.category || "export").replace(/[^a-zA-Z0-9_\-\u0600-\u06FF]/g, "_");
         const dateStr = new Date().toISOString().slice(0, 10);
 
         if (format === "csv") {
@@ -23120,8 +23535,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             filename = `singbox_users_${sanitizedCat}_${dateStr}.csv`;
             mimeType = "text/csv;charset=utf-8;";
         } else {
-            content = currentExportData.linksText || "";
-            filename = `singbox_links_${sanitizedCat}_${dateStr}.txt`;
+            const txtArea = document.getElementById("sb-export-links-textarea");
+            content = txtArea ? txtArea.value : (currentExportData.subUrlsText || currentExportData.linksText || "");
+            const tab = currentExportData.activeTab || "sub";
+            filename = `singbox_${tab}_${sanitizedCat}_${dateStr}.txt`;
             mimeType = "text/plain;charset=utf-8;";
         }
 
@@ -23137,7 +23554,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        showToast(`فایل ${filename} دانلود شد.`, "success");
+        showToast(`فایل ${filename} با موفقیت دانلود شد.`, "success");
     }
 
     async function toggleSingboxUser(username) {

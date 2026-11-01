@@ -116,7 +116,7 @@ EOF
 ensure_cli_shortcuts
 
 # Supported Protocols List
-PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn dnstt vaydns slipstream hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor singbox google_script)
+PROTOCOLS=(ssh openvpn ocserv ikev2 sstp l2tp wireguard amneziawg http socks shadowsocks tuic mtproto pptp badvpn dnstt vaydns slipstream hysteria2 trojan naiveproxy stuntls noizdns masterdnsvpn tor singbox google_script snispoof)
 
 # Banner Display
 show_banner() {
@@ -186,6 +186,7 @@ protocol_label() {
         tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
         singbox) echo "Sing-box Universal Suite (VLESS/Reality/Trojan/Hysteria2)" ;;
         google_script) echo "Google Apps Script Full Tunnel (GAS Relay)" ;;
+        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / BadChecksum / Low-TTL)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -219,6 +220,7 @@ protocol_default_port() {
         tor) echo "9001" ;;
         singbox) echo "20443" ;;
         google_script) echo "8448" ;;
+        snispoof) echo "15443" ;;
         *) echo "0" ;;
     esac
 }
@@ -349,6 +351,7 @@ protocol_is_installed() {
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
         singbox) ([ -x /usr/local/bin/sing-box ] && [ -f "/etc/sing-box/config.json" ]) || [ -f "/etc/systemd/system/mhpanel-singbox.service" ] ;;
         google_script) ([ -f "/etc/vpnpanel/google_script.json" ] && [ -x /usr/local/bin/mhpanel-gas-server ]) || [ -f "/etc/systemd/system/mhpanel-gas-tunnel.service" ] ;;
+        snispoof) ([ -f "/etc/vpnpanel/snispoof.json" ] && [ -x /usr/local/bin/mhpanel-snispoof ]) || [ -f "/etc/systemd/system/mhpanel-snispoof.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -448,6 +451,7 @@ protocol_service_status() {
         tor) svc="mhpanel-tor" ;;
         singbox) svc="mhpanel-singbox" ;;
         google_script) svc="mhpanel-gas-tunnel" ;;
+        snispoof) svc="mhpanel-snispoof" ;;
     esac
 
     if [ -n "$svc" ] && systemctl is-active --quiet "$svc" 2>/dev/null; then
@@ -489,6 +493,7 @@ protocol_current_port() {
         tor) port=$(grep -E '^ORPort ' /etc/tor/torrc 2>/dev/null | awk '{print $2}' | tail -n1) ;;
         singbox) port=$(grep -oE '"listen_port":\s*[0-9]+' /etc/sing-box/config.json 2>/dev/null | head -n1 | awk '{print $2}') ;;
         google_script) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/google_script.json 2>/dev/null | awk '{print $2}' || echo "8448") ;;
+        snispoof) port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/snispoof.json 2>/dev/null | awk '{print $2}' || echo "15443") ;;
     esac
     if [ -n "$port" ]; then
         echo "$port"
@@ -1693,6 +1698,13 @@ protocol_ensure_active() {
             fi
             ;;
         google_script) systemctl restart mhpanel-gas-tunnel 2>/dev/null || true ;;
+        snispoof)
+            if [ -f /etc/vpnpanel/snispoof.json ] && [ -s /etc/vpnpanel/snispoof.json ]; then
+                systemctl restart mhpanel-snispoof 2>/dev/null || true
+            else
+                install_protocol_action "snispoof" "${def_port}"
+            fi
+            ;;
     esac
 }
 
@@ -2044,6 +2056,7 @@ menu_vpn_protocols() {
                         tor) svc="mhpanel-tor" ;;
                         singbox) svc="mhpanel-singbox" ;;
                         google_script) svc="mhpanel-gas-tunnel" ;;
+                        snispoof) svc="mhpanel-snispoof" ;;
                     esac
                     systemctl restart "$svc" 2>/dev/null || true
                     echo -e "${GREEN}Service ${svc} restarted.${NC}"
@@ -2087,6 +2100,7 @@ menu_vpn_protocols() {
                         tor) svc="mhpanel-tor" ;;
                         singbox) svc="mhpanel-singbox" ;;
                         google_script) svc="mhpanel-gas-tunnel" ;;
+                        snispoof) svc="mhpanel-snispoof" ;;
                     esac
                     journalctl -u "$svc" -n 50 --no-pager 2>/dev/null || journalctl -n 50 --no-pager 2>/dev/null || true
                     read -p "Press Enter to continue..."

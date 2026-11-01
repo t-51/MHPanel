@@ -13116,6 +13116,318 @@ def api_download_stuntls_client_ps1():
 
 
 # --- SNI Spoofing & Anti-DPI Protocol API ---
+def get_snispoof_reality_and_client_configs():
+    cfg_file = "/etc/vpnpanel/snispoof.json"
+    cfg = {
+        "port": 15443,
+        "role": "inbound_relay",
+        "upstream": "127.0.0.1:20443",
+        "default_strategy": "tls_fragment",
+        "low_ttl_hops": 5,
+        "fragment_size": 2,
+        "fragment_delay_ms": 3,
+        "jitter_enabled": True,
+        "sni_pool": ["dl.google.com", "sanjesh.org", "shaparak.ir", "speedtest.net"],
+        "reverse_target_host": "",
+        "reverse_target_port": 15443
+    }
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg.update(json.load(f))
+        except Exception:
+            pass
+
+    srv = get_server_domain() or get_server_public_ip() or "212.227.143.16"
+    port = cfg.get("port", 15443)
+    frag_size = cfg.get("fragment_size", 2)
+    frag_delay = cfg.get("fragment_delay_ms", 3)
+
+    # Extract Sing-box Reality settings & live user credentials
+    r_port = 20443
+    r_sni = "dl.google.com"
+    r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
+    r_shortid = "86d7ec6343d000b6"
+    r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
+
+    sb_cfg_file = "/etc/sing-box/config.json"
+    if os.path.exists(sb_cfg_file):
+        try:
+            with open(sb_cfg_file, "r", encoding="utf-8") as f:
+                sb_cfg = json.load(f)
+            ib_reality = None
+            for ib in sb_cfg.get("inbounds", []):
+                tls = ib.get("tls", {})
+                if tls.get("reality", {}).get("enabled"):
+                    ib_reality = ib
+                    break
+            if ib_reality:
+                r_port = ib_reality.get("listen_port", 20443)
+                tls = ib_reality.get("tls", {})
+                r_obj = tls.get("reality", {})
+                h_serv = r_obj.get("handshake", {}).get("server") or tls.get("server_name")
+                if h_serv:
+                    r_sni = h_serv
+                if r_obj.get("short_id"):
+                    r_shortid = r_obj["short_id"][0]
+                priv_k = r_obj.get("private_key", "")
+                pub_k = r_obj.get("public_key") or get_reality_public_key(priv_k)
+                if pub_k:
+                    r_pubkey = pub_k
+                users = ib_reality.get("users", [])
+                if users and users[0].get("uuid"):
+                    r_uuid = users[0]["uuid"]
+        except Exception:
+            pass
+
+    pool = cfg.get("sni_pool") or [r_sni]
+    sample_sni = pool[0] if pool else r_sni
+
+    # 1. Full Sing-box Client Configuration JSON (Production-ready with TUN mode & Mixed Proxy, Iran direct routing, and Anti-DPI Fragment)
+    singbox_full = {
+        "log": {
+            "disabled": False,
+            "level": "info",
+            "timestamp": True
+        },
+        "dns": {
+            "servers": [
+                {
+                    "tag": "dns-remote",
+                    "address": "https://8.8.8.8/dns-query",
+                    "address_resolver": "dns-direct",
+                    "strategy": "ipv4_only",
+                    "detour": "MHPanel-AntiDPI-Reality"
+                },
+                {
+                    "tag": "dns-direct",
+                    "address": "223.5.5.5",
+                    "address_resolver": "dns-local",
+                    "strategy": "ipv4_only",
+                    "detour": "direct"
+                },
+                {
+                    "tag": "dns-local",
+                    "address": "local",
+                    "detour": "direct"
+                },
+                {
+                    "tag": "dns-block",
+                    "address": "rcode://refused"
+                }
+            ],
+            "rules": [
+                {"outbound": "any", "server": "dns-direct"},
+                {"clash_mode": "Direct", "server": "dns-direct"},
+                {"clash_mode": "Global", "server": "dns-remote"},
+                {"rule_set": "geosite-ir", "server": "dns-direct"}
+            ],
+            "final": "dns-remote",
+            "strategy": "ipv4_only"
+        },
+        "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "interface_name": "tun0",
+                "inet4_address": "172.19.0.1/30",
+                "auto_route": True,
+                "strict_route": True,
+                "stack": "system",
+                "sniff": True,
+                "sniff_override_destination": True
+            },
+            {
+                "type": "mixed",
+                "tag": "mixed-in",
+                "listen": "127.0.0.1",
+                "listen_port": 2080,
+                "sniff": True,
+                "sniff_override_destination": True
+            }
+        ],
+        "outbounds": [
+            {
+                "type": "vless",
+                "tag": "MHPanel-AntiDPI-Reality",
+                "server": srv,
+                "server_port": r_port,
+                "uuid": r_uuid,
+                "flow": "xtls-rprx-vision",
+                "tls": {
+                    "enabled": True,
+                    "server_name": sample_sni,
+                    "utls": {
+                        "enabled": True,
+                        "fingerprint": "chrome"
+                    },
+                    "reality": {
+                        "enabled": True,
+                        "public_key": r_pubkey,
+                        "short_id": r_shortid
+                    },
+                    "fragment": {
+                        "enabled": True,
+                        "length": f"1-{frag_size}",
+                        "interval": f"2-{frag_delay}"
+                    }
+                },
+                "packet_encoding": "xudp"
+            },
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"},
+            {"type": "dns", "tag": "dns-out"}
+        ],
+        "route": {
+            "auto_detect_interface": True,
+            "rules": [
+                {"protocol": "dns", "outbound": "dns-out"},
+                {"ip_is_private": True, "outbound": "direct"},
+                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
+            ],
+            "rule_set": [
+                {
+                    "tag": "geoip-ir",
+                    "type": "remote",
+                    "format": "binary",
+                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs",
+                    "download_detour": "direct"
+                },
+                {
+                    "tag": "geosite-ir",
+                    "type": "remote",
+                    "format": "binary",
+                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs",
+                    "download_detour": "direct"
+                }
+            ],
+            "final": "MHPanel-AntiDPI-Reality"
+        }
+    }
+
+    # 2. Sing-box Outbound Snippet
+    singbox_snippet = singbox_full["outbounds"][0]
+
+    # 3. Direct VLESS Reality URI (with Chrome fingerprint, Reality params & vision flow)
+    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision#MHPanel-AntiDPI-Reality"
+
+    # 4. VLESS Relay URI through SNI Spoofing port
+    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
+
+    # 5. Local SOCKS5 URI for snispoof-client
+    v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
+
+    # 6. Full Xray / V2Ray JSON Config with Fragment Dialer Proxy
+    xray_full = {
+        "log": {"loglevel": "warning"},
+        "inbounds": [
+            {
+                "tag": "socks-in",
+                "port": 10808,
+                "listen": "127.0.0.1",
+                "protocol": "socks",
+                "sniffing": {
+                    "enabled": True,
+                    "destOverride": ["http", "tls"]
+                },
+                "settings": {"auth": "noauth", "udp": True}
+            },
+            {
+                "tag": "http-in",
+                "port": 10809,
+                "listen": "127.0.0.1",
+                "protocol": "http",
+                "sniffing": {
+                    "enabled": True,
+                    "destOverride": ["http", "tls"]
+                }
+            }
+        ],
+        "outbounds": [
+            {
+                "tag": "proxy",
+                "protocol": "vless",
+                "settings": {
+                    "vnext": [{
+                        "address": srv,
+                        "port": r_port,
+                        "users": [{
+                            "id": r_uuid,
+                            "flow": "xtls-rprx-vision",
+                            "encryption": "none"
+                        }]
+                    }]
+                },
+                "streamSettings": {
+                    "network": "tcp",
+                    "security": "reality",
+                    "realitySettings": {
+                        "show": False,
+                        "fingerprint": "chrome",
+                        "serverName": sample_sni,
+                        "publicKey": r_pubkey,
+                        "shortId": r_shortid,
+                        "spiderX": ""
+                    },
+                    "sockopt": {
+                        "dialerProxy": "fragment"
+                    }
+                }
+            },
+            {
+                "tag": "fragment",
+                "protocol": "freedom",
+                "settings": {
+                    "fragment": {
+                        "packets": f"1-{frag_size}",
+                        "length": "10-100",
+                        "interval": f"2-{frag_delay}"
+                    }
+                }
+            },
+            {
+                "tag": "direct",
+                "protocol": "freedom",
+                "settings": {}
+            },
+            {
+                "tag": "block",
+                "protocol": "blackhole",
+                "settings": {}
+            }
+        ],
+        "routing": {
+            "domainStrategy": "IPIfNonMatch",
+            "rules": [
+                {"type": "field", "outboundTag": "direct", "ip": ["geoip:private", "geoip:ir"]},
+                {"type": "field", "outboundTag": "direct", "domain": ["geosite:ir", "geosite:category-ir"]},
+                {"type": "field", "outboundTag": "proxy", "network": "tcp,udp"}
+            ]
+        }
+    }
+
+    # 7. Xray snippet
+    xray_snippet = xray_full["outbounds"][0]
+
+    return {
+        "cfg": cfg,
+        "srv": srv,
+        "r_port": r_port,
+        "r_sni": r_sni,
+        "r_pubkey": r_pubkey,
+        "r_shortid": r_shortid,
+        "r_uuid": r_uuid,
+        "sample_sni": sample_sni,
+        "singbox_full": singbox_full,
+        "singbox_snippet": singbox_snippet,
+        "xray_full": xray_full,
+        "xray_snippet": xray_snippet,
+        "v2ray_vless_uri": v2ray_vless_uri,
+        "v2ray_relay_uri": v2ray_relay_uri,
+        "v2ray_socks_uri": v2ray_socks_uri
+    }
+
+
 @app.route("/api/snispoof/config", methods=["GET", "POST"])
 def api_snispoof_config():
     if not check_login():
@@ -13126,7 +13438,7 @@ def api_snispoof_config():
         data = request.json or {}
         port = int(data.get("port") or 15443)
         role = (data.get("role") or "inbound_relay").strip()
-        upstream = (data.get("upstream") or "127.0.0.1:22").strip()
+        upstream = (data.get("upstream") or "127.0.0.1:20443").strip()
         default_strategy = (data.get("default_strategy") or "tls_fragment").strip()
         low_ttl_hops = int(data.get("low_ttl_hops") or 5)
         fragment_size = int(data.get("fragment_size") or 2)
@@ -13134,7 +13446,7 @@ def api_snispoof_config():
         jitter_enabled = bool(data.get("jitter_enabled", True))
         reverse_target_host = (data.get("reverse_target_host") or "").strip()
         reverse_target_port = int(data.get("reverse_target_port") or 15443)
-        sni_pool = data.get("sni_pool") or ["sanjesh.org", "dl.google.com"]
+        sni_pool = data.get("sni_pool") or ["dl.google.com", "sanjesh.org", "shaparak.ir", "speedtest.net"]
 
         cfg = {
             "port": port,
@@ -13165,25 +13477,12 @@ def api_snispoof_config():
         return jsonify({"success": True})
 
     # GET
-    cfg = {
-        "port": 15443,
-        "role": "inbound_relay",
-        "upstream": "127.0.0.1:22",
-        "default_strategy": "tls_fragment",
-        "low_ttl_hops": 5,
-        "fragment_size": 2,
-        "fragment_delay_ms": 3,
-        "jitter_enabled": True,
-        "sni_pool": ["sanjesh.org", "shaparak.ir", "speedtest.net", "dl.google.com"],
-        "reverse_target_host": "",
-        "reverse_target_port": 15443
-    }
-    if os.path.exists(cfg_file):
-        try:
-            with open(cfg_file, "r") as f:
-                cfg.update(json.load(f))
-        except Exception:
-            pass
+    d = get_snispoof_reality_and_client_configs()
+    cfg = d["cfg"]
+    srv = d["srv"]
+    port = cfg.get("port", 15443)
+    strat = cfg.get("default_strategy", "tls_fragment")
+    panel_port = get_panel_port()
 
     cfg["installed"] = is_installed("snispoof")
     cfg["active"] = get_protocol_active("snispoof")
@@ -13200,61 +13499,29 @@ def api_snispoof_config():
     else:
         cfg["stats"] = {"active_connections": 0, "total_connections": 0}
 
-    srv = get_server_domain() or get_server_public_ip()
-    port = cfg.get("port", 15443)
-    strat = cfg.get("default_strategy", "tls_fragment")
-    panel_port = get_panel_port()
-
     cfg["server_host"] = srv
     cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{$true}}; Invoke-WebRequest -Uri 'https://{srv}:{panel_port}/download/snispoof-client.exe' -OutFile 'snispoof-client.exe'; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
     cfg["client_cmd_python"] = f"python3 snispoof-client.py -s {srv} -p {port} -l 10808 --strategy {strat}"
 
-    # Sing-box snippet
-    sample_sni = (cfg.get("sni_pool") or ["sanjesh.org"])[0]
-    singbox_config = {
-        "type": "vless",
-        "tag": "snispoof-vless",
-        "server": srv,
-        "server_port": port,
-        "uuid": "YOUR_UUID_HERE",
-        "tls": {
-            "enabled": True,
-            "server_name": sample_sni,
-            "insecure": True,
-            "fragment": {
-                "enabled": True,
-                "length": f"1-{cfg.get('fragment_size', 2)}",
-                "interval": f"2-{cfg.get('fragment_delay_ms', 3)}"
-            }
-        }
-    }
-    cfg["singbox_snippet"] = json.dumps(singbox_config, indent=2)
+    cfg["reality_port"] = d["r_port"]
+    cfg["reality_sni"] = d["r_sni"]
+    cfg["reality_pubkey"] = d["r_pubkey"]
+    cfg["reality_shortid"] = d["r_shortid"]
+    cfg["reality_uuid"] = d["r_uuid"]
+    cfg["sample_sni"] = d["sample_sni"]
 
-    # Xray snippet
-    xray_config = {
-        "tag": "snispoof-xray",
-        "protocol": "vless",
-        "settings": {
-            "vnext": [{
-                "address": srv,
-                "port": port,
-                "users": [{"id": "YOUR_UUID_HERE", "encryption": "none"}]
-            }]
-        },
-        "streamSettings": {
-            "network": "tcp",
-            "security": "tls",
-            "tlsSettings": {
-                "serverName": sample_sni,
-                "allowInsecure": True
-            },
-            "sockopt": {
-                "dialerProxy": "fragment",
-                "tcpKeepAliveInterval": 15
-            }
-        }
-    }
-    cfg["xray_snippet"] = json.dumps(xray_config, indent=2)
+    cfg["v2ray_vless_uri"] = d["v2ray_vless_uri"]
+    cfg["v2ray_relay_uri"] = d["v2ray_relay_uri"]
+    cfg["v2ray_socks_uri"] = d["v2ray_socks_uri"]
+
+    cfg["singbox_full_json"] = json.dumps(d["singbox_full"], indent=2, ensure_ascii=False)
+    cfg["singbox_snippet"] = json.dumps(d["singbox_snippet"], indent=2, ensure_ascii=False)
+    cfg["xray_full_json"] = json.dumps(d["xray_full"], indent=2, ensure_ascii=False)
+    cfg["xray_snippet"] = json.dumps(d["xray_snippet"], indent=2, ensure_ascii=False)
+
+    cfg["fragment_packets"] = f"1-{cfg.get('fragment_size', 2)}"
+    cfg["fragment_length"] = "10-100"
+    cfg["fragment_interval"] = f"2-{cfg.get('fragment_delay_ms', 3)}"
 
     return jsonify(cfg)
 
@@ -13347,6 +13614,28 @@ def api_download_snispoof_client_go():
     if os.path.exists(path):
         return send_file(path, as_attachment=True, download_name="snispoof-client.go", mimetype="text/x-go")
     return "File not found", 404
+
+@app.route("/download/snispoof-singbox.json", methods=["GET"])
+def api_download_snispoof_singbox_json():
+    from flask import Response
+    d = get_snispoof_reality_and_client_configs()
+    content = json.dumps(d["singbox_full"], indent=2, ensure_ascii=False)
+    return Response(
+        content,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment;filename=mhpanel-singbox-antidpi.json"}
+    )
+
+@app.route("/download/snispoof-xray.json", methods=["GET"])
+def api_download_snispoof_xray_json():
+    from flask import Response
+    d = get_snispoof_reality_and_client_configs()
+    content = json.dumps(d["xray_full"], indent=2, ensure_ascii=False)
+    return Response(
+        content,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment;filename=mhpanel-xray-antidpi.json"}
+    )
 
 
 # --- NoizDNS Protocol API ---
@@ -21735,6 +22024,8 @@ def apply_tunnel_interface(tun):
     mtu = int(tun.get("mtu", 1476))
     
     # Clean up existing iface first
+    if os.path.exists("/usr/local/bin/eoip"):
+        subprocess.run(["/usr/local/bin/eoip", "del", name], capture_output=True)
     subprocess.run(["ip", "link", "set", name, "down"], capture_output=True)
     subprocess.run(["ip", "link", "del", name], capture_output=True)
     subprocess.run(["ip", "tunnel", "del", name], capture_output=True)
@@ -21802,16 +22093,26 @@ def apply_tunnel_interface(tun):
             if r2.returncode != 0 and "File exists" not in r2.stderr:
                 return False, r.stderr.strip() or r2.stderr.strip()
     elif ttype == "eoip":
-        if is_ipv6_remote:
+        eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
+        eoip_bin = "/usr/sbin/eoip" if os.path.exists("/usr/sbin/eoip") else ("/usr/local/bin/eoip" if os.path.exists("/usr/local/bin/eoip") else None)
+        if eoip_bin:
+            subprocess.run(["modprobe", "eoip"], capture_output=True)
+            cmd = [eoip_bin, "add", "name", name, "tunnel-id", eoip_id]
+            if local_ip:
+                cmd += ["local", local_ip]
+            if remote_ip:
+                cmd += ["remote", remote_ip]
+            r = subprocess.run(cmd, capture_output=True, text=True)
+            if r.returncode != 0 and "exists" not in r.stderr.lower():
+                return False, r.stderr.strip()
+        elif is_ipv6_remote:
             subprocess.run(["modprobe", "ip6_gre"], capture_output=True)
-            eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
             cmd = ["ip", "link", "add", name, "type", "ip6gretap", "remote", remote_ip, "local", local_ip or "::", "key", eoip_id]
             r = subprocess.run(cmd, capture_output=True, text=True)
             if r.returncode != 0 and "File exists" not in r.stderr:
                 return False, r.stderr.strip()
         else:
             subprocess.run(["modprobe", "ip_gre"], capture_output=True)
-            eoip_id = str(tun.get("eoip_id") or tun.get("vni") or 10)
             cmd = ["ip", "link", "add", name, "type", "gretap", "remote", remote_ip, "local", local_ip, "key", eoip_id]
             r = subprocess.run(cmd, capture_output=True, text=True)
             if r.returncode != 0 and "File exists" not in r.stderr:
@@ -21999,6 +22300,10 @@ def apply_tunnel_interface(tun):
         subprocess.run(["ip", "-6", "addr", "add", tun["tunnel_local_ipv6"], "dev", name], capture_output=True)
     if ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
         subprocess.run(["ip", "link", "set", name, "mtu", str(mtu), "up"], capture_output=True)
+    if name == "wg_tun":
+        subprocess.run(["ip", "-6", "addr", "add", "2a01:e5c0:5671:100::2/64", "dev", name], capture_output=True)
+        subprocess.run(["ip", "-6", "route", "add", "2a01:e5c0:5671:100::/64", "dev", name], capture_output=True)
+        subprocess.run(["ip", "-6", "route", "add", "default", "via", "fd00:100:9::2", "dev", name, "metric", "10"], capture_output=True)
 
     # Enable IPv4 & IPv6 Forwarding
     subprocess.run(["sysctl", "-w", "net.ipv4.ip_forward=1"], capture_output=True)
@@ -22019,6 +22324,8 @@ def apply_tunnel_interface(tun):
 def remove_tunnel_interface(tun):
     name = tun["name"]
     ttype = tun.get("type", "gre")
+    if os.path.exists("/usr/local/bin/eoip"):
+        subprocess.run(["/usr/local/bin/eoip", "del", name], capture_output=True)
     subprocess.run(["iptables", "-t", "nat", "-D", "POSTROUTING", "-o", name, "-j", "MASQUERADE"], capture_output=True)
     subprocess.run(["iptables", "-t", "mangle", "-D", "POSTROUTING", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-o", name, "-j", "TCPMSS", "--clamp-mss-to-pmtu"], capture_output=True)
     subprocess.run(["ip6tables", "-t", "nat", "-D", "POSTROUTING", "-o", name, "-j", "MASQUERADE"], capture_output=True)
@@ -22908,9 +23215,14 @@ def update_boot_tunnels_script(data):
                 k_opt = f" key {tun['gre_key']}" if tun.get("gre_key") else ""
                 lines.append(f"ip -6 tunnel add {name} mode ip6gre remote {rem} local {loc} ttl 255{k_opt} 2>/dev/null")
             elif ttype == "eoip":
-                lines.append(f"modprobe ip_gre")
                 eo_id = tun.get("eoip_id") or tun.get("vni") or 10
-                lines.append(f"ip link add {name} type gretap remote {rem} local {loc} key {eo_id} 2>/dev/null")
+                eoip_bin = "/usr/sbin/eoip" if os.path.exists("/usr/sbin/eoip") else ("/usr/local/bin/eoip" if os.path.exists("/usr/local/bin/eoip") else None)
+                if eoip_bin:
+                    lines.append(f"modprobe eoip 2>/dev/null")
+                    lines.append(f"{eoip_bin} add name {name} tunnel-id {eo_id} local {loc} remote {rem} 2>/dev/null || ip link add {name} type gretap remote {rem} local {loc} key {eo_id} 2>/dev/null")
+                else:
+                    lines.append(f"modprobe ip_gre")
+                    lines.append(f"ip link add {name} type gretap remote {rem} local {loc} key {eo_id} 2>/dev/null")
             elif ttype == "eoipv6":
                 lines.append(f"modprobe ip6_gre")
                 eo_id = tun.get("eoip_id") or tun.get("vni") or 10
@@ -22943,6 +23255,21 @@ def update_boot_tunnels_script(data):
             elif ttype == "wireguard":
                 lines.append(f"modprobe wireguard")
                 lines.append(f"ip link add {name} type wireguard 2>/dev/null")
+                wgp = tun.get("wg_port", 51830)
+                priv_key = tun.get("wg_privkey", "")
+                if priv_key:
+                    lines.append(f"(echo '{priv_key}' > /tmp/{name}.key && wg set {name} listen-port {wgp} private-key /tmp/{name}.key && rm -f /tmp/{name}.key) 2>/dev/null")
+                if tun.get("wg_remote_pubkey"):
+                    ep_opt = f" endpoint {rem}:{wgp}" if rem else ""
+                    lines.append(f"wg set {name} peer {tun['wg_remote_pubkey']} allowed-ips 0.0.0.0/0,::/0 persistent-keepalive 25{ep_opt} 2>/dev/null")
+                w_port = tun.get("wg_port", 51830)
+                priv_key = tun.get("wg_privkey", "")
+                if priv_key:
+                    lines.append(f"echo '{priv_key}' > /tmp/{name}.key && chmod 600 /tmp/{name}.key")
+                    lines.append(f"wg set {name} listen-port {w_port} private-key /tmp/{name}.key 2>/dev/null && rm -f /tmp/{name}.key")
+                if tun.get("wg_remote_pubkey"):
+                    rem_endpoint = f"[{rem}]:{w_port}" if ":" in rem and not rem.startswith("[") else f"{rem}:{w_port}"
+                    lines.append(f"wg set {name} peer '{tun['wg_remote_pubkey']}' allowed-ips 0.0.0.0/0,::/0 endpoint '{rem_endpoint}' persistent-keepalive 25 2>/dev/null")
             elif ttype == "sit":
                 lines.append(f"modprobe sit")
                 lines.append(f"ip tunnel add {name} mode sit remote {rem} local {loc} ttl 255 2>/dev/null")
@@ -22970,6 +23297,12 @@ def update_boot_tunnels_script(data):
                     lines.append(f"ip addr add {in_loc} dev {name} 2>/dev/null")
             if ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
                 lines.append(f"ip link set {name} mtu {mtu} up 2>/dev/null")
+            if tun.get("tunnel_local_ipv6") and ttype not in ["openvpn", "openvpn_tap", "l2tp", "sstp", "pptp", "zerotier"]:
+                lines.append(f"ip -6 addr add {tun['tunnel_local_ipv6']} dev {name} 2>/dev/null")
+            if name == "wg_tun":
+                lines.append(f"ip -6 addr add 2a01:e5c0:5671:100::2/64 dev {name} 2>/dev/null")
+                lines.append(f"ip -6 route add 2a01:e5c0:5671:100::/64 dev {name} 2>/dev/null")
+                lines.append(f"ip -6 route add default via fd00:100:9::2 dev {name} metric 10 2>/dev/null")
             if tun.get("opt_nat", True):
                 lines.append(f"iptables -t nat -A POSTROUTING -o {name} -j MASQUERADE 2>/dev/null")
                 lines.append(f"ip6tables -t nat -A POSTROUTING -o {name} -j MASQUERADE 2>/dev/null")
@@ -23837,9 +24170,10 @@ def api_ping_tunnel(tun_id):
         return jsonify({"error": "تونل یافت نشد."}), 404
 
     req = request.get_json() or {} if request.is_json else {}
-    target = (req.get("target") or tun.get("tunnel_remote_ip", "")).strip()
-    if not target and req.get("ipv6") and tun.get("tunnel_remote_ipv6"):
+    if req.get("ipv6") and tun.get("tunnel_remote_ipv6") and not req.get("target"):
         target = tun.get("tunnel_remote_ipv6", "").strip()
+    else:
+        target = (req.get("target") or tun.get("tunnel_remote_ip", "")).strip()
     if "/" in target:
         target = target.split("/")[0]
     if not target:
@@ -27122,6 +27456,7 @@ def api_singbox_logs():
         lines_limit = int(request.args.get("lines") or 150)
     except Exception:
         lines_limit = 150
+    lines_limit = max(10, min(lines_limit, 500))
     level_filter = (request.args.get("level") or "").strip().upper()
     search_q = (request.args.get("search") or "").strip().lower()
 
@@ -27129,8 +27464,10 @@ def api_singbox_logs():
     log_src = "/var/log/sing-box.log"
     if os.path.exists("/var/log/sing-box.log") and os.path.getsize("/var/log/sing-box.log") > 0:
         try:
+            from collections import deque
             with open("/var/log/sing-box.log", "r", encoding="utf-8", errors="ignore") as f:
-                raw_lines = f.readlines()
+                max_read = max(lines_limit * 5, 500)
+                raw_lines = list(deque(f, maxlen=max_read))
         except Exception:
             raw_lines = []
 
@@ -27155,8 +27492,15 @@ def api_singbox_logs():
 
     logs_slice = filtered[-lines_limit:]
 
-    r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
-    is_active = (r.stdout.strip() == "active")
+    # Cache is-active check for 5s to eliminate unnecessary subprocess calls
+    global _singbox_active_cache
+    now_ts = time.time()
+    if "_singbox_active_cache" not in globals():
+        _singbox_active_cache = {"val": True, "ts": 0}
+    if now_ts - _singbox_active_cache.get("ts", 0) > 5.0:
+        r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
+        _singbox_active_cache = {"val": (r.stdout.strip() == "active"), "ts": now_ts}
+    is_active = _singbox_active_cache.get("val", True)
 
     return jsonify({
         "success": True,
@@ -27718,6 +28062,81 @@ def api_singbox_users_bulk_add():
         "user_links_map": user_links_map
     })
 
+def generate_singbox_users_export_payload(target_users, category_name="All"):
+    server_ip = get_server_public_ip()
+    all_links = []
+    all_sub_urls = []
+    all_sub_b64_urls = []
+    all_sub_json_urls = []
+    sub_user_links = []
+    csv_rows = ["Username,Password,UUID,Category,Status,TrafficLimitGB,UsedTraffic,ExpireDate,SubURL,SubB64URL,InboundTag,ShareLink"]
+    grouped = {}
+
+    try:
+        all_inbounds = {}
+        if os.path.exists(SINGBOX_CONFIG_FILE):
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+            all_inbounds = {ib.get("tag"): ib for ib in cfg.get("inbounds", [])}
+
+        for u in target_users:
+            uname = u["username"]
+            grouped[uname] = []
+            sub_url = u.get("sub_url", "")
+            sub_b64_url = u.get("sub_b64_url", "")
+            sub_json_url = u.get("sub_json_url", "")
+
+            if sub_url:
+                all_sub_urls.append(sub_url)
+                sub_user_links.append(f"{uname}: {sub_url}")
+            if sub_b64_url:
+                all_sub_b64_urls.append(sub_b64_url)
+            if sub_json_url:
+                all_sub_json_urls.append(sub_json_url)
+
+            status_str = "فعال" if (u.get("enabled") is not False) else "غیرفعال"
+            used_fmt = u.get("used_traffic_formatted") or "0 B"
+            u_inbounds = u.get("inbounds", [])
+            has_inb = False
+            for ib_tag in u_inbounds:
+                if ib_tag in all_inbounds:
+                    has_inb = True
+                    link = generate_singbox_share_link(all_inbounds[ib_tag], server_ip, target_user=u)
+                    all_links.append(link)
+                    grouped[uname].append({"tag": ib_tag, "link": link})
+                    csv_rows.append(f'"{u["username"]}","{u.get("password","")}","{u.get("uuid","")}","{u.get("category","")}","{status_str}","{u.get("traffic_limit_gb",0)}","{used_fmt}","{u.get("expire_date","")}","{sub_url}","{sub_b64_url}","{ib_tag}","{link}"')
+            if not has_inb:
+                csv_rows.append(f'"{u["username"]}","{u.get("password","")}","{u.get("uuid","")}","{u.get("category","")}","{status_str}","{u.get("traffic_limit_gb",0)}","{used_fmt}","{u.get("expire_date","")}","{sub_url}","{sub_b64_url}","",""')
+    except Exception as e:
+        return {"error": f"خطا در ایجاد خروجی: {e}"}
+
+    return {
+        "success": True,
+        "category": category_name,
+        "users_count": len(target_users),
+        "links_count": len(all_links),
+        "sub_links_count": len(all_sub_urls),
+        "all_sub_urls_text": "\n".join(all_sub_urls),
+        "all_sub_b64_urls_text": "\n".join(all_sub_b64_urls),
+        "all_sub_json_urls_text": "\n".join(all_sub_json_urls),
+        "sub_links_formatted_text": "\n".join(sub_user_links),
+        "all_links_text": "\n".join(all_links),
+        "csv_text": "\n".join(csv_rows),
+        "grouped": grouped,
+        "users": [{
+            "username": u["username"],
+            "sub_url": u.get("sub_url", ""),
+            "sub_b64_url": u.get("sub_b64_url", ""),
+            "sub_json_url": u.get("sub_json_url", ""),
+            "category": u.get("category", ""),
+            "enabled": u.get("enabled", True),
+            "expire_date": u.get("expire_date", ""),
+            "traffic_limit_gb": u.get("traffic_limit_gb", 0),
+            "links": grouped.get(u["username"], [])
+        } for u in target_users]
+    }
+
+
 @app.route("/api/singbox/category/<path:category_name>/export", methods=["GET"])
 def api_singbox_category_export(category_name):
     if not check_login():
@@ -27732,37 +28151,168 @@ def api_singbox_category_export(category_name):
     if not target_users:
         return jsonify({"error": f"هیچ کاربری در دسته «{category_name}» یافت نشد."}), 404
 
-    server_ip = get_server_public_ip()
-    all_links = []
-    csv_rows = ["Username,Password,UUID,Category,TrafficLimitGB,ExpireDate,InboundTag,ShareLink"]
-    grouped = {}
+    payload = generate_singbox_users_export_payload(target_users, category_name)
+    if "error" in payload:
+        return jsonify(payload), 500
+    return jsonify(payload)
 
-    try:
-        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
-            cfg = json.load(f)
-        all_inbounds = {ib.get("tag"): ib for ib in cfg.get("inbounds", [])}
 
-        for u in target_users:
-            uname = u["username"]
-            grouped[uname] = []
-            u_inbounds = u.get("inbounds", [])
-            for ib_tag in u_inbounds:
-                if ib_tag in all_inbounds:
-                    link = generate_singbox_share_link(all_inbounds[ib_tag], server_ip, target_user=u)
-                    all_links.append(link)
-                    grouped[uname].append({"tag": ib_tag, "link": link})
-                    csv_rows.append(f'"{u["username"]}","{u["password"]}","{u["uuid"]}","{u.get("category","")}","{u.get("traffic_limit_gb",0)}","{u.get("expire_date","")}","{ib_tag}","{link}"')
-    except Exception as e:
-        return jsonify({"error": f"خطا در خواندن کانفیگ هسته: {e}"}), 500
+@app.route("/api/singbox/users/bulk-export", methods=["POST", "GET"])
+def api_singbox_users_bulk_export():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    users = load_singbox_users()
+    users_map = {u.get("username"): u for u in users}
+
+    target_users = []
+    if request.method == "POST":
+        req = request.get_json() or {}
+        requested_usernames = req.get("usernames", [])
+        if requested_usernames:
+            target_users = [users_map[uname] for uname in requested_usernames if uname in users_map]
+        else:
+            category_filter = req.get("category", "ALL")
+            if category_filter and category_filter != "ALL" and category_filter != "همه دسته‌ها":
+                target_users = [u for u in users if u.get("category") == category_filter]
+            else:
+                target_users = users
+    else:
+        u_list = request.args.get("usernames", "")
+        if u_list:
+            requested = [x.strip() for x in u_list.split(",") if x.strip()]
+            target_users = [users_map[uname] for uname in requested if uname in users_map]
+        else:
+            cat = request.args.get("category", "ALL")
+            if cat and cat != "ALL" and cat != "همه دسته‌ها":
+                target_users = [u for u in users if u.get("category") == cat]
+            else:
+                target_users = users
+
+    if not target_users:
+        return jsonify({"error": "هیچ کاربری برای خروجی انتخاب نشده است."}), 404
+
+    title = f"{len(target_users)} کاربر انتخابی"
+    payload = generate_singbox_users_export_payload(target_users, title)
+    if "error" in payload:
+        return jsonify(payload), 500
+    return jsonify(payload)
+
+
+@app.route("/api/singbox/users/bulk-action", methods=["POST"])
+def api_singbox_users_bulk_action():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.get_json() or {}
+    action = data.get("action")
+    target_usernames = data.get("usernames", [])
+    if not action or not isinstance(target_usernames, list) or not target_usernames:
+        return jsonify({"error": "عملیات یا لیست کاربران مشخص نشده است."}), 400
+
+    users = load_singbox_users()
+    users_map = {u.get("username"): u for u in users}
+    matched_users = [users_map[uname] for uname in target_usernames if uname in users_map]
+
+    if not matched_users:
+        return jsonify({"error": "هیچ کاربر منطبقی در سیستم یافت نشد."}), 404
+
+    count = len(matched_users)
+    msg = ""
+    needs_sync = False
+
+    if action == "enable":
+        for u in matched_users:
+            u["enabled"] = True
+        msg = f"{count} کاربر با موفقیت فعال شدند."
+        needs_sync = True
+
+    elif action == "disable":
+        for u in matched_users:
+            u["enabled"] = False
+        msg = f"{count} کاربر با موفقیت غیرفعال شدند."
+        needs_sync = True
+
+    elif action == "delete":
+        del_set = set(target_usernames)
+        users = [u for u in users if u.get("username") not in del_set]
+        msg = f"{count} کاربر با موفقیت به طور کامل حذف شدند."
+        needs_sync = True
+
+    elif action == "reset_traffic":
+        for u in matched_users:
+            u["upload_bytes"] = 0
+            u["download_bytes"] = 0
+            u["used_traffic_bytes"] = 0
+        msg = f"ترافیک مصرفی {count} کاربر با موفقیت صفر شد."
+        needs_sync = True
+
+    elif action == "set_category":
+        new_cat = (data.get("category") or "").strip()
+        if not new_cat:
+            return jsonify({"error": "دسته‌بندی جدید مشخص نشده است."}), 400
+        cats = load_singbox_categories()
+        if new_cat not in cats:
+            cats.append(new_cat)
+            save_singbox_categories(cats)
+        for u in matched_users:
+            u["category"] = new_cat
+        msg = f"دسته‌بندی {count} کاربر به «{new_cat}» تغییر یافت."
+
+    elif action == "extend_expiry":
+        try:
+            days = int(data.get("days") or 30)
+        except Exception:
+            days = 30
+        today = datetime.now().date()
+        for u in matched_users:
+            cur_exp = (u.get("expire_date") or "").strip()
+            base_date = today
+            if cur_exp and not u.get("is_waiting_first_use"):
+                try:
+                    d_obj = datetime.strptime(cur_exp, "%Y-%m-%d").date()
+                    if d_obj > today:
+                        base_date = d_obj
+                except Exception:
+                    base_date = today
+            new_date = base_date + timedelta(days=days)
+            u["expire_date"] = new_date.strftime("%Y-%m-%d")
+            u["expiry_type"] = "fixed_date"
+            u["is_expired"] = False
+        msg = f"اعتبار {count} کاربر به مدت {days} روز تمدید شد."
+
+    elif action == "set_traffic_limit":
+        try:
+            limit_gb = float(data.get("traffic_limit_gb") or 0.0)
+        except Exception:
+            limit_gb = 0.0
+        for u in matched_users:
+            u["traffic_limit_gb"] = limit_gb
+        lbl = f"{limit_gb:g} GB" if limit_gb > 0 else "نامحدود"
+        msg = f"سقف حجم ترافیک {count} کاربر روی {lbl} تنظیم شد."
+
+    elif action == "assign_inbounds":
+        inbounds = data.get("inbounds")
+        if inbounds is None or not isinstance(inbounds, list):
+            return jsonify({"error": "لیست اینباندها نامعتبر است."}), 400
+        for u in matched_users:
+            u["inbounds"] = inbounds
+        msg = f"اینباندهای مجاز {count} کاربر با موفقیت تغییر یافت."
+        needs_sync = True
+
+    else:
+        return jsonify({"error": f"عملیات «{action}» تعریف نشده است."}), 400
+
+    save_singbox_users(users)
+    if needs_sync:
+        ok, err = sync_singbox_users_to_config()
+        if not ok:
+            return jsonify({"error": f"خطا در همگام‌سازی با هسته: {err}"}), 500
 
     return jsonify({
         "success": True,
-        "category": category_name,
-        "users_count": len(target_users),
-        "links_count": len(all_links),
-        "all_links_text": "\n".join(all_links),
-        "csv_text": "\n".join(csv_rows),
-        "grouped": grouped
+        "message": msg,
+        "count": count,
+        "action": action
     })
 
 

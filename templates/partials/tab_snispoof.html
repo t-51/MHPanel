@@ -261,6 +261,72 @@
             </form>
         </div>
 
+        <!-- Step-by-Step Educational Guide for V2Ray & Sing-box -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(59, 130, 246, 0.25); background: rgba(15, 23, 42, 0.55);">
+            <div class="config-header" style="margin-bottom: 14px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:38px; height:38px; border-radius:10px; background: rgba(59, 130, 246, 0.15); color:#38bdf8; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="book-open-check" style="width:20px; height:20px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="config-title" style="margin:0; font-size:16px; color:#38bdf8;">
+                            راهنمای جامع اتصال کلاینت V2Ray و Sing-box از طریق جعل SNI و شکستن پکت‌ها (Anti-DPI)
+                        </h3>
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+                            توضیح شفاف اقدامات سمت سرور و چگونگی پیکربندی و راه‌اندازی سمت کلاینت جهت عبور ۱۰۰٪ تضمینی از فیلترینگ
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 14px; font-size: 12.5px;">
+                
+                <!-- Server Side Card -->
+                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(236, 72, 153, 0.2);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#ec4899;">
+                        <i data-lucide="server" style="width:16px; height:16px;"></i>
+                        <span>۱. وضعیت و اقدامات سمت سرور (Server-Side)</span>
+                    </div>
+                    <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
+                        <li>هسته اصلی <strong>Sing-box Reality</strong> روی پورت <code>20443</code> به صورت پیش‌فرض فعال و با کلیدهای امنیتی X25519 در حال کار است.</li>
+                        <li>سرویس <strong>MHPanel SNI Spoofing</strong> روی پورت <code>15443</code> فعال است و ورودی را دریافت کرده و پس از سرهم‌بندی پکت‌های قطعه‌قطعه شده به هسته لوکال (Upstream: <code>127.0.0.1:20443</code>) رله می‌کند.</li>
+                        <li>پورت‌های فایروال <code>15443</code> و <code>20443</code> به صورت خودکار در فایروال سرور (UFW/Iptables) باز شده‌اند.</li>
+                    </ul>
+                </div>
+
+                <!-- Client Side V2Ray Card -->
+                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#38bdf8;">
+                        <i data-lucide="smartphone" style="width:16px; height:16px;"></i>
+                        <span>۲. اتصال با کلاینت V2Ray (v2rayN / v2rayNG)</span>
+                    </div>
+                    <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
+                        <li><strong>گام اول:</strong> لینک <code>vless://...</code> آماده در تب زیر را کپی کرده و در برنامه پیست (Import) کنید.</li>
+                        <li><strong>گام دوم (فعال‌سازی Fragment):</strong> در تنظیمات (Settings) برنامه v2rayN یا v2rayNG گزینه <strong>Fragment</strong> را فعال کنید:
+                            <div style="background:rgba(0,0,0,0.3); border-radius:6px; padding:4px 8px; margin:4px 0; font-family:'JetBrains Mono',monospace; color:#38bdf8; font-size:11px;">
+                                Packets: 1-3 | Length: 10-100 | Interval: 2-5ms
+                            </div>
+                        </li>
+                        <li><strong>عملکرد:</strong> پکت Handshake به قطعات بسیار ریز خرد شده و سیستم بازرسی عمیق پکت (DPI) فیلترینگ قادر به خواندن SNI نبوده و اجازه عبور می‌دهد.</li>
+                    </ul>
+                </div>
+
+                <!-- Client Side Sing-box Card -->
+                <div style="background: var(--bg-base); border-radius: 10px; padding: 14px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px; font-weight:700; color:#10b981;">
+                        <i data-lucide="box" style="width:16px; height:16px;"></i>
+                        <span>۳. کانفیگ کامل Sing-box (عبور فوری از فیلترینگ)</span>
+                    </div>
+                    <ul style="margin:0; padding-right:18px; color:var(--text-muted); line-height:1.7; font-size:11.5px;">
+                        <li><strong>کانفیگ آماده:</strong> یک فایل JSON کامل حاوی اینباند TUN (وی‌پی‌ان کامل سیستم)، تونل Mixed Socks/HTTP و دور زدن سایت‌های ایرانی تولید شده است.</li>
+                        <li>روی دکمه <strong>«دانلود فایل JSON سینگ‌باکس»</strong> کلیک کنید یا متن کانفیگ را کپی کرده و در اپلیکیشن Sing-box ویندوز، اندروید (SFA)، مک یا آیفون (SFI) وارد کنید.</li>
+                        <li>تنظیمات تقطیع TLS Fragment مستقیماً داخل بلاک <code>outbounds</code> فایل کانفیگ تعبیه شده و بدون نیاز به تنظیم دستی فعال است.</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Client Connection & Downloads Hub -->
         <div class="glass-card config-card" style="border: 1px solid var(--border-glow);">
             <div class="config-header" style="margin-bottom: 16px;">
@@ -270,10 +336,10 @@
                     </div>
                     <div>
                         <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="snispoof_client_hub_title">
-                            مرکز اتصال و دریافت اسکریپت‌ها و برنامه‌های کلاینت (Client Hub)
+                            مرکز اتصال و دریافت کانفیگ‌ها و برنامه‌های کلاینت (Client Hub)
                         </h3>
                         <p style="font-size:12px; color:var(--text-muted); margin-top:2px;" data-i18n="snispoof_client_hub_sub">
-                            دستورات تک‌خطی و کلاینت‌های اختصاصی ویندوز، لینوکس، مک و کانفیگ‌های Sing-box / Xray
+                            کانفیگ‌های کامل و آماده Sing-box، لینک‌های V2Ray VLESS، دستورات تک‌خطی و کلاینت‌های اختصاصی ویندوز و لینوکس
                         </p>
                     </div>
                 </div>
@@ -281,6 +347,14 @@
 
             <!-- Client Download Buttons Bar -->
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
+                <a href="/download/snispoof-singbox.json" download class="btn btn-primary btn-sm" style="flex:1; min-width:180px; justify-content:center; padding: 10px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
+                    <i data-lucide="box" style="width:16px; height:16px; margin-left:6px;"></i>
+                    <span style="font-weight:700;">دانلود کانفیگ کامل Sing-box (JSON)</span>
+                </a>
+                <a href="/download/snispoof-xray.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:170px; justify-content:center; padding: 10px; border-color: rgba(168, 85, 247, 0.4);">
+                    <i data-lucide="code-2" style="width:16px; height:16px; margin-left:6px; color:#c084fc;"></i>
+                    <span>دانلود کانفیگ کامل Xray (JSON)</span>
+                </a>
                 <a href="/download/snispoof-client.exe" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px; border-color: rgba(59, 130, 246, 0.3);">
                     <i data-lucide="binary" style="width:16px; height:16px; margin-left:6px; color:#3b82f6;"></i>
                     <span>دانلود کلاینت ویندوز (EXE)</span>
@@ -289,11 +363,7 @@
                     <i data-lucide="terminal" style="width:16px; height:16px; margin-left:6px; color:#06b6d4;"></i>
                     <span>دانلود اسکریپت PowerShell</span>
                 </a>
-                <a href="/download/snispoof-client.bat" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
-                    <i data-lucide="play" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
-                    <span>دانلود لانچر Batch (.bat)</span>
-                </a>
-                <a href="/download/snispoof-client.py" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
+                <a href="/download/snispoof-client.py" download class="btn btn-secondary btn-sm" style="flex:1; min-width:150px; justify-content:center; padding: 10px;">
                     <i data-lucide="file-code" style="width:16px; height:16px; margin-left:6px; color:#f59e0b;"></i>
                     <span>دانلود کلاینت پایتون (.py)</span>
                 </a>
@@ -302,14 +372,68 @@
             <!-- Terminal Tabs for Client Commands -->
             <div style="background: #0f172a; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
                 <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); overflow-x:auto;">
-                    <button type="button" class="snispoof-tab-btn active" onclick="switchSniCliTab('powershell')" style="padding:10px 16px; border:none; background:none; color:#38bdf8; font-weight:700; font-size:12px; cursor:pointer; border-bottom:2px solid #38bdf8;">Windows PowerShell</button>
+                    <button type="button" class="snispoof-tab-btn active" onclick="switchSniCliTab('vless')" style="padding:10px 16px; border:none; background:none; color:#38bdf8; font-weight:700; font-size:12px; cursor:pointer; border-bottom:2px solid #38bdf8;">لینک V2Ray (VLESS Reality)</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-full')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">کانفیگ کامل Sing-box (ضد فیلتر)</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('xray-full')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">کانفیگ کامل Xray Fragment</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('powershell')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Windows PowerShell</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('python')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Python CLI</button>
-                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Sing-box Outbound JSON</button>
-                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('xray')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Xray VLESS Fragment JSON</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-outbound')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">تکه کد Outbound سینگ‌باکس</button>
                 </div>
 
-                <!-- PowerShell View -->
-                <div id="snispoof-cli-powershell" class="snispoof-cli-content" style="padding:16px;">
+                <!-- Tab 1: V2Ray VLESS Reality Link -->
+                <div id="snispoof-cli-vless" class="snispoof-cli-content" style="padding:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span style="font-size:12px; font-weight:700; color:#38bdf8;">لینک اشتراک VLESS + Reality با استتار Chrome (مخصوص v2rayN, v2rayNG, V2Box, FoXray):</span>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">پس از کپی، در کلاینت گزینه Fragment را فعال کرده و مقادیر <span id="snispoof-vless-params-hint" style="color:#fcd34d; font-family:'JetBrains Mono',monospace;">packets: 1-3, length: 10-100, interval: 2-5</span> قرار دهید.</div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-v2ray-vless')" style="padding:6px 14px; font-size:11.5px; border-color:rgba(56, 189, 248, 0.4);">
+                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px; color:#38bdf8;"></i> <span data-i18n="copy">کپی لینک VLESS</span>
+                        </button>
+                    </div>
+                    <textarea id="snispoof-v2ray-vless" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(56, 189, 248, 0.25); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab 2: Sing-box Full Config (Ready-to-use Anti-DPI JSON) -->
+                <div id="snispoof-cli-singbox-full" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span style="font-size:12px; font-weight:700; color:#10b981;">کانفیگ کامل آماده Sing-box با حالت وی‌پی‌ان کل سیستم (TUN)، پروکسی Mixed و تقطیع TLS:</span>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">این کانفیگ مستقیماً در نرم‌افزار Sing-box (ویندوز، اندروید، iOS، لینوکس و مک) کار می‌کند و نیازی به هیچ تنظیم اضافه‌ای ندارد.</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <a href="/download/snispoof-singbox.json" download class="btn btn-secondary btn-sm" style="padding:6px 12px; font-size:11.5px; border-color:rgba(16, 185, 129, 0.4);">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px; color:#10b981;"></i> <span>دانلود فایل .json</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-full-singbox')" style="padding:6px 12px; font-size:11.5px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="copy">کپی JSON</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="snispoof-full-singbox" readonly style="width:100%; height:220px; background: rgba(0,0,0,0.4); border:1px solid rgba(16, 185, 129, 0.25); border-radius:8px; color:#34d399; font-family:'JetBrains Mono', monospace; font-size:11px; padding:10px; resize:vertical;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab 3: Xray Full Config -->
+                <div id="snispoof-cli-xray-full" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span style="font-size:12px; font-weight:700; color:#c084fc;">کانفیگ کامل Xray Client با پورت‌های لوکال ساکس/اچ‌تی‌تی‌پی و دیالر پروکسی Fragment:</span>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">جهت اجرا مستقیم با xray.exe یا استفاده در هسته‌های کلاینت Xray-core.</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <a href="/download/snispoof-xray.json" download class="btn btn-secondary btn-sm" style="padding:6px 12px; font-size:11.5px; border-color:rgba(168, 85, 247, 0.4);">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px; color:#c084fc;"></i> <span>دانلود فایل .json</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-full-xray')" style="padding:6px 12px; font-size:11.5px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="copy">کپی JSON</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="snispoof-full-xray" readonly style="width:100%; height:220px; background: rgba(0,0,0,0.4); border:1px solid rgba(168, 85, 247, 0.25); border-radius:8px; color:#c084fc; font-family:'JetBrains Mono', monospace; font-size:11px; padding:10px; resize:vertical;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab 4: PowerShell View -->
+                <div id="snispoof-cli-powershell" class="snispoof-cli-content" style="padding:16px; display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <span style="font-size:11px; color:#94a3b8;">دستور اجرای مستقیم در PowerShell (ایجاد ساکس ۵ لوکال روی پورت 10808):</span>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-cmd-ps')" style="padding:4px 10px; font-size:11px;">
@@ -319,7 +443,7 @@
                     <textarea id="snispoof-cmd-ps" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; padding:10px; resize:none;" dir="ltr"></textarea>
                 </div>
 
-                <!-- Python View -->
+                <!-- Tab 5: Python View -->
                 <div id="snispoof-cli-python" class="snispoof-cli-content" style="padding:16px; display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                         <span style="font-size:11px; color:#94a3b8;">دستور اجرای کلاینت با پایتون (لینوکس / مک / ویندوز):</span>
@@ -330,10 +454,10 @@
                     <textarea id="snispoof-cmd-py" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#4ade80; font-family:'JetBrains Mono', monospace; font-size:12px; padding:10px; resize:none;" dir="ltr"></textarea>
                 </div>
 
-                <!-- Sing-box JSON View -->
-                <div id="snispoof-cli-singbox" class="snispoof-cli-content" style="padding:16px; display:none;">
+                <!-- Tab 6: Sing-box Outbound Snippet -->
+                <div id="snispoof-cli-singbox-outbound" class="snispoof-cli-content" style="padding:16px; display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-size:11px; color:#94a3b8;">کانفیگ رسمی Sing-box با قابلیت TLS Fragment و Fake SNI:</span>
+                        <span style="font-size:11px; color:#94a3b8;">تکه کد Outbound سینگ‌باکس (جهت درج در کانفیگ‌های موجود):</span>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-snippet-singbox')" style="padding:4px 10px; font-size:11px;">
                             <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
                         </button>
@@ -341,16 +465,6 @@
                     <textarea id="snispoof-snippet-singbox" readonly style="width:100%; height:140px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fcd34d; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
                 </div>
 
-                <!-- Xray JSON View -->
-                <div id="snispoof-cli-xray" class="snispoof-cli-content" style="padding:16px; display:none;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span style="font-size:11px; color:#94a3b8;">کانفیگ رسمی Xray Outbound با فیلتر Fragment و SNI Whitelist:</span>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-snippet-xray')" style="padding:4px 10px; font-size:11px;">
-                            <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> <span data-i18n="copy">کپی</span>
-                        </button>
-                    </div>
-                    <textarea id="snispoof-snippet-xray" readonly style="width:100%; height:140px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#c084fc; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
-                </div>
             </div>
         </div>
 

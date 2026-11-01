@@ -263,12 +263,18 @@
                         </select>
                     </div>
 
-                    <button class="btn btn-secondary btn-sm" onclick="exportCurrentCategoryLinks()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-color: rgba(99, 102, 241, 0.3);" title="خروجی و دانلود یکپارچه تمام لینک‌های ساب و کانفیگ‌های این دسته">
-                        <i data-lucide="share-2" style="width: 14px; height: 14px;"></i>
-                        <span>خروجی لینک‌های دسته</span>
+                    <!-- Export All Sub Links Button -->
+                    <button class="btn btn-secondary btn-sm" onclick="exportSingboxSubLinks('ALL')" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.35); font-weight: 700;" title="خروجی و دانلود یکپارچه تمام لینک‌های سابسکرایب (Sub URLs)">
+                        <i data-lucide="rss" style="width: 14px; height: 14px;"></i>
+                        <span>خروجی همه ساب‌لینک‌ها</span>
                     </button>
 
-                    <button class="btn btn-secondary btn-sm" onclick="openSingboxBulkUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.3);" title="ساخت انبوه کاربران با تولید پسورد، UUID و کانفیگ">
+                    <button class="btn btn-secondary btn-sm" onclick="exportCurrentCategoryLinks()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-color: rgba(99, 102, 241, 0.3);" title="خروجی و دانلود یکپارچه تمام کانفیگ‌های خام دسته">
+                        <i data-lucide="share-2" style="width: 14px; height: 14px;"></i>
+                        <span>خروجی کانفیگ‌های دسته</span>
+                    </button>
+
+                    <button class="btn btn-secondary btn-sm" onclick="openSingboxBulkUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(14, 165, 233, 0.12); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);" title="ساخت انبوه کاربران با تولید پسورد، UUID و کانفیگ">
                         <i data-lucide="users" style="width: 14px; height: 14px;"></i>
                         <span>ساخت انبوه کاربران</span>
                     </button>
@@ -284,10 +290,83 @@
                 </div>
             </div>
 
+            <!-- Bulk Actions Toolbar (Visible when 1+ users checked) -->
+            <div id="sb-users-bulk-bar" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(99, 102, 241, 0.4); box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 12px; padding: 10px 16px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="badge-pill" id="sb-bulk-selected-count" style="background: rgba(99, 102, 241, 0.25); color: #818cf8; font-weight: 700; font-size: 12.5px; padding: 4px 12px; border-radius: 6px; font-family: 'JetBrains Mono';">
+                        ۰ کاربر انتخاب شده
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="deselectAllSingboxUsers()" style="padding: 4px 10px; font-size: 11px;">
+                        لغو انتخاب
+                    </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <!-- Bulk Sub Export -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('sub')" style="display: flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.35); font-weight: 700;" title="خروجی و مشاهده ساب‌لینک‌های کاربران انتخاب شده">
+                        <i data-lucide="rss" style="width: 13px; height: 13px;"></i>
+                        <span>خروجی ساب‌لینک‌ها</span>
+                    </button>
+
+                    <!-- Bulk Share Links Export -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('raw')" style="display: flex; align-items: center; gap: 4px; background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.35);" title="خروجی لینک‌های خام کانفیگ کاربران انتخاب شده">
+                        <i data-lucide="share-2" style="width: 13px; height: 13px;"></i>
+                        <span>خروجی کانفیگ‌ها</span>
+                    </button>
+
+                    <span style="color: var(--border-color); height: 18px; width: 1px; background: var(--border-color); margin: 0 2px;"></span>
+
+                    <!-- Bulk Enable -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('enable')" style="display: flex; align-items: center; gap: 4px; color: #10b981; border-color: rgba(16, 185, 129, 0.3);" title="فعال‌سازی دسته‌جمعی">
+                        <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i>
+                        <span>فعال‌سازی</span>
+                    </button>
+
+                    <!-- Bulk Disable -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('disable')" style="display: flex; align-items: center; gap: 4px; color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);" title="غیرفعال‌سازی دسته‌جمعی">
+                        <i data-lucide="pause-circle" style="width: 13px; height: 13px;"></i>
+                        <span>غیرفعال</span>
+                    </button>
+
+                    <!-- Bulk Reset Traffic -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('reset_traffic')" style="display: flex; align-items: center; gap: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);" title="صفر کردن ترافیک مصرفی">
+                        <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
+                        <span>ریست ترافیک</span>
+                    </button>
+
+                    <!-- Bulk Change Category -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkChangeCategoryModal()" style="display: flex; align-items: center; gap: 4px;" title="تغییر دسته‌بندی">
+                        <i data-lucide="folder" style="width: 13px; height: 13px;"></i>
+                        <span>تغییر دسته</span>
+                    </button>
+
+                    <!-- Bulk Extend Expiry -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkExtendExpiryModal()" style="display: flex; align-items: center; gap: 4px;" title="تمدید یا افزایش روزهای اعتبار">
+                        <i data-lucide="calendar-plus" style="width: 13px; height: 13px;"></i>
+                        <span>افزایش اعتبار (+روز)</span>
+                    </button>
+
+                    <!-- Bulk Set Traffic Limit -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkSetTrafficLimitModal()" style="display: flex; align-items: center; gap: 4px;" title="تنظیم سقف حجم">
+                        <i data-lucide="hard-drive" style="width: 13px; height: 13px;"></i>
+                        <span>تنظیم حجم (GB)</span>
+                    </button>
+
+                    <!-- Bulk Delete -->
+                    <button type="button" class="btn btn-danger btn-sm" onclick="bulkActionSingboxUsers('delete')" style="display: flex; align-items: center; gap: 4px;" title="حذف کامل کاربران انتخاب شده">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                        <span>حذف</span>
+                    </button>
+                </div>
+            </div>
+
             <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
                     <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
                         <tr>
+                            <th style="width: 40px; padding: 12px 14px; text-align: center;">
+                                <input type="checkbox" id="sb-users-select-all" onchange="toggleSelectAllSingboxUsers(this.checked)" style="width: 16px; height: 16px; cursor: pointer;" title="انتخاب همه کاربران">
+                            </th>
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_username">نام کاربری</th>
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_assigned_inbounds">کانفیگ‌های مجاز</th>
                             <th style="padding: 12px 16px; font-weight: 600; min-width: 220px;" data-i18n="singbox_col_traffic">حجم و ترافیک مصرفی</th>
@@ -298,7 +377,7 @@
                     </thead>
                     <tbody id="singbox-users-table-body">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 24px; color: var(--text-muted);" data-i18n="singbox_loading_users">
+                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);" data-i18n="singbox_loading_users">
                                 در حال دریافت لیست کاربران محلی سینگ‌باکس...
                             </td>
                         </tr>
@@ -1250,58 +1329,188 @@
         </div>
     </div>
 
-    <!-- Modal 9: Multi-Link and Bulk Export Viewer -->
-    <div class="modal" id="modal-singbox-export-links">
-        <div class="modal-card" style="max-width: 780px; width: 95%;">
-            <header class="modal-header">
-                <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="file-text" style="color: #6366f1;"></i>
-                    <span id="sb-export-modal-title">خروجی یکپارچه لینک‌های اتصال و کانفیگ‌ها</span>
+    <!-- Modal 9: Multi-Link and Bulk Export Viewer (Upgraded with Tabs & Full Sub-Link Support) -->
+    <div class="modal" id="modal-singbox-export-links" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
+        <div class="modal-card" style="max-width: 840px; width: 95%; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; border-radius: 14px;">
+            <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);">
+                <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px;">
+                    <i data-lucide="share-2" style="color: #10b981;"></i>
+                    <span id="sb-export-modal-title">خروجی یکپارچه ساب‌لینک‌ها و کانفیگ‌های کاربران</span>
                 </h3>
-                <button type="button" class="modal-close" onclick="closeSingboxExportModal()">
+                <button type="button" class="modal-close" onclick="closeSingboxExportModal()" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
                     <i data-lucide="x"></i>
                 </button>
             </header>
 
-            <div style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+            <div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; flex: 1;">
                 <!-- Summary bar -->
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); padding: 12px 16px; border-radius: 10px; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); padding: 12px 16px; border-radius: 10px; flex-wrap: wrap; gap: 10px;">
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">دسته‌بندی: <strong id="sb-export-badge-cat" style="color: #4f46e5;">-</strong></span>
+                        <span style="font-size: 13px; font-weight: 600; color: var(--text-main);">محدوده: <strong id="sb-export-badge-cat" style="color: #059669;">-</strong></span>
                         <span class="badge-pill" id="sb-export-badge-users" style="font-size: 11.5px; background: rgba(59, 130, 246, 0.15); color: #2563eb; font-weight: 700; padding: 2px 8px; border-radius: 6px;">۰ کاربر</span>
-                        <span class="badge-pill" id="sb-export-badge-links" style="font-size: 11.5px; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; padding: 2px 8px; border-radius: 6px;">۰ لینک اتصال</span>
+                        <span class="badge-pill" id="sb-export-badge-subs" style="font-size: 11.5px; background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; padding: 2px 8px; border-radius: 6px;">۰ ساب‌لینک</span>
+                        <span class="badge-pill" id="sb-export-badge-links" style="font-size: 11.5px; background: rgba(99, 102, 241, 0.15); color: #4f46e5; font-weight: 700; padding: 2px 8px; border-radius: 6px;">۰ کانفیگ خام</span>
                     </div>
                     <div style="font-size: 11.5px; color: var(--text-muted);">
-                        آماده جهت ایمپورت مستقیم در v2rayN, v2rayNG, Nekoray, Streisand, Hiddify
+                        آماده ایمپورت در v2rayN, v2rayNG, Sing-box, Streisand, Hiddify, V2Box
                     </div>
+                </div>
+
+                <!-- Export Tabs Nav -->
+                <div style="display: flex; border-bottom: 1px solid var(--border-color); gap: 4px; overflow-x: auto; padding-bottom: 2px;">
+                    <button type="button" class="sb-export-tab-btn active" onclick="switchSingboxExportTab('sub')" id="sb-tab-btn-sub" style="padding: 8px 14px; border: none; background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 700; font-size: 12px; border-radius: 8px 8px 0 0; cursor: pointer; border-bottom: 2px solid #10b981;">
+                        🌐 ساب‌لینک‌ها (Sub URLs)
+                    </button>
+                    <button type="button" class="sb-export-tab-btn" onclick="switchSingboxExportTab('sub_b64')" id="sb-tab-btn-sub_b64" style="padding: 8px 14px; border: none; background: none; color: var(--text-muted); font-weight: 700; font-size: 12px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        ⚡ ساب Base64 (v2rayNG/N)
+                    </button>
+                    <button type="button" class="sb-export-tab-btn" onclick="switchSingboxExportTab('sub_user')" id="sb-tab-btn-sub_user" style="padding: 8px 14px; border: none; background: none; color: var(--text-muted); font-weight: 700; font-size: 12px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        👤 نام کاربر : ساب‌لینک
+                    </button>
+                    <button type="button" class="sb-export-tab-btn" onclick="switchSingboxExportTab('raw')" id="sb-tab-btn-raw" style="padding: 8px 14px; border: none; background: none; color: var(--text-muted); font-weight: 700; font-size: 12px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        🔗 کانفیگ‌های مستقیم (VLESS/...)
+                    </button>
+                    <button type="button" class="sb-export-tab-btn" onclick="switchSingboxExportTab('csv')" id="sb-tab-btn-csv" style="padding: 8px 14px; border: none; background: none; color: var(--text-muted); font-weight: 700; font-size: 12px; border-radius: 8px 8px 0 0; cursor: pointer;">
+                        📊 خروجی کامل CSV / اکسل
+                    </button>
                 </div>
 
                 <!-- Textarea of Links -->
                 <div>
-                    <label class="form-label" style="font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between;">
-                        <span>متن لینک‌های ساب و کانفیگ‌ها (Raw Share Links):</span>
-                        <span style="font-size: 11px; color: var(--text-muted);">هر سطر شامل یک لینک اتصال کامل است</span>
+                    <label class="form-label" style="font-weight: 600; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <span id="sb-export-textarea-label" style="font-size: 12px; color: var(--text-main);">متن ساب‌لینک‌های جامع (Subscription URLs):</span>
+                        <span id="sb-export-textarea-hint" style="font-size: 11px; color: var(--text-muted);">هر سطر شامل لینک ساب یک کاربر است</span>
                     </label>
-                    <textarea id="sb-export-links-textarea" class="form-input" readonly rows="12" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; white-space: pre; background: #0f172a; color: #38bdf8; border-color: #334155; padding: 12px; border-radius: 8px;"></textarea>
+                    <textarea id="sb-export-links-textarea" class="form-input" readonly rows="12" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; white-space: pre; background: #0f172a; color: #38bdf8; border-color: #334155; padding: 12px; border-radius: 8px; resize: vertical;"></textarea>
                 </div>
 
                 <!-- Export Action Buttons -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 14px;">
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-primary" onclick="copyExportedLinks()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                        <button type="button" class="btn btn-primary" onclick="copyExportedLinks()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
                             <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
-                            <span>کپی کردن کلیه لینک‌ها (Copy All)</span>
+                            <span id="sb-export-copy-btn-text">کپی کردن متن ساب‌لینک‌ها (Copy)</span>
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="downloadExportedLinks('txt')" style="display: flex; align-items: center; gap: 6px;">
                             <i data-lucide="download" style="width: 14px; height: 14px;"></i>
                             <span>دانلود فایل متنی (TXT)</span>
                         </button>
-                        <button type="button" class="btn btn-secondary" onclick="downloadExportedLinks('csv')" style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.1); color: #059669; border-color: rgba(16, 185, 129, 0.3);">
+                        <button type="button" class="btn btn-secondary" onclick="downloadExportedLinks('csv')" style="display: flex; align-items: center; gap: 6px; background: rgba(59, 130, 246, 0.1); color: #2563eb; border-color: rgba(59, 130, 246, 0.3);">
                             <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px;"></i>
                             <span>دانلود اکسل کاربران (CSV)</span>
                         </button>
                     </div>
                     <button type="button" class="btn btn-secondary" onclick="closeSingboxExportModal()" data-i18n="btn_close">بستن</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bulk Action 1: Change Category -->
+    <div class="modal" id="modal-singbox-bulk-category" style="display: none; align-items: center; justify-content: center; z-index: 1060;">
+        <div class="modal-card" style="max-width: 460px; width: 95%; border-radius: 12px;">
+            <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="folder" style="color: #6366f1;"></i>
+                    <span>تغییر دسته‌بندی کاربران انتخاب‌شده</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxBulkModal('category')" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="margin: 0; font-size: 12.5px; color: var(--text-muted);">
+                    دسته‌بندی جدید را برای <strong id="sb-bulk-cat-count-label" style="color: var(--text-main);">۰ کاربر</strong> انتخاب یا وارد کنید:
+                </p>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; font-weight: 600;">انتخاب از دسته‌های موجود:</label>
+                    <select id="sb-bulk-cat-select" class="form-input" onchange="if(this.value!=='__new__') document.getElementById('sb-bulk-cat-new-input').value=this.value;">
+                        <option value="">-- انتخاب دسته‌بندی --</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; font-weight: 600;">یا نام دسته‌بندی جدید:</label>
+                    <input type="text" id="sb-bulk-cat-new-input" class="form-input" placeholder="مثال: مشتریان ویژه، سرور آلمان، تست...">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeSingboxBulkModal('category')">انصراف</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="executeBulkChangeCategory()" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                        اعمال تغییر دسته‌بندی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bulk Action 2: Extend Expiry -->
+    <div class="modal" id="modal-singbox-bulk-expiry" style="display: none; align-items: center; justify-content: center; z-index: 1060;">
+        <div class="modal-card" style="max-width: 460px; width: 95%; border-radius: 12px;">
+            <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="calendar-plus" style="color: #10b981;"></i>
+                    <span>افزایش یا تمدید اعتبار کاربران</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxBulkModal('expiry')" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="margin: 0; font-size: 12.5px; color: var(--text-muted);">
+                    تعداد روزهای اضافه شونده به اعتبار <strong id="sb-bulk-expiry-count-label" style="color: var(--text-main);">۰ کاربر</strong> را تعیین کنید:
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-expiry-days').value='30'" style="flex: 1;">+۳۰ روز (۱ ماه)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-expiry-days').value='60'" style="flex: 1;">+۶۰ روز (۲ ماه)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-expiry-days').value='90'" style="flex: 1;">+۹۰ روز (۳ ماه)</button>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; font-weight: 600;">تعداد روز تمدید (Days):</label>
+                    <input type="number" id="sb-bulk-expiry-days" class="form-input" min="1" max="1000" value="30">
+                </div>
+                <div style="font-size: 11px; color: var(--text-muted);">
+                    اگر کاربر هنوز منقضی نشده باشد، روزها به انتهای تاریخ انقضای فعلی اضافه می‌شود؛ اگر منقضی شده باشد از تاریخ امروز محاسبه خواهد شد.
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeSingboxBulkModal('expiry')">انصراف</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="executeBulkExtendExpiry()" style="background: linear-gradient(135deg, #059669 0%, #10b981 100%);">
+                        اعمال افزایش اعتبار
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Bulk Action 3: Set Traffic Limit -->
+    <div class="modal" id="modal-singbox-bulk-traffic" style="display: none; align-items: center; justify-content: center; z-index: 1060;">
+        <div class="modal-card" style="max-width: 460px; width: 95%; border-radius: 12px;">
+            <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="modal-title" style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="hard-drive" style="color: #3b82f6;"></i>
+                    <span>تنظیم سقف حجم ترافیک مصرفی</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxBulkModal('traffic')" style="background: none; border: none; cursor: pointer; color: var(--text-muted);">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div style="padding: 20px; display: flex; flex-direction: column; gap: 14px;">
+                <p style="margin: 0; font-size: 12.5px; color: var(--text-muted);">
+                    سقف ترافیک ماهانه را برای <strong id="sb-bulk-traffic-count-label" style="color: var(--text-main);">۰ کاربر</strong> مشخص کنید (عدد ۰ = نامحدود):
+                </p>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-traffic-gb').value='0'" style="flex: 1;">نامحدود ∞</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-traffic-gb').value='30'" style="flex: 1;">۳۰ گیگابایت</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-traffic-gb').value='50'" style="flex: 1;">۵۰ گیگابایت</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-traffic-gb').value='100'" style="flex: 1;">۱۰۰ گیگابایت</button>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label" style="font-size: 12px; font-weight: 600;">سقف ترافیک به گیگابایت (GB):</label>
+                    <input type="number" id="sb-bulk-traffic-gb" class="form-input" min="0" max="5000" step="1" value="50">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeSingboxBulkModal('traffic')">انصراف</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="executeBulkSetTrafficLimit()" style="background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                        اعمال سقف ترافیک
+                    </button>
                 </div>
             </div>
         </div>

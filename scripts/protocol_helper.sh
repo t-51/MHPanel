@@ -385,6 +385,7 @@ is_protocol_installed() {
         tor) [ -f "/etc/tor/torrc" ] && [ -f "/etc/systemd/system/mhpanel-tor.service" ] && (command -v tor >/dev/null 2>&1 || [ -x /usr/bin/tor ]) ;;
         singbox) ([ -x /usr/local/bin/sing-box ] && [ -f "/etc/sing-box/config.json" ]) || [ -f "/etc/systemd/system/mhpanel-singbox.service" ] ;;
         google_script) ([ -f "/etc/vpnpanel/google_script.json" ] && [ -x /usr/local/bin/mhpanel-gas-server ]) || [ -f "/etc/systemd/system/mhpanel-gas-tunnel.service" ] ;;
+        snispoof) ([ -f "/etc/vpnpanel/snispoof.json" ] && [ -x /usr/local/bin/mhpanel-snispoof ]) || [ -f "/etc/systemd/system/mhpanel-snispoof.service" ] ;;
         *) return 1 ;;
     esac
 }
@@ -3505,6 +3506,99 @@ set_port_google_script() {
     fi
 }
 
+# ----------------- SNISPOOF -----------------
+install_snispoof() {
+    local port=${1:-15443}
+    mkdir -p /etc/vpnpanel
+    if [ ! -f /etc/vpnpanel/snispoof.json ]; then
+        cat > /etc/vpnpanel/snispoof.json <<EOF
+{
+  "port": ${port},
+  "role": "inbound_relay",
+  "upstream": "127.0.0.1:20443",
+  "default_strategy": "tls_fragment",
+  "active_strategies": [
+    "wrong_seq",
+    "wrong_checksum",
+    "low_ttl",
+    "tls_fragment",
+    "sni_rotation"
+  ],
+  "low_ttl_hops": 5,
+  "fragment_size": 2,
+  "fragment_delay_ms": 3,
+  "jitter_enabled": true,
+  "jitter_min_ms": 2,
+  "jitter_max_ms": 15,
+  "sni_pool": [
+    "sanjesh.org",
+    "shaparak.ir",
+    "speedtest.net",
+    "dl.google.com",
+    "telewebion.com",
+    "divar.ir",
+    "cloudflare.com",
+    "microsoft.com"
+  ],
+  "sni_selection": "rotation",
+  "reverse_target_host": "",
+  "reverse_target_port": 15443,
+  "users": []
+}
+EOF
+    fi
+
+    if [ -f "/www/wwwroot/mhpanel/bin/snispoof-server.py" ]; then
+        chmod +x /www/wwwroot/mhpanel/bin/snispoof-server.py
+        ln -sf /www/wwwroot/mhpanel/bin/snispoof-server.py /usr/local/bin/mhpanel-snispoof
+    fi
+
+    cat > /etc/systemd/system/mhpanel-snispoof.service <<EOF
+[Unit]
+Description=MHPanel SNI Spoofing & Anti-DPI Reverse Proxy Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/www/wwwroot/mhpanel
+ExecStart=/usr/local/bin/mhpanel-snispoof
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    allow_port "${port}" "tcp"
+    systemctl daemon-reload
+    systemctl enable mhpanel-snispoof 2>/dev/null || true
+    systemctl restart mhpanel-snispoof 2>/dev/null || true
+    echo "SNI Spoofing installed on port ${port}."
+}
+
+uninstall_snispoof() {
+    systemctl stop mhpanel-snispoof 2>/dev/null || true
+    systemctl disable mhpanel-snispoof 2>/dev/null || true
+    local port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/snispoof.json 2>/dev/null | awk '{print $2}' || echo "15443")
+    deny_port "${port}" "tcp"
+    rm -f /etc/systemd/system/mhpanel-snispoof.service /etc/vpnpanel/snispoof.json
+    systemctl daemon-reload
+    echo "SNI Spoofing uninstalled."
+}
+
+set_port_snispoof() {
+    local port=$1
+    if [ -f /etc/vpnpanel/snispoof.json ]; then
+        local old_port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/snispoof.json 2>/dev/null | awk '{print $2}' || echo "15443")
+        deny_port "${old_port}" "tcp"
+        sed -i -E "s/\"port\":\s*[0-9]+/\"port\": ${port}/g" /etc/vpnpanel/snispoof.json
+        allow_port "${port}" "tcp"
+        systemctl restart mhpanel-snispoof 2>/dev/null || true
+    fi
+}
+
 # Color definitions for terminal output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -3585,7 +3679,7 @@ get_connections_count() {
                 done
             fi
             ;;
-        http|socks|shadowsocks|mtproto|trojan|naiveproxy|stuntls|tor)
+        http|socks|shadowsocks|mtproto|trojan|naiveproxy|stuntls|tor|snispoof)
             if [ -n "${port}" ] && [ "${port}" != "-" ]; then
                 count=$(ss -t -a | grep ":${port} " | grep -i estab | wc -l)
             else
@@ -3633,7 +3727,7 @@ print_status_report() {
 
     # 2. Protocols Status
     echo -e "VPN Protocols Status:"
-    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "badvpn" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor" "singbox" "google_script")
+    local protocols=("ssh" "openvpn" "ocserv" "ikev2" "sstp" "pptp" "l2tp" "wireguard" "amneziawg" "http" "socks" "shadowsocks" "tuic" "mtproto" "badvpn" "dnstt" "vaydns" "slipstream" "hysteria2" "trojan" "naiveproxy" "stuntls" "noizdns" "masterdnsvpn" "tor" "singbox" "google_script" "snispoof")
     for proto in "${protocols[@]}"; do
         local inst="No"
         local act="Inactive"
@@ -3924,6 +4018,16 @@ print_status_report() {
                     fi
                 fi
                 ;;
+            snispoof)
+                if ([ -f "/etc/vpnpanel/snispoof.json" ] && [ -x /usr/local/bin/mhpanel-snispoof ]) || [ -f "/etc/systemd/system/mhpanel-snispoof.service" ]; then
+                    inst="Yes"
+                    port=$(grep -oE '"port":\s*[0-9]+' /etc/vpnpanel/snispoof.json 2>/dev/null | awk '{print $2}' || echo "15443")
+                    if [ "$(service_status mhpanel-snispoof)" = "active" ]; then
+                        act="Active"
+                        conn=$(get_connections_count "snispoof" "$port")
+                    fi
+                fi
+                ;;
         esac
 
         if [ "$inst" = "Yes" ]; then
@@ -4047,6 +4151,7 @@ case "${ACTION}" in
             tor) install_tor "$ARG3" "$ARG4" ;;
             singbox) install_singbox "$ARG3" ;;
             google_script) install_google_script "$ARG3" ;;
+            snispoof) install_snispoof "$ARG3" ;;
             freeradius|radius) install_freeradius "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -4082,6 +4187,7 @@ case "${ACTION}" in
             tor) uninstall_tor ;;
             singbox) uninstall_singbox ;;
             google_script) uninstall_google_script ;;
+            snispoof) uninstall_snispoof ;;
             freeradius|radius) uninstall_freeradius ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -4115,6 +4221,7 @@ case "${ACTION}" in
             tor) set_port_tor "$ARG3" ;;
             singbox) set_port_singbox "$ARG3" ;;
             google_script) set_port_google_script "$ARG3" ;;
+            snispoof) set_port_snispoof "$ARG3" ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
@@ -4272,6 +4379,7 @@ case "${ACTION}" in
             tor) service_status mhpanel-tor ;;
             singbox) service_status mhpanel-singbox sing-box ;;
             google_script) service_status mhpanel-gas-tunnel ;;
+            snispoof) service_status mhpanel-snispoof ;;
             freeradius|radius) service_status freeradius radiusd ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
@@ -4314,12 +4422,13 @@ case "${ACTION}" in
             tor) journalctl -u mhpanel-tor -n 100 --no-pager ;;
             singbox) journalctl -u mhpanel-singbox -u sing-box -n 100 --no-pager ;;
             google_script) journalctl -u mhpanel-gas-tunnel -n 100 --no-pager ;;
+            snispoof) journalctl -u mhpanel-snispoof -n 100 --no-pager ;;
             freeradius|radius) journalctl -u freeradius -u radiusd -n 100 --no-pager ;;
             *) echo "Unknown protocol: ${PROTOCOL}" && exit 1 ;;
         esac
         ;;
     *)
-        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|amneziawg|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto|hysteria2|trojan|naiveproxy|stuntls|noizdns|masterdnsvpn|tor|singbox|google_script} [port/ad-tag]"
+        echo "Usage: $0 {install|uninstall|set-port|set-ad-tag|status|status_report|logs} {ssh|openvpn|ocserv|ikev2|sstp|pptp|l2tp|wireguard|amneziawg|http|socks|shadowsocks|tuic|dnstt|vaydns|slipstream|mtproto|hysteria2|trojan|naiveproxy|stuntls|noizdns|masterdnsvpn|tor|singbox|google_script|snispoof} [port/ad-tag]"
         exit 1
         ;;
 esac
