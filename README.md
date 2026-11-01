@@ -392,6 +392,13 @@ mhpanel
 
 ---
 
+## 📢 Official Community & Channel
+
+Join our official community channel for latest updates, configuration guides, and architectural news:
+- 📢 **Official Telegram Channel:** [@kigaping_fa](https://t.me/kigaping_fa)
+
+---
+
 ## 📄 License
 
 This project is licensed under the open-source [MIT License](LICENSE).
