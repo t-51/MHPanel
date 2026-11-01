@@ -22367,13 +22367,32 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const isEnabled = (u.enabled !== false);
             const userCategory = u.category || "عمومی (Default)";
 
+            const inbCount = (u.inbounds || []).length;
             let inboundsHtml = "";
-            if (u.inbounds && u.inbounds.length > 0) {
-                inboundsHtml = u.inbounds.map(tag => {
-                    return `<span class="badge-pill" style="font-size:10px; padding:2px 6px; background:rgba(99,102,241,0.12); color:#4338ca; border-radius:5px; font-family:'JetBrains Mono'; margin:2px 2px 2px 0; display:inline-block;">${escapeHtml(tag)}</span>`;
-                }).join("");
+            if (inbCount > 0) {
+                inboundsHtml = `
+                    <div onclick="openSingboxManageUserInboundsModal('${escapeHtml(u.username)}')"
+                         style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); white-space: nowrap; transition: all 0.2s;"
+                         onmouseover="this.style.background='rgba(99, 102, 241, 0.18)'; this.style.borderColor='#6366f1';"
+                         onmouseout="this.style.background='rgba(99, 102, 241, 0.08)'; this.style.borderColor='rgba(99, 102, 241, 0.25)';"
+                         title="جهت کم یا زیاد کردن اینباندهای مجاز کلیک کنید">
+                        <i data-lucide="sliders" style="width: 13px; height: 13px; color: #4f46e5;"></i>
+                        <strong style="font-size: 11.5px; color: #4338ca; font-family: 'JetBrains Mono';">${inbCount} اینباند فعال</strong>
+                        <span style="font-size: 10.5px; color: #6366f1; font-weight: 700;">(کم/زیاد ⚙️)</span>
+                    </div>
+                `;
             } else {
-                inboundsHtml = `<span style="font-size:11px; color:var(--text-muted);">(بدون کانفیگ)</span>`;
+                inboundsHtml = `
+                    <div onclick="openSingboxManageUserInboundsModal('${escapeHtml(u.username)}')"
+                         style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 8px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); white-space: nowrap; transition: all 0.2s;"
+                         onmouseover="this.style.background='rgba(239, 68, 68, 0.18)'; this.style.borderColor='#ef4444';"
+                         onmouseout="this.style.background='rgba(239, 68, 68, 0.08)'; this.style.borderColor='rgba(239, 68, 68, 0.25)';"
+                         title="جهت افزودن اینباند کلیک کنید">
+                        <i data-lucide="alert-circle" style="width: 13px; height: 13px; color: #dc2626;"></i>
+                        <span style="font-size: 11.5px; font-weight: 700; color: #dc2626;">بدون کانفیگ</span>
+                        <span style="font-size: 10.5px; color: #dc2626; font-weight: 700;">(+ افزودن)</span>
+                    </div>
+                `;
             }
 
             // 1. Traffic & Quota
@@ -22484,11 +22503,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                                     📁 ${escapeHtml(userCategory)}
                                 </span>
                             </div>
+                            <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
+                                <a href="javascript:void(0)" onclick="copySingboxUserSubLinkDirect('${escapeHtml(u.username)}', '${escapeHtml(u.sub_b64_url || u.sub_url || '')}')" style="font-size:11px; color:#10b981; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="کپی مستقیم لینک سابسکرایب جامع (Base64)">
+                                    <i data-lucide="copy" style="width:11px; height:11px;"></i>
+                                    <span>کپی ساب‌لینک</span>
+                                </a>
+                                <span style="color:var(--border-color); font-size:10px;">|</span>
+                                <a href="${escapeHtml(u.sub_url || '')}" target="_blank" style="font-size:11px; color:#6366f1; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="مشاهده صفحه وب سابسکرایب کاربر">
+                                    <i data-lucide="external-link" style="width:11px; height:11px;"></i>
+                                    <span>صفحه وب ساب</span>
+                                </a>
+                            </div>
                             ${u.note ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(u.note)}</div>` : ''}
                         </div>
                     </div>
                 </td>
-                <td style="padding: 12px 16px; max-width: 220px;">
+                <td style="padding: 12px 16px; white-space: nowrap;">
                     ${inboundsHtml}
                 </td>
                 <td style="padding: 12px 16px;">
@@ -22500,8 +22530,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 <td style="padding: 12px 16px;">
                     ${statusBadge}
                 </td>
-                <td style="padding: 12px 16px; text-align: center;">
-                    <div style="display:flex; gap:5px; justify-content:center; align-items:center;">
+                <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
+                    <div style="display:flex; gap:5px; justify-content:center; align-items:center; flex-wrap:nowrap;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySingboxUserSubLinkDirect('${escapeHtml(u.username)}', '${escapeHtml(u.sub_b64_url || u.sub_url || '')}')" style="padding:5px 9px; background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.3); font-weight:700; display:inline-flex; align-items:center; gap:4px;" title="کپی مستقیم لینک سابسکرایب جامع">
+                            <i data-lucide="rss" style="width:13px; height:13px;"></i>
+                            <span style="font-size:11px;">لینک ساب</span>
+                        </button>
                         <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:5px 8px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و بارکد اختصاصی کاربر">
                             <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
                         </button>
@@ -23309,6 +23343,280 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (modal) {
             modal.classList.remove("active");
             modal.style.display = "none";
+        }
+    }
+
+    // --- Direct Sub Link Copy Helper ---
+    async function copySingboxUserSubLinkDirect(username, subUrl) {
+        let targetUrl = subUrl;
+        if (!targetUrl) {
+            const u = (activeSingboxUsers || []).find(x => x.username === username);
+            if (u && (u.sub_b64_url || u.sub_url)) {
+                targetUrl = u.sub_b64_url || u.sub_url;
+            }
+        }
+        if (!targetUrl) {
+            try {
+                const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/links`);
+                const data = await res.json();
+                if (data && (data.sub_b64_url || data.sub_url)) {
+                    targetUrl = data.sub_b64_url || data.sub_url;
+                }
+            } catch (e) {
+                console.error("fetch sub url error:", e);
+            }
+        }
+
+        if (!targetUrl) {
+            showToast("لینک سابسکرایب برای این کاربر یافت نشد.", "error");
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(targetUrl).then(() => {
+                showToast(`✅ لینک سابسکرایب کاربر ${username} کپی شد! آماده استفاده در SlipNet و V2Ray`, "success");
+            }).catch(() => {
+                prompt("لینک سابسکرایب را کپی کنید:", targetUrl);
+            });
+        } else {
+            prompt("لینک سابسکرایب را کپی کنید:", targetUrl);
+        }
+    }
+
+    // --- User Inbounds Manager Modal ---
+    let currentManageInboundsUsername = null;
+    let currentManageAvailableInbounds = [];
+    let currentManageUserInboundTags = new Set();
+
+    async function openSingboxManageUserInboundsModal(username) {
+        currentManageInboundsUsername = username;
+        const modal = document.getElementById("modal-singbox-manage-user-inbounds");
+        if (!modal) return;
+
+        const titleUserEl = document.getElementById("sb-manage-inb-modal-username");
+        if (titleUserEl) titleUserEl.textContent = username;
+
+        const container = document.getElementById("sb-manage-user-inbounds-container");
+        if (container) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted);">
+                    <i data-lucide="loader-2" class="spin" style="width: 24px; height: 24px; margin-bottom: 8px;"></i>
+                    <div>در حال دریافت لیست اینباندها...</div>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const filterInp = document.getElementById("sb-manage-inb-filter-input");
+        if (filterInp) filterInp.value = "";
+
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/inbounds`);
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showToast(`خطا: ${data.error || 'یافت نشد'}`, "error");
+                closeSingboxManageUserInboundsModal();
+                return;
+            }
+
+            currentManageAvailableInbounds = data.available_inbounds || [];
+            currentManageUserInboundTags = new Set(data.user_inbounds || []);
+
+            renderManageUserInboundsList();
+        } catch (e) {
+            showToast("خطای شبکه در دریافت اینباندها", "error");
+            closeSingboxManageUserInboundsModal();
+        }
+    }
+
+    function closeSingboxManageUserInboundsModal() {
+        const modal = document.getElementById("modal-singbox-manage-user-inbounds");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+        currentManageInboundsUsername = null;
+    }
+
+    function renderManageUserInboundsList(filterQuery = "") {
+        const container = document.getElementById("sb-manage-user-inbounds-container");
+        if (!container) return;
+
+        const q = (filterQuery || "").toLowerCase().trim();
+        const filtered = currentManageAvailableInbounds.filter(ib => {
+            if (!q) return true;
+            const tag = (ib.tag || "").toLowerCase();
+            const type = (ib.type || "").toLowerCase();
+            const port = String(ib.port || "");
+            const transport = (ib.transport || "").toLowerCase();
+            return tag.includes(q) || type.includes(q) || port.includes(q) || transport.includes(q);
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted);">
+                    هیچ اینباندی مطابق با جستجوی شما یافت نشد.
+                </div>
+            `;
+            updateSingboxManageSelectedCount();
+            return;
+        }
+
+        const getProtoBadge = (type) => {
+            const t = (type || "").toLowerCase();
+            if (t.includes("vless")) return { bg: "rgba(99, 102, 241, 0.15)", color: "#4f46e5", label: "VLESS" };
+            if (t.includes("vmess")) return { bg: "rgba(59, 130, 246, 0.15)", color: "#2563eb", label: "VMESS" };
+            if (t.includes("trojan")) return { bg: "rgba(245, 158, 11, 0.15)", color: "#d97706", label: "TROJAN" };
+            if (t.includes("hysteria")) return { bg: "rgba(244, 63, 94, 0.15)", color: "#e11d48", label: "HYSTERIA2" };
+            if (t.includes("tuic")) return { bg: "rgba(13, 148, 136, 0.15)", color: "#0d9488", label: "TUIC" };
+            if (t.includes("shadowsocks")) return { bg: "rgba(6, 182, 212, 0.15)", color: "#0891b2", label: "SS-2022" };
+            if (t.includes("naive")) return { bg: "rgba(16, 185, 129, 0.15)", color: "#059669", label: "NAIVE" };
+            if (t.includes("shadowtls")) return { bg: "rgba(139, 92, 246, 0.15)", color: "#7c3aed", label: "SHADOWTLS" };
+            return { bg: "rgba(100, 116, 139, 0.15)", color: "#475569", label: t.toUpperCase() };
+        };
+
+        let html = "";
+        filtered.forEach(ib => {
+            const tag = ib.tag;
+            const isChecked = currentManageUserInboundTags.has(tag);
+            const badge = getProtoBadge(ib.type);
+            const port = ib.port || "-";
+            const transport = ib.transport || "tcp";
+
+            html += `
+                <label class="sb-manage-inb-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 10px; background: ${isChecked ? 'rgba(99,102,241,0.08)' : 'var(--bg-muted)'}; border: 1px solid ${isChecked ? 'rgba(99,102,241,0.35)' : 'var(--border-color)'}; cursor: pointer; transition: all 0.2s; user-select: none;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" class="sb-manage-inb-cb" value="${escapeHtml(tag)}" ${isChecked ? 'checked' : ''} onchange="onSingboxManageInboundCheckboxChange(this)" style="width: 17px; height: 17px; cursor: pointer; accent-color: #4f46e5;">
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <strong style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-main);">${escapeHtml(tag)}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px;">
+                                <span class="badge-pill" style="font-size: 10px; font-weight: 700; background: ${badge.bg}; color: ${badge.color}; padding: 1px 6px; border-radius: 4px;">${badge.label}</span>
+                                <span style="font-size: 10.5px; color: var(--text-muted); font-family: 'JetBrains Mono';">پورت ${port}</span>
+                                <span style="font-size: 10px; color: var(--text-muted);">(${escapeHtml(transport)})</span>
+                            </div>
+                        </div>
+                    </div>
+                    <span style="font-size: 12px; color: ${isChecked ? '#4f46e5' : 'var(--text-muted)'}; font-weight: 600;">
+                        ${isChecked ? 'فعال ✔' : 'غیرفعال'}
+                    </span>
+                </label>
+            `;
+        });
+
+        container.innerHTML = html;
+        updateSingboxManageSelectedCount();
+    }
+
+    function onSingboxManageInboundCheckboxChange(cb) {
+        const tag = cb.value;
+        if (cb.checked) {
+            currentManageUserInboundTags.add(tag);
+        } else {
+            currentManageUserInboundTags.delete(tag);
+        }
+        const label = cb.closest("label");
+        if (label) {
+            label.style.background = cb.checked ? "rgba(99,102,241,0.08)" : "var(--bg-muted)";
+            label.style.borderColor = cb.checked ? "rgba(99,102,241,0.35)" : "var(--border-color)";
+            const statusSpan = label.querySelector("span:last-child");
+            if (statusSpan) {
+                statusSpan.textContent = cb.checked ? "فعال ✔" : "غیرفعال";
+                statusSpan.style.color = cb.checked ? "#4f46e5" : "var(--text-muted)";
+            }
+        }
+        updateSingboxManageSelectedCount();
+    }
+
+    function filterSingboxManageInboundsList(val) {
+        renderManageUserInboundsList(val);
+    }
+
+    function selectSingboxManageInboundsPreset(type) {
+        if (!currentManageAvailableInbounds) return;
+
+        if (type === "all") {
+            currentManageAvailableInbounds.forEach(ib => currentManageUserInboundTags.add(ib.tag));
+        } else if (type === "none") {
+            currentManageUserInboundTags.clear();
+        } else if (type === "reality") {
+            currentManageUserInboundTags.clear();
+            currentManageAvailableInbounds.forEach(ib => {
+                const tag = (ib.tag || "").toLowerCase();
+                if (tag.includes("reality")) {
+                    currentManageUserInboundTags.add(ib.tag);
+                }
+            });
+        } else if (type === "quic") {
+            currentManageUserInboundTags.clear();
+            currentManageAvailableInbounds.forEach(ib => {
+                const tag = (ib.tag || "").toLowerCase();
+                const itype = (ib.type || "").toLowerCase();
+                if (itype.includes("hysteria") || itype.includes("tuic") || tag.includes("hys") || tag.includes("tuic")) {
+                    currentManageUserInboundTags.add(ib.tag);
+                }
+            });
+        } else if (type === "tls") {
+            currentManageUserInboundTags.clear();
+            currentManageAvailableInbounds.forEach(ib => {
+                const tag = (ib.tag || "").toLowerCase();
+                if (tag.includes("tls") || tag.includes("ws") || tag.includes("grpc") || tag.includes("upgrade")) {
+                    currentManageUserInboundTags.add(ib.tag);
+                }
+            });
+        }
+
+        const filterInp = document.getElementById("sb-manage-inb-filter-input");
+        renderManageUserInboundsList(filterInp ? filterInp.value : "");
+    }
+
+    function updateSingboxManageSelectedCount() {
+        const totalEl = document.getElementById("sb-manage-inb-total-count");
+        const selEl = document.getElementById("sb-manage-inb-selected-count");
+        if (totalEl) totalEl.textContent = currentManageAvailableInbounds.length;
+        if (selEl) selEl.textContent = currentManageUserInboundTags.size;
+    }
+
+    async function saveSingboxUserInboundsChanges() {
+        if (!currentManageInboundsUsername) return;
+        const btn = document.getElementById("sb-save-user-inbounds-btn");
+        const originalText = btn ? btn.innerHTML : "";
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="spin" style="width:14px;height:14px;"></i> در حال ذخیره و اعمال به هسته...`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const selectedInbounds = Array.from(currentManageUserInboundTags);
+
+        try {
+            const res = await fetch(`/api/singbox/user/${encodeURIComponent(currentManageInboundsUsername)}/inbounds`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ inbounds: selectedInbounds })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                showToast(`خطا در ذخیره: ${data.error || 'نامشخص'}`, "error");
+                return;
+            }
+
+            showToast(`✅ اینباندهای کاربر ${currentManageInboundsUsername} با موفقیت ذخیره و در هسته فعال شدند (${selectedInbounds.length} اینباند).`, "success");
+            closeSingboxManageUserInboundsModal();
+            loadSingboxUsers();
+        } catch (e) {
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (window.lucide) lucide.createIcons();
+            }
         }
     }
 

@@ -2352,8 +2352,22 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     if not password and uinfo.get("password"):
         password = uinfo["password"]
 
+    # Also check local singbox users for custom UUID & password
+    sb_user = None
+    try:
+        sb_users = load_singbox_users()
+        sb_user = next((u for u in sb_users if u.get("username") == username), None)
+        if sb_user:
+            if sb_user.get("uuid"):
+                u_uuid = sb_user["uuid"]
+            if sb_user.get("password"):
+                password = sb_user["password"]
+    except Exception:
+        pass
+
     outbounds = []
     proxy_tags = []
+    user_inbounds = sb_user.get("inbounds", []) if sb_user else []
 
     sb_file = "/etc/sing-box/config.json"
     if os.path.exists(sb_file):
@@ -2362,6 +2376,8 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                 sb_cfg = json.load(f)
             for ib in sb_cfg.get("inbounds", []):
                 tag = ib.get("tag", "")
+                if user_inbounds and tag not in user_inbounds:
+                    continue
                 itype = ib.get("type", "")
                 port = ib.get("listen_port")
                 tls_obj = ib.get("tls", {})
@@ -2965,7 +2981,7 @@ def client_subscription_view(sub_token):
     
     settings = get_sub_settings()
     server_ip = get_server_public_ip()
-    domain = get_server_domain() or server_ip
+    domain = get_panel_sub_domain()
     
     fmt = str(request.args.get("format", "")).lower()
     ua = (request.headers.get("User-Agent") or "").lower()
@@ -3227,7 +3243,7 @@ def client_subscription_json(sub_token):
         return jsonify({"error": "Subscription Not Found"}), 404
     settings = get_sub_settings()
     server_ip = get_server_public_ip()
-    domain = get_server_domain() or server_ip
+    domain = get_panel_sub_domain()
     
     if proto_type in ["wireguard", "amneziawg"]:
         base_cfg = udata.get("config", "")
@@ -3615,7 +3631,7 @@ def client_sub_singbox_download(sub_token):
         return "Not Found", 404
     uinfo = get_ssh_user_info(uname)
     pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
-    domain = get_server_domain() or get_server_public_ip()
+    domain = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     pub_ip = get_server_public_ip()
     cfg = generate_singbox_ssh_config(uname, pwd, domain, pub_ip)
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
@@ -3629,9 +3645,33 @@ def client_sub_b64(sub_token):
         return "Not Found", 404
     uinfo = get_ssh_user_info(uname)
     pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
-    domain = get_server_domain() or get_server_public_ip()
+    domain = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     pub_ip = get_server_public_ip()
-    uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
+
+    uris = []
+    if proto_type == "singbox":
+        # Singbox local user: generate configs for all their assigned inbounds
+        try:
+            sb_file = "/etc/sing-box/config.json"
+            if os.path.exists(sb_file):
+                with open(sb_file, "r", encoding="utf-8") as f:
+                    sb_cfg = json.load(f)
+                user_inbounds = udata.get("inbounds", []) if isinstance(udata, dict) else []
+                for ib in sb_cfg.get("inbounds", []):
+                    tag = ib.get("tag")
+                    if not user_inbounds or tag in user_inbounds:
+                        slink = generate_singbox_share_link(ib, domain, target_user=udata)
+                        if slink:
+                            uris.append(slink)
+        except Exception as e:
+            logger.error(f"Error generating singbox sub links: {e}")
+
+        # Fallback to general uris if empty
+        if not uris:
+            uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
+    else:
+        uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
+
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
     resp.headers["Profile-Title"] = f"MHPanel - {uname}"
@@ -10806,6 +10846,26 @@ def api_amneziawg_uninstall():
 
 # --- Domain Management Helpers & APIs ---
 SERVER_DOMAIN_FILE = "/etc/vpnpanel/server_domain.txt"
+
+def get_panel_sub_domain():
+    """
+    Returns the public HTTPS domain specifically serving the MHPanel web interface and subscriptions.
+    Prefers mhpanel.kigaping.com if available, or the current web request host.
+    """
+    try:
+        from flask import has_request_context, request
+        if has_request_context() and request.host:
+            host = request.host.split(":")[0]
+            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not host.startswith("vpn."):
+                return host
+    except Exception:
+        pass
+    if os.path.exists("/etc/letsencrypt/live/mhpanel.kigaping.com"):
+        return "mhpanel.kigaping.com"
+    d = get_server_domain()
+    if d and not d.startswith("vpn."):
+        return d
+    return "mhpanel.kigaping.com"
 
 def get_server_domain():
     # 1. User explicitly set domain
@@ -26370,6 +26430,15 @@ def load_singbox_users():
         u["download_formatted"] = format_bytes_human(u.get("download_bytes", 0))
         u["traffic_limit_formatted"] = f"{limit_gb:g} GB" if limit_gb > 0 else "نامحدود"
 
+        if not u.get("sub_token"):
+            u["sub_token"] = secrets.token_urlsafe(16)
+            needs_save = True
+
+        panel_dom = get_panel_sub_domain()
+        u["sub_url"] = f"https://{panel_dom}/sub/{u['sub_token']}"
+        u["sub_b64_url"] = f"https://{panel_dom}/sub/{u['sub_token']}/b64"
+        u["sub_json_url"] = f"https://{panel_dom}/sub/{u['sub_token']}/singbox.json"
+
     if needs_save:
         try:
             save_singbox_users(users)
@@ -27190,10 +27259,17 @@ def api_singbox_user_add():
     if expiry_type == "on_first_use":
         expire_date = f"پس از اولین اتصال ({validity_days} روزه)"
 
+    user_sub_tok = secrets.token_urlsafe(16)
+    panel_dom = get_panel_sub_domain()
+
     new_user = {
         "username": username,
         "uuid": user_uuid,
         "password": user_pass,
+        "sub_token": user_sub_tok,
+        "sub_url": f"https://{panel_dom}/sub/{user_sub_tok}",
+        "sub_b64_url": f"https://{panel_dom}/sub/{user_sub_tok}/b64",
+        "sub_json_url": f"https://{panel_dom}/sub/{user_sub_tok}/singbox.json",
         "enabled": True,
         "category": category,
         "inbounds": inbounds,
@@ -27368,10 +27444,10 @@ def api_singbox_user_links(username):
             })
 
     sub_token = target.get("sub_token", "")
-    domain = get_server_domain() or server_ip
-    sub_url = f"https://{domain}/sub/{sub_token}" if sub_token else ""
-    sub_b64_url = f"https://{domain}/sub/{sub_token}/b64" if sub_token else ""
-    sub_json_url = f"https://{domain}/sub/{sub_token}/singbox.json" if sub_token else ""
+    panel_dom = get_panel_sub_domain()
+    sub_url = f"https://{panel_dom}/sub/{sub_token}" if sub_token else ""
+    sub_b64_url = f"https://{panel_dom}/sub/{sub_token}/b64" if sub_token else ""
+    sub_json_url = f"https://{panel_dom}/sub/{sub_token}/singbox.json" if sub_token else ""
 
     return jsonify({
         "success": True,
@@ -27383,6 +27459,59 @@ def api_singbox_user_links(username):
         "sub_url": sub_url,
         "sub_b64_url": sub_b64_url,
         "sub_json_url": sub_json_url
+    })
+
+
+@app.route("/api/singbox/user/<username>/inbounds", methods=["GET", "POST"])
+def api_singbox_user_inbounds(username):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    users = load_singbox_users()
+    target = next((u for u in users if u.get("username") == username), None)
+    if not target:
+        return jsonify({"error": f"کاربر با نام {username} یافت نشد."}), 404
+
+    if request.method == "POST":
+        req = request.get_json() or {}
+        new_inbounds = req.get("inbounds")
+        if new_inbounds is None or not isinstance(new_inbounds, list):
+            return jsonify({"error": "لیست اینباندها نامعتبر است."}), 400
+
+        target["inbounds"] = new_inbounds
+        save_singbox_users(users)
+        ok, err = sync_singbox_users_to_config()
+        if not ok:
+            return jsonify({"error": f"خطا در همگام‌سازی با هسته: {err}"}), 400
+
+        return jsonify({
+            "success": True,
+            "message": f"اینباندهای مجاز کاربر {username} با موفقیت بروزرسانی شد.",
+            "username": username,
+            "inbounds": new_inbounds,
+            "inbounds_count": len(new_inbounds)
+        })
+
+    # GET: return user inbounds and all available inbounds with metadata
+    try:
+        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+            available_inbounds = [
+                {
+                    "tag": ib.get("tag"),
+                    "type": ib.get("type"),
+                    "port": ib.get("listen_port"),
+                    "transport": ib.get("transport", {}).get("type", "tcp")
+                }
+                for ib in cfg.get("inbounds", []) if ib.get("tag")
+            ]
+    except Exception:
+        available_inbounds = []
+
+    return jsonify({
+        "success": True,
+        "username": username,
+        "user_inbounds": target.get("inbounds", []),
+        "available_inbounds": available_inbounds
     })
 
 
