@@ -21585,6 +21585,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             tlsModeSelect.value = "none";
         }
         onSingboxTlsModeChange();
+        if (typeof renderSingboxProtocolDecisionGuide === "function") {
+            renderSingboxProtocolDecisionGuide(p);
+        }
 
         let html = "";
         if (p === "vless" || p === "vmess") {
@@ -24342,28 +24345,198 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
 
     // ==========================================
-    // SING-BOX FOUNDER DOCUMENTATION & KNOWLEDGE
+    // ==========================================
+    // SING-BOX FOUNDER DOCUMENTATION & SYSADMIN ENCYCLOPEDIA
     // ==========================================
 
-    const FOUNDER_TOPICS_KNOWLEDGE = {
-        protocols_overview: {
-            title: "📖 مقایسه پروتکل‌ها و کاربرد عملی در شرایط مختلف فیلترینگ ایران",
-            founder: "جامعه متن‌باز ضد سانسور (RPRX, Tobyx, EAimTY, ihciah, klzgrad)",
-            badge: "معماری کلی",
-            badge_color: "#6366f1",
-            content: `
-                <div style="margin-bottom: 8px;"><strong>چکیده معماری پروتکل‌ها:</strong></div>
-                <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:6px;">
-                    <li><strong>VLESS Reality (XTLS-Vision):</strong> پیشرفته‌ترین ترکیب ضد فیلترینگ بدون نیاز به دامنه اختصاصی؛ دور زدن کامل فیلترینگ SNI و محافظت ۱۰۰٪ در برابر مسدودسازی اپراتورهای ایرانسل و همراه اول.</li>
-                    <li><strong>Hysteria 2 (Salamander):</strong> غول سرعت بر بستر UDP؛ دارای الگوریتم کنترل ازدحام Brutal برای بی‌اثر کردن پکت‌لاست‌های ۳۰٪ الی ۶۰٪ ساختگی اپراتورها؛ حتماً رمز Salamander را برای مبهم‌سازی هدرهای آشکار QUIC ست کنید.</li>
-                    <li><strong>TUIC v5 (0-RTT):</strong> حداقل پینگ و تاخیر ممکن برای بازی‌های آنلاین و تماس‌های صوتی بدون قطعی هنگام سوئیچ میان دیتای موبایل و وای‌فای (Connection Migration).</li>
-                    <li><strong>ShadowTLS v3:</strong> استتار لایه انتقال با تزریق چالش احراز هویت در SessionID و فوروارد اسکنرهای فیلترینگ به سرورهای رسمی اپل و مایکروسافت.</li>
-                    <li><strong>NaiveProxy:</strong> ترافیک وب کرومیوم با متد HTTP/2 CONNECT که به دلیل انطباق کامل با مرورگر گوگل کروم، تفکیک آن از وب‌گردی عادی غیرممکن است.</li>
-                    <li><strong>Trojan:</strong> سناریوی کلاسیک و پایدار با دامنه و سرتیفیکیت معتبر Let's Encrypt روی پورت استاندارد ۴۴۳ وب.</li>
-                </ul>
-                <div style="background: rgba(99,102,241,0.1); border-left: 3px solid #6366f1; padding: 8px 12px; border-radius: 6px;">
-                    💡 <strong>ترفند طلایی:</strong> برای وضعیت‌های بحرانی و قطعی شدید بین‌الملل، ترکیبی از یک اینباند VLESS Reality روی پورت‌های خلوت و یک اینباند Hysteria 2 با Salamander Obfs فعال داشته باشید.
+    const PROTOCOL_DECISION_DATA = {
+        vless: {
+            title: "⚡ پروتکل VLESS Reality (نوآوری RPRX)",
+            badge: "استاندارد طلایی ضدسانسور",
+            badgeColor: "#10b981",
+            purpose: "عبور از فیلترینگ شدید DPI با شبیه‌سازی کامل یک وب‌سایت بزرگ خارجی بدون نیاز به خرید دامنه یا سرتیفیکیت SSL.",
+            howItWorks: "کلاینت در بسته هندشیک TLS کلید عمومی را به صورت نامتقارن (X25519) ارسال می‌کند؛ سرور در صورت تایید اتصال پروکسی را باز می‌کند و در صورت ورود پروب فایروال، بسته را عیناً به سرور Dest (گوگل یا مایکروسافت) فوروارد می‌کند.",
+            advantage: "عدم نیاز به دامنه/گواهی، شبیه‌سازی ۱۰۰٪ بسته‌های TLS، مصونیت مطلق در برابر اسکنرهای فعال (Active Probing)، و حل مشکل TLS-in-TLS با فلو Vision.",
+            bestFor: "شبکه‌های همراه اول، ایرانسل و رایتل در وضعیت فیلترینگ شدید؛ اولین و پایدارترین انتخاب برای عموم کاربران.",
+            encyclopediaTab: "rprx"
+        },
+        hysteria2: {
+            title: "🌪️ پروتکل Hysteria 2 (طراحی Tobyx)",
+            badge: "پادزهر پکت‌لاست و اختلالات عمدی",
+            badgeColor: "#ef4444",
+            purpose: "رسیدن به حداکثر سرعت در شبکه‌های دارای نوسان و پکت‌لاست بالا از طریق پروتکل UDP و QUIC بهینه‌شده.",
+            howItWorks: "دارای الگوریتم کنترل ازدحام Brutal است که بدون توجه به بسته‌های از دست رفته (Packet Loss) داده‌ها را با نرخ ثابت تعیین‌شده پمپاژ می‌کند؛ با قابلیت Salamander هدرهای QUIC را به نویز غیرقابل تشخیص تبدیل می‌کند.",
+            advantage: "سرعت نجومی دانلود و استریم در شبکه‌هایی که اپراتور با تزریق پکت‌لاست ۳۰٪ تا ۶۰٪ سایر فیلترشکن‌ها را فلج کرده است.",
+            bestFor: "ساعات اوج مصرف و شبکه‌های همراه اول/ایرانسل دارای اختلال شدید؛ استریم ویدیو، دانلود و ارتباط سرور به سرور (Tunnel).",
+            encyclopediaTab: "tobyx"
+        },
+        tuic: {
+            title: "🏎️ پروتکل TUIC v5 (طراحی EAimTY)",
+            badge: "تاخیر صفر (0-RTT) و گیمینگ",
+            badgeColor: "#8b5cf6",
+            purpose: "حداقل تاخیر ممکن در هندشیک و ارتباط بی‌وقفه با الگوریتم کنترل ازدحام BBR.",
+            howItWorks: "پیاده‌سازی سبک QUIC در زبان Rust؛ ارسال داده‌های اپلیکیشن در اولین بسته بدون معطلی دست‌اندازی (0-RTT)؛ قابلیت Connection Migration برای جابجایی بین دکل‌های مخابراتی بدون قطعی کانکشن.",
+            advantage: "پینگ بسیار پایین، روانی استثنایی در بازی‌های آنلاین و تماس‌های صوتی و تصویری بدون افت کیفیت.",
+            bestFor: "گیمرها، کاربران موبایل در حال تردد، تماس‌های صوتی تلگرام و واتساپ.",
+            encyclopediaTab: "eaimty"
+        },
+        trojan: {
+            title: "🏛️ پروتکل Trojan (استتار وبسایت رسمی)",
+            badge: "پروتکل استاندارد HTTPS وب",
+            badgeColor: "#0ea5e9",
+            purpose: "پنهان‌سازی ترافیک پروکسی به عنوان یک وبسایت HTTPS کاملاً طبیعی با گواهی معتبر SSL.",
+            howItWorks: "ارسال هش SHA-224 پسورد در اولین بسته TLS معتبر؛ اگر پسورد صحیح باشد به عنوان پروکسی هدایت می‌شود و اگر مرورگر عادی یا ربات باشد، به وب‌سایت واقعی سرور متصل می‌شود.",
+            advantage: "رفتار ۱۰۰٪ منطبق با وب‌سرورهای استاندارد؛ مورد تایید تمام فایروال‌های سازمانی و بین‌المللی.",
+            bestFor: "سرورهایی که دامنه اختصاصی دارند؛ کاربران اینترنت خانگی (ADSL/FTTH)؛ ترکیب با پورت ۴۴۳ وبسایت.",
+            encyclopediaTab: "vmess_trojan"
+        },
+        shadowtls: {
+            title: "🛡️ پروتکل ShadowTLS v3 (طراحی ihciah)",
+            badge: "استتار نشست و فریب هوشمند اسکنر",
+            badgeColor: "#ec4899",
+            purpose: "پنهان‌سازی تونل پشت سرورهای اپل یا مایکروسافت بدون نیاز به گواهی اختصاصی.",
+            howItWorks: "تزریق چالش رمزنگاری HMAC در فیلد ۳۲ بایتی SessionID هندشیک TLS؛ فایروال در صورت وارسی پورت، پاسخ رسمی و معتبر سرور اپل (gateway.icloud.com) را دریافت می‌کند.",
+            advantage: "سربار بسیار کم و مقاومت بالا در برابر اسکنرهای فعال فایروال بدون پیچیدگی‌های سنگین.",
+            bestFor: "شبکه‌های موبایل که نسبت به رفتارهای غیر وبسایتی حساس هستند.",
+            encyclopediaTab: "ihciah"
+        },
+        naive: {
+            title: "🌐 پروتکل NaiveProxy (طراحی klzgrad)",
+            badge: "استک شبکه رسمی کرومیوم",
+            badgeColor: "#059669",
+            purpose: "غیرقابل شناسایی‌ترین پروتکل وب‌محور به دلیل استفاده مستقیم از موتور Chromium گوگل کروم.",
+            howItWorks: "ایجاد تونل با متد استاندارد HTTP/2 CONNECT از طریق کتابخانه شبکه گوگل کروم؛ امضای پکت‌ها (JA3/JA4) با مرورگر کروم واقعی یکسان است.",
+            advantage: "فایروال هیچ راهی برای مسدود کردن آن ندارد مگر اینکه کل اینترنت و سایت‌های HTTPS را قطع کند.",
+            bestFor: "سخت‌ترین شرایط فیلترینگ که سایر پروتکل‌ها به صورت رفتاری مسدود می‌شوند.",
+            encyclopediaTab: "klzgrad"
+        },
+        vmess: {
+            title: "📦 پروتکل VMess (استاندارد V2Ray)",
+            badge: "پشتیبانی کامل از CDN و وب‌سوکت",
+            badgeColor: "#06b6d4",
+            purpose: "پروتکل امنیتی سنتی و آزمایش‌شده با رمزنگاری پیشرفته AEAD.",
+            howItWorks: "بسته‌بندی دیتا در قالب استریم‌های WebSocket و عبور از لایه‌های توزیع محتوا (CDN).",
+            advantage: "قابلیت عبور از پشت کلودفلر یا آروان‌کلاد جهت مخفی کردن IP سرور فیلترشده.",
+            bestFor: "سرورهایی که IP آنها در ایران مسدود شده و باید از طریق CDN واسط به آن‌ها متصل شد.",
+            encyclopediaTab: "vmess_trojan"
+        },
+        shadowsocks: {
+            title: "🔒 پروتکل Shadowsocks-rust 2022",
+            badge: "سبک‌ترین و کم‌مصرف‌ترین پروتکل",
+            badgeColor: "#3b82f6",
+            purpose: "پروکسی رمزنگاری‌شده AEAD مدرن با کمترین میزان مصرف باتری و منابع سرور.",
+            howItWorks: "استفاده از الگوریتم‌های BLAKE3 و AES-GCM؛ ایمن در برابر Replay Attack در نسخه ۲۰۲۲.",
+            advantage: "پرفورمنس فوق‌العاده بالا، رله همزمان بسته‌های UDP و TCP بدون کوچک‌ترین سربار اضافی هدر وب.",
+            bestFor: "روترهای خانگی ضعیف، دستگاه‌های اینترنت اشیاء (IoT)، گیمینگ و کانکشن‌های شبکه محلی.",
+            encyclopediaTab: "shadowsocks"
+        },
+        mixed: {
+            title: "🔀 اینباند چندمنظوره ترکیبی (Mixed: HTTP + SOCKS5)",
+            badge: "پروکسی لوکال سیستم",
+            badgeColor: "#64748b",
+            purpose: "ارائه پورت لوکال روی کلاینت یا سرور برای پشتیبانی همزمان از درخواست‌های HTTP و SOCKS5.",
+            howItWorks: "هسته با بررسی اولین بایت ترافیک، پروتکل HTTP یا SOCKS5 را به صورت خودکار تشخیص می‌دهد.",
+            advantage: "عدم نیاز به تعریف دو پورت مجزا برای اپلیکیشن‌ها و تلگرام/مرورگر.",
+            bestFor: "تنظیم پراکسی داخلی سیستم‌عامل، نرم‌افزارهای دسکتاپ و اسکریپت‌های سرور.",
+            encyclopediaTab: "protocols_matrix"
+        },
+        tun: {
+            title: "🖧 اینباند کارت شبکه مجازی (TUN Interface)",
+            badge: "VPN سیستمی سرتاسری",
+            badgeColor: "#6366f1",
+            purpose: "دریافت کل ترافیک شبکه سیستم‌عامل در لایه ۳ (IP Packet) بدون نیاز به تنظیم پروکسی در برنامه‌ها.",
+            howItWorks: "ایجاد کارت شبکه مجازی tun0 در کرنل لینوکس یا ویندوز و بازنویسی جدول روتینگ سیستم‌عامل.",
+            advantage: "هدایت ۱۰۰٪ ترافیک کل برنامه‌ها، بازی‌ها و ترمینال از داخل هسته Sing-box.",
+            bestFor: "کلاینت‌های اندروید، ویندوز و لینوکس جهت تونل کردن کامل کل دستگاه.",
+            encyclopediaTab: "singbox_routing"
+        },
+        direct: {
+            title: "⚡ اینباند پورت فوروارد مستقیم (Direct / Forward)",
+            badge: "انتقال ترافیک خام",
+            badgeColor: "#64748b",
+            purpose: "دریافت ترافیک خام روی یک پورت و فوروارد مستقیم آن به مقصد بدون تغییر پروتکل.",
+            howItWorks: "شنود ترافیک TCP/UDP و ارسال آن به Outbound هدف در جدول روتینگ.",
+            advantage: "سربار پردازشی صفر.",
+            bestFor: "سرورهای واسط تونل ایران به خارج و پورت فورواردینگ شبکه‌ای.",
+            encyclopediaTab: "protocols_matrix"
+        }
+    };
+
+    function renderSingboxProtocolDecisionGuide(proto) {
+        const guideEl = document.getElementById("sb-protocol-decision-guide");
+        if (!guideEl) return;
+        const data = PROTOCOL_DECISION_DATA[proto];
+        if (!data) {
+            guideEl.style.display = "none";
+            return;
+        }
+
+        guideEl.style.display = "block";
+        guideEl.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px dashed rgba(99,102,241,0.2); padding-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-weight:700; color:${data.badgeColor}; font-size:12.5px;">${data.title}</span>
+                    <span class="badge-pill" style="font-size:10px; background:rgba(99,102,241,0.12); color:${data.badgeColor};">${data.badge}</span>
                 </div>
+                <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxEncyclopedia('${data.encyclopediaTab}')" style="font-size:11.5px; padding:5px 14px; font-weight:800; border-radius:7px; box-shadow:0 2px 6px rgba(99,102,241,0.3); cursor:pointer;">
+                    📖 مطالعه در دانشنامه مدیر
+                </button>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px; line-height:1.55;">
+                <div style="background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <strong style="color:var(--color-primary); display:block; margin-bottom:2px;">🎯 کاربرد این بخش:</strong>
+                    ${data.purpose}
+                </div>
+                <div style="background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <strong style="color:#0ea5e9; display:block; margin-bottom:2px;">⚙️ نحوه کارکرد فنی:</strong>
+                    ${data.howItWorks}
+                </div>
+                <div style="background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <strong style="color:#10b981; display:block; margin-bottom:2px;">✨ مزیت کلیدی:</strong>
+                    ${data.advantage}
+                </div>
+                <div style="background:rgba(255,255,255,0.03); padding:6px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.05);">
+                    <strong style="color:#f59e0b; display:block; margin-bottom:2px;">💡 سناریو و شرایط مناسب:</strong>
+                    ${data.bestFor}
+                </div>
+            </div>
+        `;
+    }
+
+    function openSingboxEncyclopedia(topicKey) {
+        if (typeof switchTab === "function") switchTab("singbox");
+        setTimeout(() => {
+            toggleSingboxFounderDocsModal(topicKey || "protocols_matrix");
+        }, 60);
+    }
+
+    const FOUNDER_TOPICS_KNOWLEDGE = {
+        protocols_matrix: {
+            title: "📊 ماتریس تصمیم‌گیری مدیر سیستم: کدام پروتکل برای چه سناریویی؟",
+            founder: "جامعه مهندسی ضدسانسور (RPRX, Tobyx, EAimTY, ihciah, klzgrad)",
+            badge: "تصمیم‌گیری مدیر",
+            badge_color: "#f59e0b",
+            content: `
+                <div style="margin-bottom:8px;"><strong>دستورالعمل انتخاب پروتکل در شرایط مختلف اینترنت ایران:</strong></div>
+                <ul style="padding-right:18px; margin:0 0 10px 0; display:flex; flex-direction:column; gap:5px;">
+                    <li><strong>فیلترینگ شدید همراه اول و ایرانسل:</strong> اولویت اول VLESS Reality با فلو xtls-rprx-vision روی پورت 443 (یا پورت‌های کلودفلر 2053 و 8443).</li>
+                    <li><strong>ساعات افت شدید و پکت‌لاست بالا (۳۰٪ تا ۶۰٪):</strong> Hysteria 2 با فعال بودن رمز مبهم‌سازی Salamander.</li>
+                    <li><strong>گیمینگ و پینگ مینیمم:</strong> TUIC v5 با الگوریتم کنترل ازدحام BBR و تاخیر 0-RTT.</li>
+                    <li><strong>مسدود شدن کامل IP سرور:</strong> استفاده از VMess یا VLESS از پشت شبکه ابری Cloudflare (CDN) با ترانسپورت HTTPUpgrade یا WebSocket.</li>
+                    <li><strong>سخت‌ترین حالت تفکیک رفتاری:</strong> پروتکل NaiveProxy که از موتور رسمی مرورگر گوگل کروم بهره می‌برد.</li>
+                </ul>
+            `
+        },
+        sni_spoofing: {
+            title: "🎭 مهندسی جعل SNI (SNI Spoofing)، سیستم فیلترینگ DPI و پیوند آن با REALITY",
+            founder: "پژوهشگران امنیت شبکه و توسعه‌دهندگان هسته Xray / Sing-box",
+            badge: "مفهوم پایه فیلترینگ",
+            badge_color: "#ec4899",
+            content: `
+                <div style="margin-bottom:8px;"><strong>SNI چیست و چرا پاشنه آشیل امنیت اینترنت شد؟</strong></div>
+                <p>در استاندارد TLS، الحاقیه <strong>Server Name Indication (SNI)</strong> نام دامنه‌ای که کلاینت می‌خواهد به آن وصل شود را در بسته اولیه <code>ClientHello</code> به صورت <strong>متن کاملاً شفاف (Plaintext)</strong> ارسال می‌کند. فایروال‌های DPI ایرانسل و همراه اول با اسکن این فیلد، در کمتر از ۵ میلی‌ثانیه ترافیک دامنه‌های فیلترشده را شناسایی و با تزریق پکت‌های جعلی TCP RST ارتباط را نابود می‌کنند.</p>
+                <div style="margin-bottom:8px;"><strong>جعل SNI (SNI Spoofing) و پیوند آن با Reality:</strong></div>
+                <p>در روش‌های سنتی، قرار دادن یک دامنه مجاز (مانند سایت بانک یا دامنه شاد) در SNI باعث خطای عدم تطابق گواهینامه SSL و شناسایی با اسکنرهای فعال (Active Probing) می‌شد. تکنولوژی <strong>REALITY</strong> این مشکل را برای همیشه حل کرد؛ سرور با سرقت زنده گواهی از دامنه هدف و فوروارد هوشمند اسکنرهای فایروال به سرور واقعی (مانند گوگل یا مایکروسافت)، تکامل‌یافته‌ترین شکل جعل SNI را بدون نیاز به هیچ دامنه یا گواهی اختصاصی پیاده‌سازی کرد.</p>
             `
         },
         ports_and_firewall: {
@@ -24414,9 +24587,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     ✨ <strong>نمونه دامنه‌های آزمایش‌شده و قدرتمند:</strong><br>
                     <code>dl.google.com:443</code> • <code>gateway.icloud.com:443</code> • <code>update.microsoft.com:443</code> • <code>swdist.apple.com:443</code> • <code>www.yahoo.com:443</code> • <code>cdn.samsungcloud.com:443</code>
                 </div>
-                <div style="color:var(--text-muted); font-size:11px;">
-                    💡 نحوه تست Dest در سرور لینوکس: <code>curl -v -I --http2 https://dl.google.com:443</code>
-                </div>
             `
         },
         reality_keys_shortid: {
@@ -24444,9 +24614,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 <p>وقتی شما با یک فیلترشکن به سایتی امن (مانند اینستاگرام یا واتساپ) متصل می‌شوید، ترافیک TLS شما داخل یک ترافیک TLS دیگر بسته‌بندی می‌شود. فایروال‌های مجهز به هوش مصنوعی با تحلیل طول بسته‌ها (Packet Length Distribution) در چند میلی‌ثانیه اول هندشیک، وجود دو لایه TLS را متوجه شده و پورت را قطع می‌کردند.</p>
                 <div style="margin-bottom: 8px;"><strong>راهکار نبوغ‌آمیز Vision:</strong></div>
                 <p>الگوریتم Vision در بسته‌های اولیه داده، پدینگ تصادفی (Random Padding) تزریق می‌کند و طول بسته‌ها را طوری تغییر می‌دهد که رفتار شبکه ۱۰۰٪ مشابه وب‌گردی مستقیم و بدون پروکسی یک مرورگر واقعی به نظر برسد.</p>
-                <div style="color:var(--text-muted); font-size:11px;">
-                    ⚠️ <strong>نکته مهم:</strong> فلو Vision فقط با پروتکل VLESS روی ترانسپورت TCP مستقیم فعال می‌شود (با WebSocket یا gRPC نباید ست شود).
-                </div>
             `
         },
         hysteria2_brutal: {
@@ -24456,63 +24623,35 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             badge_color: "#ef4444",
             content: `
                 <div style="margin-bottom: 8px;"><strong>چرا هیستریا ۲ سرعت شگفت‌انگیزی در ایران دارد؟</strong></div>
-                <p>در ساعات اوج مصرف اینترنت در ایران، اپراتورها روی اتصالات خارجی پکت‌لاست‌های ساختگی (۲۰٪ تا ۶۰٪) اعمال می‌کنند. پروتکل‌های سنتی مبتنی بر TCP (مثل VMess یا تروجان) به محض دیدن پکت‌لاست سرعت خود را به شدت کاهش می‌دهند چون فرض می‌کنند خط شلوغ است.</p>
+                <p>در ساعات اوج مصرف اینترنت در ایران، اپراتورها روی اتصالات خارجی پکت‌لاست‌های ساختگی (۲۰٪ تا ۶۰٪) اعمال می‌کنند. پروتکل‌های سنتی مبتنی بر TCP به محض دیدن افت بسته سرعت خود را به شدت کاهش می‌دهند.</p>
                 <div style="margin-bottom: 8px;"><strong>کنترل ازدحام Brutal:</strong></div>
-                <p>هیستریا ۲ با پروتکل UDP کار می‌کند و دارای الگوریتم کنترل ازدحام Brutal است؛ این الگوریتم پکت‌لاست را نادیده گرفته و بسته‌ها را با نرخ ثابتی که شما تعیین کرده‌اید (مثلاً ۱۰۰ مگابیت) بی‌وقفه ارسال می‌کند.</p>
-                <div style="margin-bottom: 8px;"><strong>مبهم‌ساز Salamander (الزامی در ایران):</strong></div>
-                <p>فایروال‌های همراه اول و ایرانسل هدرهای استاندارد پروتکل QUIC را مسدود می‌کنند. ماژول Salamander با استفاده از یک رمز عبور مشترک و هش BLAKE2b، هدرهای آشکار QUIC را کاملاً مخدوش کرده و شبیه نویز تصادفی غیرقابل شناسایی می‌کند.</p>
+                <p>هیستریا ۲ با پروتکل UDP کار می‌کند و دارای الگوریتم کنترل ازدحام Brutal است؛ این الگوریتم پکت‌لاست را نادیده گرفته و بسته‌ها را با نرخ ثابتی که شما تعیین کرده‌اید بی‌وقفه ارسال می‌کند.</p>
             `
         },
         tuic_v5: {
-            title: "🏎️ پروتکل TUIC نسخه ۵ (EAimTY) - پینگ مینیمم گیمینگ و 0-RTT",
-            founder: "EAimTY (طراح اصلی پروتکل TUIC)",
-            badge: "0-RTT QUIC",
-            badge_color: "#06b6d4",
+            title: "🏎️ پروتکل TUIC نسخه ۵ بر بستر کوییک (QUIC 0-RTT)",
+            founder: "EAimTY (توسعه‌دهنده رسمی TUIC)",
+            badge: "گیمینگ و پینگ مینیمم",
+            badge_color: "#8b5cf6",
             content: `
-                <div style="margin-bottom: 8px;"><strong>مزیت‌های طلایی TUIC v5:</strong></div>
+                <div style="margin-bottom: 8px;"><strong>چرا TUIC بهترین پروتکل برای بازی‌های آنلاین و تماس صوتی است؟</strong></div>
                 <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
-                    <li><strong>اتصال بدون تاخیر (0-RTT):</strong> به لطف مکانیزم جدید TLS 1.3 Early Data و خروجی کلیدهای QUIC، تبادل داده از اولین بسته و بدون نیاز به چند دور رفت و برگشت هندشیک آغاز می‌شود؛ پینگ اولیه به صفر نزدیک است.</li>
-                    <li><strong>جابجایی پایدار اتصال (Connection Migration):</strong> اگر کاربر در حال بازی آنلاین، تماس صوتی یا دانلود باشد و از شبکه وای‌فای خانگی به دیتای سیم‌کارت سوئیچ کند، اتصال بدون قطعی و بلافاصله ادامه می‌یابد!</li>
-                    <li><strong>الگوریتم BBR:</strong> کاهش چشمگیر نوسانات پینگ (Jitter) در خطوط دارای نوسان اینترنت ایران.</li>
+                    <li><strong>تاخیر صفر هندشیک (0-RTT):</strong> برخلاف TCP که نیازمند تبادل چندین بسته اولیه است، TUIC در اولین بسته داده کاربر را ارسال می‌کند.</li>
+                    <li><strong>پایداری هنگام حرکت (Connection Migration):</strong> هنگام سوئیچ کاربر میان دکل‌های اینترنت موبایل یا رفتن از وای‌فای به دیتا، کانکشن به هیچ وجه قطع نمی‌شود.</li>
+                    <li><strong>الگوریتم BBR:</strong> به طور پیش‌فرض برای شبکه‌های نامتعادل بهینه‌سازی شده است.</li>
                 </ul>
             `
         },
-        shadowsocks_2022: {
-            title: "🛡️ استاندارد Shadowsocks 2022 و مشتق‌گیری کلید BLAKE3",
-            founder: "جامعه Shadowsocks-rust (مستندات استاندارد ۲۰۲۲)",
-            badge: "سبک و مقاوم",
-            badge_color: "#14b8a6",
-            content: `
-                <div style="margin-bottom: 8px;"><strong>تفاوت نسخه ۲۰۲۲ با نسخه‌های قدیمی شادوساکس:</strong></div>
-                <p>در گذشته فیلترینگ با ضبط ترافیک و بازپخش مجدد آن (Replay Attack) پورت‌های شادوساکس را کشف می‌کرد. نسخه جدید ۲۰۲۲ با معرفی هدرهای احراز هویت مجزا، استفاده از تابع هش فوق‌سریع BLAKE3 و مشتق‌گیری کلیدهای فرعی برای هر نشست، در برابر هر نوع حمله بازپخش مصون است.</p>
-                <div style="color:var(--text-muted); font-size:11px;">
-                    💡 به دلیل سربار پردازشی بسیار پایین، بهترین انتخاب برای روترهای میکروتیک، مودم‌های OpenWrt و سرورهای با منابع محدود است.
-                </div>
-            `
-        },
-        naiveproxy: {
-            title: "🌐 پروتکل NaiveProxy (klzgrad) - مصونیت کامل با استک کرومیوم",
-            founder: "klzgrad (توسعه‌دهنده NaiveProxy)",
-            badge: "استک کروم",
-            badge_color: "#6366f1",
-            content: `
-                <div style="margin-bottom: 8px;"><strong>فلسفه طراحی منحصر‌به‌فرد NaiveProxy:</strong></div>
-                <p>خالق این پروتکل معتقد است بهترین راه فرار از فیلترینگ، شبیه‌سازی نیست، بلکه استفاده از خود مرورگر واقعی است! او کدهای رسمی شبکه مرورگر گوگل کروم (Chromium Network Stack) را داخل هسته NaiveProxy کامپایل کرده است.</p>
-                <div style="margin-bottom: 8px;"><strong>چرا فیلترینگ نمی‌تواند NaiveProxy را ببندد؟</strong></div>
-                <p>ترافیک این پروتکل از متد استاندارد HTTP/2 CONNECT استفاده می‌کند و امضای دیجیتال بسته‌ها (JA3 و TLS Fingerprint) ذره‌ای با مرورگر رسمی گوگل کروم تفاوت ندارد. فیلترینگ برای مسدود کردن این پروتکل، باید کل ترافیک وبسایت‌های جهان را مسدود کند!</p>
-            `
-        },
         shadowtls_v3: {
-            title: "🕶️ پروتکل ShadowTLS نسخه ۳ (ihciah) - استتار کامل لایه TLS",
-            founder: "ihciah (خالق ShadowTLS)",
-            badge: "چالش HMAC",
-            badge_color: "#8b5cf6",
+            title: "🛡️ پروتکل ShadowTLS نسخه ۳ و فریب اسکنرها با سرورهای اپل",
+            founder: "ihciah (سازنده پروتکل ShadowTLS)",
+            badge: "استتار لایه نشست",
+            badge_color: "#ec4899",
             content: `
-                <div style="margin-bottom: 8px;"><strong>مکانیزم چالش HMAC در SessionID:</strong></div>
-                <p>در پروتکل ShadowTLS، یک چالش ریاضی امن (HMAC) در ۴ بایت پایانی فیلد ۳۲ بایتی SessionID در اولین پکت ClientHello تزریق می‌شود.</p>
+                <p>پروتکل ShadowTLS ابداع مهندس ihciah برای مقابله با بازرسی عمیق بسته‌ها (DPI) و خنثی کردن اسکن‌های فعال است. در این استاندارد، یک چالش احراز هویت HMAC در فیلد ۳۲ بایتی SessionID بسته ClientHello تزریق می‌شود.</p>
                 <ul style="padding-right: 18px; margin: 0 0 10px 0; display:flex; flex-direction:column; gap:4px;">
-                    <li>هنگامی که کلاینت مجاز متصل می‌شود، سرور چالش را با رمز اشتراکی تایید کرده و ترافیک را به سرویس پروکسی داخلی متصل می‌کند.</li>
-                    <li>اگر اسکنرهای هوشمند فیلترینگ پورت را بررسی کنند، فاقد چالش معتبر هستند؛ در نتیجه سرور پکت را عیناً به یک سرور بزرگ خارجی (مانند اپل یا مایکروسافت) هدایت می‌کند تا از نظر فیلترینگ هیچ سرویس مشکوکی شناسایی نشود.</li>
+                    <li>هنگامی که کلاینت مجاز متصل می‌شود، سرور چالش را با رمز اشتراکی تایید کرده و ترافیک را تحویل می‌گیرد.</li>
+                    <li>اگر اسکنرهای هوشمند فیلترینگ پورت را بررسی کنند، فاقد چالش معتبر هستند؛ در نتیجه سرور پکت را عیناً به یک سرور بزرگ خارجی (مانند اپل یا مایکروسافت) هدایت می‌کند.</li>
                 </ul>
             `
         },
@@ -24524,6 +24663,33 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             content: `
                 <p>پروتکل تروجان به جای استفاده از رمزنگاری‌های نامتعارف، دقیقاً ترافیک واقعی مرورگرهای اینترنت به سمت یک وبسایت HTTPS را بازسازی می‌کند. در اولین بسته پسورد شما به صورت هش SHA-224 (۵۶ کاراکتر هگز) ارسال می‌شود.</p>
                 <p>در صورتی که گواهینامه معتبر SSL (مانند Let's Encrypt پنل) روی پورت ۴۴۳ فعال باشد، فیلترینگ ارتباط را به عنوان یک بازدید طبیعی از وبسایت اینترنتی قلمداد می‌کند.</p>
+            `
+        },
+        vmess_architecture: {
+            title: "📦 پروتکل VMess و عبور از پشت CDNهای کلودفلر و آروان",
+            founder: "تیم V2Fly و V2Ray",
+            badge: "پروتکل CDN",
+            badge_color: "#06b6d4",
+            content: `
+                <p>پروتکل VMess پروتکل پایه شرکت V2Fly با رمزنگاری پیشرفته متقارن AEAD است. بزرگترین مزیت VMess، قابلیت انتقال داده از داخل بسته‌های استریم استاندارد وب‌سوکت (WebSocket) است که به مدیر شبکه اجازه می‌دهد ترافیک را از پشت CDNهای ابری نظیر Cloudflare عبور داده و آی‌پی مسدودشده سرور را مخفی نگاه دارد.</p>
+            `
+        },
+        shadowsocks_2022: {
+            title: "🔒 پروتکل Shadowsocks-rust 2022 (BLAKE3 & AEAD)",
+            founder: "clowwindy و توسعه‌دهندگان پروتکل Shadowsocks 2022",
+            badge: "سبک و سریع",
+            badge_color: "#3b82f6",
+            content: `
+                <p>پروتکل Shadowsocks در سال ۲۰۲۲ بازطراحی کامل شد. در این ویرایش از تابع مشتق‌گیری کلید مدرن BLAKE3 و رمزنگاری‌های AEAD-GCM استفاده شده است که پروتکل را در برابر حملات بازپخش (Replay Attacks) و اسکنرهای فایروال کاملاً مصون می‌سازد.</p>
+            `
+        },
+        naiveproxy: {
+            title: "🌐 پروتکل NaiveProxy (انطباق ۱۰۰٪ با موتور گوگل کروم)",
+            founder: "klzgrad (توسعه‌دهنده رسمی NaiveProxy)",
+            badge: "موتور کرومیوم",
+            badge_color: "#059669",
+            content: `
+                <p>پروتکل NaiveProxy مستقیماً از کتابخانه شبکه رسمی مرورگر Chromium گوگل کروم استفاده می‌کند. به دلیل اینکه از متد استاندارد تونل وب HTTP/2 CONNECT بهره می‌برد، امضای ترافیک آن (JA3/JA4) تفاوتی با وب‌گردی طبیعی یک کاربر عادی ندارد.</p>
             `
         },
         transports_deep_dive: {
@@ -24540,14 +24706,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 </ul>
             `
         },
+        singbox_routing: {
+            title: "🧭 موتور DNS، FakeIP و قوانین روتینگ هوشمند در هسته Sing-box",
+            founder: "nekohasekai (خالق هسته انقلابی Sing-box)",
+            badge: "معماری روتینگ",
+            badge_color: "#6366f1",
+            content: `
+                <p>موتور مسیریابی Sing-box با استراتژی FakeIP در بازه <code>198.18.0.0/15</code> تاخیر حل نام دامنه در کلاینت را به صفر می‌رساند. با اعمال قوانین <code>geosite:category-ir</code> و <code>geoip:ir</code>، ترافیک بانک‌ها و سامانه‌های داخلی ایران مستقیماً خارج شده و خطای مسدودی حساب یا کندی ایجاد نمی‌شود.</p>
+            `
+        },
         tls_certificates: {
             title: "🔒 تفاوت گواهینامه معتبر رسمی Let's Encrypt با گواهی خودساخته (Self-Signed)",
             founder: "تیم امنیت زیرساخت mhpanel",
             badge: "گواهی رسمی",
             badge_color: "#10b981",
             content: `
-                <p>فایروال‌های DPI ایرانسرور و ارتباطات بین‌الملل، گواهینامه‌های خودساخته (Self-Signed) را در جا شناسایی کرده و ارتباط را به عنوان ترافیک مشکوک قطع می‌کنند.</p>
-                <p>پنل <code>mhpanel</code> برای پروتکل‌های مبتنی بر TLS (مانند تروجان، وب‌سوکت و هیستریا) به طور خودکار از سرتیفیکیت معتبر بین‌المللی دامنه سرور استفاده می‌کند تا اصالت ارتباط ۱۰۰٪ تایید شود.</p>
+                <p>فایروال‌های DPI ایران، گواهینامه‌های خودساخته (Self-Signed) را در جا شناسایی کرده و ارتباط را به عنوان ترافیک مشکوک قطع می‌کنند. پنل <code>mhpanel</code> برای پروتکل‌های مبتنی بر TLS به طور خودکار از سرتیفیکیت معتبر بین‌المللی دامنه سرور استفاده می‌کند تا اصالت ارتباط ۱۰۰٪ تایید شود.</p>
             `
         }
     };
@@ -24597,14 +24771,20 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             modal.style.display = "flex";
             modal.classList.add("active");
             
-            // Map topicKey to tab if needed
-            let tabId = "rprx";
-            if (topicKey === "hysteria2_brutal") tabId = "tobyx";
-            else if (topicKey === "tuic_v5") tabId = "eaimty";
-            else if (topicKey === "shadowtls_v3") tabId = "ihciah";
-            else if (topicKey === "naiveproxy") tabId = "klzgrad";
+            // Map topicKey to tab
+            let tabId = "protocols_matrix";
+            if (topicKey === "sni_spoofing") tabId = "sni_spoofing";
+            else if (topicKey === "hysteria2_brutal" || topicKey === "tobyx") tabId = "tobyx";
+            else if (topicKey === "tuic_v5" || topicKey === "eaimty") tabId = "eaimty";
+            else if (topicKey === "shadowtls_v3" || topicKey === "ihciah") tabId = "ihciah";
+            else if (topicKey === "naiveproxy" || topicKey === "klzgrad") tabId = "klzgrad";
+            else if (topicKey === "trojan_architecture" || topicKey === "vmess_architecture" || topicKey === "tls_certificates" || topicKey === "vmess_trojan") tabId = "vmess_trojan";
+            else if (topicKey === "shadowsocks_2022" || topicKey === "shadowsocks") tabId = "shadowsocks";
+            else if (topicKey === "transports_deep_dive" || topicKey === "transports") tabId = "transports";
+            else if (topicKey === "singbox_routing" || topicKey === "domain_strategy_and_dns" || topicKey === "sniffing_deep_dive") tabId = "singbox_routing";
             else if (topicKey === "crafting" || topicKey === "ports_and_firewall") tabId = "crafting";
-            else if (topicKey === "xtls_vision" || topicKey === "reality_architecture" || topicKey === "reality_dest" || topicKey === "reality_keys_shortid") tabId = "rprx";
+            else if (topicKey === "xtls_vision" || topicKey === "reality_architecture" || topicKey === "reality_dest" || topicKey === "reality_keys_shortid" || topicKey === "rprx") tabId = "rprx";
+            else if (topicKey === "protocols_overview" || topicKey === "protocols_matrix") tabId = "protocols_matrix";
 
             switchFounderDocsTab(tabId);
         }
@@ -24624,7 +24804,203 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const body = document.getElementById("sb-founder-docs-body");
         if (!body) return;
 
-        if (tabId === "rprx") {
+        // 1. MATRIS PROTOCOLS TAB
+        if (tabId === "protocols_matrix") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#d97706; font-weight:800;">📊 ماتریس مقایسه جامع پروتکل‌ها و راهنمای تصمیم‌گیری مدیر سیستم</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(245,158,11,0.15); color:#d97706; font-weight:700;">مرجع تصمیم‌گیری</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        انتخاب پروتکل اشتباه می‌تواند منجر به افت شدید سرعت، مسدودی چندساعته پورت یا قطع کامل ترافیک کاربران شود. این ماتریس بر اساس رفتارهای واقعی سیستم فیلترینگ ایرانسل، همراه اول، مخابرات و شاتل تدوین شده است.
+                    </p>
+                </div>
+
+                <!-- Comprehensive Comparison Matrix Table -->
+                <div style="overflow-x:auto; margin-bottom:18px; border:1px solid var(--border-color); border-radius:10px;">
+                    <table style="width:100%; border-collapse:collapse; font-size:11.5px; text-align:right;">
+                        <thead>
+                            <tr style="background:var(--bg-muted); border-bottom:1px solid var(--border-color); color:var(--text-muted);">
+                                <th style="padding:10px 12px;">پروتکل و طراح</th>
+                                <th style="padding:10px 12px;">لایه انتقال</th>
+                                <th style="padding:10px 12px;">مقاومت DPI</th>
+                                <th style="padding:10px 12px;">تاب‌آوری پکت‌لاست</th>
+                                <th style="padding:10px 12px;">تاخیر (RTT)</th>
+                                <th style="padding:10px 12px;">نیاز به دامنه/SSL</th>
+                                <th style="padding:10px 12px;">بهترین سناریوی کاربردی</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid var(--border-color); background:rgba(16,185,129,0.03);">
+                                <td style="padding:10px 12px; font-weight:700; color:#10b981;">VLESS Reality (RPRX)</td>
+                                <td style="padding:10px 12px;">TCP مستقیم + Vision</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#10b981; color:white; font-size:10px;">عالی (A+)</span></td>
+                                <td style="padding:10px 12px;">متوسط (تابع TCP)</td>
+                                <td style="padding:10px 12px;">1-RTT</td>
+                                <td style="padding:10px 12px;"><span style="color:#10b981; font-weight:700;">خیر (سرقت گواهی)</span></td>
+                                <td style="padding:10px 12px;">همراه اول و ایرانسل در فیلترینگ شدید (انتخاب اول)</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color); background:rgba(239,68,68,0.03);">
+                                <td style="padding:10px 12px; font-weight:700; color:#ef4444;">Hysteria 2 (Tobyx)</td>
+                                <td style="padding:10px 12px;">UDP / QUIC Brutal</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#ef4444; color:white; font-size:10px;">خیلی خوب (با Salamander)</span></td>
+                                <td style="padding:10px 12px;"><span style="color:#ef4444; font-weight:700;">فوق‌العاده (تا ۶۰٪)</span></td>
+                                <td style="padding:10px 12px;">0-RTT</td>
+                                <td style="padding:10px 12px;">بله (یا سرتیفیکیت پنل)</td>
+                                <td style="padding:10px 12px;">ساعات اوج مصرف، دانلود پرسرعت، استریم یوتیوب</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color); background:rgba(139,92,246,0.03);">
+                                <td style="padding:10px 12px; font-weight:700; color:#8b5cf6;">TUIC v5 (EAimTY)</td>
+                                <td style="padding:10px 12px;">UDP / QUIC 0-RTT</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#8b5cf6; color:white; font-size:10px;">خیلی خوب (B+)</span></td>
+                                <td style="padding:10px 12px;">عالی با BBR</td>
+                                <td style="padding:10px 12px;"><span style="color:#8b5cf6; font-weight:700;">حداقل ممکن (0-RTT)</span></td>
+                                <td style="padding:10px 12px;">بله (سرتیفیکیت پنل)</td>
+                                <td style="padding:10px 12px;">بازی‌های شوتر، تماس‌های صوتی تلگرام و واتساپ</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px 12px; font-weight:700; color:#059669;">NaiveProxy (klzgrad)</td>
+                                <td style="padding:10px 12px;">Chromium HTTP/2</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#059669; color:white; font-size:10px;">دست‌نیافتنی (A++)</span></td>
+                                <td style="padding:10px 12px;">متوسط</td>
+                                <td style="padding:10px 12px;">1-RTT</td>
+                                <td style="padding:10px 12px;">بله (گواهی رسمی)</td>
+                                <td style="padding:10px 12px;">سخت‌ترین موقعیت‌های فیلترینگ که همه پروتکل‌ها بسته‌اند</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px 12px; font-weight:700; color:#ec4899;">ShadowTLS v3 (ihciah)</td>
+                                <td style="padding:10px 12px;">TCP + HMAC Challenge</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#ec4899; color:white; font-size:10px;">عالی (A)</span></td>
+                                <td style="padding:10px 12px;">متوسط</td>
+                                <td style="padding:10px 12px;">2-RTT</td>
+                                <td style="padding:10px 12px;"><span style="color:#10b981; font-weight:700;">خیر (فریب سرور اپل)</span></td>
+                                <td style="padding:10px 12px;">عبور از اسکنرهای فعال فایروال بدون خرید دامنه</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px 12px; font-weight:700; color:#0ea5e9;">Trojan TLS</td>
+                                <td style="padding:10px 12px;">TCP / TLS استاندارد</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#0ea5e9; color:white; font-size:10px;">خوب (B)</span></td>
+                                <td style="padding:10px 12px;">پایین</td>
+                                <td style="padding:10px 12px;">1-RTT</td>
+                                <td style="padding:10px 12px;">بله (گواهی رسمی وب)</td>
+                                <td style="padding:10px 12px;">اینترنت خانگی ثابت (ADSL/FTTH)، ترافیک وبسایت</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-color);">
+                                <td style="padding:10px 12px; font-weight:700; color:#06b6d4;">VMess / VLESS + CDN</td>
+                                <td style="padding:10px 12px;">WebSocket / HTTPUpgrade</td>
+                                <td style="padding:10px 12px;"><span class="badge-pill" style="background:#06b6d4; color:white; font-size:10px;">پایدار از پشت CDN</span></td>
+                                <td style="padding:10px 12px;">متوسط</td>
+                                <td style="padding:10px 12px;">بالاترین پینگ</td>
+                                <td style="padding:10px 12px;">بله (دامنه CDN)</td>
+                                <td style="padding:10px 12px;">زمان فیلتر شدن کامل IP سرور خارجی (کلودفلر)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Sysadmin Actionable Flowchart -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#d97706; margin:0 0 10px 0; font-size:14px; font-weight:700;">🎯 فلوچارت سریع تصمیم‌گیری مدیر سرور در شرایط بحرانی:</h5>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px; line-height:1.65;">
+                        <div style="background:rgba(239,68,68,0.05); border:1px solid rgba(239,68,68,0.2); border-radius:8px; padding:10px 12px;">
+                            <strong style="color:#ef4444; display:block; margin-bottom:4px;">🚨 اگر پکت‌لاست بالا رفت و دانلود کُند شد:</strong>
+                            کانفیگ <strong>Hysteria 2</strong> با سقف آپلود/دانلود ۱۰۰ مگابیت و حتماً رمز Salamander را در اولویت قرار دهید.
+                        </div>
+                        <div style="background:rgba(16,185,129,0.05); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:10px 12px;">
+                            <strong style="color:#10b981; display:block; margin-bottom:4px;">🛡️ اگر اپراتور پورت ۴۴۳ را محدود یا قطع کرد:</strong>
+                            کانفیگ <strong>VLESS Reality</strong> را روی پورت‌های ابری کلودفلر نظیر <strong>2053</strong> یا <strong>8443</strong> تنظیم کنید.
+                        </div>
+                        <div style="background:rgba(59,130,246,0.05); border:1px solid rgba(59,130,246,0.2); border-radius:8px; padding:10px 12px;">
+                            <strong style="color:#3b82f6; display:block; margin-bottom:4px;">☁️ اگر آی‌پی سرور مستقیماً مسدود شد:</strong>
+                            کانفیگ <strong>VMess</strong> یا <strong>VLESS</strong> را روی حالت <strong>HTTPUpgrade</strong> با پروکسی کلودفلر فعال کنید.
+                        </div>
+                        <div style="background:rgba(139,92,246,0.05); border:1px solid rgba(139,92,246,0.2); border-radius:8px; padding:10px 12px;">
+                            <strong style="color:#8b5cf6; display:block; margin-bottom:4px;">🎮 اگر کاربران شکایت از پینگ و قطعی تماس صوتی دارند:</strong>
+                            کانفیگ <strong>TUIC v5</strong> با الگوریتم کنترل ازدحام <strong>BBR</strong> ارائه دهید تا کانکشن با تغییر دکل دیتای موبایل قطع نشود.
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 2. SNI SPOOFING TAB (CRITICAL REQUIREMENT)
+        else if (tabId === "sni_spoofing") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(236,72,153,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(236,72,153,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#db2777; font-weight:800;">🎭 جعل SNI (SNI Spoofing)، فیلترینگ عمیق DPI و پیوند آن با REALITY</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(236,72,153,0.15); color:#db2777; font-weight:700;">تحلیل عمیق شبکه</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        چگونه فایروال ترافیک رمزنگاری‌شده HTTPS را فیلتر می‌کند؟ چرا جعل سنتی SNI شکست خورد و فناوری <strong>REALITY</strong> چگونه این بحران تاریخی را برای همیشه حل کرد؟ این راهنما نقشه راه مدیر سرور برای درک این معماری است.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#db2777; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. آناتومی SNI در بسته TLS ClientHello</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            پروتکل TLS طراحی شد تا همه چیز را رمزگذاری کند، اما در آغاز دست‌اندازی (Handshake)، کلاینت باید بگوید با کدام سایت کار دارد. این نام در فیلد <code>server_name</code> بسته <strong>ClientHello</strong> به صورت <strong>متن کاملاً خام و آشکار (Plaintext)</strong> ارسال می‌شود.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            سیستم‌های بازرسی عمیق بسته (DPI) اپراتورها در ایرانسل و همراه اول دقیقاً پکت‌های اولیه را اسکن کرده، مقدار SNI را استخراج می‌کنند و در صورت حضور در لیست سیاه، در کسری از میلی‌ثانیه با تزریق پکت‌های جعلی <code>TCP RST</code> یا مسدود کردن جریان TCP، ارتباط را قطع می‌نمایند.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#db2777; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. مکانیزم جعل SNI (SNI Spoofing) چیست؟</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            ایده جعل SNI این است: در فیلد SNI بسته <code>ClientHello</code> نام یک وب‌سایت مجاز یا داخلی (مانند سامانه شاد، سایت‌های بانکی، یا دامنه‌های آزاد کلودفلر) درج شود، در حالی که آدرس IP مقصد واقعی سرور دیگری است.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            فایروال با دیدن دامنه مجاز در SNI، فرض می‌کند کاربر در حال استفاده از یک سرویس قانونی است و بسته را عبور می‌دهد. اما این روش در گذشته با دو بن‌بست فلج‌کننده روبرو شد: <strong>عدم تطابق گواهی SSL</strong> و <strong>کاوش فعال فایروال (Active Probing)</strong>.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- The Two Historical Weaknesses of SNI Spoofing -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:18px;">
+                    <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">⚠️ چرا جعل SNI کلاسیک و سنتی دیگر در ایران کار نمی‌کند؟</h5>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px; line-height:1.65;">
+                        <div style="background:rgba(239,68,68,0.05); padding:10px 12px; border-radius:8px; border:1px solid rgba(239,68,68,0.15);">
+                            <strong style="color:#ef4444; display:block; margin-bottom:3px;">۱. خطای عدم تطابق گواهینامه (SSL Certificate Mismatch):</strong>
+                            اگر در SNI بنویسید <code>www.bankmellat.ir</code> یا <code>dl.google.com</code> اما سرور شما گواهینامه معتبر صادر شده توسط مرجع قانونی برای آن دامنه را نداشته باشد، دست‌اندازی TLS با خطای امنیتی کلاینت و فایروال شکست می‌خورد.
+                        </div>
+                        <div style="background:rgba(239,68,68,0.05); padding:10px 12px; border-radius:8px; border:1px solid rgba(239,68,68,0.15);">
+                            <strong style="color:#ef4444; display:block; margin-bottom:3px;">۲. کاوش فعال فایروال (Active Probing):</strong>
+                            فایروال‌های پیشرفته (مانند GFW و تجهیزات سانسور ایران) پس از مشاهده ترافیک نامتعارف، بلافاصله از سرورهای کاوشگر خود یک درخواست آزمایشی به IP و پورت سرور شما می‌فرستند؛ اگر پاسخی غیر از سایت واقعی دریافت کنند، IP سرور شما را در کمتر از ۱۰ ثانیه در سطح کل کشور مسدود می‌کنند.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- The Ultimate Solution: REALITY -->
+                <div style="background:linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:18px; margin-bottom:18px;">
+                    <h5 style="color:#059669; margin:0 0 10px 0; font-size:15px; font-weight:800;">🌟 شاهکار REALITY: پیوند نبوغ‌آمیز و تکامل نهایی SNI Spoofing</h5>
+                    <p style="font-size:12.5px; line-height:1.75; margin:0 0 10px 0;">
+                        فناوری <strong>REALITY</strong> خلق شد تا تمام نقاط ضعف جعل SNI را به صفر برساند. در حقیقت Reality هوشمندانه‌ترین شکل مهندسی معکوس جعل SNI در تاریخ امنیت سایبری است:
+                    </p>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12px; line-height:1.7;">
+                        <li><strong>سرقت زنده گواهینامه معتبر:</strong> سرور شما نیازی به داشتن گواهینامه ندارد؛ در هندشیک، گواهی واقعی و ۱۰۰٪ قانونی سایت مقصد (مثلاً گوگل یا مایکروسافت) را استراق کرده و ارائه می‌دهد.</li>
+                        <li><strong>احراز هویت مخفی با کلید منحنی بیضوی X25519:</strong> کلاینت مجاز، کد احراز هویت را در متغیرهای تصادفی هندشیک پنهان می‌کند بدون اینکه ردپایی در ترافیک باقی بماند.</li>
+                        <li><strong>دفع اسکنرهای فعال (Fallback Forwarding):</strong> وقتی کاوشگر فایروال به پورت سرور شما وصل می‌شود، چون کلید احراز هویت خصوصی ندارد، سرور Sing-box هوشمندانه بسته را عیناً به سرور واقعی گوگل پاس می‌دهد و پاسخ واقعی را به فایروال برمی‌گرداند؛ فایروال پس از بررسی مطمئن می‌شود که این سرور یک سرور معتبر است و آن را مسدود نمی‌کند!</li>
+                    </ul>
+                </div>
+
+                <!-- Sysadmin Actionable Rules -->
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:14px; font-weight:700;">📋 دستورالعمل مدیر سیستم برای انتخاب SNI و Dest پایدار:</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:5px; font-size:12px;">
+                        <li><strong>پشتیبانی الزامی از TLSv1.3 و ALPN h2:</strong> دامنه‌ای که انتخاب می‌کنید حتماً باید از پروتکل‌های وب مدرن پشتیبانی کند.</li>
+                        <li><strong>خط قرمز:</strong> هرگز از دامنه‌های فیلترشده (مانند یوتیوب یا اینستاگرام) به عنوان SNI در Reality استفاده نکنید؛ چون فایروال با خواندن نام دامنه ارتباط را فوراً قطع خواهد کرد.</li>
+                        <li><strong>دامنه‌های تست‌شده پیشنهادی:</strong> <code>dl.google.com</code> ، <code>gateway.icloud.com</code> ، <code>update.microsoft.com</code> ، <code>cdn.samsungcloud.com</code> ، <code>swdist.apple.com</code>.</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // 3. RPRX TAB (VLESS Reality & Vision)
+        else if (tabId === "rprx") {
             body.innerHTML = `
                 <div style="background:linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(56,189,248,0.08) 100%); border:1px solid rgba(99,102,241,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -24658,7 +25034,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </div>
                 </div>
 
-                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:18px;">
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
                     <h5 style="color:#059669; margin:0 0 10px 0; font-size:14px; font-weight:700;">راهنمای تنظیم بهینه پارامترها در REALITY برای اینترنت ایران:</h5>
                     <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
                         <li><strong>انتخاب Handshake Dest:</strong> از دامنه‌هایی استفاده کنید که در ایران مسدود نیستند، از پروتکل TLS 1.3 و ALPN h2 پشتیبانی می‌کنند. بهترین گزینه‌ها: <code>dl.google.com:443</code>, <code>update.microsoft.com:443</code>, <code>swdist.apple.com:443</code>.</li>
@@ -24667,7 +25043,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </ul>
                 </div>
             `;
-        } else if (tabId === "tobyx") {
+        }
+
+        // 4. TOBYX TAB (Hysteria 2)
+        else if (tabId === "tobyx") {
             body.innerHTML = `
                 <div style="background:linear-gradient(135deg, rgba(239,68,68,0.08) 0%, rgba(249,115,22,0.08) 100%); border:1px solid rgba(239,68,68,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -24686,54 +25065,55 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                             الگوریتم‌های سنتی TCP با اولین افت بسته (Packet Loss) فرض می‌کنند خط اینترنت پر شده و سرعت را تا ۵۰٪ کاهش می‌دهند. اپراتورهای ایرانسل و همراه اول با تزریق ۳۰٪ پکت‌لاست ساختگی تمام فیلترشکن‌های سنتی را از کار می‌اندازند.
                         </p>
                         <p style="font-size:12px; line-height:1.7; margin:0;">
-                            الگوریتم Brutal به پکت‌لاست اهمیتی نمی‌دهد و بدون ترمز بسته‌ها را با نرخ تعیین‌شده ارسال می‌کند و افت سرعت را کاملاً جبران می‌نماید.
+                            الگوریتم Brutal به پکت‌لاست اعتنایی نمی‌کند! شما سقف سرعت را (مثلاً ۱۰۰ مگابیت) تعیین می‌کنید و هیستریا با بی‌رحمی پکت‌ها را در بستر UDP شلیک می‌کند تا نرخ انتقال همیشه در حداکثر توان خط بماند.
                         </p>
                     </div>
 
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
-                        <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. مبهم‌سازی Salamander (حیاتی در ایران)</h5>
+                        <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. پروتکل مبهم‌سازی Salamander (Obfs)</h5>
                         <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
-                            فایروال‌های همراه اول بسته‌های پروتکل استاندارد QUIC را مسدود می‌کنند چون هدرهای مشخصی دارند.
+                            پروتکل استاندارد QUIC دارای هدرهای مشخصی است که فایروال‌های DPI آن را شناسایی و مسدود می‌کنند.
                         </p>
                         <p style="font-size:12px; line-height:1.7; margin:0;">
-                            ماژول Salamander با استفاده از یک رمز اختصاصی و تابع هش BLAKE2b، هدرهای QUIC را به نویز تصادفی تبدیل می‌کند به طوری که فایروال نمی‌تواند ماهیت ترافیک را متوجه شود.
+                            قابلیت Salamander با استفاده از یک رمز عبور اشتراکی، تمامی بسته‌های UDP را به نویزهای تصادفی و فاقد الگوی هندسی تبدیل می‌کند تا فایروال نتواند آن را به عنوان ترافیک QUIC شناسایی کند.
                         </p>
                     </div>
                 </div>
 
                 <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
-                    <h5 style="color:#ef4444; margin:0 0 10px 0; font-size:14px; font-weight:700;">نکات کاربردی جهت استفاده از Hysteria 2:</h5>
-                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
-                        <li>حتماً در بخش تنظیمات، <strong>رمز مبهم‌سازی Salamander</strong> را پر کنید؛ اتصال بدون سالاماندر در اپراتورهای موبایل سریعاً محدود می‌شود.</li>
-                        <li>سقف سرعت دانلود و آپلود را منطبق بر پهنای باند سرور (مثلاً ۱۰۰ مگابیت) تنظیم کنید تا عدالت در توزیع پهنای باند بین کاربران رعایت شود.</li>
-                        <li>می‌توانید از پورت‌های UDP غیرمعمول (مثل ۴۴۳۳ یا ۲۸۲۸۲) برای گریز از فایروال استفاده نمایید.</li>
-                    </ul>
+                    <h5 style="color:#d97706; margin:0 0 10px 0; font-size:14px; font-weight:700;">دستورالعمل حیاتی پورت هاپینگ (Port Hopping):</h5>
+                    <p style="font-size:12px; line-height:1.7; margin:0;">
+                        در زمان تشدید فیلترینگ، اپراتورها پورت‌های UDP را پس از چند گیگابایت مصرف موقتاً مسدود می‌کنند. قابلیت چندپورتی (Multi-Port Hopping) در هیستریا ۲ باعث می‌شود کلاینت به طور پویا در هر ثانیه پورت خود را عوض کند تا فایروال هرگز فرصت مسدودسازی پیدا نکند.
+                    </p>
                 </div>
             `;
-        } else if (tabId === "eaimty") {
+        }
+
+        // 5. EAIMTY TAB (TUIC v5)
+        else if (tabId === "eaimty") {
             body.innerHTML = `
-                <div style="background:linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(6,182,212,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                <div style="background:linear-gradient(135deg, rgba(14,165,233,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(14,165,233,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <h4 style="margin:0; font-size:16px; color:#0891b2; font-weight:700;">EAimTY: پروتکل TUIC نسخه ۵ (کمترین تاخیر و پینگ گیمینگ بر بستر 0-RTT QUIC)</h4>
-                        <span class="badge-pill" style="font-size:11px; background:rgba(6,182,212,0.15); color:#0891b2;">پینگ مینیمم</span>
+                        <h4 style="margin:0; font-size:16px; color:#0284c7; font-weight:700;">EAimTY: پروتکل TUIC نسخه ۵ (طراحی شده با زبان Rust بر بستر QUIC 0-RTT)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(14,165,233,0.15); color:#0284c7;">بهترین پروتکل گیمینگ</span>
                     </div>
                     <p style="margin:0; font-size:12.5px; line-height:1.7;">
-                        پروتکل TUIC توسط EAimTY با هدف حذف تاخیر اولیه اتصال طراحی شد. در بازی‌های آنلاین و تماس‌های صوتی که میلی‌ثانیه‌ها اهمیت دارند، TUIC سریع‌ترین واکنش را ارائه می‌دهد.
+                        پروتکل TUIC با حذف کامل لایه‌های اضافه، مستقیم‌ترین ارتباط ممکن بین کلاینت و سرور را برقرار می‌کند. کمترین پینگ، حذف تاخیر اولیه و حفظ اتصال هنگام تغییر اینترنت، برگ برنده این پروتکل است.
                     </p>
                 </div>
 
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
-                        <h5 style="color:#0891b2; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. قابلیت Connection Migration در موبایل</h5>
+                        <h5 style="color:#0284c7; margin:0 0 10px 0; font-size:14px; font-weight:700;">۱. تکنولوژی تاخیر صفر هندشیک (0-RTT)</h5>
                         <p style="font-size:12px; line-height:1.7; margin:0;">
-                            اگر در حال بازی یا گفتگوی صوتی باشید و از وای‌فای خانه خارج شده و روی دیتای سیم‌کارت سوئیچ کنید، در تمام پروتکل‌های قدیمی اتصال قطع می‌شود و باید از نو متصل شوید. اما در TUIC به لطف شناسه اتصال در لایه QUIC، ارتباط بدون حتی یک میلی‌ثانیه قطعی ادامه می‌یابد!
+                            در پروتکل‌های سنتی، تا زمان برقراری کامل هندشیک چندصد میلی‌ثانیه زمان هدر می‌رود. در TUIC کلاینت داده‌های خود را از همان پکت اول ارسال می‌کند و نیازی به انتظار برای پاسخ دست‌اندازی اولیه سرور ندارد.
                         </p>
                     </div>
 
                     <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
-                        <h5 style="color:#0891b2; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. اتصال بدون معطلی (0-RTT Handshake)</h5>
+                        <h5 style="color:#0284c7; margin:0 0 10px 0; font-size:14px; font-weight:700;">۲. تداوم اتصال در حرکت (Connection Migration)</h5>
                         <p style="font-size:12px; line-height:1.7; margin:0;">
-                            در هندشیک سنتی TLS، کلاینت و سرور باید ۳ الی ۴ بار پیام رفت و برگشت ارسال کنند تا رمزنگاری تایید شود. در TUIC نسخه ۵، از همان بسته اول داده‌های کاربری فرستاده می‌شود و پینگ ارتباط در حداقل ممکن قرار می‌گیرد.
+                            اتصالات سنتی با تغییر آی‌پی کلاینت (مثلاً رفتن از Wi-Fi به دیتای موبایل یا جابجایی بین آنتن‌های مخابراتی) قطع می‌شدند. پروتکل TUIC بر پایه شناسه کانکشن (Connection ID) کار می‌کند و اتصال کاربر هنگام حرکت قطع نمی‌شود.
                         </p>
                     </div>
                 </div>
@@ -24746,7 +25126,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </ul>
                 </div>
             `;
-        } else if (tabId === "ihciah") {
+        }
+
+        // 6. IHCLAH TAB (ShadowTLS v3)
+        else if (tabId === "ihciah") {
             body.innerHTML = `
                 <div style="background:linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(139,92,246,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -24770,7 +25153,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </ul>
                 </div>
             `;
-        } else if (tabId === "klzgrad") {
+        }
+
+        // 7. KLZGRAD TAB (NaiveProxy)
+        else if (tabId === "klzgrad") {
             body.innerHTML = `
                 <div style="background:linear-gradient(135deg, rgba(16,185,129,0.08) 0%, rgba(59,130,246,0.08) 100%); border:1px solid rgba(16,185,129,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
@@ -24786,12 +25172,158 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     <h5 style="color:#059669; margin:0 0 10px 0; font-size:14px; font-weight:700;">چرا NaiveProxy هرگز شناسایی نمی‌شود؟</h5>
                     <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
                         <li><strong>عدم امکان انگشت‌نگاری (No Fingerprinting):</strong> فایروال‌های DPI از امضاهای JA3/JA4 برای تشخیص فیلترشکن‌ها استفاده می‌کنند. امضای نایو پروکسی دقیقاً امضای مرورگر گوگل کروم است.</li>
-                        <li><strong>متد استاندار HTTP/2 CONNECT:</strong> به جای پکت‌های دست‌ساز، از متد استاندارد تونل وب پروکسی استفاده می‌کند.</li>
+                        <li><strong>متد استاندارد HTTP/2 CONNECT:</strong> به جای پکت‌های دست‌ساز، از متد استاندارد تونل وب پروکسی استفاده می‌کند.</li>
                         <li><strong>استفاده از گواهینامه رسمی پنل:</strong> این پروتکل با سرتیفیکیت معتبر Let's Encrypt پنل روی پورت‌های وب به زیبایی فعالیت می‌کند.</li>
                     </ul>
                 </div>
             `;
-        } else if (tabId === "crafting") {
+        }
+
+        // 8. VMESS & TROJAN TAB
+        else if (tabId === "vmess_trojan") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(6,182,212,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(6,182,212,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#0891b2; font-weight:700;">🏛️ کالبدشکافی پروتکل‌های Trojan و VMess (پروتکل‌های مبتنی بر وب و CDN)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(6,182,212,0.15); color:#0891b2;">پروتکل‌های کلاسیک وب</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        پروتکل‌های تروجان و وی‌مس استانداردترین انتخاب‌ها برای زمانی هستند که شما دارای یک دامنه معتبر ثبت‌شده هستید یا می‌خواهید ترافیک سرور خود را از پشت سپرهای محافظتی CDN عبور دهید.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#0ea5e9; margin:0 0 10px 0; font-size:14px; font-weight:700;">پروتکل Trojan: استتار کامل وبسایت</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            تروجان به جای ساختن یک پروتکل اختصاصی، مستقیماً ترافیک مرورگرهای وب را شبیه‌سازی می‌کند.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            احراز هویت با یک هش SHA-224 (۵۶ کاراکتری) در بسته اول انجام می‌شود. اگر پسورد درست باشد ترافیک پروکسی می‌شود و اگر اشتباه باشد، سرور صفحه واقعی یک وب‌سایت تجاری را نمایش می‌دهد؛ بنابراین بازرس شبکه فایروال به هیچ وجه متوجه پروکسی بودن آن نخواهد شد.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#06b6d4; margin:0 0 10px 0; font-size:14px; font-weight:700;">پروتکل VMess: انعطاف‌پذیری در پشت CDN</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            پروتکل VMess شاهکار تیم V2Fly است که با رمزنگاری مدرن AEAD فعالیت می‌کند.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            بزرگترین مزیت VMess این است که با ترانسپورت‌های WebSocket یا HTTPUpgrade به راحتی از سرورهای واسط کلودفلر (Cloudflare CDN) عبور می‌کند. اگر آی‌پی سرور اصلی شما در ایران مسدود شد، کاربر به آی‌پی کلودفلر وصل می‌شود و ترافیک به سلامت به سرور شما می‌رسد.
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 9. SHADOWSOCKS TAB
+        else if (tabId === "shadowsocks") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(59,130,246,0.2); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#2563eb; font-weight:700;">🔒 استانداردهای نوین Shadowsocks 2022 (BLAKE3 & AEAD)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(59,130,246,0.15); color:#2563eb;">سبک‌ترین پروتکل</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        نسخه ۲۰۲۲ پروتکل شادوساکس تمام ایرادات تاریخی نسخه‌های اولیه را برطرف کرد. این پروتکل با مشتق‌گیری کلیدها توسط الگوریتم رمزنگاری بسیار سریع BLAKE3، کمترین بار پردازشی را روی CPU سرور و دستگاه کاربر ایجاد می‌کند.
+                    </p>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px; margin-bottom:18px;">
+                    <h5 style="color:#2563eb; margin:0 0 10px 0; font-size:14px; font-weight:700;">چرا Shadowsocks 2022 امن است؟</h5>
+                    <ul style="padding-right:18px; margin:0; display:flex; flex-direction:column; gap:6px; font-size:12.5px;">
+                        <li><strong>مصونیت در برابر Replay Attack:</strong> سیستم‌های فیلترینگ با ذخیره بسته‌ها و ارسال مجدد آنها، وجود پروکسی را کشف می‌کردند. در نسخه ۲۰۲۲، هدرها دارای پنجره زمانی اعتبارسنجی مستقل هستند و بازپخش بسته‌ها توسط سرور بلافاصله Drop می‌شود.</li>
+                        <li><strong>رله همزمان بسته‌های UDP و TCP:</strong> بسته‌های بازی و ترافیک‌های حساس به تاخیر بدون نیاز به لایه‌های سنگین وب‌سوکت جابجا می‌شوند.</li>
+                        <li><strong>بهترین انتخاب برای روترها:</strong> به دلیل سربار اندک حافظه و پردازش، روی روترهای OpenWrt و میکروتیک سبک‌ترین کارایی را به جا می‌گذارد.</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // 10. TRANSPORTS TAB
+        else if (tabId === "transports") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(5,150,105,0.08) 0%, rgba(99,102,241,0.08) 100%); border:1px solid rgba(5,150,105,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#059669; font-weight:800;">🚀 کالبدشکافی انواع ترانسپورت شبکه (TCP مستقیم vs WebSocket vs gRPC vs HTTPUpgrade)</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(5,150,105,0.15); color:#059669; font-weight:700;">لایه ۴ شبکه</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        ترانسپورت شبکه مشخص می‌کند داده‌ها در لایه انتقال با چه ساختاری بسته‌بندی شوند. انتخاب ترانسپورت مستقیماً روی پینگ، مصرف باتری، و امکان پنهان‌سازی پشت شبکه‌های CDN تاثیرگذار است.
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#059669; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۱. ترانسپورت TCP مستقیم (Raw TCP):</h5>
+                        <p style="font-size:12px; line-height:1.65; margin:0 0 6px 0;">سریع‌ترین و سبک‌ترین ترانسپورت با حداقل مصرف حافظه RAM؛ بدون کوچک‌ترین سربار هدر پروتکل‌های وب.</p>
+                        <p style="font-size:12px; line-height:1.65; margin:0; color:#10b981;">💡 تنها ترانسپورتی که از فلو فوق‌امنیتی <code>xtls-rprx-vision</code> پشتیبانی می‌کند.</p>
+                    </div>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#059669; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۲. ترانسپورت HTTPUpgrade (مدرن و سبک):</h5>
+                        <p style="font-size:12px; line-height:1.65; margin:0 0 6px 0;">جایگزین نوین و بهینه‌تر از WebSocket در Sing-box؛ سربار هدرهای دست‌وپاگیر وب‌سوکت را حذف کرده و تا ۳۰ میلی‌ثانیه پینگ بهتری ارائه می‌دهد.</p>
+                        <p style="font-size:12px; line-height:1.65; margin:0; color:#0ea5e9;">💡 به طور کامل با شبکه توزیع محتوای کلودفلر (CDN) سازگار است.</p>
+                    </div>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#059669; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۳. ترانسپورت WebSocket (WS):</h5>
+                        <p style="font-size:12px; line-height:1.65; margin:0 0 6px 0;">استاندارد کلاسیک کپسوله‌سازی بسته‌ها داخل جریان وب؛ بالاترین میزان سازگاری با پروکسی‌های واسط ابری و سرویس‌های CDN جهانی.</p>
+                        <p style="font-size:12px; line-height:1.65; margin:0; color:#f59e0b;">💡 مناسب زمان فیلتر شدن کامل IP سرور خارجی.</p>
+                    </div>
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#059669; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۴. ترانسپورت gRPC (مالتی‌پلکس HTTP/2):</h5>
+                        <p style="font-size:12px; line-height:1.65; margin:0 0 6px 0;">توسعه‌یافته توسط گوگل بر بستر فریم‌های HTTP/2؛ به کلاینت اجازه می‌دهد چندین کانکشن را همزمان روی یک ارتباط باز نگه دارد.</p>
+                        <p style="font-size:12px; line-height:1.65; margin:0; color:#8b5cf6;">💡 مناسب برای پایداری در شبکه‌های متغیر دیتای سیم‌کارت موبایل.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 11. SINGBOX ROUTING TAB
+        else if (tabId === "singbox_routing") {
+            body.innerHTML = `
+                <div style="background:linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%); border:1px solid rgba(99,102,241,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <h4 style="margin:0; font-size:16px; color:#4f46e5; font-weight:800;">🧭 موتور مسیریابی (Routing)، دی‌ان‌اس FakeIP و اسنیفینگ هوشمند Sing-box</h4>
+                        <span class="badge-pill" style="font-size:11px; background:rgba(99,102,241,0.15); color:#4f46e5; font-weight:700;">معماری هسته</span>
+                    </div>
+                    <p style="margin:0; font-size:12.5px; line-height:1.7;">
+                        چرا کلاینت هنگام استفاده از فیلترشکن دچار مسدودی حساب بانکی یا کندی سایت‌های ایرانی نمی‌شود؟ هسته Sing-box چگونه درخواست‌ها را در میلی‌ثانیه دسته‌بندی و تفکیک می‌کند؟
+                    </p>
+                </div>
+
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۱. سیستم FakeIP چگونه کار می‌کند؟</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            در گذشته کلاینت ابتدا باید منتظر حل نام دامنه از سرور خارجی می‌ماند که موجب نشت اطلاعات (DNS Leak) و تاخیر می‌شد.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            هسته Sing-box با فعال‌سازی <strong>FakeIP</strong> در بازه <code>198.18.0.0/15</code> بلافاصله یک آی‌پی ساختگی به برنامه بازمی‌گرداند؛ در نتیجه برنامه بدون معطلی دیتا را می‌فرستد و حل واقعی نام دامنه در سمت سرور امن خارجی انجام می‌شود.
+                        </p>
+                    </div>
+
+                    <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                        <h5 style="color:#6366f1; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۲. اسنیفینگ بسته (Sniffing) و بازنویسی مقصد</h5>
+                        <p style="font-size:12px; line-height:1.7; margin:0 0 8px 0;">
+                            وقتی کلاینت با آی‌پی مستقیم به سرور متصل می‌شود، هسته بدون اسنیفینگ نمی‌داند چه دامنه‌ای پشت این درخواست است.
+                        </p>
+                        <p style="font-size:12px; line-height:1.7; margin:0;">
+                            قابلیت <strong>Sniffing</strong> و <strong>Override Destination</strong> اولین بایت‌های بسته TLS را بازرسی کرده و نام واقعی دامنه را از هدر SNI استخراج می‌کند تا قوانین Geosite روی آن اعمال شود.
+                        </p>
+                    </div>
+                </div>
+
+                <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; padding:16px;">
+                    <h5 style="color:#10b981; margin:0 0 10px 0; font-size:13.5px; font-weight:700;">۳. تفکیک هوشمند سایت‌های ایرانی با Geosite و GeoIP:</h5>
+                    <p style="font-size:12px; line-height:1.7; margin:0;">
+                        با قرار دادن قانون <code>geosite:category-ir</code> و <code>geoip:ir</code> به سمت مسیر <code>direct</code>، کاربران بدون نیاز به قطع فیلترشکن می‌توانند از سامانه‌های بانکی، آپارات، دیجی‌کالا و اپلیکیشن‌های پرداخت استفاده کنند؛ این کار باعث ذخیره پهنای باند گران‌قیمت سرور خارجی شما نیز می‌شود.
+                    </p>
+                </div>
+            `;
+        }
+
+        // 12. CRAFTING TAB
+        else if (tabId === "crafting") {
             body.innerHTML = `
                 <div style="background:linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(16,185,129,0.08) 100%); border:1px solid rgba(245,158,11,0.25); border-radius:12px; padding:18px; margin-bottom:18px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">

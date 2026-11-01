@@ -27,6 +27,10 @@
                     <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
                     <span data-i18n="singbox_init_defaults_btn">راه‌اندازی خودکار تمام پروتکل‌ها</span>
                 </button>
+                <button class="btn btn-secondary" onclick="openSingboxEncyclopedia()" type="button" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(99, 102, 241, 0.12) 100%); color: #f59e0b; border: 1.5px solid rgba(245, 158, 11, 0.45); font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);">
+                    <i data-lucide="book-open" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+                    <span data-i18n="singbox_encyclopedia_btn">📖 دانشنامه جامع پروتکل‌ها و SNI</span>
+                </button>
                 <button class="btn btn-secondary" onclick="openSingboxJsonModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
                     <i data-lucide="code" style="width: 16px; height: 16px;"></i>
                     <span data-i18n="singbox_raw_json_btn">ویرایش زنده JSON</span>
@@ -55,6 +59,10 @@
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-logs" onclick="switchSingboxSubTab('logs')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="terminal" style="color: #10b981; width: 14px; height: 14px;"></i> <span>لاگ‌های زنده هسته (Live Logs)</span>
                 <span class="pulse-dot" style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-docs" onclick="openSingboxEncyclopedia()" style="font-weight: 800; font-size: 12px; display: flex; align-items: center; gap: 7px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(236, 72, 153, 0.12) 100%); color: #f59e0b; border: 1.5px solid rgba(245, 158, 11, 0.45); padding: 6px 14px; border-radius: 8px;">
+                <i data-lucide="book-open" style="color: #f59e0b; width: 16px; height: 16px;"></i> <span>📖 دانشنامه پروتکل‌ها و SNI</span>
+                <span class="badge-pill" style="font-size: 10px; padding: 2px 6px; background: #f59e0b; color: #0f172a; font-weight: 800; border-radius: 4px;">Docs</span>
             </button>
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-vless" onclick="switchSingboxSubTab('vless')" style="display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="shield-check" style="color: #8b5cf6; width: 14px; height: 14px;"></i> <span>VLESS Reality</span>
@@ -438,8 +446,8 @@
                     <span data-i18n="singbox_modal_add_title">ایجاد و راه‌اندازی اینباند پروتکل جدید در Sing-box</span>
                 </h3>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxFounderDocsModal()" style="font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; background: rgba(99,102,241,0.1); color: #4f46e5; border-color: rgba(99,102,241,0.25);">
-                        <i data-lucide="book-open" style="width: 12px; height: 12px;"></i>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxFounderDocsModal()" style="font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 6px; background: rgba(99,102,241,0.14); color: #4f46e5; border: 1.5px solid rgba(99,102,241,0.35); padding: 5px 12px; border-radius: 7px;">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i>
                         <span>دانشنامه سازندگان پروتکل</span>
                     </button>
                     <button type="button" class="modal-close" onclick="closeSingboxAddModal()">
@@ -450,16 +458,16 @@
 
             <div style="padding: 20px 24px;">
                 <!-- Founder Docs Quick Banner -->
-                <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%); border: 1px solid rgba(99,102,241,0.22); border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="sparkles" style="color: #6366f1; width: 18px; height: 18px;"></i>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, rgba(99,102,241,0.08) 0%, rgba(139,92,246,0.08) 100%); border: 1px solid rgba(99,102,241,0.22); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <i data-lucide="sparkles" style="color: #6366f1; width: 20px; height: 20px;"></i>
                         <div>
-                            <span style="font-weight: 700; font-size: 12px; color: #4f46e5;">دانشنامه معماری و مستندات رسمی سازندگان (RPRX, Tobyx, EAimTY, ihciah):</span>
-                            <span style="font-size: 11px; color: var(--text-muted); display: block;">برای ساخت کانفیگ‌های ابداعی جهت عبور از فیلترینگ شدید، روی دکمه‌های <strong>📖 مستند سازنده</strong> کنار هر فیلد کلیک کنید.</span>
+                            <span style="font-weight: 800; font-size: 12.5px; color: #4f46e5;">دانشنامه معماری و مستندات رسمی سازندگان (RPRX, Tobyx, EAimTY, ihciah):</span>
+                            <span style="font-size: 11.5px; color: var(--text-muted); display: block; margin-top: 2px;">برای ساخت کانفیگ‌های ابداعی جهت عبور از فیلترینگ شدید، روی دکمه‌های <strong>📖 مستند سازنده</strong> کنار هر فیلد کلیک کنید.</span>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxFounderDocsModal()" style="font-size: 11px; font-weight: 600; padding: 4px 10px;">
-                        مشاهده کل مستندات
+                    <button type="button" class="btn btn-primary btn-sm" onclick="toggleSingboxFounderDocsModal()" style="font-size: 12px; font-weight: 800; padding: 6px 14px; border-radius: 7px; box-shadow: 0 2px 6px rgba(99,102,241,0.3);">
+                        مشاهده کل مستندات 📖
                     </button>
                 </div>
 
@@ -472,25 +480,37 @@
                 <form id="form-singbox-inbound" onsubmit="submitSingboxInbound(event)" style="display: flex; flex-direction: column; gap: 16px;">
                     <!-- Protocol Selection -->
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                            <label class="form-label" style="font-weight: 600; margin: 0;" data-i18n="singbox_field_protocol">انتخاب پروتکل ارتباطی (Protocol)</label>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="openFounderTopic('protocols_overview')" style="font-size: 10.5px; padding: 2px 8px; border-radius: 6px; color: #4f46e5; border-color: rgba(99,102,241,0.25);">
-                                📖 مقایسه عملکرد پروتکل‌ها
-                            </button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="form-label" style="font-weight: 700; margin: 0; font-size: 13px;" data-i18n="singbox_field_protocol">انتخاب پروتکل ارتباطی (Protocol)</label>
+                            <div style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEncyclopedia('protocols_matrix')" style="font-size: 11.5px; padding: 4px 12px; border-radius: 7px; color: #f59e0b; border: 1.5px solid rgba(245,158,11,0.4); font-weight: 800; background: rgba(245,158,11,0.08); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <i data-lucide="bar-chart-2" style="width: 14px; height: 14px;"></i>
+                                    <span>ماتریس تصمیم‌گیری پروتکل‌ها</span>
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEncyclopedia('sni_spoofing')" style="font-size: 11.5px; padding: 4px 12px; border-radius: 7px; color: #ec4899; border: 1.5px solid rgba(236,72,153,0.4); font-weight: 800; background: rgba(236,72,153,0.08); display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <i data-lucide="shield-alert" style="width: 14px; height: 14px;"></i>
+                                    <span>راهنمای جعل SNI و Reality</span>
+                                </button>
+                            </div>
                         </div>
                         <select class="form-input" id="sb-inbound-type" onchange="onSingboxProtocolChange()" style="font-weight: 600;">
-                            <option value="vless">VLESS Reality (XTLS-Vision / ضد فیلترینگ شدید)</option>
-                            <option value="trojan">Trojan (TLS / استتار وبسایت)</option>
-                            <option value="hysteria2">Hysteria 2 (QUIC Brutal / پرسرعت)</option>
-                            <option value="tuic">TUIC v5 (QUIC 0-RTT / تاخیر حداقل)</option>
-                            <option value="shadowsocks">Shadowsocks-rust 2022 (BLAKE3 / سبک)</option>
-                            <option value="vmess">VMess (WebSocket / استاندارد)</option>
-                            <option value="naive">NaiveProxy (کرومیوم / ضد فیلترینگ TLS)</option>
-                            <option value="shadowtls">ShadowTLS v3 (استتار لایه TLS)</option>
-                            <option value="mixed">Mixed (HTTP + SOCKS5 ترکیبی)</option>
+                            <option value="vless">VLESS Reality (XTLS-Vision / بدون دامنه / ضد فیلترینگ شدید)</option>
+                            <option value="trojan">Trojan (TLS / استتار وبسایت رسمی با SSL)</option>
+                            <option value="hysteria2">Hysteria 2 (QUIC Brutal / ضد پکت‌لاست ۳۰٪ تا ۶۰٪)</option>
+                            <option value="tuic">TUIC v5 (QUIC 0-RTT / حداقل پینگ گیمینگ)</option>
+                            <option value="shadowsocks">Shadowsocks-rust 2022 (BLAKE3 / سبک و پرسرعت)</option>
+                            <option value="vmess">VMess (WebSocket / پشتیبانی کامل از CDN کلودفلر)</option>
+                            <option value="naive">NaiveProxy (کرومیوم / غیرقابل مسدودسازی در لایه وب)</option>
+                            <option value="shadowtls">ShadowTLS v3 (استتار لایه نشست TLS با فریب اسکنر)</option>
+                            <option value="mixed">Mixed (HTTP + SOCKS5 ترکیبی لوکال)</option>
                             <option value="direct">Direct (مسیریابی مستقیم / پورت فوروارد)</option>
                             <option value="tun">Tun Interface (کارت شبکه مجازی هسته)</option>
                         </select>
+
+                        <!-- Dynamic Sysadmin Protocol Guide Box -->
+                        <div id="sb-protocol-decision-guide" style="margin-top: 8px; border-radius: 8px; padding: 12px 14px; font-size: 11.5px; line-height: 1.6; border: 1px solid rgba(99,102,241,0.25); background: linear-gradient(135deg, rgba(99,102,241,0.04) 0%, rgba(56,189,248,0.04) 100%);">
+                            <!-- Injected dynamically by onSingboxProtocolChange() -->
+                        </div>
                     </div>
 
                     <!-- Quick Presets / Pre-configured Models -->
@@ -526,8 +546,10 @@
                                 </button>
                             </div>
                             <input type="number" class="form-input" id="sb-inbound-port" value="20443" min="1" max="65535" required>
-                            <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; line-height: 1.4;">
-                                💡 پورتی که سرور روی آن منتظر اتصال می‌ماند (پیشنهادی: 443، 2053، 2083، یا رنج 20443 تا 20455).
+                            <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 4px; display: block; line-height: 1.5;">
+                                <strong>🎯 کاربرد:</strong> پورت باز روی سرور جهت گوش دادن به درخواست‌های ورودی کلاینت‌ها.<br>
+                                <strong>⚙️ نحوه کارکرد:</strong> فایروال DPI پورت ۴۴۳ را ترافیک عادی وب فرض می‌کند؛ اما پورت‌های کلودفلر (2053, 2083, 8443) در زمان ایجاد اختلال روی ۴۴۳ ارتباط را نجات می‌دهند.<br>
+                                <strong>💡 سناریوی مناسب:</strong> در Reality پورت 443 پیشنهاد اول است؛ در زمان مسدودی پورت‌های 8443 یا رنج‌های بالای 20440 را برگزینید.
                             </small>
                         </div>
                     </div>
@@ -549,8 +571,11 @@
                             <option value="tls">TLS استاندارد (استفاده از گواهینامه معتبر رسمی پنل)</option>
                             <option value="none">بدون رمزنگاری TLS (Plain / مستقیم)</option>
                         </select>
-                        <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; line-height: 1.4;">
-                            💡 حالت <strong>REALITY</strong> بدون نیاز به دامنه یا سرتیفیکیت، امضای سایت‌های خارجی (مانند گوگل) را سرقت می‌کند. حالت <strong>TLS</strong> برای پروتکل‌های وب و CDN با سرتیفیکیت معتبر Let's Encrypt سرور کار می‌کند.
+                        <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 4px; display: block; line-height: 1.5;">
+                            <strong>🎯 کاربرد:</strong> تعیین لایه امنیتی و استتار کانکشن.<br>
+                            <strong>⚙️ نحوه کارکرد:</strong> Reality با سرقت نامتقارن گواهی از سایت‌های بزرگ و فوروارد اسکنرهای فایروال به Fallback Server عمل می‌کند. TLS با گواهی معتبر Let's Encrypt پنل کار می‌کند.<br>
+                            <strong>✨ مزیت:</strong> Reality بدون دامنه، مصونیت ۱۰۰٪ در برابر مسدودسازی اپراتورها و پروب‌های فعال (Active Probing) دارد.<br>
+                            <strong>💡 سناریوی مناسب:</strong> همراه اول و ایرانسل = Reality. اتصال از پشت CDN کلودفلر = TLS.
                         </small>
                     </div>
 
@@ -573,7 +598,12 @@
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">سرور هدف شبیه‌سازی (Handshake Dest / SNI):</label>
                                 <input type="text" class="form-input" id="sb-reality-dest" value="dl.google.com" placeholder="e.g. dl.google.com">
-                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">دامنه معتبری که سرور در برابر اسکنرهای فیلترینگ ادای آن را درمی‌آورد (مانند dl.google.com یا yahoo.com).</small>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
+                                    <strong>🎯 کاربرد:</strong> دامنه‌ای که در برابر اسکنرهای فایروال نقش آن بازی می‌شود.<br>
+                                    <strong>⚙️ نحوه کارکرد:</strong> در SNI بسته قرار می‌گیرد؛ اگر پروب فایروال وارد شود، بسته مستقیماً به این سرور ارسال و پاسخ واقعی بازگردانده می‌شود.<br>
+                                    <strong>✨ مزیت:</strong> عدم نیاز به خرید دامنه و خنثی‌سازی ۱۰۰٪ اسکنرهای فعال فایروال.<br>
+                                    <strong>💡 سناریوی مناسب:</strong> دامنه‌های فیلترنشده با TLS 1.3 و H2 (مانند <code>dl.google.com</code> یا <code>gateway.icloud.com</code>).
+                                </small>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">پورت هدف:</label>
@@ -585,24 +615,32 @@
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">کلید خصوصی (Private Key):</label>
                                 <input type="text" class="form-input" id="sb-reality-privkey" placeholder="Reality x25519 Private Key">
-                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">کلید خصوصی منحنی بیضوی X25519 که روی سرور امن نگهداری می‌شود.</small>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 2px; display: block;">کلید خصوصی منحنی بیضوی X25519 که روی سرور امن نگهداری می‌شود.</small>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">کلید عمومی (Public Key):</label>
                                 <input type="text" class="form-input" id="sb-reality-pubkey" placeholder="Reality Public Key">
-                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">کلید عمومی که در لینک اشتراک کلاینت جهت احراز هویت قرار می‌گیرد.</small>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 2px; display: block;">کلید عمومی که در لینک اشتراک کلاینت جهت احراز هویت قرار می‌گیرد.</small>
                             </div>
                         </div>
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">کلید کوتاه شناسایی (Short ID):</label>
                                 <input type="text" class="form-input" id="sb-reality-shortid" value="86d7ec6343d000b6" placeholder="Short ID (hex e.g. 86d7ec6343d000b6)">
-                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">شناسه هگزادسیمال ۱۶ کاراکتری جهت عبور ایمن از فیلترینگ فعال.</small>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
+                                    <strong>🎯 کاربرد:</strong> شناسه هگزادسیمال ۱۶ کاراکتری فیلتر اولیه کلاینت مجاز.<br>
+                                    <strong>⚙️ نحوه کارکرد:</strong> اگر شناسه تطابق نداشته باشد، بسته بدون افشای پروکسی به سرور Dest فوروارد می‌شود.<br>
+                                    <strong>✨ مزیت:</strong> سد محکم در برابر حملات Replay Attack و نفوذ پروب‌های فایروال.
+                                </small>
                             </div>
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">حداکثر اختلاف زمان (Max Time Diff):</label>
                                 <input type="text" class="form-input" id="sb-reality-max-time-diff" value="1m" placeholder="e.g. 1m or 60s">
-                                <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 2px; display: block;">بازه مجاز ناهماهنگی ساعت کلاینت و سرور.</small>
+                                <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
+                                    <strong>🎯 کاربرد:</strong> بازه مجاز ناهماهنگی ساعت سیستم کلاینت با سرور.<br>
+                                    <strong>⚙️ نحوه کارکرد:</strong> مقایسه تایم‌استمپ بسته هندشیک جهت جلوگیری از بازپخش بسته‌ها توسط فایروال.<br>
+                                    <strong>💡 سناریوی مناسب:</strong> پیش‌فرض ۱ دقیقه (<code>1m</code>).
+                                </small>
                             </div>
                         </div>
                     </div>
@@ -647,8 +685,11 @@
                             <option value="grpc">gRPC (مالتی‌پلکس پیشرفته بر بستر HTTP/2 با کمترین تاخیر در موبایل)</option>
                             <option value="httpupgrade">HTTPUpgrade (جایگزین مدرن و بسیار سبک‌تر از WS با پینگ کمتر)</option>
                         </select>
-                        <small style="color: var(--text-muted); font-size: 11px; margin-top: 4px; display: block; line-height: 1.4;">
-                            💡 برای فیلترینگ شدید همراه اول/ایرانسل، <strong>TCP + Vision</strong> بهترین است. برای عبور از کلودفلر یا تغییر IP فیلترشده، <strong>WebSocket</strong> یا <strong>HTTPUpgrade</strong> را انتخاب کنید.
+                        <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 4px; display: block; line-height: 1.5;">
+                            <strong>🎯 کاربرد:</strong> شیوه کپسوله‌سازی داده‌ها در لایه ۴ شبکه.<br>
+                            <strong>⚙️ نحوه کارکرد:</strong> TCP خام بدون هیچ سربار است؛ WebSocket بسته‌ها را در فریم‌های وب قرار می‌دهد؛ HTTPUpgrade نسخه کم‌مصرف جدید وب‌سوکت با پینگ ۳۰ میلی‌ثانیه کمتر است.<br>
+                            <strong>✨ مزیت:</strong> TCP برای فعال‌سازی فلو Vision الزامی است؛ WebSocket و HTTPUpgrade قابلیت مخفی‌سازی IP سرور پشت کلودفلر (CDN) را دارند.<br>
+                            <strong>💡 سناریوی مناسب:</strong> فیلترینگ شدید همراه اول/ایرانسل = TCP + Vision. مسدود شدن کامل آی‌پی سرور = HTTPUpgrade + CDN.
                         </small>
                     </div>
 
@@ -703,6 +744,11 @@
                                     <input type="checkbox" id="sb-inbound-sniff-override">
                                     <span>بازنویسی مقصد با دامنه اسنیف‌شده (Override Dest)</span>
                                 </label>
+                            </div>
+
+                            <div style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.15); border-radius: 6px; padding: 8px 10px; font-size: 10.5px; line-height: 1.5; color: var(--text-muted);">
+                                <strong style="color: #6366f1;">🎯 کاربرد Sniff & Override:</strong> استخراج نام دامنه از بسته‌های ورودی کلاینت جهت اعمال قوانین تفکیک سایت‌های ایرانی (بانک‌ها و سامانه‌های دولتی) تا حساب بانکی کاربر با آی‌پی خارجی مسدود نشود و ترافیک داخلی از پروکسی رد نشود.<br>
+                                <strong style="color: #10b981;">💡 سناریوی پیشنهادی:</strong> برای تمام اینباندهای استاندارد کلاینت‌ها هر دو گزینه را فعال نگه دارید.
                             </div>
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
@@ -1266,15 +1312,15 @@
 
     <!-- Modal 7: Comprehensive Protocol Founder Documentation & Bypass Engineering Guide -->
     <div class="modal" id="modal-singbox-founder-docs" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
-        <div class="modal-card" style="max-width: 960px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="modal-card" style="max-width: 1040px; width: 96%; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);">
             <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99,102,241,0.12); display: flex; align-items: center; justify-content: center; color: #6366f1;">
-                        <i data-lucide="book-open" style="width: 20px; height: 20px;"></i>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245,158,11,0.15); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+                        <i data-lucide="book-open" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <h3 class="modal-title" style="margin: 0; font-size: 15px; font-weight: 700;">دانشنامه سازندگان پروتکل‌ها و راهنمای ساخت کانفیگ‌های ابداعی</h3>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">مستندات مرجع RPRX, Tobyx, EAimTY, ihciah, klzgrad جهت عبور از فیلترینگ شدید همراه اول و ایرانسل</div>
+                        <h3 class="modal-title" style="margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text-main);">دانشنامه جامع پروتکل‌ها، جعل SNI و راهنمای تصمیم‌گیری مدیر سیستم</h3>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">مرجع مهندسی شبکه و دور زدن فیلترینگ DPI، کالبدشکافی VLESS Reality، Hysteria 2، TUIC، ShadowTLS، NaiveProxy، تروجان و استراتژی‌های ضد فیلتر</div>
                     </div>
                 </div>
                 <button type="button" class="modal-close" onclick="toggleSingboxFounderDocsModal()">
@@ -1283,24 +1329,42 @@
             </header>
 
             <!-- Navigation Tabs for Founders & Guides -->
-            <div style="display: flex; gap: 6px; padding: 10px 22px; background: var(--bg-muted); border-bottom: 1px solid var(--border-color); overflow-x: auto; scrollbar-width: thin;">
-                <button type="button" class="btn btn-sm btn-primary founder-tab-btn" id="fdoc-tab-btn-rprx" onclick="switchFounderDocsTab('rprx')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
-                    <span>⚡ RPRX (Reality & Vision)</span>
+            <div style="display: flex; gap: 8px; padding: 12px 22px; background: var(--bg-muted); border-bottom: 1px solid var(--border-color); overflow-x: auto; scrollbar-width: thin;">
+                <button type="button" class="btn btn-sm btn-primary founder-tab-btn" id="fdoc-tab-btn-protocols_matrix" onclick="switchFounderDocsTab('protocols_matrix')" style="font-size: 12.5px; padding: 7px 15px; border-radius: 8px; white-space: nowrap; font-weight: 800; background: rgba(245,158,11,0.18); color: #f59e0b; border: 1.5px solid rgba(245,158,11,0.45); cursor: pointer;">
+                    <span>📊 ماتریس تصمیم‌گیری مدیر</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-tobyx" onclick="switchFounderDocsTab('tobyx')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
-                    <span>🌪️ Tobyx (Hysteria 2 & Salamander)</span>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-sni_spoofing" onclick="switchFounderDocsTab('sni_spoofing')" style="font-size: 12.5px; padding: 7px 15px; border-radius: 8px; white-space: nowrap; font-weight: 800; color: #ec4899; border: 1.5px solid rgba(236,72,153,0.45); background: rgba(236,72,153,0.08); cursor: pointer;">
+                    <span>🎭 جعل SNI و فیلترینگ DPI</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-eaimty" onclick="switchFounderDocsTab('eaimty')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
-                    <span>🏎️ EAimTY (TUIC v5 & 0-RTT)</span>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-rprx" onclick="switchFounderDocsTab('rprx')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>⚡ VLESS Reality و Vision</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-ihciah" onclick="switchFounderDocsTab('ihciah')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
-                    <span>🛡️ ihciah (ShadowTLS v3)</span>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-tobyx" onclick="switchFounderDocsTab('tobyx')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🌪️ Hysteria 2 (UDP Brutal)</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-klzgrad" onclick="switchFounderDocsTab('klzgrad')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
-                    <span>🌐 klzgrad (NaiveProxy)</span>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-eaimty" onclick="switchFounderDocsTab('eaimty')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🏎️ TUIC v5 (0-RTT گیمینگ)</span>
                 </button>
-                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-crafting" onclick="switchFounderDocsTab('crafting')" style="font-size: 11.5px; border-radius: 6px; white-space: nowrap; background: rgba(16,185,129,0.12); color: #10b981; border-color: rgba(16,185,129,0.3);">
-                    <span>🛠️ راهنمای ابداع کانفیگ اختصاصی</span>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-ihciah" onclick="switchFounderDocsTab('ihciah')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🛡️ ShadowTLS v3</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-klzgrad" onclick="switchFounderDocsTab('klzgrad')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🌐 NaiveProxy کرومیوم</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-vmess_trojan" onclick="switchFounderDocsTab('vmess_trojan')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🏛️ Trojan و VMess (CDN)</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-shadowsocks" onclick="switchFounderDocsTab('shadowsocks')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🔒 Shadowsocks 2022</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-transports" onclick="switchFounderDocsTab('transports')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🚀 ترانسپورت‌ها (TCP/WS/gRPC)</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-singbox_routing" onclick="switchFounderDocsTab('singbox_routing')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; font-weight: 700; cursor: pointer;">
+                    <span>🧭 DNS، FakeIP و روتینگ</span>
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary founder-tab-btn" id="fdoc-tab-btn-crafting" onclick="switchFounderDocsTab('crafting')" style="font-size: 12px; padding: 7px 14px; border-radius: 8px; white-space: nowrap; background: rgba(16,185,129,0.16); color: #10b981; border: 1.5px solid rgba(16,185,129,0.45); font-weight: 800; cursor: pointer;">
+                    <span>🛠️ راهنمای ابداع کانفیگ</span>
                 </button>
             </div>
 
