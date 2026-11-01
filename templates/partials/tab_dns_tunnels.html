@@ -33,6 +33,161 @@
 </div>
 </div>
 </div>
+
+<!-- ================= DNS PREREQUISITES & FIREWALL / CLOUDFLARE SETUP GUIDE ================= -->
+<div class="glass-card config-card" style="margin-bottom: 20px; border: 1px solid rgba(20, 184, 166, 0.4); background: linear-gradient(135deg, rgba(20,184,166,0.06) 0%, rgba(15,23,42,0.7) 100%);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:40px; height:40px; border-radius:10px; background:rgba(20,184,166,0.18); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
+                <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
+            </div>
+            <div>
+                <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                    <span>راهنمای پیش‌نیازها: پورت‌های باز فایروال و رکوردهای دامنه / NS در Cloudflare</span>
+                    <span class="badge" style="background:rgba(245,158,11,0.2); color:#f59e0b; font-size:11px; padding:2px 8px; border-radius:10px;">الزامی برای اتصال</span>
+                </h4>
+                <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);">
+                    برای کارکرد صحیح پروتکل‌های DNS و عبور از فیلترینگ شدید همراه اول و ایرانسل، این موارد را در فایروال و کلودفلر ست کنید.
+                </p>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleDnsPrereqGuide()" id="dns-prereq-toggle-btn" style="padding:5px 12px; font-size:12px;">
+            <i data-lucide="chevron-up" id="dns-prereq-chevron" style="width:14px; height:14px; margin-left:4px;"></i>
+            <span id="dns-prereq-btn-text">بستن راهنما</span>
+        </button>
+    </div>
+
+    <!-- Quick Summary Badges -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px;">
+        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
+            <div style="font-size:11px; color:var(--text-muted);">پورت‌های فایروال سرور (Inbound)</div>
+            <div style="font-weight:700; color:#14b8a6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
+                53 UDP • 5300-5356 UDP • 22 TCP
+            </div>
+        </div>
+        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
+            <div style="font-size:11px; color:var(--text-muted);">رکورد ۱ کلودفلر (Glue Record)</div>
+            <div style="font-weight:700; color:#3b82f6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
+                A: ns -> <span class="dns-srv-ip">212.227.143.16</span> <span style="color:#ef4444; font-size:11px;">(DNS Only)</span>
+            </div>
+        </div>
+        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
+            <div style="font-size:11px; color:var(--text-muted);">رکورد ۲ کلودفلر (Delegation)</div>
+            <div style="font-weight:700; color:#8b5cf6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
+                NS: t -> ns.yourdomain.com
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Guide Content -->
+    <div id="dns-prereq-full-content" style="display:block; border-top:1px dashed var(--border-color); padding-top:16px; margin-top:6px;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+            
+            <!-- Section 1: Cloudflare DNS Records -->
+            <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
+                <h5 style="margin:0 0 10px 0; font-size:14px; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="cloud" style="width:18px; height:18px;"></i>
+                    <span>۱. نحوه ثبت رکوردهای دامنه در Cloudflare</span>
+                </h5>
+                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                    در پروتکل‌های SlowDNS (مانند DNSTT، VayDNS، Slipstream و MasterdnsVPN) کوئری‌های DNS از اپراتورهای ایران به سمت سرور شما هدایت می‌شوند. برای کارکرد درست، باید این ۲ رکورد را در بخش <strong>DNS Records</strong> کلودفلر ثبت کنید:
+                </p>
+                <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+                    <!-- Record A -->
+                    <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #3b82f6;">
+                        <div style="font-weight:700; color:var(--text-main); margin-bottom:4px;">
+                            گام اول: ایجاد رکورد A (نام‌سرور اصلی سرور)
+                        </div>
+                        <div style="color:var(--text-muted); line-height:1.7;">
+                            • <strong>Type:</strong> <code style="color:#3b82f6;">A</code><br>
+                            • <strong>Name:</strong> <code>ns</code> (دامنه می‌شود: <code>ns.yourdomain.com</code>)<br>
+                            • <strong>IPv4 Address:</strong> <code class="dns-srv-ip">212.227.143.16</code> (آی‌پی سرور شما)<br>
+                            • <strong>Proxy status:</strong> <strong style="color:#ef4444;">DNS Only (ابر خاکستری / خاموش)</strong> ⚠️<br>
+                            <span style="font-size:11px; color:#ef4444;">* بسیار مهم: اگر وضعیت پروکسی کلودفلر (ابر نارنجی) روشن باشد، پورت UDP 53 مسدود می‌شود و هیچ اتصالی برقرار نخواهد شد!</span>
+                        </div>
+                    </div>
+
+                    <!-- Record NS -->
+                    <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #8b5cf6;">
+                        <div style="font-weight:700; color:var(--text-main); margin-bottom:4px;">
+                            گام دوم: ایجاد رکورد NS (ساب‌دامین تونل)
+                        </div>
+                        <div style="color:var(--text-muted); line-height:1.7;">
+                            • <strong>Type:</strong> <code style="color:#8b5cf6;">NS</code><br>
+                            • <strong>Name:</strong> <code>t</code> (ساب‌دامین تونل می‌شود: <code>t.yourdomain.com</code>)<br>
+                            • <strong>Nameserver:</strong> <code>ns.yourdomain.com</code> (دقیقاً نام رکوردی که در گام اول ساختید)<br>
+                            • <strong>TTL:</strong> روی <code>Auto</code> یا <code>2 min</code> قرار دهید.
+                        </div>
+                    </div>
+
+                    <div style="background:rgba(20,184,166,0.08); border-radius:6px; padding:8px 10px; font-size:11px; color:var(--text-muted); line-height:1.6;">
+                        <strong style="color:#14b8a6;">نکته تنظیم پنل:</strong> بعد از ساخت این دو رکورد، در کادرهای زیر در فیلد <em>دامنه تونل (NS Record Domain)</em> دقیقاً آدرس <code>t.yourdomain.com</code> را وارد کرده و دکمه ذخیره را بزنید.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Firewall & Ports -->
+            <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
+                <h5 style="margin:0 0 10px 0; font-size:14px; color:#10b981; display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="shield" style="width:18px; height:18px;"></i>
+                    <span>۲. پورت‌های باز فایروال سرور و کلود (Firewall)</span>
+                </h5>
+                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                    اگر از سرورهای Hetzner، OVH، AWS، آروان، اوراکل یا لینوکس با UFW استفاده می‌کنید، این پورت‌ها را در فایروال سرور و بخش Inbound Rules پنل ابری باز کنید:
+                </p>
+                
+                <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:12px;">
+                    <thead>
+                        <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); text-align:right;">
+                            <th style="padding:5px 6px;">پورت</th>
+                            <th style="padding:5px 6px;">پروتکل</th>
+                            <th style="padding:5px 6px;">کاربرد و سرویس</th>
+                        </tr>
+                    </thead>
+                    <tbody style="color:var(--text-main);">
+                        <tr style="border-bottom:1px solid var(--border-glow);">
+                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#10b981;">53</td>
+                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981;">UDP/TCP</span></td>
+                            <td style="padding:5px 6px; font-size:11px;">پورت اصلی DNS جهانی (کوئری‌های اپراتورها به این پورت می‌رسند)</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-glow);">
+                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#3b82f6;">5300</td>
+                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6;">UDP</span></td>
+                            <td style="padding:5px 6px; font-size:11px;">پورت شنود تونل DNSTT (SlowDNS)</td>
+                        </tr>
+                        <tr style="border-bottom:1px solid var(--border-glow);">
+                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#8b5cf6;">5353 - 5356</td>
+                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6;">UDP</span></td>
+                            <td style="padding:5px 6px; font-size:11px;">پورت‌های VayDNS (5353)، Slipstream (5354)، NoizDNS (5355)، Masterdns (5356)</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#f59e0b;">22 (یا پورت SSH)</td>
+                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;">TCP</span></td>
+                            <td style="padding:5px 6px; font-size:11px;">پورت Upstream جهت اتصال SSH و تانل کاربران در SlipNet</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <!-- One click copy command -->
+                <div>
+                    <label class="form-label" style="font-size:11px; margin-bottom:4px; font-weight:600;">دستور بازگشایی سریع پورت‌های مورد نیاز در لینوکس (UFW):</label>
+                    <div style="display:flex; gap:6px;">
+                        <input class="form-input" id="dns-ufw-cmd-box" readonly style="direction:ltr; font-family:'JetBrains Mono',monospace; font-size:11px; background:#0f172a; color:#a7f3d0;" value="sudo ufw allow 53/udp && sudo ufw allow 5300:5356/udp && sudo ufw allow 22/tcp && sudo ufw reload">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('dns-ufw-cmd-box'); showToast('دستور فایروال UFW کپی شد', 'success');" style="width:auto; padding:4px 10px;">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div style="margin-top:10px; font-size:11px; color:var(--text-muted); line-height:1.6;">
+                    <strong>تفاوت پروتکل‌ها:</strong> پروتکل‌های DNSTT، VayDNS، Slipstream و MasterdnsVPN نیاز به رکوردهای NS بالا دارند. پروتکل <strong>NoizDNS</strong> بدون نیاز به NS با پورت مستقیم ۵۳۵۵ و نویز کار می‌کند. پروتکل <strong>DoH</strong> نیز روی پورت HTTPS (443) بدون نیاز به باز بودن پورت ۵۳ در اپراتور فعالیت می‌کند.
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <!-- ================= SUB-PANE 1: DNSTT ================= -->
 <div id="dns-subpane-dnstt">
 <div class="glass-card config-card" style="margin-bottom: 20px;">

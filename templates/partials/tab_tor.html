@@ -58,6 +58,103 @@
             </div>
         </div>
 
+        <!-- Tor Firewall Ports & Domain Setup Guide Card -->
+        <div class="glass-card config-card" style="border: 1px solid rgba(139, 92, 246, 0.35); background: linear-gradient(135deg, rgba(139,92,246,0.05) 0%, rgba(15,23,42,0.7) 100%);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:40px; height:40px; border-radius:10px; background:rgba(139,92,246,0.18); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
+                            <span>راهنمای پیش‌نیازها: پورت‌های باز فایروال و وضعیت دامنه پل تور (Tor Bridge)</span>
+                            <span class="badge" style="background:rgba(139,92,246,0.18); color:#a78bfa; font-size:11px; padding:2px 8px; border-radius:10px;">ضروری</span>
+                        </h4>
+                        <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);">
+                            پورت‌هایی که باید در فایروال سیستم‌عامل و کلود هاستینگ (Hetzner / Oracle / AWS) باز باشند تا کلاینت‌ها بدون اختلال متصل شوند.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two Columns Grid -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px;">
+                
+                <!-- Col 1: Required Ports -->
+                <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
+                    <h5 style="margin:0 0 10px 0; font-size:14px; color:#a78bfa; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="server" style="width:18px; height:18px;"></i>
+                        <span>۱. پورت‌های فایروال ورودی (Inbound Ports)</span>
+                    </h5>
+                    <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                        برای این‌که کلاینت‌ها (Tor Browser، Orbot یا اپلیکیشن SlipNet) بتوانند به نود پل اختصاصی شما متصل شوند، این پورت‌ها باید حتماً باز باشند:
+                    </p>
+                    <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:12px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); text-align:right;">
+                                <th style="padding:6px 8px;">پورت</th>
+                                <th style="padding:6px 8px;">پروتکل</th>
+                                <th style="padding:6px 8px;">نقش و کاربرد</th>
+                            </tr>
+                        </thead>
+                        <tbody style="color:var(--text-main);">
+                            <tr style="border-bottom:1px solid var(--border-glow);">
+                                <td style="padding:6px 8px; font-family:'JetBrains Mono'; font-weight:700; color:#10b981;">9002</td>
+                                <td style="padding:6px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981;">TCP</span></td>
+                                <td style="padding:6px 8px; font-size:11px;">پورت ترنسپورت مبهم‌ساز پل (Bridge Port obfs4) - <strong>پورت اتصال اصلی کلاینت‌ها</strong></td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--border-glow);">
+                                <td style="padding:6px 8px; font-family:'JetBrains Mono'; font-weight:700; color:#8b5cf6;">9001</td>
+                                <td style="padding:6px 8px;"><span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6;">TCP</span></td>
+                                <td style="padding:6px 8px; font-size:11px;">پورت رله تور (ORPort) جهت تبادل ترافیک با شبکه نودهای جهانی</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:6px 8px; font-family:'JetBrains Mono'; font-weight:700; color:#0ea5e9;">9050</td>
+                                <td style="padding:6px 8px;"><span class="badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9;">Local TCP</span></td>
+                                <td style="padding:6px 8px; font-size:11px;">پروکسی SOCKS5 داخلی روی 127.0.0.1 (به دلایل امنیتی نیازی به باز کردن عمومی ندارد)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div>
+                        <label class="form-label" style="font-size:11px; margin-bottom:4px; font-weight:600;">دستور بازگشایی خودکار پورت‌های تور در فایروال لینوکس (UFW):</label>
+                        <div style="display:flex; gap:6px;">
+                            <input class="form-input" id="tor-ufw-cmd-box" readonly style="direction:ltr; font-family:'JetBrains Mono',monospace; font-size:11px; background:#0f172a; color:#c4b5fd;" value="sudo ufw allow 9001/tcp && sudo ufw allow 9002/tcp && sudo ufw reload">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('tor-ufw-cmd-box'); showToast('دستور فایروال UFW کپی شد', 'success');" style="width:auto; padding:4px 10px;">
+                                <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Col 2: Domain & DNS Records -->
+                <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
+                    <h5 style="margin:0 0 10px 0; font-size:14px; color:#38bdf8; display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="globe" style="width:18px; height:18px;"></i>
+                        <span>۲. وضعیت دامنه و رکوردهای DNS برای نود پل</span>
+                    </h5>
+                    <div style="display:flex; flex-direction:column; gap:10px; font-size:12px; color:var(--text-muted); line-height:1.7;">
+                        <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #10b981;">
+                            <strong style="color:#10b981;">پل obfs4 (پیشنهادی و پیش‌فرض):</strong><br>
+                            نیازی به تعریف هیچ دامنه یا رکورد DNS ندارد! پل‌های obfs4 مستقیماً بر اساس آی‌پی عمومی سرور و کلید عمومی رمزنگاری (Fingerprint / Cert) فعالیت می‌کنند. خط پل اختصاصی تولیدشده در کادر پایین مستقیماً در مرورگر تور و SlipNet کار می‌کند.
+                        </div>
+                        <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #38bdf8;">
+                            <strong style="color:#38bdf8;">ترنسپورت WebTunnel (در صورت انتخاب):</strong><br>
+                            نیاز به ثبت یک رکورد A در کلودفلر دارد:
+                            <br>• <strong>Type:</strong> <code>A</code>
+                            <br>• <strong>Name:</strong> <code>tor</code> (مثلاً <code>tor.yourdomain.com</code>)
+                            <br>• <strong>IPv4:</strong> آی‌پی سرور در وضعیت <strong>DNS Only (ابر خاکستری)</strong>
+                            <br>• این ترنسپورت ترافیک تور را در قالب پکت‌های یک وب‌سایت واقعی HTTPS با گواهی SSL روی پورت ۴۴۳ استتار می‌کند.
+                        </div>
+                        <div style="background:rgba(245,158,11,0.08); border-radius:6px; padding:8px 10px; font-size:11px; color:#f59e0b; line-height:1.5;">
+                            ⚠️ <strong>فایروال‌های ابری (Cloud Firewall):</strong> در صورتی که در سرورهای کلود (مثل هتزنر، اوراکل، دیجیتال‌اوشن) فایروال خارجی فعال است، حتماً Rule ورودی پورت‌های 9001 و 9002 (TCP) را در پنل کلود نیز اضافه کنید.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
         <!-- Settings Form -->
         <div class="glass-card config-card">
             <div class="config-header">

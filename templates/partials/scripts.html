@@ -14872,6 +14872,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     // --- DNS Tunnels Management ---
+    function toggleDnsPrereqGuide() {
+        const content = document.getElementById('dns-prereq-full-content');
+        const chevron = document.getElementById('dns-prereq-chevron');
+        const btnText = document.getElementById('dns-prereq-btn-text');
+        if (!content) return;
+        const isHidden = content.style.display === 'none';
+        content.style.display = isHidden ? 'block' : 'none';
+        if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+        if (btnText) btnText.textContent = isHidden ? 'بستن راهنما' : 'مشاهده راهنمای کامل';
+    }
+
     function switchDnsSubTab(tabName) {
         const tabs = ['dnstt', 'vaydns', 'slipstream', 'noizdns', 'masterdnsvpn', 'doh'];
         tabs.forEach(t => {
@@ -19382,6 +19393,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("tor-cfg-nickname")) document.getElementById("tor-cfg-nickname").value = data.nickname;
             if (document.getElementById("tor-cfg-contact")) document.getElementById("tor-cfg-contact").value = data.contact;
             if (document.getElementById("tor-client-bridgeline")) document.getElementById("tor-client-bridgeline").value = data.bridge_line || "";
+            if (document.getElementById("tor-ufw-cmd-box")) {
+                document.getElementById("tor-ufw-cmd-box").value = `sudo ufw allow ${data.or_port || 9001}/tcp && sudo ufw allow ${data.bridge_port || 9002}/tcp && sudo ufw reload`;
+            }
             if (data.slipnet_uri) {
                 const torUriBox = document.getElementById("tor-slipnet-uri-box");
                 if (torUriBox) torUriBox.textContent = data.slipnet_uri;
