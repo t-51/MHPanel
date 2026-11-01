@@ -13181,7 +13181,8 @@ def get_snispoof_reality_and_client_configs():
             pass
 
     pool = cfg.get("sni_pool") or [r_sni]
-    sample_sni = pool[0] if pool else r_sni
+    sample_sni = r_sni  # Reality TLS handshake must strictly match the inbound server_name
+    spoof_sni = pool[0] if (pool and pool[0] != r_sni) else "sanjesh.org"
 
     # 1. Full Sing-box Client Configuration JSON (Production-ready with TUN mode & Mixed Proxy, Iran direct routing, and Anti-DPI Fragment)
     singbox_full = {
@@ -26393,14 +26394,12 @@ def build_default_singbox_full_suite():
         },
         "inbounds": inbounds,
         "outbounds": [
-            {"type": "direct", "tag": "direct", "domain_strategy": "ipv4_only"},
+            {"type": "direct", "tag": "direct"},
             {"type": "block", "tag": "block"}
         ],
         "route": {
-            "auto_detect_interface": True,
             "rules": [
                 {"protocol": "dns", "outbound": "direct"},
-                {"port": [443], "network": ["udp"], "outbound": "block"},
                 {"ip_is_private": True, "outbound": "direct"}
             ]
         }
