@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.6.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Platform-Ubuntu%2020%2B%20%7C%20Debian%2011%2B-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Linux%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -17,7 +17,89 @@
 
 ---
 
-## 🌟 What's New in Version 1.6.0
+## 🌟 What's New in Version 1.7.0
+
+Version **1.7.0** represents a massive leap forward in anti-censorship resilience, Sing-box integration, ergonomic UX design, and universal client compatibility:
+
+1. ⚡ **Sing-box 23-Mode Multi-Protocol Suite:**
+   - Full automated deployment of all modern protocol variants across all transports:
+     - **VLESS Reality** (Vision, TCP, gRPC, HTTPUpgrade)
+     - **VLESS TLS** (WebSocket, gRPC, HTTPUpgrade, TCP)
+     - **VMess** (WebSocket-TLS, gRPC-TLS, HTTPUpgrade-TLS, TCP)
+     - **Trojan** (TCP-TLS, WebSocket-TLS, gRPC-TLS, HTTPUpgrade-TLS)
+     - **Hysteria 2** (Salamander Obfuscation & Standard QUIC)
+     - **TUIC v5** (Pure UDP, QUIC HTTP/3, BBR Congestion Control, 0-RTT Handshake)
+     - **Shadowsocks** (Modern 2022-Blake3 & Classic AEAD-AES256-GCM)
+     - **NaiveProxy** (Chrome Network Stack Emulation over HTTP/2)
+     - **ShadowTLS v3** & **Mixed/SOCKS5**
+
+2. 📡 **Universal Smart Subscription Engine (SlipNet, V2Ray, Sing-box & Hiddify):**
+   - 1-click **Base64 Smart Subscription** delivering all 23 active Sing-box configurations + SSH configs in a single unified link.
+   - Fully optimized for **SlipNet**, **v2rayNG**, **NekoBox**, **Hiddify**, **v2rayN**, and **Streisand**.
+   - Automatic TLS SNI routing prioritizing valid SSL domains (`mhpanel.kigaping.com`) to eliminate certificate mismatch and handshake errors.
+   - 1-click direct clipboard copy button in the users table with immediate visual toast notification.
+
+3. 🎛️ **Ergonomic Single-Line Inbounds UI & Interactive Management Modal:**
+   - User table inbounds column transformed into a sleek, clean single line: `[ ⚙️ 23 Inbounds Active (Manage ⚙️) ]`.
+   - **Interactive Inbound Management Modal**: Administrators can add, remove, or customize allowed protocols for any individual user with real-time checkbox synchronization, live counter badges, search filter, and 1-click presets (*Select All*, *Deselect All*, *Reality*, *QUIC / Hys2 & TUIC*, *TLS Standards*).
+   - Modifications automatically update Sing-box core configurations with instant hot-reloading.
+
+4. 🛡️ **Noise DNS (NoizDNS) & DoH Studio:**
+   - Custom DNS obfuscation injecting random decoy query noise to defeat active DNS censorship and ISP DPI inspection.
+   - Built-in DNS-over-HTTPS (DoH) engine with full SlipNet scanning support.
+
+5. 🧅 **Tor Bridge & Snowflake Hub with Enhanced QR Codes:**
+   - High-throughput Tor Snowflake & obfs4 Bridge deployment.
+   - Automatic extraction and display of 40-character bridge fingerprints.
+   - Enlarged 220px high-contrast QR codes across all tabs for rapid mobile camera scanning.
+
+6. 📖 **Integrated Protocol Guidance & Firewall Port Setup Hub:**
+   - Comprehensive documentation integrated directly into modal views for NaiveProxy, TUIC, Tor, and DNS Tunnels.
+   - Step-by-step guidance on hardware firewall port requirements and domain/NS delegations.
+
+---
+
+## 📸 Panel Visual Tour & Screenshots Gallery
+
+Explore the modern, dark-themed, and responsive interface of **MH Panel v1.7.0**:
+
+### 1. 🖥️ Master Dashboard Overview
+Real-time CPU/RAM/Disk metrics, active connections, total traffic counters, and quick system control center.
+![Master Dashboard](docs/screenshots/01_dashboard.png)
+
+### 2. ⚡ Sing-box 23-Mode Protocol Studio
+Central management of all 23 Sing-box inbounds (VLESS Reality, VMess, Trojan, Hysteria 2, TUIC v5, Shadowsocks 2022, NaiveProxy, ShadowTLS).
+![Sing-box Studio](docs/screenshots/02_singbox_inbounds.png)
+
+### 3. 👥 User Management & Smart Subscription Links
+Ergonomic user table featuring single-line inbounds pills, 1-click direct sub link copy (`[📡 لینک ساب]`), quota monitoring, and live status badges.
+![User Management](docs/screenshots/03_singbox_users.png)
+
+### 4. 🎛️ Interactive User Inbound Management Modal
+Instant addition or removal of allowed protocol inbounds for each user with live search, protocol badges, and 1-click preset filters.
+![Inbound Management Modal](docs/screenshots/04_manage_inbounds_modal.png)
+
+### 5. 🛡️ DNS Tunneling, Noise DNS & DoH Studio
+Specialized anti-shutdown DNS tunnel engines (DNSTT, SlowDNS, Noise DNS obfuscation, and DoH).
+![DNS Tunnels Studio](docs/screenshots/05_dns_tunnels.png)
+
+### 6. 🧅 Tor Bridges & Snowflake Deployment
+Automated Tor Snowflake relay, custom bridge generator with fingerprint verification and SlipNet QR scanner.
+![Tor Bridges](docs/screenshots/06_tor_bridges.png)
+
+### 7. 🌐 Core Tunnels & Anti-DPI Mesh Shield
+Enterprise Layer-2/Layer-3 kernel tunnels (WireGuard, AmneziaWG, SIT, GRE, VXLAN, EoIP, Frp, Chisel, and Rathole).
+![Core Tunnels](docs/screenshots/07_core_tunnels.png)
+
+### 8. 🚀 AmneziaWG & WireGuard Multiport
+Kernel-level obfuscated WireGuard with custom junk packet headers (`Jc`, `Jmin`, `Jmax`) and multiport listening.
+![AmneziaWG Multiport](docs/screenshots/08_amneziawg.png)
+
+### 9. 📱 Client Web Subscription Portal
+User-facing portal showing traffic quota consumption, remaining validity days, raw client URIs, and universal All-In-One QR code.
+![Subscription Portal](docs/screenshots/09_subscription_portal.png)
+
+---
 
 Version **1.6.0** is the most comprehensive and battle-tested release of **MH Panel**, introducing unbreakable censorship evasion mechanisms, cloud edge tunneling, active-probe deception, automated bot surveillance, and enterprise backup lifecycle management:
 
@@ -288,7 +370,7 @@ mhpanel
 
 ```text
   ======================================================================
-     🚀 MH PANEL Enterprise Master CLI Console (Version 1.6.0)
+     🚀 MH PANEL Enterprise Master CLI Console (Version 1.7.0)
   ======================================================================
   [1]  Execute Automated Full Suite Installation (All Protocols & Tools)
   [2]  Step-by-Step Custom Installation Wizard

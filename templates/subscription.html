@@ -851,35 +851,38 @@
 </div>
             {% endif %}
 
-            <!-- 6. SSH Tunnel & WebSocket -->
+            <!-- 6. SSH Tunnel & WebSocket (9 Modes for NapsternetV) -->
             {% if settings.protocols.ssh %}
             <div class="proto-card" style="border: 1px solid rgba(16, 185, 129, 0.35);">
 <div class="proto-top">
 <div class="proto-name">
 <i data-lucide="terminal" style="color:#10b981; width:20px; height:20px;"></i>
-<span>SSH Tunnel (Direct &amp; WS) + BadVPN</span>
-<span class="proto-tag" data-i18n="linux_tunnel">تونل لینوکس</span>
+<span>SSH Tunnel (۹ حالت اختصاصی NapsternetV &amp; WS) + UDPGW 7300</span>
+<span class="proto-tag" data-i18n="linux_tunnel">تونل ۹ حالته</span>
 </div>
 <div class="btn-group" style="flex-wrap: wrap; gap: 8px;">
 <a href="/sub/{{ sub_token }}/configs.zip" download="MHPanel-{{ username }}-configs.zip" class="btn btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; padding: 7px 16px; font-size:12.5px; font-weight:700;">
-<i data-lucide="download" style="width:14px; height:14px;"></i><span>دانلود کانفیگ</span>
+<i data-lucide="download" style="width:14px; height:14px;"></i><span>دانلود پکیج کامل ۹ حالته (.zip)</span>
 </a>
-<button class="btn btn-secondary" onclick="copyText('ssh://{{ username }}:{{ user.password }}@{{ server_host }}:443?ws=1&amp;path=%2Fssh&amp;sni={{ server_host }}#MHPanel-{{ username }}-WS443', 'لینک سریع NapsternetV / NetMod کپی شد')" type="button" style="display:inline-flex; align-items:center; gap:5px; padding: 7px 12px; font-size:12px;">
-<i data-lucide="link" style="width:14px; height:14px;"></i><span>کپی لینک هوشمند (NPV / NetMod)</span>
+<a href="/sub/{{ sub_token }}/npv.npvs" download="MHPanel-{{ username }}.npvs" class="btn btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; padding: 7px 14px; font-size:12px; font-weight:700; color:#38bdf8;">
+<i data-lucide="file-check" style="width:14px; height:14px;"></i><span>دانلود فایل کانفیگ NapsternetV (.npvs)</span>
+</a>
+<button class="btn btn-secondary" onclick="copyText('{{ sub_url }}/b64', 'لینک ساب NapsternetV کپی شد! در برنامه + بزنید و Add Subscriptions را انتخاب کنید')" type="button" style="display:inline-flex; align-items:center; gap:5px; padding: 7px 12px; font-size:12px;">
+<i data-lucide="rss" style="width:14px; height:14px; color:#f59e0b;"></i><span>کپی لینک ساب (Auto-Update NPV)</span>
 </button>
 </div>
 </div>
 <div class="proto-fields">
 <div class="field-item">
-<span class="field-title" data-i18n="servers_col_addr">آدرس سرور</span>
+<span class="field-title" data-i18n="servers_col_addr">آدرس سرور / دامنه اختصاصی</span>
 <span class="field-value">{{ server_host }}</span>
 </div>
 <div class="field-item">
-<span class="field-title" data-i18n="direct_port_tls_port">پورت مستقیم / پورت TLS</span>
-<span class="field-value">{{ ports.ssh }} / 443</span>
+<span class="field-title" data-i18n="direct_port_tls_port">پورت مستقیم / TLS / وب‌سوکت</span>
+<span class="field-value">{{ ports.ssh }} (Direct) / 443 (TLS/WSS) / 80 (WS)</span>
 </div>
 <div class="field-item">
-<span class="field-title" data-i18n="badvpn_udp_port_gaming">پورت BadVPN UDP (گیمینگ)</span>
+<span class="field-title" data-i18n="badvpn_udp_port_gaming">پورت BadVPN UDPGW (تماس و گیم)</span>
 <span class="field-value">7300</span>
 </div>
 <div class="field-item">
@@ -892,20 +895,17 @@
 <div style="margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(255,255,255,0.12); display: flex; flex-direction: column; gap: 10px;">
 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
 <div style="font-size: 12px; font-weight: 700; color: var(--text-main); display:flex; align-items:center; gap:6px;">
-<i data-lucide="package-check" style="width:15px; height:15px; color:#10b981;"></i> کلیه فایل‌های کانفیگ همه نرم‌افزارها در یک دکمه:
+<i data-lucide="package-check" style="width:15px; height:15px; color:#10b981;"></i> پشتیبانی کامل از ۹ حالت اتصال در نرم‌افزار نپسترنت‌وی (NapsternetV):
 </div>
-<a href="/sub/{{ sub_token }}/configs.zip" download="MHPanel-{{ username }}-configs.zip" class="btn btn-primary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:5px; font-size:12px; font-weight:700;">
-<i data-lucide="download" style="width:13px; height:13px;"></i> دانلود پکیج کلیه کانفیگ‌ها (.zip)
-</a>
 </div>
 
 <!-- Step-by-Step App Import Guide -->
-<div style="background: rgba(0,0,0,0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; line-height: 1.7; color: var(--text-muted);">
-<strong style="color: var(--text-main); display:block; margin-bottom: 6px;">راهنمای اتصال سریع در برنامه‌ها (فایل‌های داخل بسته دانلودی):</strong>
-<div>• <strong>برنامه NetMod Syna:</strong> فایل <code>MHPanel-{{ username }}-NetMod.json</code> داخل بسته را در برنامه از مسیر Menu &gt; Import Config &gt; From File انتخاب کنید.</div>
-<div>• <strong>برنامه NapsternetV (NPV):</strong> دکمه «کپی لینک هوشمند» را بزنید، در برنامه علامت <code>+</code> بالا را لمس کرده و گزینه <code>Import from Clipboard</code> را انتخاب کنید. تمام تنظیمات خودکار فعال می‌شوند.</div>
-<div>• <strong>برنامه Sing-Box / NekoBox:</strong> فایل <code>MHPanel-{{ username }}-SingBox.json</code> را در بخش Profiles با گزینه Import اضافه نمایید.</div>
-<div>• <strong>برنامه OpenVPN Connect:</strong> فایل آماده <code>MHPanel-{{ username }}-OpenVPN.ovpn</code> داخل فایل زیپ را ایمپورت نموده و نام کاربری و پسورد را وارد کنید.</div>
+<div style="background: rgba(0,0,0,0.18); border-radius: 8px; padding: 12px 14px; font-size: 11.5px; line-height: 1.8; color: var(--text-muted);">
+<strong style="color: var(--text-main); display:block; margin-bottom: 6px;">حالت‌های ۹ گانه پشتیبانی شده و روش‌های اتصال:</strong>
+<div>• <strong>روش ۱ (لینک ساب هوشمند - بهترین و ساده‌ترین روش):</strong> دکمه «کپی لینک ساب» را بزنید. در برنامه <strong>NapsternetV</strong> از منوی بالا سمت راست علامت <code>+</code> را لمس کرده و <code>Add Subscription</code> یا <code>Import from Clipboard</code> را بزنید. تمامی ۹ کانفیگ (Direct, Proxy, Payload, Proxy-Payload, TLS, TLS-Proxy, TLS-Payload, TLS-Proxy-Payload, SlowDNS) به‌صورت همزمان با نام کاربری و رمز شما وارد برنامه می‌شوند.</div>
+<div>• <strong>روش ۲ (فایل آماده رسمی .npvs):</strong> دکمه «دانلود فایل کانفیگ NapsternetV (.npvs)» را بزنید و در NapsternetV از علامت <code>+</code> گزینه <code>Import npv config file</code> را انتخاب کنید. فرمت رسمی .npvs مستقیماً در نرم‌افزار ایمپورت می‌شود.</div>
+<div>• <strong>روش ۳ (فایل‌های تکی زیپ):</strong> دکمه «دانلود پکیج کامل ۹ حالته (.zip)» را بزنید؛ درون فایل زیپ پوشه <code>NapsternetV-Modes</code> شامل فایل‌های مجزای .npvs هر ۹ حالت به همراه نسخه .npvt و راهنمای تنظیمات قرار دارد.</div>
+<div>• <strong>سایر نرم‌افزارها:</strong> فایل <code>MHPanel-{{ username }}-NetMod.json</code> برای برنامه NetMod و فایل <code>MHPanel-{{ username }}-SingBox.json</code> برای برنامه Sing-Box/NekoBox داخل بسته دانلودی موجود است.</div>
 </div>
 </div>
 </div>
@@ -940,7 +940,7 @@
         </div>
         {% endif %}
 <div class="footer">
-<div><span data-i18n="designed_and_managed_by">طراحی و مدیریت شده با</span><strong>MH Panel v1.6.0</strong></div>
+<div><span data-i18n="designed_and_managed_by">طراحی و مدیریت شده با</span><strong>MH Panel v1.7.0</strong></div>
 <div data-i18n="all_rights_are_reserved_for_the_use" style="margin-top:4px; opacity:0.7;">تمامی حقوق برای کاربر و سرور محفوظ است.</div>
 </div>
 </div>
