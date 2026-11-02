@@ -88,6 +88,21 @@ func getExeDir() string {
 }
 
 func loadConfig() {
+	exeName := strings.ToLower(filepath.Base(os.Args[0]))
+	if strings.Contains(exeName, "patterniha") {
+		defaultConfig.Strategy = "patterniha_desync"
+	} else if strings.Contains(exeName, "fragment") {
+		defaultConfig.Strategy = "tls_fragment"
+	} else if strings.Contains(exeName, "lowttl") || strings.Contains(exeName, "ttl") {
+		defaultConfig.Strategy = "low_ttl"
+	} else if strings.Contains(exeName, "wrongseq") || strings.Contains(exeName, "wrong_seq") {
+		defaultConfig.Strategy = "wrong_seq"
+	} else if strings.Contains(exeName, "checksum") {
+		defaultConfig.Strategy = "wrong_checksum"
+	} else if strings.Contains(exeName, "rotation") {
+		defaultConfig.Strategy = "sni_rotation"
+	}
+
 	cfgPath = filepath.Join(getExeDir(), "config.json")
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {

@@ -1674,6 +1674,7 @@ install_tunnel_tools() {
             break
         fi
     done
+    [ -d "${PANEL_DIR}/bin" ] && chmod +x ${PANEL_DIR}/bin/snispoof* 2>/dev/null || true
 
     # AmneziaWG tools & userspace binary
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do

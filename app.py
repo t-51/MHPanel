@@ -13613,6 +13613,24 @@ def api_download_snispoof_client_go():
         return send_file(path, as_attachment=True, download_name="snispoof-client.go", mimetype="text/x-go")
     return "File not found", 404
 
+@app.route("/download/snispoof/<filename>", methods=["GET"])
+def api_download_snispoof_file(filename):
+    from flask import send_file
+    safe_name = os.path.basename(filename)
+    path = os.path.join("/www/wwwroot/mhpanel/bin", safe_name)
+    if os.path.exists(path) and safe_name.startswith("snispoof-"):
+        mimetype = "application/octet-stream"
+        if safe_name.endswith(".exe"):
+            mimetype = "application/vnd.microsoft.portable-executable"
+        elif safe_name.endswith(".py"):
+            mimetype = "text/x-python"
+        elif safe_name.endswith(".bat"):
+            mimetype = "application/x-bat"
+        elif safe_name.endswith(".ps1"):
+            mimetype = "text/plain"
+        return send_file(path, as_attachment=True, download_name=safe_name, mimetype=mimetype)
+    return "File not found", 404
+
 @app.route("/download/snispoof-singbox.json", methods=["GET"])
 def api_download_snispoof_singbox_json():
     from flask import Response

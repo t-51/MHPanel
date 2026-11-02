@@ -19281,8 +19281,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
             // Strategy Radio
             const strat = data.default_strategy || "tls_fragment";
-            const radio = document.querySelector(`input[name="snispoof_strategy_radio"][value="${strat}"]`);
-            if (radio) radio.checked = true;
+            window.currentSniSpoofSrv = data.srv || location.hostname;
+            selectSniSpoofStrategy(strat);
 
             // Fine tuning params
             if (document.getElementById("snispoof-cfg-hops")) document.getElementById("snispoof-cfg-hops").value = data.low_ttl_hops || 5;
@@ -19409,6 +19409,216 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         } catch (e) {
             toggleLoading(false);
             showToast("خطای شبکه در اسکن", "error");
+        }
+    }
+
+    const SNISPOOF_STRATEGY_DATA = {
+        "tls_fragment": {
+            title_fa: "تقطیع بسته TLS و تکه‌تکه کردن SNI",
+            title_en: "TLS Fragmentation & SNI Slicing",
+            icon: "scissors",
+            color: "#10b981",
+            bg: "rgba(16, 185, 129, 0.12)",
+            badge: "پایدارترین روش (پیشنهادی)",
+            driver_req: "بدون نیاز به ادمین و بدون درایور",
+            summary: "شکستن بسته ClientHello در محل نام دامنه به قطعات ۲ بایتی با تاخیر میکروثانیه‌ای",
+            mechanism: "سامانه‌های DPI فیلترینگ منتظر دریافت یک بسته هدر کامل برای استخراج SNI هستند. با تقسیم بسته به قطعات کوچک و تاخیر بین ارسال آن‌ها، DPI قادر به تطبیق رشته SNI نخواهد بود اما سرور مقصد TCP به درستی بسته‌ها را سرهم کرده و اتصال را برقرار می‌کند.",
+            tutorial_html: "<b>روش اول (داخلی کلاینت‌ها بدون نرم‌افزار اضافی):</b> در کانفیگ‌های V2rayN، Nekoray یا v2rayNG بخش <code>Fragment</code> را فعال کرده و مقادیر <code>packets: 1-3, length: 10-100, interval: 2-5</code> را وارد کنید.<br><b>روش دوم (کلاینت مستقل):</b> فایل <code>snispoof-fragment.exe</code> را اجرا کنید؛ پروکسی روی پورت رله <code>40443</code> و ساکس <code>10808</code> فعال می‌شود.",
+            file_key: "fragment",
+            download_exe: "/download/snispoof/snispoof-fragment.exe",
+            download_py: "/download/snispoof/snispoof-fragment.py",
+            download_bat: "/download/snispoof/snispoof-fragment.bat",
+            cli_cmd_template: "snispoof-fragment.exe -server __SRV__:__PORT__ -socks 10808 -relay 40443"
+        },
+        "patterniha_desync": {
+            title_fa: "تزریق منفی پترنی‌ها (Pre-ACK Desync)",
+            title_en: "Patterniha Pre-ACK Negative Seq Desync",
+            icon: "shield-alert",
+            color: "#06b6d4",
+            bg: "rgba(6, 182, 212, 0.12)",
+            badge: "تخصصی دورزدن فیلترینگ شدید",
+            driver_req: "رله پورت اختصاصی",
+            summary: "ارسال بسته جعلی ClientHello با شماره توالی منفی در پنجره TCP و انتظار برای تایید سرور",
+            mechanism: "بلافاصله پس از تکمیل ۳-Way Handshake، یک بسته TLS جعلی با دامنه سفید هدف و شماره سریال منفی نسبت به پنجره (syn_seq + 1 - len) ارسال می‌شود. فایروال بسته را دیده و Flow را مجاز می‌کند، اما سرور لینوکس مقصد آن را تکراری دانسته و دور می‌اندازد. پس از دریافت ACK سرور، دیتای اصلی کاربر عبور داده می‌شود.",
+            tutorial_html: "<b>تنظیم در V2rayN / Nekoray / v2rayNG:</b> در پروفایل کانفیگ خود، مقدار <code>Address / Host</code> را به <code>127.0.0.1</code> و <code>Port</code> را به <code>40443</code> تغییر دهید. سپس <code>snispoof-patterniha.exe</code> را اجرا کرده و کلید ۱ را بزنید تا پروکسی Start شود.",
+            file_key: "patterniha",
+            download_exe: "/download/snispoof/snispoof-patterniha.exe",
+            download_py: "/download/snispoof/snispoof-patterniha.py",
+            download_bat: "/download/snispoof/snispoof-patterniha.bat",
+            cli_cmd_template: "snispoof-patterniha.exe -server __SRV__:__PORT__ -relay 40443 -sni auth.vercel.com"
+        },
+        "low_ttl": {
+            title_fa: "تزریق دامنه‌سفید با طول عمر محدود (Low TTL)",
+            title_en: "Low-TTL Hop-Limit Decoy Injection",
+            icon: "hourglass",
+            color: "#f59e0b",
+            bg: "rgba(245, 158, 11, 0.12)",
+            badge: "فریب سنسور بدون درایور",
+            driver_req: "سوکت استاندارد OS",
+            summary: "ارسال بسته مجاز با مقدار TTL پایین (مثلاً ۵ هاپ) تا قبل از سرور در شبکه منقضی شود",
+            mechanism: "بسته جعلی حاوی دامنه مجاز با مقدار TTL کم (مثلاً ۵ جهش روتر) ارسال می‌شود. این پکت به تجهیزات فیلترینگ واقع در گیت‌وی کشور رسیده و جریان را سفید می‌کند، اما قبل از خروج از کشور و رسیدن به سرور مقصد از بین می‌رود (TTL Expired). بلافاصله پکت اصلی با TTL معمولی ارسال می‌شود.",
+            tutorial_html: "نرم‌افزار <code>snispoof-lowttl.exe</code> را اجرا کنید. مقدار جهش‌ها (Hops) را با توجه به اپراتور خود تنظیم کنید (پیش‌فرض ۵). ترافیک نرم‌افزارها را به پورت ساکس <code>10808</code> یا رله <code>40443</code> هدایت نمایید.",
+            file_key: "lowttl",
+            download_exe: "/download/snispoof/snispoof-lowttl.exe",
+            download_py: "/download/snispoof/snispoof-lowttl.py",
+            download_bat: "/download/snispoof/snispoof-lowttl.bat",
+            cli_cmd_template: "snispoof-lowttl.exe -server __SRV__:__PORT__ -strategy low_ttl"
+        },
+        "wrong_seq": {
+            title_fa: "توالی خارج از پنجره (Out-of-Window TCP Sequence)",
+            title_en: "TCP Sequence Desync Manipulation",
+            icon: "git-branch",
+            color: "#ec4899",
+            bg: "rgba(236, 72, 153, 0.12)",
+            badge: "سبک کلاسیک Desync",
+            driver_req: "نیازمند دسترسی ادمین",
+            summary: "تزریق پکت با شماره سریال اشتباه و تغییر ساختار پنجره داده‌های TCP",
+            mechanism: "در این متد، شماره توالی TCP بسته جعلی خارج از پنجره پذیرش سرور (RCV.WND) قرار داده می‌شود. DPI پکت را تحلیل کرده و اجازه عبور می‌دهد، در حالی که پشته TCP سرور بسته را نادیده گرفته و اتصال پایدار می‌ماند.",
+            tutorial_html: "فایل <code>snispoof-wrongseq.exe</code> را با کلیک راست و <b>Run as administrator</b> اجرا کنید تا دسترسی تزریق بسته در هسته شبکه ویندوز برقرار شود. سپس پورت لوکال رله <code>40443</code> را در V2Ray ست نمایید.",
+            file_key: "wrongseq",
+            download_exe: "/download/snispoof/snispoof-wrongseq.exe",
+            download_py: "/download/snispoof/snispoof-wrongseq.py",
+            download_bat: "/download/snispoof/snispoof-wrongseq.bat",
+            cli_cmd_template: "snispoof-wrongseq.exe -server __SRV__:__PORT__ -strategy wrong_seq"
+        },
+        "wrong_checksum": {
+            title_fa: "چک‌سام نامعتبر (Bad Checksum Injection)",
+            title_en: "Bad TCP Checksum Injection",
+            icon: "alert-triangle",
+            color: "#3b82f6",
+            bg: "rgba(59, 130, 246, 0.12)",
+            badge: "تکنیک لایه ۴",
+            driver_req: "نیازمند سوکت خام",
+            summary: "ارسال پکت با چک‌سام مخدوش که فایروال پردازش نکرده اما سرور دراپ می‌کند",
+            mechanism: "تجهیزات DPI برای حفظ سرعت چند ده ترابیتی ترافیک شبکه، صحت چک‌سام لایه ۴ را بررسی نمی‌کنند و فقط متن را می‌خوانند و تایید می‌کنند. اما کارت شبکه و هسته سرور چک‌سام را چک کرده و بسته را دور می‌اندازند.",
+            tutorial_html: "این روش برای شرایطی است که فایروال هوشمند بسته‌های خارج از توالی را بازرسی می‌کند ولی چک‌سام‌ها را محاسبه نمی‌نماید. کلاینت <code>snispoof-checksum.exe</code> را اجرا کنید.",
+            file_key: "checksum",
+            download_exe: "/download/snispoof/snispoof-checksum.exe",
+            download_py: "/download/snispoof/snispoof-checksum.py",
+            download_bat: "/download/snispoof/snispoof-checksum.bat",
+            cli_cmd_template: "snispoof-checksum.exe -server __SRV__:__PORT__ -strategy wrong_checksum"
+        },
+        "sni_rotation": {
+            title_fa: "چرخش پویای استخر دامنه‌ها (SNI Pool Rotation)",
+            title_en: "Dynamic Whitelist Decoy Pool",
+            icon: "rotate-cw",
+            color: "#a855f7",
+            bg: "rgba(168, 85, 247, 0.12)",
+            badge: "ضد مسدودسازی آماری",
+            driver_req: "بدون پیش‌نیاز",
+            summary: "چرخش خودکار دامنه‌های مجاز از بین استخر تاییدشده برای هر کانکشن جدید",
+            mechanism: "با تغییر خودکار و تصادفی دامنه جعلی در هر اتصال بین دامنه‌های مجاز (گوگل، سنجش، شاپرک، ورسل و مایکروسافت)، الگوهای آماری شناسایی و رفتار فایروال مسدود شده و هیچ دامنه‌ای تک‌منبعی نمی‌شود.",
+            tutorial_html: "در پنل مدیریتی دامنه‌های مورد نظر را به استخر اضافه کرده و تست کنید. سپس با کلاینت <code>snispoof-rotation.exe</code> متصل شوید؛ نرم‌افزار به ازای هر اتصال دامنه‌ها را به نوبت یا تصادفی می‌چرخاند.",
+            file_key: "rotation",
+            download_exe: "/download/snispoof/snispoof-rotation.exe",
+            download_py: "/download/snispoof/snispoof-rotation.py",
+            download_bat: "/download/snispoof/snispoof-rotation.bat",
+            cli_cmd_template: "snispoof-rotation.exe -server __SRV__:__PORT__ -strategy sni_rotation"
+        }
+    };
+
+    function selectSniSpoofStrategy(stratKey) {
+        if (!SNISPOOF_STRATEGY_DATA[stratKey]) stratKey = "tls_fragment";
+
+        const radio = document.querySelector(`input[name="snispoof_strategy_radio"][value="${stratKey}"]`);
+        if (radio) radio.checked = true;
+
+        document.querySelectorAll(".strategy-card").forEach(c => {
+            c.style.borderColor = "var(--border-glow)";
+            c.style.boxShadow = "none";
+        });
+        const activeCard = document.getElementById("strat-card-" + stratKey);
+        const info = SNISPOOF_STRATEGY_DATA[stratKey];
+        if (activeCard) {
+            activeCard.style.borderColor = info.color;
+            activeCard.style.boxShadow = `0 0 14px ${info.bg}`;
+        }
+
+        const hub = document.getElementById("snispoof-strategy-dynamic-hub");
+        if (hub) {
+            const srv = window.currentSniSpoofSrv || location.hostname;
+            const port = document.getElementById("snispoof-cfg-port") ? document.getElementById("snispoof-cfg-port").value : "15443";
+            const cliCmd = info.cli_cmd_template.replace("__SRV__", srv).replace("__PORT__", port);
+
+            hub.innerHTML = `
+                <div class="glass-card" style="border: 1px solid ${info.color}; background: rgba(0,0,0,0.22); border-radius: 12px; padding: 18px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 12px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:42px; height:42px; border-radius:10px; background:${info.bg}; color:${info.color}; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 10px ${info.bg};">
+                                <i data-lucide="${info.icon}" style="width:24px; height:24px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin:0; font-size:16px; color:${info.color}; display:flex; align-items:center; gap:8px;">
+                                    ${info.title_fa} <span style="font-size:12px; color:var(--text-muted); font-weight:normal;">(${info.title_en})</span>
+                                </h4>
+                                <p style="margin:3px 0 0; font-size:12px; color:var(--text-muted);">
+                                    ${info.summary}
+                                </p>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                            <span style="background:${info.bg}; color:${info.color}; border:1px solid ${info.color}44; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:700;">${info.badge}</span>
+                            <span style="background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1); padding:4px 10px; border-radius:6px; font-size:11px;">${info.driver_req}</span>
+                        </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                        <div style="background: var(--bg-base); border-radius: 8px; padding: 12px; border: 1px solid var(--border-glow);">
+                            <div style="font-weight: 700; font-size: 12.5px; color: #fcd34d; margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="cpu" style="width:15px; height:15px;"></i>
+                                <span>مکانیزم فنی دورزدن فیلترینگ (DPI Bypass Mechanism):</span>
+                            </div>
+                            <p style="font-size: 11.5px; color: var(--text-muted); margin:0; line-height: 1.7;">
+                                ${info.mechanism}
+                            </p>
+                        </div>
+
+                        <div style="background: var(--bg-base); border-radius: 8px; padding: 12px; border: 1px solid var(--border-glow);">
+                            <div style="font-weight: 700; font-size: 12.5px; color: #34d399; margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="book-open" style="width:15px; height:15px;"></i>
+                                <span>راهنمای اتصال نرم‌افزارها (V2Ray / Sing-box / Xray):</span>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); line-height: 1.7;">
+                                ${info.tutorial_html}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 8px; padding: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                        <div style="font-size: 12px; font-weight:700; color:#38bdf8; margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="terminal" style="width:15px; height:15px;"></i>
+                                <span>اسکریپت و نرم‌افزار اختصاصی این استراتژی:</span>
+                            </div>
+                            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                                <a href="${info.download_exe}" download class="btn btn-primary btn-sm" style="padding:4px 10px; font-size:11px; background:${info.color}; border:none;">
+                                    <i data-lucide="download" style="width:12px; height:12px; margin-left:4px;"></i> دانلود EXE ویندوز (${info.file_key}.exe)
+                                </a>
+                                <a href="${info.download_py}" download class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;">
+                                    <i data-lucide="file-code" style="width:12px; height:12px; margin-left:4px;"></i> اسکریپت پایتون (.py)
+                                </a>
+                                <a href="${info.download_bat}" download class="btn btn-secondary btn-sm" style="padding:4px 10px; font-size:11px;">
+                                    <i data-lucide="play" style="width:12px; height:12px; margin-left:4px;"></i> فایل .bat
+                                </a>
+                            </div>
+                        </div>
+
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <div style="font-size:11px; color:#94a3b8; min-width:85px;">دستور خط فرمان:</div>
+                            <input type="text" readonly value="${cliCmd}" id="snispoof-active-cli-cmd" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#a5f3fc; font-family:'JetBrains Mono',monospace; font-size:11px; padding:6px 10px;" dir="ltr">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-active-cli-cmd')" style="padding:5px 12px; font-size:11px;">
+                                <i data-lucide="copy" style="width:12px; height:12px; margin-left:4px;"></i> کپی
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const statLabel = document.getElementById("snispoof-stat-strategy");
+        if (statLabel && info) {
+            statLabel.textContent = `${info.title_en} (${info.title_fa})`;
         }
     }
 
