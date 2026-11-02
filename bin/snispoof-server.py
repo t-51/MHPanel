@@ -34,7 +34,7 @@ DEFAULT_CONFIG = {
     "role": "inbound_relay", # inbound_relay | reverse_client | reverse_server
     "upstream": "127.0.0.1:22",
     "default_strategy": "tls_fragment",
-    "active_strategies": ["wrong_seq", "wrong_checksum", "low_ttl", "tls_fragment", "sni_rotation"],
+    "active_strategies": ["wrong_seq", "wrong_checksum", "low_ttl", "tls_fragment", "sni_rotation", "patterniha_desync"],
     "low_ttl_hops": 5,
     "fragment_size": 2,
     "fragment_delay_ms": 3,
@@ -259,8 +259,8 @@ def apply_outbound_spoofing(sock, target_ip, target_port, cfg, real_first_payloa
             sock.sendall(real_first_payload[split_point:])
             return True
 
-    elif strategy in ["wrong_seq", "wrong_checksum"]:
-        # Strategy 1 & 2: Raw Sequence / Checksum injection
+    elif strategy in ["wrong_seq", "wrong_checksum", "patterniha_desync"]:
+        # Strategy 1, 2 & 6: Patterniha Sequence / Checksum injection
         decoy_pkt = build_client_hello(sni)
         try:
             # Send decoy hello with TCP_NODELAY and brief pacing

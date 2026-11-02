@@ -203,6 +203,17 @@
                                 انتخاب تصادفی یا نوبتی دامنه‌های سفید از استخر دامنه‌ها در هر نشست جهت جلوگیری از شناسایی رفتاری و آماری.
                             </p>
                         </div>
+
+                        <!-- Strategy 6: Patterniha Pre-ACK Desync -->
+                        <div class="strategy-card" style="background:var(--bg-base); padding:12px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:6px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <span style="font-weight:700; font-size:13px; color:#06b6d4;">۶. پترنی‌ها (Patterniha Pre-ACK Desync)</span>
+                                <input type="radio" name="snispoof_strategy_radio" value="patterniha_desync" id="strat-patterniha-desync">
+                            </div>
+                            <p style="font-size:11px; color:var(--text-muted); margin:0;">
+                                تزریق هوشمند ClientHello حاوی دامنه مجاز هدف بلافاصله پس از ۳-Way Handshake با شماره سریال منفی در پنجره TCP و انتظار برای دریافت ACK سرور قبل از عبور دیتای اصلی کاربر.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- Fine-Tuning Parameters -->
@@ -385,6 +396,7 @@
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('powershell')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Windows PowerShell</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('python')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Python CLI</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-outbound')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">تکه کد Outbound سینگ‌باکس</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('v2ray-relay')" style="padding:10px 16px; border:none; background:none; color:#f59e0b; font-weight:700; font-size:12px; cursor:pointer;">راهنمای اتصال V2Ray و تغییر پورت</button>
                 </div>
 
                 <!-- Tab 1: V2Ray VLESS Reality Link -->
@@ -470,6 +482,47 @@
                         </button>
                     </div>
                     <textarea id="snispoof-snippet-singbox" readonly style="width:100%; height:140px; background: rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fcd34d; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab 7: V2Ray & Nekoray Integration & Port Forwarding Guide -->
+                <div id="snispoof-cli-v2ray-relay" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 10px; padding: 14px; margin-bottom: 14px;">
+                        <div style="font-weight: 700; font-size: 13.5px; color: #fbbf24; margin-bottom: 6px; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="help-circle" style="width:18px; height:18px;"></i>
+                            <span>آموزش اختصاصی برای مدیر سیستم و کاربران: نحوه عبور کانفیگ‌های V2Ray از کلاینت SNI Spoofing</span>
+                        </div>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.6;">
+                            هنگامی که کلاینت اجرایی ویندوز (<code>snispoof-client.exe</code>) اجرا می‌شود، به عنوان یک پل عبور ضد فیلترینگ لوکال عمل می‌کند. برای اینکه کانفیگ‌های موجود V2RayN یا Nekoray شما از این پل عبور کنند، باید آدرس و پورت اتصال آن‌ها به رله لوکال تغییر یابد.
+                        </p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px;">
+                        <!-- Method 1: Direct TCP Relay -->
+                        <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 13px; color: #10b981; margin-bottom: 8px;">
+                                روش ۱: رله مستقیم TCP (سریع‌ترین و پایدارترین روش)
+                            </div>
+                            <ol style="font-size: 11.5px; color: var(--text-muted); line-height: 1.7; padding-right: 18px; margin: 0;">
+                                <li>از کانفیگ فعلی خود (VLESS، Trojan یا Shadowsocks) در کلاینت یک کپی بگیرید.</li>
+                                <li>مقدار <strong style="color:#fcd34d;">Address (سرور)</strong> را به <code>127.0.0.1</code> تغییر دهید.</li>
+                                <li>مقدار <strong style="color:#fcd34d;">Port (پورت)</strong> را به <code>40443</code> (پورت پیش‌فرض رله کلاینت) تغییر دهید.</li>
+                                <li><strong>سایر تنظیمات را تغییر ندهید:</strong> UUID، رمز عبور، پروتکل TLS و مسیر (Path) دقیقاً بدون تغییر باقی می‌مانند.</li>
+                                <li>فایل <code>snispoof-client.exe</code> را باز کرده و با زدن کلید <strong>1</strong> پروکسی را Start کنید؛ سپس کانفیگ را در V2RayN فعال نمایید.</li>
+                            </ol>
+                        </div>
+
+                        <!-- Method 2: SOCKS5 Outbound -->
+                        <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px;">
+                            <div style="font-weight: 700; font-size: 13px; color: #38bdf8; margin-bottom: 8px;">
+                                روش ۲: اتصال از طریق SOCKS5 لوکال
+                            </div>
+                            <ol style="font-size: 11.5px; color: var(--text-muted); line-height: 1.7; padding-right: 18px; margin: 0;">
+                                <li>در نرم‌افزارهای Nekoray، Clash یا تلگرام دسکتاپ، بخش پروکسی را باز کنید.</li>
+                                <li>یک پروکسی از نوع <strong style="color:#38bdf8;">SOCKS5</strong> با آدرس <code>127.0.0.1</code> و پورت <code>10808</code> تعریف کنید.</li>
+                                <li>تمام ترافیک برنامه مورد نظر بدون نیاز به تغییر تک‌تک کانفیگ‌ها از تونل ضد DPI عبور خواهد کرد.</li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
 
             </div>

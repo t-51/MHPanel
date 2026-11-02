@@ -1,5 +1,5 @@
-// MHPanel & Patterniha SNI-Spoofing Terminal Client for Windows / Linux
-// Compiled standalone binary with Interactive Open/Close & Anti-DPI Evasion Engine
+// MHPanel & Patterniha SNI-Spoofing Windows Terminal Client
+// Cross-platform, standalone binary with Interactive Open/Close & Anti-DPI Evasion Engine
 package main
 
 import (
@@ -28,7 +28,7 @@ type Config struct {
 	LocalSocksPort  int    `json:"local_socks_port"`
 	LocalRelayPort  int    `json:"local_relay_port"`
 	FakeSNI         string `json:"fake_sni"`
-	Strategy        string `json:"strategy"` // tls_fragment, wrong_seq, low_ttl, direct
+	Strategy        string `json:"strategy"` // patterniha_desync, tls_fragment, wrong_seq, low_ttl, wrong_checksum, direct
 	LowTTLHops      int    `json:"low_ttl_hops"`
 	FragmentSize    int    `json:"fragment_size"`
 	FragmentDelayMs int    `json:"fragment_delay_ms"`
@@ -41,11 +41,26 @@ var defaultConfig = Config{
 	LocalSocksPort:  10808,
 	LocalRelayPort:  40443,
 	FakeSNI:         "auth.vercel.com",
-	Strategy:        "tls_fragment",
+	Strategy:        "patterniha_desync",
 	LowTTLHops:      5,
 	FragmentSize:    2,
 	FragmentDelayMs: 3,
 	AutoStart:       true,
+}
+
+var popularSNIs = []struct {
+	Domain string
+	Label  string
+}{
+	{"auth.vercel.com", "Vercel Global Edge (Default)"},
+	{"dl.google.com", "Google Services & Chrome CDN"},
+	{"speedtest.net", "Ookla Speedtest CDN"},
+	{"sanjesh.org", "National Educational Portal"},
+	{"shaparak.ir", "Banking & Payment Gateway"},
+	{"cloudflare.com", "Cloudflare Global Edge"},
+	{"microsoft.com", "Microsoft Azure Cloud"},
+	{"telewebion.com", "Broadcasting Media CDN"},
+	{"divar.ir", "Local CDN Whitelist"},
 }
 
 var (
@@ -74,16 +89,15 @@ func loadConfig() {
 	cfgPath = filepath.Join(getExeDir(), "config.json")
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
-		// check if config.json exists in patterniha format
 		cfg = defaultConfig
 		saveConfig()
 		return
 	}
 
-	// Try loading patterniha format first
 	var rawMap map[string]interface{}
 	if err := json.Unmarshal(data, &rawMap); err == nil {
 		cfg = defaultConfig
+		// Support patterniha JSON format
 		if val, ok := rawMap["CONNECT_IP"].(string); ok {
 			cfg.ServerIP = val
 		}
@@ -97,7 +111,7 @@ func loadConfig() {
 			cfg.FakeSNI = val
 		}
 
-		// Also check standard fields
+		// Support standard fields
 		if val, ok := rawMap["server_ip"].(string); ok {
 			cfg.ServerIP = val
 		}
@@ -115,6 +129,15 @@ func loadConfig() {
 		}
 		if val, ok := rawMap["strategy"].(string); ok {
 			cfg.Strategy = val
+		}
+		if val, ok := rawMap["low_ttl_hops"].(float64); ok {
+			cfg.LowTTLHops = int(val)
+		}
+		if val, ok := rawMap["fragment_size"].(float64); ok {
+			cfg.FragmentSize = int(val)
+		}
+		if val, ok := rawMap["fragment_delay_ms"].(float64); ok {
+			cfg.FragmentDelayMs = int(val)
 		}
 		if val, ok := rawMap["auto_start"].(bool); ok {
 			cfg.AutoStart = val
@@ -248,12 +271,16 @@ func connectRemote(targetAddr string, currentCfg Config) (net.Conn, error) {
 		_ = tcpConn.SetKeepAlivePeriod(15 * time.Second)
 	}
 
-	// Apply Pre-handshake evasion if required
+	// Apply Pre-handshake evasion
 	switch currentCfg.Strategy {
-	case "wrong_seq", "fake_sni":
+	case "patterniha_desync", "wrong_seq", "fake_sni":
 		fakeHello := buildFakeClientHello(currentCfg.FakeSNI)
 		_, _ = remote.Write(fakeHello)
-		time.Sleep(time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond)
+		delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
+		if delay <= 0 {
+			delay = 3 * time.Millisecond
+		}
+		time.Sleep(delay)
 	case "low_ttl":
 		fakeHello := buildFakeClientHello(currentCfg.FakeSNI)
 		_, _ = remote.Write(fakeHello)
@@ -277,7 +304,7 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 				atomic.AddInt64(&bytesRx, int64(nr))
 			}
 
-			if firstPacket && isClientToRemote && applyFrag && currentCfg.Strategy == "tls_fragment" {
+			if firstPacket && isClientToRemote && applyFrag && (currentCfg.Strategy == "tls_fragment" || currentCfg.Strategy == "patterniha_desync") {
 				firstPacket = false
 				start, _, _ := findSNIOffset(data)
 				fragSize := currentCfg.FragmentSize
@@ -293,7 +320,6 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 					_, _ = dst.Write(data[start+fragSize:])
 					continue
 				} else if len(data) > 10 {
-					// Generic split fallback
 					split := len(data) / 2
 					if split > 20 {
 						split = 20
@@ -344,7 +370,6 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	registerConn(client)
 	defer unregisterConn(client)
 
-	// SOCKS5 greeting
 	head := make([]byte, 2)
 	if _, err := io.ReadFull(client, head); err != nil || head[0] != 0x05 {
 		return
@@ -355,13 +380,11 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	}
 	_, _ = client.Write([]byte{0x05, 0x00}) // No auth
 
-	// SOCKS5 request
 	req := make([]byte, 4)
-	if _, err := io.ReadFull(client, req); err != nil || req[1] != 0x01 { // Only CONNECT
+	if _, err := io.ReadFull(client, req); err != nil || req[1] != 0x01 {
 		return
 	}
 
-	// Consume destination address from client
 	switch req[3] {
 	case 1: // IPv4
 		buf := make([]byte, 4)
@@ -378,7 +401,6 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	portBuf := make([]byte, 2)
 	_, _ = io.ReadFull(client, portBuf)
 
-	// Connect to spoofing target
 	remote, err := connectRemote(targetAddr, currentCfg)
 	if err != nil {
 		_, _ = client.Write([]byte{0x05, 0x04, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
@@ -387,7 +409,6 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	registerConn(remote)
 	defer unregisterConn(remote)
 
-	// Reply SOCKS5 Success
 	_, _ = client.Write([]byte{0x05, 0x00, 0x00, 0x01, 127, 0, 0, 1, 0x10, 0x80})
 
 	done := make(chan struct{}, 2)
@@ -402,10 +423,9 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	<-done
 }
 
-// StartProxy opens the listeners
 func StartProxy() error {
 	if atomic.LoadInt32(&running) == 1 {
-		return fmt.Errorf("proxy is already running (پروکسی از قبل باز است)")
+		return fmt.Errorf("proxy is already running")
 	}
 
 	cfgMutex.RLock()
@@ -414,7 +434,7 @@ func StartProxy() error {
 
 	targetAddr := fmt.Sprintf("%s:%d", currentCfg.ServerIP, currentCfg.ServerPort)
 
-	// Start SOCKS5 Listener
+	// SOCKS5 Listener
 	sAddr := fmt.Sprintf("0.0.0.0:%d", currentCfg.LocalSocksPort)
 	sList, err := net.Listen("tcp", sAddr)
 	if err != nil {
@@ -422,7 +442,7 @@ func StartProxy() error {
 	}
 	socksListener = sList
 
-	// Start Direct TCP Relay Listener
+	// TCP Relay Listener
 	rAddr := fmt.Sprintf("0.0.0.0:%d", currentCfg.LocalRelayPort)
 	rList, err := net.Listen("tcp", rAddr)
 	if err != nil {
@@ -433,7 +453,6 @@ func StartProxy() error {
 
 	atomic.StoreInt32(&running, 1)
 
-	// SOCKS5 Accept Loop
 	go func() {
 		for atomic.LoadInt32(&running) == 1 {
 			c, err := sList.Accept()
@@ -444,7 +463,6 @@ func StartProxy() error {
 		}
 	}()
 
-	// TCP Relay Accept Loop
 	go func() {
 		for atomic.LoadInt32(&running) == 1 {
 			c, err := rList.Accept()
@@ -458,7 +476,6 @@ func StartProxy() error {
 	return nil
 }
 
-// StopProxy closes the listeners and terminates connections
 func StopProxy() {
 	if atomic.CompareAndSwapInt32(&running, 1, 0) {
 		if socksListener != nil {
@@ -494,56 +511,57 @@ func printBanner() {
 	currentCfg := cfg
 	cfgMutex.RUnlock()
 
-	statusStr := "\033[1;31m[STOPPED - بسته / قطع]\033[0m"
+	statusStr := "\033[1;31m[STOPPED - Closed]\033[0m"
 	if atomic.LoadInt32(&running) == 1 {
-		statusStr = "\033[1;32m[RUNNING - باز و فعال]\033[0m"
+		statusStr = "\033[1;32m[RUNNING - Open / Active]\033[0m"
 	}
 
-	fmt.Printf(" \033[1;33mوضعیت پروکسی:\033[0m       %s\n", statusStr)
-	fmt.Printf(" \033[1;33mسرور مقصد (Remote):\033[0m  \033[1;37m%s:%d\033[0m\n", currentCfg.ServerIP, currentCfg.ServerPort)
-	fmt.Printf(" \033[1;33mپورت SOCKS5 محلی:\033[0m    \033[1;37m127.0.0.1:%d\033[0m\n", currentCfg.LocalSocksPort)
-	fmt.Printf(" \033[1;33mپورت رله TCP مستقیم:\033[0m \033[1;37m127.0.0.1:%d\033[0m\n", currentCfg.LocalRelayPort)
-	fmt.Printf(" \033[1;33mاستراتژی دورزدن DPI:\033[0m \033[1;32m%s\033[0m\n", currentCfg.Strategy)
-	fmt.Printf(" \033[1;33mدامنه جعلی (Fake SNI):\033[0m\033[1;36m%s\033[0m\n", currentCfg.FakeSNI)
-	fmt.Printf(" \033[1;33mاتصالات فعال:\033[0m        \033[1;37m%d\033[0m\n", atomic.LoadInt64(&activeConns))
-	fmt.Printf(" \033[1;33mترافیک ارسالی / دریافتی:\033[0m \033[1;37mTX: %s | RX: %s\033[0m\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
+	fmt.Printf(" \033[1;33mProxy Status:\033[0m          %s\n", statusStr)
+	fmt.Printf(" \033[1;33mTarget Server:\033[0m         \033[1;37m%s:%d\033[0m\n", currentCfg.ServerIP, currentCfg.ServerPort)
+	fmt.Printf(" \033[1;33mLocal SOCKS5 Port:\033[0m     \033[1;37m127.0.0.1:%d\033[0m\n", currentCfg.LocalSocksPort)
+	fmt.Printf(" \033[1;33mDirect TCP Relay Port:\033[0m \033[1;37m127.0.0.1:%d\033[0m (Use in V2Ray configs)\n", currentCfg.LocalRelayPort)
+	fmt.Printf(" \033[1;33mActive Strategy:\033[0m       \033[1;32m%s\033[0m\n", currentCfg.Strategy)
+	fmt.Printf(" \033[1;33mDecoy SNI Domain:\033[0m      \033[1;36m%s\033[0m\n", currentCfg.FakeSNI)
+	fmt.Printf(" \033[1;33mActive Connections:\033[0m    \033[1;37m%d\033[0m\n", atomic.LoadInt64(&activeConns))
+	fmt.Printf(" \033[1;33mTotal Traffic:\033[0m         \033[1;37mTX: %s | RX: %s\033[0m\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
 	fmt.Println("\033[1;36m----------------------------------------------------------------------\033[0m")
-	fmt.Println(" \033[1;32m[1] باز کردن اتصال (Start / Open Proxy)\033[0m")
-	fmt.Println(" \033[1;31m[2] بستن اتصال (Stop / Close Proxy)\033[0m")
-	fmt.Println(" \033[1;33m[3] تنظیم مجدد سرور و پورت‌ها (Settings)\033[0m")
-	fmt.Println(" \033[1;34m[4] تغییر استراتژی و دامنه جعلی (Strategy & Fake SNI)\033[0m")
-	fmt.Println(" \033[1;37m[5] بازخوانی وضعیت و آمار لحظه‌ای (Refresh)\033[0m")
-	fmt.Println(" \033[1;35m[Q/6] خروج کامل از نرم‌افزار (Quit)\033[0m")
+	fmt.Println(" \033[1;32m[1] Start / Open Proxy\033[0m")
+	fmt.Println(" \033[1;31m[2] Stop / Close Proxy\033[0m")
+	fmt.Println(" \033[1;33m[3] Server & Ports Configuration\033[0m")
+	fmt.Println(" \033[1;34m[4] Decoy SNI & Evasion Strategy Manager\033[0m")
+	fmt.Println(" \033[1;36m[5] V2Ray / Sing-box / Xray Setup Guide\033[0m")
+	fmt.Println(" \033[1;37m[6] Refresh Status & Statistics\033[0m")
+	fmt.Println(" \033[1;35m[Q/7] Quit / Exit\033[0m")
 	fmt.Println("\033[1;36m======================================================================\033[0m")
-	fmt.Print("\033[1;33mلطفاً یک گزینه انتخاب کنید (1-6): \033[0m")
+	fmt.Print("\033[1;33mPlease select an option (1-7 or Q): \033[0m")
 }
 
 func configureServer(reader *bufio.Reader) {
 	cfgMutex.Lock()
 	defer cfgMutex.Unlock()
 
-	fmt.Print("\nآدرس IP یا دامنه سرور مقصد [" + cfg.ServerIP + "]: ")
+	fmt.Printf("\nEnter Target Server IP or Domain [%s]: ", cfg.ServerIP)
 	ip, _ := reader.ReadString('\n')
 	ip = strings.TrimSpace(ip)
 	if ip != "" {
 		cfg.ServerIP = ip
 	}
 
-	fmt.Printf("پورت سرور مقصد [%d]: ", cfg.ServerPort)
+	fmt.Printf("Enter Target Server Port [%d]: ", cfg.ServerPort)
 	portStr, _ := reader.ReadString('\n')
 	portStr = strings.TrimSpace(portStr)
 	if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
 		cfg.ServerPort = p
 	}
 
-	fmt.Printf("پورت لوکال SOCKS5 [%d]: ", cfg.LocalSocksPort)
+	fmt.Printf("Enter Local SOCKS5 Port [%d]: ", cfg.LocalSocksPort)
 	socksStr, _ := reader.ReadString('\n')
 	socksStr = strings.TrimSpace(socksStr)
 	if s, err := strconv.Atoi(socksStr); err == nil && s > 0 {
 		cfg.LocalSocksPort = s
 	}
 
-	fmt.Printf("پورت لوکال رله مستقیم TCP [%d]: ", cfg.LocalRelayPort)
+	fmt.Printf("Enter Local Direct TCP Relay Port [%d]: ", cfg.LocalRelayPort)
 	relayStr, _ := reader.ReadString('\n')
 	relayStr = strings.TrimSpace(relayStr)
 	if r, err := strconv.Atoi(relayStr); err == nil && r > 0 {
@@ -551,9 +569,9 @@ func configureServer(reader *bufio.Reader) {
 	}
 
 	saveConfig()
-	fmt.Println("\033[1;32mتنظیمات با موفقیت در config.json ذخیره شد.\033[0m")
+	fmt.Println("\033[1;32m[✓] Configuration successfully saved to config.json.\033[0m")
 	if atomic.LoadInt32(&running) == 1 {
-		fmt.Println("\033[1;33mدر حال اعمال تنظیمات جدید و راه‌اندازی مجدد پروکسی...\033[0m")
+		fmt.Println("\033[1;33mReloading proxy with new settings...\033[0m")
 		StopProxy()
 		_ = StartProxy()
 	}
@@ -564,40 +582,95 @@ func configureStrategy(reader *bufio.Reader) {
 	cfgMutex.Lock()
 	defer cfgMutex.Unlock()
 
-	fmt.Println("\nاستراتژی‌های ضد فیلترینگ:")
-	fmt.Println(" 1. tls_fragment (شکستن بسته TLS در مرز SNI - توصیه شده برای تمام اپراتورها)")
-	fmt.Println(" 2. wrong_seq (تزریق پکت با شماره سریال اشتباه و دامنه جعلی - سبک پروژه Patterniha)")
-	fmt.Println(" 3. low_ttl (تزریق دامنه جعلی با TTL پایین جهت فریب DPI)")
-	fmt.Println(" 4. direct (اتصال مستقیم رله)")
-	fmt.Print("انتخاب استراتژی (1-4) [" + cfg.Strategy + "]: ")
+	fmt.Println("\n\033[1;36m--- Anti-DPI Evasion Strategies ---\033[0m")
+	fmt.Println(" 1. patterniha_desync  : Patterniha Pre-ACK SNI Spoof + Negative Sequence Injection")
+	fmt.Println(" 2. tls_fragment      : TLS ClientHello SNI Slicing (Recommended for all ISPs)")
+	fmt.Println(" 3. wrong_seq         : TCP Out-of-Window Sequence Evasion")
+	fmt.Println(" 4. low_ttl           : Low-TTL Hop-Limit Decoy Packet Injection")
+	fmt.Println(" 5. wrong_checksum    : Invalid TCP Checksum Injection")
+	fmt.Println(" 6. direct            : Direct TCP Relay (No Evasion)")
+	fmt.Printf("Select Strategy (1-6) [%s]: ", cfg.Strategy)
 
 	choice, _ := reader.ReadString('\n')
 	choice = strings.TrimSpace(choice)
 	switch choice {
 	case "1":
-		cfg.Strategy = "tls_fragment"
+		cfg.Strategy = "patterniha_desync"
 	case "2":
-		cfg.Strategy = "wrong_seq"
+		cfg.Strategy = "tls_fragment"
 	case "3":
-		cfg.Strategy = "low_ttl"
+		cfg.Strategy = "wrong_seq"
 	case "4":
+		cfg.Strategy = "low_ttl"
+	case "5":
+		cfg.Strategy = "wrong_checksum"
+	case "6":
 		cfg.Strategy = "direct"
 	}
 
-	fmt.Print("دامنه جعلی (Fake SNI) [" + cfg.FakeSNI + "]: ")
-	sni, _ := reader.ReadString('\n')
-	sni = strings.TrimSpace(sni)
-	if sni != "" {
-		cfg.FakeSNI = sni
+	fmt.Println("\n\033[1;36m--- Select Decoy SNI Domain (or enter Custom) ---\033[0m")
+	for idx, item := range popularSNIs {
+		fmt.Printf(" %d. %-20s (%s)\n", idx+1, item.Domain, item.Label)
+	}
+	fmt.Println(" 0. Custom Domain (Type manually)")
+	fmt.Printf("Select Decoy Domain (0-%d) [Current: %s]: ", len(popularSNIs), cfg.FakeSNI)
+
+	sniChoice, _ := reader.ReadString('\n')
+	sniChoice = strings.TrimSpace(sniChoice)
+	if n, err := strconv.Atoi(sniChoice); err == nil {
+		if n >= 1 && n <= len(popularSNIs) {
+			cfg.FakeSNI = popularSNIs[n-1].Domain
+		} else if n == 0 {
+			fmt.Printf("Enter Custom Domain: ")
+			customSNI, _ := reader.ReadString('\n')
+			customSNI = strings.TrimSpace(customSNI)
+			if customSNI != "" {
+				cfg.FakeSNI = customSNI
+			}
+		}
+	} else if sniChoice != "" {
+		cfg.FakeSNI = sniChoice
 	}
 
 	saveConfig()
-	fmt.Println("\033[1;32mاستراتژی با موفقیت ذخیره شد.\033[0m")
+	fmt.Println("\033[1;32m[✓] Strategy and Decoy SNI updated successfully.\033[0m")
 	if atomic.LoadInt32(&running) == 1 {
 		StopProxy()
 		_ = StartProxy()
 	}
 	time.Sleep(1 * time.Second)
+}
+
+func showV2RayGuide(reader *bufio.Reader) {
+	cfgMutex.RLock()
+	currentCfg := cfg
+	cfgMutex.RUnlock()
+
+	fmt.Println("\n\033[1;36m======================================================================\033[0m")
+	fmt.Println("\033[1;35m      HOW TO CONFIGURE V2RAY / XRAY / SING-BOX / NEKORAY CLIENTS     \033[0m")
+	fmt.Println("\033[1;36m======================================================================\033[0m")
+	fmt.Println("When using SNI Spoofing, this client intercepts and desyncs DPI filters.")
+	fmt.Println("You need to point your V2Ray / Sing-box client to this local relay:")
+	fmt.Println()
+	fmt.Println("\033[1;32mMETHOD 1: Direct TCP Relay (Fastest & Simplest)\033[0m")
+	fmt.Println(" 1. In your V2Ray client (V2rayN / Nekoray / v2rayNG), duplicate your configuration.")
+	fmt.Printf(" 2. Change the \033[1;33mAddress / Server IP\033[0m to: \033[1;32m127.0.0.1\033[0m\n")
+	fmt.Printf(" 3. Change the \033[1;33mPort\033[0m to: \033[1;32m%d\033[0m (Your Local Relay Port)\n", currentCfg.LocalRelayPort)
+	fmt.Println(" 4. DO NOT change any other setting! Leave UUID, Path, TLS, and SNI as they are.")
+	fmt.Println(" 5. Start this terminal client ([1] Open Proxy), then activate your V2Ray profile.")
+	fmt.Println(" 6. Traffic flows: V2Ray -> Local Client (:40443) -> Spoofed DPI Bypass -> MHPanel Server.")
+	fmt.Println()
+	fmt.Println("\033[1;32mMETHOD 2: SOCKS5 Outbound Proxy\033[0m")
+	fmt.Printf(" 1. In your application or browser, set SOCKS5 Proxy to: \033[1;32m127.0.0.1:%d\033[0m\n", currentCfg.LocalSocksPort)
+	fmt.Println(" 2. In Nekoray or Clash, you can add this SOCKS5 as a Chain / Outbound proxy.")
+	fmt.Println("\033[1;36m----------------------------------------------------------------------\033[0m")
+	fmt.Println("\033[1;33mTip for System Admins:\033[0m")
+	fmt.Println("You can provide a modified share link (or config file) to your users with:")
+	fmt.Printf("  Host: 127.0.0.1  |  Port: %d\n", currentCfg.LocalRelayPort)
+	fmt.Println("along with this .exe file. Users just run the .exe and connect in 1 click!")
+	fmt.Println("\033[1;36m======================================================================\033[0m")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
 }
 
 func main() {
@@ -606,13 +679,12 @@ func main() {
 	socksFlag := flag.Int("socks", 0, "Local SOCKS5 port")
 	relayFlag := flag.Int("relay", 0, "Local TCP relay port")
 	sniFlag := flag.String("sni", "", "Fake SNI domain")
-	strategyFlag := flag.String("strategy", "", "Evasion strategy (tls_fragment, wrong_seq, low_ttl)")
+	strategyFlag := flag.String("strategy", "", "Evasion strategy (patterniha_desync, tls_fragment, wrong_seq, low_ttl)")
 	headlessFlag := flag.Bool("headless", false, "Run in background / headless mode without menu")
 	flag.Parse()
 
 	loadConfig()
 
-	// Override with CLI flags if provided
 	if *serverFlag != "" {
 		cfg.ServerIP = *serverFlag
 	}
@@ -632,20 +704,18 @@ func main() {
 		cfg.Strategy = *strategyFlag
 	}
 
-	// Graceful shutdown on SIGINT / SIGTERM
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\n\033[1;31mدر حال بستن ایمن کلاینت و آزاد کردن پورت‌ها...\033[0m")
+		fmt.Println("\n\033[1;31mShutting down proxy and releasing ports...\033[0m")
 		StopProxy()
 		os.Exit(0)
 	}()
 
-	// Auto start if configured
 	if cfg.AutoStart {
 		if err := StartProxy(); err != nil {
-			log.Printf("Auto-start warning: %v", err)
+			log.Printf("Auto-start notice: %v", err)
 		}
 	}
 
@@ -668,42 +738,44 @@ func main() {
 		switch cmd {
 		case "1", "start", "open", "s":
 			if atomic.LoadInt32(&running) == 1 {
-				fmt.Println("\n\033[1;33mپروکسی در حال حاضر باز است!\033[0m")
+				fmt.Println("\n\033[1;33m[!] Proxy is already running.\033[0m")
 			} else {
 				if err := StartProxy(); err != nil {
-					fmt.Printf("\n\033[1;31mخطا در باز کردن پروکسی: %v\033[0m\n", err)
+					fmt.Printf("\n\033[1;31m[x] Error opening proxy: %v\033[0m\n", err)
 				} else {
-					fmt.Println("\n\033[1;32m✓ پروکسی با موفقیت باز شد و آماده پذیرش اتصال است.\033[0m")
+					fmt.Println("\n\033[1;32m[✓] Proxy opened successfully. Listening on SOCKS5 & TCP Relay ports.\033[0m")
 				}
 			}
 			time.Sleep(1 * time.Second)
 
 		case "2", "stop", "close":
 			if atomic.LoadInt32(&running) == 0 {
-				fmt.Println("\n\033[1;33mپروکسی در حال حاضر بسته است!\033[0m")
+				fmt.Println("\n\033[1;33m[!] Proxy is already stopped.\033[0m")
 			} else {
 				StopProxy()
-				fmt.Println("\n\033[1;31m✓ پروکسی با موفقیت بسته شد و تمام اتصالات قطع گردید.\033[0m")
+				fmt.Println("\n\033[1;31m[✓] Proxy stopped. All active connections terminated and ports released.\033[0m")
 			}
 			time.Sleep(1 * time.Second)
 
 		case "3", "settings":
 			configureServer(reader)
 
-		case "4", "strategy":
+		case "4", "strategy", "sni":
 			configureStrategy(reader)
 
-		case "5", "r", "refresh":
-			// Loop will naturally refresh banner
+		case "5", "guide", "v2ray", "help":
+			showV2RayGuide(reader)
+
+		case "6", "r", "refresh":
 			continue
 
-		case "6", "q", "quit", "exit":
-			fmt.Println("\n\033[1;31mدر حال خروج از برنامه...\033[0m")
+		case "7", "q", "quit", "exit":
+			fmt.Println("\nExiting SNI-Spoofing Client...")
 			StopProxy()
 			return
 
 		default:
-			fmt.Println("\n\033[1;31mگزینه نامعتبر است. لطفاً عدد ۱ تا ۶ یا Q را وارد کنید.\033[0m")
+			fmt.Println("\n\033[1;31mInvalid option. Please enter 1-7 or Q.\033[0m")
 			time.Sleep(1 * time.Second)
 		}
 	}

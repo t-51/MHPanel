@@ -186,7 +186,7 @@ protocol_label() {
         tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
         singbox) echo "Sing-box Universal Suite (VLESS/Reality/Trojan/Hysteria2)" ;;
         google_script) echo "Google Apps Script Full Tunnel (GAS Relay)" ;;
-        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / BadChecksum / Low-TTL)" ;;
+        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / Patterniha Desync / BadChecksum / Low-TTL)" ;;
         *) echo "$1" ;;
     esac
 }

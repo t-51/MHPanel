@@ -13451,7 +13451,7 @@ def api_snispoof_config():
             "role": role,
             "upstream": upstream,
             "default_strategy": default_strategy,
-            "active_strategies": ["wrong_seq", "wrong_checksum", "low_ttl", "tls_fragment", "sni_rotation"],
+            "active_strategies": ["wrong_seq", "wrong_checksum", "low_ttl", "tls_fragment", "sni_rotation", "patterniha_desync"],
             "low_ttl_hops": low_ttl_hops,
             "fragment_size": fragment_size,
             "fragment_delay_ms": fragment_delay_ms,
