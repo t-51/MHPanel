@@ -12,8 +12,10 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -271,7 +273,6 @@ func connectRemote(targetAddr string, currentCfg Config) (net.Conn, error) {
 		_ = tcpConn.SetKeepAlivePeriod(15 * time.Second)
 	}
 
-	// Apply Pre-handshake evasion
 	switch currentCfg.Strategy {
 	case "patterniha_desync", "wrong_seq", "fake_sni":
 		fakeHello := buildFakeClientHello(currentCfg.FakeSNI)
@@ -314,7 +315,6 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 				delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
 
 				if start > 0 && start+fragSize < len(data) {
-					// Split directly inside SNI
 					_, _ = dst.Write(data[:start+fragSize])
 					time.Sleep(delay)
 					_, _ = dst.Write(data[start+fragSize:])
@@ -378,7 +378,7 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	if _, err := io.ReadFull(client, methods); err != nil {
 		return
 	}
-	_, _ = client.Write([]byte{0x05, 0x00}) // No auth
+	_, _ = client.Write([]byte{0x05, 0x00})
 
 	req := make([]byte, 4)
 	if _, err := io.ReadFull(client, req); err != nil || req[1] != 0x01 {
@@ -386,15 +386,15 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	}
 
 	switch req[3] {
-	case 1: // IPv4
+	case 1:
 		buf := make([]byte, 4)
 		_, _ = io.ReadFull(client, buf)
-	case 3: // Domain
+	case 3:
 		var l [1]byte
 		_, _ = io.ReadFull(client, l[:])
 		domainBuf := make([]byte, int(l[0]))
 		_, _ = io.ReadFull(client, domainBuf)
-	case 4: // IPv6
+	case 4:
 		buf := make([]byte, 16)
 		_, _ = io.ReadFull(client, buf)
 	}
@@ -434,7 +434,6 @@ func StartProxy() error {
 
 	targetAddr := fmt.Sprintf("%s:%d", currentCfg.ServerIP, currentCfg.ServerPort)
 
-	// SOCKS5 Listener
 	sAddr := fmt.Sprintf("0.0.0.0:%d", currentCfg.LocalSocksPort)
 	sList, err := net.Listen("tcp", sAddr)
 	if err != nil {
@@ -442,7 +441,6 @@ func StartProxy() error {
 	}
 	socksListener = sList
 
-	// TCP Relay Listener
 	rAddr := fmt.Sprintf("0.0.0.0:%d", currentCfg.LocalRelayPort)
 	rList, err := net.Listen("tcp", rAddr)
 	if err != nil {
@@ -501,39 +499,51 @@ func formatBytes(b int64) string {
 	return fmt.Sprintf("%.2f %cB", float64(b)/float64(div), "KMGTPE"[exp])
 }
 
+func clearScreen() {
+	if runtime.GOOS == "windows" {
+		cmd := exec.Command("cmd", "/c", "cls")
+		cmd.Stdout = os.Stdout
+		_ = cmd.Run()
+	} else {
+		cmd := exec.Command("clear")
+		cmd.Stdout = os.Stdout
+		_ = cmd.Run()
+	}
+}
+
 func printBanner() {
-	fmt.Print("\033[H\033[2J") // Clear screen
-	fmt.Println("\033[1;36m======================================================================\033[0m")
-	fmt.Println("\033[1;35m      MHPanel & Patterniha SNI-Spoofing Windows Terminal Client       \033[0m")
-	fmt.Println("\033[1;36m======================================================================\033[0m")
+	clearScreen()
+	fmt.Println("======================================================================")
+	fmt.Println("      MHPanel & Patterniha SNI-Spoofing Windows Terminal Client       ")
+	fmt.Println("======================================================================")
 
 	cfgMutex.RLock()
 	currentCfg := cfg
 	cfgMutex.RUnlock()
 
-	statusStr := "\033[1;31m[STOPPED - Closed]\033[0m"
+	statusStr := "[STOPPED - Closed]"
 	if atomic.LoadInt32(&running) == 1 {
-		statusStr = "\033[1;32m[RUNNING - Open / Active]\033[0m"
+		statusStr = "[RUNNING - Open / Active]"
 	}
 
-	fmt.Printf(" \033[1;33mProxy Status:\033[0m          %s\n", statusStr)
-	fmt.Printf(" \033[1;33mTarget Server:\033[0m         \033[1;37m%s:%d\033[0m\n", currentCfg.ServerIP, currentCfg.ServerPort)
-	fmt.Printf(" \033[1;33mLocal SOCKS5 Port:\033[0m     \033[1;37m127.0.0.1:%d\033[0m\n", currentCfg.LocalSocksPort)
-	fmt.Printf(" \033[1;33mDirect TCP Relay Port:\033[0m \033[1;37m127.0.0.1:%d\033[0m (Use in V2Ray configs)\n", currentCfg.LocalRelayPort)
-	fmt.Printf(" \033[1;33mActive Strategy:\033[0m       \033[1;32m%s\033[0m\n", currentCfg.Strategy)
-	fmt.Printf(" \033[1;33mDecoy SNI Domain:\033[0m      \033[1;36m%s\033[0m\n", currentCfg.FakeSNI)
-	fmt.Printf(" \033[1;33mActive Connections:\033[0m    \033[1;37m%d\033[0m\n", atomic.LoadInt64(&activeConns))
-	fmt.Printf(" \033[1;33mTotal Traffic:\033[0m         \033[1;37mTX: %s | RX: %s\033[0m\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
-	fmt.Println("\033[1;36m----------------------------------------------------------------------\033[0m")
-	fmt.Println(" \033[1;32m[1] Start / Open Proxy\033[0m")
-	fmt.Println(" \033[1;31m[2] Stop / Close Proxy\033[0m")
-	fmt.Println(" \033[1;33m[3] Server & Ports Configuration\033[0m")
-	fmt.Println(" \033[1;34m[4] Decoy SNI & Evasion Strategy Manager\033[0m")
-	fmt.Println(" \033[1;36m[5] V2Ray / Sing-box / Xray Setup Guide\033[0m")
-	fmt.Println(" \033[1;37m[6] Refresh Status & Statistics\033[0m")
-	fmt.Println(" \033[1;35m[Q/7] Quit / Exit\033[0m")
-	fmt.Println("\033[1;36m======================================================================\033[0m")
-	fmt.Print("\033[1;33mPlease select an option (1-7 or Q): \033[0m")
+	fmt.Printf(" Proxy Status:          %s\n", statusStr)
+	fmt.Printf(" Target Server:         %s:%d\n", currentCfg.ServerIP, currentCfg.ServerPort)
+	fmt.Printf(" Local SOCKS5 Port:     127.0.0.1:%d\n", currentCfg.LocalSocksPort)
+	fmt.Printf(" Direct TCP Relay Port: 127.0.0.1:%d (Use in V2Ray configs)\n", currentCfg.LocalRelayPort)
+	fmt.Printf(" Active Strategy:       %s\n", currentCfg.Strategy)
+	fmt.Printf(" Decoy SNI Domain:      %s\n", currentCfg.FakeSNI)
+	fmt.Printf(" Active Connections:    %d\n", atomic.LoadInt64(&activeConns))
+	fmt.Printf(" Total Traffic:         TX: %s | RX: %s\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println(" [1] Start / Open Proxy")
+	fmt.Println(" [2] Stop / Close Proxy")
+	fmt.Println(" [3] Server & Ports Configuration")
+	fmt.Println(" [4] Decoy SNI & Evasion Strategy Manager")
+	fmt.Println(" [5] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [6] Refresh Status & Statistics")
+	fmt.Println(" [Q/7] Quit / Exit")
+	fmt.Println("======================================================================")
+	fmt.Print("Please select an option (1-7 or Q): ")
 }
 
 func configureServer(reader *bufio.Reader) {
@@ -569,9 +579,9 @@ func configureServer(reader *bufio.Reader) {
 	}
 
 	saveConfig()
-	fmt.Println("\033[1;32m[✓] Configuration successfully saved to config.json.\033[0m")
+	fmt.Println("[OK] Configuration successfully saved to config.json.")
 	if atomic.LoadInt32(&running) == 1 {
-		fmt.Println("\033[1;33mReloading proxy with new settings...\033[0m")
+		fmt.Println("Reloading proxy with new settings...")
 		StopProxy()
 		_ = StartProxy()
 	}
@@ -582,7 +592,7 @@ func configureStrategy(reader *bufio.Reader) {
 	cfgMutex.Lock()
 	defer cfgMutex.Unlock()
 
-	fmt.Println("\n\033[1;36m--- Anti-DPI Evasion Strategies ---\033[0m")
+	fmt.Println("\n--- Anti-DPI Evasion Strategies ---")
 	fmt.Println(" 1. patterniha_desync  : Patterniha Pre-ACK SNI Spoof + Negative Sequence Injection")
 	fmt.Println(" 2. tls_fragment      : TLS ClientHello SNI Slicing (Recommended for all ISPs)")
 	fmt.Println(" 3. wrong_seq         : TCP Out-of-Window Sequence Evasion")
@@ -608,7 +618,7 @@ func configureStrategy(reader *bufio.Reader) {
 		cfg.Strategy = "direct"
 	}
 
-	fmt.Println("\n\033[1;36m--- Select Decoy SNI Domain (or enter Custom) ---\033[0m")
+	fmt.Println("\n--- Select Decoy SNI Domain (or enter Custom) ---")
 	for idx, item := range popularSNIs {
 		fmt.Printf(" %d. %-20s (%s)\n", idx+1, item.Domain, item.Label)
 	}
@@ -633,7 +643,7 @@ func configureStrategy(reader *bufio.Reader) {
 	}
 
 	saveConfig()
-	fmt.Println("\033[1;32m[✓] Strategy and Decoy SNI updated successfully.\033[0m")
+	fmt.Println("[OK] Strategy and Decoy SNI updated successfully.")
 	if atomic.LoadInt32(&running) == 1 {
 		StopProxy()
 		_ = StartProxy()
@@ -646,29 +656,29 @@ func showV2RayGuide(reader *bufio.Reader) {
 	currentCfg := cfg
 	cfgMutex.RUnlock()
 
-	fmt.Println("\n\033[1;36m======================================================================\033[0m")
-	fmt.Println("\033[1;35m      HOW TO CONFIGURE V2RAY / XRAY / SING-BOX / NEKORAY CLIENTS     \033[0m")
-	fmt.Println("\033[1;36m======================================================================\033[0m")
+	fmt.Println("\n======================================================================")
+	fmt.Println("      HOW TO CONFIGURE V2RAY / XRAY / SING-BOX / NEKORAY CLIENTS     ")
+	fmt.Println("======================================================================")
 	fmt.Println("When using SNI Spoofing, this client intercepts and desyncs DPI filters.")
 	fmt.Println("You need to point your V2Ray / Sing-box client to this local relay:")
 	fmt.Println()
-	fmt.Println("\033[1;32mMETHOD 1: Direct TCP Relay (Fastest & Simplest)\033[0m")
+	fmt.Println("METHOD 1: Direct TCP Relay (Fastest & Simplest)")
 	fmt.Println(" 1. In your V2Ray client (V2rayN / Nekoray / v2rayNG), duplicate your configuration.")
-	fmt.Printf(" 2. Change the \033[1;33mAddress / Server IP\033[0m to: \033[1;32m127.0.0.1\033[0m\n")
-	fmt.Printf(" 3. Change the \033[1;33mPort\033[0m to: \033[1;32m%d\033[0m (Your Local Relay Port)\n", currentCfg.LocalRelayPort)
+	fmt.Println(" 2. Change the Address / Server IP to: 127.0.0.1")
+	fmt.Printf(" 3. Change the Port to: %d (Your Local Relay Port)\n", currentCfg.LocalRelayPort)
 	fmt.Println(" 4. DO NOT change any other setting! Leave UUID, Path, TLS, and SNI as they are.")
 	fmt.Println(" 5. Start this terminal client ([1] Open Proxy), then activate your V2Ray profile.")
 	fmt.Println(" 6. Traffic flows: V2Ray -> Local Client (:40443) -> Spoofed DPI Bypass -> MHPanel Server.")
 	fmt.Println()
-	fmt.Println("\033[1;32mMETHOD 2: SOCKS5 Outbound Proxy\033[0m")
-	fmt.Printf(" 1. In your application or browser, set SOCKS5 Proxy to: \033[1;32m127.0.0.1:%d\033[0m\n", currentCfg.LocalSocksPort)
+	fmt.Println("METHOD 2: SOCKS5 Outbound Proxy")
+	fmt.Printf(" 1. In your application or browser, set SOCKS5 Proxy to: 127.0.0.1:%d\n", currentCfg.LocalSocksPort)
 	fmt.Println(" 2. In Nekoray or Clash, you can add this SOCKS5 as a Chain / Outbound proxy.")
-	fmt.Println("\033[1;36m----------------------------------------------------------------------\033[0m")
-	fmt.Println("\033[1;33mTip for System Admins:\033[0m")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println("Tip for System Admins:")
 	fmt.Println("You can provide a modified share link (or config file) to your users with:")
 	fmt.Printf("  Host: 127.0.0.1  |  Port: %d\n", currentCfg.LocalRelayPort)
 	fmt.Println("along with this .exe file. Users just run the .exe and connect in 1 click!")
-	fmt.Println("\033[1;36m======================================================================\033[0m")
+	fmt.Println("======================================================================")
 	fmt.Print("Press Enter to return to main menu: ")
 	_, _ = reader.ReadString('\n')
 }
@@ -708,7 +718,7 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-sigChan
-		fmt.Println("\n\033[1;31mShutting down proxy and releasing ports...\033[0m")
+		fmt.Println("\nShutting down proxy and releasing ports...")
 		StopProxy()
 		os.Exit(0)
 	}()
@@ -738,22 +748,22 @@ func main() {
 		switch cmd {
 		case "1", "start", "open", "s":
 			if atomic.LoadInt32(&running) == 1 {
-				fmt.Println("\n\033[1;33m[!] Proxy is already running.\033[0m")
+				fmt.Println("\n[!] Proxy is already running.")
 			} else {
 				if err := StartProxy(); err != nil {
-					fmt.Printf("\n\033[1;31m[x] Error opening proxy: %v\033[0m\n", err)
+					fmt.Printf("\n[x] Error opening proxy: %v\n", err)
 				} else {
-					fmt.Println("\n\033[1;32m[✓] Proxy opened successfully. Listening on SOCKS5 & TCP Relay ports.\033[0m")
+					fmt.Println("\n[OK] Proxy opened successfully. Listening on SOCKS5 & TCP Relay ports.")
 				}
 			}
 			time.Sleep(1 * time.Second)
 
 		case "2", "stop", "close":
 			if atomic.LoadInt32(&running) == 0 {
-				fmt.Println("\n\033[1;33m[!] Proxy is already stopped.\033[0m")
+				fmt.Println("\n[!] Proxy is already stopped.")
 			} else {
 				StopProxy()
-				fmt.Println("\n\033[1;31m[✓] Proxy stopped. All active connections terminated and ports released.\033[0m")
+				fmt.Println("\n[OK] Proxy stopped. All active connections terminated and ports released.")
 			}
 			time.Sleep(1 * time.Second)
 
@@ -775,7 +785,7 @@ func main() {
 			return
 
 		default:
-			fmt.Println("\n\033[1;31mInvalid option. Please enter 1-7 or Q.\033[0m")
+			fmt.Println("\n[!] Invalid option. Please enter 1-7 or Q.")
 			time.Sleep(1 * time.Second)
 		}
 	}
