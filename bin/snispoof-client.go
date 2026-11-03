@@ -87,6 +87,12 @@ func getExeDir() string {
 	return filepath.Dir(exe)
 }
 
+func getSnapshotConfig() Config {
+	cfgMutex.RLock()
+	defer cfgMutex.RUnlock()
+	return cfg
+}
+
 func loadConfig() {
 	exeName := strings.ToLower(filepath.Base(os.Args[0]))
 	if strings.Contains(exeName, "patterniha") {
@@ -358,10 +364,11 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 	}
 }
 
-func handleTCPRelay(client net.Conn, targetAddr string, currentCfg Config) {
+func handleTCPRelay(client net.Conn, targetAddr string) {
 	registerConn(client)
 	defer unregisterConn(client)
 
+	currentCfg := getSnapshotConfig()
 	remote, err := connectRemote(targetAddr, currentCfg)
 	if err != nil {
 		return
@@ -381,7 +388,7 @@ func handleTCPRelay(client net.Conn, targetAddr string, currentCfg Config) {
 	<-done
 }
 
-func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
+func handleSocks5(client net.Conn, targetAddr string) {
 	registerConn(client)
 	defer unregisterConn(client)
 
@@ -416,6 +423,7 @@ func handleSocks5(client net.Conn, targetAddr string, currentCfg Config) {
 	portBuf := make([]byte, 2)
 	_, _ = io.ReadFull(client, portBuf)
 
+	currentCfg := getSnapshotConfig()
 	remote, err := connectRemote(targetAddr, currentCfg)
 	if err != nil {
 		_, _ = client.Write([]byte{0x05, 0x04, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
@@ -443,10 +451,7 @@ func StartProxy() error {
 		return fmt.Errorf("proxy is already running")
 	}
 
-	cfgMutex.RLock()
-	currentCfg := cfg
-	cfgMutex.RUnlock()
-
+	currentCfg := getSnapshotConfig()
 	targetAddr := fmt.Sprintf("%s:%d", currentCfg.ServerIP, currentCfg.ServerPort)
 
 	sAddr := fmt.Sprintf("0.0.0.0:%d", currentCfg.LocalSocksPort)
@@ -472,7 +477,7 @@ func StartProxy() error {
 			if err != nil {
 				break
 			}
-			go handleSocks5(c, targetAddr, currentCfg)
+			go handleSocks5(c, targetAddr)
 		}
 	}()
 
@@ -482,7 +487,7 @@ func StartProxy() error {
 			if err != nil {
 				break
 			}
-			go handleTCPRelay(c, targetAddr, currentCfg)
+			go handleTCPRelay(c, targetAddr)
 		}
 	}()
 
@@ -532,9 +537,7 @@ func printBanner() {
 	fmt.Println("      MHPanel & Patterniha SNI-Spoofing Windows Terminal Client       ")
 	fmt.Println("======================================================================")
 
-	cfgMutex.RLock()
-	currentCfg := cfg
-	cfgMutex.RUnlock()
+	currentCfg := getSnapshotConfig()
 
 	statusStr := "[STOPPED - Closed]"
 	if atomic.LoadInt32(&running) == 1 {
@@ -552,124 +555,203 @@ func printBanner() {
 	fmt.Println("----------------------------------------------------------------------")
 	fmt.Println(" [1] Start / Open Proxy")
 	fmt.Println(" [2] Stop / Close Proxy")
-	fmt.Println(" [3] Server & Ports Configuration")
-	fmt.Println(" [4] Decoy SNI & Evasion Strategy Manager")
-	fmt.Println(" [5] V2Ray / Sing-box / Xray Setup Guide")
-	fmt.Println(" [6] Refresh Status & Statistics")
-	fmt.Println(" [Q/7] Quit / Exit")
+	fmt.Println(" [3] Server IP & Ports Settings")
+	fmt.Println(" [4] Change Decoy SNI Domain")
+	fmt.Println(" [5] Change Evasion Strategy")
+	fmt.Println(" [6] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [7] Refresh Status & Statistics")
+	fmt.Println(" [Q/8] Quit / Exit")
 	fmt.Println("======================================================================")
-	fmt.Print("Please select an option (1-7 or Q): ")
+	fmt.Print("Please select an option (1-8 or Q): ")
 }
 
 func configureServer(reader *bufio.Reader) {
-	cfgMutex.Lock()
-	defer cfgMutex.Unlock()
+	currentCfg := getSnapshotConfig()
 
-	fmt.Printf("\nEnter Target Server IP or Domain [%s]: ", cfg.ServerIP)
+	fmt.Println("\n======================================================================")
+	fmt.Println("                  SERVER & PORTS CONFIGURATION                        ")
+	fmt.Println("======================================================================")
+	fmt.Printf("Enter Target Server IP or Domain [%s]: ", currentCfg.ServerIP)
 	ip, _ := reader.ReadString('\n')
 	ip = strings.TrimSpace(ip)
-	if ip != "" {
-		cfg.ServerIP = ip
+	if ip == "" {
+		ip = currentCfg.ServerIP
 	}
 
-	fmt.Printf("Enter Target Server Port [%d]: ", cfg.ServerPort)
+	fmt.Printf("Enter Target Server Port [%d]: ", currentCfg.ServerPort)
 	portStr, _ := reader.ReadString('\n')
 	portStr = strings.TrimSpace(portStr)
+	port := currentCfg.ServerPort
 	if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
-		cfg.ServerPort = p
+		port = p
 	}
 
-	fmt.Printf("Enter Local SOCKS5 Port [%d]: ", cfg.LocalSocksPort)
+	fmt.Printf("Enter Local SOCKS5 Port [%d]: ", currentCfg.LocalSocksPort)
 	socksStr, _ := reader.ReadString('\n')
 	socksStr = strings.TrimSpace(socksStr)
+	socks := currentCfg.LocalSocksPort
 	if s, err := strconv.Atoi(socksStr); err == nil && s > 0 {
-		cfg.LocalSocksPort = s
+		socks = s
 	}
 
-	fmt.Printf("Enter Local Direct TCP Relay Port [%d]: ", cfg.LocalRelayPort)
+	fmt.Printf("Enter Local Direct TCP Relay Port [%d]: ", currentCfg.LocalRelayPort)
 	relayStr, _ := reader.ReadString('\n')
 	relayStr = strings.TrimSpace(relayStr)
+	relay := currentCfg.LocalRelayPort
 	if r, err := strconv.Atoi(relayStr); err == nil && r > 0 {
-		cfg.LocalRelayPort = r
+		relay = r
 	}
 
+	cfgMutex.Lock()
+	cfg.ServerIP = ip
+	cfg.ServerPort = port
+	cfg.LocalSocksPort = socks
+	cfg.LocalRelayPort = relay
+	cfgMutex.Unlock()
+
 	saveConfig()
-	fmt.Println("[OK] Configuration successfully saved to config.json.")
+	fmt.Println("\n[OK] Server configuration saved successfully to config.json.")
+
 	if atomic.LoadInt32(&running) == 1 {
 		fmt.Println("Reloading proxy with new settings...")
 		StopProxy()
-		_ = StartProxy()
+		time.Sleep(150 * time.Millisecond)
+		if err := StartProxy(); err != nil {
+			fmt.Printf("[x] Error reloading proxy: %v\n", err)
+		} else {
+			fmt.Println("[OK] Proxy successfully reloaded.")
+		}
 	}
-	time.Sleep(1 * time.Second)
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
+}
+
+func configureDecoySNI(reader *bufio.Reader) {
+	currentCfg := getSnapshotConfig()
+	currentSNI := currentCfg.FakeSNI
+
+	fmt.Println("\n======================================================================")
+	fmt.Println("                   SELECT DECOY SNI DOMAIN                            ")
+	fmt.Println("======================================================================")
+	fmt.Printf(" Current Decoy SNI: %s\n\n", currentSNI)
+	fmt.Println(" Select from popular high-reputation CDN domains:")
+	for idx, item := range popularSNIs {
+		fmt.Printf("  %d. %-20s (%s)\n", idx+1, item.Domain, item.Label)
+	}
+	fmt.Println("  0. Custom Domain (Type manually)")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Printf("Enter choice (0-%d), or type domain directly [%s]: ", len(popularSNIs), currentSNI)
+
+	input, _ := reader.ReadString('\n')
+	input = strings.TrimSpace(input)
+
+	newSNI := currentSNI
+	if input == "" {
+		newSNI = currentSNI
+	} else if n, err := strconv.Atoi(input); err == nil {
+		if n >= 1 && n <= len(popularSNIs) {
+			newSNI = popularSNIs[n-1].Domain
+		} else if n == 0 {
+			fmt.Print("Enter Custom Domain (e.g. cloudflare.com): ")
+			customSNI, _ := reader.ReadString('\n')
+			customSNI = strings.TrimSpace(customSNI)
+			if customSNI != "" {
+				newSNI = customSNI
+			}
+		} else {
+			fmt.Printf("\n[!] Invalid selection. Keeping current SNI: %s\n", currentSNI)
+		}
+	} else {
+		// User typed domain directly, e.g. "dl.google.com"
+		newSNI = input
+	}
+
+	cfgMutex.Lock()
+	cfg.FakeSNI = newSNI
+	cfgMutex.Unlock()
+
+	saveConfig()
+	fmt.Printf("\n[OK] Decoy SNI successfully set to: %s\n", newSNI)
+
+	if atomic.LoadInt32(&running) == 1 {
+		fmt.Println("Applying new Decoy SNI to active proxy...")
+		StopProxy()
+		time.Sleep(150 * time.Millisecond)
+		if err := StartProxy(); err != nil {
+			fmt.Printf("[x] Warning reloading proxy: %v\n", err)
+		} else {
+			fmt.Println("[OK] Proxy successfully reloaded with new Decoy SNI.")
+		}
+	}
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
 }
 
 func configureStrategy(reader *bufio.Reader) {
-	cfgMutex.Lock()
-	defer cfgMutex.Unlock()
+	currentCfg := getSnapshotConfig()
+	currentStrat := currentCfg.Strategy
 
-	fmt.Println("\n--- Anti-DPI Evasion Strategies ---")
+	fmt.Println("\n======================================================================")
+	fmt.Println("                  SELECT EVASION STRATEGY                             ")
+	fmt.Println("======================================================================")
+	fmt.Printf(" Current Strategy: %s\n\n", currentStrat)
 	fmt.Println(" 1. patterniha_desync  : Patterniha Pre-ACK SNI Spoof + Negative Sequence Injection")
 	fmt.Println(" 2. tls_fragment      : TLS ClientHello SNI Slicing (Recommended for all ISPs)")
 	fmt.Println(" 3. wrong_seq         : TCP Out-of-Window Sequence Evasion")
 	fmt.Println(" 4. low_ttl           : Low-TTL Hop-Limit Decoy Packet Injection")
 	fmt.Println(" 5. wrong_checksum    : Invalid TCP Checksum Injection")
 	fmt.Println(" 6. direct            : Direct TCP Relay (No Evasion)")
-	fmt.Printf("Select Strategy (1-6) [%s]: ", cfg.Strategy)
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Printf("Select Strategy (1-6) [%s]: ", currentStrat)
 
 	choice, _ := reader.ReadString('\n')
 	choice = strings.TrimSpace(choice)
+
+	newStrat := currentStrat
 	switch choice {
-	case "1":
-		cfg.Strategy = "patterniha_desync"
-	case "2":
-		cfg.Strategy = "tls_fragment"
-	case "3":
-		cfg.Strategy = "wrong_seq"
-	case "4":
-		cfg.Strategy = "low_ttl"
-	case "5":
-		cfg.Strategy = "wrong_checksum"
-	case "6":
-		cfg.Strategy = "direct"
+	case "1", "patterniha", "patterniha_desync":
+		newStrat = "patterniha_desync"
+	case "2", "fragment", "tls_fragment":
+		newStrat = "tls_fragment"
+	case "3", "wrong_seq":
+		newStrat = "wrong_seq"
+	case "4", "low_ttl":
+		newStrat = "low_ttl"
+	case "5", "wrong_checksum":
+		newStrat = "wrong_checksum"
+	case "6", "direct":
+		newStrat = "direct"
 	}
 
-	fmt.Println("\n--- Select Decoy SNI Domain (or enter Custom) ---")
-	for idx, item := range popularSNIs {
-		fmt.Printf(" %d. %-20s (%s)\n", idx+1, item.Domain, item.Label)
-	}
-	fmt.Println(" 0. Custom Domain (Type manually)")
-	fmt.Printf("Select Decoy Domain (0-%d) [Current: %s]: ", len(popularSNIs), cfg.FakeSNI)
-
-	sniChoice, _ := reader.ReadString('\n')
-	sniChoice = strings.TrimSpace(sniChoice)
-	if n, err := strconv.Atoi(sniChoice); err == nil {
-		if n >= 1 && n <= len(popularSNIs) {
-			cfg.FakeSNI = popularSNIs[n-1].Domain
-		} else if n == 0 {
-			fmt.Printf("Enter Custom Domain: ")
-			customSNI, _ := reader.ReadString('\n')
-			customSNI = strings.TrimSpace(customSNI)
-			if customSNI != "" {
-				cfg.FakeSNI = customSNI
-			}
-		}
-	} else if sniChoice != "" {
-		cfg.FakeSNI = sniChoice
-	}
+	cfgMutex.Lock()
+	cfg.Strategy = newStrat
+	cfgMutex.Unlock()
 
 	saveConfig()
-	fmt.Println("[OK] Strategy and Decoy SNI updated successfully.")
+	fmt.Printf("\n[OK] Evasion strategy successfully set to: %s\n", newStrat)
+
 	if atomic.LoadInt32(&running) == 1 {
+		fmt.Println("Applying new strategy to active proxy...")
 		StopProxy()
-		_ = StartProxy()
+		time.Sleep(150 * time.Millisecond)
+		if err := StartProxy(); err != nil {
+			fmt.Printf("[x] Warning reloading proxy: %v\n", err)
+		} else {
+			fmt.Println("[OK] Proxy successfully reloaded with new strategy.")
+		}
 	}
-	time.Sleep(1 * time.Second)
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
 }
 
 func showV2RayGuide(reader *bufio.Reader) {
-	cfgMutex.RLock()
-	currentCfg := cfg
-	cfgMutex.RUnlock()
+	currentCfg := getSnapshotConfig()
 
 	fmt.Println("\n======================================================================")
 	fmt.Println("      HOW TO CONFIGURE V2RAY / XRAY / SING-BOX / NEKORAY CLIENTS     ")
@@ -745,8 +827,9 @@ func main() {
 	}
 
 	if *headlessFlag {
-		fmt.Printf("SNI-Spoofing Client running headless on SOCKS:%d, Relay:%d -> %s:%d\n",
-			cfg.LocalSocksPort, cfg.LocalRelayPort, cfg.ServerIP, cfg.ServerPort)
+		currentCfg := getSnapshotConfig()
+		fmt.Printf("SNI-Spoofing Client running headless on SOCKS:%d, Relay:%d -> %s:%d (SNI: %s, Strategy: %s)\n",
+			currentCfg.LocalSocksPort, currentCfg.LocalRelayPort, currentCfg.ServerIP, currentCfg.ServerPort, currentCfg.FakeSNI, currentCfg.Strategy)
 		select {}
 	}
 
@@ -782,25 +865,28 @@ func main() {
 			}
 			time.Sleep(1 * time.Second)
 
-		case "3", "settings":
+		case "3", "settings", "server":
 			configureServer(reader)
 
-		case "4", "strategy", "sni":
+		case "4", "sni", "decoy":
+			configureDecoySNI(reader)
+
+		case "5", "strategy", "mode":
 			configureStrategy(reader)
 
-		case "5", "guide", "v2ray", "help":
+		case "6", "guide", "v2ray", "help":
 			showV2RayGuide(reader)
 
-		case "6", "r", "refresh":
+		case "7", "r", "refresh":
 			continue
 
-		case "7", "q", "quit", "exit":
+		case "8", "q", "quit", "exit":
 			fmt.Println("\nExiting SNI-Spoofing Client...")
 			StopProxy()
 			return
 
 		default:
-			fmt.Println("\n[!] Invalid option. Please enter 1-7 or Q.")
+			fmt.Println("\n[!] Invalid option. Please enter 1-8 or Q.")
 			time.Sleep(1 * time.Second)
 		}
 	}
