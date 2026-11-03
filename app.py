@@ -13630,7 +13630,8 @@ def api_download_snispoof_file(filename):
                     sb_cfg = json.load(f)
                 for ib in sb_cfg.get("inbounds", []):
                     p = ib.get("listen_port")
-                    if p and isinstance(p, int) and p not in active_ports:
+                    # Exclude low ports and client-reserved ports like 2080, 10808, 10809
+                    if p and isinstance(p, int) and p > 1024 and p not in [2080, 10808, 10809, 7890] and p not in active_ports:
                         active_ports.append(p)
             except Exception:
                 pass
@@ -13640,7 +13641,7 @@ def api_download_snispoof_file(filename):
             "server_domain": srv_domain,
             "server_ip": srv_ip,
             "server_port": 15443,
-            "local_socks_port": 10808,
+            "local_socks_port": 40808,
             "local_relay_port": 40443,
             "relay_ports": active_ports,
             "fake_sni": "auth.vercel.com",

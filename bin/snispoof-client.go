@@ -43,7 +43,7 @@ var defaultConfig = Config{
 	ServerDomain:    "vpn.kigaping.com",
 	ServerIP:        "212.227.143.16",
 	ServerPort:      15443,
-	LocalSocksPort:  10808,
+	LocalSocksPort:  40808,
 	LocalRelayPort:  40443,
 	RelayPorts:      []int{20443, 20452, 20453, 20451, 20454, 20455, 20456, 20448, 20457, 20458, 20459, 20444, 20460, 20461, 20462, 40443},
 	FakeSNI:         "auth.vercel.com",
@@ -630,7 +630,8 @@ func StartProxy() error {
 	extraListenersMutex.Lock()
 	extraListeners = nil
 	for _, p := range currentCfg.RelayPorts {
-		if p <= 0 || p == currentCfg.LocalSocksPort || p == currentCfg.LocalRelayPort {
+		// Do not bind client app reserved ports (v2rayNG/v2rayN/sing-box local ports)
+		if p <= 1024 || p == currentCfg.LocalSocksPort || p == currentCfg.LocalRelayPort || p == 10808 || p == 10809 || p == 7890 || p == 2080 {
 			continue
 		}
 		pAddr := fmt.Sprintf("127.0.0.1:%d", p)
