@@ -552,6 +552,11 @@ func printBanner() {
 	fmt.Printf(" Decoy SNI Domain:      %s\n", currentCfg.FakeSNI)
 	fmt.Printf(" Active Connections:    %d\n", atomic.LoadInt64(&activeConns))
 	fmt.Printf(" Total Traffic:         TX: %s | RX: %s\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
+	if currentCfg.ServerIP == "127.0.0.1" {
+		fmt.Println("----------------------------------------------------------------------")
+		fmt.Println(" [!] NOTICE: Target Server is set to 127.0.0.1 (Localhost)!")
+		fmt.Println("     If running on a client PC, choose [3] to set your VPS Server IP.")
+	}
 	fmt.Println("----------------------------------------------------------------------")
 	fmt.Println(" [1] Start / Open Proxy")
 	fmt.Println(" [2] Stop / Close Proxy")

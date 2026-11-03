@@ -13615,8 +13615,27 @@ def api_download_snispoof_client_go():
 
 @app.route("/download/snispoof/<filename>", methods=["GET"])
 def api_download_snispoof_file(filename):
-    from flask import send_file
+    from flask import send_file, Response
     safe_name = os.path.basename(filename)
+    if safe_name == "config.json":
+        srv_ip = get_server_public_ip() or "127.0.0.1"
+        client_cfg = {
+            "server_ip": srv_ip,
+            "server_port": 15443,
+            "local_socks_port": 10808,
+            "local_relay_port": 40443,
+            "fake_sni": "auth.vercel.com",
+            "strategy": "patterniha_desync",
+            "low_ttl_hops": 5,
+            "fragment_size": 2,
+            "fragment_delay_ms": 3,
+            "auto_start": True
+        }
+        return Response(
+            json.dumps(client_cfg, indent=2),
+            mimetype="application/json",
+            headers={"Content-Disposition": "attachment;filename=config.json"}
+        )
     path = os.path.join("/www/wwwroot/mhpanel/bin", safe_name)
     if os.path.exists(path) and safe_name.startswith("snispoof-"):
         mimetype = "application/octet-stream"
