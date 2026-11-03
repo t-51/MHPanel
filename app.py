@@ -13634,6 +13634,11 @@ def api_download_snispoof_client_go():
 def api_download_snispoof_file(filename):
     from flask import send_file, Response
     safe_name = os.path.basename(filename)
+    if safe_name in ["spec", "spec.md", "SNI_SPOOFING_SPEC.md", "sni_spoofing_spec.md", "sni_spoofing_mhpanel_android_spec.md"]:
+        doc_path = "/www/wwwroot/mhpanel/docs/SNI_SPOOFING_SPEC.md"
+        if os.path.exists(doc_path):
+            return send_file(doc_path, as_attachment=True, download_name="SNI_SPOOFING_SPEC.md", mimetype="text/markdown")
+
     if safe_name == "config.json":
         srv_ip = get_server_public_ip() or "127.0.0.1"
         srv_domain = get_server_domain() or srv_ip
