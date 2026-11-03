@@ -301,28 +301,32 @@ def handle_inbound_client(client_sock, client_addr, cfg):
 
     try:
         # Dynamic port autodetection (MAGIC: SNIP + 2 bytes targetPort + 2 bytes fakeLen)
-        client_sock.settimeout(3.0)
+        client_sock.settimeout(4.0)
         try:
-            head = client_sock.recv(8)
-            if head and len(head) >= 6 and head.startswith(b"SNIP"):
-                dynamic_port = struct.unpack(">H", head[4:6])[0]
-                if 1 <= dynamic_port <= 65535:
-                    up_port = dynamic_port
-                
-                fake_len = 0
-                if len(head) >= 8:
-                    fake_len = struct.unpack(">H", head[6:8])[0]
-                
-                # If client sent a decoy SNI packet, safely consume and discard it
-                if fake_len > 0:
-                    discarded = 0
-                    while discarded < fake_len:
-                        chunk = client_sock.recv(min(4096, fake_len - discarded))
-                        if not chunk:
-                            break
-                        discarded += len(chunk)
-            elif head:
-                prefix = head
+            def recv_exact(s, n):
+                b = bytearray()
+                while len(b) < n:
+                    c = s.recv(n - len(b))
+                    if not c: break
+                    b.extend(c)
+                return bytes(b)
+
+            magic = recv_exact(client_sock, 4)
+            if magic == b"SNIP":
+                meta = recv_exact(client_sock, 4)
+                if len(meta) == 4:
+                    dynamic_port = struct.unpack(">H", meta[0:2])[0]
+                    fake_len = struct.unpack(">H", meta[2:4])[0]
+                    if 1 <= dynamic_port <= 65535:
+                        up_port = dynamic_port
+                    if fake_len > 0:
+                        discarded = 0
+                        while discarded < fake_len:
+                            chunk = client_sock.recv(min(4096, fake_len - discarded))
+                            if not chunk: break
+                            discarded += len(chunk)
+            elif magic:
+                prefix = magic
         except Exception:
             pass
         finally:
