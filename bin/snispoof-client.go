@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"flag"
@@ -23,6 +24,22 @@ import (
 	"syscall"
 	"time"
 )
+
+func init() {
+	// Robust custom DNS resolver for Android/Termux where local /etc/resolv.conf is broken or points to [::1]:53
+	net.DefaultResolver = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{Timeout: 3 * time.Second}
+			for _, srv := range []string{"8.8.8.8:53", "1.1.1.1:53", "78.157.42.100:53"} {
+				if conn, err := d.DialContext(ctx, "udp", srv); err == nil {
+					return conn, nil
+				}
+			}
+			return d.DialContext(ctx, "udp", "8.8.8.8:53")
+		},
+	}
+}
 
 type Config struct {
 	ServerDomain    string `json:"server_domain"`
@@ -579,8 +596,9 @@ func StartProxy() error {
 	}
 
 	currentCfg := getSnapshotConfig()
+	// Prefer direct ServerIP to avoid DNS lookup issues/poisoning on Android Termux
 	targetHost := currentCfg.ServerIP
-	if currentCfg.ServerDomain != "" {
+	if (targetHost == "" || targetHost == "127.0.0.1") && currentCfg.ServerDomain != "" {
 		targetHost = currentCfg.ServerDomain
 	}
 	targetAddr := fmt.Sprintf("%s:%d", targetHost, currentCfg.ServerPort)
