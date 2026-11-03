@@ -1,5 +1,5 @@
-// MHPanel & Patterniha SNI-Spoofing Windows Terminal Client
-// Cross-platform, standalone binary with Interactive Open/Close & Anti-DPI Multi-Port Evasion Engine
+// MHPanel & Patterniha SNI-Spoofing Windows Terminal Client (v2.1)
+// Cross-platform, standalone binary with Live DPI Logging, Auto-Routing & Evasion Engine
 package main
 
 import (
@@ -40,8 +40,8 @@ type Config struct {
 }
 
 var defaultConfig = Config{
-	ServerDomain:    "",
-	ServerIP:        "127.0.0.1",
+	ServerDomain:    "vpn.kigaping.com",
+	ServerIP:        "212.227.143.16",
 	ServerPort:      15443,
 	LocalSocksPort:  10808,
 	LocalRelayPort:  40443,
@@ -67,6 +67,48 @@ var popularSNIs = []struct {
 	{"microsoft.com", "Microsoft Azure Cloud"},
 	{"telewebion.com", "Broadcasting Media CDN"},
 	{"divar.ir", "Local CDN Whitelist"},
+}
+
+// Circular Live Event Log Buffer
+var (
+	recentLogs      []string
+	recentLogsMutex sync.Mutex
+	logListeners    = make(map[chan string]struct{})
+	logListenMutex  sync.Mutex
+)
+
+func addLiveLog(tag, msg string) {
+	ts := time.Now().Format("15:04:05")
+	formatted := fmt.Sprintf("[%s] [%-10s] %s", ts, tag, msg)
+
+	recentLogsMutex.Lock()
+	recentLogs = append(recentLogs, formatted)
+	if len(recentLogs) > 30 {
+		recentLogs = recentLogs[len(recentLogs)-30:]
+	}
+	recentLogsMutex.Unlock()
+
+	logListenMutex.Lock()
+	for ch := range logListeners {
+		select {
+		case ch <- formatted:
+		default:
+		}
+	}
+	logListenMutex.Unlock()
+}
+
+func getRecentLogs(maxCount int) []string {
+	recentLogsMutex.Lock()
+	defer recentLogsMutex.Unlock()
+	if len(recentLogs) <= maxCount {
+		res := make([]string, len(recentLogs))
+		copy(res, recentLogs)
+		return res
+	}
+	res := make([]string, maxCount)
+	copy(res, recentLogs[len(recentLogs)-maxCount:])
+	return res
 }
 
 var (
@@ -301,9 +343,11 @@ func closeAllConns() {
 }
 
 func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Conn, error) {
+	addLiveLog("OUTBOUND", fmt.Sprintf("Dialing remote server %s...", targetAddr))
 	d := net.Dialer{Timeout: 8 * time.Second}
 	remote, err := d.Dial("tcp", targetAddr)
 	if err != nil {
+		addLiveLog("ERROR", fmt.Sprintf("Failed to connect to %s: %v", targetAddr, err))
 		return nil, err
 	}
 
@@ -313,34 +357,68 @@ func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Co
 		_ = tcpConn.SetKeepAlivePeriod(15 * time.Second)
 	}
 
-	// Send target port routing header (MAGIC: SNIP + 2 bytes targetPort uint16)
-	if targetPort > 0 {
-		routingHead := []byte{0x53, 0x4e, 0x49, 0x50, byte(targetPort >> 8), byte(targetPort & 0xff)}
-		_, _ = remote.Write(routingHead)
+	var fakeHello []byte
+	switch currentCfg.Strategy {
+	case "patterniha_desync", "wrong_seq", "fake_sni", "low_ttl":
+		fakeHello = buildFakeClientHello(currentCfg.FakeSNI)
 	}
 
-	switch currentCfg.Strategy {
-	case "patterniha_desync", "wrong_seq", "fake_sni":
-		fakeHello := buildFakeClientHello(currentCfg.FakeSNI)
+	fakeLen := len(fakeHello)
+	// Protocol Header: MAGIC 'SNIP' (4B) + targetPort (2B uint16) + fakeLen (2B uint16)
+	routingHead := []byte{
+		0x53, 0x4e, 0x49, 0x50,
+		byte(targetPort >> 8), byte(targetPort & 0xff),
+		byte(fakeLen >> 8), byte(fakeLen & 0xff),
+	}
+	_, _ = remote.Write(routingHead)
+
+	if fakeLen > 0 {
+		addLiveLog("DESYNC", fmt.Sprintf("Injected Decoy SNI: \"%s\" (%d bytes) -> Spoofing DPI filter", currentCfg.FakeSNI, fakeLen))
 		_, _ = remote.Write(fakeHello)
 		delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
 		if delay <= 0 {
 			delay = 3 * time.Millisecond
 		}
 		time.Sleep(delay)
-	case "low_ttl":
-		fakeHello := buildFakeClientHello(currentCfg.FakeSNI)
-		_, _ = remote.Write(fakeHello)
-		time.Sleep(time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond)
 	}
 
+	addLiveLog("TUNNEL", fmt.Sprintf("Remote tunnel established -> Server target: 127.0.0.1:%d", targetPort))
 	return remote, nil
 }
 
-func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToRemote bool) {
-	buf := make([]byte, 32768)
-	firstPacket := true
+func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToRemote bool, initialPrefix []byte) {
+	if len(initialPrefix) > 0 {
+		if applyFrag && (currentCfg.Strategy == "tls_fragment" || currentCfg.Strategy == "patterniha_desync") {
+			start, _, _ := findSNIOffset(initialPrefix)
+			fragSize := currentCfg.FragmentSize
+			if fragSize <= 0 {
+				fragSize = 2
+			}
+			delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
+			if start > 0 && start+fragSize < len(initialPrefix) {
+				addLiveLog("FRAGMENT", fmt.Sprintf("Slicing SNI into fragments (delay %v)", delay))
+				_, _ = dst.Write(initialPrefix[:start+fragSize])
+				time.Sleep(delay)
+				_, _ = dst.Write(initialPrefix[start+fragSize:])
+			} else if len(initialPrefix) > 10 {
+				split := min(20, len(initialPrefix)/2)
+				_, _ = dst.Write(initialPrefix[:split])
+				time.Sleep(delay)
+				_, _ = dst.Write(initialPrefix[split:])
+			} else {
+				_, _ = dst.Write(initialPrefix)
+			}
+		} else {
+			_, _ = dst.Write(initialPrefix)
+		}
+		if isClientToRemote {
+			atomic.AddInt64(&bytesTx, int64(len(initialPrefix)))
+		} else {
+			atomic.AddInt64(&bytesRx, int64(len(initialPrefix)))
+		}
+	}
 
+	buf := make([]byte, 32768)
 	for {
 		nr, err := src.Read(buf)
 		if nr > 0 {
@@ -350,34 +428,6 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 			} else {
 				atomic.AddInt64(&bytesRx, int64(nr))
 			}
-
-			if firstPacket && isClientToRemote && applyFrag && (currentCfg.Strategy == "tls_fragment" || currentCfg.Strategy == "patterniha_desync") {
-				firstPacket = false
-				start, _, _ := findSNIOffset(data)
-				fragSize := currentCfg.FragmentSize
-				if fragSize <= 0 {
-					fragSize = 2
-				}
-				delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
-
-				if start > 0 && start+fragSize < len(data) {
-					_, _ = dst.Write(data[:start+fragSize])
-					time.Sleep(delay)
-					_, _ = dst.Write(data[start+fragSize:])
-					continue
-				} else if len(data) > 10 {
-					split := len(data) / 2
-					if split > 20 {
-						split = 20
-					}
-					_, _ = dst.Write(data[:split])
-					time.Sleep(delay)
-					_, _ = dst.Write(data[split:])
-					continue
-				}
-			}
-
-			firstPacket = false
 			nw, ew := dst.Write(data)
 			if ew != nil || nw != nr {
 				break
@@ -389,9 +439,48 @@ func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToR
 	}
 }
 
-func handleTCPRelay(client net.Conn, targetAddr string, targetPort int) {
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func handleTCPRelay(client net.Conn, targetAddr string, defaultPort int) {
 	registerConn(client)
 	defer unregisterConn(client)
+
+	clientAddr := client.RemoteAddr().String()
+	addLiveLog("INBOUND", fmt.Sprintf("New connection from %s", clientAddr))
+
+	// Peek first packet to detect SNI and determine destination port
+	firstBuf := make([]byte, 4096)
+	_ = client.SetReadDeadline(time.Now().Add(4 * time.Second))
+	n, err := client.Read(firstBuf)
+	_ = client.SetReadDeadline(time.Time{})
+	if err != nil || n == 0 {
+		addLiveLog("ERROR", fmt.Sprintf("Client %s sent no handshake data", clientAddr))
+		return
+	}
+	initialData := firstBuf[:n]
+
+	targetPort := defaultPort
+	start, _, sni := findSNIOffset(initialData)
+	if start > 0 && sni != "" {
+		addLiveLog("DETECT", fmt.Sprintf("Client TLS ClientHello: SNI = \"%s\"", sni))
+		if defaultPort == 40443 {
+			// Auto-route based on SNI if connected on universal port 40443
+			if sni == "mhpanel.kigaping.com" {
+				targetPort = 20456 // VLESS-TCP-TLS default
+				addLiveLog("ROUTER", "Auto-routed mhpanel.kigaping.com -> Port 20456 (VLESS-TCP-TLS)")
+			} else if sni == "cdn.jsdelivr.net" || strings.Contains(sni, "apple") || strings.Contains(sni, "unsplash") {
+				targetPort = 20443 // Reality default
+				addLiveLog("ROUTER", fmt.Sprintf("Auto-routed %s -> Port 20443 (VLESS-Reality)", sni))
+			}
+		}
+	} else {
+		addLiveLog("DETECT", fmt.Sprintf("Non-TLS / Raw TCP payload (%d bytes)", n))
+	}
 
 	currentCfg := getSnapshotConfig()
 	remote, err := connectRemote(targetAddr, currentCfg, targetPort)
@@ -401,16 +490,19 @@ func handleTCPRelay(client net.Conn, targetAddr string, targetPort int) {
 	registerConn(remote)
 	defer unregisterConn(remote)
 
+	addLiveLog("RELAY", fmt.Sprintf("Bidirectional proxy streaming active for %s", clientAddr))
+
 	done := make(chan struct{}, 2)
 	go func() {
-		relayData(client, remote, true, currentCfg, true)
+		relayData(client, remote, true, currentCfg, true, initialData)
 		done <- struct{}{}
 	}()
 	go func() {
-		relayData(remote, client, false, currentCfg, false)
+		relayData(remote, client, false, currentCfg, false, nil)
 		done <- struct{}{}
 	}()
 	<-done
+	addLiveLog("CLOSE", fmt.Sprintf("Connection closed for %s", clientAddr))
 }
 
 func handleSocks5(client net.Conn, targetAddr string) {
@@ -432,18 +524,22 @@ func handleSocks5(client net.Conn, targetAddr string) {
 		return
 	}
 
+	var targetHost string
 	switch req[3] {
 	case 1:
 		buf := make([]byte, 4)
 		_, _ = io.ReadFull(client, buf)
+		targetHost = net.IP(buf).String()
 	case 3:
 		var l [1]byte
 		_, _ = io.ReadFull(client, l[:])
 		domainBuf := make([]byte, int(l[0]))
 		_, _ = io.ReadFull(client, domainBuf)
+		targetHost = string(domainBuf)
 	case 4:
 		buf := make([]byte, 16)
 		_, _ = io.ReadFull(client, buf)
+		targetHost = net.IP(buf).String()
 	}
 	portBuf := make([]byte, 2)
 	_, _ = io.ReadFull(client, portBuf)
@@ -451,6 +547,8 @@ func handleSocks5(client net.Conn, targetAddr string) {
 	if targetPort <= 0 {
 		targetPort = 20443
 	}
+
+	addLiveLog("SOCKS5", fmt.Sprintf("SOCKS5 Request to %s:%d", targetHost, targetPort))
 
 	currentCfg := getSnapshotConfig()
 	remote, err := connectRemote(targetAddr, currentCfg, targetPort)
@@ -465,11 +563,11 @@ func handleSocks5(client net.Conn, targetAddr string) {
 
 	done := make(chan struct{}, 2)
 	go func() {
-		relayData(client, remote, true, currentCfg, true)
+		relayData(client, remote, true, currentCfg, true, nil)
 		done <- struct{}{}
 	}()
 	go func() {
-		relayData(remote, client, false, currentCfg, false)
+		relayData(remote, client, false, currentCfg, false, nil)
 		done <- struct{}{}
 	}()
 	<-done
@@ -504,6 +602,8 @@ func StartProxy() error {
 
 	atomic.StoreInt32(&running, 1)
 
+	addLiveLog("SYSTEM", fmt.Sprintf("Proxy Started! Listening on SOCKS5 :%d & Relay :%d", currentCfg.LocalSocksPort, currentCfg.LocalRelayPort))
+
 	// SOCKS5 listener
 	go func() {
 		for atomic.LoadInt32(&running) == 1 {
@@ -515,14 +615,14 @@ func StartProxy() error {
 		}
 	}()
 
-	// Universal fallback TCP Relay listener (:40443 -> default target 20443)
+	// Universal fallback TCP Relay listener (:40443)
 	go func() {
 		for atomic.LoadInt32(&running) == 1 {
 			c, err := rList.Accept()
 			if err != nil {
 				break
 			}
-			go handleTCPRelay(c, targetAddr, 20443)
+			go handleTCPRelay(c, targetAddr, 40443)
 		}
 	}()
 
@@ -569,6 +669,7 @@ func StopProxy() {
 		extraListeners = nil
 		extraListenersMutex.Unlock()
 		closeAllConns()
+		addLiveLog("SYSTEM", "Proxy Stopped.")
 	}
 }
 
@@ -600,7 +701,7 @@ func clearScreen() {
 func printBanner() {
 	clearScreen()
 	fmt.Println("======================================================================")
-	fmt.Println("   MHPanel & Patterniha SNI-Spoofing Windows Terminal Client (v2.0)   ")
+	fmt.Println("   MHPanel & Patterniha SNI-Spoofing Windows Terminal Client (v2.1)   ")
 	fmt.Println("======================================================================")
 
 	currentCfg := getSnapshotConfig()
@@ -632,22 +733,78 @@ func printBanner() {
 	fmt.Printf(" Decoy SNI Domain:      %s\n", currentCfg.FakeSNI)
 	fmt.Printf(" Active Connections:    %d\n", atomic.LoadInt64(&activeConns))
 	fmt.Printf(" Total Traffic:         TX: %s | RX: %s\n", formatBytes(atomic.LoadInt64(&bytesTx)), formatBytes(atomic.LoadInt64(&bytesRx)))
+
 	if currentCfg.ServerIP == "127.0.0.1" && currentCfg.ServerDomain == "" {
 		fmt.Println("----------------------------------------------------------------------")
 		fmt.Println(" [!] NOTICE: Target Server is set to 127.0.0.1 (Localhost)!")
 		fmt.Println("     If running on a client PC, choose [3] to set your VPS Server IP.")
 	}
+
+	// Print Live Activity Log (Last 5 events)
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println(" [Recent DPI & Connection Activity] (Real-time events):")
+	recent := getRecentLogs(5)
+	if len(recent) == 0 {
+		fmt.Println("   (No connections yet. Send traffic from V2Ray/Singbox to see logs)")
+	} else {
+		for _, l := range recent {
+			fmt.Printf("   %s\n", l)
+		}
+	}
+
 	fmt.Println("----------------------------------------------------------------------")
 	fmt.Println(" [1] Start / Open Proxy")
 	fmt.Println(" [2] Stop / Close Proxy")
 	fmt.Println(" [3] Server Domain, IP & Ports Settings")
 	fmt.Println(" [4] Change Decoy SNI Domain")
 	fmt.Println(" [5] Change Evasion Strategy")
-	fmt.Println(" [6] V2Ray / Sing-box / Xray Setup Guide (Zero-Config Tutorial)")
-	fmt.Println(" [7] Refresh Status & Statistics")
-	fmt.Println(" [Q/8] Quit / Exit")
+	fmt.Println(" [6] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [L/7] Live Continuous Event Monitor (Real-time Streaming)")
+	fmt.Println(" [8] Refresh Status")
+	fmt.Println(" [Q/0] Quit / Exit")
 	fmt.Println("======================================================================")
-	fmt.Print("Please select an option (1-8 or Q): ")
+	fmt.Print("Please select an option: ")
+}
+
+func runLiveMonitor(reader *bufio.Reader) {
+	clearScreen()
+	fmt.Println("======================================================================")
+	fmt.Println("               LIVE REAL-TIME DPI & CONNECTION MONITOR                ")
+	fmt.Println("======================================================================")
+	fmt.Println("Streaming live traffic, DPI evasion, SNI spoofing and relay events...")
+	fmt.Println("Press [Enter] at any time to return to the main menu.")
+	fmt.Println("----------------------------------------------------------------------")
+
+	ch := make(chan string, 100)
+	logListenMutex.Lock()
+	logListeners[ch] = struct{}{}
+	logListenMutex.Unlock()
+
+	defer func() {
+		logListenMutex.Lock()
+		delete(logListeners, ch)
+		logListenMutex.Unlock()
+	}()
+
+	// Print past logs first
+	for _, l := range getRecentLogs(10) {
+		fmt.Println(l)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		_, _ = reader.ReadString('\n')
+		close(done)
+	}()
+
+	for {
+		select {
+		case msg := <-ch:
+			fmt.Println(msg)
+		case <-done:
+			return
+		}
+	}
 }
 
 func configureServer(reader *bufio.Reader) {
@@ -792,7 +949,7 @@ func configureStrategy(reader *bufio.Reader) {
 	fmt.Println("                  SELECT EVASION STRATEGY                             ")
 	fmt.Println("======================================================================")
 	fmt.Printf(" Current Strategy: %s\n\n", currentStrat)
-	fmt.Println(" 1. patterniha_desync  : Patterniha Pre-ACK SNI Spoof + Negative Sequence Injection")
+	fmt.Println(" 1. patterniha_desync  : Patterniha Pre-ACK SNI Spoof (Decoy injected & stripped)")
 	fmt.Println(" 2. tls_fragment      : TLS ClientHello SNI Slicing (Recommended for all ISPs)")
 	fmt.Println(" 3. wrong_seq         : TCP Out-of-Window Sequence Evasion")
 	fmt.Println(" 4. low_ttl           : Low-TTL Hop-Limit Decoy Packet Injection")
@@ -851,19 +1008,20 @@ func showV2RayGuide(reader *bufio.Reader) {
 	fmt.Println("======================================================================")
 	fmt.Println("This client automatically auto-detects and binds ALL your panel ports!")
 	fmt.Println()
-	fmt.Println("METHOD 1: Multi-Port Direct Relay (Zero Port Editing!)")
+	fmt.Println("METHOD 1: Multi-Port Direct Relay (Recommended)")
 	fmt.Println(" 1. In your V2Ray / Singbox client, duplicate ANY of your server profiles.")
 	fmt.Println(" 2. Simply change the Address / Server IP to: 127.0.0.1")
-	fmt.Println(" 3. KEEP THE SAME PORT! (20443, 20448, 20456, 20444, etc. are all auto-bound!)")
+	fmt.Println(" 3. KEEP THE ORIGINAL PORT! (20443, 20448, 20456, 20444, etc. are all auto-bound!)")
 	fmt.Println(" 4. DO NOT change UUID, Path, TLS, or SNI! Leave them exactly as they are.")
 	fmt.Println(" 5. Start this terminal client ([1] Open Proxy), then connect in V2Ray.")
 	fmt.Println()
-	fmt.Println("METHOD 2: SOCKS5 Outbound Proxy (Zero Config Changes!)")
+	fmt.Println("METHOD 2: Universal Relay Port (:40443)")
+	fmt.Println(" 1. Address: 127.0.0.1  |  Port: 40443")
+	fmt.Println(" 2. Client will automatically inspect the SNI and route to the correct inbound!")
+	fmt.Println()
+	fmt.Println("METHOD 3: SOCKS5 Outbound Proxy (Zero Config Changes!)")
 	fmt.Printf(" 1. In v2rayN / Nekoray / Clash, set Outbound / Proxy Server to: 127.0.0.1:%d\n", currentCfg.LocalSocksPort)
 	fmt.Println(" 2. You don't even have to change Address or Port! ANY config on ANY port will route!")
-	fmt.Println("----------------------------------------------------------------------")
-	fmt.Println("Universal Fallback Port:")
-	fmt.Printf("  If you prefer a single unified port: Host: 127.0.0.1  |  Port: %d\n", currentCfg.LocalRelayPort)
 	fmt.Println("======================================================================")
 	fmt.Print("Press Enter to return to main menu: ")
 	_, _ = reader.ReadString('\n')
@@ -955,16 +1113,19 @@ func main() {
 		case "6":
 			showV2RayGuide(reader)
 
-		case "7":
+		case "L", "7":
+			runLiveMonitor(reader)
+
+		case "8":
 			// Just loop to refresh banner
 
-		case "8", "Q", "QUIT", "EXIT":
+		case "0", "Q", "QUIT", "EXIT":
 			StopProxy()
 			fmt.Println("\n[OK] Proxy closed. Exiting... Goodbye!")
 			return
 
 		default:
-			fmt.Println("\n[!] Invalid option. Please enter 1-8 or Q.")
+			fmt.Println("\n[!] Invalid option. Please enter 0-8 or L.")
 			time.Sleep(800 * time.Millisecond)
 		}
 	}

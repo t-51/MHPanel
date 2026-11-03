@@ -300,14 +300,27 @@ def handle_inbound_client(client_sock, client_addr, cfg):
     prefix = b""
 
     try:
-        # Dynamic port autodetection (MAGIC: SNIP + 2 bytes uint16 target port)
-        client_sock.settimeout(2.5)
+        # Dynamic port autodetection (MAGIC: SNIP + 2 bytes targetPort + 2 bytes fakeLen)
+        client_sock.settimeout(3.0)
         try:
-            head = client_sock.recv(6)
-            if head and len(head) == 6 and head.startswith(b"SNIP"):
+            head = client_sock.recv(8)
+            if head and len(head) >= 6 and head.startswith(b"SNIP"):
                 dynamic_port = struct.unpack(">H", head[4:6])[0]
                 if 1 <= dynamic_port <= 65535:
                     up_port = dynamic_port
+                
+                fake_len = 0
+                if len(head) >= 8:
+                    fake_len = struct.unpack(">H", head[6:8])[0]
+                
+                # If client sent a decoy SNI packet, safely consume and discard it
+                if fake_len > 0:
+                    discarded = 0
+                    while discarded < fake_len:
+                        chunk = client_sock.recv(min(4096, fake_len - discarded))
+                        if not chunk:
+                            break
+                        discarded += len(chunk)
             elif head:
                 prefix = head
         except Exception:
