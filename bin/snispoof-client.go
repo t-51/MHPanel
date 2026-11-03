@@ -86,13 +86,23 @@ var popularSNIs = []struct {
 	{"divar.ir", "Local CDN Whitelist"},
 }
 
-// Circular Live Event Log Buffer
+// Circular Live Event Log Buffer & File Logger
 var (
 	recentLogs      []string
 	recentLogsMutex sync.Mutex
 	logListeners    = make(map[chan string]struct{})
 	logListenMutex  sync.Mutex
+	logFile         *os.File
+	logFileMutex    sync.Mutex
 )
+
+func initLogger() {
+	logFilePath := filepath.Join(getExeDir(), "snispoof.log")
+	f, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err == nil {
+		logFile = f
+	}
+}
 
 func addLiveLog(tag, msg string) {
 	ts := time.Now().Format("15:04:05")
@@ -100,10 +110,17 @@ func addLiveLog(tag, msg string) {
 
 	recentLogsMutex.Lock()
 	recentLogs = append(recentLogs, formatted)
-	if len(recentLogs) > 30 {
-		recentLogs = recentLogs[len(recentLogs)-30:]
+	if len(recentLogs) > 40 {
+		recentLogs = recentLogs[len(recentLogs)-40:]
 	}
 	recentLogsMutex.Unlock()
+
+	// Write to snispoof.log file
+	logFileMutex.Lock()
+	if logFile != nil {
+		_, _ = logFile.WriteString(formatted + "\n")
+	}
+	logFileMutex.Unlock()
 
 	logListenMutex.Lock()
 	for ch := range logListeners {
@@ -1047,6 +1064,7 @@ func showV2RayGuide(reader *bufio.Reader) {
 }
 
 func main() {
+	initLogger()
 	serverFlag := flag.String("server", "", "Remote server IP or host")
 	portFlag := flag.Int("port", 0, "Remote server port")
 	socksFlag := flag.Int("socks", 0, "Local SOCKS5 port")

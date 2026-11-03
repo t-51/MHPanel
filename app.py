@@ -13564,6 +13564,23 @@ def api_snispoof_scan():
     return jsonify({"success": True, "results": results})
 
 
+@app.route("/api/snispoof/upload-log", methods=["POST"])
+def api_snispoof_upload_log():
+    try:
+        f = request.files.get("log") or request.files.get("file")
+        if f:
+            f.save("/root/logs.txt")
+            return jsonify({"success": True, "message": "Log saved to /root/logs.txt"})
+        data = request.get_data()
+        if data:
+            with open("/root/logs.txt", "wb") as lf:
+                lf.write(data)
+            return jsonify({"success": True, "message": "Raw log saved to /root/logs.txt"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    return jsonify({"error": "No file uploaded"}), 400
+
+
 # Download routes for SNI Spoofing clients
 @app.route("/download/snispoof-client.exe", methods=["GET"])
 def api_download_snispoof_client_exe():
