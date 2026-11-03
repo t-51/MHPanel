@@ -13619,11 +13619,30 @@ def api_download_snispoof_file(filename):
     safe_name = os.path.basename(filename)
     if safe_name == "config.json":
         srv_ip = get_server_public_ip() or "127.0.0.1"
+        srv_domain = get_server_domain() or srv_ip
+
+        # Discover all active TCP ports in Sing-box config
+        active_ports = [20443, 40443]
+        sb_cfg_file = "/etc/sing-box/config.json"
+        if os.path.exists(sb_cfg_file):
+            try:
+                with open(sb_cfg_file, "r", encoding="utf-8") as f:
+                    sb_cfg = json.load(f)
+                for ib in sb_cfg.get("inbounds", []):
+                    p = ib.get("listen_port")
+                    if p and isinstance(p, int) and p not in active_ports:
+                        active_ports.append(p)
+            except Exception:
+                pass
+        active_ports.sort()
+
         client_cfg = {
+            "server_domain": srv_domain,
             "server_ip": srv_ip,
             "server_port": 15443,
             "local_socks_port": 10808,
             "local_relay_port": 40443,
+            "relay_ports": active_ports,
             "fake_sni": "auth.vercel.com",
             "strategy": "patterniha_desync",
             "low_ttl_hops": 5,

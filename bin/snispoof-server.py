@@ -297,12 +297,31 @@ def handle_inbound_client(client_sock, client_addr, cfg):
     bytes_in = 0
     bytes_out = 0
     username = "default"
+    prefix = b""
 
     try:
+        # Dynamic port autodetection (MAGIC: SNIP + 2 bytes uint16 target port)
+        client_sock.settimeout(2.5)
+        try:
+            head = client_sock.recv(6)
+            if head and len(head) == 6 and head.startswith(b"SNIP"):
+                dynamic_port = struct.unpack(">H", head[4:6])[0]
+                if 1 <= dynamic_port <= 65535:
+                    up_port = dynamic_port
+            elif head:
+                prefix = head
+        except Exception:
+            pass
+        finally:
+            client_sock.settimeout(None)
+
         # Connect to upstream service
         up_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         up_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         up_sock.connect((up_host, up_port))
+
+        if prefix:
+            up_sock.sendall(prefix)
 
         client_sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
