@@ -144,6 +144,9 @@ func addLiveLog(tag, msg string) {
 	}
 	logFileMutex.Unlock()
 
+	// Print live to console output so user immediately sees live activity!
+	fmt.Printf("\r%s\n> ", formatted)
+
 	logListenMutex.Lock()
 	for ch := range logListeners {
 		select {
@@ -1408,17 +1411,13 @@ func configureCloudflareCleanIP(reader *bufio.Reader) {
 	fmt.Printf("\n[OK] Cloudflare Clean IP mode ACTIVATED with IP: %s:443\n", chosenIP)
 	fmt.Println("     Strategy: tls_fragment (Delay: 5ms, Size: 2B)")
 
-	if atomic.LoadInt32(&running) == 1 {
-		fmt.Println("Reloading proxy with new Clean IP settings...")
-		StopProxy()
-		time.Sleep(150 * time.Millisecond)
-		if err := StartProxy(); err != nil {
-			fmt.Printf("[x] Error reloading proxy: %v\n", err)
-		} else {
-			fmt.Println("[OK] Proxy successfully reloaded and listening on local ports!")
-		}
+	fmt.Println("Starting proxy with Clean IP settings...")
+	StopProxy()
+	time.Sleep(200 * time.Millisecond)
+	if err := StartProxy(); err != nil {
+		fmt.Printf("[x] Error starting proxy: %v\n", err)
 	} else {
-		fmt.Println("\n[TIP] Start the proxy ([1] in main menu) to begin routing!")
+		fmt.Println("[OK] Proxy successfully STARTED and active on local ports (40443, 20460, ...)!")
 	}
 
 	fmt.Println("======================================================================")
