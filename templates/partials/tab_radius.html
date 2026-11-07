@@ -445,14 +445,23 @@
         <!-- ========================================== -->
         <div class="rad-subpane" id="rad-subpane-online" style="display: none; flex-direction: column; gap: 20px;">
             <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="status-dot active"></span>
-                    <strong style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور و روترها</strong>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="status-dot active" style="box-shadow: 0 0 10px #10b981;"></span>
+                        <strong style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور و روترها</strong>
+                    </div>
                     <span class="badge-pill" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;">0 اتصال</span>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #10b981; font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <span class="status-dot active"></span>
+                        <span id="rad-auto-refresh-label">پایش زنده فعال (هر ۳.۵ ثانیه)</span>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary" onclick="fetchRadiusData(true)" style="padding: 8px 16px; font-size: 12.5px;" type="button">
-                        <i class="btn-icon" data-lucide="refresh-cw"></i> <span>بروزرسانی لحظه‌ای</span>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button class="btn btn-secondary" id="rad-auto-refresh-toggle-btn" onclick="toggleRadiusAutoRefresh()" style="padding: 7px 14px; font-size: 12px;" type="button" title="مکث یا فعال‌سازی بروزرسانی خودکار">
+                        <i class="btn-icon" data-lucide="pause" id="rad-auto-refresh-icon"></i> <span id="rad-auto-refresh-btn-text">مکث پایش</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="refreshRadiusOnlineLive(true)" style="padding: 7px 14px; font-size: 12px;" type="button">
+                        <i class="btn-icon" data-lucide="refresh-cw" id="rad-manual-refresh-icon"></i> <span>بروزرسانی فوری</span>
                     </button>
                 </div>
             </div>
@@ -461,20 +470,20 @@
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
                         <thead>
-                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
+                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: var(--text-muted); font-weight: 700; font-size: 12px;">
                                 <th style="padding: 14px 16px;">نام کاربری</th>
                                 <th style="padding: 14px 16px;">پروتکل / منبع</th>
                                 <th style="padding: 14px 16px;">آدرس IP کلاینت</th>
                                 <th style="padding: 14px 16px;">IP مجازی تخصیص یافته</th>
-                                <th style="padding: 14px 16px;">روتر / اکسس سرور</th>
+                                <th style="padding: 14px 16px;">روتر / اکسس سرور (NAS)</th>
                                 <th style="padding: 14px 16px;">زمان اتصال</th>
-                                <th style="padding: 14px 16px; text-align: center; width: 120px;">قطع نشست (CoA)</th>
+                                <th style="padding: 14px 16px; text-align: center; width: 120px;">قطع نشست (Kick/CoA)</th>
                             </tr>
                         </thead>
                         <tbody id="radius-online-tbody">
                             <tr>
                                 <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
-                                    هیچ کاربری در حال حاضر متصل نیست
+                                    در حال جستجو و پایش نشست‌های آنلاین سرور...
                                 </td>
                             </tr>
                         </tbody>

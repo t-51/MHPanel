@@ -3189,6 +3189,89 @@
     let currentOnlineSessions = [];
     let selectedRadiusUsers = new Set();
     let revealedPasswords = new Set();
+    let radiusAutoRefreshTimer = null;
+    let radiusAutoRefreshEnabled = true;
+
+    function startRadiusAutoRefresh() {
+        stopRadiusAutoRefresh();
+        if (!radiusAutoRefreshEnabled) return;
+        radiusAutoRefreshTimer = setInterval(() => {
+            const radTab = document.getElementById("tab-radius");
+            if (radTab && radTab.classList.contains("active")) {
+                refreshRadiusOnlineLive();
+            } else {
+                stopRadiusAutoRefresh();
+            }
+        }, 3500);
+    }
+
+    function stopRadiusAutoRefresh() {
+        if (radiusAutoRefreshTimer) {
+            clearInterval(radiusAutoRefreshTimer);
+            radiusAutoRefreshTimer = null;
+        }
+    }
+
+    function toggleRadiusAutoRefresh() {
+        radiusAutoRefreshEnabled = !radiusAutoRefreshEnabled;
+        const label = document.getElementById("rad-auto-refresh-label");
+        const icon = document.getElementById("rad-auto-refresh-icon");
+        const btnText = document.getElementById("rad-auto-refresh-btn-text");
+        if (radiusAutoRefreshEnabled) {
+            if (label) label.innerText = "پایش زنده فعال (هر ۳.۵ ثانیه)";
+            if (icon) icon.setAttribute("data-lucide", "pause");
+            if (btnText) btnText.innerText = "مکث پایش";
+            startRadiusAutoRefresh();
+            showToast("پایش زنده نشست‌ها آغاز شد", "info");
+        } else {
+            stopRadiusAutoRefresh();
+            if (label) label.innerText = "پایش زنده متوقف شد";
+            if (icon) icon.setAttribute("data-lucide", "play");
+            if (btnText) btnText.innerText = "ادامه پایش";
+            showToast("پایش زنده متوقف شد", "info");
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function refreshRadiusOnlineLive(manual = false) {
+        const refreshIcon = document.getElementById("rad-manual-refresh-icon");
+        if (manual && refreshIcon) {
+            refreshIcon.classList.add("spin");
+        }
+        try {
+            const res = await fetch("/api/radius/online");
+            if (!res.ok) return;
+            const data = await res.json();
+            currentOnlineSessions = data.sessions || [];
+            const onlineCount = currentOnlineSessions.length;
+
+            const pillOnline = document.getElementById("rad-pill-online-count");
+            if (pillOnline) pillOnline.innerText = onlineCount;
+            const liveOnlineHeader = document.getElementById("live-online-pill-header");
+            if (liveOnlineHeader) liveOnlineHeader.innerText = `${onlineCount} اتصال`;
+            const statOnline = document.getElementById("stat-rad-online");
+            if (statOnline) statOnline.innerText = onlineCount;
+
+            const onlinePane = document.getElementById("rad-subpane-online");
+            if (onlinePane && onlinePane.style.display !== "none") {
+                renderRadiusOnlineSessions();
+            }
+
+            if (data.user_counts && currentRadiusUsers) {
+                Object.keys(currentRadiusUsers).forEach(uname => {
+                    if (currentRadiusUsers[uname]) {
+                        currentRadiusUsers[uname].online_count = data.user_counts[uname] || 0;
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("refreshRadiusOnlineLive error:", e);
+        } finally {
+            if (manual && refreshIcon) {
+                setTimeout(() => refreshIcon.classList.remove("spin"), 500);
+            }
+        }
+    }
 
     function switchRadiusSubTab(subTabName) {
         const subTabs = ['users', 'groups', 'nas', 'online', 'vouchers', 'server'];
@@ -3204,7 +3287,8 @@
         } else if (subTabName === 'vouchers') {
             populateVoucherGroupSelect();
         } else if (subTabName === 'online') {
-            fetchRadiusData(true);
+            refreshRadiusOnlineLive(true);
+            startRadiusAutoRefresh();
         } else if (subTabName === 'server') {
             fetchRadiusConfig();
         }
@@ -4607,9 +4691,9 @@
         if (currentOnlineSessions.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                    <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted, #94a3b8);">
                         <i data-lucide="radio" style="width: 32px; height: 32px; margin-bottom: 8px; opacity: 0.6;"></i>
-                        <p style="margin: 0; font-size: 13.5px;">در حال حاضر هیچ اتصال فعالی به سرور وجود ندارد.</p>
+                        <p style="margin: 0; font-size: 13.5px;">در حال حاضر هیچ اتصال فعالی در سراسر سرور و روترها وجود ندارد.</p>
                     </td>
                 </tr>
             `;
@@ -4619,25 +4703,32 @@
 
         let html = "";
         currentOnlineSessions.forEach(s => {
+            const safeUser = (s.username || '').replace(/'/g, "\\'");
+            const safeProto = (s.protocol || '').replace(/'/g, "\\'");
+            const safeSess = (s.session_id || '').replace(/'/g, "\\'");
+            const safeClientIp = (s.client_ip || '').replace(/'/g, "\\'");
+            const safeNasIp = (s.nas_ip || '').replace(/'/g, "\\'");
+            const safeVpnIp = (s.vpn_ip || '').replace(/'/g, "\\'");
+
             html += `
-                <tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding: 12px 16px; font-weight: 700; color: #0f172a; font-family:'JetBrains Mono';">
+                <tr style="border-bottom: 1px solid var(--border-glow, rgba(255,255,255,0.06));">
+                    <td style="padding: 12px 16px; font-weight: 700; color: var(--text-main); font-family:'JetBrains Mono';">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span class="status-dot active"></span>
                             <span>${s.username}</span>
                         </div>
                     </td>
                     <td style="padding: 12px 16px;">
-                        <span style="background:rgba(14,165,233,0.1); color:#0284c7; padding:3px 9px; border-radius:6px; font-size:12px; font-weight:600;">
+                        <span style="background:rgba(14,165,233,0.12); color:#0284c7; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; display:inline-block;">
                             ${s.protocol}
                         </span>
                     </td>
-                    <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:#334155;">${s.client_ip}</td>
-                    <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:#64748b;">${s.vpn_ip || '-'}</td>
-                    <td style="padding: 12px 16px; font-size:12px; color:#475569;">${s.nas_ip || s.device || 'سرور محلی (Local)'}</td>
-                    <td style="padding: 12px 16px; font-size:12px; font-family:'JetBrains Mono'; color:#64748b;">${s.connected_since || '-'}</td>
+                    <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:var(--text-main); font-size:12.5px;">${s.client_ip || '-'}</td>
+                    <td style="padding: 12px 16px; font-family:'JetBrains Mono'; color:var(--text-muted); font-size:12.5px;">${s.vpn_ip || '-'}</td>
+                    <td style="padding: 12px 16px; font-size:12px; color:var(--text-muted);">${s.nas_ip || s.device || 'سرور محلی (Local)'}</td>
+                    <td style="padding: 12px 16px; font-size:12px; font-family:'JetBrains Mono'; color:var(--text-muted);">${s.connected_since || '-'}</td>
                     <td style="padding: 12px 16px; text-align: center;">
-                        <button type="button" class="btn-proto-delete" onclick="kickRadiusSession('${s.username}', '${s.protocol}', '${s.session_id}')" style="padding: 5px 10px; font-size:11.5px;">
+                        <button type="button" class="btn-proto-delete" onclick="kickRadiusSession('${safeUser}', '${safeProto}', '${safeSess}', '${safeClientIp}', '${safeNasIp}', '${safeVpnIp}')" style="padding: 5px 10px; font-size:11.5px;">
                             <i data-lucide="user-minus" style="width:12px; height:12px;"></i> قطع اتصال
                         </button>
                     </td>
@@ -4649,7 +4740,7 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    function kickRadiusSession(username, protocol, sessionId) {
+    function kickRadiusSession(username, protocol, sessionId, clientIp = '', nasIp = '', vpnIp = '') {
         openConfirmModal({
             title: `قطع اتصال کاربر ${username}`,
             subtitle: `بستن نشست بر روی پروتکل ${protocol}`,
@@ -4663,12 +4754,20 @@
                     const res = await fetch("/api/radius/online/disconnect", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ username, protocol, session_id: sessionId })
+                        body: JSON.stringify({ 
+                            username, 
+                            protocol, 
+                            session_id: sessionId,
+                            client_ip: clientIp,
+                            nas_ip: nasIp,
+                            vpn_ip: vpnIp
+                        })
                     });
                     const data = await res.json();
                     toggleLoading(false);
                     if (res.ok) {
                         showToast(`ارتباط کاربر ${username} قطع شد`, "success");
+                        refreshRadiusOnlineLive(true);
                         fetchRadiusData(true);
                     } else {
                         showToast(data.error || "خطا در قطع ارتباط", "error");
@@ -8288,6 +8387,9 @@
         if (tabId !== "singbox" && typeof stopSingboxLogAutoRefresh === "function") {
             stopSingboxLogAutoRefresh();
         }
+        if (tabId !== "radius" && typeof stopRadiusAutoRefresh === "function") {
+            stopRadiusAutoRefresh();
+        }
         if (tabId === "overview") {
             fetchStats();
         } else if (tabId === "protocols") {
@@ -8354,6 +8456,7 @@
             fetchOpenvpnConfig();
         } else if (tabId === "radius") {
             fetchRadiusData();
+            startRadiusAutoRefresh();
         } else if (tabId === "hysteria2") {
             fetchHysteria2Config();
             fetchProtocolUsers('hysteria2');

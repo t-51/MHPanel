@@ -5723,90 +5723,389 @@ def format_freeradius_login_time(allowed_days="all", custom_days=None, start_tim
 
 def get_all_radius_online_sessions():
     sessions = []
-    
+    seen_session_keys = set()
+
+    def add_session(sess):
+        key = (sess.get("username"), sess.get("protocol"), sess.get("client_ip"), sess.get("session_id"))
+        if key not in seen_session_keys:
+            seen_session_keys.add(key)
+            sessions.append(sess)
+
     # 1. Cisco AnyConnect / Ocserv
     try:
-        res = subprocess.run(["occtl", "-j", "show", "users"], capture_output=True, text=True, timeout=3)
+        res = subprocess.run(["occtl", "-j", "show", "users"], capture_output=True, text=True, timeout=2)
         if res.returncode == 0 and res.stdout.strip():
             u_list = json.loads(res.stdout)
             for u in u_list:
                 uname = u.get("Username") or u.get("username")
                 if uname:
-                    sessions.append({
+                    add_session({
                         "username": uname,
                         "protocol": "Cisco AnyConnect",
                         "client_ip": u.get("IP") or u.get("ip") or "-",
                         "vpn_ip": u.get("VPN IP") or u.get("vpn_ip") or "-",
                         "device": u.get("Device") or u.get("device") or "AnyConnect",
+                        "nas_ip": "127.0.0.1",
                         "connected_since": u.get("Connected at") or u.get("connected_at") or "-",
-                        "session_id": str(u.get("ID") or u.get("id") or uname)
+                        "session_id": str(u.get("ID") or u.get("id") or uname),
+                        "source": "ocserv"
                     })
     except Exception:
         pass
 
-    # 2. OpenVPN
+    # 2. SSH Active Sessions
+    try:
+        ssh_active = get_ssh_active_sessions()
+        for s in ssh_active:
+            uname = s.get("username")
+            if uname:
+                add_session({
+                    "username": uname,
+                    "protocol": "SSH Tunnel",
+                    "client_ip": s.get("peer_ip", "-"),
+                    "vpn_ip": "-",
+                    "device": "SSH Client",
+                    "nas_ip": "127.0.0.1",
+                    "connected_since": s.get("started_at", "-"),
+                    "session_id": str(s.get("pid", "")),
+                    "source": "ssh"
+                })
+    except Exception:
+        pass
+
+    # 3. WireGuard Active Sessions (Live peers with handshake within 180s)
+    try:
+        pubkey_user_map = {}
+        wg_dir = "/etc/wireguard"
+        if os.path.isdir(wg_dir):
+            for fname in os.listdir(wg_dir):
+                if fname.endswith(".conf"):
+                    try:
+                        with open(os.path.join(wg_dir, fname), "r", encoding="utf-8", errors="ignore") as f:
+                            lines = f.readlines()
+                        last_comment = None
+                        for line in lines:
+                            line_s = line.strip()
+                            if line_s.startswith("#"):
+                                c = line_s.lstrip("#").strip()
+                                if c and not c.startswith("Interface") and not c.startswith("PrivateKey"):
+                                    last_comment = c.replace("Client:", "").strip()
+                            elif line_s.startswith("PublicKey"):
+                                parts = line_s.split("=", 1)
+                                if len(parts) == 2 and last_comment:
+                                    pubkey_user_map[parts[1].strip()] = last_comment
+                            elif line_s.startswith("["):
+                                last_comment = None
+                    except Exception:
+                        pass
+
+        proc = subprocess.run(["wg", "show", "all", "dump"], capture_output=True, text=True, timeout=2)
+        if proc.returncode == 0 and proc.stdout:
+            now_ts = time.time()
+            for line in proc.stdout.splitlines():
+                parts = line.split("\t")
+                if len(parts) >= 9:
+                    iface = parts[0]
+                    pubkey = parts[1]
+                    endpoint = parts[3]
+                    allowed_ips = parts[4]
+                    try:
+                        handshake = int(parts[5])
+                    except ValueError:
+                        handshake = 0
+
+                    if handshake > 0 and (now_ts - handshake) < 180:
+                        uname = pubkey_user_map.get(pubkey, f"wg_{pubkey[:8]}")
+                        client_ip = endpoint.split(":")[0] if ":" in endpoint else endpoint
+                        add_session({
+                            "username": uname,
+                            "protocol": f"WireGuard ({iface})",
+                            "client_ip": client_ip,
+                            "vpn_ip": allowed_ips,
+                            "device": "WireGuard Interface",
+                            "nas_ip": "127.0.0.1",
+                            "connected_since": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(handshake)),
+                            "session_id": pubkey,
+                            "source": "wireguard"
+                        })
+    except Exception:
+        pass
+
+    # 4. OpenVPN (Supports both OpenVPN 2.6 CLIENT_LIST and legacy format)
     for log_path in ["/var/log/openvpn/openvpn-status.log", "/var/log/openvpn/openvpn-tcp-status.log", "/var/log/openvpn-status.log"]:
         if os.path.exists(log_path):
             try:
-                with open(log_path, "r") as f:
+                proto_label = "OpenVPN TCP" if "tcp" in log_path else "OpenVPN UDP"
+                with open(log_path, "r", encoding="utf-8", errors="ignore") as f:
                     content = f.read()
                 lines = content.splitlines()
-                in_client_list = False
+                in_legacy_client_list = False
                 for line in lines:
-                    if line.startswith("Common Name,Real Address"):
-                        in_client_list = True
+                    line_s = line.strip()
+                    if not line_s:
                         continue
-                    if line.startswith("ROUTING TABLE") or line.startswith("GLOBAL STATS"):
-                        in_client_list = False
-                    if in_client_list and "," in line:
-                        parts = line.split(",")
-                        if len(parts) >= 5 and parts[0] != "UNDEF":
-                            sessions.append({
+                    if line_s.startswith("CLIENT_LIST,"):
+                        parts = line_s.split(",")
+                        if len(parts) >= 8:
+                            cname = parts[1].strip()
+                            if cname and cname != "UNDEF":
+                                raddr = parts[2].strip()
+                                vaddr = parts[3].strip()
+                                conn_since = parts[7].strip()
+                                uname = parts[9].strip() if len(parts) > 9 and parts[9].strip() and parts[9].strip() != "UNDEF" else cname
+                                client_ip = raddr.split(":")[0] if ":" in raddr else raddr
+                                add_session({
+                                    "username": uname,
+                                    "protocol": proto_label,
+                                    "client_ip": client_ip,
+                                    "vpn_ip": vaddr,
+                                    "device": "OpenVPN Server",
+                                    "nas_ip": "127.0.0.1",
+                                    "connected_since": conn_since,
+                                    "session_id": uname,
+                                    "source": "openvpn"
+                                })
+                        continue
+
+                    if line_s.startswith("Common Name,Real Address"):
+                        in_legacy_client_list = True
+                        continue
+                    if line_s.startswith("ROUTING TABLE") or line_s.startswith("GLOBAL STATS"):
+                        in_legacy_client_list = False
+                    if in_legacy_client_list and "," in line_s:
+                        parts = line_s.split(",")
+                        if len(parts) >= 5 and parts[0] != "UNDEF" and parts[0] != "Common Name":
+                            add_session({
                                 "username": parts[0],
-                                "protocol": "OpenVPN",
+                                "protocol": proto_label,
                                 "client_ip": parts[1].split(":")[0] if ":" in parts[1] else parts[1],
                                 "vpn_ip": "-",
-                                "device": "OpenVPN Client",
+                                "device": "OpenVPN Server",
+                                "nas_ip": "127.0.0.1",
                                 "connected_since": parts[4] if len(parts) > 4 else "-",
-                                "session_id": parts[0]
+                                "session_id": parts[0],
+                                "source": "openvpn"
                             })
             except Exception:
                 pass
 
-    # 3. SSH Sessions
+    # 5. SoftEther SSTP / L2TP Sessions
     try:
-        ssh_active = get_ssh_active_sessions()
-        for s in ssh_active:
-            sessions.append({
-                "username": s.get("username"),
-                "protocol": "SSH Tunnel",
-                "client_ip": s.get("ip", "-"),
-                "vpn_ip": "-",
-                "device": "SSH Client",
-                "connected_since": s.get("login_time", "-"),
-                "session_id": str(s.get("pid", ""))
-            })
+        vpncmd_bin = None
+        for p in ["/usr/local/vpnserver/vpncmd", "/usr/bin/vpncmd", "vpncmd"]:
+            if os.path.isfile(p) and os.access(p, os.X_OK):
+                vpncmd_bin = p
+                break
+        if vpncmd_bin:
+            proc = subprocess.run([vpncmd_bin, "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SessionList"],
+                                  capture_output=True, text=True, timeout=2)
+            if proc.returncode == 0 and proc.stdout:
+                current_rec = {}
+                for line in proc.stdout.splitlines():
+                    if "|" in line:
+                        k, v = line.split("|", 1)
+                        current_rec[k.strip()] = v.strip()
+                    elif "---" in line or not line.strip():
+                        if current_rec.get("Session Name"):
+                            sname = current_rec.get("Session Name")
+                            uname = current_rec.get("User Name")
+                            loc = current_rec.get("Location", "")
+                            if sname != "SID-SECURENAT-1" and uname != "SecureNAT" and "SecureNAT" not in loc:
+                                add_session({
+                                    "username": uname,
+                                    "protocol": "SoftEther / SSTP",
+                                    "client_ip": current_rec.get("Source Host Name", "-"),
+                                    "vpn_ip": "-",
+                                    "device": "SoftEther Hub",
+                                    "nas_ip": "127.0.0.1",
+                                    "connected_since": "-",
+                                    "session_id": sname,
+                                    "source": "softether"
+                                })
+                            current_rec = {}
+                if current_rec.get("Session Name"):
+                    sname = current_rec.get("Session Name")
+                    uname = current_rec.get("User Name")
+                    loc = current_rec.get("Location", "")
+                    if sname != "SID-SECURENAT-1" and uname != "SecureNAT" and "SecureNAT" not in loc:
+                        add_session({
+                            "username": uname,
+                            "protocol": "SoftEther / SSTP",
+                            "client_ip": current_rec.get("Source Host Name", "-"),
+                            "vpn_ip": "-",
+                            "device": "SoftEther Hub",
+                            "nas_ip": "127.0.0.1",
+                            "connected_since": "-",
+                            "session_id": sname,
+                            "source": "softether"
+                        })
     except Exception:
         pass
 
-    # 4. Radwho / FreeRADIUS Accounting
+    # 6. IKEv2 / IPsec StrongSwan
     try:
-        res = subprocess.run(["radwho", "-n"], capture_output=True, text=True, timeout=3)
+        proc = subprocess.run(["ipsec", "leases"], capture_output=True, text=True, timeout=2)
+        if proc.returncode == 0 and proc.stdout:
+            for line in proc.stdout.splitlines():
+                if "online" in line:
+                    parts = line.split()
+                    if len(parts) >= 3 and parts[1] == "online":
+                        vip = parts[0]
+                        uname = parts[2].strip("'\"")
+                        add_session({
+                            "username": uname,
+                            "protocol": "IKEv2 / IPsec",
+                            "client_ip": "IPsec Client",
+                            "vpn_ip": vip,
+                            "device": "StrongSwan IKEv2",
+                            "nas_ip": "127.0.0.1",
+                            "connected_since": "-",
+                            "session_id": uname,
+                            "source": "ikev2"
+                        })
+    except Exception:
+        pass
+
+    # 7. Sing-box Active Inbound Connections
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://127.0.0.1:9095/connections")
+        with urllib.request.urlopen(req, timeout=1.0) as resp:
+            sb_data = json.loads(resp.read().decode())
+            conns = sb_data.get("connections") or []
+            sb_seen = set()
+            for c in conns:
+                meta = c.get("metadata") or {}
+                uname = meta.get("user") or c.get("inboundUser") or meta.get("destinationIP")
+                src_ip = meta.get("sourceIP") or meta.get("sourceAddress") or "-"
+                if uname and uname != "unknown":
+                    skey = f"{uname}:{src_ip}"
+                    if skey not in sb_seen:
+                        sb_seen.add(skey)
+                        add_session({
+                            "username": uname,
+                            "protocol": f"Sing-box ({meta.get('type') or 'Proxy'})",
+                            "client_ip": src_ip,
+                            "vpn_ip": meta.get("destinationIP", "-"),
+                            "device": "Sing-box Core",
+                            "nas_ip": "127.0.0.1",
+                            "connected_since": c.get("start", "-"),
+                            "session_id": str(c.get("id") or uname),
+                            "source": "singbox"
+                        })
+    except Exception:
+        pass
+
+    # 8. FreeRADIUS Accounting Logs (MikroTik / Cisco / Remote NAS radacct detail files)
+    try:
+        radacct_dirs = ["/var/log/freeradius/radacct", "/var/log/radius/radacct"]
+        nas_info_map = {}
+        try:
+            for nas in get_radius_nas_data():
+                nip = nas.get("ip")
+                if nip:
+                    nas_info_map[nip] = nas.get("name") or nas.get("label") or f"NAS ({nip})"
+        except Exception:
+            pass
+
+        now_ts = time.time()
+        active_radacct = {}
+        for base_dir in radacct_dirs:
+            if not os.path.isdir(base_dir):
+                continue
+            nas_folders = [os.path.join(base_dir, d) for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
+            for nas_dir in nas_folders:
+                nas_ip = os.path.basename(nas_dir)
+                nas_label = nas_info_map.get(nas_ip, f"روتر / NAS ({nas_ip})")
+                all_details = sorted(glob.glob(os.path.join(nas_dir, "detail-*")))
+                for filepath in all_details[-2:]:
+                    try:
+                        with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                            current_record = {}
+                            for line in f:
+                                line = line.strip()
+                                if not line:
+                                    if current_record.get("User-Name"):
+                                        uname = current_record["User-Name"].strip("\"'")
+                                        acct_type = current_record.get("Acct-Status-Type", "").strip()
+                                        sess_id = current_record.get("Acct-Session-Id", "").strip("\"'")
+                                        uniq_id = current_record.get("Acct-Unique-Session-Id") or f"{nas_ip}:{sess_id}"
+                                        try:
+                                            ts = int(current_record.get("Timestamp", "0"))
+                                        except ValueError:
+                                            ts = 0
+
+                                        if acct_type == "Stop":
+                                            active_radacct.pop(uniq_id, None)
+                                        elif acct_type in ("Start", "Interim-Update", "Alive"):
+                                            if ts == 0 or (now_ts - ts) < 86400:
+                                                active_radacct[uniq_id] = {
+                                                    "username": uname,
+                                                    "protocol": current_record.get("Framed-Protocol", "MikroTik / RADIUS").strip("\"'"),
+                                                    "client_ip": current_record.get("Calling-Station-Id", "-").strip("\"'"),
+                                                    "vpn_ip": current_record.get("Framed-IP-Address", "-").strip("\"'"),
+                                                    "device": nas_label,
+                                                    "nas_ip": current_record.get("NAS-IP-Address", nas_ip).strip("\"'"),
+                                                    "connected_since": current_record.get("Event-Timestamp", "-").strip("\"'"),
+                                                    "session_id": sess_id or uniq_id,
+                                                    "source": "freeradius_radacct"
+                                                }
+                                    current_record = {}
+                                elif "=" in line:
+                                    parts = line.split("=", 1)
+                                    current_record[parts[0].strip()] = parts[1].strip()
+
+                            if current_record.get("User-Name"):
+                                uname = current_record["User-Name"].strip("\"'")
+                                acct_type = current_record.get("Acct-Status-Type", "").strip()
+                                sess_id = current_record.get("Acct-Session-Id", "").strip("\"'")
+                                uniq_id = current_record.get("Acct-Unique-Session-Id") or f"{nas_ip}:{sess_id}"
+                                try:
+                                    ts = int(current_record.get("Timestamp", "0"))
+                                except ValueError:
+                                    ts = 0
+
+                                if acct_type == "Stop":
+                                    active_radacct.pop(uniq_id, None)
+                                elif acct_type in ("Start", "Interim-Update", "Alive"):
+                                    if ts == 0 or (now_ts - ts) < 86400:
+                                        active_radacct[uniq_id] = {
+                                            "username": uname,
+                                            "protocol": current_record.get("Framed-Protocol", "MikroTik / RADIUS").strip("\"'"),
+                                            "client_ip": current_record.get("Calling-Station-Id", "-").strip("\"'"),
+                                            "vpn_ip": current_record.get("Framed-IP-Address", "-").strip("\"'"),
+                                            "device": nas_label,
+                                            "nas_ip": current_record.get("NAS-IP-Address", nas_ip).strip("\"'"),
+                                            "connected_since": current_record.get("Event-Timestamp", "-").strip("\"'"),
+                                            "session_id": sess_id or uniq_id,
+                                            "source": "freeradius_radacct"
+                                        }
+                    except Exception:
+                        pass
+        for sess in active_radacct.values():
+            add_session(sess)
+    except Exception:
+        pass
+
+    # 9. Radwho fallback
+    try:
+        res = subprocess.run(["radwho", "-n"], capture_output=True, text=True, timeout=2)
         if res.returncode == 0 and res.stdout.strip():
             for line in res.stdout.splitlines()[1:]:
                 parts = line.split()
                 if len(parts) >= 6:
                     uname = parts[0]
-                    if not any(x["username"] == uname for x in sessions):
-                        sessions.append({
-                            "username": uname,
-                            "protocol": parts[2] if len(parts) > 2 else "RADIUS",
-                            "client_ip": parts[5] if len(parts) > 5 else "-",
-                            "vpn_ip": "-",
-                            "device": "RADIUS Session",
-                            "connected_since": parts[4] if len(parts) > 4 else "-",
-                            "session_id": uname
-                        })
+                    add_session({
+                        "username": uname,
+                        "protocol": parts[2] if len(parts) > 2 else "RADIUS",
+                        "client_ip": parts[5] if len(parts) > 5 else "-",
+                        "vpn_ip": "-",
+                        "device": "RADIUS Session",
+                        "nas_ip": "127.0.0.1",
+                        "connected_since": parts[4] if len(parts) > 4 else "-",
+                        "session_id": uname,
+                        "source": "radwho"
+                    })
     except Exception:
         pass
 
@@ -7327,18 +7626,29 @@ def api_radius_get_online_sessions():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     sessions = get_all_radius_online_sessions()
-    return jsonify({"sessions": sessions, "count": len(sessions)})
+    counts = {}
+    for s in sessions:
+        uname = s.get("username")
+        if uname:
+            counts[uname] = counts.get(uname, 0) + 1
+    return jsonify({
+        "sessions": sessions,
+        "count": len(sessions),
+        "user_counts": counts,
+        "timestamp": int(time.time())
+    })
 
 @app.route("/api/radius/online/disconnect", methods=["POST"])
 def api_radius_disconnect_session():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     data = request.json or {}
-    username = data.get("username", "")
+    username = data.get("username", "").strip()
     proto = data.get("protocol", "").lower()
-    session_id = str(data.get("session_id", ""))
-    client_ip = data.get("client_ip", "")
-    nas_ip = data.get("nas_ip", "")
+    session_id = str(data.get("session_id", "")).strip()
+    client_ip = data.get("client_ip", "").strip()
+    nas_ip = data.get("nas_ip", "").strip()
+    vpn_ip = data.get("vpn_ip", "").strip()
     coa_port = int(data.get("coa_port", 3799))
     secret = data.get("secret", "testing123")
 
@@ -7346,7 +7656,7 @@ def api_radius_disconnect_session():
         return jsonify({"error": "Username or Session ID required"}), 400
 
     results = []
-    # 1. Local Process Terminations
+    # 1. Local Process & Service Terminations
     try:
         if "cisco" in proto or "ocserv" in proto:
             if session_id and session_id.isdigit():
@@ -7363,11 +7673,41 @@ def api_radius_disconnect_session():
         elif "openvpn" in proto:
             subprocess.run(f"pkill -f 'openvpn.*{username}'", shell=True, capture_output=True)
             results.append("OpenVPN session killed")
+        elif "softether" in proto or "sstp" in proto:
+            vpncmd_bin = None
+            for p in ["/usr/local/vpnserver/vpncmd", "/usr/bin/vpncmd", "vpncmd"]:
+                if os.path.isfile(p) and os.access(p, os.X_OK):
+                    vpncmd_bin = p
+                    break
+            if vpncmd_bin and session_id.startswith("SID-"):
+                subprocess.run([vpncmd_bin, "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SessionDisconnect", session_id], capture_output=True)
+                results.append(f"SoftEther session {session_id} disconnected")
+        elif "wireguard" in proto or "wg" in proto:
+            # session_id is WireGuard peer public key
+            wg_dump = subprocess.run(["wg", "show", "all", "dump"], capture_output=True, text=True)
+            if wg_dump.returncode == 0:
+                for line in wg_dump.stdout.splitlines():
+                    parts = line.split("\t")
+                    if len(parts) >= 2 and parts[1] == session_id:
+                        iface = parts[0]
+                        subprocess.run(["wg", "set", iface, "peer", session_id, "remove"], capture_output=True)
+                        results.append(f"WireGuard peer disconnected from {iface}")
+                        break
+        elif "singbox" in proto or "sing-box" in proto:
+            try:
+                import urllib.request
+                req = urllib.request.Request(f"http://127.0.0.1:9095/connections/{session_id}", method="DELETE")
+                urllib.request.urlopen(req, timeout=1.0)
+                results.append(f"Sing-box connection {session_id} closed")
+            except Exception:
+                pass
         elif "ikev2" in proto:
             if subprocess.run(["which", "swanctl"], capture_output=True).returncode == 0:
                 subprocess.run(["swanctl", "--terminate", "--ike", username], capture_output=True)
+            else:
+                subprocess.run(["ipsec", "down", username], capture_output=True)
             results.append("IKEv2 session terminated")
-        elif "l2tp" in proto or "sstp" in proto or "pptp" in proto:
+        elif "l2tp" in proto or "pptp" in proto:
             if session_id.startswith("ppp"):
                 subprocess.run(["poff", session_id], capture_output=True)
             else:
@@ -7377,20 +7717,31 @@ def api_radius_disconnect_session():
         results.append(f"Local error: {e}")
 
     # 2. RADIUS CoA / PoD Disconnect-Request (RFC 3576 / RFC 5176) to external NAS / MikroTik
-    if not nas_ip:
-        nas_list = get_radius_nas_data()
+    nas_list = get_radius_nas_data()
+    target_nas = None
+    if nas_ip:
+        for n in nas_list:
+            if n.get("ip") == nas_ip:
+                target_nas = n
+                break
+    if not target_nas and client_ip:
         for n in nas_list:
             if n.get("ip") == client_ip:
+                target_nas = n
                 nas_ip = n.get("ip")
-                secret = n.get("secret", secret)
-                coa_port = int(n.get("coa_port", coa_port))
                 break
 
-    if nas_ip and subprocess.run(["which", "radclient"], capture_output=True).returncode == 0:
+    if target_nas:
+        secret = target_nas.get("secret", secret)
+        coa_port = int(target_nas.get("coa_port", coa_port))
+
+    if nas_ip and nas_ip != "127.0.0.1" and subprocess.run(["which", "radclient"], capture_output=True).returncode == 0:
         try:
             pod_input = f"User-Name = \"{username}\"\n"
-            if session_id:
+            if session_id and not session_id.startswith("SID-"):
                 pod_input += f"Acct-Session-Id = \"{session_id}\"\n"
+            if vpn_ip and vpn_ip != "-":
+                pod_input += f"Framed-IP-Address = \"{vpn_ip}\"\n"
             proc = subprocess.run(
                 ["radclient", "-r", "2", "-t", "2", f"{nas_ip}:{coa_port}", "disconnect", secret],
                 input=pod_input,
@@ -7404,6 +7755,18 @@ def api_radius_disconnect_session():
                 results.append(f"CoA packet sent to {nas_ip}:{coa_port}")
         except Exception as e:
             results.append(f"CoA error: {e}")
+
+    # 3. Write synthetic Stop record in FreeRADIUS detail log for instant UI consistency
+    try:
+        today_str = datetime.now().strftime("%Y%m%d")
+        for rad_base in ["/var/log/freeradius/radacct", "/var/log/radius/radacct"]:
+            folder = os.path.join(rad_base, nas_ip or "127.0.0.1")
+            if os.path.isdir(folder):
+                df_path = os.path.join(folder, f"detail-{today_str}")
+                with open(df_path, "a", encoding="utf-8") as f:
+                    f.write(f"\n{time.ctime()}\n\tAcct-Status-Type = Stop\n\tUser-Name = \"{username}\"\n\tAcct-Session-Id = \"{session_id}\"\n\tTimestamp = {int(time.time())}\n\n")
+    except Exception:
+        pass
 
     return jsonify({"success": True, "message": " | ".join(results) or "Disconnect signal executed"})
 
