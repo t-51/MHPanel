@@ -361,7 +361,7 @@ is_protocol_installed() {
         openvpn) [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ] ;;
         ocserv) [ -f "/etc/ocserv/ocserv.conf" ] ;;
         ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null) ;;
-        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] || [ -f "/etc/accel-ppp.conf" ] ;;
+        sstp) [ -f "/etc/systemd/system/vpnserver.service" ] || [ -x "/usr/local/vpnserver/vpnserver" ] ;;
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
@@ -1009,20 +1009,25 @@ uninstall_ikev2() {
     echo "IKEv2 uninstalled."
 }
 
-# ----------------- SSTP PROTOCOL -----------------
+# ----------------- SSTP PROTOCOL (SoftEther MS-SSTP Enterprise) -----------------
 install_sstp() {
     local port=${1:-4443}
-    local subnet=$(get_setting "sstp_subnet" "10.11.0.0")
+    local subnet=$(get_setting "sstp_subnet" "192.168.30.0")
     local dns1=$(get_setting "sstp_dns1" "8.8.8.8")
-    local dns2=$(get_setting "sstp_dns2" "8.8.4.4")
-    local auth_proto=$(get_setting "sstp_auth_proto" "MS-CHAPv2")
+    local dns2=$(get_setting "sstp_dns2" "1.1.1.1")
+    local mtu=$(get_setting "sstp_mtu" "1400")
     local local_ip="${subnet%.*}.1"
     local remote_start="${subnet%.*}.10"
-    local remote_end="${subnet%.*}.254"
+    local remote_end="${subnet%.*}.250"
 
-    apt-get update -y >/dev/null 2>&1 || true
-    apt-get install -y ppp curl git libpam-radius-auth iproute2 python3-pip >/dev/null 2>&1 || true
-    generate_certs
+    echo "Installing SoftEther VPN Server (MS-SSTP Enterprise)..."
+    run_apt install build-essential gcc make curl tar iptables iproute2 openssl >/dev/null 2>&1 || true
+
+    # Clean up and purge old native sstpd / accel-ppp daemons
+    killall -9 accel-pppd sstpd 2>/dev/null || true
+    systemctl stop sstpd accel-ppp 2>/dev/null || true
+    systemctl disable sstpd accel-ppp 2>/dev/null || true
+    rm -f /etc/systemd/system/sstpd.service /etc/accel-ppp.conf /etc/ppp/options.sstpd
 
     # Ensure dedicated SSTP Root CA and Server certificate with SAN & serverAuth exist
     mkdir -p /etc/sstp-ca
@@ -1068,300 +1073,36 @@ EOF
         rm -f "${cnf_path}" /etc/sstp-ca/sstp_server.csr
     fi
 
-    if [ ! -f "/etc/sstp-ca/sstp-fullchain.crt" ] && [ -f "/etc/sstp-ca/sstp-server.crt" ] && [ -f "/etc/sstp-ca/ca.crt" ]; then
-        cat /etc/sstp-ca/sstp-server.crt /etc/sstp-ca/ca.crt > /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
-        chmod 644 /etc/sstp-ca/sstp-fullchain.crt 2>/dev/null || true
-    fi
-
-    mkdir -p /etc/accel-ppp /var/log/accel-ppp /etc/ppp/ip-up.d /etc/ppp/ip-down.d
-
-    cat > /etc/ppp/options.sstpd <<EOF
-name sstpd
-debug
-ipcp-accept-local
-ipcp-accept-remote
-idle 1800
-mtu 1400
-mru 1400
-proxyarp
-nodeflate
-nobsdcomp
-lcp-echo-failure 4
-lcp-echo-interval 30
-ms-dns ${dns1}
-ms-dns ${dns2}
-nodefaultroute
-require-mppe-128
-mppe-stateful
-require-mschap-v2
-refuse-mschap
-refuse-chap
-refuse-pap
-refuse-eap
-plugin radius.so
-radius-config-file /etc/radcli/radiusclient.conf
-EOF
-
-    # If sstpd Python binary is available or can be installed via pip, use it directly (super fast, robust)
-    if [ ! -x /usr/local/bin/sstpd ]; then
-        pip3 install sstp-server --break-system-packages >/dev/null 2>&1 || pip install sstp-server >/dev/null 2>&1 || true
-    fi
-
-    local sstp_cert_path="/etc/sstp-ca/sstp-fullchain.crt"
-    [ ! -f "${sstp_cert_path}" ] && sstp_cert_path="/etc/sstp-ca/sstp-server.crt"
-    local sstp_key_path="/etc/sstp-ca/sstp-server.key"
-    if [ ! -f "${sstp_cert_path}" ] || [ ! -f "${sstp_key_path}" ]; then
-        sstp_cert_path="${SERVER_CERT}"
-        sstp_key_path="${SERVER_KEY}"
-    fi
-
-    if [ -x /usr/local/bin/sstpd ]; then
-        cat > /etc/systemd/system/sstpd.service <<EOF
-[Unit]
-Description=SSTP Server Daemon (sstpd)
-After=network.target freeradius.service
-Wants=freeradius.service
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p ${port} -c ${sstp_cert_path} -k ${sstp_key_path} --local ${local_ip} --remote ${subnet%.*}.0/24 --range ${remote_start}-${remote_end} --pppd-config /etc/ppp/options.sstpd --ciphers "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4"
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-EOF
-        allow_port "${port}" "tcp"
-        systemctl daemon-reload
-        systemctl enable sstpd >/dev/null 2>&1
-        systemctl restart sstpd
-        echo "SSTP (sstpd) installed on TCP port ${port}."
-        return 0
-    fi
-
-    # Fallback to accel-ppp if sstpd could not be installed
-    if ! command -v accel-pppd >/dev/null 2>&1 && [ ! -x /usr/sbin/accel-pppd ]; then
-        if ! run_apt install accel-ppp; then
-            echo "accel-ppp package not found in repositories. Compiling from source..."
-            run_apt install build-essential cmake gcc git libpcre2-dev libssl-dev liblua5.1-0-dev linux-headers-$(uname -r) >/dev/null 2>&1 || true
-            rm -rf /usr/src/accel-ppp
-            git clone --depth 1 https://github.com/accel-ppp/accel-ppp.git /usr/src/accel-ppp >/dev/null 2>&1 || true
-            mkdir -p /usr/src/accel-ppp/build
-            cd /usr/src/accel-ppp/build 2>/dev/null || true
-            cmake -DBUILD_IPOE_DRIVER=FALSE -DBUILD_VLAN_MON_DRIVER=FALSE -DCMAKE_INSTALL_PREFIX=/usr -DLUA=TRUE .. >/dev/null 2>&1 || true
-            make -j$(nproc) >/dev/null 2>&1 || true
-            make install >/dev/null 2>&1 || true
-            cd - >/dev/null 2>&1 || true
-            rm -rf /usr/src/accel-ppp
-        fi
-    fi
-
-    local auth_line="mschap-v2"
-    local auth_module="auth_mschap_v2"
-    case "${auth_proto}" in
-        PAP|pap) auth_line="pap"; auth_module="auth_pap" ;;
-        CHAP|chap) auth_line="chap"; auth_module="auth_chap_md5" ;;
-        *) auth_line="mschap-v2"; auth_module="auth_mschap_v2" ;;
-    esac
-
-    cat > /etc/ppp/options.sstpd <<EOF
-name sstpd
-require-mschap-v2
-refuse-pap
-refuse-chap
-refuse-eap
-ms-dns ${dns1}
-ms-dns ${dns2}
-mppe-stateful
-auth
-mtu 1400
-mru 1400
-nodefaultroute
-proxyarp
-EOF
-
-    if [ "${auth_line}" = "pap" ]; then
-        sed -i 's/^require-mschap-v2/# require-mschap-v2/' /etc/ppp/options.sstpd
-        sed -i 's/^refuse-pap/# refuse-pap/' /etc/ppp/options.sstpd
-    elif [ "${auth_line}" = "chap" ]; then
-        sed -i 's/^require-mschap-v2/# require-mschap-v2/' /etc/ppp/options.sstpd
-        sed -i 's/^refuse-chap/# refuse-chap/' /etc/ppp/options.sstpd
-    fi
-
-    cat > /etc/accel-ppp.conf <<EOF
-[modules]
-log_file
-sstp
-pppd_compat
-ippool
-chap-secrets
-${auth_module}
-auth_mschap_v1
-auth_chap_md5
-auth_pap
-radius
-sigchld
-
-[core]
-log-error=/var/log/accel-ppp/core.log
-thread-count=4
-
-[common]
-single-session=replace
-
-[ppp]
-verbose=1
-min-mtu=1280
-mtu=1400
-mru=1400
-ipv4=require
-ipv6=deny
-check-ip=0
-mppe=prefer
-ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
-ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
-
-[sstp]
-bind=0.0.0.0
-port=${port}
-ssl-pemfile=${sstp_cert_path}
-ssl-keyfile=${sstp_key_path}
-ssl=1
-
-[dns]
-dns1=${dns1}
-dns2=${dns2}
-
-[ip-pool]
-gw-ip-address=${local_ip}
-${remote_start}-${remote_end}
-
-[chap-secrets]
-chap-secrets=/etc/ppp/chap-secrets
-
-[radius]
-dictionary=/usr/share/accel-ppp/radius/dictionary
-nas-identifier=accel-ppp
-nas-ip-address=127.0.0.1
-gw-ip-address=${local_ip}
-server=127.0.0.1,testing123,auth-port=1812,acct-port=1813,req-limit=0,fail-time=0
-dae-server=127.0.0.1:3799,testing123
-verbose=1
-timeout=3
-max-try=3
-acct-timeout=120
-
-[log]
-log-file=/var/log/accel-ppp/accel-ppp.log
-log-emerg=/var/log/accel-ppp/emerg.log
-log-debug=/var/log/accel-ppp/debug.log
-copy=1
-level=3
-
-[client-ip-range]
-0.0.0.0/0
-::/0
-EOF
-
-    if [ ! -f /etc/ppp/chap-secrets ]; then
-        echo '"admin" * "AdminPassword123" *' > /etc/ppp/chap-secrets
-        chmod 600 /etc/ppp/chap-secrets
-    fi
-
-    cat > /etc/ppp/ip-up.d/mhpanel-sstp <<'EOF'
-#!/usr/bin/env bash
-EXT_IF=$(ip route show default | awk '/default/ {print $5}' | head -n1)
-if [ -n "$EXT_IF" ]; then
-    iptables -t nat -C POSTROUTING -s 10.11.0.0/16 -o "$EXT_IF" -j MASQUERADE 2>/dev/null || \
-        iptables -t nat -A POSTROUTING -s 10.11.0.0/16 -o "$EXT_IF" -j MASQUERADE
-fi
-EOF
-    cat > /etc/ppp/ip-down.d/mhpanel-sstp <<'EOF'
-#!/usr/bin/env bash
-exit 0
-EOF
-    chmod +x /etc/ppp/ip-up.d/mhpanel-sstp /etc/ppp/ip-down.d/mhpanel-sstp
-
-    local accel_bin="/usr/sbin/accel-pppd"
-    if [ ! -x "${accel_bin}" ] && [ -x "/usr/local/sbin/accel-pppd" ]; then
-        accel_bin="/usr/local/sbin/accel-pppd"
-    fi
-
-    cat > /etc/systemd/system/sstpd.service <<EOF
-[Unit]
-Description=MHPanel SSTP Server (accel-ppp)
-Wants=network-online.target
-After=network-online.target
-
-[Service]
-Type=simple
-ExecStart=${accel_bin} -c /etc/accel-ppp.conf
-ExecReload=/bin/kill -HUP \$MAINPID
-Restart=always
-RestartSec=3
-TimeoutStopSec=5s
-KillMode=control-group
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    allow_port "${port}" "tcp"
-    systemctl daemon-reload
-    systemctl enable sstpd
-    systemctl restart sstpd
-}
-
-uninstall_sstp() {
-    killall -9 accel-pppd sstpd 2>/dev/null || true
-    systemctl stop sstpd || true
-    systemctl disable sstpd || true
-    port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || echo "4443")
-    deny_port "${port}" "tcp"
-    rm -f /etc/systemd/system/sstpd.service /etc/accel-ppp.conf /etc/ppp/options.sstpd
-    systemctl daemon-reload
-}
-
-set_port_sstp() {
-    local port=$1
-    local old_port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || true)
-    if [ -z "${old_port}" ]; then
-        old_port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' || true)
-        old_port=${old_port:-4443}
-    fi
-    if [ -n "${old_port}" ] && [ "${old_port}" != "${port}" ]; then
-        deny_port "${old_port}" "tcp"
-    fi
-    if [ -f /etc/accel-ppp.conf ]; then
-        sed -i "s/^port=.*/port=${port}/" /etc/accel-ppp.conf
-    else
-        sed -i "s/\-p [0-9]*/-p ${port}/g" /etc/systemd/system/sstpd.service
-    fi
-    allow_port "${port}" "tcp"
-    systemctl daemon-reload
-    systemctl restart sstpd
-}
-
-# ----------------- SOFTETHER PROTOCOL -----------------
-install_softether() {
-    local port=${1:-4443}
-    echo "Installing SoftEther VPN Server (MS-SSTP Enterprise)..."
-    run_apt install build-essential gcc make curl tar >/dev/null 2>&1 || true
-
+    # Detect architecture and install SoftEther if not already installed
     if [ ! -x /usr/local/vpnserver/vpnserver ] || [ ! -x /usr/local/vpnserver/vpncmd ]; then
-        local dl_url="https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/v4.44-9807-rtm/softether-vpnserver-v4.44-9807-rtm-2025.04.16-linux-x64-64bit.tar.gz"
+        local arch="$(uname -m)"
+        local dl_url=""
+        local fallback_url=""
+        if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then
+            dl_url="https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/v4.44-9807-rtm/softether-vpnserver-v4.44-9807-rtm-2025.04.16-linux-arm64-64bit.tar.gz"
+            fallback_url="https://www.softether-download.com/files/softether/v4.42-9798-rtm-2023.06.30-tree/Linux/SoftEther_VPN_Server/64bit_-_ARM_64bit/softether-vpnserver-v4.42-9798-rtm-2023.06.30-linux-arm64-64bit.tar.gz"
+        else
+            dl_url="https://github.com/SoftEtherVPN/SoftEtherVPN_Stable/releases/download/v4.44-9807-rtm/softether-vpnserver-v4.44-9807-rtm-2025.04.16-linux-x64-64bit.tar.gz"
+            fallback_url="https://www.softether-download.com/files/softether/v4.42-9798-rtm-2023.06.30-tree/Linux/SoftEther_VPN_Server/64bit_-_Intel_x64_or_AMD64/softether-vpnserver-v4.42-9798-rtm-2023.06.30-linux-x64-64bit.tar.gz"
+        fi
+
         mkdir -p /tmp/se_inst
-        curl -sSL "${dl_url}" -o /tmp/se_inst/softether.tar.gz || curl -sSL "https://www.softether-download.com/files/softether/v4.42-9798-rtm-2023.06.30-tree/Linux/SoftEther_VPN_Server/64bit_-_Intel_x64_or_AMD64/softether-vpnserver-v4.42-9798-rtm-2023.06.30-linux-x64-64bit.tar.gz" -o /tmp/se_inst/softether.tar.gz
-        
-        cd /tmp/se_inst && tar -xzf softether.tar.gz
-        cd /tmp/se_inst/vpnserver && printf '1\n1\n1\n' | make >/dev/null 2>&1
-        mkdir -p /usr/local/vpnserver
-        cp -rf /tmp/se_inst/vpnserver/* /usr/local/vpnserver/
-        cd /usr/local/vpnserver && chmod 600 * && chmod 700 vpncmd vpnserver
+        curl -sSL --connect-timeout 10 --max-time 180 "${dl_url}" -o /tmp/se_inst/softether.tar.gz || \
+        curl -sSL --connect-timeout 10 --max-time 180 "${fallback_url}" -o /tmp/se_inst/softether.tar.gz
+
+        if [ -f /tmp/se_inst/softether.tar.gz ] && [ -s /tmp/se_inst/softether.tar.gz ]; then
+            cd /tmp/se_inst && tar -xzf softether.tar.gz
+            if [ -d /tmp/se_inst/vpnserver ]; then
+                cd /tmp/se_inst/vpnserver && printf '1\n1\n1\n' | make >/dev/null 2>&1
+                mkdir -p /usr/local/vpnserver
+                cp -rf /tmp/se_inst/vpnserver/* /usr/local/vpnserver/
+                cd /usr/local/vpnserver && chmod 600 * && chmod 700 vpncmd vpnserver
+            fi
+        fi
         rm -rf /tmp/se_inst
     fi
 
+    # Create systemd service
     cat > /etc/systemd/system/vpnserver.service <<EOF
 [Unit]
 Description=SoftEther VPN Server
@@ -1373,7 +1114,8 @@ Type=forking
 ExecStart=/usr/local/vpnserver/vpnserver start
 ExecStop=/usr/local/vpnserver/vpnserver stop
 KillMode=process
-Restart=on-failure
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
@@ -1384,44 +1126,108 @@ EOF
     systemctl restart vpnserver
     sleep 2
 
-    # Clean up standard ports and set SSTP port
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerDelete 443 >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerDelete 1194 >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerCreate "${port}" >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD SstpEnable yes >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD SecureNatEnable >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD RadiusServerSet 127.0.0.1:1812 /SECRET:testing123 /RETRYINTERVAL:3000 >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD UserCreate '*' /GROUP:none /REALNAME:none /NOTE:none >/dev/null 2>&1 || true
-    /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /HUB:DEFAULT /CMD UserRadiusSet '*' /ALIAS:none >/dev/null 2>&1 || true
+    # Configure SoftEther VPN Server via CLI
+    if [ -x /usr/local/vpnserver/vpncmd ]; then
+        local VPNCMD="/usr/local/vpnserver/vpncmd localhost:5555 /SERVER"
+        # Remove conflicting ports (443 and 1194) unless 443 was requested
+        if [ "$port" != "443" ]; then
+            $VPNCMD /CMD ListenerDelete 443 >/dev/null 2>&1 || true
+        fi
+        $VPNCMD /CMD ListenerDelete 1194 >/dev/null 2>&1 || true
+        $VPNCMD /CMD ListenerCreate "${port}" >/dev/null 2>&1 || true
+        $VPNCMD /CMD SstpEnable yes >/dev/null 2>&1 || true
 
-    mkdir -p /usr/local/vpnserver/chain_certs
-    [ -f /etc/sstp-ca/ca.crt ] && cp -f /etc/sstp-ca/ca.crt /usr/local/vpnserver/chain_certs/
-    if [ -f /etc/sstp-ca/sstp-server.crt ] && [ -f /etc/sstp-ca/sstp-server.key ]; then
-        /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ServerCertSet /LOADCERT:/etc/sstp-ca/sstp-server.crt /LOADKEY:/etc/sstp-ca/sstp-server.key >/dev/null 2>&1 || true
+        # Set Server Certificate
+        if [ -f /etc/sstp-ca/sstp-server.crt ] && [ -f /etc/sstp-ca/sstp-server.key ]; then
+            $VPNCMD /CMD ServerCertSet /LOADCERT:/etc/sstp-ca/sstp-server.crt /LOADKEY:/etc/sstp-ca/sstp-server.key >/dev/null 2>&1 || true
+        fi
+        mkdir -p /usr/local/vpnserver/chain_certs
+        [ -f /etc/sstp-ca/ca.crt ] && cp -f /etc/sstp-ca/ca.crt /usr/local/vpnserver/chain_certs/ 2>/dev/null || true
+
+        # Set High-Performance & Anti-DPI Cipher Suite
+        $VPNCMD /CMD ServerCipherSet ECDHE-RSA-AES256-GCM-SHA384 >/dev/null 2>&1 || true
+
+        # Configure Virtual Hub DEFAULT
+        $VPNCMD /HUB:DEFAULT /CMD SecureNatEnable >/dev/null 2>&1 || true
+        $VPNCMD /HUB:DEFAULT /CMD DhcpSet "/START:${remote_start}" "/END:${remote_end}" "/MASK:255.255.255.0" "/EXPIRE:7200" "/GW:${local_ip}" "/DNS:${dns1}" "/DNS2:${dns2}" "/DOMAIN:none" "/LOG:yes" "/PUSHROUTE:none" >/dev/null 2>&1 || true
+        $VPNCMD /HUB:DEFAULT /CMD NatSet "/MTU:${mtu}" "/TCPTIMEOUT:1800" "/UDPTIMEOUT:60" "/LOG:yes" >/dev/null 2>&1 || true
+
+        # Setup FreeRADIUS Integration
+        $VPNCMD /HUB:DEFAULT /CMD RadiusServerSet 127.0.0.1:1812 /SECRET:testing123 /RETRYINTERVAL:3000 >/dev/null 2>&1 || true
+        $VPNCMD /HUB:DEFAULT /CMD UserCreate '*' /GROUP:none /REALNAME:none /NOTE:none >/dev/null 2>&1 || true
+        $VPNCMD /HUB:DEFAULT /CMD UserRadiusSet '*' /ALIAS:none >/dev/null 2>&1 || true
     fi
 
+    # Firewall & NAT routing
     allow_port "${port}" "tcp"
     allow_port "5555" "tcp"
     iptables -t nat -C POSTROUTING -s 192.168.30.0/24 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 192.168.30.0/24 -j MASQUERADE
+    iptables -C FORWARD -s 192.168.30.0/24 -j ACCEPT 2>/dev/null || iptables -A FORWARD -s 192.168.30.0/24 -j ACCEPT
+    iptables -C FORWARD -d 192.168.30.0/24 -j ACCEPT 2>/dev/null || iptables -A FORWARD -d 192.168.30.0/24 -j ACCEPT
+
+    # Update panel config
+    local cfg_file="${PANEL_DIR}/sstp_config.json"
+    [ ! -f "$cfg_file" ] && [ -d /www/wwwroot/mhpanel ] && cfg_file="/www/wwwroot/mhpanel/sstp_config.json"
+    cat > "$cfg_file" <<EOF
+{
+  "engine": "softether",
+  "port": ${port},
+  "sni": "sstp.example.com",
+  "haproxy_443": true,
+  "stunnel_multiport": true,
+  "stunnel_ports": [9443, 2087],
+  "local_ip": "${local_ip}",
+  "remote_subnet": "192.168.30.0/24",
+  "ip_range": "192.168.30.10-250",
+  "dns1": "${dns1}",
+  "dns2": "${dns2}",
+  "mtu": ${mtu},
+  "mru": ${mtu},
+  "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+  "auth_mode": "radius_and_local"
+}
+EOF
+
     echo "SoftEther VPN Server (MS-SSTP Enterprise) installed on TCP port ${port}."
+    return 0
 }
 
-uninstall_softether() {
-    systemctl stop vpnserver >/dev/null 2>&1 || true
-    systemctl disable vpnserver >/dev/null 2>&1 || true
-    rm -f /etc/systemd/system/vpnserver.service
+uninstall_sstp() {
+    killall -9 accel-pppd sstpd vpnserver 2>/dev/null || true
+    systemctl stop vpnserver sstpd 2>/dev/null || true
+    systemctl disable vpnserver sstpd 2>/dev/null || true
+
+    local port=4443
+    local cfg_file="${PANEL_DIR}/sstp_config.json"
+    [ ! -f "$cfg_file" ] && [ -d /www/wwwroot/mhpanel ] && cfg_file="/www/wwwroot/mhpanel/sstp_config.json"
+    if [ -f "$cfg_file" ]; then
+        port=$(grep -oE '"port":\s*[0-9]+' "$cfg_file" 2>/dev/null | awk '{print $2}' || echo "4443")
+    fi
+    deny_port "${port}" "tcp"
+
+    rm -f /etc/systemd/system/vpnserver.service /etc/systemd/system/sstpd.service /etc/accel-ppp.conf /etc/ppp/options.sstpd
     systemctl daemon-reload
     rm -rf /usr/local/vpnserver
-    echo "SoftEther VPN Server uninstalled."
+    echo "SoftEther SSTP VPN Server uninstalled."
 }
 
-set_port_softether() {
+set_port_sstp() {
     local port=$1
     if [ -x /usr/local/vpnserver/vpncmd ]; then
         /usr/local/vpnserver/vpncmd localhost:5555 /SERVER /CMD ListenerCreate "${port}" >/dev/null 2>&1 || true
         allow_port "${port}" "tcp"
     fi
+    local cfg_file="${PANEL_DIR}/sstp_config.json"
+    [ ! -f "$cfg_file" ] && [ -d /www/wwwroot/mhpanel ] && cfg_file="/www/wwwroot/mhpanel/sstp_config.json"
+    if [ -f "$cfg_file" ]; then
+        sed -i "s/\"port\":\s*[0-9]*/\"port\": ${port}/" "$cfg_file" 2>/dev/null || true
+    fi
+    echo "SSTP port set to ${port}."
 }
+
+install_softether() { install_sstp "$@"; }
+uninstall_softether() { uninstall_sstp "$@"; }
+set_port_softether() { set_port_sstp "$@"; }
 
 # ----------------- PPTP PROTOCOL -----------------
 install_pptp() {
@@ -4306,8 +4112,8 @@ case "${ACTION}" in
                 fi
                 ;;
             sstp)
-                if [ -f "/etc/systemd/system/sstpd.service" ]; then
-                    port=$(grep -E '^port=' /etc/accel-ppp.conf 2>/dev/null | head -n1 | cut -d= -f2 || true); port=${port:-$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' || true)}; port=${port:-4443}
+                if [ -f "/etc/systemd/system/vpnserver.service" ] || [ -x /usr/local/vpnserver/vpnserver ]; then
+                    port=$(grep -oE '"port":\s*[0-9]+' "${PANEL_DIR}/sstp_config.json" 2>/dev/null | awk '{print $2}' || true); port=${port:-4443}
                     deny_port "${port}" "tcp"
                     install_sstp "${port}"
                 fi
@@ -4398,7 +4204,7 @@ case "${ACTION}" in
             openvpn) service_status openvpn-server@server openvpn-server@server-tcp openvpn@server openvpn ;;
             ocserv) service_status ocserv ;;
             ikev2) service_status strongswan-starter strongswan strongswan-swanctl ;;
-            sstp) service_status sstpd ;;
+            sstp) service_status vpnserver ;;
             l2tp) service_status xl2tpd ;;
             l2tpv3) service_status mhpanel-l2tpv3 ;;
             wireguard) service_status wg-quick@wg0 ;;
@@ -4449,7 +4255,7 @@ case "${ACTION}" in
             openvpn) journalctl -u openvpn-server@server -u openvpn-server@server-tcp -u openvpn@server -n 100 --no-pager ;;
             ocserv) journalctl -u ocserv -n 100 --no-pager ;;
             ikev2) journalctl -u strongswan-starter -u strongswan -u strongswan-swanctl -n 100 --no-pager ;;
-            sstp) journalctl -u sstpd -n 100 --no-pager ;;
+            sstp) journalctl -u vpnserver -n 100 --no-pager ;;
             l2tp) journalctl -u xl2tpd -n 100 --no-pager ;;
             l2tpv3) journalctl -u mhpanel-l2tpv3 -n 100 --no-pager ;;
             wireguard) journalctl -u wg-quick@wg0 -n 100 --no-pager ;;

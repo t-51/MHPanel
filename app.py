@@ -212,7 +212,7 @@ PROTOCOL_SERVICE_MAP = {
     "openvpn": "openvpn@server",
     "ocserv": "ocserv",
     "ikev2": "strongswan",
-    "sstp": "sstpd",
+    "sstp": "vpnserver",
     "pptp": "mhpanel-pptp",
     "l2tp": "xl2tpd",
     "wireguard": "wg-quick@wg0",
@@ -520,7 +520,7 @@ def is_installed(protocol):
     elif protocol == "ikev2":
         return os.path.exists("/etc/ipsec.conf") or os.path.exists("/etc/swanctl/conf.d/ikev2.conf")
     elif protocol == "sstp":
-        return os.path.exists("/etc/systemd/system/sstpd.service") or os.path.exists("/etc/systemd/system/vpnserver.service") or os.path.exists("/etc/accel-ppp.conf")
+        return os.path.exists("/usr/local/vpnserver/vpnserver") or os.path.exists("/etc/systemd/system/vpnserver.service")
     elif protocol == "pptp":
         return os.path.exists("/etc/pptpd.conf")
     elif protocol == "badvpn":
@@ -608,12 +608,6 @@ def get_active_port(protocol):
                             return int(cfg["port"])
                 except Exception:
                     pass
-            if os.path.exists("/etc/systemd/system/sstpd.service"):
-                with open("/etc/systemd/system/sstpd.service", "r") as f:
-                    content = f.read()
-                match = re.search(r"-p\s+(\d+)", content)
-                if match:
-                    return int(match.group(1))
             return 4443
         elif protocol == "l2tp":
             return 1701
@@ -5283,15 +5277,7 @@ def get_service_names(protocol):
     elif protocol == "ikev2":
         return [get_ikev2_service_name()]
     elif protocol == "sstp":
-        for s in ["sstpd", "accel-ppp", "vpnserver"]:
-            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
-            if res.stdout.strip() == "active":
-                return [s]
-        for s in ["sstpd", "accel-ppp", "vpnserver"]:
-            res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
-            if res.stdout.strip() == "inactive":
-                return [s]
-        return ["sstpd"]
+        return ["vpnserver"]
     elif protocol == "pptp":
         for s in ["pptpd", "mhpanel-pptp"]:
             res = subprocess.run(["systemctl", "is-active", s], capture_output=True, text=True)
@@ -5451,7 +5437,7 @@ def api_protocols_advanced_logs(protocol):
     elif protocol in ["openvpn", "openvpn-server"]: services = ["openvpn-server@server", "openvpn-server@server-tcp", "openvpn@server", "openvpn@server-tcp"]
     elif protocol == "ocserv": services = ["ocserv"]
     elif protocol in ["ikev2", "strongswan", "ipsec"]: services = ["strongswan-starter", "strongswan", "strongswan-swanctl"]
-    elif protocol in ["sstp", "sstpd"]: services = ["sstpd", "accel-ppp", "vpnserver"]
+    elif protocol in ["sstp", "sstpd", "vpnserver"]: services = ["vpnserver"]
     elif protocol in ["l2tp", "xl2tpd"]: services = ["xl2tpd"]
     elif protocol in ["pptp", "pptpd"]: services = ["pptpd", "mhpanel-pptp"]
     elif protocol == "badvpn": services = ["videocall", "badvpn"]
@@ -5494,15 +5480,12 @@ def api_protocols_advanced_logs(protocol):
             "+", "_COMM=pppd",
             "-n", "600", "--no-pager", "-o", "json"
         ]
-    elif protocol in ["sstp", "sstpd"]:
+    elif protocol in ["sstp", "sstpd", "vpnserver"]:
         cmd = [
             "journalctl",
-            "_SYSTEMD_UNIT=sstpd.service",
-            "+", "SYSLOG_IDENTIFIER=sstpd",
-            "+", "_COMM=sstpd",
-            "+", "SYSLOG_IDENTIFIER=pppd",
-            "+", "_COMM=pppd",
-            "+", "_SYSTEMD_UNIT=accel-ppp.service",
+            "_SYSTEMD_UNIT=vpnserver.service",
+            "+", "SYSLOG_IDENTIFIER=vpnserver",
+            "+", "_COMM=vpnserver",
             "-n", "600", "--no-pager", "-o", "json"
         ]
     else:
@@ -13635,6 +13618,261 @@ def get_snispoof_reality_and_client_configs():
     }
 
 
+def get_snispoof_default_relay_ports():
+    cfg_file = "/etc/vpnpanel/snispoof.json"
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                saved = json.load(f)
+            if "relay_ports" in saved and isinstance(saved["relay_ports"], list) and len(saved["relay_ports"]) > 0:
+                cleaned = []
+                for p in saved["relay_ports"]:
+                    try:
+                        pint = int(p)
+                        if 1 <= pint <= 65535 and pint not in cleaned:
+                            cleaned.append(pint)
+                    except (ValueError, TypeError):
+                        pass
+                if cleaned:
+                    return sorted(cleaned)
+        except Exception:
+            pass
+
+    ports = [20443, 40443]
+    sb_cfg_file = "/etc/sing-box/config.json"
+    if os.path.exists(sb_cfg_file):
+        try:
+            with open(sb_cfg_file, "r", encoding="utf-8") as f:
+                sb_cfg = json.load(f)
+            for ib in sb_cfg.get("inbounds", []):
+                p = ib.get("listen_port")
+                if p and isinstance(p, int) and 1 <= p <= 65535 and p not in [2080, 10808, 10809, 7890] and p not in ports:
+                    ports.append(p)
+        except Exception:
+            pass
+    return sorted(ports)
+
+
+def ensure_golang_installed():
+    """Ensure Go compiler is available on the system."""
+    import shutil, subprocess
+    for bin_cand in ["/usr/bin/go", "/usr/local/go/bin/go", "go"]:
+        p = shutil.which(bin_cand)
+        if p and os.path.exists(p):
+            return p
+    try:
+        subprocess.run(["apt-get", "update"], capture_output=True, timeout=60)
+        subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "golang-go"], capture_output=True, timeout=120)
+        for bin_cand in ["/usr/bin/go", "/usr/local/go/bin/go", "go"]:
+            p = shutil.which(bin_cand)
+            if p and os.path.exists(p):
+                return p
+    except Exception:
+        pass
+    return None
+
+
+def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, target_port=None, relay_ports=None, fake_sni=None, force=False):
+    """
+    Compiles customized client binaries (Windows .exe, Linux) with the current server's IP,
+    domain, port, relay ports, and decoy SNI baked in, replacing any default/sample server IPs.
+    """
+    import shutil, subprocess, time, re
+    srv_ip = target_ip or get_server_public_ip() or "127.0.0.1"
+    srv_domain = target_domain or get_server_domain() or srv_ip
+    cfg_file = "/etc/vpnpanel/snispoof.json"
+    cfg = {}
+    if os.path.exists(cfg_file):
+        try:
+            with open(cfg_file, "r") as f:
+                cfg = json.load(f)
+        except Exception:
+            pass
+
+    srv_port = target_port or cfg.get("port", 15443)
+    if relay_ports is None:
+        relay_ports = cfg.get("relay_ports") or get_snispoof_default_relay_ports()
+    cleaned_ports = []
+    for p in relay_ports:
+        try:
+            pint = int(p)
+            if 1 <= pint <= 65535 and pint not in cleaned_ports:
+                cleaned_ports.append(pint)
+        except (ValueError, TypeError):
+            continue
+    relay_ports = sorted(cleaned_ports) if cleaned_ports else [20443, 40443]
+    ports_str = ",".join(str(p) for p in relay_ports)
+    fake_sni = fake_sni or (cfg.get("sni_pool", ["auth.vercel.com"])[0] if cfg.get("sni_pool") else "auth.vercel.com")
+
+    bdir = "/www/wwwroot/mhpanel/bin"
+    stamp_file = os.path.join(bdir, ".server_stamp")
+
+    # Check if cached compile is valid
+    if not force and os.path.exists(stamp_file) and os.path.exists(os.path.join(bdir, "snispoof-fragment.exe")):
+        try:
+            with open(stamp_file, "r") as sf:
+                stamp = json.load(sf)
+            if (stamp.get("server_ip") == srv_ip and
+                stamp.get("server_domain") == srv_domain and
+                stamp.get("server_port") == srv_port and
+                stamp.get("relay_ports") == relay_ports and
+                stamp.get("fake_sni") == fake_sni):
+                return {
+                    "success": True,
+                    "cached": True,
+                    "server_ip": srv_ip,
+                    "server_domain": srv_domain,
+                    "server_port": srv_port,
+                    "relay_ports": relay_ports,
+                    "fake_sni": fake_sni
+                }
+        except Exception:
+            pass
+
+    go_bin = ensure_golang_installed()
+    if not go_bin:
+        return {"success": False, "error": "کامپایلر زبان Go روی سرور نصب نیست و نصب خودکار آن انجام نشد"}
+
+    go_src = os.path.join(bdir, "snispoof-client.go")
+    if not os.path.exists(go_src):
+        return {"success": False, "error": f"سورس کد Go در مسیر {go_src} یافت نشد"}
+
+    # Update defaultConfig in snispoof-client.go source
+    try:
+        with open(go_src, "r", encoding="utf-8") as f:
+            src_content = f.read()
+        src_content = re.sub(r'ServerDomain:\s*"[^"]*"', f'ServerDomain:    "{srv_domain}"', src_content)
+        src_content = re.sub(r'ServerIP:\s*"[^"]*"', f'ServerIP:        "{srv_ip}"', src_content)
+        src_content = re.sub(r'ServerPort:\s*[0-9]+', f'ServerPort:      {srv_port}', src_content)
+        src_content = re.sub(r'FakeSNI:\s*"[^"]*"', f'FakeSNI:         "{fake_sni}"', src_content)
+        ports_code = ", ".join(str(p) for p in relay_ports)
+        src_content = re.sub(r'RelayPorts:\s*\[\]int\{[^\}]*\}', f'RelayPorts:      []int{{{ports_code}}}', src_content)
+        with open(go_src, "w", encoding="utf-8") as f:
+            f.write(src_content)
+    except Exception:
+        pass
+
+    # Compile Windows amd64 binary with ldflags
+    ldflags = f"-s -w -X 'main.builtServerIP={srv_ip}' -X 'main.builtServerDomain={srv_domain}' -X 'main.builtServerPort={srv_port}' -X 'main.builtRelayPorts={ports_str}' -X 'main.builtFakeSNI={fake_sni}'"
+    env_win = os.environ.copy()
+    env_win["GOOS"] = "windows"
+    env_win["GOARCH"] = "amd64"
+    env_win["CGO_ENABLED"] = "0"
+    target_exe = os.path.join(bdir, "snispoof-client.exe")
+    res_win = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_exe, "snispoof-client.go"],
+                             cwd=bdir, env=env_win, capture_output=True, text=True, timeout=60)
+    if res_win.returncode != 0:
+        return {"success": False, "error": f"خطا در کامپایل ویندوز: {res_win.stderr}"}
+
+    # Clone for the 6 strategies so dedicated binaries exist
+    strategies = ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq"]
+    compiled_files = ["snispoof-client.exe"]
+    for strat in strategies:
+        dst = os.path.join(bdir, f"snispoof-{strat}.exe")
+        shutil.copyfile(target_exe, dst)
+        os.chmod(dst, 0o755)
+        compiled_files.append(f"snispoof-{strat}.exe")
+    os.chmod(target_exe, 0o755)
+
+    # Compile Linux binary (amd64)
+    env_lin = os.environ.copy()
+    env_lin["GOOS"] = "linux"
+    env_lin["GOARCH"] = "amd64"
+    env_lin["CGO_ENABLED"] = "0"
+    target_lin = os.path.join(bdir, "snispoof-client")
+    res_lin = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_lin, "snispoof-client.go"],
+                             cwd=bdir, env=env_lin, capture_output=True, text=True, timeout=60)
+    if res_lin.returncode == 0 and os.path.exists(target_lin):
+        os.chmod(target_lin, 0o755)
+        compiled_files.append("snispoof-client")
+
+    # Update .bat files
+    for strat in ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq", "client"]:
+        bat_file = os.path.join(bdir, f"snispoof-{strat}.bat")
+        if os.path.exists(bat_file):
+            try:
+                with open(bat_file, "r", encoding="utf-8") as bf:
+                    bcontent = bf.read()
+                bcontent = re.sub(r'set SERVER_IP=[^\r\n]*', f'set SERVER_IP={srv_ip}', bcontent)
+                bcontent = re.sub(r'set SERVER_PORT=[^\r\n]*', f'set SERVER_PORT={srv_port}', bcontent)
+                bcontent = re.sub(r'set FAKE_SNI=[^\r\n]*', f'set FAKE_SNI={fake_sni}', bcontent)
+                if 'set RELAY_PORTS=' not in bcontent:
+                    bcontent = bcontent.replace(f'set SERVER_PORT={srv_port}', f'set SERVER_PORT={srv_port}\nset RELAY_PORTS={ports_str}')
+                else:
+                    bcontent = re.sub(r'set RELAY_PORTS=[^\r\n]*', f'set RELAY_PORTS={ports_str}', bcontent)
+                if '-ports' not in bcontent:
+                    bcontent = bcontent.replace("-relay %LOCAL_RELAY%", "-relay %LOCAL_RELAY% -ports %RELAY_PORTS%")
+                with open(bat_file, "w", encoding="utf-8") as bf:
+                    bf.write(bcontent)
+            except Exception:
+                pass
+
+    # Update default client config.json
+    client_cfg = {
+        "server_domain": srv_domain,
+        "server_ip": srv_ip,
+        "server_port": srv_port,
+        "local_socks_port": 40808,
+        "local_relay_port": 40443,
+        "relay_ports": relay_ports,
+        "fake_sni": fake_sni,
+        "strategy": "tls_fragment",
+        "low_ttl_hops": 5,
+        "fragment_size": 2,
+        "fragment_delay_ms": 3,
+        "auto_start": True
+    }
+    with open(os.path.join(bdir, "config.json"), "w", encoding="utf-8") as cjf:
+        json.dump(client_cfg, cjf, indent=2)
+
+    # Save stamp
+    stamp_data = {
+        "server_ip": srv_ip,
+        "server_domain": srv_domain,
+        "server_port": srv_port,
+        "relay_ports": relay_ports,
+        "fake_sni": fake_sni,
+        "compiled_at": int(time.time()),
+        "compiled_files": compiled_files
+    }
+    with open(stamp_file, "w", encoding="utf-8") as sf:
+        json.dump(stamp_data, sf, indent=2)
+
+    return {
+        "success": True,
+        "server_ip": srv_ip,
+        "server_domain": srv_domain,
+        "server_port": srv_port,
+        "relay_ports": relay_ports,
+        "fake_sni": fake_sni,
+        "compiled_files": compiled_files
+    }
+
+
+@app.route("/api/snispoof/detect-ports", methods=["GET"])
+def api_snispoof_detect_ports():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ports = get_snispoof_default_relay_ports()
+    return jsonify({"success": True, "ports": ports})
+
+
+@app.route("/api/snispoof/recompile", methods=["POST"])
+def api_snispoof_recompile():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    relay_ports = data.get("relay_ports")
+    port = data.get("port")
+    if port:
+        try:
+            port = int(port)
+        except Exception:
+            port = None
+    res = compile_snispoof_binaries_for_server(target_port=port, relay_ports=relay_ports, force=True)
+    return jsonify(res)
+
+
 @app.route("/api/snispoof/config", methods=["GET", "POST"])
 def api_snispoof_config():
     if not check_login():
@@ -13655,6 +13893,20 @@ def api_snispoof_config():
         reverse_target_port = int(data.get("reverse_target_port") or 15443)
         sni_pool = data.get("sni_pool") or ["dl.google.com", "sanjesh.org", "shaparak.ir", "speedtest.net"]
 
+        relay_ports_raw = data.get("relay_ports")
+        if relay_ports_raw is not None:
+            cleaned_ports = []
+            for p in relay_ports_raw:
+                try:
+                    pint = int(p)
+                    if 1 <= pint <= 65535 and pint not in cleaned_ports:
+                        cleaned_ports.append(pint)
+                except (ValueError, TypeError):
+                    continue
+            relay_ports = sorted(cleaned_ports) if cleaned_ports else [20443, 40443]
+        else:
+            relay_ports = get_snispoof_default_relay_ports()
+
         cfg = {
             "port": port,
             "role": role,
@@ -13671,6 +13923,7 @@ def api_snispoof_config():
             "sni_selection": "rotation",
             "reverse_target_host": reverse_target_host,
             "reverse_target_port": reverse_target_port,
+            "relay_ports": relay_ports,
             "users": []
         }
 
@@ -13680,6 +13933,11 @@ def api_snispoof_config():
 
         subprocess.run(["ufw", "allow", f"{port}/tcp"], capture_output=True)
         subprocess.run(["systemctl", "restart", "mhpanel-snispoof"], capture_output=True)
+
+        try:
+            compile_snispoof_binaries_for_server(target_port=port, relay_ports=relay_ports, fake_sni=sni_pool[0] if sni_pool else None, force=True)
+        except Exception:
+            pass
 
         return jsonify({"success": True})
 
@@ -13694,6 +13952,20 @@ def api_snispoof_config():
     cfg["installed"] = is_installed("snispoof")
     cfg["active"] = get_protocol_active("snispoof")
     cfg["connections"] = get_connection_count("snispoof")
+    cfg["relay_ports"] = cfg.get("relay_ports") or get_snispoof_default_relay_ports()
+
+    import shutil
+    go_bin = shutil.which("go") or ("/usr/bin/go" if os.path.exists("/usr/bin/go") else None)
+    cfg["go_installed"] = bool(go_bin)
+    stamp_file = "/www/wwwroot/mhpanel/bin/.server_stamp"
+    if os.path.exists(stamp_file):
+        try:
+            with open(stamp_file, "r") as sf:
+                cfg["compiler_stamp"] = json.load(sf)
+        except Exception:
+            cfg["compiler_stamp"] = {}
+    else:
+        cfg["compiler_stamp"] = {}
 
     # Load stats if available
     stats_file = "/run/mhpanel-snispoof-stats.json"
@@ -13707,7 +13979,7 @@ def api_snispoof_config():
         cfg["stats"] = {"active_connections": 0, "total_connections": 0}
 
     cfg["server_host"] = srv
-    cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{$true}}; Invoke-WebRequest -Uri 'https://{srv}:{panel_port}/download/snispoof-client.exe' -OutFile 'snispoof-client.exe'; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
+    cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{{{$true}}}}; Invoke-WebRequest -Uri \x27https://{srv}:{panel_port}/download/snispoof-client.exe\x27 -OutFile \x27snispoof-client.exe\x27; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
     cfg["client_cmd_python"] = f"python3 snispoof-client.py -s {srv} -p {port} -l 10808 --strategy {strat}"
 
     cfg["reality_port"] = d["r_port"]

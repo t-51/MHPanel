@@ -163,7 +163,7 @@ protocol_label() {
         openvpn) echo "OpenVPN (UDP/TCP & Multi-Port)" ;;
         ocserv) echo "Ocserv (Cisco AnyConnect)" ;;
         ikev2) echo "IKEv2 StrongSwan (IPSec)" ;;
-        sstp) echo "SSTP Server (SSL VPN)" ;;
+        sstp) echo "SSTP Server (SoftEther SSL VPN)" ;;
         l2tp) echo "L2TP/IPsec (Site-to-Site)" ;;
         wireguard) echo "WireGuard (High-Speed P2P)" ;;
         amneziawg) echo "AmneziaWG (Anti-DPI Obfuscated)" ;;
@@ -186,7 +186,7 @@ protocol_label() {
         tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
         singbox) echo "Sing-box Universal Suite (VLESS/Reality/Trojan/Hysteria2)" ;;
         google_script) echo "Google Apps Script Full Tunnel (GAS Relay)" ;;
-        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / BadChecksum / Low-TTL)" ;;
+        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / Patterniha Desync / BadChecksum / Low-TTL)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -200,7 +200,7 @@ protocol_default_port() {
         sstp) echo "4443" ;;
         l2tp) echo "1701" ;;
         wireguard) echo "51820" ;;
-        amneziawg) echo "51821" ;;
+        amneziawg) echo "2053" ;;
         http) echo "8080" ;;
         socks) echo "1080" ;;
         shadowsocks) echo "8388" ;;
@@ -282,7 +282,7 @@ resolve_clean_port() {
         if ss -tlnp 2>/dev/null | grep -qE "(:${final_port}\b)" || ss -ulnp 2>/dev/null | grep -qE "(:${final_port}\b)"; then
             case "$proto" in
                 ocserv) final_port=10443 ;;
-                amneziawg) final_port=51821 ;;
+                amneziawg) final_port=2053 ;;
                 trojan) final_port=12443 ;;
                 naiveproxy) final_port=13443 ;;
                 hysteria2) final_port=11443 ;;
@@ -305,7 +305,7 @@ resolve_clean_port() {
                 naiveproxy) final_port=13443 ;;
                 stuntls) final_port=3478 ;;
                 wireguard) final_port=51820 ;;
-                amneziawg) final_port=51821 ;;
+                amneziawg) final_port=2053 ;;
                 ocserv) final_port=10443 ;;
                 *)
                     local p=$final_port
@@ -328,7 +328,7 @@ protocol_is_installed() {
         openvpn) [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ] ;;
         ocserv) [ -f "/etc/ocserv/ocserv.conf" ] ;;
         ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null) ;;
-        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] || [ -f "/etc/accel-ppp.conf" ] ;;
+        sstp) [ -f "/etc/systemd/system/vpnserver.service" ] || [ -x "/usr/local/vpnserver/vpnserver" ] ;;
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
@@ -388,13 +388,7 @@ protocol_service_status() {
             [ -z "$svc" ] && svc="strongswan-starter"
             ;;
         sstp)
-            for s in sstpd accel-ppp vpnserver; do
-                if systemctl is-active --quiet "$s" 2>/dev/null; then
-                    svc="$s"
-                    break
-                fi
-            done
-            [ -z "$svc" ] && svc="sstpd"
+            svc="vpnserver"
             ;;
         l2tp) svc="xl2tpd" ;;
         wireguard) svc="wg-quick@wg0" ;;
@@ -470,7 +464,11 @@ protocol_current_port() {
         openvpn) port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' | tail -n1) ;;
         ocserv) port=$(grep -Ei '^tcp-port' /etc/ocserv/ocserv.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
         ikev2) echo "500/4500 (UDP)"; return ;;
-        sstp) port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        sstp)
+            port=$(grep -oE '"port":\s*[0-9]+' "${PANEL_DIR}/sstp_config.json" 2>/dev/null | awk '{print $2}' | tail -n1)
+            [ -z "$port" ] && port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1)
+            [ -z "$port" ] && port="4443"
+            ;;
         l2tp) echo "1701 (UDP)"; return ;;
         wireguard) port=$(grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
         amneziawg) port=$(grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
@@ -552,7 +550,7 @@ EOF
     # Remove broken third-party repos that can break apt-get update
     rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth; do
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -661,6 +659,9 @@ enable_bbr_and_sysctl() {
     cat > /etc/sysctl.d/99-mhpanel.conf <<EOF
 # MH Panel Kernel & Network Optimization
 net.ipv4.ip_forward=1
+net.ipv4.tcp_mtu_probing=1
+net.ipv4.conf.all.rp_filter=0
+net.ipv4.conf.default.rp_filter=0
 net.ipv4.tcp_fastopen=3
 net.ipv4.tcp_fin_timeout=15
 net.ipv4.tcp_tw_reuse=1
@@ -785,6 +786,19 @@ install_panel_web_ui() {
         chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
     fi
 
+    # Cross-compile customized StunTLS client for this specific server
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+        echo "    Cross-compiling customized StunTLS client for this server..."
+        (
+            cd "${PANEL_DIR}/bin" || exit 0
+            srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
+            chmod +x stuntls-client 2>/dev/null || true
+            echo "${srv_pub}:3478:stuntls-secret:9090" > stuntls-client.stamp
+        ) || true
+    fi
+
     # Ensure python3-venv and python3-pip are installed
     if ! dpkg -s python3-venv >/dev/null 2>&1 || ! dpkg -s python3-pip >/dev/null 2>&1; then
         run_apt install python3-venv python3-pip 2>/dev/null || true
@@ -896,23 +910,21 @@ EOF
     if [ ! -f "${PANEL_DIR}/sstp_config.json" ]; then
         cat > "${PANEL_DIR}/sstp_config.json" <<'EOF'
 {
-  "engine": "sstpd",
+  "engine": "softether",
   "port": 4443,
   "sni": "sstp.example.com",
   "haproxy_443": true,
   "stunnel_multiport": true,
   "stunnel_ports": [9443, 2087],
-  "local_ip": "10.20.20.1",
-  "remote_subnet": "10.20.20.0/24",
-  "ip_range": "10.20.20.10-250",
+  "local_ip": "192.168.30.1",
+  "remote_subnet": "192.168.30.0/24",
+  "ip_range": "192.168.30.10-250",
   "dns1": "8.8.8.8",
   "dns2": "1.1.1.1",
   "mtu": 1400,
   "mru": 1400,
-  "cipher_preset": "all_aes_sha",
-  "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4",
-  "mppe_mode": "require-mppe-128",
-  "auth_mode": "radius_and_chap"
+  "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+  "auth_mode": "radius_and_local"
 }
 EOF
     fi
@@ -1245,6 +1257,79 @@ EOF
     systemctl enable badvpn.service >/dev/null 2>&1
     systemctl restart badvpn.service >/dev/null 2>&1 || true
     echo -e "    ${GREEN}[✓] BadVPN UDPGW service successfully started on port 7300.${NC}"
+}
+
+# Cloudflare WARP and AmneziaWG Outbound Gateway
+install_cloudflare_warp() {
+    echo -e "    Checking Cloudflare WARP & AmneziaWG Gateway..."
+    export DEBIAN_FRONTEND=noninteractive
+
+    # Install cloudflare-warp if missing
+    if ! command -v warp-cli >/dev/null 2>&1; then
+        echo "    Adding Cloudflare WARP repository..."
+        curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg 2>/dev/null || true
+        local codename=$(lsb_release -cs 2>/dev/null || echo "focal")
+        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ ${codename} main" > /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null || true
+        run_apt update 2>/dev/null || true
+        run_apt install --no-install-recommends cloudflare-warp 2>/dev/null || apt-get install -y --no-install-recommends cloudflare-warp 2>/dev/null || true
+    fi
+
+    # SAFETY: Keep WARP strictly in proxy mode (SOCKS5 127.0.0.1:40000).
+    # Never hijack the default route or default gateway of the server.
+    # Services are kept stopped and disabled by default until the administrator toggles them from the panel.
+    if command -v warp-cli >/dev/null 2>&1; then
+        systemctl stop warp-svc >/dev/null 2>&1 || true
+        systemctl disable warp-svc >/dev/null 2>&1 || true
+        warp-cli --accept-tos mode proxy >/dev/null 2>&1 || true
+        warp-cli --accept-tos proxy port 40000 >/dev/null 2>&1 || true
+        warp-cli --accept-tos disconnect >/dev/null 2>&1 || true
+    fi
+
+    # Install tun2socks binary
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -f "${bdir}/tun2socks" ]; then
+            cp -f "${bdir}/tun2socks" /usr/local/bin/tun2socks 2>/dev/null || true
+            chmod +x /usr/local/bin/tun2socks 2>/dev/null || true
+            break
+        fi
+    done
+
+    # Install amnezia-warp scripts
+    for sdir in "${PANEL_DIR}/scripts" "${SCRIPT_DIR}/scripts" "/root/mhpanel-repo/scripts"; do
+        if [ -f "${sdir}/amnezia-warp-up.sh" ]; then
+            cp -f "${sdir}/amnezia-warp-up.sh" /usr/local/bin/amnezia-warp-up.sh 2>/dev/null || true
+            cp -f "${sdir}/amnezia-warp-down.sh" /usr/local/bin/amnezia-warp-down.sh 2>/dev/null || true
+            chmod +x /usr/local/bin/amnezia-warp-up.sh /usr/local/bin/amnezia-warp-down.sh 2>/dev/null || true
+            break
+        fi
+    done
+
+    # Create systemd service for mhpanel-amnezia-warp
+    cat > /etc/systemd/system/mhpanel-amnezia-warp.service <<'WARPEOF'
+[Unit]
+Description=MHPanel AmneziaWG Cloudflare WARP Outbound Gateway
+After=network.target warp-svc.service
+Wants=warp-svc.service
+
+[Service]
+Type=simple
+ExecStartPre=-/sbin/ip link delete awg-warp
+ExecStart=/usr/local/bin/tun2socks --device awg-warp --proxy socks5://127.0.0.1:40000 --tun-post-up /usr/local/bin/amnezia-warp-up.sh --loglevel warn
+ExecStartPost=/usr/local/bin/amnezia-warp-up.sh
+ExecStopPost=/usr/local/bin/amnezia-warp-down.sh
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+WARPEOF
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl disable --now mhpanel-amnezia-warp >/dev/null 2>&1 || true
+    ip rule del table 51821 priority 1000 2>/dev/null || true
+    ip rule del table 51821 priority 1001 2>/dev/null || true
+    ip rule del priority 990 2>/dev/null || true
+    ip route flush table 51821 2>/dev/null || true
+    ip link delete dev awg-warp 2>/dev/null || true
 }
 
 install_tunnel_tools() {
@@ -1590,6 +1675,41 @@ install_tunnel_tools() {
         fi
     done
 
+    # SNI Spoofing Hub Daemon
+    for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
+        if [ -f "${bdir}/snispoof-server.py" ] && [ ! -x /usr/local/bin/mhpanel-snispoof ]; then
+            ln -sf "${bdir}/snispoof-server.py" /usr/local/bin/mhpanel-snispoof 2>/dev/null || true
+            chmod +x "${bdir}/snispoof-server.py" /usr/local/bin/mhpanel-snispoof 2>/dev/null || true
+            break
+        fi
+    done
+    [ -d "${PANEL_DIR}/bin" ] && chmod +x ${PANEL_DIR}/bin/snispoof* 2>/dev/null || true
+
+    # Ensure Go compiler is installed and compile SNI Spoofing binaries for this server
+    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
+        if ! command -v go >/dev/null 2>&1; then
+            echo -e "    ${CYAN}Installing Go compiler (golang-go)...${NC}"
+            run_apt update 2>/dev/null || true
+            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
+        fi
+        if command -v go >/dev/null 2>&1; then
+            echo -e "    ${GREEN}[✓] Compiling SNI Spoofing binaries for this server...${NC}"
+            (
+                cd "${PANEL_DIR}/bin" || exit 0
+                srv_ip="${SERVER_IP:-$(curl -s4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
+                srv_domain="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_ip})"
+                GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client.exe ]; then
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                chmod +x snispoof* 2>/dev/null || true
+            )
+        fi
+    fi
+
     # AmneziaWG tools & userspace binary
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
         for b in awg awg-quick amneziawg-go; do
@@ -1601,6 +1721,7 @@ install_tunnel_tools() {
         done
     done
 
+    install_cloudflare_warp
     echo -e "    ${GREEN}[✓] Anti-censorship tunnel binaries verified (${count_downloaded} new files downloaded).${NC}"
 }
 
@@ -1651,9 +1772,9 @@ protocol_ensure_active() {
         ocserv) systemctl restart ocserv 2>/dev/null || true ;;
         ikev2) systemctl restart strongswan-starter strongswan ipsec 2>/dev/null || true ;;
         sstp)
-            if [ -f /etc/systemd/system/sstpd.service ]; then
+            if [ -f /etc/systemd/system/vpnserver.service ] || [ -x /usr/local/vpnserver/vpnserver ]; then
                 systemctl daemon-reload
-                systemctl restart sstpd 2>/dev/null || true
+                systemctl restart vpnserver 2>/dev/null || true
             else
                 install_protocol_action "sstp" "${def_port}"
             fi
@@ -1731,8 +1852,12 @@ wizard_full_automated() {
     done
 
     echo -e "\n${YELLOW}>>> [6/6] Synchronizing firewall rules, TCP MSS clamping, and routing state...${NC}"
-    if [ -x "/www/wwwroot/mhpanel/scripts/protocol_helper.sh" ]; then
-        /www/wwwroot/mhpanel/scripts/protocol_helper.sh setup-nat 2>/dev/null || true
+    local helper_script="${PANEL_DIR}/scripts/protocol_helper.sh"
+    [ -f "$helper_script" ] || helper_script="${SCRIPT_DIR}/scripts/protocol_helper.sh"
+    [ -f "$helper_script" ] || helper_script="/root/mhpanel-repo/scripts/protocol_helper.sh"
+    if [ -f "$helper_script" ]; then
+        chmod +x "$helper_script" 2>/dev/null || true
+        bash "$helper_script" setup-nat 2>/dev/null || true
     fi
     if command -v iptables-save >/dev/null 2>&1; then
         mkdir -p /etc/iptables
@@ -2032,7 +2157,7 @@ menu_vpn_protocols() {
                             done
                             [ -z "$svc" ] && svc="strongswan"
                             ;;
-                        sstp) svc="sstpd" ;;
+                        sstp) svc="vpnserver" ;;
                         l2tp) svc="xl2tpd" ;;
                         shadowsocks) svc="mhpanel-shadowsocks" ;;
                         tuic) svc="mhpanel-tuic" ;;
@@ -2076,7 +2201,7 @@ menu_vpn_protocols() {
                             done
                             [ -z "$svc" ] && svc="strongswan"
                             ;;
-                        sstp) svc="sstpd" ;;
+                        sstp) svc="vpnserver" ;;
                         l2tp) svc="xl2tpd" ;;
                         shadowsocks) svc="mhpanel-shadowsocks" ;;
                         tuic) svc="mhpanel-tuic" ;;
@@ -3079,13 +3204,19 @@ update_panel_repo() {
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/badvpn-udpgw" -o "${PANEL_DIR}/scripts/daemons/badvpn-udpgw" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/daemons/mhpanel-gas-server" -o "${PANEL_DIR}/scripts/daemons/mhpanel-gas-server" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/dashboard.html" -o "${PANEL_DIR}/templates/dashboard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/subscription.html" -o "${PANEL_DIR}/templates/subscription.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/group_portal.html" -o "${PANEL_DIR}/templates/group_portal.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/header.html" -o "${PANEL_DIR}/templates/partials/header.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/sidebar.html" -o "${PANEL_DIR}/templates/partials/sidebar.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/styles.html" -o "${PANEL_DIR}/templates/partials/styles.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_system.html" -o "${PANEL_DIR}/templates/partials/tab_system.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_terminal.html" -o "${PANEL_DIR}/templates/partials/tab_terminal.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_wireguard.html" -o "${PANEL_DIR}/templates/partials/tab_wireguard.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_amneziawg.html" -o "${PANEL_DIR}/templates/partials/tab_amneziawg.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_singbox.html" -o "${PANEL_DIR}/templates/partials/tab_singbox.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_multiplexer.html" -o "${PANEL_DIR}/templates/partials/tab_multiplexer.html" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_google_script.html" -o "${PANEL_DIR}/templates/partials/tab_google_script.html" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/tab_snispoof.html" -o "${PANEL_DIR}/templates/partials/tab_snispoof.html" 2>/dev/null || true
         mkdir -p "${PANEL_DIR}/templates/gas"
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/gas/CodeFull.gs" -o "${PANEL_DIR}/templates/gas/CodeFull.gs" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/templates/partials/modals.html" -o "${PANEL_DIR}/templates/partials/modals.html" 2>/dev/null || true
@@ -3222,9 +3353,9 @@ EOF
                 "$HELPER" uninstall "$p" 2>/dev/null || true
             done
         fi
-        systemctl stop mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter ipsec openvpn openvpn@* wg-quick@* awg-quick@* 2>/dev/null || true
-        systemctl disable mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter openvpn wg-quick@* awg-quick@* 2>/dev/null || true
-        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service /etc/systemd/system/sstpd.service /etc/systemd/system/awg-quick@*.service
+        systemctl stop mhpanel-* badvpn vpnserver sstpd ocserv xl2tpd pptpd strongswan strongswan-starter ipsec openvpn openvpn@* wg-quick@* awg-quick@* 2>/dev/null || true
+        systemctl disable mhpanel-* badvpn vpnserver sstpd ocserv xl2tpd pptpd strongswan strongswan-starter openvpn wg-quick@* awg-quick@* 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service /etc/systemd/system/vpnserver.service /etc/systemd/system/sstpd.service /etc/systemd/system/awg-quick@*.service
         systemctl daemon-reload
     else
         echo -e "${GREEN}>>> [2/5] Keeping VPN protocols intact as requested.${NC}"
@@ -3235,7 +3366,7 @@ EOF
 
     if [[ "$purge_conf" =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}>>> [4/5] Purging configuration directories and logs...${NC}"
-        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups /etc/sing-box /etc/amnezia /etc/accel-ppp.conf /etc/ppp/options.sstpd /etc/pptpd.conf /etc/xl2tpd /etc/ocserv /etc/tor/torrc 2>/dev/null || true
+        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups /etc/sing-box /etc/amnezia /etc/accel-ppp.conf /etc/ppp/options.sstpd /etc/pptpd.conf /etc/xl2tpd /etc/ocserv /etc/tor/torrc /usr/local/vpnserver 2>/dev/null || true
     else
         echo -e "${GREEN}>>> [4/5] Preserving /etc/vpnpanel configurations for future reinstallation.${NC}"
     fi
@@ -3291,7 +3422,7 @@ EOF
     echo -e "  ${CYAN}mhpanel protocol uninstall <نام>${NC}       حذف و توقف کامل پروتکل"
     echo -e "  ${CYAN}mhpanel protocol set-port <نام> <پورت>${NC} تغییر پورت شنود پروتکل"
     echo -e "  ${CYAN}mhpanel protocol logs <نام>${NC}           مشاهده لاگ‌های زنده با journalctl"
-    echo -e "  ${DIM}نام‌های معتبر: singbox, google_script, amneziawg, ssh, openvpn, ocserv, hysteria2, trojan, etc.${NC}"
+    echo -e "  ${DIM}نام‌های معتبر: singbox, snispoof, google_script, amneziawg, ssh, openvpn, ocserv, hysteria2, trojan, etc.${NC}"
     echo ""
 
     echo -e "${WHITE}${BOLD}4. دستورات مدیریت سرویس و بروزرسانی (Service Control & Maintenance):${NC}"

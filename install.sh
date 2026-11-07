@@ -163,7 +163,7 @@ protocol_label() {
         openvpn) echo "OpenVPN (UDP/TCP & Multi-Port)" ;;
         ocserv) echo "Ocserv (Cisco AnyConnect)" ;;
         ikev2) echo "IKEv2 StrongSwan (IPSec)" ;;
-        sstp) echo "SSTP Server (SSL VPN)" ;;
+        sstp) echo "SSTP Server (SoftEther SSL VPN)" ;;
         l2tp) echo "L2TP/IPsec (Site-to-Site)" ;;
         wireguard) echo "WireGuard (High-Speed P2P)" ;;
         amneziawg) echo "AmneziaWG (Anti-DPI Obfuscated)" ;;
@@ -328,7 +328,7 @@ protocol_is_installed() {
         openvpn) [ -f "/etc/openvpn/server.conf" ] || [ -f "/etc/openvpn/server/server.conf" ] || [ -f "/etc/openvpn/server-tcp.conf" ] ;;
         ocserv) [ -f "/etc/ocserv/ocserv.conf" ] ;;
         ikev2) [ -f "/etc/swanctl/conf.d/ikev2.conf" ] || ([ -f "/etc/ipsec.conf" ] && grep -q "conn ikev2" /etc/ipsec.conf 2>/dev/null) ;;
-        sstp) [ -f "/etc/systemd/system/sstpd.service" ] || [ -f "/etc/systemd/system/vpnserver.service" ] || [ -f "/etc/accel-ppp.conf" ] ;;
+        sstp) [ -f "/etc/systemd/system/vpnserver.service" ] || [ -x "/usr/local/vpnserver/vpnserver" ] ;;
         l2tp) [ -f "/etc/xl2tpd/xl2tpd.conf" ] ;;
         wireguard) [ -f "/etc/wireguard/wg0.conf" ] ;;
         amneziawg) [ -f "/etc/amnezia/amneziawg/awg0.conf" ] ;;
@@ -388,13 +388,7 @@ protocol_service_status() {
             [ -z "$svc" ] && svc="strongswan-starter"
             ;;
         sstp)
-            for s in sstpd accel-ppp vpnserver; do
-                if systemctl is-active --quiet "$s" 2>/dev/null; then
-                    svc="$s"
-                    break
-                fi
-            done
-            [ -z "$svc" ] && svc="sstpd"
+            svc="vpnserver"
             ;;
         l2tp) svc="xl2tpd" ;;
         wireguard) svc="wg-quick@wg0" ;;
@@ -470,7 +464,11 @@ protocol_current_port() {
         openvpn) port=$(grep -Ei '^port ' /etc/openvpn/server.conf 2>/dev/null | awk '{print $2}' | tail -n1) ;;
         ocserv) port=$(grep -Ei '^tcp-port' /etc/ocserv/ocserv.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
         ikev2) echo "500/4500 (UDP)"; return ;;
-        sstp) port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1) ;;
+        sstp)
+            port=$(grep -oE '"port":\s*[0-9]+' "${PANEL_DIR}/sstp_config.json" 2>/dev/null | awk '{print $2}' | tail -n1)
+            [ -z "$port" ] && port=$(grep -oE '\-p [0-9]+' /etc/systemd/system/sstpd.service 2>/dev/null | awk '{print $2}' | tail -n1)
+            [ -z "$port" ] && port="4443"
+            ;;
         l2tp) echo "1701 (UDP)"; return ;;
         wireguard) port=$(grep -Ei '^ListenPort' /etc/wireguard/wg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
         amneziawg) port=$(grep -Ei '^ListenPort' /etc/amnezia/amneziawg/awg0.conf 2>/dev/null | awk '{print $3}' | tail -n1) ;;
@@ -912,23 +910,21 @@ EOF
     if [ ! -f "${PANEL_DIR}/sstp_config.json" ]; then
         cat > "${PANEL_DIR}/sstp_config.json" <<'EOF'
 {
-  "engine": "sstpd",
+  "engine": "softether",
   "port": 4443,
   "sni": "sstp.example.com",
   "haproxy_443": true,
   "stunnel_multiport": true,
   "stunnel_ports": [9443, 2087],
-  "local_ip": "10.20.20.1",
-  "remote_subnet": "10.20.20.0/24",
-  "ip_range": "10.20.20.10-250",
+  "local_ip": "192.168.30.1",
+  "remote_subnet": "192.168.30.0/24",
+  "ip_range": "192.168.30.10-250",
   "dns1": "8.8.8.8",
   "dns2": "1.1.1.1",
   "mtu": 1400,
   "mru": 1400,
-  "cipher_preset": "all_aes_sha",
-  "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4",
-  "mppe_mode": "require-mppe-128",
-  "auth_mode": "radius_and_chap"
+  "cipher": "ECDHE-RSA-AES256-GCM-SHA384",
+  "auth_mode": "radius_and_local"
 }
 EOF
     fi
@@ -1776,9 +1772,9 @@ protocol_ensure_active() {
         ocserv) systemctl restart ocserv 2>/dev/null || true ;;
         ikev2) systemctl restart strongswan-starter strongswan ipsec 2>/dev/null || true ;;
         sstp)
-            if [ -f /etc/systemd/system/sstpd.service ]; then
+            if [ -f /etc/systemd/system/vpnserver.service ] || [ -x /usr/local/vpnserver/vpnserver ]; then
                 systemctl daemon-reload
-                systemctl restart sstpd 2>/dev/null || true
+                systemctl restart vpnserver 2>/dev/null || true
             else
                 install_protocol_action "sstp" "${def_port}"
             fi
@@ -2161,7 +2157,7 @@ menu_vpn_protocols() {
                             done
                             [ -z "$svc" ] && svc="strongswan"
                             ;;
-                        sstp) svc="sstpd" ;;
+                        sstp) svc="vpnserver" ;;
                         l2tp) svc="xl2tpd" ;;
                         shadowsocks) svc="mhpanel-shadowsocks" ;;
                         tuic) svc="mhpanel-tuic" ;;
@@ -2205,7 +2201,7 @@ menu_vpn_protocols() {
                             done
                             [ -z "$svc" ] && svc="strongswan"
                             ;;
-                        sstp) svc="sstpd" ;;
+                        sstp) svc="vpnserver" ;;
                         l2tp) svc="xl2tpd" ;;
                         shadowsocks) svc="mhpanel-shadowsocks" ;;
                         tuic) svc="mhpanel-tuic" ;;
@@ -3357,9 +3353,9 @@ EOF
                 "$HELPER" uninstall "$p" 2>/dev/null || true
             done
         fi
-        systemctl stop mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter ipsec openvpn openvpn@* wg-quick@* awg-quick@* 2>/dev/null || true
-        systemctl disable mhpanel-* badvpn sstpd ocserv xl2tpd pptpd strongswan strongswan-starter openvpn wg-quick@* awg-quick@* 2>/dev/null || true
-        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service /etc/systemd/system/sstpd.service /etc/systemd/system/awg-quick@*.service
+        systemctl stop mhpanel-* badvpn vpnserver sstpd ocserv xl2tpd pptpd strongswan strongswan-starter ipsec openvpn openvpn@* wg-quick@* awg-quick@* 2>/dev/null || true
+        systemctl disable mhpanel-* badvpn vpnserver sstpd ocserv xl2tpd pptpd strongswan strongswan-starter openvpn wg-quick@* awg-quick@* 2>/dev/null || true
+        rm -f /etc/systemd/system/mhpanel-*.service /etc/systemd/system/badvpn.service /etc/systemd/system/vpnserver.service /etc/systemd/system/sstpd.service /etc/systemd/system/awg-quick@*.service
         systemctl daemon-reload
     else
         echo -e "${GREEN}>>> [2/5] Keeping VPN protocols intact as requested.${NC}"
@@ -3370,7 +3366,7 @@ EOF
 
     if [[ "$purge_conf" =~ ^[Yy]$ ]]; then
         echo -e "${YELLOW}>>> [4/5] Purging configuration directories and logs...${NC}"
-        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups /etc/sing-box /etc/amnezia /etc/accel-ppp.conf /etc/ppp/options.sstpd /etc/pptpd.conf /etc/xl2tpd /etc/ocserv /etc/tor/torrc 2>/dev/null || true
+        rm -rf /etc/vpnpanel /etc/mhpanel /var/log/mhpanel* /root/mhpanel_backups /etc/sing-box /etc/amnezia /etc/accel-ppp.conf /etc/ppp/options.sstpd /etc/pptpd.conf /etc/xl2tpd /etc/ocserv /etc/tor/torrc /usr/local/vpnserver 2>/dev/null || true
     else
         echo -e "${GREEN}>>> [4/5] Preserving /etc/vpnpanel configurations for future reinstallation.${NC}"
     fi
