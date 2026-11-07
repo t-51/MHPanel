@@ -27,6 +27,7 @@
     var currentManageAvailableInbounds = [];
     var currentManageUserInboundTags = new Set();
     var currentSingboxInboundShareData = null;
+    var activeSingboxOutbounds = [];
 
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
@@ -21404,6 +21405,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const obCountPill = document.getElementById("sb-badge-outbounds-count");
                 if (obCountPill) obCountPill.textContent = data.outbounds_count || 0;
 
+                const obCountStat = document.getElementById("singbox-stat-outbounds-count");
+                if (obCountStat) obCountStat.textContent = data.outbounds_count || 0;
+
                 const svcTextEl = document.getElementById("singbox-stat-service-text");
                 if (svcTextEl) {
                     svcTextEl.textContent = data.is_active ? "فعال و در حال اجرا" : "متوقف شده";
@@ -23240,7 +23244,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     // =========================================================================
     // --- Sing-box Outbounds Management Engine ---
     // =========================================================================
-    let activeSingboxOutbounds = [];
+    activeSingboxOutbounds = [];
 
     async function loadSingboxOutbounds() {
         const tbody = document.getElementById("singbox-outbounds-table-body");
@@ -23389,6 +23393,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         document.getElementById("sb-ob-custom-json").value = "";
 
         onSingboxOutboundTypeChange();
+        modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
     }
@@ -23397,10 +23402,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const modal = document.getElementById("modal-singbox-outbound");
         if (!modal) return;
         try {
+            if (typeof toggleLoading === "function") toggleLoading(true, "در حال دریافت مشخصات اوت‌باند...");
             const res = await fetch(`/api/singbox/outbound/${encodeURIComponent(tag)}/details`);
             const data = await res.json();
+            if (typeof toggleLoading === "function") toggleLoading(false);
             if (!data.success) {
-                alert("خطا در دریافت مشخصات اوت‌باند: " + (data.error || ""));
+                if (typeof showToast === "function") showToast("خطا در دریافت مشخصات اوت‌باند: " + (data.error || ""), "error");
+                else alert("خطا در دریافت مشخصات اوت‌باند: " + (data.error || ""));
                 return;
             }
             const ob = data.outbound || {};
@@ -23448,16 +23456,22 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             document.getElementById("sb-ob-custom-json").value = JSON.stringify(ob, null, 2);
 
             onSingboxOutboundTypeChange();
+            modal.classList.add("active");
             modal.style.display = "flex";
             if (window.lucide) lucide.createIcons();
         } catch (e) {
-            alert("خطا در بارگذاری مشخصات اوت‌باند: " + e.message);
+            if (typeof toggleLoading === "function") toggleLoading(false);
+            if (typeof showToast === "function") showToast("خطا در بارگذاری مشخصات اوت‌باند: " + e.message, "error");
+            else alert("خطا در بارگذاری مشخصات اوت‌باند: " + e.message);
         }
     }
 
     function closeSingboxOutboundModal() {
         const modal = document.getElementById("modal-singbox-outbound");
-        if (modal) modal.style.display = "none";
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
     }
 
     function onSingboxOutboundTypeChange() {
@@ -23548,14 +23562,15 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function submitSingboxOutbound(event) {
-        event.preventDefault();
+        if (event) event.preventDefault();
         const mode = document.getElementById("sb-outbound-mode").value;
         const origTag = document.getElementById("sb-outbound-orig-tag").value;
         const tag = document.getElementById("sb-outbound-tag").value.trim();
         const type = document.getElementById("sb-outbound-type").value;
 
         if (!tag) {
-            alert("نام تگ (Tag) الزامی است.");
+            if (typeof showToast === "function") showToast("نام تگ (Tag) الزامی است.", "error");
+            else alert("نام تگ (Tag) الزامی است.");
             return;
         }
 
@@ -23588,9 +23603,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const btn = document.getElementById("sb-outbound-submit-btn");
         const btnText = document.getElementById("sb-outbound-submit-text");
-        const origBtnHtml = btnText.textContent;
-        btn.disabled = true;
-        btnText.textContent = "در حال ذخیره و اعتبارسنجی در هسته...";
+        const origBtnHtml = btnText ? btnText.textContent : "ذخیره";
+        if (btn) btn.disabled = true;
+        if (btnText) btnText.textContent = "در حال ذخیره و اعتبارسنجی در هسته...";
 
         const endpoint = (mode === "edit") 
             ? `/api/singbox/outbound/${encodeURIComponent(origTag)}/edit`
@@ -23606,35 +23621,57 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (data.success) {
                 closeSingboxOutboundModal();
                 loadSingboxOutbounds();
-                alert(data.message || "اوت‌باند با موفقیت ذخیره شد.");
+                if (typeof showToast === "function") showToast(data.message || "اوت‌باند با موفقیت ذخیره شد.", "success");
+                else alert(data.message || "اوت‌باند با موفقیت ذخیره شد.");
             } else {
-                alert("خطا: " + (data.error || "خطای ناشناخته در ذخیره اوت‌باند"));
+                if (typeof showToast === "function") showToast("خطا: " + (data.error || "خطای ناشناخته در ذخیره اوت‌باند"), "error");
+                else alert("خطا: " + (data.error || "خطای ناشناخته در ذخیره اوت‌باند"));
             }
         } catch (e) {
-            alert("خطا در ارتباط با سرور: " + e.message);
+            if (typeof showToast === "function") showToast("خطا در ارتباط با سرور: " + e.message, "error");
+            else alert("خطا در ارتباط با سرور: " + e.message);
         } finally {
-            btn.disabled = false;
-            btnText.textContent = origBtnHtml;
+            if (btn) btn.disabled = false;
+            if (btnText) btnText.textContent = origBtnHtml;
         }
     }
 
     async function deleteSingboxOutbound(tag) {
         if (!confirm(`آیا از حذف اوت‌باند «${tag}» اطمینان دارید؟`)) return;
+        if (typeof toggleLoading === "function") toggleLoading(true, `در حال حذف اوت‌باند ${tag}...`);
         try {
             const res = await fetch(`/api/singbox/outbound/${encodeURIComponent(tag)}/delete`, {
                 method: "POST"
             });
             const data = await res.json();
+            if (typeof toggleLoading === "function") toggleLoading(false);
             if (data.success) {
                 loadSingboxOutbounds();
-                alert(data.message || "اوت‌باند حذف شد.");
+                if (typeof showToast === "function") showToast(data.message || "اوت‌باند حذف شد.", "success");
+                else alert(data.message || "اوت‌باند حذف شد.");
             } else {
-                alert("خطا: " + (data.error || ""));
+                if (typeof showToast === "function") showToast("خطا: " + (data.error || ""), "error");
+                else alert("خطا: " + (data.error || ""));
             }
         } catch (e) {
-            alert("خطا در ارسال درخواست: " + e.message);
+            if (typeof toggleLoading === "function") toggleLoading(false);
+            if (typeof showToast === "function") showToast("خطا در ارسال درخواست: " + e.message, "error");
+            else alert("خطا در ارسال درخواست: " + e.message);
         }
     }
+
+    // Attach all Outbound handlers explicitly to window for global inline accessibility
+    window.loadSingboxOutbounds = loadSingboxOutbounds;
+    window.renderSingboxOutboundsTable = renderSingboxOutboundsTable;
+    window.openSingboxAddOutboundModal = openSingboxAddOutboundModal;
+    window.openSingboxEditOutboundModal = openSingboxEditOutboundModal;
+    window.closeSingboxOutboundModal = closeSingboxOutboundModal;
+    window.onSingboxOutboundTypeChange = onSingboxOutboundTypeChange;
+    window.onSingboxOutboundTransportChange = onSingboxOutboundTransportChange;
+    window.onSingboxOutboundTlsChange = onSingboxOutboundTlsChange;
+    window.onSingboxOutboundRealityChange = onSingboxOutboundRealityChange;
+    window.submitSingboxOutbound = submitSingboxOutbound;
+    window.deleteSingboxOutbound = deleteSingboxOutbound;
 
     async function loadSingboxUsers() {
         try {

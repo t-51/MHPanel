@@ -19,6 +19,10 @@
                     <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
                     <span data-i18n="singbox_add_inbound_btn">افزودن اینباند پروتکل</span>
                 </button>
+                <button class="btn btn-secondary" onclick="openSingboxAddOutboundModal()" type="button" style="display: flex; align-items: center; gap: 6px; border: 1.5px solid rgba(236, 72, 153, 0.45); color: #ec4899; font-weight: 700;">
+                    <i data-lucide="arrow-up-right" style="width: 16px; height: 16px;"></i>
+                    <span>افزودن اوت‌باند جدید</span>
+                </button>
                 <button class="btn btn-primary" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
                     <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
                     <span data-i18n="singbox_add_user_btn">افزودن کاربر محلی</span>
@@ -111,6 +115,24 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
                     Reality، Brutal QUIC، uTLS و Smux
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(236, 72, 153, 0.25); background: var(--bg-card); cursor: pointer;" onclick="switchSingboxSubTab('outbounds')">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #ec4899; font-weight: 700; display: block; margin-bottom: 4px;">اوت‌باندهای خروجی:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="singbox-stat-outbounds-count" style="font-size: 26px; font-weight: 800; color: #ec4899; font-family:'JetBrains Mono', monospace;">-</span>
+                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">مسیر فعال</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(236, 72, 153, 0.15); color: #ec4899; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="arrow-up-right" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    Direct, Warp, Socks, Upstream
                 </div>
             </div>
 
@@ -1864,20 +1886,15 @@
     </div>
 
     <!-- MODAL: Add / Edit Outbound -->
-    <div class="modal" id="modal-singbox-outbound" style="display: none; align-items: center; justify-content: center; z-index: 1050;">
-        <div class="modal-content glass-card" style="max-width: 680px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 0; border: 1px solid rgba(236, 72, 153, 0.35); border-radius: 14px;">
-            <header class="modal-header" style="border-bottom: 1px solid var(--border-color); padding: 16px 22px; display: flex; justify-content: space-between; align-items: center; background: var(--bg-card);">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 34px; height: 34px; border-radius: 10px; background: rgba(236, 72, 153, 0.15); display: flex; align-items: center; justify-content: center; color: #ec4899;">
-                        <i data-lucide="arrow-up-right" style="width: 18px; height: 18px;"></i>
-                    </div>
-                    <div>
-                        <h3 id="sb-outbound-modal-title" style="margin: 0; font-size: 15px; font-weight: 700;">افزودن اوت‌باند جدید (Add Outbound)</h3>
-                        <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">پیکربندی مسیر خروجی و مقصد ترافیک هسته سینگ‌باکس</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-icon" onclick="closeSingboxOutboundModal()" style="border: none; background: transparent; cursor: pointer; color: var(--text-muted);">
-                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+    <div class="modal" id="modal-singbox-outbound">
+        <div class="modal-card" style="max-width: 720px; width: 95%;">
+            <header class="modal-header">
+                <h3 class="modal-title">
+                    <i data-lucide="arrow-up-right" style="color: #ec4899;"></i>
+                    <span id="sb-outbound-modal-title">افزودن اوت‌باند جدید (Add Outbound)</span>
+                </h3>
+                <button type="button" class="modal-close" onclick="closeSingboxOutboundModal()">
+                    <i data-lucide="x"></i>
                 </button>
             </header>
 
@@ -2093,7 +2110,7 @@
                 </div>
 
                 <!-- Footer Buttons -->
-                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+                <footer class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 16px;">
                     <button type="button" class="btn btn-secondary" onclick="closeSingboxOutboundModal()">
                         انصراف
                     </button>
@@ -2101,7 +2118,7 @@
                         <i data-lucide="check" style="width: 14px; height: 14px;"></i>
                         <span id="sb-outbound-submit-text">ذخیره و اعمال اوت‌باند</span>
                     </button>
-                </div>
+                </footer>
             </form>
         </div>
     </div>
