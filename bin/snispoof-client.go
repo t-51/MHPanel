@@ -297,6 +297,19 @@ func loadConfig() {
 					pList = append(pList, int(pf))
 				}
 			}
+			// Automatically merge with all server default ports so Trojan (20444), WS (20460), gRPC (20461) etc. are always bound
+			for _, bp := range defaultConfig.RelayPorts {
+				found := false
+				for _, ep := range pList {
+					if ep == bp {
+						found = true
+						break
+					}
+				}
+				if !found {
+					pList = append(pList, bp)
+				}
+			}
 			if len(pList) > 0 {
 				cfg.RelayPorts = pList
 			}
@@ -574,12 +587,11 @@ func handleTCPRelay(client net.Conn, targetAddr string, defaultPort int) {
 		addLiveLog("DETECT", fmt.Sprintf("Client TLS ClientHello: SNI = \"%s\"", sni))
 		if defaultPort == 40443 {
 			// Auto-route based on SNI if connected on universal port 40443
-			if sni == "mhpanel.kigaping.com" {
-				targetPort = 20456 // VLESS-TCP-TLS default
-				addLiveLog("ROUTER", "Auto-routed mhpanel.kigaping.com -> Port 20456 (VLESS-TCP-TLS)")
-			} else if sni == "cdn.jsdelivr.net" || strings.Contains(sni, "apple") || strings.Contains(sni, "unsplash") {
+			if sni == "cdn.jsdelivr.net" || strings.Contains(sni, "apple") || strings.Contains(sni, "unsplash") {
 				targetPort = 20443 // Reality default
 				addLiveLog("ROUTER", fmt.Sprintf("Auto-routed %s -> Port 20443 (VLESS-Reality)", sni))
+			} else {
+				addLiveLog("WARN", fmt.Sprintf("Port 40443 received SNI %s. Multi-protocol domain: connect to the exact local port (e.g. 127.0.0.1:20444 for Trojan, 127.0.0.1:20460 for WS) instead of 40443 for 100%% reliable routing.", sni))
 			}
 		}
 	} else {

@@ -602,10 +602,10 @@
                                 روش ۱: رله مستقیم TCP (سریع‌ترین و پایدارترین روش)
                             </div>
                             <ol style="font-size: 11.5px; color: var(--text-muted); line-height: 1.7; padding-right: 18px; margin: 0;">
-                                <li>از کانفیگ فعلی خود (VLESS، Trojan یا Shadowsocks) در کلاینت یک کپی بگیرید.</li>
-                                <li>مقدار <strong style="color:#fcd34d;">Address (سرور)</strong> را به <code>127.0.0.1</code> تغییر دهید.</li>
-                                <li>مقدار <strong style="color:#fcd34d;">Port (پورت)</strong> را به <code>40443</code> (پورت پیش‌فرض رله کلاینت) تغییر دهید.</li>
-                                <li><strong>سایر تنظیمات را تغییر ندهید:</strong> UUID، رمز عبور، پروتکل TLS و مسیر (Path) دقیقاً بدون تغییر باقی می‌مانند.</li>
+                                <li>از کانفیگ فعلی خود (Trojan، VLESS، VMess با هر ترنزمیشن: TCP، WebSocket، gRPC یا HTTPUpgrade) در کلاینت یک کپی (Duplicate) بگیرید.</li>
+                                <li>تنها مقدار <strong style="color:#10b981;">Address (آدرس سرور)</strong> را به <code>127.0.0.1</code> تغییر دهید.</li>
+                                <li><strong style="color:#f59e0b;">پورت (Port) را دست نزنید و همان پورت اصلی کانفیگ را حفظ کنید!</strong> (مثلاً برای تروجان TCP پورت <code>20444</code>، برای تروجان وب‌سوکت پورت <code>20460</code>، برای تروجان gRPC پورت <code>20461</code>، برای ریلیتی <code>20443</code>، برای VLESS وب‌سوکت <code>20451</code> و...). نرم‌افزار کلاینت روی تمام این پورت‌ها روی 127.0.0.1 گوش می‌دهد و ترافیک را دقیقاً به سرویس همان ترنزمیشن در سرور می‌رساند.</li>
+                                <li><strong>سایر تنظیمات را تغییر ندهید:</strong> پسورد، UUID، پروتکل TLS، SNI، هش و مسیر (Path) دقیقاً بدون تغییر باقی می‌مانند.</li>
                                 <li>فایل <code>snispoof-client.exe</code> را باز کرده و با زدن کلید <strong>1</strong> پروکسی را Start کنید؛ سپس کانفیگ را در V2RayN فعال نمایید.</li>
                             </ol>
                         </div>
@@ -617,7 +617,8 @@
                             </div>
                             <ol style="font-size: 11.5px; color: var(--text-muted); line-height: 1.7; padding-right: 18px; margin: 0;">
                                 <li>در نرم‌افزارهای Nekoray، Clash یا تلگرام دسکتاپ، بخش پروکسی را باز کنید.</li>
-                                <li>یک پروکسی از نوع <strong style="color:#38bdf8;">SOCKS5</strong> با آدرس <code>127.0.0.1</code> و پورت <code>10808</code> تعریف کنید.</li>
+                                <li>یک پروکسی از نوع <strong style="color:#38bdf8;">SOCKS5</strong> با آدرس <code>127.0.0.1</code> و پورت <code>40808</code> تعریف کنید.</li>
+                                <li>در این روش حتی نیاز به تغییر تک‌تک کانفیگ‌ها ندارید و تمام پروتکل‌ها و ترنزمیشن‌ها با پورت اصلی کار می‌کنند.</li>
                                 <li>تمام ترافیک برنامه مورد نظر بدون نیاز به تغییر تک‌تک کانفیگ‌ها از تونل ضد DPI عبور خواهد کرد.</li>
                             </ol>
                         </div>
