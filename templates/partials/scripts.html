@@ -1402,12 +1402,69 @@
         });
     }
 
+    // Protocol Bandwidth & Traffic Share State
+    window.lastProtoData = null;
+    window.currentProtoFilter = "consuming"; // "consuming", "throughput", "all"
+    window.currentProtoSort = "bytes_desc";  // "bytes_desc", "speed_desc", "conns_desc", "name_asc"
+    window.protoSearchQuery = "";
+
+    function setProtoFilter(filterType) {
+        window.currentProtoFilter = filterType;
+        document.querySelectorAll(".proto-filter-btn").forEach(btn => {
+            btn.classList.remove("active");
+            btn.classList.add("btn-ghost");
+        });
+        const activeBtn = document.getElementById(`proto-filter-btn-${filterType}`);
+        if (activeBtn) {
+            activeBtn.classList.add("active");
+            activeBtn.classList.remove("btn-ghost");
+        }
+        if (window.lastProtoData) renderProtocolTrafficGrid(window.lastProtoData);
+    }
+
+    function setProtoSort(sortVal) {
+        window.currentProtoSort = sortVal;
+        if (window.lastProtoData) renderProtocolTrafficGrid(window.lastProtoData);
+    }
+
+    function onProtoSearchChange(val) {
+        window.protoSearchQuery = (val || "").trim().toLowerCase();
+        if (window.lastProtoData) renderProtocolTrafficGrid(window.lastProtoData);
+    }
+
+    function scrollToProtocol(protoId) {
+        const el = document.getElementById(`proto-bw-card-${protoId}`);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.style.outline = "2px solid var(--color-primary)";
+            el.style.boxShadow = "0 0 20px rgba(99, 102, 241, 0.5)";
+            setTimeout(() => { 
+                el.style.outline = ""; 
+                el.style.boxShadow = ""; 
+            }, 2500);
+        } else {
+            setProtoFilter("all");
+            setTimeout(() => {
+                const el2 = document.getElementById(`proto-bw-card-${protoId}`);
+                if (el2) {
+                    el2.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el2.style.outline = "2px solid var(--color-primary)";
+                    el2.style.boxShadow = "0 0 20px rgba(99, 102, 241, 0.5)";
+                    setTimeout(() => { 
+                        el2.style.outline = ""; 
+                        el2.style.boxShadow = ""; 
+                    }, 2500);
+                }
+            }, 100);
+        }
+    }
+
     // Update Protocol Bandwidth Breakdown
     function updateProtocolTraffic(protoData) {
         if (!protoData || !protoData.protocols) return;
-        const container = document.getElementById("proto-bandwidth-grid");
-        if (!container) return;
+        window.lastProtoData = protoData;
 
+        // 1. Header Badges
         const totalAllEl = document.getElementById("proto-total-all-val");
         if (totalAllEl) {
             totalAllEl.innerText = formatBytes(protoData.total_vpn_bytes || 0);
@@ -1415,27 +1472,197 @@
 
         const list = protoData.protocols;
         const totalVpnBytes = Math.max(1, protoData.total_vpn_bytes || 1);
+
+        // Calculate consuming count, active throughput count, total speed
+        let consumingCount = 0;
+        let throughputCount = 0;
+        let totalSpeedKbs = 0;
+        list.forEach(item => {
+            if (item.total_bytes > 0 || item.active) consumingCount++;
+            const spd = (item.rx_speed_kbs || 0) + (item.tx_speed_kbs || 0);
+            if (spd > 0) throughputCount++;
+            totalSpeedKbs += spd;
+        });
+
+        const activeCountBadge = document.getElementById("proto-active-count-badge");
+        if (activeCountBadge) activeCountBadge.innerText = consumingCount;
+
+        const pillConsuming = document.getElementById("proto-pill-count-consuming");
+        if (pillConsuming) pillConsuming.innerText = consumingCount;
+
+        const pillThroughput = document.getElementById("proto-pill-count-throughput");
+        if (pillThroughput) pillThroughput.innerText = throughputCount;
+
+        const liveSpeedTotalEl = document.getElementById("proto-live-speed-total");
+        if (liveSpeedTotalEl) {
+            if (totalSpeedKbs >= 1024) {
+                liveSpeedTotalEl.innerText = `${(totalSpeedKbs / 1024).toFixed(1)} MB/s`;
+            } else {
+                liveSpeedTotalEl.innerText = `${totalSpeedKbs.toFixed(1)} KB/s`;
+            }
+        }
+
+        // 2. Render Top Visual Traffic Share Bar & Chips
+        renderProtocolShareBar(protoData);
+
+        // 3. Render or Update Cards Grid
+        renderProtocolTrafficGrid(protoData);
+    }
+
+    function renderProtocolShareBar(protoData) {
+        const barContainer = document.getElementById("proto-share-bar-container");
+        const chipsContainer = document.getElementById("proto-share-chips-container");
+        if (!barContainer || !chipsContainer) return;
+
+        const list = protoData.protocols || [];
+        const totalVpnBytes = Math.max(1, protoData.total_vpn_bytes || 1);
         const lang = localStorage.getItem("panel_language") || "fa";
 
-        const needsRebuild = (container.children.length !== list.length) || 
-                              (container.dataset.renderedLang !== lang) ||
-                              !container.querySelector(".proto-bandwidth-card");
+        // Sort descending by total bytes
+        const sortedWithTraffic = list.filter(p => p.total_bytes > 0).sort((a, b) => b.total_bytes - a.total_bytes);
+
+        if (sortedWithTraffic.length === 0) {
+            barContainer.innerHTML = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-muted);">${lang === "fa" ? "هنوز ترافیکی ثبت نشده است" : "No traffic recorded yet"}</div>`;
+            chipsContainer.innerHTML = "";
+            return;
+        }
+
+        // Build bar segments (Top 6 + Others)
+        let barHtml = "";
+        let chipsHtml = "";
+        const topSegments = sortedWithTraffic.slice(0, 6);
+        const otherSegments = sortedWithTraffic.slice(6);
+
+        let otherTotalBytes = 0;
+        otherSegments.forEach(p => otherTotalBytes += p.total_bytes);
+
+        topSegments.forEach(p => {
+            const pct = Math.max(0.5, ((p.total_bytes / totalVpnBytes) * 100)).toFixed(1);
+            const dispName = (lang === "fa" ? (p.fa_name || p.name) : p.name);
+            const bytesFormatted = formatBytes(p.total_bytes);
+            barHtml += `
+                <div style="width: ${pct}%; background: ${p.color}; height: 100%; transition: width 0.3s ease; cursor: pointer;"
+                     title="${dispName}: ${pct}% (${bytesFormatted})"
+                     onclick="scrollToProtocol('${p.id}')"></div>
+            `;
+
+            chipsHtml += `
+                <span class="badge-pill" style="cursor: pointer; background: ${p.color}18; color: var(--text-main); border: 1px solid ${p.color}44; font-size: 11px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; transition: transform 0.15s ease;"
+                      title="${lang === 'fa' ? 'کلیک برای نمایش کارت' : 'Click to view card'}"
+                      onclick="scrollToProtocol('${p.id}')">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: ${p.color}; display: inline-block;"></span>
+                    <strong style="font-weight: 700;">${dispName}:</strong>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: ${p.color};">${pct}%</span>
+                    <span style="color: var(--text-muted); font-size: 10px;">(${bytesFormatted})</span>
+                </span>
+            `;
+        });
+
+        if (otherTotalBytes > 0) {
+            const otherPct = Math.max(0.5, ((otherTotalBytes / totalVpnBytes) * 100)).toFixed(1);
+            const otherFormatted = formatBytes(otherTotalBytes);
+            const otherLabel = (lang === "fa" ? "سایر پروتکل‌ها" : "Others");
+            barHtml += `
+                <div style="width: ${otherPct}%; background: #64748b; height: 100%; transition: width 0.3s ease; cursor: pointer;"
+                     title="${otherLabel}: ${otherPct}% (${otherFormatted})"
+                     onclick="setProtoFilter('all')"></div>
+            `;
+            chipsHtml += `
+                <span class="badge-pill" style="cursor: pointer; background: rgba(100, 116, 139, 0.15); color: var(--text-main); border: 1px solid rgba(100, 116, 139, 0.35); font-size: 11px; padding: 3px 9px; display: inline-flex; align-items: center; gap: 6px; border-radius: 999px;"
+                      onclick="setProtoFilter('all')">
+                    <span style="width: 7px; height: 7px; border-radius: 50%; background: #64748b; display: inline-block;"></span>
+                    <strong style="font-weight: 700;">${otherLabel}:</strong>
+                    <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #64748b;">${otherPct}%</span>
+                    <span style="color: var(--text-muted); font-size: 10px;">(${otherFormatted})</span>
+                </span>
+            `;
+        }
+
+        barContainer.innerHTML = barHtml;
+        chipsContainer.innerHTML = chipsHtml;
+    }
+
+    function renderProtocolTrafficGrid(protoData) {
+        const container = document.getElementById("proto-bandwidth-grid");
+        if (!container) return;
+
+        const list = (protoData.protocols || []).slice();
+        const totalVpnBytes = Math.max(1, protoData.total_vpn_bytes || 1);
+        const lang = localStorage.getItem("panel_language") || "fa";
+
+        // Global Ranks calculated across ALL protocols by total_bytes descending
+        const rankMap = {};
+        const rankedAll = list.slice().sort((a, b) => b.total_bytes - a.total_bytes);
+        rankedAll.forEach((item, idx) => {
+            if (item.total_bytes > 0) {
+                rankMap[item.id] = idx + 1; // 1-indexed rank
+            }
+        });
+
+        // 1. Filter
+        let filtered = list;
+        if (window.currentProtoFilter === "consuming") {
+            filtered = filtered.filter(item => (item.total_bytes > 0 || item.active));
+        } else if (window.currentProtoFilter === "throughput") {
+            filtered = filtered.filter(item => ((item.rx_speed_kbs || 0) > 0 || (item.tx_speed_kbs || 0) > 0));
+        }
+
+        // Search query filter
+        if (window.protoSearchQuery) {
+            const q = window.protoSearchQuery;
+            filtered = filtered.filter(item => {
+                const n = (item.name || "").toLowerCase();
+                const fn = (item.fa_name || "").toLowerCase();
+                const id = (item.id || "").toLowerCase();
+                const port = item.port ? String(item.port) : "";
+                return n.includes(q) || fn.includes(q) || id.includes(q) || port.includes(q);
+            });
+        }
+
+        // 2. Sort
+        if (window.currentProtoSort === "bytes_desc") {
+            filtered.sort((a, b) => b.total_bytes - a.total_bytes);
+        } else if (window.currentProtoSort === "speed_desc") {
+            filtered.sort((a, b) => ((b.rx_speed_kbs || 0) + (b.tx_speed_kbs || 0)) - ((a.rx_speed_kbs || 0) + (a.tx_speed_kbs || 0)));
+        } else if (window.currentProtoSort === "conns_desc") {
+            filtered.sort((a, b) => (b.connections || 0) - (a.connections || 0));
+        } else if (window.currentProtoSort === "name_asc") {
+            filtered.sort((a, b) => a.name.localeCompare(b.name));
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = `
+                <div style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 36px 0; grid-column: 1 / -1;">
+                    <i data-lucide="inbox" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 8px; display: inline-block;"></i>
+                    <div>${lang === "fa" ? "پروتکلی با این فیلتر یا جستجو یافت نشد." : "No protocols matched this filter or search."}</div>
+                </div>
+            `;
+            if (typeof lucide !== "undefined") lucide.createIcons();
+            return;
+        }
+
+        // Check if existing cards in DOM match filtered IDs order
+        const currentIds = Array.from(container.children).map(c => c.dataset.protoId).filter(Boolean);
+        const targetIds = filtered.map(f => f.id);
+        const needsRebuild = (container.dataset.renderedLang !== lang) ||
+                              (currentIds.length !== targetIds.length) ||
+                              currentIds.some((id, idx) => id !== targetIds[idx]);
+
+        const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
+        const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
+        const tRxLabel = (lang === "fa" ? "سرعت دانلود (Rx)" : (lang === "ru" ? "Скорость скачивания (Rx)" : "Download Speed (Rx)"));
+        const tTxLabel = (lang === "fa" ? "سرعت آپلود (Tx)" : (lang === "ru" ? "Скорость отдачи (Tx)" : "Upload Speed (Tx)"));
+        const tShareLabel = (lang === "fa" ? "سهم ترافیک:" : (lang === "ru" ? "Доля трафика:" : "Traffic Share:"));
+        const tConnsLabel = (lang === "fa" ? "اتصالات فعال:" : (lang === "ru" ? "Активные:" : "Active Connections:"));
+        const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польز." : "users"));
+        const tTotalExchanged = (lang === "fa" ? "حجم کل مبادله شده:" : (lang === "ru" ? "Всего передано:" : "Total Exchanged:"));
+        const tRxShort = (lang === "fa" ? "دانلود:" : (lang === "ru" ? "Вход:" : "Rx:"));
+        const tTxShort = (lang === "fa" ? "آپلود:" : (lang === "ru" ? "Исход:" : "Tx:"));
 
         if (needsRebuild) {
             container.dataset.renderedLang = lang;
-            const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
-            const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
-            const tRxLabel = (lang === "fa" ? "سرعت دانلود (Rx)" : (lang === "ru" ? "Скорость скачивания (Rx)" : "Download Speed (Rx)"));
-            const tTxLabel = (lang === "fa" ? "سرعت آپلود (Tx)" : (lang === "ru" ? "Скорость отдачи (Tx)" : "Upload Speed (Tx)"));
-            const tShareLabel = (lang === "fa" ? "سهم ترافیک:" : (lang === "ru" ? "Доля трафика:" : "Traffic Share:"));
-            const tConnsLabel = (lang === "fa" ? "اتصالات فعال:" : (lang === "ru" ? "Активные:" : "Active Connections:"));
-            const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польز." : "users"));
-            const tTotalExchanged = (lang === "fa" ? "حجم کل مبادله شده:" : (lang === "ru" ? "Всего передано:" : "Total Exchanged:"));
-            const tRxShort = (lang === "fa" ? "دانلود:" : (lang === "ru" ? "Вход:" : "Rx:"));
-            const tTxShort = (lang === "fa" ? "آپلود:" : (lang === "ru" ? "Исход:" : "Tx:"));
-
             let html = "";
-            list.forEach(item => {
+            filtered.forEach(item => {
                 const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : "0 KB/s";
                 const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : "0 KB/s";
                 const totalBytesStr = formatBytes(item.total_bytes);
@@ -1446,6 +1673,22 @@
                 const dispName = (lang === "fa" ? (item.fa_name || item.name) : item.name);
                 const subName = (lang === "fa" ? `${item.name} ${item.port ? `(${item.port})` : ""}` : (item.port ? `Port ${item.port}` : ""));
 
+                // Badges
+                let rankBadge = "";
+                const r = rankMap[item.id];
+                if (r === 1) {
+                    rankBadge = `<span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; font-weight:800; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> #1 پرمصرف‌ترین</span>`;
+                } else if (r === 2) {
+                    rankBadge = `<span style="font-size:10px; padding:2px 7px; border-radius:999px; background:rgba(203,213,225,0.2); color:#cbd5e1; border:1px solid rgba(203,213,225,0.3); font-weight:700; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="award" style="width:10px; height:10px;"></i> #2</span>`;
+                } else if (r === 3) {
+                    rankBadge = `<span style="font-size:10px; padding:2px 7px; border-radius:999px; background:rgba(217,119,6,0.2); color:#f59e0b; border:1px solid rgba(217,119,6,0.3); font-weight:700; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="award" style="width:10px; height:10px;"></i> #3</span>`;
+                }
+
+                let liveBadge = "";
+                if ((item.rx_speed_kbs || 0) > 0 || (item.tx_speed_kbs || 0) > 0) {
+                    liveBadge = `<span class="badge-emerald" style="font-size:10px; padding:1px 6px; border-radius:6px; display:inline-flex; align-items:center; gap:3px;"><span class="pulse-dot" style="width:5px; height:5px; background:#10b981; border-radius:50%;"></span> زنده</span>`;
+                }
+
                 let extraTag = "";
                 if (item.id === "singbox") {
                     extraTag = `<span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Universal</span>`;
@@ -1454,7 +1697,7 @@
                 }
 
                 html += `
-                    <div class="proto-bandwidth-card" id="proto-bw-card-${item.id}" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="${dispName}">
+                    <div class="proto-bandwidth-card" id="proto-bw-card-${item.id}" data-proto-id="${item.id}" onclick="if('${item.tab}') switchTab('${item.tab}')" style="cursor:pointer;" title="${dispName}">
                         <div class="proto-card-top">
                             <div class="proto-card-identity">
                                 <div class="proto-icon-circle" style="background:${item.color}15; color:${item.color}; border:1px solid ${item.color}35;">
@@ -1463,6 +1706,8 @@
                                 <div class="proto-name-box">
                                     <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                                         <span class="proto-name-fa" style="color:var(--text-main); font-weight:700; font-size:13.5px;">${dispName}</span>
+                                        ${rankBadge}
+                                        ${liveBadge}
                                         ${extraTag}
                                     </div>
                                     ${subName ? `<span class="proto-name-en" style="color:var(--text-muted); font-size:11px;">${subName}</span>` : ""}
@@ -1494,7 +1739,7 @@
                                 <span>${tConnsLabel} <strong id="proto-bw-conns-cnt-${item.id}" style="color:var(--text-main); font-family:'JetBrains Mono';">${item.connections || 0} ${tUserUnit}</strong></span>
                             </div>
                             <div class="core-progress-track" style="height:6px; background:rgba(128,128,128,0.15); border-radius:999px; overflow:hidden;">
-                                <div class="core-progress-fill" id="proto-bw-share-bar-${item.id}" style="width:${sharePercent}%; background:${item.color}; height:100%; border-radius:999px;"></div>
+                                <div class="core-progress-fill" id="proto-bw-share-bar-${item.id}" style="width:${sharePercent}%; background:${item.color}; height:100%; border-radius:999px; transition: width 0.3s ease;"></div>
                             </div>
                         </div>
 
@@ -1520,11 +1765,8 @@
             if (typeof lucide !== "undefined") lucide.createIcons();
         }
 
-        const tActiveBadge = (lang === "fa" ? "فعال" : (lang === "ru" ? "Активен" : "Active"));
-        const tInactiveBadge = (lang === "fa" ? "غیرفعال" : (lang === "ru" ? "Неактивен" : "Inactive"));
-        const tUserUnit = (lang === "fa" ? "کاربر" : (lang === "ru" ? "польز." : "users"));
-
-        list.forEach(item => {
+        // Always update live values inside existing cards smoothly
+        filtered.forEach(item => {
             const rxSpeed = item.rx_speed_kbs > 0 ? (item.rx_speed_kbs >= 1024 ? `${(item.rx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.rx_speed_kbs} KB/s`) : "0 KB/s";
             const txSpeed = item.tx_speed_kbs > 0 ? (item.tx_speed_kbs >= 1024 ? `${(item.tx_speed_kbs/1024).toFixed(1)} MB/s` : `${item.tx_speed_kbs} KB/s`) : "0 KB/s";
             const totalBytesStr = formatBytes(item.total_bytes);
