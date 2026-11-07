@@ -14180,8 +14180,26 @@ def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, tar
     except Exception:
         pass
 
+    vaydns_domain = f"v.{srv_domain}"
+    vaydns_pubkey = ""
+    if os.path.exists("/etc/vaydns/server.pub"):
+        try:
+            with open("/etc/vaydns/server.pub", "r") as f:
+                vaydns_pubkey = f.read().strip()
+        except Exception:
+            pass
+    if os.path.exists("/etc/vpnpanel/vaydns.json"):
+        try:
+            with open("/etc/vpnpanel/vaydns.json", "r") as f:
+                vcfg = json.load(f)
+                vaydns_domain = vcfg.get("domain", vaydns_domain)
+                if not vaydns_pubkey:
+                    vaydns_pubkey = vcfg.get("pubkey", "")
+        except Exception:
+            pass
+
     # Compile Windows amd64 binary with ldflags
-    ldflags = f"-s -w -X 'main.builtServerIP={srv_ip}' -X 'main.builtServerDomain={srv_domain}' -X 'main.builtServerPort={srv_port}' -X 'main.builtRelayPorts={ports_str}' -X 'main.builtFakeSNI={fake_sni}'"
+    ldflags = f"-s -w -X 'main.builtServerIP={srv_ip}' -X 'main.builtServerDomain={srv_domain}' -X 'main.builtServerPort={srv_port}' -X 'main.builtRelayPorts={ports_str}' -X 'main.builtFakeSNI={fake_sni}' -X 'main.builtDNSTunnelDomain={vaydns_domain}' -X 'main.builtDNSPubKey={vaydns_pubkey}'"
     env_win = os.environ.copy()
     env_win["GOOS"] = "windows"
     env_win["GOARCH"] = "amd64"
@@ -14193,7 +14211,7 @@ def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, tar
         return {"success": False, "error": f"خطا در کامپایل ویندوز: {res_win.stderr}"}
 
     # Clone for the 6 strategies so dedicated binaries exist
-    strategies = ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq"]
+    strategies = ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq", "dns"]
     compiled_files = ["snispoof-client.exe"]
     for strat in strategies:
         dst = os.path.join(bdir, f"snispoof-{strat}.exe")

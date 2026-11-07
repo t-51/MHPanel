@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"snispoof/dnsembed"
 	"syscall"
 	"time"
 )
@@ -42,7 +43,8 @@ func init() {
 }
 
 type Config struct {
-	ServerDomain    string `json:"server_domain"`
+	ConnectionMode   string `json:"connection_mode"` // direct_sni, cloudflare_clean, dns_tunnel
+	ServerDomain     string `json:"server_domain"`
 	ServerIP        string `json:"server_ip"`
 	ServerPort      int    `json:"server_port"`
 	LocalSocksPort  int    `json:"local_socks_port"`
@@ -54,6 +56,14 @@ type Config struct {
 	FragmentSize    int    `json:"fragment_size"`
 	FragmentDelayMs int    `json:"fragment_delay_ms"`
 	AutoStart       bool   `json:"auto_start"`
+
+	// DNS Tunnel Transport Settings
+	DNSTunnelType    string `json:"dns_tunnel_type"`    // vaydns, dnstt, masterdns, slipstream, noizdns
+	DNSTunnelDomain  string `json:"dns_tunnel_domain"`  // e.g. v.vpn.kigaping.com
+	DNSPubKey        string `json:"dns_pubkey"`         // 64-hex digits public key
+	DNSResolver      string `json:"dns_resolver"`       // e.g. https://cloudflare-dns.com/dns-query or 8.8.8.8:53
+	DNSResolverType  string `json:"dns_resolver_type"`  // doh, udp
+	DNSInternalPort  int    `json:"dns_internal_port"`  // internal loopback port (default 53001)
 }
 
 // Injected at build time via -ldflags "-X main.builtServerIP=... -X main.builtServerDomain=... -X main.builtServerPort=... -X main.builtRelayPorts=... -X main.builtFakeSNI=..."
@@ -61,11 +71,17 @@ var (
 	builtServerDomain = ""
 	builtServerIP     = ""
 	builtServerPort   = ""
-	builtRelayPorts   = ""
-	builtFakeSNI      = ""
+	builtRelayPorts      = ""
+	builtFakeSNI         = ""
+	builtConnectionMode  = ""
+	builtDNSTunnelType   = ""
+	builtDNSTunnelDomain = ""
+	builtDNSPubKey       = ""
+	builtDNSResolver     = ""
 )
 
 var defaultConfig = Config{
+	ConnectionMode:   "direct_sni",
 	ServerDomain:    "vpn.kigaping.com",
 	ServerIP:        "212.227.143.16",
 	ServerPort:      15443,
@@ -78,6 +94,12 @@ var defaultConfig = Config{
 	FragmentSize:    2,
 	FragmentDelayMs: 3,
 	AutoStart:       true,
+	DNSTunnelType:    "vaydns",
+	DNSTunnelDomain:  "v.vpn.kigaping.com",
+	DNSPubKey:        "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a",
+	DNSResolver:      "https://cloudflare-dns.com/dns-query",
+	DNSResolverType:  "doh",
+	DNSInternalPort:  53001,
 }
 
 var popularSNIs = []struct {
@@ -93,6 +115,231 @@ var popularSNIs = []struct {
 	{"microsoft.com", "Microsoft Azure Cloud"},
 	{"telewebion.com", "Broadcasting Media CDN"},
 	{"divar.ir", "Local CDN Whitelist"},
+}
+
+
+var popularDNSResolvers = []struct {
+	Type  string
+	Addr  string
+	Label string
+}{
+	{"doh", "https://cloudflare-dns.com/dns-query", "Cloudflare DoH (Fast & Encrypted)"},
+	{"doh", "https://dns.google/dns-query", "Google DoH (Global Anycast)"},
+	{"udp", "8.8.8.8:53", "Google Public DNS (UDP 53)"},
+	{"udp", "1.1.1.1:53", "Cloudflare Anycast DNS (UDP 53)"},
+	{"udp", "78.157.42.100:53", "Shecan Anti-Sanction DNS (Iran Low Latency)"},
+	{"udp", "9.9.9.9:53", "Quad9 Secure DNS (UDP 53)"},
+}
+
+type DNSProtocolInfo struct {
+	Name    string
+	Domain  string
+	PubKey  string
+	Compat  bool
+	Desc    string
+}
+
+var dnsProtocolPresets = map[string]DNSProtocolInfo{
+	"vaydns": {
+		Name:   "VayDNS (V-DNS)",
+		Domain: "v.vpn.kigaping.com",
+		PubKey: "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a",
+		Compat: false,
+		Desc:   "High-Speed Iran Anti-Censorship DNS Tunnel with KCP & uTLS (Recommended)",
+	},
+	"dnstt": {
+		Name:   "DNSTT (SlowDNS)",
+		Domain: "t.vpn.kigaping.com",
+		PubKey: "b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31",
+		Compat: true,
+		Desc:   "Standard DNSTT protocol with DoH & UDP support",
+	},
+	"masterdns": {
+		Name:   "MasterDNS",
+		Domain: "t.kigaping.com",
+		PubKey: "b3290012dd13fe7df78551fdfbccfdfce5d3c594522fef40bf8284e4313b3a31",
+		Compat: true,
+		Desc:   "MasterdnsVPN high-speed chunked DNS tunnel",
+	},
+	"slipstream": {
+		Name:   "Slipstream",
+		Domain: "s.vpn.kigaping.com",
+		PubKey: "",
+		Compat: false,
+		Desc:   "QUIC over DNS covert channel",
+	},
+	"noizdns": {
+		Name:   "NoizDNS",
+		Domain: "v.vpn.kigaping.com",
+		PubKey: "4438c41e91bf44b10a9e1a67bbade78f99137a875efc189ba54a6c95ecc2650a",
+		Compat: true,
+		Desc:   "Anti-DPI noise-padded DNS tunnel",
+	},
+}
+
+var (
+	dnsTunnelCmd   *exec.Cmd
+	dnsTunnelMutex sync.Mutex
+)
+
+func ensureDNSTunnelBin(tunnelType string) (string, error) {
+	exeDir := getExeDir()
+	binName := "vaydns-client"
+	if runtime.GOOS == "windows" {
+		binName = "vaydns-client.exe"
+	}
+
+	if tunnelType == "slipstream" {
+		slipName := "slipstream-client"
+		if runtime.GOOS == "windows" {
+			slipName = "slipstream-client.exe"
+		}
+		loc := filepath.Join(exeDir, slipName)
+		if _, err := os.Stat(loc); err == nil {
+			return loc, nil
+		}
+		if p, err := exec.LookPath(slipName); err == nil {
+			return p, nil
+		}
+		if _, err := os.Stat("/usr/local/bin/" + slipName); err == nil {
+			return "/usr/local/bin/" + slipName, nil
+		}
+		return "", fmt.Errorf("slipstream-client binary not found in current directory or PATH")
+	}
+
+	// 1. Check local directory next to exe
+	localPath := filepath.Join(exeDir, binName)
+	if _, err := os.Stat(localPath); err == nil {
+		return localPath, nil
+	}
+
+	// 2. Extract embedded binary if available
+	embeddedBytes := dnsembed.GetVayDNS()
+	if len(embeddedBytes) > 0 {
+		tempBinPath := filepath.Join(os.TempDir(), "snispoof_" + binName)
+		info, err := os.Stat(tempBinPath)
+		if err != nil || info.Size() != int64(len(embeddedBytes)) {
+			_ = os.WriteFile(tempBinPath, embeddedBytes, 0755)
+		}
+		_ = os.Chmod(tempBinPath, 0755)
+		return tempBinPath, nil
+	}
+
+	// 3. Check system PATH
+	if p, err := exec.LookPath(binName); err == nil {
+		return p, nil
+	}
+
+	// 4. Check common linux locations
+	if runtime.GOOS == "linux" {
+		for _, tryP := range []string{"/usr/local/bin/vaydns-client", "/usr/local/bin/dnstt-client"} {
+			if _, err := os.Stat(tryP); err == nil {
+				return tryP, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("%s binary not found. Place %s in the same folder as this client", binName, binName)
+}
+
+func startDNSTunnel(currentCfg Config) error {
+	dnsTunnelMutex.Lock()
+	defer dnsTunnelMutex.Unlock()
+
+	internalPort := currentCfg.DNSInternalPort
+	if internalPort <= 0 {
+		internalPort = 53001
+	}
+
+	listenAddr := fmt.Sprintf("127.0.0.1:%d", internalPort)
+
+	// Check if already responsive
+	conn, err := net.DialTimeout("tcp", listenAddr, 300*time.Millisecond)
+	if err == nil {
+		_ = conn.Close()
+		addLiveLog("DNS_READY", fmt.Sprintf("DNS tunnel listener on %s is already active", listenAddr))
+		return nil
+	}
+
+	binPath, err := ensureDNSTunnelBin(currentCfg.DNSTunnelType)
+	if err != nil {
+		addLiveLog("ERROR", fmt.Sprintf("DNS tunnel binary error: %v", err))
+		return err
+	}
+
+	var args []string
+	if currentCfg.DNSTunnelType == "slipstream" {
+		res := currentCfg.DNSResolver
+		if strings.HasPrefix(res, "http") {
+			res = "8.8.8.8:53"
+		}
+		args = []string{"-l", strconv.Itoa(internalPort), "-d", currentCfg.DNSTunnelDomain, "-r", res}
+	} else {
+		if currentCfg.DNSResolverType == "doh" || strings.HasPrefix(currentCfg.DNSResolver, "http") {
+			args = append(args, "-doh", currentCfg.DNSResolver)
+		} else {
+			res := currentCfg.DNSResolver
+			if !strings.Contains(res, ":") {
+				res += ":53"
+			}
+			args = append(args, "-udp", res)
+		}
+
+		if currentCfg.DNSPubKey != "" {
+			args = append(args, "-pubkey", currentCfg.DNSPubKey)
+		}
+
+		args = append(args, "-domain", currentCfg.DNSTunnelDomain)
+		args = append(args, "-listen", listenAddr)
+
+		if currentCfg.DNSTunnelType == "vaydns" || currentCfg.DNSTunnelType == "dnstt" || currentCfg.DNSTunnelType == "masterdns" || currentCfg.DNSTunnelType == "noizdns" {
+			args = append(args, "-dnstt-compat")
+		}
+	}
+
+	addLiveLog("DNS_START", fmt.Sprintf("Launching %s engine (%s) -> %s via %s",
+		strings.ToUpper(currentCfg.DNSTunnelType), filepath.Base(binPath), currentCfg.DNSTunnelDomain, currentCfg.DNSResolver))
+
+	cmd := exec.Command(binPath, args...)
+	dnsembed.SetHideWindow(cmd)
+
+	if err := cmd.Start(); err != nil {
+		addLiveLog("ERROR", fmt.Sprintf("Failed to launch %s: %v", binPath, err))
+		return err
+	}
+	dnsTunnelCmd = cmd
+
+	go func() {
+		_ = cmd.Wait()
+		dnsTunnelMutex.Lock()
+		if dnsTunnelCmd == cmd {
+			dnsTunnelCmd = nil
+		}
+		dnsTunnelMutex.Unlock()
+		addLiveLog("DNS_STOP", fmt.Sprintf("%s tunnel engine exited.", strings.ToUpper(currentCfg.DNSTunnelType)))
+	}()
+
+	for i := 0; i < 20; i++ {
+		time.Sleep(150 * time.Millisecond)
+		c, err := net.DialTimeout("tcp", listenAddr, 250*time.Millisecond)
+		if err == nil {
+			_ = c.Close()
+			addLiveLog("DNS_READY", fmt.Sprintf("%s tunnel ACTIVE & listening on %s!", strings.ToUpper(currentCfg.DNSTunnelType), listenAddr))
+			return nil
+		}
+	}
+
+	addLiveLog("DNS_WAIT", fmt.Sprintf("%s engine started, awaiting tunnel session on %s...", strings.ToUpper(currentCfg.DNSTunnelType), listenAddr))
+	return nil
+}
+
+func stopDNSTunnel() {
+	dnsTunnelMutex.Lock()
+	defer dnsTunnelMutex.Unlock()
+	if dnsTunnelCmd != nil && dnsTunnelCmd.Process != nil {
+		_ = dnsTunnelCmd.Process.Kill()
+		dnsTunnelCmd = nil
+	}
 }
 
 var popularCleanIPs = []struct {
@@ -238,6 +485,21 @@ func loadConfig() {
 	if builtFakeSNI != "" {
 		defaultConfig.FakeSNI = builtFakeSNI
 	}
+	if builtConnectionMode != "" {
+		defaultConfig.ConnectionMode = builtConnectionMode
+	}
+	if builtDNSTunnelType != "" {
+		defaultConfig.DNSTunnelType = builtDNSTunnelType
+	}
+	if builtDNSTunnelDomain != "" {
+		defaultConfig.DNSTunnelDomain = builtDNSTunnelDomain
+	}
+	if builtDNSPubKey != "" {
+		defaultConfig.DNSPubKey = builtDNSPubKey
+	}
+	if builtDNSResolver != "" {
+		defaultConfig.DNSResolver = builtDNSResolver
+	}
 	if builtRelayPorts != "" {
 		var pList []int
 		for _, part := range strings.Split(builtRelayPorts, ",") {
@@ -264,6 +526,8 @@ func loadConfig() {
 		defaultConfig.Strategy = "wrong_checksum"
 	} else if strings.Contains(exeName, "rotation") {
 		defaultConfig.Strategy = "sni_rotation"
+	} else if strings.Contains(exeName, "dns") || strings.Contains(exeName, "vaydns") || strings.Contains(exeName, "dnstt") {
+		defaultConfig.ConnectionMode = "dns_tunnel"
 	}
 
 	cfgPath = resolveConfigPath()
@@ -347,6 +611,27 @@ func loadConfig() {
 		}
 		if val, ok := rawMap["auto_start"].(bool); ok {
 			cfg.AutoStart = val
+		}
+		if val, ok := rawMap["connection_mode"].(string); ok && val != "" {
+			cfg.ConnectionMode = val
+		}
+		if val, ok := rawMap["dns_tunnel_type"].(string); ok && val != "" {
+			cfg.DNSTunnelType = val
+		}
+		if val, ok := rawMap["dns_tunnel_domain"].(string); ok && val != "" {
+			cfg.DNSTunnelDomain = val
+		}
+		if val, ok := rawMap["dns_pubkey"].(string); ok {
+			cfg.DNSPubKey = val
+		}
+		if val, ok := rawMap["dns_resolver"].(string); ok && val != "" {
+			cfg.DNSResolver = val
+		}
+		if val, ok := rawMap["dns_resolver_type"].(string); ok && val != "" {
+			cfg.DNSResolverType = val
+		}
+		if val, ok := rawMap["dns_internal_port"].(float64); ok && val > 0 {
+			cfg.DNSInternalPort = int(val)
 		}
 	} else {
 		cfg = defaultConfig
@@ -476,6 +761,27 @@ func closeAllConns() {
 }
 
 func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Conn, error) {
+	if currentCfg.ConnectionMode == "dns_tunnel" {
+		internalPort := currentCfg.DNSInternalPort
+		if internalPort <= 0 {
+			internalPort = 53001
+		}
+		tunnelLocal := fmt.Sprintf("127.0.0.1:%d", internalPort)
+		addLiveLog("DNS_TUNNEL", fmt.Sprintf("Routing %s via %s DNS Tunnel (%s)...", targetAddr, strings.ToUpper(currentCfg.DNSTunnelType), currentCfg.DNSTunnelDomain))
+		d := net.Dialer{Timeout: 12 * time.Second}
+		remote, err := d.Dial("tcp", tunnelLocal)
+		if err != nil {
+			addLiveLog("ERROR", fmt.Sprintf("Failed to connect via DNS tunnel (%s): %v", tunnelLocal, err))
+			return nil, err
+		}
+		if tcpConn, ok := remote.(*net.TCPConn); ok {
+			_ = tcpConn.SetNoDelay(true)
+			_ = tcpConn.SetKeepAlive(true)
+			_ = tcpConn.SetKeepAlivePeriod(15 * time.Second)
+		}
+		return remote, nil
+	}
+
 	addLiveLog("OUTBOUND", fmt.Sprintf("Dialing remote %s...", targetAddr))
 	d := net.Dialer{Timeout: 8 * time.Second}
 	remote, err := d.Dial("tcp", targetAddr)
@@ -527,6 +833,9 @@ func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Co
 }
 
 func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToRemote bool, initialPrefix []byte) {
+	if currentCfg.ConnectionMode == "dns_tunnel" {
+		applyFrag = false
+	}
 	if len(initialPrefix) > 0 {
 		if applyFrag && (currentCfg.Strategy == "tls_fragment" || currentCfg.Strategy == "patterniha_desync") {
 			start, _, sni := findSNIOffset(initialPrefix)
@@ -634,7 +943,9 @@ func handleTCPRelay(client net.Conn, targetAddr string, defaultPort int) {
 	}
 
 	dialAddr := targetAddr
-	if currentCfg.ServerPort == 443 {
+	if currentCfg.ConnectionMode == "dns_tunnel" {
+		dialAddr = fmt.Sprintf("127.0.0.1:%d", currentCfg.DNSInternalPort)
+	} else if currentCfg.ConnectionMode == "cloudflare_clean" || currentCfg.ServerPort == 443 {
 		// Cloudflare Clean IP mode -> always route to port 443
 		dialAddr = fmt.Sprintf("%s:443", targetHost)
 	} else if currentCfg.ServerPort == 15443 {
@@ -719,7 +1030,9 @@ func handleSocks5(client net.Conn, targetAddr string) {
 	}
 
 	dialAddr := targetAddr
-	if currentCfg.ServerPort == 443 {
+	if currentCfg.ConnectionMode == "dns_tunnel" {
+		dialAddr = fmt.Sprintf("127.0.0.1:%d", currentCfg.DNSInternalPort)
+	} else if currentCfg.ConnectionMode == "cloudflare_clean" || currentCfg.ServerPort == 443 {
 		dialAddr = fmt.Sprintf("%s:443", targetH)
 	} else if currentCfg.ServerPort == 15443 {
 		dialAddr = fmt.Sprintf("%s:15443", targetH)
@@ -778,6 +1091,12 @@ func StartProxy() error {
 	relayListener = rList
 
 	atomic.StoreInt32(&running, 1)
+
+	if currentCfg.ConnectionMode == "dns_tunnel" {
+		if err := startDNSTunnel(currentCfg); err != nil {
+			addLiveLog("WARN", fmt.Sprintf("Could not initialize DNS tunnel: %v", err))
+		}
+	}
 
 	addLiveLog("SYSTEM", fmt.Sprintf("Proxy Started! Listening on SOCKS5 :%d & Relay :%d", currentCfg.LocalSocksPort, currentCfg.LocalRelayPort))
 
@@ -854,6 +1173,7 @@ func StopProxy() {
 		extraListeners = nil
 		extraListenersMutex.Unlock()
 		closeAllConns()
+		stopDNSTunnel()
 		addLiveLog("SYSTEM", "Proxy Stopped.")
 	}
 }
@@ -909,6 +1229,13 @@ func printBanner() {
 	}
 
 	fmt.Printf(" Proxy Status:          %s\n", statusStr)
+	modeDisplay := "Direct SNI Spoofing"
+	if currentCfg.ConnectionMode == "cloudflare_clean" {
+		modeDisplay = "Cloudflare Clean IP + TLS SNI Fragment"
+	} else if currentCfg.ConnectionMode == "dns_tunnel" {
+		modeDisplay = fmt.Sprintf("DNS Tunnel Transport (%s -> %s via %s)", strings.ToUpper(currentCfg.DNSTunnelType), currentCfg.DNSTunnelDomain, currentCfg.DNSResolver)
+	}
+	fmt.Printf(" Connection Mode:       %s\n", modeDisplay)
 	fmt.Printf(" Target Server:         %s:%d\n", targetDisplay, currentCfg.ServerPort)
 	fmt.Printf(" Local SOCKS5 Proxy:    127.0.0.1:%d (Auto-routes ANY Port & Domain)\n", currentCfg.LocalSocksPort)
 	fmt.Printf(" Universal Relay Port:  127.0.0.1:%d\n", currentCfg.LocalRelayPort)
@@ -945,15 +1272,17 @@ func printBanner() {
 	}
 
 	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println(" [M] Connection Mode Selector (Direct SNI / Cloudflare Clean / DNS Tunnel)")
 	fmt.Println(" [1] Start / Open Proxy")
 	fmt.Println(" [2] Stop / Close Proxy")
 	fmt.Println(" [3] Server Domain, IP & Ports Settings")
 	fmt.Println(" [4] Inbound Listening Ports (Add / Remove / Change Relay Ports)")
 	fmt.Println(" [5] Change Decoy SNI Domain")
 	fmt.Println(" [6] Change Evasion Strategy")
-	fmt.Println(" [7] Cloudflare Clean IP Mode (حالت آی‌پی سفید و فرگمنت کلودفلر)")
-	fmt.Println(" [8] V2Ray / Sing-box / Xray Setup Guide")
-	fmt.Println(" [L/9] Live Continuous Event Monitor (Real-time Streaming)")
+	fmt.Println(" [7] Cloudflare Clean IP Mode (Clean Anycast IP + SNI Fragment)")
+	fmt.Println(" [8] DNS Tunnel Transport Setup (VayDNS, DNSTT, Slipstream, ...)")
+	fmt.Println(" [9] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [L/10] Live Continuous Event Monitor (Real-time Streaming)")
 	fmt.Println(" [R] Refresh Status")
 	fmt.Println(" [Q/0] Quit / Exit")
 	fmt.Println("======================================================================")
@@ -1425,6 +1754,212 @@ func configureCloudflareCleanIP(reader *bufio.Reader) {
 	_, _ = reader.ReadString('\n')
 }
 
+
+func configureConnectionMode(reader *bufio.Reader) {
+	currentCfg := getSnapshotConfig()
+	fmt.Println("\n======================================================================")
+	fmt.Println("                    SELECT CONNECTION MODE                            ")
+	fmt.Println("======================================================================")
+	fmt.Printf(" Current Active Mode: [%s]\n\n", currentCfg.ConnectionMode)
+	fmt.Println(" Choose your connection mode:")
+	fmt.Println("  [1] Direct SNI Spoofing (Direct connection to VPS with DPI desync)")
+	fmt.Println("      - Connects directly to VPS with Fake SNI & DPI Desync")
+	fmt.Println("      - Best for normal conditions when VPS IP is accessible")
+	fmt.Println()
+	fmt.Println("  [2] Cloudflare Clean IP + SNI Fragment (Route via Cloudflare 443 with sliced SNI)")
+	fmt.Println("      - Routes through verified Cloudflare Clean Anycast IPs on Port 443")
+	fmt.Println("      - Bypasses DPI by slicing TLS ClientHello SNI")
+	fmt.Println("      - Best for Trojan-WS and VLESS-WS profiles")
+	fmt.Println()
+	fmt.Println("  [3] DNS Tunnel Transport (Encapsulate V2Ray/TCP in encrypted DNS queries)")
+	fmt.Println("      - Encapsulates V2Ray/Singbox traffic inside DNS queries (DoH / UDP)")
+	fmt.Println("      - Unblockable: Works even in national internet or severe firewall restrictions")
+	fmt.Println("      - Supports: VayDNS, DNSTT, MasterDNS, Slipstream, NoizDNS")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Print("Please select mode [1-3, 0=Cancel]: ")
+
+	choice, _ := reader.ReadString('\n')
+	choice = strings.TrimSpace(choice)
+
+	newMode := currentCfg.ConnectionMode
+	switch choice {
+	case "1":
+		newMode = "direct_sni"
+		cfgMutex.Lock()
+		cfg.ConnectionMode = newMode
+		if cfg.ServerPort == 443 && builtServerPort != "443" {
+			cfg.ServerPort = 15443
+		}
+		if cfg.Strategy == "tls_fragment" {
+			cfg.Strategy = "patterniha_desync"
+		}
+		cfgMutex.Unlock()
+		fmt.Println("\n[OK] Switched to Direct SNI Spoofing mode.")
+
+	case "2":
+		configureCloudflareCleanIP(reader)
+		return
+
+	case "3":
+		configureDNSTunnel(reader)
+		return
+
+	case "0", "":
+		return
+	default:
+		fmt.Println("\n[!] Invalid choice.")
+		return
+	}
+
+	saveConfig()
+	if atomic.LoadInt32(&running) == 1 {
+		fmt.Println("Restarting proxy with new connection mode...")
+		StopProxy()
+		time.Sleep(200 * time.Millisecond)
+		_ = StartProxy()
+	}
+}
+
+func configureDNSTunnel(reader *bufio.Reader) {
+	currentCfg := getSnapshotConfig()
+	fmt.Println("\n======================================================================")
+	fmt.Println("              DNS TUNNEL TRANSPORT CONFIGURATION                      ")
+	fmt.Println("======================================================================")
+	fmt.Printf(" Current Protocol : %s\n", strings.ToUpper(currentCfg.DNSTunnelType))
+	fmt.Printf(" Current Domain   : %s\n", currentCfg.DNSTunnelDomain)
+	fmt.Printf(" Current Resolver : %s (%s)\n\n", currentCfg.DNSResolver, strings.ToUpper(currentCfg.DNSResolverType))
+
+	fmt.Println(" Select DNS Tunnel Protocol:")
+	fmt.Println("  [1] VayDNS (V-DNS) [Recommended - High Speed with KCP & uTLS]")
+	fmt.Println("      Domain: v.vpn.kigaping.com")
+	fmt.Println("  [2] DNSTT (SlowDNS Standard) [Standard DoH / UDP DNS Tunnel]")
+	fmt.Println("      Domain: t.vpn.kigaping.com")
+	fmt.Println("  [3] MasterDNS (MasterdnsVPN) [High-Speed Chunked DNS Tunnel]")
+	fmt.Println("      Domain: t.kigaping.com")
+	fmt.Println("  [4] Slipstream (QUIC over DNS) [QUIC Covert Channel]")
+	fmt.Println("      Domain: s.vpn.kigaping.com")
+	fmt.Println("  [5] NoizDNS (Noise-Padded Anti-DPI) [Noise-Padded Anti-Censorship DNS]")
+	fmt.Println("      Domain: v.vpn.kigaping.com")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Print("Choose protocol [1-5, Enter=Keep current]: ")
+
+	pChoice, _ := reader.ReadString('\n')
+	pChoice = strings.TrimSpace(pChoice)
+
+	chosenProto := currentCfg.DNSTunnelType
+	switch pChoice {
+	case "1":
+		chosenProto = "vaydns"
+	case "2":
+		chosenProto = "dnstt"
+	case "3":
+		chosenProto = "masterdns"
+	case "4":
+		chosenProto = "slipstream"
+	case "5":
+		chosenProto = "noizdns"
+	}
+
+	preset, ok := dnsProtocolPresets[chosenProto]
+	chosenDomain := currentCfg.DNSTunnelDomain
+	chosenPubKey := currentCfg.DNSPubKey
+	if ok {
+		if chosenDomain == "" || chosenProto != currentCfg.DNSTunnelType {
+			chosenDomain = preset.Domain
+		}
+		if preset.PubKey != "" && (chosenPubKey == "" || chosenProto != currentCfg.DNSTunnelType) {
+			chosenPubKey = preset.PubKey
+		}
+	}
+
+	fmt.Println("\n----------------------------------------------------------------------")
+	fmt.Println(" Select DNS Resolver:")
+	for i, r := range popularDNSResolvers {
+		fmt.Printf("  [%d] %-45s (%s)\n", i+1, r.Label, r.Addr)
+	}
+	fmt.Printf("  [%d] Custom Resolver (DoH URL or IP:53)\n", len(popularDNSResolvers)+1)
+	fmt.Print("Choose resolver [1-7, Enter=Keep current]: ")
+
+	rChoice, _ := reader.ReadString('\n')
+	rChoice = strings.TrimSpace(rChoice)
+
+	chosenRes := currentCfg.DNSResolver
+	chosenResType := currentCfg.DNSResolverType
+
+	if rChoice != "" {
+		if num, err := strconv.Atoi(rChoice); err == nil {
+			if num >= 1 && num <= len(popularDNSResolvers) {
+				chosenRes = popularDNSResolvers[num-1].Addr
+				chosenResType = popularDNSResolvers[num-1].Type
+			} else if num == len(popularDNSResolvers)+1 {
+				fmt.Print("Enter custom resolver (e.g. https://resolver/dns-query or 8.8.8.8:53): ")
+				cRes, _ := reader.ReadString('\n')
+				cRes = strings.TrimSpace(cRes)
+				if cRes != "" {
+					chosenRes = cRes
+					if strings.HasPrefix(cRes, "http") {
+						chosenResType = "doh"
+					} else {
+						chosenResType = "udp"
+					}
+				}
+			}
+		}
+	}
+
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Printf("Tunnel Domain [%s]: ", chosenDomain)
+	dInput, _ := reader.ReadString('\n')
+	dInput = strings.TrimSpace(dInput)
+	if dInput != "" {
+		chosenDomain = dInput
+	}
+
+	if chosenProto != "slipstream" {
+		fmt.Printf("Server Public Key [%s]: ", chosenPubKey)
+		kInput, _ := reader.ReadString('\n')
+		kInput = strings.TrimSpace(kInput)
+		if kInput != "" {
+			chosenPubKey = kInput
+		}
+	}
+
+	cfgMutex.Lock()
+	cfg.ConnectionMode = "dns_tunnel"
+	cfg.DNSTunnelType = chosenProto
+	cfg.DNSTunnelDomain = chosenDomain
+	cfg.DNSPubKey = chosenPubKey
+	cfg.DNSResolver = chosenRes
+	cfg.DNSResolverType = chosenResType
+	if cfg.DNSInternalPort <= 0 {
+		cfg.DNSInternalPort = 53001
+	}
+	cfgMutex.Unlock()
+
+	saveConfig()
+
+	fmt.Println("\n======================================================================")
+	fmt.Printf("[OK] DNS TUNNEL TRANSPORT ACTIVATED!\n")
+	fmt.Printf("     Protocol : %s\n", strings.ToUpper(chosenProto))
+	fmt.Printf("     Domain   : %s\n", chosenDomain)
+	fmt.Printf("     Resolver : %s (%s)\n", chosenRes, strings.ToUpper(chosenResType))
+	fmt.Printf("     Local Inbound Relay: 127.0.0.1:40443, 20460, 20443, ...\n")
+	fmt.Println("======================================================================")
+
+	fmt.Println("Starting proxy with DNS Tunnel Transport...")
+	StopProxy()
+	time.Sleep(200 * time.Millisecond)
+	if err := StartProxy(); err != nil {
+		fmt.Printf("[x] Error starting proxy: %v\n", err)
+	} else {
+		fmt.Println("[OK] Proxy successfully STARTED and active on local ports!")
+	}
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
+}
+
 func showV2RayGuide(reader *bufio.Reader) {
 	currentCfg := getSnapshotConfig()
 
@@ -1447,7 +1982,18 @@ func showV2RayGuide(reader *bufio.Reader) {
 	fmt.Println(" 4. SNI & Host: Set to your Cloudflare domain (e.g. ws.kigaping.com or mhpanel.kigaping.com).")
 	fmt.Println(" 5. This software fragments the SNI and tunnels directly to the Clean IP!")
 	fmt.Println()
-	fmt.Println("METHOD 3: SOCKS5 Outbound Proxy (Zero Config Changes!)")
+	fmt.Println()
+	fmt.Println("METHOD 3: DNS Tunnel Transport (Option [8] / [M])")
+	fmt.Println(" 1. Press [M] or [8] and select DNS Tunnel Transport.")
+	fmt.Println(" 2. Choose your DNS tunnel protocol (VayDNS, DNSTT, etc.).")
+	fmt.Println(" 3. In V2RayN / Nekoray / Singbox:")
+	fmt.Println("    - Address / Server: 127.0.0.1")
+	fmt.Println("    - Port: KEEP YOUR ORIGINAL PORT! (20460 for Trojan-WS, 20443, 40443)")
+	fmt.Println("    - SNI, Path & Password: Leave exactly as configured on your server.")
+	fmt.Println(" 4. All TCP traffic will be encapsulated inside encrypted DNS queries")
+	fmt.Println("    and tunneled straight to the server!")
+
+	fmt.Println("METHOD 4: SOCKS5 Outbound Proxy (Zero Config Changes!)")
 	fmt.Printf(" 1. In v2rayN / Nekoray / Clash, set Outbound / Proxy Server to: 127.0.0.1:%d\n", currentCfg.LocalSocksPort)
 	fmt.Println(" 2. You don't even have to change Address or Port! ANY config on ANY port will route!")
 	fmt.Println("======================================================================")
@@ -1465,6 +2011,11 @@ func main() {
 	relayPortsFlag := flag.String("relay-ports", "", "Alias for -ports")
 	sniFlag := flag.String("sni", "", "Fake SNI domain")
 	strategyFlag := flag.String("strategy", "", "Evasion strategy (patterniha_desync, tls_fragment, wrong_seq, low_ttl)")
+	modeFlag := flag.String("mode", "", "Connection mode (direct_sni, cloudflare_clean, dns_tunnel)")
+	dnsProtoFlag := flag.String("dns-proto", "", "DNS tunnel protocol (vaydns, dnstt, masterdns, slipstream, noizdns)")
+	dnsDomainFlag := flag.String("dns-domain", "", "DNS tunnel domain (e.g. v.vpn.kigaping.com)")
+	dnsKeyFlag := flag.String("dns-key", "", "DNS tunnel server public key (64 hex digits)")
+	dnsResolverFlag := flag.String("dns-resolver", "", "DNS resolver URL/IP (e.g. https://cloudflare-dns.com/dns-query or 8.8.8.8:53)")
 	headlessFlag := flag.Bool("headless", false, "Run in background / headless mode without menu")
 	flag.Parse()
 
@@ -1494,6 +2045,26 @@ func main() {
 	}
 	if *strategyFlag != "" {
 		cfg.Strategy = *strategyFlag
+	}
+	if *modeFlag != "" {
+		cfg.ConnectionMode = *modeFlag
+	}
+	if *dnsProtoFlag != "" {
+		cfg.DNSTunnelType = *dnsProtoFlag
+	}
+	if *dnsDomainFlag != "" {
+		cfg.DNSTunnelDomain = *dnsDomainFlag
+	}
+	if *dnsKeyFlag != "" {
+		cfg.DNSPubKey = *dnsKeyFlag
+	}
+	if *dnsResolverFlag != "" {
+		cfg.DNSResolver = *dnsResolverFlag
+		if strings.HasPrefix(*dnsResolverFlag, "http") {
+			cfg.DNSResolverType = "doh"
+		} else {
+			cfg.DNSResolverType = "udp"
+		}
 	}
 	if *portsFlag != "" || *relayPortsFlag != "" {
 		pStr := *portsFlag
@@ -1567,13 +2138,19 @@ func main() {
 		case "6":
 			configureStrategy(reader)
 
+		case "M":
+			configureConnectionMode(reader)
+
 		case "7":
 			configureCloudflareCleanIP(reader)
 
 		case "8":
+			configureDNSTunnel(reader)
+
+		case "9":
 			showV2RayGuide(reader)
 
-		case "L", "9":
+		case "L", "10":
 			runLiveMonitor(reader)
 
 		case "R":
