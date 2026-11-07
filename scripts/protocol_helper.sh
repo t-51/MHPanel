@@ -3437,7 +3437,18 @@ EOF
                         cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
                     done
                 fi
-                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-amd64 snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client-linux-amd64 ]; then
+                    cp -f snispoof-client-linux-amd64 snispoof-client 2>/dev/null || true
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client-linux-amd64 "snispoof-${st}" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-arm64 snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client-linux-arm64 ]; then
+                    cp -f snispoof-client-linux-arm64 snispoof-client-termux-arm64 2>/dev/null || true
+                    cp -f snispoof-client-linux-arm64 snispoof-fragment-termux 2>/dev/null || true
+                fi
                 chmod +x snispoof* 2>/dev/null || true
                 echo "{\"server_ip\":\"${srv_ip}\",\"server_domain\":\"${srv_domain}\",\"server_port\":${port},\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
             )
