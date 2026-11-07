@@ -71,7 +71,7 @@ var defaultConfig = Config{
 	ServerPort:      15443,
 	LocalSocksPort:  40808,
 	LocalRelayPort:  40443,
-	RelayPorts:      []int{443, 8443, 20443, 40443},
+	RelayPorts:      []int{20443, 20444, 20445, 20446, 20447, 20448, 20449, 20450, 20451, 20452, 20453, 20454, 20455, 20456, 20457, 20458, 20459, 20460, 20461, 20462, 20463, 20464, 40443},
 	FakeSNI:         "sanjesh.org",
 	Strategy:        "patterniha_desync",
 	LowTTLHops:      5,
@@ -93,6 +93,19 @@ var popularSNIs = []struct {
 	{"microsoft.com", "Microsoft Azure Cloud"},
 	{"telewebion.com", "Broadcasting Media CDN"},
 	{"divar.ir", "Local CDN Whitelist"},
+}
+
+var popularCleanIPs = []struct {
+	IP    string
+	Label string
+}{
+	{"104.18.119.142", "Cloudflare Anycast Clean IP (Fast / Low Latency)"},
+	{"104.25.165.92", "Cloudflare Anycast Clean IP (Verified Stable)"},
+	{"104.25.224.90", "Cloudflare Anycast Clean IP (High Throughput)"},
+	{"159.246.55.228", "Cloudflare Clean IP (Alternative)"},
+	{"172.67.69.51", "Cloudflare Anycast Edge"},
+	{"91.209.253.54", "Cloudflare Edge"},
+	{"199.33.231.234", "Cloudflare Clean IP"},
 }
 
 // Circular Live Event Log Buffer & File Logger
@@ -460,7 +473,7 @@ func closeAllConns() {
 }
 
 func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Conn, error) {
-	addLiveLog("OUTBOUND", fmt.Sprintf("Dialing remote server %s...", targetAddr))
+	addLiveLog("OUTBOUND", fmt.Sprintf("Dialing remote %s...", targetAddr))
 	d := net.Dialer{Timeout: 8 * time.Second}
 	remote, err := d.Dial("tcp", targetAddr)
 	if err != nil {
@@ -474,51 +487,62 @@ func connectRemote(targetAddr string, currentCfg Config, targetPort int) (net.Co
 		_ = tcpConn.SetKeepAlivePeriod(15 * time.Second)
 	}
 
-	var fakeHello []byte
-	switch currentCfg.Strategy {
-	case "patterniha_desync", "wrong_seq", "fake_sni", "low_ttl":
-		fakeHello = buildFakeClientHello(currentCfg.FakeSNI)
-	}
-
-	fakeLen := len(fakeHello)
-	// Protocol Header: MAGIC 'SNIP' (4B) + targetPort (2B uint16) + fakeLen (2B uint16)
-	routingHead := []byte{
-		0x53, 0x4e, 0x49, 0x50,
-		byte(targetPort >> 8), byte(targetPort & 0xff),
-		byte(fakeLen >> 8), byte(fakeLen & 0xff),
-	}
-	_, _ = remote.Write(routingHead)
-
-	if fakeLen > 0 {
-		addLiveLog("DESYNC", fmt.Sprintf("Injected Decoy SNI: \"%s\" (%d bytes) -> Spoofing DPI filter", currentCfg.FakeSNI, fakeLen))
-		_, _ = remote.Write(fakeHello)
-		delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
-		if delay <= 0 {
-			delay = 3 * time.Millisecond
+	// Only send proprietary SNIP multiplexer header if connecting to snispoof-server daemon on port 15443
+	if currentCfg.ServerPort == 15443 && currentCfg.Strategy == "patterniha_desync" {
+		var fakeHello []byte
+		switch currentCfg.Strategy {
+		case "patterniha_desync", "wrong_seq", "fake_sni", "low_ttl":
+			fakeHello = buildFakeClientHello(currentCfg.FakeSNI)
 		}
-		time.Sleep(delay)
+
+		fakeLen := len(fakeHello)
+		// Protocol Header: MAGIC 'SNIP' (4B) + targetPort (2B uint16) + fakeLen (2B uint16)
+		routingHead := []byte{
+			0x53, 0x4e, 0x49, 0x50,
+			byte(targetPort >> 8), byte(targetPort & 0xff),
+			byte(fakeLen >> 8), byte(fakeLen & 0xff),
+		}
+		_, _ = remote.Write(routingHead)
+
+		if fakeLen > 0 {
+			addLiveLog("DESYNC", fmt.Sprintf("Injected Decoy SNI: \"%s\" (%d bytes) -> Spoofing DPI filter", currentCfg.FakeSNI, fakeLen))
+			_, _ = remote.Write(fakeHello)
+			delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
+			if delay <= 0 {
+				delay = 3 * time.Millisecond
+			}
+			time.Sleep(delay)
+		}
+		addLiveLog("TUNNEL", fmt.Sprintf("Remote tunnel established -> Server target: 127.0.0.1:%d", targetPort))
+	} else if currentCfg.ServerPort == 443 {
+		addLiveLog("CLEAN-IP", fmt.Sprintf("Direct tunnel established to Cloudflare Clean IP %s", targetAddr))
+	} else {
+		addLiveLog("DIRECT", fmt.Sprintf("Direct connection established to %s", targetAddr))
 	}
 
-	addLiveLog("TUNNEL", fmt.Sprintf("Remote tunnel established -> Server target: 127.0.0.1:%d", targetPort))
 	return remote, nil
 }
 
 func relayData(src, dst net.Conn, applyFrag bool, currentCfg Config, isClientToRemote bool, initialPrefix []byte) {
 	if len(initialPrefix) > 0 {
 		if applyFrag && (currentCfg.Strategy == "tls_fragment" || currentCfg.Strategy == "patterniha_desync") {
-			start, _, _ := findSNIOffset(initialPrefix)
+			start, _, sni := findSNIOffset(initialPrefix)
 			fragSize := currentCfg.FragmentSize
 			if fragSize <= 0 {
 				fragSize = 2
 			}
 			delay := time.Duration(currentCfg.FragmentDelayMs) * time.Millisecond
+			if delay <= 0 {
+				delay = 5 * time.Millisecond
+			}
 			if start > 0 && start+fragSize < len(initialPrefix) {
-				addLiveLog("FRAGMENT", fmt.Sprintf("Slicing SNI into fragments (delay %v)", delay))
+				addLiveLog("FRAGMENT", fmt.Sprintf("Slicing SNI (\"%s\") into fragments (delay %v) -> DPI Bypassed!", sni, delay))
 				_, _ = dst.Write(initialPrefix[:start+fragSize])
 				time.Sleep(delay)
 				_, _ = dst.Write(initialPrefix[start+fragSize:])
 			} else if len(initialPrefix) > 10 {
 				split := min(20, len(initialPrefix)/2)
+				addLiveLog("FRAGMENT", fmt.Sprintf("Slicing payload into fragments (delay %v)", delay))
 				_, _ = dst.Write(initialPrefix[:split])
 				time.Sleep(delay)
 				_, _ = dst.Write(initialPrefix[split:])
@@ -599,14 +623,33 @@ func handleTCPRelay(client net.Conn, targetAddr string, defaultPort int) {
 	}
 
 	currentCfg := getSnapshotConfig()
-	remote, err := connectRemote(targetAddr, currentCfg, targetPort)
+
+	// Determine actual dial address
+	targetHost := currentCfg.ServerIP
+	if (targetHost == "" || targetHost == "127.0.0.1") && currentCfg.ServerDomain != "" {
+		targetHost = currentCfg.ServerDomain
+	}
+
+	dialAddr := targetAddr
+	if currentCfg.ServerPort == 443 {
+		// Cloudflare Clean IP mode -> always route to port 443
+		dialAddr = fmt.Sprintf("%s:443", targetHost)
+	} else if currentCfg.ServerPort == 15443 {
+		// SNIP daemon mode
+		dialAddr = fmt.Sprintf("%s:15443", targetHost)
+	} else if currentCfg.ServerPort == 0 {
+		// Direct mode -> use incoming port
+		dialAddr = fmt.Sprintf("%s:%d", targetHost, targetPort)
+	}
+
+	remote, err := connectRemote(dialAddr, currentCfg, targetPort)
 	if err != nil {
 		return
 	}
 	registerConn(remote)
 	defer unregisterConn(remote)
 
-	addLiveLog("RELAY", fmt.Sprintf("Bidirectional proxy streaming active for %s", clientAddr))
+	addLiveLog("RELAY", fmt.Sprintf("Streaming active for %s -> %s", clientAddr, dialAddr))
 
 	done := make(chan struct{}, 2)
 	go func() {
@@ -667,7 +710,21 @@ func handleSocks5(client net.Conn, targetAddr string) {
 	addLiveLog("SOCKS5", fmt.Sprintf("SOCKS5 Request to %s:%d", targetHost, targetPort))
 
 	currentCfg := getSnapshotConfig()
-	remote, err := connectRemote(targetAddr, currentCfg, targetPort)
+	targetH := currentCfg.ServerIP
+	if (targetH == "" || targetH == "127.0.0.1") && currentCfg.ServerDomain != "" {
+		targetH = currentCfg.ServerDomain
+	}
+
+	dialAddr := targetAddr
+	if currentCfg.ServerPort == 443 {
+		dialAddr = fmt.Sprintf("%s:443", targetH)
+	} else if currentCfg.ServerPort == 15443 {
+		dialAddr = fmt.Sprintf("%s:15443", targetH)
+	} else if currentCfg.ServerPort == 0 {
+		dialAddr = fmt.Sprintf("%s:%d", targetH, targetPort)
+	}
+
+	remote, err := connectRemote(dialAddr, currentCfg, targetPort)
 	if err != nil {
 		_, _ = client.Write([]byte{0x05, 0x04, 0x00, 0x01, 0, 0, 0, 0, 0, 0})
 		return
@@ -891,9 +948,10 @@ func printBanner() {
 	fmt.Println(" [4] Inbound Listening Ports (Add / Remove / Change Relay Ports)")
 	fmt.Println(" [5] Change Decoy SNI Domain")
 	fmt.Println(" [6] Change Evasion Strategy")
-	fmt.Println(" [7] V2Ray / Sing-box / Xray Setup Guide")
-	fmt.Println(" [L/8] Live Continuous Event Monitor (Real-time Streaming)")
-	fmt.Println(" [9] Refresh Status")
+	fmt.Println(" [7] Cloudflare Clean IP Mode (حالت آی‌پی سفید و فرگمنت کلودفلر)")
+	fmt.Println(" [8] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [L/9] Live Continuous Event Monitor (Real-time Streaming)")
+	fmt.Println(" [R] Refresh Status")
 	fmt.Println(" [Q/0] Quit / Exit")
 	fmt.Println("======================================================================")
 	fmt.Print("Please select an option: ")
@@ -1286,6 +1344,88 @@ func configureStrategy(reader *bufio.Reader) {
 	_, _ = reader.ReadString('\n')
 }
 
+func configureCloudflareCleanIP(reader *bufio.Reader) {
+	clearScreen()
+	fmt.Println("======================================================================")
+	fmt.Println("         CLOUDFLARE CLEAN IP & TLS FRAGMENT MODE SETUP                ")
+	fmt.Println("======================================================================")
+	fmt.Println("In this mode, all traffic is routed to a verified Cloudflare Clean IP")
+	fmt.Println("on Port 443 with TLS ClientHello SNI fragmentation.")
+	fmt.Println()
+	fmt.Println("Features:")
+	fmt.Println(" * Bypasses Iranian DPI (SNI is sliced across TCP segments)")
+	fmt.Println(" * Hides your actual VPS Server IP behind Cloudflare Anycast edge")
+	fmt.Println(" * Zero config changes in V2RayN: Connect to 127.0.0.1:PORT directly!")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println("Popular Verified Clean IPs:")
+	for i, c := range popularCleanIPs {
+		fmt.Printf(" [%d] %-16s : %s\n", i+1, c.IP, c.Label)
+	}
+	fmt.Printf(" [%d] Enter a Custom Clean IP manually\n", len(popularCleanIPs)+1)
+	fmt.Println(" [0] Return to main menu (Cancel)")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Print("Please select a Clean IP [1-8, 0=Back]: ")
+
+	choice, _ := reader.ReadString('\n')
+	choice = strings.TrimSpace(choice)
+
+	if choice == "0" || choice == "" {
+		return
+	}
+
+	chosenIP := ""
+	if num, err := strconv.Atoi(choice); err == nil {
+		if num >= 1 && num <= len(popularCleanIPs) {
+			chosenIP = popularCleanIPs[num-1].IP
+		} else if num == len(popularCleanIPs)+1 {
+			fmt.Print("Enter custom Cloudflare Clean IP: ")
+			cIP, _ := reader.ReadString('\n')
+			chosenIP = strings.TrimSpace(cIP)
+		}
+	} else if net.ParseIP(choice) != nil {
+		chosenIP = choice
+	}
+
+	if chosenIP == "" || net.ParseIP(chosenIP) == nil {
+		fmt.Println("\n[!] Invalid IP address. Returning to main menu.")
+		time.Sleep(1 * time.Second)
+		return
+	}
+
+	cfgMutex.Lock()
+	cfg.ServerIP = chosenIP
+	cfg.ServerPort = 443
+	cfg.Strategy = "tls_fragment"
+	if cfg.FragmentSize <= 0 {
+		cfg.FragmentSize = 2
+	}
+	if cfg.FragmentDelayMs <= 0 {
+		cfg.FragmentDelayMs = 5
+	}
+	cfgMutex.Unlock()
+
+	saveConfig()
+	fmt.Printf("\n[OK] Cloudflare Clean IP mode ACTIVATED with IP: %s:443\n", chosenIP)
+	fmt.Println("     Strategy: tls_fragment (Delay: 5ms, Size: 2B)")
+
+	if atomic.LoadInt32(&running) == 1 {
+		fmt.Println("Reloading proxy with new Clean IP settings...")
+		StopProxy()
+		time.Sleep(150 * time.Millisecond)
+		if err := StartProxy(); err != nil {
+			fmt.Printf("[x] Error reloading proxy: %v\n", err)
+		} else {
+			fmt.Println("[OK] Proxy successfully reloaded and listening on local ports!")
+		}
+	} else {
+		fmt.Println("\n[TIP] Start the proxy ([1] in main menu) to begin routing!")
+	}
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
+}
+
 func showV2RayGuide(reader *bufio.Reader) {
 	currentCfg := getSnapshotConfig()
 
@@ -1297,13 +1437,16 @@ func showV2RayGuide(reader *bufio.Reader) {
 	fmt.Println("METHOD 1: Multi-Port Direct Relay (Recommended)")
 	fmt.Println(" 1. In your V2Ray / Singbox client, duplicate ANY of your server profiles.")
 	fmt.Println(" 2. Simply change the Address / Server IP to: 127.0.0.1")
-	fmt.Println(" 3. KEEP THE ORIGINAL PORT! (20443, 20448, 20456, 20444, etc. are all auto-bound!)")
+	fmt.Println(" 3. KEEP THE ORIGINAL PORT! (20443, 20448, 20456, 20444, 20460, etc.)")
 	fmt.Println(" 4. DO NOT change UUID, Path, TLS, or SNI! Leave them exactly as they are.")
 	fmt.Println(" 5. Start this terminal client ([1] Open Proxy), then connect in V2Ray.")
 	fmt.Println()
-	fmt.Println("METHOD 2: Universal Relay Port (:40443)")
-	fmt.Println(" 1. Address: 127.0.0.1  |  Port: 40443")
-	fmt.Println(" 2. Client will automatically inspect the SNI and route to the correct inbound!")
+	fmt.Println("METHOD 2: Cloudflare Clean IP Mode (Option [7])")
+	fmt.Println(" 1. Activate Option [7] and select a Cloudflare Clean IP (e.g. 104.18.119.142).")
+	fmt.Println(" 2. In V2RayN, take your Trojan-WS or VLESS-WS config.")
+	fmt.Println(" 3. Address: 127.0.0.1  |  Port: 20460 (or your WS port).")
+	fmt.Println(" 4. SNI & Host: Set to your Cloudflare domain (e.g. ws.kigaping.com or mhpanel.kigaping.com).")
+	fmt.Println(" 5. This software fragments the SNI and tunnels directly to the Clean IP!")
 	fmt.Println()
 	fmt.Println("METHOD 3: SOCKS5 Outbound Proxy (Zero Config Changes!)")
 	fmt.Printf(" 1. In v2rayN / Nekoray / Clash, set Outbound / Proxy Server to: 127.0.0.1:%d\n", currentCfg.LocalSocksPort)
@@ -1426,12 +1569,15 @@ func main() {
 			configureStrategy(reader)
 
 		case "7":
+			configureCloudflareCleanIP(reader)
+
+		case "8":
 			showV2RayGuide(reader)
 
-		case "L", "8":
+		case "L", "9":
 			runLiveMonitor(reader)
 
-		case "9":
+		case "R":
 			// Just loop to refresh banner
 
 		case "0", "Q", "QUIT", "EXIT":
