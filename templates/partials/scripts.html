@@ -14421,8 +14421,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             
             const badge = document.getElementById("sstp-status-badge");
             if (badge) {
-                const isRunning = services.sstpd || services.vpnserver;
-                const engineName = services.sstpd && services.vpnserver ? "sstpd + SoftEther" : (services.sstpd ? "sstpd (Kernel)" : (services.vpnserver ? "SoftEther MS-SSTP" : window.t("غیرفعال")));
+                const isRunning = services.vpnserver;
+                const engineName = isRunning ? "SoftEther MS-SSTP" : window.t("غیرفعال");
                 if (isRunning) {
                     badge.innerHTML = `<span class="status-dot active"></span> ${window.t("common_active")} (${window.t("در حال اجرا:")} ${engineName})`;
                 } else {
@@ -14490,7 +14490,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
 
             // Populate form
-            if (document.getElementById("sstp-cfg-engine")) document.getElementById("sstp-cfg-engine").value = cfg.engine || "sstpd";
+            if (document.getElementById("sstp-cfg-engine")) document.getElementById("sstp-cfg-engine").value = cfg.engine || "softether";
             if (document.getElementById("sstp-cfg-port")) document.getElementById("sstp-cfg-port").value = pPort;
             if (document.getElementById("sstp-cfg-sni")) document.getElementById("sstp-cfg-sni").value = pSni;
             if (document.getElementById("sstp-cfg-mtu")) document.getElementById("sstp-cfg-mtu").value = cfg.mtu || "1400";
@@ -14544,7 +14544,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         toggleLoading(true, "در حال ذخیره و اعمال تغییرات سرور SSTP...");
         try {
             const payload = {
-                engine: document.getElementById("sstp-cfg-engine")?.value || "sstpd",
+                engine: document.getElementById("sstp-cfg-engine")?.value || "softether",
                 port: parseInt(document.getElementById("sstp-cfg-port")?.value || "4443", 10),
                 sni: document.getElementById("sstp-cfg-sni")?.value.trim() || "sstp.example.com",
                 mtu: parseInt(document.getElementById("sstp-cfg-mtu")?.value || "1400", 10),
@@ -14807,7 +14807,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 tr.style.borderBottom = "1px solid #e2e8f0";
                 tr.innerHTML = `
                     <td style="padding:12px 14px; font-weight:600; color:var(--text-main); direction:ltr; text-align:left;">${s.username}</td>
-                    <td style="padding:12px 14px;"><span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">${s.engine === 'softether' ? 'SoftEther MS-SSTP' : 'Linux sstpd'}</span></td>
+                    <td style="padding:12px 14px;"><span style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:2px 8px; border-radius:6px; font-weight:600;">${s.engine === 'softether' ? 'SoftEther MS-SSTP' : 'MS-SSTP'}</span></td>
                     <td style="padding:12px 14px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; color:#475569;">${s.ip} (${s.interface || 'ppp'})</td>
                     <td style="padding:12px 14px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; color:#64748b;">${s.pid || s.session_name || '-'}</td>
                     <td style="padding:12px 14px; color:var(--text-muted); font-size:12px;">${s.connected_since || 'Active'}</td>

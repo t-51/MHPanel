@@ -18324,6 +18324,29 @@ SSTP_CA_PEM = "/etc/sstp-ca/ca.pem"
 SSTP_CA_KEY = "/etc/sstp-ca/ca.key"
 SSTP_SERVER_CERT = "/etc/sstp-ca/sstp-server.crt"
 SSTP_SERVER_KEY = "/etc/sstp-ca/sstp-server.key"
+VPNSERVER_DIR = "/usr/local/vpnserver"
+VPNCMD_BIN = "/usr/local/vpnserver/vpncmd"
+
+def run_vpncmd(*args, hub="DEFAULT"):
+    if not os.path.exists(VPNCMD_BIN):
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="vpncmd not found")
+    cmd = [VPNCMD_BIN, "localhost:5555", "/SERVER"]
+    if hub:
+        cmd.extend([f"/HUB:{hub}"])
+    cmd.append("/CMD")
+    cmd.extend(args)
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except Exception as e:
+        return subprocess.CompletedProcess(cmd, 1, stdout="", stderr=str(e))
+
+def parse_vpn_bytes(val_str):
+    if not val_str:
+        return 0
+    m = re.search(r'([0-9,]+)\s*bytes', str(val_str), re.IGNORECASE)
+    if m:
+        return int(m.group(1).replace(",", ""))
+    return 0
 
 def ensure_sstp_ca():
     os.makedirs(SSTP_CA_DIR, exist_ok=True)
@@ -18354,54 +18377,44 @@ def get_sstp_cert_details():
         "san": "ندارد",
         "issuer": "تنظیم نشده",
         "expiry": "نامشخص",
-        "cert_type": "اختصاصی پنل (Root CA)",
+        "cert_type": "سافت‌ایزر / انترپرایز (SoftEther SSL)",
         "cert_path": SSTP_SERVER_CERT,
         "key_path": SSTP_SERVER_KEY
     }
-    
-    target_cert = None
-    if os.path.exists(SSTP_SERVER_CERT):
-        target_cert = SSTP_SERVER_CERT
-    elif os.path.exists("/etc/systemd/system/sstpd.service"):
+    cert_file = SSTP_SERVER_CERT
+    fullchain = f"{SSTP_CA_DIR}/sstp-fullchain.crt"
+    if os.path.exists(fullchain):
+        cert_file = fullchain
+
+    if os.path.exists(cert_file):
         try:
-            with open("/etc/systemd/system/sstpd.service", "r") as f:
-                s_txt = f.read()
-            m = re.search(r'-c\s+([^\s]+)', s_txt)
-            if m and os.path.exists(m.group(1)):
-                target_cert = m.group(1)
+            res_subj = subprocess.run(["openssl", "x509", "-in", cert_file, "-noout", "-subject"], capture_output=True, text=True)
+            if res_subj.returncode == 0:
+                s_txt = res_subj.stdout.strip()
+                m = re.search(r'CN\s*=\s*([^,\n/]+)', s_txt)
+                if m:
+                    info["subject"] = m.group(1).strip()
+                else:
+                    info["subject"] = s_txt.replace("subject=", "").strip()
+                info["installed"] = True
+
+            res_iss = subprocess.run(["openssl", "x509", "-in", cert_file, "-noout", "-issuer"], capture_output=True, text=True)
+            if res_iss.returncode == 0:
+                i_txt = res_iss.stdout.strip()
+                m = re.search(r'CN\s*=\s*([^,\n/]+)', i_txt)
+                info["issuer"] = m.group(1).strip() if m else i_txt.replace("issuer=", "").strip()
+
+            res_exp = subprocess.run(["openssl", "x509", "-in", cert_file, "-noout", "-enddate"], capture_output=True, text=True)
+            if res_exp.returncode == 0:
+                info["expiry"] = res_exp.stdout.strip().replace("notAfter=", "")
+
+            res_ext = subprocess.run(["openssl", "x509", "-in", cert_file, "-noout", "-ext", "subjectAltName"], capture_output=True, text=True)
+            if res_ext.returncode == 0 and ("DNS:" in res_ext.stdout or "IP Address:" in res_ext.stdout):
+                lines = [l.strip() for l in res_ext.stdout.splitlines() if "DNS:" in l or "IP Address:" in l]
+                if lines:
+                    info["san"] = lines[0]
         except Exception:
             pass
-            
-    if not target_cert:
-        d = get_server_domain()
-        if d and os.path.exists(f"/etc/letsencrypt/live/{d}/fullchain.pem"):
-            target_cert = f"/etc/letsencrypt/live/{d}/fullchain.pem"
-        elif os.path.exists(VPN_SERVER_CERT):
-            target_cert = VPN_SERVER_CERT
-            
-    if target_cert and os.path.exists(target_cert):
-        info["installed"] = True
-        info["cert_path"] = target_cert
-        try:
-            res = subprocess.run(["openssl", "x509", "-in", target_cert, "-noout", "-subject", "-issuer", "-dates", "-ext", "subjectAltName"], capture_output=True, text=True)
-            out = res.stdout
-            for line in out.splitlines():
-                line = line.strip()
-                if line.startswith("subject="):
-                    info["subject"] = line.replace("subject=", "").strip()
-                elif line.startswith("issuer="):
-                    info["issuer"] = line.replace("issuer=", "").strip()
-                elif line.startswith("notAfter="):
-                    info["expiry"] = line.replace("notAfter=", "").strip()
-                elif "DNS:" in line or "IP Address:" in line:
-                    info["san"] = line
-            if "Let's Encrypt" in info.get("issuer", ""):
-                info["cert_type"] = "گواهی رسمی Let's Encrypt"
-            elif "Root CA" in info.get("issuer", "") or "SSTP" in info.get("issuer", "") or "MH Panel" in info.get("issuer", ""):
-                info["cert_type"] = "گواهی امضا شده توسط Root CA"
-        except Exception:
-            pass
-            
     return info
 
 def generate_or_renew_sstp_cert(domain_or_ip):
@@ -18474,39 +18487,18 @@ subjectAltName = @alt_names
     if os.path.exists(csr_path): os.unlink(csr_path)
     if os.path.exists(cnf_path): os.unlink(cnf_path)
     
-    # Update sstpd.service file
-    cfg = get_sstp_config()
-    port = cfg.get("port", 4443)
-    local_ip = cfg.get("local_ip", "10.20.20.1")
-    remote_subnet = cfg.get("remote_subnet", "10.20.20.0/24")
-    ip_range = cfg.get("ip_range", "10.20.20.10-250")
-    ciphers = cfg.get("ciphers", "ECDHE-RSA-AES256-GCM-SHA384:AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384:AES256-SHA384:!aNULL:!MD5:!RC4")
-    
-    service_content = f"""[Unit]
-Description=SSTP Server Daemon (sstpd)
-After=network.target freeradius.service
-Wants=freeradius.service
-
-[Service]
-Type=simple
-ExecStart=/usr/local/bin/sstpd -l 0.0.0.0 -p {port} -c {fullchain_path} -k {SSTP_SERVER_KEY} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-"""
-    with open("/etc/systemd/system/sstpd.service", "w") as f:
-        f.write(service_content)
-    subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
-    subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
+    try:
+        cert_to_load = fullchain_path if os.path.exists(fullchain_path) else SSTP_SERVER_CERT
+        if os.path.exists(VPNCMD_BIN):
+            run_vpncmd("ServerCertSet", f"/LOADCERT:{cert_to_load}", f"/LOADKEY:{SSTP_SERVER_KEY}", hub=None)
+    except Exception:
+        pass
     
     return get_sstp_cert_details()
 
 def get_sstp_config():
     default_cfg = {
-        "engine": "sstpd",
+        "engine": "softether",
         "port": 4443,
         "sni": "sstp.example.com",
         "haproxy_443": True,
@@ -18520,7 +18512,7 @@ def get_sstp_config():
         "mtu": 1400,
         "mru": 1400,
         "cipher_preset": "all_aes_sha",
-        "ciphers": "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4",
+        "ciphers": "ECDHE-RSA-AES256-GCM-SHA384",
         "mppe_mode": "adaptive",
         "auth_mode": "radius_and_chap"
     }
@@ -18531,6 +18523,7 @@ def get_sstp_config():
                 default_cfg.update(data)
         except Exception:
             pass
+    default_cfg["engine"] = "softether"
     if not default_cfg.get("sni") or default_cfg.get("sni") in ["sstp.example.com"]:
         d = get_server_domain()
         default_cfg["sni"] = f"sstp.{d}" if d else "sstp.example.com"
@@ -18538,21 +18531,6 @@ def get_sstp_config():
 
 def get_sstp_traffic():
     traffic = {}
-    try:
-        if os.path.exists("/proc/net/dev"):
-            with open("/proc/net/dev", "r") as f:
-                lines = f.readlines()
-            for line in lines[2:]:
-                parts = line.strip().split()
-                if not parts:
-                    continue
-                iface = parts[0].rstrip(":")
-                if iface.startswith("ppp"):
-                    rx_bytes = int(parts[1])
-                    tx_bytes = int(parts[9])
-                    traffic[iface] = {"rx": rx_bytes, "tx": tx_bytes}
-    except Exception:
-        pass
     return traffic
 
 def sstp_client_tracker():
@@ -18574,6 +18552,25 @@ def sstp_client_tracker():
                     expire_date = user_data.get("expire_date")
                     disabled = False
                     
+                    try:
+                        res = run_vpncmd("UserGet", username, hub="DEFAULT")
+                        if res.returncode == 0:
+                            rx = 0
+                            tx = 0
+                            for line in res.stdout.splitlines():
+                                if "|" in line:
+                                    k, v = [x.strip() for x in line.split("|", 1)]
+                                    if "Incoming Unicast Total Size" in k or "Incoming Broadcast Total Size" in k:
+                                        rx += parse_vpn_bytes(v)
+                                    elif "Outgoing Unicast Total Size" in k or "Outgoing Broadcast Total Size" in k:
+                                        tx += parse_vpn_bytes(v)
+                            if rx > 0 or tx > 0:
+                                user_data["rx"] = rx
+                                user_data["tx"] = tx
+                                changed = True
+                    except Exception:
+                        pass
+                    
                     total_usage = user_data.get("rx", 0) + user_data.get("tx", 0)
                     
                     if expire_date and now_str > expire_date:
@@ -18586,7 +18583,20 @@ def sstp_client_tracker():
                     if disabled and user_data.get("active", True):
                         user_data["active"] = False
                         changed = True
-                        subprocess.run(["sed", "-i", f's/^"{username}" /#"{username}" /', "/etc/ppp/chap-secrets"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        try:
+                            run_vpncmd("UserPolicySet", username, "/NAME:Access", "/VALUE:no", hub="DEFAULT")
+                            s_res = run_vpncmd("SessionList", hub="DEFAULT")
+                            curr_s = {}
+                            for line in s_res.stdout.splitlines():
+                                if "|" in line:
+                                    k, v = [x.strip() for x in line.split("|", 1)]
+                                    if k == "Session Name":
+                                        curr_s = {"name": v}
+                                    elif k == "User Name (Authentication)":
+                                        if v == username and curr_s.get("name"):
+                                            run_vpncmd("SessionDisconnect", curr_s["name"], hub="DEFAULT")
+                        except Exception:
+                            pass
                 
                 if changed:
                     with open(users_file, "w") as f:
@@ -18594,7 +18604,7 @@ def sstp_client_tracker():
                     sync_freeradius_users()
         except Exception:
             pass
-        time.sleep(60)
+        time.sleep(45)
 
 @app.route("/api/sstp/config", methods=["GET"])
 def api_get_sstp_config():
@@ -18607,7 +18617,6 @@ def api_get_sstp_config():
         res = subprocess.run(["systemctl", "is-active", u], capture_output=True, text=True)
         return res.stdout.strip() == "active"
         
-    sstpd_active = check_unit("sstpd")
     vpnserver_active = check_unit("vpnserver")
     haproxy_active = check_unit("haproxy")
     
@@ -18618,12 +18627,12 @@ def api_get_sstp_config():
     return jsonify({
         "config": cfg,
         "services": {
-            "sstpd": sstpd_active,
             "vpnserver": vpnserver_active,
+            "sstpd": False,
             "haproxy": haproxy_active
         },
         "softether_installed": os.path.exists("/usr/local/vpnserver/vpnserver"),
-        "sstpd_installed": bool(shutil.which("accel-pppd") or shutil.which("sstpd") or os.path.exists("/usr/sbin/accel-pppd")),
+        "sstpd_installed": False,
         "cert": {
             "valid": cert_details.get("installed", False),
             "domain": cert_details.get("subject", srv_domain)
@@ -18641,7 +18650,10 @@ def api_install_softether():
     try:
         cfg = get_sstp_config()
         port = cfg.get("port", 4443)
-        res = subprocess.run(["bash", "/root/mhpanel-repo/scripts/protocol_helper.sh", "install", "softether", str(port)], capture_output=True, text=True, timeout=180)
+        helper_path = "/root/mhpanel-repo/scripts/protocol_helper.sh"
+        if not os.path.exists(helper_path):
+            helper_path = "/www/wwwroot/mhpanel/scripts/protocol_helper.sh"
+        res = subprocess.run(["bash", helper_path, "install", "softether", str(port)], capture_output=True, text=True, timeout=180)
         if res.returncode == 0:
             return jsonify({"success": True, "message": "سرور سافت‌ایزر (SoftEther MS-SSTP Enterprise) با موفقیت نصب و راه‌اندازی شد."})
         else:
@@ -18657,7 +18669,6 @@ def api_save_sstp_config():
     data = request.json or {}
     cfg = get_sstp_config()
     
-    engine = data.get("engine", cfg.get("engine", "sstpd"))
     port = int(data.get("port", cfg.get("port", 4443)))
     sni = data.get("sni", cfg.get("sni", "sstp.example.com")).strip()
     haproxy_443 = bool(data.get("haproxy_443", True))
@@ -18670,12 +18681,12 @@ def api_save_sstp_config():
     mtu = int(data.get("mtu", cfg.get("mtu", 1400)))
     mru = int(data.get("mru", cfg.get("mru", 1400)))
     cipher_preset = data.get("cipher_preset", cfg.get("cipher_preset", "all_aes_sha"))
-    ciphers = data.get("ciphers", cfg.get("ciphers", "ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA256:AES256-GCM-SHA384:AES128-GCM-SHA256:AES256-SHA256:AES128-SHA256:HIGH:!aNULL:!MD5:!RC4")).strip()
+    ciphers = data.get("ciphers", cfg.get("ciphers", "ECDHE-RSA-AES256-GCM-SHA384")).strip()
     mppe_mode = data.get("mppe_mode", cfg.get("mppe_mode", "require-mppe-128"))
     auth_mode = data.get("auth_mode", "radius_and_chap")
     
     cfg.update({
-        "engine": engine,
+        "engine": "softether",
         "port": port,
         "sni": sni,
         "haproxy_443": haproxy_443,
@@ -18696,44 +18707,6 @@ def api_save_sstp_config():
     with open(SSTP_CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
         
-    if mppe_mode == "require-mppe-128":
-        mppe_directive = "require-mppe-128\nmppe-stateful"
-    elif mppe_mode == "mppe-stateful":
-        mppe_directive = "mppe-stateful"
-    elif mppe_mode == "none":
-        mppe_directive = "nomppe"
-    else:  # adaptive / auto
-        mppe_directive = "# Adaptive MPPE mode (SSL/TLS native encryption)"
-    ppp_options = f"""name sstpd
-debug
-ipcp-accept-local
-ipcp-accept-remote
-idle 1800
-mtu {mtu}
-mru {mru}
-proxyarp
-nodeflate
-nobsdcomp
-lcp-echo-failure 4
-lcp-echo-interval 30
-ms-dns {dns1}
-ms-dns {dns2}
-nodefaultroute
-{mppe_directive}
-require-mschap-v2
-refuse-mschap
-refuse-chap
-refuse-pap
-refuse-eap
-plugin radius.so
-radius-config-file /etc/radcli/radiusclient.conf
-"""
-    try:
-        with open("/etc/ppp/options.sstpd", "w") as f:
-            f.write(ppp_options)
-    except Exception:
-        pass
-        
     ensure_sstp_ca()
     fullchain_path = f"{SSTP_CA_DIR}/sstp-fullchain.crt"
     sstp_c_path = fullchain_path if os.path.exists(fullchain_path) else SSTP_SERVER_CERT
@@ -18747,169 +18720,37 @@ radius-config-file /etc/radcli/radiusclient.conf
         except Exception:
             pass
 
-    # Check whether accel-ppp is the active SSTP engine
-    accel_bin = ""
-    for c in ["/usr/sbin/accel-pppd", "/usr/local/sbin/accel-pppd", "/usr/bin/accel-pppd"]:
-        if os.path.exists(c):
-            accel_bin = c
-            break
+    if not os.path.exists("/usr/local/vpnserver/vpnserver"):
+        helper_path = "/root/mhpanel-repo/scripts/protocol_helper.sh"
+        if not os.path.exists(helper_path):
+            helper_path = "/www/wwwroot/mhpanel/scripts/protocol_helper.sh"
+        subprocess.run(["bash", helper_path, "install", "softether", str(port)], capture_output=True)
 
-    if accel_bin or os.path.exists("/etc/accel-ppp.conf"):
-        accel_bin = accel_bin or "/usr/sbin/accel-pppd"
-        fullchain = "/etc/sstp-ca/sstp-fullchain.crt"
-        c_path = fullchain if os.path.exists(fullchain) else (sstp_c_path if os.path.exists(sstp_c_path) else "/etc/sstp-ca/sstp-server.crt")
-        k_path = sstp_k_path if os.path.exists(sstp_k_path) else "/etc/sstp-ca/sstp-server.key"
-        if not (os.path.exists(c_path) and os.path.exists(k_path)):
-            if os.path.exists("/etc/vpnpanel/ssl/panel.crt"):
-                c_path = "/etc/vpnpanel/ssl/panel.crt"
-                k_path = "/etc/vpnpanel/ssl/panel.key"
-
-        accel_conf_content = f"""[modules]
-log_file
-sstp
-pppd_compat
-ippool
-chap-secrets
-auth_mschap_v2
-auth_mschap_v1
-auth_chap_md5
-auth_pap
-radius
-sigchld
-
-[core]
-log-error=/var/log/accel-ppp/core.log
-thread-count=4
-
-[common]
-single-session=replace
-
-[ppp]
-verbose=1
-min-mtu=1280
-mtu={mtu}
-mru={mru}
-ipv4=require
-ipv6=deny
-check-ip=0
-mppe=prefer
-ip-up=/etc/ppp/ip-up.d/mhpanel-sstp
-ip-down=/etc/ppp/ip-down.d/mhpanel-sstp
-
-[sstp]
-bind=0.0.0.0
-port={port}
-ssl-pemfile={c_path}
-ssl-keyfile={k_path}
-ssl=1
-
-[dns]
-dns1={dns1}
-dns2={dns2}
-
-[ip-pool]
-gw-ip-address={local_ip}
-{ip_range}
-
-[chap-secrets]
-chap-secrets=/etc/ppp/chap-secrets
-
-[radius]
-dictionary=/usr/share/accel-ppp/radius/dictionary
-nas-identifier=accel-ppp
-nas-ip-address=127.0.0.1
-gw-ip-address={local_ip}
-server=127.0.0.1,testing123,auth-port=1812,acct-port=1813,req-limit=0,fail-time=0
-dae-server=127.0.0.1:3799,testing123
-verbose=1
-timeout=3
-max-try=3
-acct-timeout=120
-
-[log]
-log-file=/var/log/accel-ppp/accel-ppp.log
-log-emerg=/var/log/accel-ppp/emerg.log
-log-debug=/var/log/accel-ppp/debug.log
-copy=1
-level=3
-
-[client-ip-range]
-0.0.0.0/0
-::/0
-"""
-        try:
-            with open("/etc/accel-ppp.conf", "w") as f:
-                f.write(accel_conf_content)
-        except Exception:
-            pass
-
-        service_content = f"""[Unit]
-Description=MHPanel SSTP Server (accel-ppp)
-Wants=network-online.target freeradius.service
-After=network-online.target freeradius.service
-
-[Service]
-Type=simple
-ExecStart={accel_bin} -c /etc/accel-ppp.conf
-ExecReload=/bin/kill -HUP $MAINPID
-Restart=always
-RestartSec=3
-TimeoutStopSec=5s
-KillMode=control-group
-
-[Install]
-WantedBy=multi-user.target
-"""
-    else:
-        sstpd_bin = shutil.which("sstpd") or "/usr/local/bin/sstpd"
-        service_content = f"""[Unit]
-Description=SSTP Server Daemon (sstpd)
-After=network.target freeradius.service
-Wants=freeradius.service
-
-[Service]
-Type=simple
-ExecStart={sstpd_bin} -l 0.0.0.0 -p {port} -c {sstp_c_path} -k {sstp_k_path} --local {local_ip} --remote {remote_subnet} --range {ip_range} --pppd-config /etc/ppp/options.sstpd --ciphers "{ciphers}"
-Restart=always
-RestartSec=3
-LimitNOFILE=65535
-
-[Install]
-WantedBy=multi-user.target
-"""
-
-    try:
-        with open("/etc/systemd/system/sstpd.service", "w") as f:
-            f.write(service_content)
-        subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
-    except Exception:
-        pass
-        
-    if engine in ["sstpd", "both"]:
-        if os.path.exists("/usr/local/vpnserver/vpncmd"):
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "ListenerDelete", str(port)], capture_output=True)
-        subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
-    else:
-        subprocess.run(["systemctl", "stop", "sstpd"], capture_output=True)
-        
-    if engine in ["softether", "both"]:
-        if not os.path.exists("/usr/local/vpnserver/vpnserver"):
-            subprocess.run(["bash", "/root/mhpanel-repo/scripts/protocol_helper.sh", "install", "softether", str(port)], capture_output=True)
-        if os.path.exists("/usr/local/vpnserver/vpncmd"):
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "ListenerCreate", str(port)], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/CMD", "SstpEnable", "yes"], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SecureNatEnable"], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "RadiusServerSet", "127.0.0.1:1812", "/SECRET:testing123", "/RETRYINTERVAL:3000"], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserCreate", "*", "/GROUP:none", "/REALNAME:none", "/NOTE:none"], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserRadiusSet", "*", "/ALIAS:none"], capture_output=True)
+    if os.path.exists(VPNCMD_BIN):
         subprocess.run(["systemctl", "start", "vpnserver"], capture_output=True)
-    else:
-        subprocess.run(["systemctl", "stop", "vpnserver"], capture_output=True)
-        
+        run_vpncmd("ListenerCreate", str(port), hub=None)
+        run_vpncmd("SstpEnable", "yes", hub=None)
+        run_vpncmd("SecureNatEnable", hub="DEFAULT")
+        if ciphers:
+            primary_cipher = ciphers.split(":")[0].strip()
+            if primary_cipher and not primary_cipher.startswith("!"):
+                run_vpncmd("ServerCipherSet", primary_cipher, hub=None)
+        if os.path.exists(sstp_c_path) and os.path.exists(sstp_k_path):
+            run_vpncmd("ServerCertSet", f"/LOADCERT:{sstp_c_path}", f"/LOADKEY:{sstp_k_path}", hub=None)
+        run_vpncmd("RadiusServerSet", "127.0.0.1:1812", "/SECRET:testing123", "/RETRYINTERVAL:3000", hub="DEFAULT")
+        run_vpncmd("UserCreate", "*", "/GROUP:none", "/REALNAME:none", "/NOTE:FreeRADIUS Wildcard", hub="DEFAULT")
+        run_vpncmd("UserRadiusSet", "*", "/ALIAS:none", hub="DEFAULT")
+
+    subprocess.run(["systemctl", "stop", "sstpd"], capture_output=True)
+    subprocess.run(["systemctl", "disable", "sstpd"], capture_output=True)
+
     subprocess.run(f"iptables -t nat -C POSTROUTING -s {remote_subnet} -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s {remote_subnet} -j MASQUERADE", shell=True)
     subprocess.run("iptables -t nat -C POSTROUTING -s 192.168.30.0/24 -j MASQUERADE 2>/dev/null || iptables -t nat -A POSTROUTING -s 192.168.30.0/24 -j MASQUERADE", shell=True)
-    
-    return jsonify({"success": True, "message": "تنظیمات SSTP ذخیره و اعمال شد."})
+
+    subprocess.run(f"ufw allow {port}/tcp 2>/dev/null || true", shell=True)
+    subprocess.run(f"iptables -I INPUT -p tcp --dport {port} -j ACCEPT 2>/dev/null || true", shell=True)
+
+    return jsonify({"success": True, "message": "تنظیمات پروتکل SSTP با موتور قدرتمند SoftEther با موفقیت ذخیره و اعمال گردید."})
 
 @app.route("/api/sstp/ca.crt", methods=["GET"])
 def api_sstp_download_ca_crt():
@@ -18939,7 +18780,7 @@ def api_sstp_cert_renew():
         cert_info = generate_or_renew_sstp_cert(domain_or_ip)
         return jsonify({
             "success": True,
-            "message": f"گواهینامه امنیتی SSTP برای «{domain_or_ip}» با موفقیت صادر و بر روی سرویس اعمال گردید.",
+            "message": f"گواهینامه امنیتی SSTP برای «{domain_or_ip}» با موفقیت صادر و بر روی SoftEther اعمال گردید.",
             "cert": cert_info
         })
     except Exception as e:
@@ -18949,16 +18790,9 @@ def api_sstp_cert_renew():
 def api_restart_sstp_services():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    cfg = get_sstp_config()
-    engine = cfg.get("engine", "sstpd")
-    
-    if engine in ["sstpd", "both"]:
-        subprocess.run(["systemctl", "restart", "sstpd"], capture_output=True)
-    if engine in ["softether", "both"]:
-        subprocess.run(["systemctl", "restart", "vpnserver"], capture_output=True)
+    subprocess.run(["systemctl", "restart", "vpnserver"], capture_output=True)
     subprocess.run(["systemctl", "reload", "haproxy"], capture_output=True)
-    
-    return jsonify({"success": True, "message": "سرویس‌های SSTP با موفقیت راه‌اندازی مجدد شدند."})
+    return jsonify({"success": True, "message": "سرویس SoftEther VPN با موفقیت راه‌اندازی مجدد شد."})
 
 @app.route("/api/sstp/sessions", methods=["GET"])
 def api_get_sstp_sessions():
@@ -18966,46 +18800,23 @@ def api_get_sstp_sessions():
         return jsonify({"error": "Unauthorized"}), 401
         
     sessions = []
-    
     try:
-        ps_res = subprocess.run(["ps", "-eo", "pid,user,etime,command"], capture_output=True, text=True)
-        for line in ps_res.stdout.splitlines():
-            parts = line.strip().split(None, 3)
-            if len(parts) >= 4:
-                pid, user, etime, cmd = parts
-                if (cmd.startswith("pppd ") or cmd.startswith("/usr/sbin/pppd")) and not "sstpd" in cmd:
-                    user_match = re.search(r"user\s+([^\s]+)", cmd)
-                    u_name = user_match.group(1) if user_match else "Connected User"
-                    sessions.append({
-                        "id": f"sstpd_{pid}",
-                        "pid": pid,
-                        "engine": "sstpd",
-                        "username": u_name,
-                        "ip": "Peer IP (Active PPP)",
-                        "device": "Windows / Android",
-                        "connected_since": etime,
-                        "interface": "ppp"
-                    })
-    except Exception:
-        pass
-        
-    try:
-        se_res = subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SessionList"], capture_output=True, text=True)
+        se_res = run_vpncmd("SessionList", hub="DEFAULT")
         if se_res.returncode == 0:
             current_s = {}
             for line in se_res.stdout.splitlines():
                 if "|" in line:
                     k, v = [x.strip() for x in line.split("|", 1)]
                     if k == "Session Name":
-                        if current_s and current_s.get("name") and not current_s.get("name", "").startswith("SecureNAT"):
+                        if current_s and current_s.get("name") and not current_s.get("name", "").startswith("SID-SECURENAT-"):
                             sessions.append({
                                 "id": f"se_{current_s['name']}",
                                 "session_name": current_s["name"],
                                 "engine": "softether",
                                 "username": current_s.get("user", "Unknown"),
                                 "ip": current_s.get("ip", "Unknown"),
-                                "device": "SoftEther MS-SSTP",
-                                "connected_since": "Active",
+                                "device": current_s.get("device", "SoftEther MS-SSTP"),
+                                "connected_since": current_s.get("connected_at", "Active"),
                                 "interface": "Virtual Hub"
                             })
                         current_s = {"name": v}
@@ -19013,15 +18824,19 @@ def api_get_sstp_sessions():
                         current_s["user"] = v
                     elif k == "IP Address":
                         current_s["ip"] = v
-            if current_s and current_s.get("name") and not current_s.get("name", "").startswith("SecureNAT"):
+                    elif k == "Client Product Name":
+                        current_s["device"] = v
+                    elif k == "Connected At":
+                        current_s["connected_at"] = v
+            if current_s and current_s.get("name") and not current_s.get("name", "").startswith("SID-SECURENAT-"):
                 sessions.append({
                     "id": f"se_{current_s['name']}",
                     "session_name": current_s["name"],
                     "engine": "softether",
                     "username": current_s.get("user", "Unknown"),
                     "ip": current_s.get("ip", "Unknown"),
-                    "device": "SoftEther MS-SSTP",
-                    "connected_since": "Active",
+                    "device": current_s.get("device", "SoftEther MS-SSTP"),
+                    "connected_since": current_s.get("connected_at", "Active"),
                     "interface": "Virtual Hub"
                 })
     except Exception:
@@ -19037,16 +18852,16 @@ def api_kill_sstp_session():
     pid = data.get("pid")
     session_name = data.get("session_name")
     
-    if pid:
+    if session_name:
+        try:
+            run_vpncmd("SessionDisconnect", session_name, hub="DEFAULT")
+            return jsonify({"success": True, "message": f"نشست SoftEther ({session_name}) با موفقیت بسته شد."})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    elif pid:
         try:
             os.kill(int(pid), 9)
             return jsonify({"success": True, "message": f"پردازش اتصال (PID: {pid}) قطع گردید."})
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    elif session_name:
-        try:
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "SessionDisconnect", session_name], capture_output=True)
-            return jsonify({"success": True, "message": f"نشست SoftEther ({session_name}) با موفقیت بسته شد."})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
             
@@ -19071,109 +18886,104 @@ def api_get_sstp_powershell_script():
         vpn_name = f"MHPanel SSTP (Port {port})"
         target = f"{srv_domain}:{port}"
         
-    ps_content = f"""# =========================================================
-# MHPanel SSTP Windows 1-Click Auto Configuration Script
-# Created automatically by MHPanel VPN Suite
-# Run with PowerShell (Run as Administrator)
-# =========================================================
-
-Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "   MHPanel - Automated SSTP Windows VPN Setup" -ForegroundColor White
-Write-Host "==========================================================" -ForegroundColor Cyan
-
-$VpnName = "{vpn_name}"
-$ServerAddress = "{target}"
-$CaUrl = "{ca_url}"
-$TempCa = "$env:TEMP\\sstp-ca.crt"
-
-# 1. Download Root CA Certificate
-Write-Host "`n[1/4] Downloading SSTP Root CA Certificate..." -ForegroundColor Yellow
-try {{
-    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13
-    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{$true}}
-    Invoke-WebRequest -Uri $CaUrl -OutFile $TempCa -UseBasicParsing
-    Write-Host "  -> Root CA downloaded successfully." -ForegroundColor Green
-}} catch {{
-    Write-Host "  -> Warning: Could not download CA from panel URL ($CaUrl). If using self-signed cert, import ca.crt manually." -ForegroundColor Gray
-}}
-
-# 2. Install Root CA into Windows Trusted Root Store
-Write-Host "`n[2/4] Installing Root CA into Windows Trusted Root Store..." -ForegroundColor Yellow
-if (Test-Path $TempCa) {{
-    try {{
-        Import-Certificate -FilePath $TempCa -CertStoreLocation "Cert:\\LocalMachine\\Root" | Out-Null
-        Write-Host "  -> SSTP Root CA successfully trusted on this PC!" -ForegroundColor Green
-    }} catch {{
-        Write-Host "  -> Note: Administrator privileges required to trust CA certificate." -ForegroundColor Red
-    }}
-}}
-
-# 3. Registry Optimization: Ignore Certificate Revocation Check (Fallback for Self-Signed)
-Write-Host "`n[3/4] Optimizing SSTP Registry settings (NoCertRevocationCheck)..." -ForegroundColor Yellow
-try {{
-    $RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SstpSvc\\Parameters"
-    if (-not (Test-Path $RegPath)) {{
-        New-Item -Path $RegPath -Force | Out-Null
-    }}
-    Set-ItemProperty -Path $RegPath -Name "NoCertRevocationCheck" -Value 1 -Type DWord -Force
-    Write-Host "  -> Registry successfully tuned for zero-error SSTP connection." -ForegroundColor Green
-}} catch {{
-    Write-Host "  -> Registry notice: Administrator privileges required to write registry key." -ForegroundColor Gray
-}}
-
-# 4. Create or Update SSTP VPN Profile
-Write-Host "`n[4/4] Creating and configuring SSTP connection '$VpnName'..." -ForegroundColor Yellow
-if (Get-VpnConnection -Name $VpnName -ErrorAction SilentlyContinue) {{
-    Write-Host "  -> Removing existing connection '$VpnName'..." -ForegroundColor Gray
-    Remove-VpnConnection -Name $VpnName -Force -Confirm:$false
-}}
-
-Add-VpnConnection -Name $VpnName `
-    -ServerAddress $ServerAddress `
-    -TunnelType Sstp `
-    -EncryptionLevel Required `
-    -AuthenticationMethod MSChapv2 `
-    -RememberCredential $true `
-    -SplitTunneling $false
-
-Set-VpnConnection -Name $VpnName `
-    -TunnelType Sstp `
-    -EncryptionLevel Required `
-    -AuthenticationMethod MSChapv2 `
-    -SplitTunneling $false
-
-# 5. Network Routing, DNS & Proxy Fixes
-Write-Host "`n[5/5] Configuring Routing, DNS and Disabling Proxy Conflicts..." -ForegroundColor Yellow
-try {{
-    # Disable leftover system proxy (prevents conflict with v2rayN/Hiddify/Clash)
-    Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -Name ProxyEnable -Value 0 -Force
-    # Disable Smart Multi-Homed Name Resolution (prevents local Iranian ISP DNS hijacking)
-    $DnsPolicy = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"
-    if (-not (Test-Path $DnsPolicy)) {{ New-Item -Path $DnsPolicy -Force | Out-Null }}
-    Set-ItemProperty -Path $DnsPolicy -Name "DisableSmartNameResolution" -Value 1 -Type DWord -Force
-    # Prioritize VPN route metric in phonebook
-    $pbk = "$env:APPDATA\\Microsoft\\Network\\Connections\\Pbk\\rasphone.pbk"
-    if (Test-Path $pbk) {{
-        $txt = Get-Content $pbk -Raw
-        $txt = $txt -replace 'IpPrioritizeRemote=0', 'IpPrioritizeRemote=1'
-        $txt = $txt -replace 'IpInterfaceMetric=\\d+', 'IpInterfaceMetric=1'
-        Set-Content -Path $pbk -Value $txt -NoNewline
-    }}
-    Clear-DnsClientCache
-    Write-Host "  -> System proxy disabled & DNS leak protection enabled." -ForegroundColor Green
-}} catch {{
-    Write-Host "  -> Note: Non-critical tuning skipped." -ForegroundColor Gray
-}}
-
-Write-Host "`n==========================================================" -ForegroundColor Green
-Write-Host " [SUCCESS] SSTP VPN Profile '$VpnName' is ready!" -ForegroundColor Green
-Write-Host " Destination Server: $ServerAddress" -ForegroundColor White
-Write-Host "==========================================================" -ForegroundColor Green
-Write-Host "You can now connect from Windows Settings -> Network & Internet -> VPN" -ForegroundColor White
-Write-Host "Enter your Username and Password when prompted.`n" -ForegroundColor White
-
-pause
-"""
+    ps_lines = [
+        "# =========================================================",
+        "# MHPanel SSTP Windows 1-Click Auto Configuration Script",
+        "# Created automatically by MHPanel VPN Suite",
+        "# Run with PowerShell (Run as Administrator)",
+        "# =========================================================",
+        "",
+        'Write-Host "==========================================================" -ForegroundColor Cyan',
+        'Write-Host "   MHPanel - Automated SSTP Windows VPN Setup" -ForegroundColor White',
+        'Write-Host "==========================================================" -ForegroundColor Cyan',
+        "",
+        f'$VpnName = "{vpn_name}"',
+        f'$ServerAddress = "{target}"',
+        f'$CaUrl = "{ca_url}"',
+        '$TempCa = "$env:TEMP\\sstp-ca.crt"',
+        "",
+        'Write-Host "`n[1/4] Downloading SSTP Root CA Certificate..." -ForegroundColor Yellow',
+        "try {",
+        "    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12 -bor [Net.SecurityProtocolType]::Tls13",
+        "    [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {$true}",
+        "    Invoke-WebRequest -Uri $CaUrl -OutFile $TempCa -UseBasicParsing",
+        '    Write-Host "  -> Root CA downloaded successfully." -ForegroundColor Green',
+        "} catch {",
+        '    Write-Host "  -> Warning: Could not download CA from panel URL. If using self-signed cert, import ca.crt manually." -ForegroundColor Gray',
+        "}",
+        "",
+        'Write-Host "`n[2/4] Installing Root CA into Windows Trusted Root Store..." -ForegroundColor Yellow',
+        "if (Test-Path $TempCa) {",
+        "    try {",
+        '        Import-Certificate -FilePath $TempCa -CertStoreLocation "Cert:\\LocalMachine\\Root" | Out-Null',
+        '        Write-Host "  -> SSTP Root CA successfully trusted on this PC!" -ForegroundColor Green',
+        "    } catch {",
+        '        Write-Host "  -> Note: Administrator privileges required to trust CA certificate." -ForegroundColor Red',
+        "    }",
+        "}",
+        "",
+        'Write-Host "`n[3/4] Optimizing SSTP Registry settings (NoCertRevocationCheck)..." -ForegroundColor Yellow',
+        "try {",
+        '    $RegPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\SstpSvc\\Parameters"',
+        "    if (-not (Test-Path $RegPath)) {",
+        "        New-Item -Path $RegPath -Force | Out-Null",
+        "    }",
+        '    Set-ItemProperty -Path $RegPath -Name "NoCertRevocationCheck" -Value 1 -Type DWord -Force',
+        '    Write-Host "  -> Registry successfully tuned for zero-error SSTP connection." -ForegroundColor Green',
+        "} catch {",
+        '    Write-Host "  -> Registry notice: Administrator privileges required to write registry key." -ForegroundColor Gray',
+        "}",
+        "",
+        'Write-Host "`n[4/4] Creating and configuring SSTP connection \'$VpnName\'..." -ForegroundColor Yellow',
+        "if (Get-VpnConnection -Name $VpnName -ErrorAction SilentlyContinue) {",
+        '    Write-Host "  -> Removing existing connection \'$VpnName\'..." -ForegroundColor Gray',
+        "    Remove-VpnConnection -Name $VpnName -Force -Confirm:$false",
+        "}",
+        "",
+        "Add-VpnConnection -Name $VpnName `",
+        "    -ServerAddress $ServerAddress `",
+        "    -TunnelType Sstp `",
+        "    -EncryptionLevel Required `",
+        "    -AuthenticationMethod MSChapv2 `",
+        "    -RememberCredential $true `",
+        "    -SplitTunneling $false",
+        "",
+        "Set-VpnConnection -Name $VpnName `",
+        "    -TunnelType Sstp `",
+        "    -EncryptionLevel Required `",
+        "    -AuthenticationMethod MSChapv2 `",
+        "    -SplitTunneling $false",
+        "",
+        'Write-Host "`n[5/5] Configuring Routing, DNS and Disabling Proxy Conflicts..." -ForegroundColor Yellow',
+        "try {",
+        "    Set-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -Name ProxyEnable -Value 0 -Force",
+        '    $DnsPolicy = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient"',
+        "    if (-not (Test-Path $DnsPolicy)) { New-Item -Path $DnsPolicy -Force | Out-Null }",
+        '    Set-ItemProperty -Path $DnsPolicy -Name "DisableSmartNameResolution" -Value 1 -Type DWord -Force',
+        '    $pbk = "$env:APPDATA\\Microsoft\\Network\\Connections\\Pbk\\rasphone.pbk"',
+        "    if (Test-Path $pbk) {",
+        "        $txt = Get-Content $pbk -Raw",
+        "        $txt = $txt -replace 'IpPrioritizeRemote=0', 'IpPrioritizeRemote=1'",
+        "        $txt = $txt -replace 'IpInterfaceMetric=\\d+', 'IpInterfaceMetric=1'",
+        "        Set-Content -Path $pbk -Value $txt -NoNewline",
+        "    }",
+        "    Clear-DnsClientCache",
+        '    Write-Host "  -> System proxy disabled & DNS leak protection enabled." -ForegroundColor Green',
+        "} catch {",
+        '    Write-Host "  -> Note: Non-critical tuning skipped." -ForegroundColor Gray',
+        "}",
+        "",
+        'Write-Host "`n==========================================================" -ForegroundColor Green',
+        'Write-Host " [SUCCESS] SSTP VPN Profile \'$VpnName\' is ready!" -ForegroundColor Green',
+        'Write-Host " Destination Server: $ServerAddress" -ForegroundColor White',
+        'Write-Host "==========================================================" -ForegroundColor Green',
+        'Write-Host "You can now connect from Windows Settings -> Network & Internet -> VPN" -ForegroundColor White',
+        'Write-Host "Enter your Username and Password when prompted.`n" -ForegroundColor White',
+        "",
+        "pause",
+        ""
+    ]
+    ps_content = "\r\n".join(ps_lines)
     return Response(
         ps_content,
         mimetype="text/plain; charset=utf-8",
@@ -19193,7 +19003,6 @@ def api_get_sstp_users():
         except Exception:
             pass
             
-    # Merge with FreeRADIUS accounts if present
     if os.path.exists(RADIUS_USERS_FILE):
         try:
             with open(RADIUS_USERS_FILE, "r") as f:
@@ -19210,6 +19019,25 @@ def api_get_sstp_users():
                     }
         except Exception:
             pass
+
+    for u in list(users.keys()):
+        try:
+            res = run_vpncmd("UserGet", u, hub="DEFAULT")
+            if res.returncode == 0:
+                rx = 0
+                tx = 0
+                for line in res.stdout.splitlines():
+                    if "|" in line:
+                        k, v = [x.strip() for x in line.split("|", 1)]
+                        if "Incoming Unicast Total Size" in k or "Incoming Broadcast Total Size" in k:
+                            rx += parse_vpn_bytes(v)
+                        elif "Outgoing Unicast Total Size" in k or "Outgoing Broadcast Total Size" in k:
+                            tx += parse_vpn_bytes(v)
+                if rx > 0 or tx > 0:
+                    users[u]["rx"] = rx
+                    users[u]["tx"] = tx
+        except Exception:
+            pass
             
     return jsonify({"users": users})
 
@@ -19224,20 +19052,18 @@ def api_add_sstp_user():
     expire_date = data.get("expire_date")
     
     if not username or not password:
-        return jsonify({"error": "Missing username or password"}), 400
+        return jsonify({"error": "نام کاربری و رمز عبور الزامی است."}), 400
         
     try:
-        # 1. Update /etc/ppp/chap-secrets
-        os.makedirs("/etc/ppp", exist_ok=True)
-        chap_lines = []
-        if os.path.exists("/etc/ppp/chap-secrets"):
-            with open("/etc/ppp/chap-secrets", "r") as f:
-                chap_lines = [line for line in f if not line.strip().startswith(f'"{username}"') and not line.strip().startswith(f'#"{username}"')]
-        chap_lines.append(f'"{username}" * "{password}" *\n')
-        with open("/etc/ppp/chap-secrets", "w") as f:
-            f.writelines(chap_lines)
-            
-        # 2. Update RADIUS database
+        run_vpncmd("UserCreate", username, "/GROUP:none", "/REALNAME:none", "/NOTE:Created via MHPanel", hub="DEFAULT")
+        run_vpncmd("UserPasswordSet", username, f"/PASSWORD:{password}", hub="DEFAULT")
+        if expire_date:
+            try:
+                se_exp = expire_date.replace("-", "/") + " 23:59:59"
+                run_vpncmd("UserExpiresSet", username, f"/EXPIRES:{se_exp}", hub="DEFAULT")
+            except Exception:
+                pass
+
         r_users = {}
         if os.path.exists(RADIUS_USERS_FILE):
             try:
@@ -19256,16 +19082,9 @@ def api_add_sstp_user():
         with open(RADIUS_USERS_FILE, "w") as f:
             json.dump(r_users, f, indent=2)
         sync_freeradius_users()
-        
-        # 3. SoftEther sync if running
-        try:
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserCreate", username, "/GROUP:none", "/REALNAME:none", "/NOTE:none"], capture_output=True)
-            subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserPasswordSet", username, f"/PASSWORD:{password}"], capture_output=True)
-        except Exception:
-            pass
 
     except Exception as e:
-        return jsonify({"error": f"Failed to create user: {str(e)}"}), 500
+        return jsonify({"error": f"خطا در ایجاد کاربر: {str(e)}"}), 500
         
     users_file = "/www/wwwroot/mhpanel/sstp_users.json"
     users = {}
@@ -19296,15 +19115,21 @@ def api_delete_sstp_user(username):
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
 
-    if os.path.exists("/etc/ppp/chap-secrets"):
-        with open("/etc/ppp/chap-secrets", "r") as f:
-            lines = f.readlines()
-        with open("/etc/ppp/chap-secrets", "w") as f:
-            for line in lines:
-                if not line.strip().startswith(f'"{username}"') and not line.strip().startswith(f'#"{username}"'):
-                    f.write(line)
+    try:
+        s_res = run_vpncmd("SessionList", hub="DEFAULT")
+        curr_s = {}
+        for line in s_res.stdout.splitlines():
+            if "|" in line:
+                k, v = [x.strip() for x in line.split("|", 1)]
+                if k == "Session Name":
+                    curr_s = {"name": v}
+                elif k == "User Name (Authentication)":
+                    if v == username and curr_s.get("name"):
+                        run_vpncmd("SessionDisconnect", curr_s["name"], hub="DEFAULT")
+        run_vpncmd("UserDelete", username, hub="DEFAULT")
+    except Exception:
+        pass
 
-    # Remove from RADIUS
     if os.path.exists(RADIUS_USERS_FILE):
         try:
             with open(RADIUS_USERS_FILE, "r") as f:
@@ -19316,12 +19141,6 @@ def api_delete_sstp_user(username):
                 sync_freeradius_users()
         except Exception:
             pass
-
-    # SoftEther delete
-    try:
-        subprocess.run(["/usr/local/vpnserver/vpncmd", "localhost:5555", "/SERVER", "/HUB:DEFAULT", "/CMD", "UserDelete", username], capture_output=True)
-    except Exception:
-        pass
 
     users_file = "/www/wwwroot/mhpanel/sstp_users.json"
     if os.path.exists(users_file):
@@ -19358,15 +19177,22 @@ def api_toggle_sstp_user(username):
         with open(users_file, "w") as f:
             json.dump(users, f, indent=2)
 
-    if os.path.exists("/etc/ppp/chap-secrets"):
-        with open("/etc/ppp/chap-secrets", "r") as f:
-            content = f.read()
-        if new_status:
-            content = re.sub(f'^# *\"{username}\" ', f'\"{username}\" ', content, flags=re.MULTILINE)
-        else:
-            content = re.sub(f'^\"{username}\" ', f'#\"{username}\" ', content, flags=re.MULTILINE)
-        with open("/etc/ppp/chap-secrets", "w") as f:
-            f.write(content)
+    try:
+        policy_val = "yes" if new_status else "no"
+        run_vpncmd("UserPolicySet", username, "/NAME:Access", f"/VALUE:{policy_val}", hub="DEFAULT")
+        if not new_status:
+            s_res = run_vpncmd("SessionList", hub="DEFAULT")
+            curr_s = {}
+            for line in s_res.stdout.splitlines():
+                if "|" in line:
+                    k, v = [x.strip() for x in line.split("|", 1)]
+                    if k == "Session Name":
+                        curr_s = {"name": v}
+                    elif k == "User Name (Authentication)":
+                        if v == username and curr_s.get("name"):
+                            run_vpncmd("SessionDisconnect", curr_s["name"], hub="DEFAULT")
+    except Exception:
+        pass
 
     if os.path.exists(RADIUS_USERS_FILE):
         try:
@@ -19381,6 +19207,7 @@ def api_toggle_sstp_user(username):
             pass
         
     return jsonify({"success": True, "active": new_status})
+
 
 def get_l2tp_traffic():
     traffic = {}
