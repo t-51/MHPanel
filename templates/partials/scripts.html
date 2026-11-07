@@ -8529,6 +8529,64 @@
         toggleLoading(false);
     }
 
+    function restartPanelService() {
+        openConfirmModal({
+            title: "راه‌اندازی مجدد سرویس وب پنل",
+            subtitle: "Restart MHPanel Web Service",
+            message: "آیا از راه‌اندازی مجدد سرویس وب پنل اطمینان دارید؟ ارتباط وب موقتاً قطع و پس از ۳ ثانیه مجدداً متصل می‌شود.",
+            isDanger: true,
+            confirmText: "ری‌استارت سرویس",
+            cancelText: "انصراف",
+            onConfirm: async () => {
+                toggleLoading(true, "در حال ارسال دستور ری‌استارت سرویس...");
+                try {
+                    const res = await fetch("/api/system/restart_service", { method: "POST" });
+                    const data = await res.json();
+                    toggleLoading(false);
+                    if (res.ok) {
+                        showToast(data.message || "سرویس در حال راه‌اندازی مجدد است...", "success");
+                        setTimeout(() => location.reload(), 3500);
+                    } else {
+                        showToast(data.error || "خطا در ری‌استارت سرویس", "error");
+                    }
+                } catch (e) {
+                    toggleLoading(false);
+                    showToast("سرویس در حال ری‌استارت است...", "info");
+                    setTimeout(() => location.reload(), 4000);
+                }
+            }
+        });
+    }
+
+    function rebootSystemServer() {
+        openConfirmModal({
+            title: "راه‌اندازی مجدد کامل سرور (Reboot)",
+            subtitle: "Reboot Operating System",
+            message: "هشدار: سرور لینوکس به‌طور کامل ریبوت می‌شود و کلیه اتصالات VPN و کاربران موقتاً قطع خواهند شد. آیا اطمینان دارید؟",
+            isDanger: true,
+            confirmText: "تایید و ریبوت سرور",
+            cancelText: "انصراف",
+            onConfirm: async () => {
+                toggleLoading(true, "در حال ارسال سیگنال ریبوت به سیستم‌عامل...");
+                try {
+                    const res = await fetch("/api/system/reboot", { method: "POST" });
+                    const data = await res.json();
+                    toggleLoading(false);
+                    if (res.ok) {
+                        showToast(data.message || "سرور در حال ریبوت است...", "warning");
+                        setTimeout(() => location.reload(), 25000);
+                    } else {
+                        showToast(data.error || "خطا در ریبوت سرور", "error");
+                    }
+                } catch (e) {
+                    toggleLoading(false);
+                    showToast("دستور ریبوت به سرور ارسال شد.", "warning");
+                    setTimeout(() => location.reload(), 25000);
+                }
+            }
+        });
+    }
+
     async function fetchWarpStatus() {
         try {
             const res = await fetch("/api/warp/status");

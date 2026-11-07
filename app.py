@@ -3972,6 +3972,28 @@ rm -f /tmp/mhpanel_web_update.sh
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+@app.route("/api/system/restart_service", methods=["POST"])
+def api_system_restart_service():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        subprocess.Popen(["systemd-run", "--on-active=1s", "systemctl", "restart", "mhpanel.service"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return jsonify({"success": True, "message": "دستور ری‌استارت سرویس وب ارسال شد (ظرف ۱ تا ۳ ثانیه اعمال می‌شود)."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/system/reboot", methods=["POST"])
+def api_system_reboot():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        subprocess.Popen(["systemd-run", "--on-active=2s", "reboot"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return jsonify({"success": True, "message": "دستور راه‌اندازی مجدد سرور (Reboot) با موفقیت ارسال شد."})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 @app.route("/api/system/uninstall", methods=["POST"])
 def api_system_uninstall():
     if not check_login():
@@ -4383,26 +4405,34 @@ def get_live_system_metrics():
 
 def get_batch_service_traffic_bytes(service_names):
     """
-    Optimized: Queries systemd for multiple services in a single systemctl call (50x faster).
+    Optimized: Queries systemd for multiple services (including wildcards) in a single systemctl call.
+    Parses key-value blocks robustly regardless of field ordering.
     """
     traffic_map = {}
     if not service_names:
         return traffic_map
     try:
         cmd = ["systemctl", "show"] + list(service_names) + ["-p", "Id,IPIngressBytes,IPEgressBytes"]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1.5)
-        cur_id, cur_rx, cur_tx = None, 0, 0
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=2.5)
+        current = {}
         for line in res.stdout.splitlines():
-            if line.startswith("Id="):
-                cur_id = line.split("=", 1)[1].strip()
-                traffic_map[cur_id] = (cur_rx, cur_tx)
-                cur_rx, cur_tx = 0, 0
-            elif line.startswith("IPIngressBytes=") and line.split("=", 1)[1].isdigit():
-                cur_rx = int(line.split("=", 1)[1])
-            elif line.startswith("IPEgressBytes=") and line.split("=", 1)[1].isdigit():
-                cur_tx = int(line.split("=", 1)[1])
-        if cur_id:
-            traffic_map[cur_id] = (cur_rx, cur_tx)
+            line = line.strip()
+            if not line:
+                if "Id" in current:
+                    s_id = current["Id"]
+                    rx = int(current.get("IPIngressBytes", 0)) if str(current.get("IPIngressBytes", "")).isdigit() else 0
+                    tx = int(current.get("IPEgressBytes", 0)) if str(current.get("IPEgressBytes", "")).isdigit() else 0
+                    traffic_map[s_id] = (rx, tx)
+                current = {}
+                continue
+            if "=" in line:
+                k, v = line.split("=", 1)
+                current[k] = v
+        if "Id" in current:
+            s_id = current["Id"]
+            rx = int(current.get("IPIngressBytes", 0)) if str(current.get("IPIngressBytes", "")).isdigit() else 0
+            tx = int(current.get("IPEgressBytes", 0)) if str(current.get("IPEgressBytes", "")).isdigit() else 0
+            traffic_map[s_id] = (rx, tx)
     except Exception:
         pass
     return traffic_map
@@ -4416,10 +4446,10 @@ _proto_bandwidth_cache = {"data": None, "timestamp": 0}
 def get_protocol_bandwidth_stats():
     global _proto_traffic_prev, _proto_bandwidth_cache
     now = time.time()
-    if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 6.0):
+    if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 2.5):
         return _proto_bandwidth_cache["data"]
     
-    # 1. Dev interfaces
+    # 1. Dev interfaces (/proc/net/dev)
     dev_stats = {}
     try:
         with open("/proc/net/dev") as f:
@@ -4431,7 +4461,7 @@ def get_protocol_bandwidth_stats():
     except Exception:
         pass
 
-    # 2. Iptables forward stats
+    # 2. Iptables forward stats (accurately tracks routed packets across subnets and virtual interfaces)
     ip_stats = {}
     try:
         res = subprocess.run(["iptables", "-nvx", "-L", "FORWARD"], capture_output=True, text=True, timeout=2)
@@ -4439,26 +4469,45 @@ def get_protocol_bandwidth_stats():
             parts = line.split()
             if len(parts) >= 9 and parts[1].isdigit():
                 b = int(parts[1])
+                # Cisco AnyConnect (ocserv: 10.10.10.0/24)
                 if "10.10.10.0/24" in line:
                     ip_stats.setdefault("ocserv", {"rx": 0, "tx": 0})
                     if parts[8] == "10.10.10.0/24": ip_stats["ocserv"]["tx"] += b
                     else: ip_stats["ocserv"]["rx"] += b
-                elif "10.20.20.0/24" in line:
+                # SoftEther / SSTP (10.20.20.0/24 or SecureNAT 192.168.30.0/24)
+                elif "10.20.20.0/24" in line or "192.168.30.0/24" in line:
                     ip_stats.setdefault("sstp", {"rx": 0, "tx": 0})
-                    if parts[8] == "10.20.20.0/24": ip_stats["sstp"]["tx"] += b
+                    if parts[8] in ("10.20.20.0/24", "192.168.30.0/24"): ip_stats["sstp"]["tx"] += b
                     else: ip_stats["sstp"]["rx"] += b
+                # IKEv2 / IPsec (10.30.30.0/24)
                 elif "10.30.30.0/24" in line:
                     ip_stats.setdefault("ikev2", {"rx": 0, "tx": 0})
                     if parts[8] == "10.30.30.0/24": ip_stats["ikev2"]["tx"] += b
                     else: ip_stats["ikev2"]["rx"] += b
-                elif "192.168.42.0/24" in line:
+                # L2TP / IPsec (192.168.42.0/24 or ppp interface)
+                elif "192.168.42.0/24" in line or parts[5].startswith("ppp") or parts[6].startswith("ppp"):
                     ip_stats.setdefault("l2tp", {"rx": 0, "tx": 0})
-                    if parts[8] == "192.168.42.0/24": ip_stats["l2tp"]["tx"] += b
+                    if parts[8] == "192.168.42.0/24" or parts[6].startswith("ppp"): ip_stats["l2tp"]["tx"] += b
                     else: ip_stats["l2tp"]["rx"] += b
+                # OpenVPN (10.8.0.0/24 UDP or 10.9.0.0/24 TCP)
+                elif "10.8.0.0/24" in line or "10.9.0.0/24" in line:
+                    ip_stats.setdefault("openvpn", {"rx": 0, "tx": 0})
+                    if parts[8] in ("10.8.0.0/24", "10.9.0.0/24"): ip_stats["openvpn"]["tx"] += b
+                    else: ip_stats["openvpn"]["rx"] += b
+                # WireGuard interface in iptables
+                elif parts[5] == "wg0" or parts[6] == "wg0":
+                    ip_stats.setdefault("wireguard", {"rx": 0, "tx": 0})
+                    if parts[6] == "wg0": ip_stats["wireguard"]["tx"] += b
+                    else: ip_stats["wireguard"]["rx"] += b
+                # AmneziaWG interface in iptables
+                elif parts[5] == "awg0" or parts[6] == "awg0":
+                    ip_stats.setdefault("amneziawg", {"rx": 0, "tx": 0})
+                    if parts[6] == "awg0": ip_stats["amneziawg"]["tx"] += b
+                    else: ip_stats["amneziawg"]["rx"] += b
     except Exception:
         pass
 
-    # 3. SSH stats
+    # 3. SSH stats (per-UID accounting in iptables)
     ssh_rx, ssh_tx = 0, 0
     try:
         res = subprocess.run(["iptables", "-nvx", "-L", "MHPANEL_SSH_OUT"], capture_output=True, text=True, timeout=2)
@@ -4471,15 +4520,17 @@ def get_protocol_bandwidth_stats():
     except Exception:
         pass
 
-    # Aggregate protocols
-    ovpn_rx = sum(dev_stats.get(tun, {}).get("rx", 0) for tun in dev_stats if tun.startswith("tun"))
-    ovpn_tx = sum(dev_stats.get(tun, {}).get("tx", 0) for tun in dev_stats if tun.startswith("tun"))
+    # Aggregate interface/tunnel protocols
+    ovpn_tun_rx = sum(dev_stats.get(tun, {}).get("rx", 0) for tun in dev_stats if tun.startswith("tun") and not tun.startswith("tunl"))
+    ovpn_tun_tx = sum(dev_stats.get(tun, {}).get("tx", 0) for tun in dev_stats if tun.startswith("tun") and not tun.startswith("tunl"))
+    ovpn_rx = max(ovpn_tun_rx, ip_stats.get("openvpn", {}).get("rx", 0))
+    ovpn_tx = max(ovpn_tun_tx, ip_stats.get("openvpn", {}).get("tx", 0))
 
-    wg_rx = dev_stats.get("wg0", {}).get("rx", 0)
-    wg_tx = dev_stats.get("wg0", {}).get("tx", 0)
+    wg_rx = max(dev_stats.get("wg0", {}).get("rx", 0), ip_stats.get("wireguard", {}).get("rx", 0))
+    wg_tx = max(dev_stats.get("wg0", {}).get("tx", 0), ip_stats.get("wireguard", {}).get("tx", 0))
 
-    awg_rx = dev_stats.get("awg0", {}).get("rx", 0)
-    awg_tx = dev_stats.get("awg0", {}).get("tx", 0)
+    awg_rx = max(dev_stats.get("awg0", {}).get("rx", 0), ip_stats.get("amneziawg", {}).get("rx", 0))
+    awg_tx = max(dev_stats.get("awg0", {}).get("tx", 0), ip_stats.get("amneziawg", {}).get("tx", 0))
 
     l2tp_rx = max(dev_stats.get("ppp0", {}).get("rx", 0), ip_stats.get("l2tp", {}).get("rx", 0))
     l2tp_tx = max(dev_stats.get("ppp0", {}).get("tx", 0), ip_stats.get("l2tp", {}).get("tx", 0))
@@ -4487,20 +4538,18 @@ def get_protocol_bandwidth_stats():
     ocserv_rx = ip_stats.get("ocserv", {}).get("rx", 0)
     ocserv_tx = ip_stats.get("ocserv", {}).get("tx", 0)
 
-    sstp_rx = ip_stats.get("sstp", {}).get("rx", 0)
-    sstp_tx = ip_stats.get("sstp", {}).get("tx", 0)
-
     ikev2_rx = ip_stats.get("ikev2", {}).get("rx", 0)
     ikev2_tx = ip_stats.get("ikev2", {}).get("tx", 0)
 
-    # Sing-box, DNS Tunnel and Modern Core daemons (Batch queried in 1 call)
+    # 4. Modern Core & Proxy daemons (systemd IPAccounting queried in 1 fast batch call)
     daemon_services = [
         "mhpanel-singbox.service", "mhpanel-dnstt.service", "mhpanel-vaydns.service",
         "mhpanel-slipstream.service", "mhpanel-noizdns.service", "mhpanel-masterdnsvpn.service",
         "mhpanel-hysteria2.service", "mhpanel-trojan.service", "mhpanel-tuic.service",
         "mhpanel-shadowsocks.service", "mhpanel-naiveproxy.service", "mhpanel-stuntls.service",
-        "mhpanel-tor.service", "mhpanel-http-proxy.service", "mhpanel-socks-proxy.service",
-        "pptpd.service"
+        "mhpanel-snispoof.service", "mhpanel-tor.service", "mhpanel-http-proxy.service",
+        "mhpanel-socks-proxy.service", "pptpd.service", "vpnserver.service",
+        "mhpanel-mtproto@*.service"
     ]
     traffic_map = get_batch_service_traffic_bytes(daemon_services)
 
@@ -4526,8 +4575,23 @@ def get_protocol_bandwidth_stats():
     socks_rx, socks_tx = traffic_map.get("mhpanel-socks-proxy.service", (0, 0))
     pptp_rx, pptp_tx = traffic_map.get("pptpd.service", (0, 0))
 
-    tun_rx = sum(dev_stats.get(iface, {}).get("rx", 0) for iface in dev_stats if iface.startswith(("gre", "ipip", "sit", "vxlan", "mhtun")))
-    tun_tx = sum(dev_stats.get(iface, {}).get("tx", 0) for iface in dev_stats if iface.startswith(("gre", "ipip", "sit", "vxlan", "mhtun")))
+    # SNI Spoofing
+    sni_rx, sni_tx = traffic_map.get("mhpanel-snispoof.service", (0, 0))
+
+    # MTProto Proxy (sum all instantiated ports)
+    mtp_rx = sum(v[0] for k, v in traffic_map.items() if "mtproto" in k or "teleproxy" in k or "mtg" in k)
+    mtp_tx = sum(v[1] for k, v in traffic_map.items() if "mtproto" in k or "teleproxy" in k or "mtg" in k)
+
+    # SoftEther / SSTP: max of iptables and vpnserver systemd IPAccounting
+    vpnserver_rx, vpnserver_tx = traffic_map.get("vpnserver.service", (0, 0))
+    sstp_rx = max(ip_stats.get("sstp", {}).get("rx", 0), vpnserver_rx)
+    sstp_tx = max(ip_stats.get("sstp", {}).get("tx", 0), vpnserver_tx)
+
+    # MikroTik / Linux Tunnels (gre, ipip, eoip, vxlan, geneve, sit, mhtun, wg_tun)
+    tun_prefixes = ("gre", "ipip", "sit", "vxlan", "mhtun", "eoip", "geneve", "wg_tun")
+    tun_ifaces = [i for i in dev_stats if any(i.startswith(p) for p in tun_prefixes) and not i.startswith("tunl")]
+    tun_rx = sum(dev_stats.get(i, {}).get("rx", 0) for i in tun_ifaces)
+    tun_tx = sum(dev_stats.get(i, {}).get("tx", 0) for i in tun_ifaces)
 
     raw_traffic = {
         "singbox": {"rx": sb_rx, "tx": sb_tx},
@@ -4544,6 +4608,7 @@ def get_protocol_bandwidth_stats():
         "masterdnsvpn": {"rx": mdns_rx, "tx": mdns_tx},
         "naiveproxy": {"rx": np_rx, "tx": np_tx},
         "stuntls": {"rx": st_rx, "tx": st_tx},
+        "snispoof": {"rx": sni_rx, "tx": sni_tx},
         "tunnels": {"rx": tun_rx, "tx": tun_tx},
         "openvpn": {"rx": ovpn_rx, "tx": ovpn_tx},
         "ocserv": {"rx": ocserv_rx, "tx": ocserv_tx},
@@ -4551,7 +4616,7 @@ def get_protocol_bandwidth_stats():
         "sstp": {"rx": sstp_rx, "tx": sstp_tx},
         "ikev2": {"rx": ikev2_rx, "tx": ikev2_tx},
         "ssh": {"rx": ssh_rx, "tx": ssh_tx},
-        "mtproto": {"rx": 0, "tx": 0},
+        "mtproto": {"rx": mtp_rx, "tx": mtp_tx},
         "tor": {"rx": tor_rx, "tx": tor_tx},
         "http": {"rx": http_rx, "tx": http_tx},
         "socks": {"rx": socks_rx, "tx": socks_tx},

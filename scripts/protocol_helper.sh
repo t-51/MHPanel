@@ -3397,6 +3397,7 @@ ExecStart=/usr/local/bin/mhpanel-snispoof
 Restart=always
 RestartSec=3
 LimitNOFILE=65535
+IPAccounting=yes
 
 [Install]
 WantedBy=multi-user.target

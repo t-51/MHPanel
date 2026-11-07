@@ -238,20 +238,86 @@
     <!-- 4. Protocol Bandwidth & Consumption Breakdown -->
     <section class="proto-bandwidth-section">
         <div class="glass-card" style="padding: 24px;">
-            <div class="spec-card-header">
+            <div class="spec-card-header" style="flex-wrap: wrap; gap: 14px;">
                 <div>
                     <h3 class="spec-card-title">
                         <i data-lucide="network" style="color: var(--color-secondary); width: 22px; height: 22px;"></i>
-                        <span data-i18n="overview_proto_traffic">مصرف پهنای باند و ترافیک به تفکیک پروتکل‌ها</span>
+                        <span data-i18n="overview_proto_traffic">سهم ترافیک و پهنای باند پروتکل‌ها</span>
                     </h3>
                     <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="overview_proto_traffic_desc">
-                        رصد میزان ترافیک رد و بدل شده و پهنای باند مصرفی لحظه‌ای واحدهای شبکه (WireGuard, OpenVPN, Cisco AnyConnect و ...)
+                        رصد دقیق و زنده میزان ترافیک رد و بدل شده و پهنای باند مصرفی واحدهای شبکه (WireGuard, Cisco, OpenVPN, SSH, MTProto و ...)
                     </p>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); color: var(--color-primary); padding: 6px 12px; border-radius: 999px; font-weight: 700;">
-                        <span data-i18n="total_proto_traffic">مجموع ترافیک پروتکل‌ها:</span> <strong id="proto-total-all-val">0 GB</strong>
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <span style="font-size: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); color: var(--color-primary); padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="database" style="width: 13px; height: 13px;"></i>
+                        <span data-i18n="total_proto_traffic">مجموع ترافیک پروتکل‌ها:</span> <strong id="proto-total-all-val" style="font-family: 'JetBrains Mono', monospace;">0 GB</strong>
                     </span>
+                    <span style="font-size: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981; padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="activity" style="width: 13px; height: 13px;"></i>
+                        <span data-i18n="proto_active_consuming_label">پروتکل‌های دارای مصرف و فعال:</span> <strong id="proto-active-count-badge" style="font-family: 'JetBrains Mono', monospace;">0</strong>
+                    </span>
+                    <span style="font-size: 12px; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.25); color: #0ea5e9; padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="gauge" style="width: 13px; height: 13px;"></i>
+                        <span>نرخ زنده لحظه‌ای:</span> <strong id="proto-live-speed-total" style="font-family: 'JetBrains Mono', monospace;">0 KB/s</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Visual Traffic Share Distribution Bar & Legend -->
+            <div style="margin-top: 18px; padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; font-weight: 700; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="pie-chart" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                        <span>نوار توزیع سهم مصرف پروتکل‌ها (Traffic Share Distribution)</span>
+                    </span>
+                    <span style="font-size: 11px; color: var(--text-muted);" id="proto-share-bar-caption">نمایش سهم درصدی حجم هر پروتکل از کل ترافیک سرور</span>
+                </div>
+                <!-- Stacked Progress Bar -->
+                <div id="proto-share-bar-container" style="height: 14px; background: rgba(148, 163, 184, 0.15); border-radius: 999px; overflow: hidden; display: flex; width: 100%; border: 1px solid rgba(148, 163, 184, 0.25);">
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted);">در حال محاسبه توزیع ترافیک...</div>
+                </div>
+                <!-- Interactive Legend Chips -->
+                <div id="proto-share-chips-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+
+            <!-- Toolbar: Filters, Sorting and Search -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color);">
+                <!-- Filter Pills -->
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm proto-filter-btn active" id="proto-filter-btn-consuming" onclick="setProtoFilter('consuming')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="star" style="width: 12px; height: 12px;"></i>
+                        <span>دارای مصرف و فعال (پیش‌فرض)</span>
+                        <span id="proto-pill-count-consuming" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(99, 102, 241, 0.2); color: var(--color-primary); border-radius: 999px;">-</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-throughput" onclick="setProtoFilter('throughput')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="zap" style="width: 12px; height: 12px; color: #10b981;"></i>
+                        <span>در حال تبادل لحظه‌ای (Rx/Tx > 0)</span>
+                        <span id="proto-pill-count-throughput" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 999px;">0</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-all" onclick="setProtoFilter('all')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="list" style="width: 12px; height: 12px;"></i>
+                        <span>همه پروتکل‌ها (۲۷ پروتکل)</span>
+                    </button>
+                </div>
+
+                <!-- Sort & Search -->
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <label for="proto-sort-select" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin: 0;">مرتب‌سازی:</label>
+                        <select id="proto-sort-select" onchange="setProtoSort(this.value)" class="form-control" style="font-size: 11.5px; padding: 4px 10px; height: 30px; border-radius: 8px; width: auto; min-width: 140px;">
+                            <option value="bytes_desc" selected>بیشترین حجم کل</option>
+                            <option value="speed_desc">بیشترین سرعت لحظه‌ای</option>
+                            <option value="conns_desc">بیشترین اتصال فعال</option>
+                            <option value="name_asc">نام پروتکل (الفبا)</option>
+                        </select>
+                    </div>
+                    <div style="position: relative; min-width: 170px;">
+                        <input type="text" id="proto-search-input" oninput="onProtoSearchChange(this.value)" placeholder="جستجوی پروتکل..." class="form-control" style="font-size: 11.5px; padding: 4px 28px 4px 10px; height: 30px; border-radius: 8px;">
+                        <i data-lucide="search" style="position: absolute; right: 8px; top: 8px; width: 13px; height: 13px; color: var(--text-muted); pointer-events: none;"></i>
+                    </div>
                 </div>
             </div>
 
