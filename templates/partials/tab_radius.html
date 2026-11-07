@@ -104,11 +104,14 @@
                         <input class="form-input" id="search-rad-user" oninput="filterRadiusUsersTable()" placeholder="جستجوی نام کاربری..." style="padding-right: 36px; padding-left: 12px; height: 38px; font-size: 12.5px;" type="text"/>
                     </div>
                     <!-- Group Filter -->
-                    <select class="form-select" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 150px;">
+                    <select class="form-select form-input" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 160px;">
                         <option value="">همه بسته‌ها / پلن‌ها</option>
+                        <option value="default">پکیج استاندارد (Standard)</option>
+                        <option value="vip">پکیج ویژه (VIP)</option>
+                        <option value="night">بسته شبانه (Nightly)</option>
                     </select>
                     <!-- Status Filter -->
-                    <select class="form-select" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 120px;">
+                    <select class="form-select form-input" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 140px;">
                         <option value="all">همه وضعیت‌ها</option>
                         <option value="active">فقط فعال</option>
                         <option value="disabled">فقط غیرفعال/منقضی</option>
@@ -117,7 +120,7 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #dc2626 !important; background: rgba(254, 242, 242, 0.8);" type="button">
+                    <button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444 !important; background: rgba(239, 68, 68, 0.12);" type="button">
                         <i class="btn-icon" data-lucide="trash-2" style="color:#dc2626;"></i> <span>حذف انتخابی (</span><span id="bulk-selected-count">0</span>)
                     </button>
                     <button class="btn btn-secondary" onclick="exportRadiusUsersCsv()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="خروجی فایل اکسل / CSV" type="button">
@@ -168,8 +171,10 @@
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label class="form-label" style="font-weight: 700;">پکیج / پلن خدمات (Service Profile):</label>
-                            <select class="form-select" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)" style="height: 40px; font-weight:600;">
-                                <!-- Injected dynamically -->
+                            <select class="form-select form-input" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)" style="height: 40px; font-weight:600;">
+                                <option value="default">پکیج استاندارد (Standard)</option>
+                                <option value="vip">پکیج ویژه (VIP)</option>
+                                <option value="night">بسته شبانه (Nightly)</option>
                             </select>
                         </div>
                     </div>
@@ -182,7 +187,7 @@
                         </div>
                         <div class="form-group" style="margin: 0;">
                             <label class="form-label">وضعیت حساب:</label>
-                            <select class="form-select" id="new-rad-status" style="height: 40px;">
+                            <select class="form-select form-input" id="new-rad-status" style="height: 40px;">
                                 <option value="active" selected>فعال (مجاز به اتصال)</option>
                                 <option value="disabled">مسدود / غیرفعال</option>
                             </select>
@@ -382,7 +387,7 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
                         <div class="form-group" style="margin: 0;">
                             <label class="form-label">نوع دستگاه / سیستم‌عامل (Type):</label>
-                            <select class="form-select" id="new-nas-type" onchange="onNasTypeChange(this.value)">
+                            <select class="form-select form-input" id="new-nas-type" onchange="onNasTypeChange(this.value)" style="height: 40px;">
                                 <option value="mikrotik_v7">RouterOS v7 (CoA: 3799)</option>
                                 <option value="mikrotik_v6">RouterOS v6 (CoA: 1700)</option>
                                 <option value="cisco">Cisco IOS / ASA</option>
@@ -506,13 +511,15 @@
                         <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
                             <span>انتخاب پکیج / پلن کاربری:</span>
                         </label>
-                        <select class="form-select" id="voucher-group-select" onchange="updateVoucherGroupBadge()">
-                            <!-- Injected dynamically -->
+                        <select class="form-select form-input" id="voucher-group-select" onchange="updateVoucherGroupBadge()" style="height: 40px;">
+                            <option value="default">پکیج استاندارد (Standard - نامحدود)</option>
+                            <option value="vip">پکیج ویژه (VIP - 100GB)</option>
+                            <option value="night">بسته شبانه (Nightly - 50GB)</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">تعداد کارت‌های شارژ:</label>
-                        <select class="form-select" id="voucher-count-select">
+                        <select class="form-select form-input" id="voucher-count-select" style="height: 40px;">
                             <option value="5">۵ عدد</option>
                             <option value="10" selected>۱۰ عدد</option>
                             <option value="20">۲۰ عدد</option>
@@ -538,7 +545,7 @@
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">طول کد تصادفی:</label>
-                        <select class="form-select" id="voucher-length-select">
+                        <select class="form-select form-input" id="voucher-length-select" style="height: 40px;">
                             <option value="6" selected>۶ کاراکتر (استاندارد)</option>
                             <option value="8">۸ کاراکتر (امن‌تر)</option>
                             <option value="10">۱۰ کاراکتر</option>
@@ -547,7 +554,7 @@
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">نوع کاراکترهای کد:</label>
-                        <select class="form-select" id="voucher-charset-select">
+                        <select class="form-select form-input" id="voucher-charset-select" style="height: 40px;">
                             <option value="numbers">فقط ارقام عددی (مناسب تایپ تلفنی / پین)</option>
                             <option value="easy" selected>حروف و ارقام خوانا (بدون کاراکترهای مشابه O/0 و l/1)</option>
                             <option value="alphanumeric">حروف بزرگ و ارقام</option>
@@ -555,7 +562,7 @@
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">حالت رمز عبور:</label>
-                        <select class="form-select" id="voucher-passmode-select">
+                        <select class="form-select form-input" id="voucher-passmode-select" style="height: 40px;">
                             <option value="same" selected>پین تک‌کده (User = Pass - اتصال آسان)</option>
                             <option value="distinct">تولید رمز عبور مجزا و امن</option>
                         </select>
@@ -566,7 +573,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px;">
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">محتوای بارکد QR:</label>
-                        <select class="form-select" id="voucher-qr-type">
+                        <select class="form-select form-input" id="voucher-qr-type" style="height: 40px;">
                             <option value="sub" selected>لینک هوشمند اشتراک (اتصال خودکار کلاینت‌ها)</option>
                             <option value="credentials">مشخصات اکانت (User:Pass)</option>
                             <option value="none">بدون بارکد QR</option>
@@ -574,7 +581,7 @@
                     </div>
                     <div class="form-group" style="margin: 0;">
                         <label class="form-label">استایل ظاهری کارت:</label>
-                        <select class="form-select" id="voucher-style-select">
+                        <select class="form-select form-input" id="voucher-style-select" style="height: 40px;">
                             <option value="glass" selected>گلس‌مورفیسم لوکس (Glassmorphism Dark/Light)</option>
                             <option value="scratch">کارت اعتباری چاپی با خط برش ✂️ (Print-Ready)</option>
                             <option value="gold">گرادیان نئون طلایی VIP (Golden Neon)</option>

@@ -346,12 +346,15 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px;">
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="rad_mikrotik_profile">گروه / پکیج کاربری (Mikrotik Profile)</label>
-<select class="form-select" id="batch-rad-group" onchange="onBatchGroupChange(this.value)">
+<select class="form-select form-input" id="batch-rad-group" onchange="onBatchGroupChange(this.value)" style="height: 40px;">
+<option value="default">پکیج استاندارد (Standard)</option>
+<option value="vip">پکیج ویژه (VIP)</option>
+<option value="night">بسته شبانه (Nightly)</option>
 </select>
 </div>
 <div class="form-group" style="margin: 0;">
 <label class="form-label" data-i18n="modal_password_generation_type">نوع تولید رمز عبور</label>
-<select class="form-select" id="batch-rad-pwd-type" onchange="toggleBatchPasswordInput(this.value)">
+<select class="form-select form-input" id="batch-rad-pwd-type" onchange="toggleBatchPasswordInput(this.value)" style="height: 40px;">
 <option data-i18n="modal_item_17" value="random">رمز تصادفی و امن (۸ کاراکتر)</option>
 <option data-i18n="modal_same_password_everyone" value="fixed">رمز یکسان برای همه</option>
 </select>
@@ -396,7 +399,7 @@
 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
 <div>
 <label data-i18n="rad_allowed_days" style="font-size: 11px; color: #64748b;">روزهای مجاز:</label>
-<select class="form-select" id="batch-rad-days" style="padding: 6px 10px; font-size: 12px;">
+<select class="form-select form-input" id="batch-rad-days" style="height: 34px; padding: 0 10px 0 28px; font-size: 12px;">
 <option data-i18n="rad_24_7" value="all">تمام روزهای هفته (24/7)</option>
 <option data-i18n="modal_working_days_monday_friday" value="weekdays">روزهای کاری (دوشنبه-جمعه)</option>
 <option data-i18n="rad_weekends" value="weekends">آخر هفته‌ها</option>
@@ -507,7 +510,7 @@
                         </div>
                         <div style="display: flex; gap: 6px;">
                             <input class="form-input" id="rad-grp-traffic" min="0" step="0.5" style="padding-left:12px; font-family:'JetBrains Mono'; height: 40px; font-weight: 700; flex: 1;" type="number" value="50"/>
-                            <select class="form-select" id="rad-grp-traffic-unit" style="width: 110px; font-size: 12px; height: 40px;">
+                            <select class="form-select form-input" id="rad-grp-traffic-unit" style="width: 110px; font-size: 12px; height: 40px;">
                                 <option value="GB" selected>GB (گیگ)</option>
                                 <option value="MB">MB (مگابایت)</option>
                                 <option value="TB">TB (ترابایت)</option>
@@ -535,7 +538,7 @@
                                 <label style="font-size: 11px; color: #64748b;">سرعت دانلود:</label>
                                 <div style="display: flex; gap: 4px;">
                                     <input class="form-input" id="rad-grp-down-speed" min="0" oninput="updateGrpRateLimitString()" placeholder="0 = نامحدود" style="padding-left:8px; font-family:'JetBrains Mono'; height: 38px;" type="number"/>
-                                    <select class="form-select" id="rad-grp-down-speed-unit" onchange="updateGrpRateLimitString()" style="width: 72px; font-size: 11px; height: 38px; padding: 2px 4px;">
+                                    <select class="form-select form-input" id="rad-grp-down-speed-unit" onchange="updateGrpRateLimitString()" style="width: 82px; font-size: 11px; height: 38px; padding: 0 4px 0 22px;">
                                         <option value="M" selected>Mbps</option>
                                         <option value="k">Kbps</option>
                                     </select>
@@ -545,7 +548,7 @@
                                 <label style="font-size: 11px; color: #64748b;">سرعت آپلود:</label>
                                 <div style="display: flex; gap: 4px;">
                                     <input class="form-input" id="rad-grp-up-speed" min="0" oninput="updateGrpRateLimitString()" placeholder="0 = نامحدود" style="padding-left:8px; font-family:'JetBrains Mono'; height: 38px;" type="number"/>
-                                    <select class="form-select" id="rad-grp-up-speed-unit" onchange="updateGrpRateLimitString()" style="width: 72px; font-size: 11px; height: 38px; padding: 2px 4px;">
+                                    <select class="form-select form-input" id="rad-grp-up-speed-unit" onchange="updateGrpRateLimitString()" style="width: 82px; font-size: 11px; height: 38px; padding: 0 4px 0 22px;">
                                         <option value="M" selected>Mbps</option>
                                         <option value="k">Kbps</option>
                                     </select>
@@ -592,7 +595,7 @@
                                 <label style="font-size: 11px; color: #64748b;">سقف مجاز دانلود:</label>
                                 <div style="display: flex; gap: 4px;">
                                     <input class="form-input" id="rad-grp-download" min="0" step="0.5" placeholder="0 = نامحدود" style="padding-left:8px; font-family:'JetBrains Mono'; height: 34px;" type="number" value="0"/>
-                                    <select class="form-select" id="rad-grp-download-unit" style="width: 65px; font-size: 11px; height: 34px; padding: 2px 4px;">
+                                    <select class="form-select form-input" id="rad-grp-download-unit" style="width: 75px; font-size: 11px; height: 34px; padding: 0 4px 0 20px;">
                                         <option value="GB" selected>GB</option>
                                         <option value="MB">MB</option>
                                     </select>
@@ -602,7 +605,7 @@
                                 <label style="font-size: 11px; color: #64748b;">سقف مجاز آپلود:</label>
                                 <div style="display: flex; gap: 4px;">
                                     <input class="form-input" id="rad-grp-upload" min="0" step="0.5" placeholder="0 = نامحدود" style="padding-left:8px; font-family:'JetBrains Mono'; height: 34px;" type="number" value="0"/>
-                                    <select class="form-select" id="rad-grp-upload-unit" style="width: 65px; font-size: 11px; height: 34px; padding: 2px 4px;">
+                                    <select class="form-select form-input" id="rad-grp-upload-unit" style="width: 75px; font-size: 11px; height: 34px; padding: 0 4px 0 20px;">
                                         <option value="GB" selected>GB</option>
                                         <option value="MB">MB</option>
                                     </select>
@@ -630,7 +633,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;">
                             <div>
                                 <label style="font-size: 11px; color: #64748b;">نحوه شروع محاسبه انقضا:</label>
-                                <select class="form-select" id="rad-grp-starts-at" style="padding: 6px 10px; font-size: 12px; height: 34px;">
+                                <select class="form-select form-input" id="rad-grp-starts-at" style="padding: 0 10px 0 28px; font-size: 12px; height: 34px;">
                                     <option value="creation">از زمان ساخت اکانت (Creation Date)</option>
                                     <option value="first_login">از زمان اولین اتصال کاربر (First Login)</option>
                                 </select>
@@ -645,7 +648,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                             <div>
                                 <label style="font-size: 11px; color: #64748b;">روزهای فعال لاگین:</label>
-                                <select class="form-select" id="rad-grp-days" style="padding: 6px 10px; font-size: 12px; height: 34px;">
+                                <select class="form-select form-input" id="rad-grp-days" style="padding: 0 10px 0 28px; font-size: 12px; height: 34px;">
                                     <option value="all">تمام روزهای هفته (24/7)</option>
                                     <option value="weekdays">روزهای کاری (دوشنبه تا جمعه)</option>
                                     <option value="weekends">آخر هفته‌ها (شنبه و یکشنبه)</option>

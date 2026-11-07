@@ -3293,25 +3293,46 @@
         const newGroupSelect = document.getElementById("new-rad-group");
         const batchGroupSelect = document.getElementById("batch-rad-group");
 
-        const groupEntries = Object.entries(currentRadiusGroups);
+        const groupEntries = Object.entries(currentRadiusGroups || {});
 
         if (filterSelect) {
             const currentVal = filterSelect.value;
             filterSelect.innerHTML = `<option value="">همه بسته‌ها / گروه‌ها (${groupEntries.length})</option>` +
                 groupEntries.map(([id, g]) => `<option value="${id}">${g.name} (${g.simultaneous_use || 2} اتصال - ${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'})</option>`).join("");
-            filterSelect.value = currentVal;
+            if (currentVal) filterSelect.value = currentVal;
         }
 
         if (newGroupSelect) {
             const currentVal = newGroupSelect.value;
-            newGroupSelect.innerHTML = groupEntries.map(([id, g]) => `<option value="${id}">${g.name}</option>`).join("");
-            if (currentVal && currentRadiusGroups[currentVal]) newGroupSelect.value = currentVal;
+            if (groupEntries.length === 0) {
+                newGroupSelect.innerHTML = `<option value="default">پکیج پیش‌فرض (Standard)</option>`;
+            } else {
+                newGroupSelect.innerHTML = groupEntries.map(([id, g]) => `<option value="${id}">${g.name} (${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'})</option>`).join("");
+            }
+            if (currentVal && currentRadiusGroups && currentRadiusGroups[currentVal]) {
+                newGroupSelect.value = currentVal;
+            } else if (groupEntries.length > 0) {
+                newGroupSelect.value = groupEntries[0][0];
+            }
+            onSingleUserGroupSelect(newGroupSelect.value);
         }
 
         if (batchGroupSelect) {
             const currentVal = batchGroupSelect.value;
-            batchGroupSelect.innerHTML = groupEntries.map(([id, g]) => `<option value="${id}">${g.name}</option>`).join("");
-            if (currentVal && currentRadiusGroups[currentVal]) batchGroupSelect.value = currentVal;
+            if (groupEntries.length === 0) {
+                batchGroupSelect.innerHTML = `<option value="default">پکیج پیش‌فرض (Standard)</option>`;
+            } else {
+                batchGroupSelect.innerHTML = groupEntries.map(([id, g]) => `<option value="${id}">${g.name} (${g.traffic_gb ? g.traffic_gb + 'GB' : 'نامحدود'})</option>`).join("");
+            }
+            if (currentVal && currentRadiusGroups && currentRadiusGroups[currentVal]) {
+                batchGroupSelect.value = currentVal;
+            } else if (groupEntries.length > 0) {
+                batchGroupSelect.value = groupEntries[0][0];
+            }
+        }
+
+        if (typeof populateVoucherGroupSelect === "function") {
+            populateVoucherGroupSelect();
         }
     }
 
