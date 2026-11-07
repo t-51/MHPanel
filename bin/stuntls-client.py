@@ -6,7 +6,7 @@ Disguises all outbound TCP traffic as standard WebRTC / VoIP STUN packets to byp
 Part of MHPanel Anti-Censorship Suite.
 
 Usage:
-  python stuntls-client.py -server 13.140.86.132:3478 -key stuntls-secret -l 1080
+  python stuntls-client.py -server vpn.kigaping.com:3478 -key stuntls-secret -l 1080
 """
 import sys
 import os
@@ -122,7 +122,7 @@ def run_client(server_addr, local_port=1080, secret="stuntls-secret", bind_ip="1
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="StunTLS WebRTC STUN Obfuscation Tunnel Client")
-    parser.add_argument("-server", "--server", required=True, help="Remote StunTLS server host:port (e.g. 13.140.86.132:3478)")
+    parser.add_argument("-server", "--server", required=True, help="Remote StunTLS server host:port (e.g. vpn.kigaping.com:3478)")
     parser.add_argument("-key", "--key", default="stuntls-secret", help="Secret key (default: stuntls-secret)")
     parser.add_argument("-l", "--local", type=int, default=1080, help="Local listening port (default: 1080)")
     parser.add_argument("-b", "--bind", default="127.0.0.1", help="Local bind IP (default: 127.0.0.1)")

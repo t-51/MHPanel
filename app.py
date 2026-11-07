@@ -13023,6 +13023,196 @@ def api_naiveproxy_config():
     })
 
 
+# --- StunTLS Client Compiler & Manager ---
+_stuntls_build_lock = threading.Lock()
+
+def build_stuntls_client(force=False):
+    """
+    Dynamically compiles stuntls-client.exe (Windows) and stuntls-client (Linux)
+    embedding the current server's hostname/domain, StunTLS port, and secret key.
+    Also synchronizes client scripts (.bat, .ps1, .py) to match the current server.
+    Ensures that no other server's information ever remains inside the distributed client.
+    """
+    with _stuntls_build_lock:
+        try:
+            bin_dir = "/www/wwwroot/mhpanel/bin"
+            if not os.path.exists(bin_dir):
+                bin_dir = os.path.join(os.path.dirname(__file__), "bin")
+            os.makedirs(bin_dir, exist_ok=True)
+
+            srv = get_server_domain() or get_server_public_ip() or "127.0.0.1"
+            port = 3478
+            secret = "stuntls-secret"
+            cfg_file = "/etc/vpnpanel/stuntls.json"
+            if os.path.exists(cfg_file):
+                try:
+                    with open(cfg_file, "r") as f:
+                        c = json.load(f)
+                        port = int(c.get("port") or 3478)
+                        secret = str(c.get("secret") or "stuntls-secret").strip()
+                except Exception:
+                    pass
+            panel_port = get_panel_port()
+
+            stamp_file = os.path.join(bin_dir, "stuntls-client.stamp")
+            current_stamp = f"{srv}:{port}:{secret}:{panel_port}"
+            out_exe = os.path.join(bin_dir, "stuntls-client.exe")
+            out_linux = os.path.join(bin_dir, "stuntls-client")
+            go_src = os.path.join(bin_dir, "stuntls-client.go")
+            if not os.path.exists(go_src):
+                repo_src = "/root/mhpanel-repo/bin/stuntls-client.go"
+                if os.path.exists(repo_src):
+                    shutil.copy2(repo_src, go_src)
+
+            # Check if rebuild is needed
+            need_build = force or not os.path.exists(out_exe)
+            if not need_build and os.path.exists(stamp_file):
+                try:
+                    with open(stamp_file, "r", encoding="utf-8") as f:
+                        if f.read().strip() != current_stamp:
+                            need_build = True
+                except Exception:
+                    need_build = True
+            elif not os.path.exists(stamp_file):
+                need_build = True
+
+            # Find Go compiler
+            go_bin = shutil.which("go") or "/usr/bin/go" or "/usr/local/go/bin/go"
+            if (not go_bin or not os.path.exists(go_bin)) and need_build:
+                try:
+                    subprocess.run(["apt-get", "update", "-qq"], timeout=20, capture_output=True)
+                    subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "golang-go"], timeout=60, capture_output=True)
+                    go_bin = shutil.which("go") or "/usr/bin/go"
+                except Exception:
+                    pass
+
+            if need_build and go_bin and os.path.exists(go_bin) and os.path.exists(go_src):
+                ldflags = f"-s -w -X 'main.DefaultServer={srv}:{port}' -X 'main.DefaultKey={secret}' -X 'main.ServerTitle={srv}'"
+
+                # 1. Compile Windows x86_64 PE (.exe)
+                env_win = os.environ.copy()
+                env_win["GOOS"] = "windows"
+                env_win["GOARCH"] = "amd64"
+                env_win["CGO_ENABLED"] = "0"
+                tmp_exe = out_exe + ".tmp"
+                res = subprocess.run([go_bin, "build", "-ldflags", ldflags, "-o", tmp_exe, go_src], env=env_win, capture_output=True, timeout=60)
+                if res.returncode == 0 and os.path.exists(tmp_exe):
+                    os.replace(tmp_exe, out_exe)
+                    os.chmod(out_exe, 0o755)
+
+                # 2. Compile Linux x86_64 binary
+                env_lin = os.environ.copy()
+                env_lin["GOOS"] = "linux"
+                env_lin["GOARCH"] = "amd64"
+                env_lin["CGO_ENABLED"] = "0"
+                tmp_lin = out_linux + ".tmp"
+                res_l = subprocess.run([go_bin, "build", "-ldflags", ldflags, "-o", tmp_lin, go_src], env=env_lin, capture_output=True, timeout=60)
+                if res_l.returncode == 0 and os.path.exists(tmp_lin):
+                    os.replace(tmp_lin, out_linux)
+                    os.chmod(out_linux, 0o755)
+
+            # 3. Dynamically generate client scripts (.bat, .ps1, .py)
+            bat_file = os.path.join(bin_dir, "stuntls-client.bat")
+            bat_content = f"""@echo off
+chcp 65001 >nul
+title {srv} StunTLS Tunnel Client v2.0
+color 0b
+
+echo =====================================================================
+echo           {srv} StunTLS WebRTC STUN Tunnel Client v2.0
+echo =====================================================================
+echo.
+
+:: 1. Check if native standalone stuntls-client.exe exists
+if exist "%~dp0stuntls-client.exe" (
+    "%~dp0stuntls-client.exe" %*
+    goto :end
+)
+
+:: 2. Check if python is available for stuntls-client.py
+where python >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    if exist "%~dp0stuntls-client.py" (
+        set SERVER=%1
+        if "%SERVER%"=="" (
+            set SERVER={srv}:{port}
+        )
+        set LOCAL_PORT=%2
+        if "%LOCAL_PORT%"=="" (
+            set LOCAL_PORT=1080
+        )
+        python "%~dp0stuntls-client.py" -server %SERVER% -l %LOCAL_PORT%
+        goto :end
+    )
+)
+
+:: 3. Neither exe nor python found
+echo [!] stuntls-client.exe not found in this folder.
+echo [!] Attempting to download stuntls-client.exe...
+where curl >nul 2>nul
+if %ERRORLEVEL% EQU 0 (
+    curl -k -o "%~dp0stuntls-client.exe" "https://{srv}:{panel_port}/download/stuntls-client.exe"
+    if exist "%~dp0stuntls-client.exe" (
+        echo [+] Downloaded successfully! Starting client...
+        "%~dp0stuntls-client.exe" %*
+        goto :end
+    )
+)
+
+echo [ERROR] Please download stuntls-client.exe directly from your MHPanel dashboard.
+pause
+
+:end
+"""
+            with open(bat_file, "w", encoding="utf-8") as f:
+                f.write(bat_content)
+
+            ps1_file = os.path.join(bin_dir, "stuntls-client.ps1")
+            if os.path.exists(ps1_file):
+                try:
+                    with open(ps1_file, "r", encoding="utf-8") as f:
+                        ps1_txt = f.read()
+                    ps1_txt = re.sub(r'\[string\]\$Server\s*=\s*"[^"]*"', f'[string]$Server = "{srv}:{port}"', ps1_txt)
+                    ps1_txt = re.sub(r'\[string\]\$Key\s*=\s*"[^"]*"', f'[string]$Key = "{secret}"', ps1_txt)
+                    ps1_txt = re.sub(r'-Server\s+[^\s]+', f'-Server {srv}:{port}', ps1_txt)
+                    with open(ps1_file, "w", encoding="utf-8") as f:
+                        f.write(ps1_txt)
+                except Exception:
+                    pass
+
+            py_file = os.path.join(bin_dir, "stuntls-client.py")
+            if os.path.exists(py_file):
+                try:
+                    with open(py_file, "r", encoding="utf-8") as f:
+                        py_txt = f.read()
+                    py_txt = re.sub(r'-server\s+13\.140\.86\.132:3478', f'-server {srv}:{port}', py_txt)
+                    py_txt = re.sub(r'e\.g\.\s+13\.140\.86\.132:3478', f'e.g. {srv}:{port}', py_txt)
+                    with open(py_file, "w", encoding="utf-8") as f:
+                        f.write(py_txt)
+                except Exception:
+                    pass
+
+            with open(stamp_file, "w", encoding="utf-8") as f:
+                f.write(current_stamp)
+
+            # Sync to repo directory if exists
+            repo_bin = "/root/mhpanel-repo/bin"
+            if os.path.exists(repo_bin) and os.path.abspath(repo_bin) != os.path.abspath(bin_dir):
+                for fname in ["stuntls-client.exe", "stuntls-client", "stuntls-client.bat", "stuntls-client.ps1", "stuntls-client.py", "stuntls-client.stamp"]:
+                    sp = os.path.join(bin_dir, fname)
+                    dp = os.path.join(repo_bin, fname)
+                    if os.path.exists(sp):
+                        try:
+                            shutil.copy2(sp, dp)
+                        except Exception:
+                            pass
+
+            return out_exe
+        except Exception as e:
+            logger.error(f"[build_stuntls_client] Error: {e}")
+            return None
+
+
 # --- StunTLS Protocol API ---
 @app.route("/api/stuntls/config", methods=["GET", "POST"])
 def api_stuntls_config():
@@ -13053,6 +13243,9 @@ def api_stuntls_config():
         except Exception:
             subprocess.run(["systemctl", "restart", "mhpanel-stuntls"], capture_output=True)
 
+        # Trigger background client recompilation with new server/port settings
+        threading.Thread(target=build_stuntls_client, kwargs={"force": True}, daemon=True).start()
+
         return jsonify({"success": True})
 
     cfg = {"port": 3478, "secret": "mhpanel_stuntls_key", "upstream": "127.0.0.1:22", "mode": "webrtc_stun", "jitter": False}
@@ -13079,6 +13272,10 @@ def api_stuntls_config():
 @app.route("/download/stuntls-client.exe", methods=["GET"])
 def api_download_stuntls_client_exe():
     from flask import send_file
+    try:
+        build_stuntls_client()
+    except Exception as e:
+        logger.error(f"Error compiling stuntls-client: {e}")
     path = "/www/wwwroot/mhpanel/bin/stuntls-client.exe"
     if not os.path.exists(path):
         path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.exe")
@@ -13089,6 +13286,10 @@ def api_download_stuntls_client_exe():
 @app.route("/download/stuntls-client.py", methods=["GET"])
 def api_download_stuntls_client_py():
     from flask import send_file
+    try:
+        build_stuntls_client()
+    except Exception as e:
+        logger.error(f"Error updating stuntls client py: {e}")
     path = "/www/wwwroot/mhpanel/bin/stuntls-client.py"
     if not os.path.exists(path):
         path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.py")
@@ -13099,6 +13300,10 @@ def api_download_stuntls_client_py():
 @app.route("/download/stuntls-client.bat", methods=["GET"])
 def api_download_stuntls_client_bat():
     from flask import send_file
+    try:
+        build_stuntls_client()
+    except Exception as e:
+        logger.error(f"Error updating stuntls client bat: {e}")
     path = "/www/wwwroot/mhpanel/bin/stuntls-client.bat"
     if not os.path.exists(path):
         path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.bat")
@@ -13109,6 +13314,10 @@ def api_download_stuntls_client_bat():
 @app.route("/download/stuntls-client.ps1", methods=["GET"])
 def api_download_stuntls_client_ps1():
     from flask import send_file
+    try:
+        build_stuntls_client()
+    except Exception as e:
+        logger.error(f"Error updating stuntls client ps1: {e}")
     path = "/www/wwwroot/mhpanel/bin/stuntls-client.ps1"
     if not os.path.exists(path):
         path = os.path.join(os.path.dirname(__file__), "bin", "stuntls-client.ps1")
@@ -13586,6 +13795,8 @@ def api_snispoof_upload_log():
 def api_download_snispoof_client_exe():
     from flask import send_file
     path = "/www/wwwroot/mhpanel/bin/snispoof-client.exe"
+    if not os.path.exists(path) or not os.path.exists("/www/wwwroot/mhpanel/bin/.server_stamp"):
+        compile_snispoof_binaries_for_server(force=False)
     if os.path.exists(path):
         return send_file(path, as_attachment=True, download_name="snispoof-client.exe", mimetype="application/vnd.microsoft.portable-executable")
     return "File not found", 404
@@ -13594,6 +13805,8 @@ def api_download_snispoof_client_exe():
 def api_download_snispoof_client_bin():
     from flask import send_file
     path = "/www/wwwroot/mhpanel/bin/snispoof-client"
+    if not os.path.exists(path) or not os.path.exists("/www/wwwroot/mhpanel/bin/.server_stamp"):
+        compile_snispoof_binaries_for_server(force=False)
     if os.path.exists(path):
         return send_file(path, as_attachment=True, download_name="snispoof-client", mimetype="application/octet-stream")
     return "File not found", 404
@@ -13642,22 +13855,7 @@ def api_download_snispoof_file(filename):
     if safe_name == "config.json":
         srv_ip = get_server_public_ip() or "127.0.0.1"
         srv_domain = get_server_domain() or srv_ip
-
-        # Discover all active TCP ports in Sing-box config
-        active_ports = [20443, 40443]
-        sb_cfg_file = "/etc/sing-box/config.json"
-        if os.path.exists(sb_cfg_file):
-            try:
-                with open(sb_cfg_file, "r", encoding="utf-8") as f:
-                    sb_cfg = json.load(f)
-                for ib in sb_cfg.get("inbounds", []):
-                    p = ib.get("listen_port")
-                    # Exclude low ports and client-reserved ports like 2080, 10808, 10809
-                    if p and isinstance(p, int) and p > 1024 and p not in [2080, 10808, 10809, 7890] and p not in active_ports:
-                        active_ports.append(p)
-            except Exception:
-                pass
-        active_ports.sort()
+        active_ports = get_snispoof_default_relay_ports()
 
         client_cfg = {
             "server_domain": srv_domain,
@@ -13678,6 +13876,10 @@ def api_download_snispoof_file(filename):
             mimetype="application/json",
             headers={"Content-Disposition": "attachment;filename=config.json"}
         )
+
+    if safe_name.endswith(".exe") or safe_name in ["snispoof-client", "snispoof-client-arm64"]:
+        compile_snispoof_binaries_for_server(force=False)
+
     path = os.path.join("/www/wwwroot/mhpanel/bin", safe_name)
     if os.path.exists(path) and safe_name.startswith("snispoof-"):
         mimetype = "application/octet-stream"
@@ -13690,6 +13892,7 @@ def api_download_snispoof_file(filename):
         elif safe_name.endswith(".ps1"):
             mimetype = "text/plain"
         return send_file(path, as_attachment=True, download_name=safe_name, mimetype=mimetype)
+    return "File not found", 404
     return "File not found", 404
 
 @app.route("/download/snispoof-singbox.json", methods=["GET"])
@@ -32052,6 +32255,11 @@ if __name__ == "__main__":
         sync_dnsmasq_routes()
     except Exception as e:
         print(f"Error during dnsmasq route sync at startup: {e}")
+
+    try:
+        threading.Thread(target=build_stuntls_client, daemon=True).start()
+    except Exception as e:
+        print(f"Error starting StunTLS client builder thread: {e}")
 
     port = get_panel_port()
     app.run(host="0.0.0.0", port=port, ssl_context=ssl_context, debug=False)

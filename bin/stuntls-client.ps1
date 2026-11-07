@@ -3,10 +3,10 @@
     MHPanel StunTLS Tunnel Client for Windows PowerShell (Zero Dependencies)
     Disguises TCP traffic as RFC 5389 WebRTC STUN packets.
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File .\stuntls-client.ps1 -Server 13.140.86.132:3478 -LocalPort 1080
+    powershell -ExecutionPolicy Bypass -File .\stuntls-client.ps1 -Server vpn.kigaping.com:3478 -LocalPort 1080
 #>
 param(
-    [string]$Server = "13.140.86.132:3478",
+    [string]$Server = "vpn.kigaping.com:3478",
     [int]$LocalPort = 1080,
     [string]$Key = "stuntls-secret"
 )

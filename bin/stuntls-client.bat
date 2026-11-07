@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title MHPanel StunTLS Tunnel Client v2.0
+title vpn.kigaping.com StunTLS Tunnel Client v2.0
 color 0b
 
 echo =====================================================================
-echo           MHPanel StunTLS WebRTC STUN Tunnel Client v2.0
+echo           vpn.kigaping.com StunTLS WebRTC STUN Tunnel Client v2.0
 echo =====================================================================
 echo.
 
@@ -20,7 +20,7 @@ if %ERRORLEVEL% EQU 0 (
     if exist "%~dp0stuntls-client.py" (
         set SERVER=%1
         if "%SERVER%"=="" (
-            set /p SERVER="Enter StunTLS Server [IP:3478]: "
+            set SERVER=vpn.kigaping.com:3478
         )
         set LOCAL_PORT=%2
         if "%LOCAL_PORT%"=="" (
@@ -36,7 +36,7 @@ echo [!] stuntls-client.exe not found in this folder.
 echo [!] Attempting to download stuntls-client.exe...
 where curl >nul 2>nul
 if %ERRORLEVEL% EQU 0 (
-    curl -k -o "%~dp0stuntls-client.exe" "https://13.140.86.132:9090/download/stuntls-client.exe"
+    curl -k -o "%~dp0stuntls-client.exe" "https://vpn.kigaping.com:9090/download/stuntls-client.exe"
     if exist "%~dp0stuntls-client.exe" (
         echo [+] Downloaded successfully! Starting client...
         "%~dp0stuntls-client.exe" %*

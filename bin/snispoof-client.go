@@ -56,6 +56,15 @@ type Config struct {
 	AutoStart       bool   `json:"auto_start"`
 }
 
+// Injected at build time via -ldflags "-X main.builtServerIP=... -X main.builtServerDomain=... -X main.builtServerPort=... -X main.builtRelayPorts=... -X main.builtFakeSNI=..."
+var (
+	builtServerDomain = ""
+	builtServerIP     = ""
+	builtServerPort   = ""
+	builtRelayPorts   = ""
+	builtFakeSNI      = ""
+)
+
 var defaultConfig = Config{
 	ServerDomain:    "vpn.kigaping.com",
 	ServerIP:        "212.227.143.16",
@@ -176,6 +185,33 @@ func getSnapshotConfig() Config {
 }
 
 func loadConfig() {
+	if builtServerDomain != "" {
+		defaultConfig.ServerDomain = builtServerDomain
+	}
+	if builtServerIP != "" {
+		defaultConfig.ServerIP = builtServerIP
+	}
+	if builtServerPort != "" {
+		if p, err := strconv.Atoi(builtServerPort); err == nil && p > 0 {
+			defaultConfig.ServerPort = p
+		}
+	}
+	if builtFakeSNI != "" {
+		defaultConfig.FakeSNI = builtFakeSNI
+	}
+	if builtRelayPorts != "" {
+		var pList []int
+		for _, part := range strings.Split(builtRelayPorts, ",") {
+			part = strings.TrimSpace(part)
+			if p, err := strconv.Atoi(part); err == nil && p > 0 && p <= 65535 {
+				pList = append(pList, p)
+			}
+		}
+		if len(pList) > 0 {
+			defaultConfig.RelayPorts = pList
+		}
+	}
+
 	exeName := strings.ToLower(filepath.Base(os.Args[0]))
 	if strings.Contains(exeName, "patterniha") {
 		defaultConfig.Strategy = "patterniha_desync"
@@ -665,8 +701,8 @@ func StartProxy() error {
 	extraListenersMutex.Lock()
 	extraListeners = nil
 	for _, p := range currentCfg.RelayPorts {
-		// Do not bind client app reserved ports (v2rayNG/v2rayN/sing-box local ports)
-		if p <= 1024 || p == currentCfg.LocalSocksPort || p == currentCfg.LocalRelayPort || p == 10808 || p == 10809 || p == 7890 || p == 2080 {
+		// Do not bind invalid ports or client app reserved local proxy ports
+		if p <= 0 || p > 65535 || p == currentCfg.LocalSocksPort || p == currentCfg.LocalRelayPort || p == 10808 || p == 10809 || p == 7890 || p == 2080 {
 			continue
 		}
 		pAddr := fmt.Sprintf("127.0.0.1:%d", p)
@@ -683,6 +719,9 @@ func StartProxy() error {
 					go handleTCPRelay(c, targetAddr, port)
 				}
 			}(pList, targetP)
+			addLiveLog("PORT", fmt.Sprintf("Bound local relay 127.0.0.1:%d -> Remote:%d", p, targetP))
+		} else {
+			addLiveLog("WARN", fmt.Sprintf("Could not bind port %d: %v", p, pErr))
 		}
 	}
 	extraListenersMutex.Unlock()
@@ -792,11 +831,12 @@ func printBanner() {
 	fmt.Println(" [1] Start / Open Proxy")
 	fmt.Println(" [2] Stop / Close Proxy")
 	fmt.Println(" [3] Server Domain, IP & Ports Settings")
-	fmt.Println(" [4] Change Decoy SNI Domain")
-	fmt.Println(" [5] Change Evasion Strategy")
-	fmt.Println(" [6] V2Ray / Sing-box / Xray Setup Guide")
-	fmt.Println(" [L/7] Live Continuous Event Monitor (Real-time Streaming)")
-	fmt.Println(" [8] Refresh Status")
+	fmt.Println(" [4] Inbound Listening Ports (Add / Remove / Change Relay Ports)")
+	fmt.Println(" [5] Change Decoy SNI Domain")
+	fmt.Println(" [6] Change Evasion Strategy")
+	fmt.Println(" [7] V2Ray / Sing-box / Xray Setup Guide")
+	fmt.Println(" [L/8] Live Continuous Event Monitor (Real-time Streaming)")
+	fmt.Println(" [9] Refresh Status")
 	fmt.Println(" [Q/0] Quit / Exit")
 	fmt.Println("======================================================================")
 	fmt.Print("Please select an option: ")
@@ -884,6 +924,23 @@ func configureServer(reader *bufio.Reader) {
 		relay = r
 	}
 
+	var pStrs []string
+	for _, p := range currentCfg.RelayPorts {
+		pStrs = append(pStrs, strconv.Itoa(p))
+	}
+	fmt.Printf("Enter Inbound Relay Ports (comma-separated, Enter to keep) [%s]: ", strings.Join(pStrs, ", "))
+	portsInput, _ := reader.ReadString('\n')
+	portsInput = strings.TrimSpace(portsInput)
+	var newRelayPorts []int
+	if portsInput != "" {
+		for _, part := range strings.Split(portsInput, ",") {
+			part = strings.TrimSpace(part)
+			if p, err := strconv.Atoi(part); err == nil && p > 0 && p <= 65535 {
+				newRelayPorts = append(newRelayPorts, p)
+			}
+		}
+	}
+
 	cfgMutex.Lock()
 	if net.ParseIP(hostInput) != nil {
 		cfg.ServerIP = hostInput
@@ -896,6 +953,9 @@ func configureServer(reader *bufio.Reader) {
 	cfg.ServerPort = port
 	cfg.LocalSocksPort = socks
 	cfg.LocalRelayPort = relay
+	if len(newRelayPorts) > 0 {
+		cfg.RelayPorts = newRelayPorts
+	}
 	cfgMutex.Unlock()
 
 	saveConfig()
@@ -909,6 +969,139 @@ func configureServer(reader *bufio.Reader) {
 			fmt.Printf("[x] Error reloading proxy: %v\n", err)
 		} else {
 			fmt.Println("[OK] Proxy successfully reloaded.")
+		}
+	}
+
+	fmt.Println("======================================================================")
+	fmt.Print("Press Enter to return to main menu: ")
+	_, _ = reader.ReadString('\n')
+}
+
+func configureRelayPorts(reader *bufio.Reader) {
+	currentCfg := getSnapshotConfig()
+
+	fmt.Println("\n======================================================================")
+	fmt.Println("          INBOUND LISTENING & RELAY PORTS CONFIGURATION               ")
+	fmt.Println("======================================================================")
+	var pStrs []string
+	for _, p := range currentCfg.RelayPorts {
+		pStrs = append(pStrs, strconv.Itoa(p))
+	}
+	fmt.Printf("Current Inbound Ports: %s\n\n", strings.Join(pStrs, ", "))
+	fmt.Println("These ports are opened on 127.0.0.1 on this machine. Your VPN clients")
+	fmt.Println("(V2RayN, Nekoray, Sing-box) can connect to 127.0.0.1:PORT directly.")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Println(" [1] Add new port(s) (e.g. 443 or 443, 8443, 2083)")
+	fmt.Println(" [2] Remove a port from the list (take out of default)")
+	fmt.Println(" [3] Replace with a completely new list of ports")
+	fmt.Println(" [4] Reset to default panel ports")
+	fmt.Println(" [0] Return to main menu")
+	fmt.Println("----------------------------------------------------------------------")
+	fmt.Print("Please select an option [1-4, 0=Back]: ")
+
+	opt, _ := reader.ReadString('\n')
+	opt = strings.TrimSpace(opt)
+
+	switch opt {
+	case "1":
+		fmt.Print("Enter port(s) to add (comma-separated, e.g. 443, 8443): ")
+		in, _ := reader.ReadString('\n')
+		in = strings.TrimSpace(in)
+		added := 0
+		portSet := make(map[int]bool)
+		for _, p := range currentCfg.RelayPorts {
+			portSet[p] = true
+		}
+		for _, part := range strings.Split(in, ",") {
+			part = strings.TrimSpace(part)
+			if p, err := strconv.Atoi(part); err == nil && p > 0 && p <= 65535 {
+				if !portSet[p] {
+					currentCfg.RelayPorts = append(currentCfg.RelayPorts, p)
+					portSet[p] = true
+					added++
+				}
+			}
+		}
+		if added > 0 {
+			cfgMutex.Lock()
+			cfg.RelayPorts = currentCfg.RelayPorts
+			cfgMutex.Unlock()
+			saveConfig()
+			fmt.Printf("\n[OK] Added %d port(s) successfully.\n", added)
+		} else {
+			fmt.Println("\n[!] No valid new ports entered.")
+		}
+
+	case "2":
+		fmt.Printf("Current ports: %s\n", strings.Join(pStrs, ", "))
+		fmt.Print("Enter port number to remove: ")
+		in, _ := reader.ReadString('\n')
+		in = strings.TrimSpace(in)
+		if remPort, err := strconv.Atoi(in); err == nil {
+			var updated []int
+			found := false
+			for _, p := range currentCfg.RelayPorts {
+				if p == remPort {
+					found = true
+				} else {
+					updated = append(updated, p)
+				}
+			}
+			if found {
+				cfgMutex.Lock()
+				cfg.RelayPorts = updated
+				cfgMutex.Unlock()
+				saveConfig()
+				fmt.Printf("\n[OK] Port %d removed from inbound listening ports.\n", remPort)
+			} else {
+				fmt.Printf("\n[!] Port %d was not in the list.\n", remPort)
+			}
+		}
+
+	case "3":
+		fmt.Print("Enter complete new list of ports (comma-separated, e.g. 443, 8443, 20443, 40443): ")
+		in, _ := reader.ReadString('\n')
+		in = strings.TrimSpace(in)
+		var newPorts []int
+		for _, part := range strings.Split(in, ",") {
+			part = strings.TrimSpace(part)
+			if p, err := strconv.Atoi(part); err == nil && p > 0 && p <= 65535 {
+				newPorts = append(newPorts, p)
+			}
+		}
+		if len(newPorts) > 0 {
+			cfgMutex.Lock()
+			cfg.RelayPorts = newPorts
+			cfgMutex.Unlock()
+			saveConfig()
+			fmt.Println("\n[OK] Inbound listening ports list updated successfully.")
+		} else {
+			fmt.Println("\n[!] No valid ports entered.")
+		}
+
+	case "4":
+		defaultPorts := []int{20443, 20452, 20453, 20451, 20454, 20455, 20456, 20448, 20457, 20458, 20459, 20444, 20460, 20461, 20462, 40443}
+		cfgMutex.Lock()
+		cfg.RelayPorts = defaultPorts
+		cfgMutex.Unlock()
+		saveConfig()
+		fmt.Println("\n[OK] Inbound listening ports reset to defaults.")
+
+	case "0", "":
+		return
+
+	default:
+		fmt.Println("\n[!] Invalid choice.")
+	}
+
+	if atomic.LoadInt32(&running) == 1 {
+		fmt.Println("Reloading proxy listeners with new inbound ports...")
+		StopProxy()
+		time.Sleep(150 * time.Millisecond)
+		if err := StartProxy(); err != nil {
+			fmt.Printf("[x] Warning reloading proxy: %v\n", err)
+		} else {
+			fmt.Println("[OK] Proxy successfully reloaded with updated listening ports.")
 		}
 	}
 
@@ -1069,6 +1262,8 @@ func main() {
 	portFlag := flag.Int("port", 0, "Remote server port")
 	socksFlag := flag.Int("socks", 0, "Local SOCKS5 port")
 	relayFlag := flag.Int("relay", 0, "Local TCP relay port")
+	portsFlag := flag.String("ports", "", "Comma-separated list of inbound relay ports to listen on (e.g. 443,8443,20443,40443)")
+	relayPortsFlag := flag.String("relay-ports", "", "Alias for -ports")
 	sniFlag := flag.String("sni", "", "Fake SNI domain")
 	strategyFlag := flag.String("strategy", "", "Evasion strategy (patterniha_desync, tls_fragment, wrong_seq, low_ttl)")
 	headlessFlag := flag.Bool("headless", false, "Run in background / headless mode without menu")
@@ -1100,6 +1295,22 @@ func main() {
 	}
 	if *strategyFlag != "" {
 		cfg.Strategy = *strategyFlag
+	}
+	if *portsFlag != "" || *relayPortsFlag != "" {
+		pStr := *portsFlag
+		if pStr == "" {
+			pStr = *relayPortsFlag
+		}
+		var newPorts []int
+		for _, part := range strings.Split(pStr, ",") {
+			part = strings.TrimSpace(part)
+			if p, err := strconv.Atoi(part); err == nil && p > 0 && p <= 65535 {
+				newPorts = append(newPorts, p)
+			}
+		}
+		if len(newPorts) > 0 {
+			cfg.RelayPorts = newPorts
+		}
 	}
 
 	saveConfig()
@@ -1142,18 +1353,21 @@ func main() {
 			configureServer(reader)
 
 		case "4":
-			configureDecoySNI(reader)
+			configureRelayPorts(reader)
 
 		case "5":
-			configureStrategy(reader)
+			configureDecoySNI(reader)
 
 		case "6":
+			configureStrategy(reader)
+
+		case "7":
 			showV2RayGuide(reader)
 
-		case "L", "7":
+		case "L", "8":
 			runLiveMonitor(reader)
 
-		case "8":
+		case "9":
 			// Just loop to refresh banner
 
 		case "0", "Q", "QUIT", "EXIT":
@@ -1162,7 +1376,7 @@ func main() {
 			return
 
 		default:
-			fmt.Println("\n[!] Invalid option. Please enter 0-8 or L.")
+			fmt.Println("\n[!] Invalid option. Please enter 0-9 or L.")
 			time.Sleep(800 * time.Millisecond)
 		}
 	}

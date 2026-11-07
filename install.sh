@@ -552,7 +552,7 @@ EOF
     # Remove broken third-party repos that can break apt-get update
     rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth; do
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -786,6 +786,19 @@ install_panel_web_ui() {
         echo "    Installing bundled binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
         cp -f "${PANEL_DIR}/bin/"* /usr/local/bin/ 2>/dev/null || true
         chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
+    fi
+
+    # Cross-compile customized StunTLS client for this specific server
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+        echo "    Cross-compiling customized StunTLS client for this server..."
+        (
+            cd "${PANEL_DIR}/bin" || exit 0
+            srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
+            chmod +x stuntls-client 2>/dev/null || true
+            echo "${srv_pub}:3478:stuntls-secret:9090" > stuntls-client.stamp
+        ) || true
     fi
 
     # Ensure python3-venv and python3-pip are installed

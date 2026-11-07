@@ -17,6 +17,14 @@ import (
 
 const StunMagicCookie uint32 = 0x2112A442
 
+var (
+	// Injected at compile time via -ldflags "-X main.DefaultServer=... -X main.DefaultKey=... -X main.ServerTitle=..."
+	DefaultServer    = "127.0.0.1:3478"
+	DefaultKey       = "stuntls-secret"
+	DefaultLocalPort = "1080"
+	ServerTitle      = "MHPanel"
+)
+
 func wrapStun(data []byte, msgType uint16) []byte {
 	l := len(data)
 	buf := make([]byte, 20+l)
@@ -100,8 +108,8 @@ func handleConnection(local net.Conn, remoteServer string) {
 
 func main() {
 	serverFlag := flag.String("server", "", "Remote StunTLS server host:port")
-	keyFlag := flag.String("key", "stuntls-secret", "Secret key")
-	localFlag := flag.Int("l", 1080, "Local listening port")
+	keyFlag := flag.String("key", DefaultKey, "Secret key")
+	localFlag := flag.Int("l", 0, "Local listening port")
 	bindFlag := flag.String("b", "127.0.0.1", "Local bind address")
 
 	flag.Parse()
@@ -110,26 +118,34 @@ func main() {
 	interactive := (*serverFlag == "")
 
 	serverAddr := strings.TrimSpace(*serverFlag)
+
+	defPort := 1080
+	if p, err := strconv.Atoi(DefaultLocalPort); err == nil && p > 0 && p < 65536 {
+		defPort = p
+	}
 	localPort := *localFlag
+	if localPort == 0 {
+		localPort = defPort
+	}
 
 	if interactive {
 		fmt.Println("=================================================================")
-		fmt.Println("      MHPanel StunTLS Tunnel Client v2.0 (RFC 5389 Native)       ")
+		fmt.Printf("      %s StunTLS Tunnel Client v2.0 (RFC 5389 Native)\n", ServerTitle)
 		fmt.Println("=================================================================")
 		fmt.Println("  [i] Welcome to StunTLS Client!")
 		fmt.Println("  [i] This client obfuscates your VPN/Proxy traffic inside standard")
 		fmt.Println("      RFC 5389 WebRTC STUN packets to bypass DPI censorship.")
 		fmt.Println("=================================================================")
-		fmt.Print("  Enter StunTLS Server [Default: 13.140.86.132:3478]: ")
+		fmt.Printf("  Enter StunTLS Server [Default: %s]: ", DefaultServer)
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			serverAddr = "13.140.86.132:3478"
+			serverAddr = DefaultServer
 		} else {
 			serverAddr = input
 		}
 
-		fmt.Print("  Enter Local SOCKS Port [Default: 1080]: ")
+		fmt.Printf("  Enter Local SOCKS Port [Default: %d]: ", localPort)
 		portInput, _ := reader.ReadString('\n')
 		portInput = strings.TrimSpace(portInput)
 		if portInput != "" {
@@ -159,7 +175,7 @@ func main() {
 	defer ln.Close()
 
 	fmt.Println("=================================================================")
-	fmt.Println("      MHPanel StunTLS Tunnel Client v2.0 (RFC 5389 Native)       ")
+	fmt.Printf("      %s StunTLS Tunnel Client v2.0 (RFC 5389 Native)\n", ServerTitle)
 	fmt.Println("=================================================================")
 	fmt.Printf("  [+] Remote Server      : %s\n", serverAddr)
 	fmt.Printf("  [+] Obfuscation        : RFC 5389 WebRTC STUN Emulation\n")

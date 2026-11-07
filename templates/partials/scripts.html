@@ -5410,7 +5410,7 @@
                 if (document.getElementById("rad-toggle-l2tp")) document.getElementById("rad-toggle-l2tp").checked = data.enabled_protocols.includes("l2tp");
                 
                 const ipsEl = document.getElementById("rad-ips-display");
-                if (ipsEl) ipsEl.innerText = `127.0.0.1 / ${data.public_ip || '13.140.86.132'}`;
+                if (ipsEl) ipsEl.innerText = `127.0.0.1 / ${data.public_ip || window.location.hostname || '127.0.0.1'}`;
 
                 const secEl = document.getElementById("rad-secret-display");
                 if (secEl) secEl.innerText = data.shared_secret || 'testing123';
