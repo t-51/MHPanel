@@ -27612,21 +27612,209 @@ def format_bytes_human(b):
     else:
         return f"{b / (1024 ** 4):.2f} TB"
 
-def get_singbox_clash_traffic():
+_sb_conn_cache = {}
+_sb_user_traffic_lock = threading.Lock()
+_sb_tracker_started = False
+
+def get_user_from_singbox_log(src_port, host=""):
+    log_file = "/var/log/sing-box.log"
+    if not os.path.exists(log_file):
+        return None
     try:
-        import urllib.request
+        proc = subprocess.run(["tail", "-n", "300", log_file], capture_output=True, text=True, timeout=1.0)
+        lines = proc.stdout.splitlines()
+        found_cid = None
+        for line in reversed(lines):
+            if f":{src_port}" in line:
+                m = re.search(r'\[(\d+)\s+[^\]]+\]', line)
+                if m:
+                    found_cid = m.group(1)
+                    break
+        if found_cid:
+            for line in lines:
+                if f"[{found_cid}" in line:
+                    m_user = re.search(r'\[([a-zA-Z0-9_\-\.\@]+)\]\s+inbound', line)
+                    if m_user:
+                        return m_user.group(1)
+    except Exception:
+        pass
+    return None
+
+def singbox_client_tracker():
+    global _sb_conn_cache
+    while True:
+        try:
+            req = urllib.request.Request("http://127.0.0.1:9095/connections")
+            with urllib.request.urlopen(req, timeout=2.0) as resp:
+                data = json.loads(resp.read().decode())
+
+            connections = data.get("connections") or []
+            active_conn_ids = set()
+            user_deltas = {}
+
+            for conn in connections:
+                cid = conn.get("id")
+                if not cid:
+                    continue
+                active_conn_ids.add(cid)
+
+                curr_up = int(conn.get("upload") or 0)
+                curr_down = int(conn.get("download") or 0)
+
+                username = None
+                rule = str(conn.get("rule") or "")
+                m = re.search(r'auth_user=([^ =]+)', rule)
+                if m:
+                    username = m.group(1).strip()
+
+                if not username:
+                    rp = str(conn.get("rulePayload") or "")
+                    m2 = re.search(r'auth_user=([^ =]+)', rp)
+                    if m2:
+                        username = m2.group(1).strip()
+
+                if not username and cid in _sb_conn_cache:
+                    username = _sb_conn_cache[cid].get("user")
+
+                if not username:
+                    meta = conn.get("metadata") or {}
+                    src_port = str(meta.get("sourcePort") or "")
+                    if src_port:
+                        username = get_user_from_singbox_log(src_port, meta.get("host") or "")
+
+                prev = _sb_conn_cache.get(cid)
+                if prev:
+                    prev_up = prev.get("up", 0)
+                    prev_down = prev.get("down", 0)
+                    delta_up = max(0, curr_up - prev_up)
+                    delta_down = max(0, curr_down - prev_down)
+                else:
+                    delta_up = max(0, curr_up)
+                    delta_down = max(0, curr_down)
+
+                _sb_conn_cache[cid] = {"up": curr_up, "down": curr_down, "user": username}
+
+                if username and (delta_up > 0 or delta_down > 0):
+                    if username not in user_deltas:
+                        user_deltas[username] = {"up": 0, "down": 0}
+                    user_deltas[username]["up"] += delta_up
+                    user_deltas[username]["down"] += delta_down
+
+            stale_cids = [c for c in _sb_conn_cache if c not in active_conn_ids]
+            for c in stale_cids:
+                _sb_conn_cache.pop(c, None)
+
+            if user_deltas and os.path.exists(SINGBOX_USERS_FILE):
+                with _sb_user_traffic_lock:
+                    try:
+                        with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
+                            users = json.load(f)
+                        users_changed = False
+                        users_to_disconnect = []
+
+                        today = datetime.now().date()
+                        now_dt = datetime.now()
+
+                        for u in users:
+                            uname = u.get("username")
+                            if uname in user_deltas:
+                                d_up = user_deltas[uname]["up"]
+                                d_down = user_deltas[uname]["down"]
+                                u["upload_bytes"] = int(u.get("upload_bytes") or 0) + d_up
+                                u["download_bytes"] = int(u.get("download_bytes") or 0) + d_down
+                                u["used_traffic_bytes"] = u["upload_bytes"] + u["download_bytes"]
+                                users_changed = True
+
+                            used_bytes = int(u.get("used_traffic_bytes") or 0)
+
+                            if u.get("expiry_type") == "on_first_use":
+                                if used_bytes > 0 and not u.get("first_connected_at"):
+                                    u["first_connected_at"] = now_dt.strftime("%Y-%m-%d %H:%M:%S")
+                                    vdays = int(u.get("validity_days") or 30)
+                                    u["expire_date"] = (now_dt.date() + timedelta(days=vdays)).strftime("%Y-%m-%d")
+                                    users_changed = True
+
+                            try:
+                                limit_gb = float(u.get("traffic_limit_gb") or 0.0)
+                            except Exception:
+                                limit_gb = 0.0
+                            if limit_gb > 0:
+                                limit_bytes = limit_gb * (1024 ** 3)
+                                if used_bytes >= limit_bytes:
+                                    if not u.get("is_quota_exceeded"):
+                                        u["is_quota_exceeded"] = True
+                                        u["enabled"] = False
+                                        users_to_disconnect.append(uname)
+                                        users_changed = True
+
+                            exp_str = (u.get("expire_date") or "").strip()
+                            if exp_str and not str(exp_str).startswith("پس از"):
+                                try:
+                                    exp_d = datetime.strptime(exp_str, "%Y-%m-%d").date()
+                                    if (exp_d - today).days < 0:
+                                        if not u.get("is_expired"):
+                                            u["is_expired"] = True
+                                            u["enabled"] = False
+                                            users_to_disconnect.append(uname)
+                                            users_changed = True
+                                except Exception:
+                                    pass
+
+                        if users_changed:
+                            with open(SINGBOX_USERS_FILE, "w", encoding="utf-8") as f:
+                                json.dump(users, f, indent=2, ensure_ascii=False)
+
+                        if users_to_disconnect:
+                            sync_singbox_users_to_config()
+                            for conn in connections:
+                                cid = conn.get("id")
+                                rule = str(conn.get("rule") or "")
+                                for u_disc in users_to_disconnect:
+                                    if f"auth_user={u_disc}" in rule or (_sb_conn_cache.get(cid, {}).get("user") == u_disc):
+                                        try:
+                                            del_req = urllib.request.Request(f"http://127.0.0.1:9095/connections/{cid}", method="DELETE")
+                                            urllib.request.urlopen(del_req, timeout=1.0)
+                                        except Exception:
+                                            pass
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        time.sleep(2)
+
+def start_singbox_tracker_if_needed():
+    global _sb_tracker_started
+    if not _sb_tracker_started:
+        _sb_tracker_started = True
+        t = threading.Thread(target=singbox_client_tracker, daemon=True)
+        t.start()
+
+def get_singbox_clash_traffic():
+    # Return user map with active connection counts
+    traffic_map = {}
+    try:
         req = urllib.request.Request("http://127.0.0.1:9095/connections")
         with urllib.request.urlopen(req, timeout=1.0) as resp:
             data = json.loads(resp.read().decode())
-            traffic_map = {}
             for conn in (data.get("connections") or []):
-                meta = conn.get("metadata") or {}
-                # metadata or inbound match
-            return traffic_map
+                rule = str(conn.get("rule") or "")
+                m = re.search(r'auth_user=([^ =]+)', rule)
+                uname = m.group(1).strip() if m else None
+                if not uname:
+                    cid = conn.get("id")
+                    uname = _sb_conn_cache.get(cid, {}).get("user")
+                if uname:
+                    if uname not in traffic_map:
+                        traffic_map[uname] = {"connections": 0, "up": 0, "down": 0}
+                    traffic_map[uname]["connections"] += 1
+                    traffic_map[uname]["up"] += int(conn.get("upload") or 0)
+                    traffic_map[uname]["down"] += int(conn.get("download") or 0)
     except Exception:
-        return {}
+        pass
+    return traffic_map
 
 def load_singbox_users():
+    start_singbox_tracker_if_needed()
     if not os.path.exists(SINGBOX_USERS_FILE):
         return []
     try:
@@ -27637,7 +27825,6 @@ def load_singbox_users():
         users = []
 
     today = datetime.now().date()
-    clash_traffic = get_singbox_clash_traffic()
     needs_save = False
 
     for u in users:
@@ -27650,12 +27837,6 @@ def load_singbox_users():
         u.setdefault("expiry_type", "fixed_date")
         u.setdefault("validity_days", 30)
         u.setdefault("first_connected_at", None)
-
-        uname = u.get("username")
-        if clash_traffic and uname in clash_traffic:
-            u["upload_bytes"] = max(u.get("upload_bytes", 0), clash_traffic[uname].get("up", 0))
-            u["download_bytes"] = max(u.get("download_bytes", 0), clash_traffic[uname].get("down", 0))
-            u["used_traffic_bytes"] = u["upload_bytes"] + u["download_bytes"]
 
         used_bytes = int(u.get("used_traffic_bytes") or 0)
         expiry_type = u.get("expiry_type", "fixed_date")
@@ -27843,6 +28024,20 @@ def sync_singbox_users_to_config():
                     ib["users"] = existing
                 else:
                     ib.pop("users", None)
+
+    # Sync route rules for user outbound routing & Clash API user attribution
+    rules = []
+    for u in active_users:
+        target_ob = u.get("outbound")
+        if not target_ob or not any(ob.get("tag") == target_ob for ob in cfg.get("outbounds", [])):
+            target_ob = "direct"
+        rules.append({
+            "auth_user": [u["username"]],
+            "outbound": target_ob
+        })
+    rules.append({"geoip": "private", "outbound": "direct"})
+    rules.append({"port": [443], "network": ["udp"], "outbound": "block"})
+    cfg.setdefault("route", {})["rules"] = rules
 
     ok, err_msg = validate_singbox_config(cfg)
     if not ok:
@@ -28420,6 +28615,345 @@ def api_singbox_inbound_delete(tag):
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
     return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت حذف گردید."})
+
+# =========================================================================
+# --- Sing-box Outbounds Management APIs ---
+# =========================================================================
+
+def build_outbound_from_request(req, existing_outbound=None):
+    existing = dict(existing_outbound) if existing_outbound else {}
+    otype = (req.get("type") or existing.get("type") or "direct").strip().lower()
+    tag = (req.get("tag") or existing.get("tag") or f"{otype}_{uuid.uuid4().hex[:6]}").strip()
+
+    if otype == "custom" or req.get("custom_json"):
+        raw_json_str = req.get("custom_json") or req.get("raw_json") or ""
+        if isinstance(raw_json_str, dict):
+            outbound = raw_json_str
+        elif isinstance(raw_json_str, str) and raw_json_str.strip():
+            try:
+                outbound = json.loads(raw_json_str.strip())
+            except Exception as e:
+                return None, f"فرمت JSON سفارشی نامعتبر است: {e}"
+        else:
+            outbound = existing if existing else {"type": "direct", "tag": tag}
+        outbound["tag"] = tag
+        return outbound, ""
+
+    outbound = {
+        "type": otype,
+        "tag": tag
+    }
+
+    if otype == "direct":
+        domain_strat = req.get("domain_strategy") or existing.get("domain_strategy") or "ipv4_only"
+        if domain_strat:
+            outbound["domain_strategy"] = domain_strat
+        return outbound, ""
+
+    elif otype == "block":
+        return outbound, ""
+
+    server = (req.get("server") or existing.get("server") or "").strip()
+    try:
+        server_port = int(req.get("server_port") or existing.get("server_port") or 443)
+    except Exception:
+        server_port = 443
+
+    if otype in ["socks", "http"]:
+        if not server:
+            return None, "آدرس سرور مقصد الزامی است."
+        outbound["server"] = server
+        outbound["server_port"] = server_port
+        u = req.get("username") or existing.get("username")
+        p = req.get("password") or existing.get("password")
+        if u: outbound["username"] = u
+        if p: outbound["password"] = p
+        if otype == "socks":
+            outbound["version"] = req.get("version") or existing.get("version") or "5"
+        elif otype == "http":
+            path = req.get("path") or existing.get("path")
+            if path: outbound["path"] = path
+        return outbound, ""
+
+    elif otype == "shadowsocks":
+        if not server:
+            return None, "آدرس سرور مقصد الزامی است."
+        outbound["server"] = server
+        outbound["server_port"] = server_port
+        outbound["method"] = req.get("method") or existing.get("method") or "aes-128-gcm"
+        outbound["password"] = req.get("password") or existing.get("password") or ""
+        return outbound, ""
+
+    elif otype in ["vless", "vmess"]:
+        if not server:
+            return None, "آدرس سرور مقصد الزامی است."
+        outbound["server"] = server
+        outbound["server_port"] = server_port
+        outbound["uuid"] = req.get("uuid") or existing.get("uuid") or str(uuid.uuid4())
+
+        if otype == "vless":
+            flow = req.get("flow") or existing.get("flow")
+            if flow: outbound["flow"] = flow
+        elif otype == "vmess":
+            outbound["security"] = req.get("security") or existing.get("security") or "auto"
+
+        # Transport
+        trans_type = req.get("transport_type") or existing.get("transport", {}).get("type") or "tcp"
+        if trans_type in ["ws", "grpc", "httpupgrade"]:
+            trans = {"type": trans_type}
+            if trans_type in ["ws", "httpupgrade"]:
+                trans["path"] = req.get("ws_path") or existing.get("transport", {}).get("path") or "/"
+            elif trans_type == "grpc":
+                trans["service_name"] = req.get("grpc_service_name") or existing.get("transport", {}).get("service_name") or "grpc"
+            outbound["transport"] = trans
+
+        # TLS / Reality
+        tls_enabled = req.get("tls_enabled")
+        if tls_enabled is None:
+            tls_enabled = existing.get("tls", {}).get("enabled", False)
+
+        if tls_enabled:
+            tls_obj = {
+                "enabled": True,
+                "server_name": req.get("sni") or existing.get("tls", {}).get("server_name") or server,
+                "insecure": bool(req.get("insecure", False))
+            }
+            utls_fp = req.get("utls_fingerprint") or existing.get("tls", {}).get("utls", {}).get("fingerprint") or "chrome"
+            if utls_fp:
+                tls_obj["utls"] = {"enabled": True, "fingerprint": utls_fp}
+
+            reality_enabled = req.get("reality_enabled")
+            if reality_enabled is None:
+                reality_enabled = existing.get("tls", {}).get("reality", {}).get("enabled", False)
+            if reality_enabled:
+                pubk = req.get("reality_pubkey") or existing.get("tls", {}).get("reality", {}).get("public_key") or ""
+                shortid = req.get("reality_shortid") or existing.get("tls", {}).get("reality", {}).get("short_id") or ""
+                if pubk:
+                    tls_obj["reality"] = {
+                        "enabled": True,
+                        "public_key": pubk,
+                        "short_id": shortid
+                    }
+            outbound["tls"] = tls_obj
+
+        return outbound, ""
+
+    elif otype == "trojan":
+        if not server:
+            return None, "آدرس سرور مقصد الزامی است."
+        outbound["server"] = server
+        outbound["server_port"] = server_port
+        outbound["password"] = req.get("password") or existing.get("password") or ""
+        tls_obj = {
+            "enabled": True,
+            "server_name": req.get("sni") or existing.get("tls", {}).get("server_name") or server,
+            "insecure": bool(req.get("insecure", False))
+        }
+        outbound["tls"] = tls_obj
+        return outbound, ""
+
+    elif otype == "wireguard":
+        if not server:
+            return None, "آدرس سرور مقصد الزامی است."
+        outbound["server"] = server
+        outbound["server_port"] = server_port
+        outbound["system_interface"] = False
+        local_addr = req.get("local_address") or existing.get("local_address") or ["172.16.0.2/32"]
+        if isinstance(local_addr, str):
+            local_addr = [a.strip() for a in local_addr.split(",") if a.strip()]
+        outbound["local_address"] = local_addr
+        outbound["private_key"] = req.get("private_key") or existing.get("private_key") or ""
+        outbound["peer_public_key"] = req.get("peer_public_key") or existing.get("peer_public_key") or ""
+        mtu = req.get("mtu") or existing.get("mtu")
+        if mtu: outbound["mtu"] = int(mtu)
+        return outbound, ""
+
+    else:
+        if server:
+            outbound["server"] = server
+            outbound["server_port"] = server_port
+        return outbound, ""
+
+
+@app.route("/api/singbox/outbounds", methods=["GET"])
+def api_singbox_outbounds():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    ensure_singbox_default_config()
+    cfg = {}
+    if os.path.exists(SINGBOX_CONFIG_FILE):
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    outbounds = cfg.get("outbounds", [])
+    return jsonify({"success": True, "outbounds": outbounds, "count": len(outbounds)})
+
+
+@app.route("/api/singbox/outbound/add", methods=["POST"])
+def api_singbox_outbound_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    ensure_singbox_default_config()
+
+    req = request.get_json() or {}
+    tag = (req.get("tag") or "").strip()
+    if not tag:
+        return jsonify({"error": "نام تگ (Tag) اوت‌باند الزامی است."}), 400
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    if any(ob.get("tag") == tag for ob in cfg.get("outbounds", [])):
+        return jsonify({"error": f"اوت‌باندی با نام تگ '{tag}' از قبل وجود دارد."}), 400
+
+    new_outbound, err = build_outbound_from_request(req)
+    if not new_outbound:
+        return jsonify({"error": err or "تنظیمات اوت‌باند نامعتبر است."}), 400
+
+    test_cfg = dict(cfg)
+    test_cfg["outbounds"] = list(test_cfg.get("outbounds", [])) + [new_outbound]
+    ok, err_msg = validate_singbox_config(test_cfg)
+    if not ok:
+        return jsonify({"error": f"تنظیمات اوت‌باند با هسته سینگ‌باکس ناسازگار است: {err_msg}"}), 400
+
+    cfg["outbounds"] = test_cfg["outbounds"]
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "outbound": new_outbound, "message": f"اوت‌باند '{tag}' با موفقیت افزوده شد."})
+
+
+@app.route("/api/singbox/outbound/<tag>/details", methods=["GET"])
+def api_singbox_outbound_details(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    outbound = next((ob for ob in cfg.get("outbounds", []) if ob.get("tag") == tag), None)
+    if not outbound:
+        return jsonify({"error": f"اوت‌باند با تگ '{tag}' یافت نشد."}), 404
+
+    return jsonify({"success": True, "outbound": outbound})
+
+
+@app.route("/api/singbox/outbound/<tag>/edit", methods=["POST"])
+def api_singbox_outbound_edit(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ موجود نیست."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    target_idx = None
+    existing = None
+    for idx, ob in enumerate(cfg.get("outbounds", [])):
+        if ob.get("tag") == tag:
+            target_idx = idx
+            existing = ob
+            break
+
+    if existing is None:
+        return jsonify({"error": f"اوت‌باند با تگ '{tag}' یافت نشد."}), 404
+
+    req = request.get_json() or {}
+    new_tag = (req.get("tag") or tag).strip()
+    if new_tag != tag:
+        if any(ob.get("tag") == new_tag for ob in cfg.get("outbounds", [])):
+            return jsonify({"error": f"اوت‌باندی با نام تگ '{new_tag}' از قبل وجود دارد."}), 400
+
+    updated_outbound, err = build_outbound_from_request(req, existing_outbound=existing)
+    if not updated_outbound:
+        return jsonify({"error": err or "تنظیمات اوت‌باند نامعتبر است."}), 400
+
+    test_cfg = dict(cfg)
+    test_cfg["outbounds"] = list(cfg.get("outbounds", []))
+    test_cfg["outbounds"][target_idx] = updated_outbound
+
+    ok, err_msg = validate_singbox_config(test_cfg)
+    if not ok:
+        return jsonify({"error": f"تنظیمات اوت‌باند با هسته سینگ‌باکس ناسازگار است: {err_msg}"}), 400
+
+    cfg["outbounds"][target_idx] = updated_outbound
+    if new_tag != tag:
+        for r in cfg.get("route", {}).get("rules", []):
+            if r.get("outbound") == tag:
+                r["outbound"] = new_tag
+        local_users = load_singbox_users()
+        changed = False
+        for u in local_users:
+            if u.get("outbound") == tag:
+                u["outbound"] = new_tag
+                changed = True
+        if changed:
+            save_singbox_users(local_users)
+
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "message": f"اوت‌باند '{new_tag}' با موفقیت ویرایش شد.", "outbound": updated_outbound})
+
+
+@app.route("/api/singbox/outbound/<tag>/delete", methods=["POST", "DELETE"])
+def api_singbox_outbound_delete(tag):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    ensure_singbox_service()
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return jsonify({"error": "فایل کانفیگ یافت نشد."}), 404
+
+    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+        cfg = json.load(f)
+
+    outbounds = cfg.get("outbounds", [])
+    if tag in ["direct", "block"]:
+        direct_or_block_count = sum(1 for o in outbounds if o.get("type") in ["direct", "block"])
+        if direct_or_block_count <= 1:
+            return jsonify({"error": f"حذف اوت‌باند اصلی پیش‌فرض '{tag}' مجاز نمی‌باشد."}), 400
+
+    before_len = len(outbounds)
+    outbounds = [ob for ob in outbounds if ob.get("tag") != tag]
+    if len(outbounds) == before_len:
+        return jsonify({"error": f"اوت‌باند با نام '{tag}' یافت نشد."}), 404
+
+    test_cfg = dict(cfg)
+    test_cfg["outbounds"] = outbounds
+    for r in test_cfg.get("route", {}).get("rules", []):
+        if r.get("outbound") == tag:
+            r["outbound"] = "direct"
+
+    ok, err_msg = validate_singbox_config(test_cfg)
+    if not ok:
+        return jsonify({"error": f"نمی‌توان این اوت‌باند را حذف کرد: {err_msg}"}), 400
+
+    cfg["outbounds"] = outbounds
+    cfg["route"] = test_cfg.get("route", {})
+    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+    local_users = load_singbox_users()
+    changed = False
+    for u in local_users:
+        if u.get("outbound") == tag:
+            u["outbound"] = "direct"
+            changed = True
+    if changed:
+        save_singbox_users(local_users)
+
+    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    return jsonify({"success": True, "message": f"اوت‌باند '{tag}' با موفقیت حذف گردید."})
 
 @app.route("/api/singbox/generate-keys", methods=["GET"])
 def api_singbox_generate_keys():
@@ -32810,6 +33344,8 @@ if __name__ == "__main__":
     t9.start()
     t_tg = threading.Thread(target=telegram_monitor_worker, daemon=True)
     t_tg.start()
+    t_sb = threading.Thread(target=singbox_client_tracker, daemon=True)
+    t_sb.start()
     redirect_server.start()
     
     ssl_context = None

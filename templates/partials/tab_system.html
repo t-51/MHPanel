@@ -144,32 +144,7 @@
 </button>
 </div>
 </section>
-<section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
-<!-- Default Test User Credentials Settings Panel -->
-<div class="glass-card config-card">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center;">
-<h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
-<i data-lucide="user-check" style="color: var(--color-emerald); width: 20px; height: 20px;"></i> <span data-i18n="sys_default_vpn_user">کاربر پیش‌فرض تست و اتصال سریع (Default VPN User)</span>
-</h3>
-<span class="sidebar-badge sidebar-badge-green" data-i18n="sys_sync_radius" style="font-size:11px;">همگام با RADIUS</span>
-</div>
-<p data-i18n-html="elem_tab_system_70" style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
-                این نام کاربری و رمز عبور به صورت خودکار در هسته <strong>FreeRADIUS</strong>، سرویس <strong data-i18n="sys_cisco_ocserv">سیسکو (OCServ)</strong>، <strong>IKEv2</strong>، <strong>L2TP</strong> و <strong>SSTP</strong> ثبت و همگام می‌شود تا کلاینت‌ها بدون نیاز به تعریف مجزا در هر پروتکل، با این مشخصات متصل شوند.
-            </p>
-<form id="test-client-form" onsubmit="saveTestUser(event)">
-<div class="form-group" style="margin-bottom:14px;">
-<label class="form-label" data-i18n="sys_test_username_username" style="font-weight:600;">نام کاربری تست (Username)</label>
-<input class="form-input" id="test-user-input" placeholder="NPU" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin-bottom:18px;">
-<label class="form-label" data-i18n="sys_password" style="font-weight:600;">رمز عبور تست (Password)</label>
-<input class="form-input" id="test-pass-input" placeholder="56226500" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<button class="btn btn-primary" id="save-test-user-btn" style="width:auto; padding:9px 20px;" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="sys_save_apply_all_protocols">ذخیره و اعمال در تمامی پروتکل‌ها</span>
-</button>
-</form>
-</div>
+<section class="bottom-section" style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;">
 <!-- Admin Credentials Settings Panel -->
 <div class="glass-card config-card">
 <div class="config-header">

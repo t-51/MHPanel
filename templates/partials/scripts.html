@@ -8439,7 +8439,6 @@
             fetchTunnels();
         } else if (tabId === "system") {
             fetchListeningPorts();
-            fetchTestUser();
             fetchWarpStatus();
             fetchBbrStatus();
             fetchSystemDomain();
@@ -8484,14 +8483,17 @@
         }
     }
 
-    // --- Fetch & Save Default VPN Test User ---
+    // --- Fetch & Save Default VPN Test User (Safely Guarded) ---
     async function fetchTestUser() {
+        const uInput = document.getElementById("test-user-input");
+        const pInput = document.getElementById("test-pass-input");
+        if (!uInput || !pInput) return;
         try {
             const res = await fetch("/api/system/test-user");
             if (res.ok) {
                 const data = await res.json();
-                document.getElementById("test-user-input").value = data.username;
-                document.getElementById("test-pass-input").value = data.password;
+                if (uInput) uInput.value = data.username;
+                if (pInput) pInput.value = data.password;
             }
         } catch (err) {
             console.error("Failed to fetch test user:", err);
@@ -8499,9 +8501,12 @@
     }
 
     async function saveTestUser(event) {
-        event.preventDefault();
-        const username = document.getElementById("test-user-input").value.trim();
-        const password = document.getElementById("test-pass-input").value.trim();
+        if (event) event.preventDefault();
+        const uInput = document.getElementById("test-user-input");
+        const pInput = document.getElementById("test-pass-input");
+        if (!uInput || !pInput) return;
+        const username = uInput.value.trim();
+        const password = pInput.value.trim();
 
         if (!username || !password) return;
 
@@ -10297,9 +10302,6 @@
         if (activeTab === "amneziawg" && urlSubtab && typeof switchAwgSubTab === "function") {
             switchAwgSubTab(urlSubtab);
         }
-        
-        // Load default test user details
-        fetchTestUser();
         
         if (!urlParams.get("no_poll")) {
             setInterval(() => {
@@ -21099,6 +21101,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const allCountPill = document.getElementById("sb-badge-all-count");
                 if (allCountPill) allCountPill.textContent = data.inbounds_count || 0;
 
+                const obCountPill = document.getElementById("sb-badge-outbounds-count");
+                if (obCountPill) obCountPill.textContent = data.outbounds_count || 0;
+
                 const svcTextEl = document.getElementById("singbox-stat-service-text");
                 if (svcTextEl) {
                     svcTextEl.textContent = data.is_active ? "فعال و در حال اجرا" : "متوقف شده";
@@ -21144,6 +21149,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const inboundsPane = document.getElementById("sb-pane-inbounds");
         const usersPane = document.getElementById("sb-pane-users");
+        const outboundsPane = document.getElementById("sb-pane-outbounds");
         const logsPane = document.getElementById("sb-pane-logs");
         const banner = document.getElementById("sb-protocol-filter-banner");
 
@@ -21151,6 +21157,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             stopSingboxLogAutoRefresh();
             if (inboundsPane) inboundsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (logsPane) logsPane.style.display = "block";
             fetchSingboxLogs();
@@ -21159,14 +21166,24 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             stopSingboxLogAutoRefresh();
             if (inboundsPane) inboundsPane.style.display = "none";
             if (logsPane) logsPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (usersPane) usersPane.style.display = "block";
             loadSingboxUsers();
             loadSingboxCategories();
+        } else if (subTab === "outbounds") {
+            stopSingboxLogAutoRefresh();
+            if (inboundsPane) inboundsPane.style.display = "none";
+            if (logsPane) logsPane.style.display = "none";
+            if (usersPane) usersPane.style.display = "none";
+            if (banner) banner.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "block";
+            loadSingboxOutbounds();
         } else {
             stopSingboxLogAutoRefresh();
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
             if (inboundsPane) inboundsPane.style.display = "block";
 
             if (subTab === "inbounds") {
@@ -22920,6 +22937,405 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    // =========================================================================
+    // --- Sing-box Outbounds Management Engine ---
+    // =========================================================================
+    let activeSingboxOutbounds = [];
+
+    async function loadSingboxOutbounds() {
+        const tbody = document.getElementById("singbox-outbounds-table-body");
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);"><i data-lucide="loader" class="spin" style="width:16px; height:16px; vertical-align:middle;"></i> در حال دریافت اوت‌باندها...</td></tr>`;
+            if (window.lucide) lucide.createIcons();
+        }
+        try {
+            const res = await fetch("/api/singbox/outbounds");
+            const data = await res.json();
+            if (data.success) {
+                activeSingboxOutbounds = data.outbounds || [];
+                const obCountPill = document.getElementById("sb-badge-outbounds-count");
+                if (obCountPill) obCountPill.textContent = activeSingboxOutbounds.length;
+                renderSingboxOutboundsTable(activeSingboxOutbounds);
+            } else {
+                if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">خطا: ${escapeHtml(data.error || 'دریافت ناموفق بود')}</td></tr>`;
+            }
+        } catch (e) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:24px; color:#ef4444;">خطا در ارتباط با سرور: ${escapeHtml(e.message)}</td></tr>`;
+        }
+    }
+
+    function renderSingboxOutboundsTable(outbounds) {
+        const tbody = document.getElementById("singbox-outbounds-table-body");
+        if (!tbody) return;
+
+        if (!outbounds || outbounds.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px 16px; color:var(--text-muted);">
+                <i data-lucide="arrow-up-right" style="width:32px; height:32px; opacity:0.3; margin-bottom:6px;"></i>
+                <div>هیچ اوت‌باندی یافت نشد.</div>
+            </td></tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        const typeColors = {
+            direct: { bg: 'rgba(16, 185, 129, 0.12)', color: '#10b981', label: 'Direct' },
+            block: { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', label: 'Block' },
+            socks: { bg: 'rgba(59, 130, 246, 0.12)', color: '#3b82f6', label: 'SOCKS5' },
+            http: { bg: 'rgba(14, 165, 233, 0.12)', color: '#0ea5e9', label: 'HTTP' },
+            shadowsocks: { bg: 'rgba(139, 92, 246, 0.12)', color: '#8b5cf6', label: 'Shadowsocks' },
+            vless: { bg: 'rgba(99, 102, 241, 0.12)', color: '#6366f1', label: 'VLESS' },
+            vmess: { bg: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4', label: 'VMess' },
+            trojan: { bg: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', label: 'Trojan' },
+            wireguard: { bg: 'rgba(236, 72, 153, 0.12)', color: '#ec4899', label: 'WireGuard' },
+            custom: { bg: 'rgba(100, 116, 139, 0.12)', color: '#94a3b8', label: 'Custom' }
+        };
+
+        let html = '';
+        outbounds.forEach(ob => {
+            const tag = ob.tag || '';
+            const otype = (ob.type || 'direct').toLowerCase();
+            const badge = typeColors[otype] || { bg: 'rgba(100, 116, 139, 0.12)', color: '#94a3b8', label: otype.toUpperCase() };
+
+            let serverPortStr = '-';
+            if (ob.server) {
+                serverPortStr = `${escapeHtml(ob.server)}:${ob.server_port || 443}`;
+            } else if (otype === 'direct') {
+                serverPortStr = '<span style="color:var(--text-muted);">مستقیم (لوکال سرور)</span>';
+            } else if (otype === 'block') {
+                serverPortStr = '<span style="color:#ef4444;">مسدود (Drop/Reject)</span>';
+            }
+
+            let detailsList = [];
+            if (ob.domain_strategy) detailsList.push(`استراتژی: ${escapeHtml(ob.domain_strategy)}`);
+            if (ob.method) detailsList.push(`الگوریتم: ${escapeHtml(ob.method)}`);
+            if (ob.flow) detailsList.push(`Flow: ${escapeHtml(ob.flow)}`);
+            if (ob.transport && ob.transport.type) detailsList.push(`انتقال: ${escapeHtml(ob.transport.type)}`);
+            if (ob.tls && ob.tls.enabled) {
+                if (ob.tls.reality && ob.tls.reality.enabled) detailsList.push(`Reality SNI: ${escapeHtml(ob.tls.server_name || '')}`);
+                else detailsList.push(`TLS SNI: ${escapeHtml(ob.tls.server_name || '')}`);
+            }
+            if (ob.local_address) detailsList.push(`آدرس محلی: ${Array.isArray(ob.local_address) ? ob.local_address.join(', ') : ob.local_address}`);
+            const detailsStr = detailsList.length ? detailsList.join(' | ') : '-';
+
+            const isDefaultCore = (tag === 'direct' || tag === 'block');
+
+            html += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 12px 16px; font-weight: 700; font-family: 'JetBrains Mono'; color: var(--text-main);">
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <span>${escapeHtml(tag)}</span>
+                        ${isDefaultCore ? '<span class="badge-pill" style="font-size:10px; background:rgba(16,185,129,0.1); color:#10b981;">پیش‌فرض</span>' : ''}
+                    </div>
+                </td>
+                <td style="padding: 12px 16px;">
+                    <span class="badge-pill" style="font-size: 11px; padding: 2px 8px; font-weight: 700; background: ${badge.bg}; color: ${badge.color};">
+                        ${badge.label}
+                    </span>
+                </td>
+                <td style="padding: 12px 16px; font-family: 'JetBrains Mono'; direction: ltr; text-align: right; font-size: 12px;">
+                    ${serverPortStr}
+                </td>
+                <td style="padding: 12px 16px; font-size: 11.5px; color: var(--text-muted);">
+                    ${detailsStr}
+                </td>
+                <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
+                    <div style="display:flex; gap:6px; justify-content:center; align-items:center;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditOutboundModal('${escapeHtml(tag)}')" style="padding:5px 8px;" title="ویرایش اوت‌باند">
+                            <i data-lucide="edit-3" style="width:13px; height:13px;"></i>
+                        </button>
+                        ${!isDefaultCore ? `
+                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSingboxOutbound('${escapeHtml(tag)}')" style="padding:5px 8px;" title="حذف اوت‌باند">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        </button>` : ''}
+                    </div>
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function openSingboxAddOutboundModal() {
+        const modal = document.getElementById("modal-singbox-outbound");
+        if (!modal) return;
+        document.getElementById("sb-outbound-modal-title").textContent = "افزودن اوت‌باند جدید (Add Outbound)";
+        document.getElementById("sb-outbound-submit-text").textContent = "افزودن و ذخیره اوت‌باند";
+        document.getElementById("sb-outbound-mode").value = "add";
+        document.getElementById("sb-outbound-orig-tag").value = "";
+        document.getElementById("sb-outbound-tag").value = "";
+        document.getElementById("sb-outbound-tag").readOnly = false;
+        document.getElementById("sb-outbound-type").value = "direct";
+        document.getElementById("sb-ob-domain-strategy").value = "ipv4_only";
+        document.getElementById("sb-ob-server").value = "";
+        document.getElementById("sb-ob-port").value = 443;
+        document.getElementById("sb-ob-username").value = "";
+        document.getElementById("sb-ob-password").value = "";
+        document.getElementById("sb-ob-uuid").value = "";
+        document.getElementById("sb-ob-flow").value = "";
+        document.getElementById("sb-ob-transport-type").value = "tcp";
+        document.getElementById("sb-ob-ws-path").value = "";
+        document.getElementById("sb-ob-tls-enabled").checked = true;
+        document.getElementById("sb-ob-tls-insecure").checked = false;
+        document.getElementById("sb-ob-reality-enabled").checked = false;
+        document.getElementById("sb-ob-tls-sni").value = "";
+        document.getElementById("sb-ob-tls-utls").value = "chrome";
+        document.getElementById("sb-ob-reality-pubkey").value = "";
+        document.getElementById("sb-ob-reality-shortid").value = "";
+        document.getElementById("sb-ob-wg-local-addr").value = "172.16.0.2/32";
+        document.getElementById("sb-ob-wg-mtu").value = "1420";
+        document.getElementById("sb-ob-wg-privkey").value = "";
+        document.getElementById("sb-ob-wg-pubkey").value = "";
+        document.getElementById("sb-ob-custom-json").value = "";
+
+        onSingboxOutboundTypeChange();
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    async function openSingboxEditOutboundModal(tag) {
+        const modal = document.getElementById("modal-singbox-outbound");
+        if (!modal) return;
+        try {
+            const res = await fetch(`/api/singbox/outbound/${encodeURIComponent(tag)}/details`);
+            const data = await res.json();
+            if (!data.success) {
+                alert("خطا در دریافت مشخصات اوت‌باند: " + (data.error || ""));
+                return;
+            }
+            const ob = data.outbound || {};
+            document.getElementById("sb-outbound-modal-title").textContent = `ویرایش اوت‌باند ${tag} (Edit Outbound)`;
+            document.getElementById("sb-outbound-submit-text").textContent = "ذخیره تغییرات اوت‌باند";
+            document.getElementById("sb-outbound-mode").value = "edit";
+            document.getElementById("sb-outbound-orig-tag").value = tag;
+            document.getElementById("sb-outbound-tag").value = tag;
+            
+            const isDefaultCore = (tag === "direct" || tag === "block");
+            document.getElementById("sb-outbound-tag").readOnly = isDefaultCore;
+
+            const otype = (ob.type || "direct").toLowerCase();
+            document.getElementById("sb-outbound-type").value = otype;
+
+            document.getElementById("sb-ob-domain-strategy").value = ob.domain_strategy || "ipv4_only";
+            document.getElementById("sb-ob-server").value = ob.server || "";
+            document.getElementById("sb-ob-port").value = ob.server_port || 443;
+            document.getElementById("sb-ob-username").value = ob.username || "";
+            document.getElementById("sb-ob-password").value = ob.password || "";
+            if (ob.method) document.getElementById("sb-ob-ss-method").value = ob.method;
+            document.getElementById("sb-ob-uuid").value = ob.uuid || "";
+            document.getElementById("sb-ob-flow").value = ob.flow || "";
+
+            const trans = ob.transport || {};
+            document.getElementById("sb-ob-transport-type").value = trans.type || "tcp";
+            document.getElementById("sb-ob-ws-path").value = trans.path || trans.service_name || "";
+
+            const tls = ob.tls || {};
+            document.getElementById("sb-ob-tls-enabled").checked = Boolean(tls.enabled);
+            document.getElementById("sb-ob-tls-insecure").checked = Boolean(tls.insecure);
+            document.getElementById("sb-ob-tls-sni").value = tls.server_name || "";
+            document.getElementById("sb-ob-tls-utls").value = (tls.utls && tls.utls.fingerprint) || "chrome";
+
+            const reality = tls.reality || {};
+            document.getElementById("sb-ob-reality-enabled").checked = Boolean(reality.enabled);
+            document.getElementById("sb-ob-reality-pubkey").value = reality.public_key || "";
+            document.getElementById("sb-ob-reality-shortid").value = reality.short_id || "";
+
+            document.getElementById("sb-ob-wg-local-addr").value = Array.isArray(ob.local_address) ? ob.local_address.join(", ") : (ob.local_address || "172.16.0.2/32");
+            document.getElementById("sb-ob-wg-mtu").value = ob.mtu || 1420;
+            document.getElementById("sb-ob-wg-privkey").value = ob.private_key || "";
+            document.getElementById("sb-ob-wg-pubkey").value = ob.peer_public_key || "";
+
+            document.getElementById("sb-ob-custom-json").value = JSON.stringify(ob, null, 2);
+
+            onSingboxOutboundTypeChange();
+            modal.style.display = "flex";
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            alert("خطا در بارگذاری مشخصات اوت‌باند: " + e.message);
+        }
+    }
+
+    function closeSingboxOutboundModal() {
+        const modal = document.getElementById("modal-singbox-outbound");
+        if (modal) modal.style.display = "none";
+    }
+
+    function onSingboxOutboundTypeChange() {
+        const type = document.getElementById("sb-outbound-type").value;
+        const secDirect = document.getElementById("sb-ob-section-direct");
+        const secServer = document.getElementById("sb-ob-section-server");
+        const secCreds = document.getElementById("sb-ob-section-credentials");
+        const fieldUser = document.getElementById("sb-ob-field-username");
+        const fieldPass = document.getElementById("sb-ob-field-password");
+        const secSS = document.getElementById("sb-ob-section-ss");
+        const secUUID = document.getElementById("sb-ob-section-uuid");
+        const fieldFlow = document.getElementById("sb-ob-field-flow");
+        const secTrans = document.getElementById("sb-ob-section-transport");
+        const secTls = document.getElementById("sb-ob-section-tls");
+        const realityLabel = document.getElementById("sb-ob-reality-check-label");
+        const secWG = document.getElementById("sb-ob-section-wireguard");
+        const secCustom = document.getElementById("sb-ob-section-custom");
+
+        [secDirect, secServer, secCreds, secSS, secUUID, secTrans, secTls, secWG, secCustom].forEach(el => {
+            if (el) el.style.display = "none";
+        });
+
+        if (type === "direct") {
+            if (secDirect) secDirect.style.display = "block";
+        } else if (type === "block") {
+            // No extra fields
+        } else if (type === "socks" || type === "http") {
+            if (secServer) secServer.style.display = "grid";
+            if (secCreds) secCreds.style.display = "grid";
+            if (fieldUser) fieldUser.style.display = "block";
+            if (fieldPass) fieldPass.style.display = "block";
+        } else if (type === "shadowsocks") {
+            if (secServer) secServer.style.display = "grid";
+            if (secCreds) secCreds.style.display = "grid";
+            if (fieldUser) fieldUser.style.display = "none";
+            if (fieldPass) fieldPass.style.display = "block";
+            if (secSS) secSS.style.display = "block";
+        } else if (type === "vless" || type === "vmess") {
+            if (secServer) secServer.style.display = "grid";
+            if (secUUID) secUUID.style.display = "grid";
+            if (fieldFlow) fieldFlow.style.display = (type === "vless") ? "block" : "none";
+            if (secTrans) secTrans.style.display = "block";
+            if (secTls) secTls.style.display = "block";
+            if (realityLabel) realityLabel.style.display = (type === "vless") ? "flex" : "none";
+            onSingboxOutboundTlsChange();
+        } else if (type === "trojan") {
+            if (secServer) secServer.style.display = "grid";
+            if (secCreds) secCreds.style.display = "grid";
+            if (fieldUser) fieldUser.style.display = "none";
+            if (fieldPass) fieldPass.style.display = "block";
+            if (secTls) secTls.style.display = "block";
+            if (realityLabel) realityLabel.style.display = "none";
+            onSingboxOutboundTlsChange();
+        } else if (type === "wireguard") {
+            if (secServer) secServer.style.display = "grid";
+            if (secWG) secWG.style.display = "block";
+        } else if (type === "custom") {
+            if (secCustom) secCustom.style.display = "block";
+        }
+    }
+
+    function onSingboxOutboundTransportChange() {
+        const transType = document.getElementById("sb-ob-transport-type").value;
+        const wsField = document.getElementById("sb-ob-field-ws-path");
+        if (wsField) {
+            wsField.style.display = (transType === "tcp") ? "none" : "block";
+        }
+    }
+
+    function onSingboxOutboundTlsChange() {
+        const enabled = document.getElementById("sb-ob-tls-enabled").checked;
+        const utlsEl = document.getElementById("sb-ob-tls-utls");
+        const sniEl = document.getElementById("sb-ob-tls-sni");
+        const insecEl = document.getElementById("sb-ob-tls-insecure");
+        if (utlsEl) utlsEl.disabled = !enabled;
+        if (sniEl) sniEl.disabled = !enabled;
+        if (insecEl) insecEl.disabled = !enabled;
+        onSingboxOutboundRealityChange();
+    }
+
+    function onSingboxOutboundRealityChange() {
+        const realityChecked = document.getElementById("sb-ob-reality-enabled").checked;
+        const tlsChecked = document.getElementById("sb-ob-tls-enabled").checked;
+        const realityFields = document.getElementById("sb-ob-reality-fields");
+        if (realityFields) {
+            realityFields.style.display = (realityChecked && tlsChecked) ? "grid" : "none";
+        }
+    }
+
+    async function submitSingboxOutbound(event) {
+        event.preventDefault();
+        const mode = document.getElementById("sb-outbound-mode").value;
+        const origTag = document.getElementById("sb-outbound-orig-tag").value;
+        const tag = document.getElementById("sb-outbound-tag").value.trim();
+        const type = document.getElementById("sb-outbound-type").value;
+
+        if (!tag) {
+            alert("نام تگ (Tag) الزامی است.");
+            return;
+        }
+
+        const payload = {
+            tag: tag,
+            type: type,
+            domain_strategy: document.getElementById("sb-ob-domain-strategy").value,
+            server: document.getElementById("sb-ob-server").value.trim(),
+            server_port: parseInt(document.getElementById("sb-ob-port").value || 443),
+            username: document.getElementById("sb-ob-username").value.trim(),
+            password: document.getElementById("sb-ob-password").value.trim(),
+            method: document.getElementById("sb-ob-ss-method").value,
+            uuid: document.getElementById("sb-ob-uuid").value.trim(),
+            flow: document.getElementById("sb-ob-flow").value,
+            transport_type: document.getElementById("sb-ob-transport-type").value,
+            ws_path: document.getElementById("sb-ob-ws-path").value.trim(),
+            tls_enabled: document.getElementById("sb-ob-tls-enabled").checked,
+            insecure: document.getElementById("sb-ob-tls-insecure").checked,
+            sni: document.getElementById("sb-ob-tls-sni").value.trim(),
+            utls_fingerprint: document.getElementById("sb-ob-tls-utls").value,
+            reality_enabled: document.getElementById("sb-ob-reality-enabled").checked,
+            reality_pubkey: document.getElementById("sb-ob-reality-pubkey").value.trim(),
+            reality_shortid: document.getElementById("sb-ob-reality-shortid").value.trim(),
+            local_address: document.getElementById("sb-ob-wg-local-addr").value.trim(),
+            mtu: document.getElementById("sb-ob-wg-mtu").value,
+            private_key: document.getElementById("sb-ob-wg-privkey").value.trim(),
+            peer_public_key: document.getElementById("sb-ob-wg-pubkey").value.trim(),
+            custom_json: document.getElementById("sb-ob-custom-json").value.trim()
+        };
+
+        const btn = document.getElementById("sb-outbound-submit-btn");
+        const btnText = document.getElementById("sb-outbound-submit-text");
+        const origBtnHtml = btnText.textContent;
+        btn.disabled = true;
+        btnText.textContent = "در حال ذخیره و اعتبارسنجی در هسته...";
+
+        const endpoint = (mode === "edit") 
+            ? `/api/singbox/outbound/${encodeURIComponent(origTag)}/edit`
+            : "/api/singbox/outbound/add";
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                closeSingboxOutboundModal();
+                loadSingboxOutbounds();
+                alert(data.message || "اوت‌باند با موفقیت ذخیره شد.");
+            } else {
+                alert("خطا: " + (data.error || "خطای ناشناخته در ذخیره اوت‌باند"));
+            }
+        } catch (e) {
+            alert("خطا در ارتباط با سرور: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = origBtnHtml;
+        }
+    }
+
+    async function deleteSingboxOutbound(tag) {
+        if (!confirm(`آیا از حذف اوت‌باند «${tag}» اطمینان دارید؟`)) return;
+        try {
+            const res = await fetch(`/api/singbox/outbound/${encodeURIComponent(tag)}/delete`, {
+                method: "POST"
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadSingboxOutbounds();
+                alert(data.message || "اوت‌باند حذف شد.");
+            } else {
+                alert("خطا: " + (data.error || ""));
+            }
+        } catch (e) {
+            alert("خطا در ارسال درخواست: " + e.message);
+        }
+    }
+
     async function loadSingboxUsers() {
         try {
             const res = await fetch("/api/singbox/users");
@@ -22944,7 +23360,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (!activeSingboxUsers || activeSingboxUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                    <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="users" style="width:36px; height:36px; opacity:0.35;"></i>
                             <span>هنوز هیچ کاربر محلی برای هسته Sing-box تعریف نشده است.</span>
@@ -22974,7 +23390,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (filteredUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                    <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                             <i data-lucide="filter" style="width:32px; height:32px; opacity:0.35;"></i>
                             <span>هیچ کاربری در دسته‌بندی «<strong>${escapeHtml(currentSingboxCategoryFilter)}</strong>» یافت نشد.</span>
@@ -23135,11 +23551,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                                 </span>
                             </div>
                             <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
-                                <a href="javascript:void(0)" onclick="copySingboxUserSubLinkDirect('${escapeHtml(u.username)}', '${escapeHtml(u.sub_b64_url || u.sub_url || '')}')" style="font-size:11px; color:#10b981; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="کپی مستقیم لینک سابسکرایب جامع (Base64)">
-                                    <i data-lucide="copy" style="width:11px; height:11px;"></i>
-                                    <span>کپی ساب‌لینک</span>
-                                </a>
-                                <span style="color:var(--border-color); font-size:10px;">|</span>
                                 <a href="${escapeHtml(u.sub_url || '')}" target="_blank" style="font-size:11px; color:#6366f1; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="مشاهده صفحه وب سابسکرایب کاربر">
                                     <i data-lucide="external-link" style="width:11px; height:11px;"></i>
                                     <span>صفحه وب ساب</span>
@@ -23148,9 +23559,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                             ${u.note ? `<div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${escapeHtml(u.note)}</div>` : ''}
                         </div>
                     </div>
-                </td>
-                <td style="padding: 12px 16px; white-space: nowrap;">
-                    ${inboundsHtml}
                 </td>
                 <td style="padding: 12px 16px;">
                     ${trafficHtml}
@@ -23163,11 +23571,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 </td>
                 <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
                     <div style="display:flex; gap:5px; justify-content:center; align-items:center; flex-wrap:nowrap;">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySingboxUserSubLinkDirect('${escapeHtml(u.username)}', '${escapeHtml(u.sub_b64_url || u.sub_url || '')}')" style="padding:5px 9px; background:rgba(16,185,129,0.12); color:#059669; border:1px solid rgba(16,185,129,0.3); font-weight:700; display:inline-flex; align-items:center; gap:4px;" title="کپی مستقیم لینک سابسکرایب جامع">
-                            <i data-lucide="rss" style="width:13px; height:13px;"></i>
-                            <span style="font-size:11px;">لینک ساب</span>
-                        </button>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:5px 8px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها و بارکد اختصاصی کاربر">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxUserLinksModal('${escapeHtml(u.username)}')" style="padding:5px 8px; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);" title="کانفیگ‌ها، لینک‌ها و بارکد اختصاصی کاربر">
                             <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxEditUserModal('${escapeHtml(u.username)}')" style="padding:5px 8px;" title="ویرایش کاربر">
