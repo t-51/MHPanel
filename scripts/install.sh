@@ -186,7 +186,7 @@ protocol_label() {
         tor) echo "Tor Bridge (obfs4 / Pluggable Transports)" ;;
         singbox) echo "Sing-box Universal Suite (VLESS/Reality/Trojan/Hysteria2)" ;;
         google_script) echo "Google Apps Script Full Tunnel (GAS Relay)" ;;
-        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / BadChecksum / Low-TTL)" ;;
+        snispoof) echo "SNI Spoofing & Anti-DPI Hub (Fragment / Patterniha Desync / BadChecksum / Low-TTL)" ;;
         *) echo "$1" ;;
     esac
 }
@@ -552,7 +552,7 @@ EOF
     # Remove broken third-party repos that can break apt-get update
     rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth; do
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi
@@ -786,6 +786,19 @@ install_panel_web_ui() {
         echo "    Installing bundled binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
         cp -f "${PANEL_DIR}/bin/"* /usr/local/bin/ 2>/dev/null || true
         chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
+    fi
+
+    # Cross-compile customized StunTLS client for this specific server
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+        echo "    Cross-compiling customized StunTLS client for this server..."
+        (
+            cd "${PANEL_DIR}/bin" || exit 0
+            srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
+            chmod +x stuntls-client 2>/dev/null || true
+            echo "${srv_pub}:3478:stuntls-secret:9090" > stuntls-client.stamp
+        ) || true
     fi
 
     # Ensure python3-venv and python3-pip are installed
@@ -1674,6 +1687,32 @@ install_tunnel_tools() {
             break
         fi
     done
+    [ -d "${PANEL_DIR}/bin" ] && chmod +x ${PANEL_DIR}/bin/snispoof* 2>/dev/null || true
+
+    # Ensure Go compiler is installed and compile SNI Spoofing binaries for this server
+    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
+        if ! command -v go >/dev/null 2>&1; then
+            echo -e "    ${CYAN}Installing Go compiler (golang-go)...${NC}"
+            run_apt update 2>/dev/null || true
+            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
+        fi
+        if command -v go >/dev/null 2>&1; then
+            echo -e "    ${GREEN}[✓] Compiling SNI Spoofing binaries for this server...${NC}"
+            (
+                cd "${PANEL_DIR}/bin" || exit 0
+                srv_ip="${SERVER_IP:-$(curl -s4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
+                srv_domain="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_ip})"
+                GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client.exe ]; then
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                chmod +x snispoof* 2>/dev/null || true
+            )
+        fi
+    fi
 
     # AmneziaWG tools & userspace binary
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do

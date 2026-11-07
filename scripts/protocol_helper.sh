@@ -2719,6 +2719,19 @@ EOF
     systemctl daemon-reload
     systemctl enable mhpanel-stuntls 2>/dev/null || true
     systemctl restart mhpanel-stuntls 2>/dev/null || true
+
+    # Cross-compile customized StunTLS client for this specific server
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+        (
+            cd "${PANEL_DIR}/bin" || exit 0
+            srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+            GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:${port}' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
+            GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:${port}' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
+            chmod +x stuntls-client 2>/dev/null || true
+            echo "${srv_pub}:${port}:stuntls-secret:9090" > stuntls-client.stamp
+        ) || true
+    fi
+
     echo "StunTLS installed on port ${port}."
 }
 
@@ -2743,6 +2756,18 @@ set_port_stuntls() {
         allow_port "${port}" "tcp"
         allow_port "${port}" "udp"
         systemctl restart mhpanel-stuntls 2>/dev/null || true
+
+        # Recompile customized client for the new port
+        if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+            (
+                cd "${PANEL_DIR}/bin" || exit 0
+                srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:${port}' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
+                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:${port}' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
+                chmod +x stuntls-client 2>/dev/null || true
+                echo "${srv_pub}:${port}:stuntls-secret:9090" > stuntls-client.stamp
+            ) || true
+        fi
     fi
 }
 
@@ -3575,6 +3600,32 @@ EOF
     systemctl daemon-reload
     systemctl enable mhpanel-snispoof 2>/dev/null || true
     systemctl restart mhpanel-snispoof 2>/dev/null || true
+
+    # Ensure Go is installed and compile customized client binaries for this server
+    if [ -f "/www/wwwroot/mhpanel/bin/snispoof-client.go" ]; then
+        if ! command -v go >/dev/null 2>&1; then
+            echo "Installing Go compiler (golang-go)..."
+            apt-get update 2>/dev/null || true
+            apt-get install -y --no-install-recommends golang-go 2>/dev/null || apt-get install -y golang 2>/dev/null || true
+        fi
+        if command -v go >/dev/null 2>&1; then
+            echo "Compiling SNI Spoofing client binaries for this server..."
+            (
+                cd /www/wwwroot/mhpanel/bin || exit 0
+                local srv_ip=$(curl -s4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
+                local srv_domain=$(cat /www/wwwroot/mhpanel/configs/domain.txt 2>/dev/null || echo "$srv_ip")
+                GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client.exe ]; then
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                chmod +x snispoof* 2>/dev/null || true
+            )
+        fi
+    fi
+
     echo "SNI Spoofing installed on port ${port}."
 }
 

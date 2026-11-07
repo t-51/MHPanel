@@ -19166,6 +19166,118 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         renderSniTags(currentSniPool);
     }
 
+    let currentRelayPorts = [];
+
+    function renderRelayPortTags(ports) {
+        currentRelayPorts = Array.isArray(ports) ? ports.map(p => parseInt(p)).filter(p => p >= 1 && p <= 65535) : [];
+        const container = document.getElementById("snispoof-relay-ports-tags");
+        if (!container) return;
+        container.innerHTML = "";
+        if (currentRelayPorts.length === 0) {
+            container.innerHTML = `<span style="font-size:11px; color:var(--text-muted);">هیچ پورت ورودی تنظیم نشده است (فقط پورت یونیورسال ۴۰۴۴۳ شنود می‌شود).</span>`;
+            return;
+        }
+        currentRelayPorts.sort((a, b) => a - b);
+        currentRelayPorts.forEach((port) => {
+            const tag = document.createElement("div");
+            tag.style.cssText = "display:inline-flex; align-items:center; gap:6px; background:rgba(14, 165, 233, 0.12); border:1px solid rgba(14, 165, 233, 0.35); color:#38bdf8; padding:4px 10px; border-radius:6px; font-size:11.5px; font-family:'JetBrains Mono', monospace;";
+            tag.innerHTML = `
+                <span>:${port}</span>
+                <button type="button" onclick="removeRelayPort(${port})" style="background:none; border:none; color:inherit; cursor:pointer; padding:0; display:flex; align-items:center; opacity:0.75;" title="حذف پورت ${port}">
+                    <i data-lucide="x" style="width:12px; height:12px;"></i>
+                </button>
+            `;
+            container.appendChild(tag);
+        });
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function addRelayPort() {
+        const input = document.getElementById("snispoof-new-port-input");
+        if (!input) return;
+        const raw = input.value.trim();
+        if (!raw) return;
+        const parts = raw.split(/[\s,]+/);
+        let added = 0;
+        parts.forEach(p => {
+            const pint = parseInt(p.replace(/[^0-9]/g, ''));
+            if (pint >= 1 && pint <= 65535) {
+                if (!currentRelayPorts.includes(pint)) {
+                    currentRelayPorts.push(pint);
+                    added++;
+                }
+            }
+        });
+        if (added > 0) {
+            renderRelayPortTags(currentRelayPorts);
+            input.value = "";
+            showToast(`${added} پورت با موفقیت به لیست شنود اضافه شد`, "success");
+        } else {
+            showToast("شماره پورت نامعتبر است (باید بین ۱ تا ۶۵۵۳۵ باشد)", "warning");
+        }
+    }
+
+    function removeRelayPort(port) {
+        currentRelayPorts = currentRelayPorts.filter(p => p !== port);
+        renderRelayPortTags(currentRelayPorts);
+    }
+
+    async function autoDetectRelayPorts() {
+        toggleLoading(true, "در حال بررسی و استخراج پورت‌های فعال سرور...");
+        try {
+            const res = await fetch("/api/snispoof/detect-ports");
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.ports && data.ports.length > 0) {
+                let added = 0;
+                data.ports.forEach(p => {
+                    if (!currentRelayPorts.includes(p)) {
+                        currentRelayPorts.push(p);
+                        added++;
+                    }
+                });
+                renderRelayPortTags(currentRelayPorts);
+                showToast(`${data.ports.length} پورت فعال از کانفیگ‌های سرور شناسایی و همگام شد`, "success");
+            } else {
+                showToast("پورت فعالی در کانفیگ‌های Sing-box شناسایی نشد", "info");
+            }
+        } catch(e) {
+            toggleLoading(false);
+            showToast("خطا در شناسایی پورت‌ها", "error");
+        }
+    }
+
+    function resetDefaultRelayPorts() {
+        currentRelayPorts = [20443, 20452, 20453, 20451, 20454, 20455, 20456, 20448, 20457, 20458, 20459, 20444, 20460, 20461, 20462, 40443];
+        renderRelayPortTags(currentRelayPorts);
+        showToast("پورت‌های پیش‌فرض بازیابی شدند (جهت اعمال، ذخیره تنظیمات را بزنید)", "info");
+    }
+
+    async function recompileSniSpoofBinaries() {
+        toggleLoading(true, "در حال کامپایل نرم‌افزارهای کلاینت با مشخصات این سرور (Golang)...");
+        try {
+            const res = await fetch("/api/snispoof/recompile", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    relay_ports: currentRelayPorts,
+                    port: parseInt(document.getElementById("snispoof-cfg-port")?.value) || 15443
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(`نرم‌افزارها با موفقیت برای سرور (${data.server_ip}) کامپایل شدند!`, "success");
+                fetchSniSpoofConfig();
+            } else {
+                showToast(data.error || "خطا در کامپایل نرم‌افزارها", "error");
+            }
+        } catch(e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در کامپایل", "error");
+        }
+    }
+
     function toggleSniSpoofRoleFields() {
         const role = document.getElementById("snispoof-cfg-role").value;
         const revDiv = document.getElementById("snispoof-reverse-fields");
@@ -19297,6 +19409,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             // Pool tags
             renderSniTags(data.sni_pool || []);
 
+            // Relay port tags
+            renderRelayPortTags(data.relay_ports || []);
+
             // Client Hub Commands & Full Configs
             if (document.getElementById("snispoof-cmd-ps")) document.getElementById("snispoof-cmd-ps").value = data.client_cmd_powershell || "";
             if (document.getElementById("snispoof-cmd-py")) document.getElementById("snispoof-cmd-py").value = data.client_cmd_python || "";
@@ -19351,6 +19466,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     jitter_enabled,
                     reverse_target_host,
                     reverse_target_port,
+                    relay_ports: currentRelayPorts,
                     sni_pool: currentSniPool
                 })
             });

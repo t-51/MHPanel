@@ -122,6 +122,46 @@
                     </div>
                 </div>
 
+                <!-- Client Inbound Relay Ports Management -->
+                <div style="background: var(--bg-surface); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:8px;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="radio-tower" style="width:18px; height:18px; color:#0284c7;"></i>
+                            <span>پورت‌های شنود ورودی کلاینت (Client Inbound / Relay Listening Ports)</span>
+                        </div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="autoDetectRelayPorts();" style="width:auto; padding: 5px 12px; font-size:11.5px; border-color: rgba(2, 132, 199, 0.4);">
+                                <i data-lucide="scan" style="width:13px; height:13px; margin-left:4px; color:#38bdf8;"></i>
+                                <span>شناسایی خودکار از کانفیگ‌ها</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="resetDefaultRelayPorts();" style="width:auto; padding: 5px 12px; font-size:11.5px;">
+                                <i data-lucide="rotate-ccw" style="width:13px; height:13px; margin-left:4px;"></i>
+                                <span>پیش‌فرض</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="recompileSniSpoofBinaries();" style="width:auto; padding: 5px 12px; font-size:11.5px; border-color: rgba(16, 185, 129, 0.4); color:#10b981;">
+                                <i data-lucide="cpu" style="width:13px; height:13px; margin-left:4px;"></i>
+                                <span>کامپایل نرم‌افزارها برای این سرور</span>
+                            </button>
+                        </div>
+                    </div>
+                    <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 10px 0; line-height: 1.6;">
+                        پورت‌هایی که نرم‌افزار کلاینت روی سیستم کاربر به آن‌ها گوش می‌دهد تا ترافیک کانفیگ‌ها را مستقیماً دریافت و به این سرور ارسال کند. کاربر می‌تواند هر پورت دلخواهی را اضافه کرده یا پورت‌های پیش‌فرض را حذف کند تا از حالت پیش‌فرض خارج شود.
+                    </p>
+
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                        <input type="text" class="form-input" id="snispoof-new-port-input" placeholder="شماره پورت جدید (مثال: 8443 یا چند پورت: 443, 8443, 2083)" style="flex:1;">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="addRelayPort();" style="width:auto; padding: 8px 16px;">
+                            <i data-lucide="plus" style="width:14px; height:14px; margin-left:4px;"></i>
+                            <span>افزودن پورت</span>
+                        </button>
+                    </div>
+
+                    <!-- Port Tags List -->
+                    <div id="snispoof-relay-ports-tags" style="display:flex; flex-wrap:wrap; gap:8px; min-height: 38px; padding:8px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
                 <!-- Reverse Tunnel Fields (Conditional) -->
                 <div id="snispoof-reverse-fields" style="display:none; background: rgba(255,255,255,0.02); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
                     <div style="font-weight: 700; font-size: 13px; color: #ec4899; margin-bottom: 10px; display:flex; align-items:center; gap:6px;">
@@ -368,25 +408,25 @@
 
             <!-- Client Download Buttons Bar -->
             <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px;">
-                <a href="/download/snispoof-singbox.json" download class="btn btn-primary btn-sm" style="flex:1; min-width:180px; justify-content:center; padding: 10px; background: linear-gradient(135deg, #059669 0%, #10b981 100%); border:none; box-shadow: 0 4px 12px rgba(16,185,129,0.25);">
-                    <i data-lucide="box" style="width:16px; height:16px; margin-left:6px;"></i>
-                    <span style="font-weight:700;">دانلود کانفیگ کامل Sing-box (JSON)</span>
+                <a href="/download/snispoof/snispoof-fragment.exe" download class="btn btn-primary btn-sm" style="flex:1; min-width:190px; justify-content:center; padding: 10px; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); border:none; box-shadow: 0 4px 12px rgba(236,72,153,0.3);">
+                    <i data-lucide="binary" style="width:16px; height:16px; margin-left:6px;"></i>
+                    <span style="font-weight:700;">دانلود snispoof-fragment.exe (ویندوز)</span>
                 </a>
-                <a href="/download/snispoof-xray.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:170px; justify-content:center; padding: 10px; border-color: rgba(168, 85, 247, 0.4);">
-                    <i data-lucide="code-2" style="width:16px; height:16px; margin-left:6px; color:#c084fc;"></i>
-                    <span>دانلود کانفیگ کامل Xray (JSON)</span>
-                </a>
-                <a href="/download/snispoof-client.exe" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px; border-color: rgba(59, 130, 246, 0.3);">
+                <a href="/download/snispoof-client.exe" download class="btn btn-secondary btn-sm" style="flex:1; min-width:170px; justify-content:center; padding: 10px; border-color: rgba(59, 130, 246, 0.4);">
                     <i data-lucide="binary" style="width:16px; height:16px; margin-left:6px; color:#3b82f6;"></i>
-                    <span>دانلود کلاینت ویندوز (EXE)</span>
+                    <span>دانلود کلاینت کامل ویندوز (.exe)</span>
                 </a>
-                <a href="/download/snispoof-client.ps1" download class="btn btn-secondary btn-sm" style="flex:1; min-width:160px; justify-content:center; padding: 10px;">
-                    <i data-lucide="terminal" style="width:16px; height:16px; margin-left:6px; color:#06b6d4;"></i>
-                    <span>دانلود اسکریپت PowerShell</span>
+                <button type="button" onclick="recompileSniSpoofBinaries();" class="btn btn-secondary btn-sm" style="flex:1; min-width:190px; justify-content:center; padding: 10px; border-color: rgba(16, 185, 129, 0.4); color:#34d399;" title="کامپایل نرم‌افزارهای کلاینت با مشخصات این سرور و زبان Go">
+                    <i data-lucide="cpu" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
+                    <span style="font-weight:700;">کامپایل نرم‌افزارها برای این سرور</span>
+                </button>
+                <a href="/download/snispoof-singbox.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:170px; justify-content:center; padding: 10px; border-color: rgba(16, 185, 129, 0.3);">
+                    <i data-lucide="box" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
+                    <span>دانلود کانفیگ Sing-box</span>
                 </a>
-                <a href="/download/snispoof-client.py" download class="btn btn-secondary btn-sm" style="flex:1; min-width:150px; justify-content:center; padding: 10px;">
-                    <i data-lucide="file-code" style="width:16px; height:16px; margin-left:6px; color:#f59e0b;"></i>
-                    <span>دانلود کلاینت پایتون (.py)</span>
+                <a href="/download/snispoof/config.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:150px; justify-content:center; padding: 10px; border-color: rgba(245, 158, 11, 0.3);">
+                    <i data-lucide="file-json" style="width:16px; height:16px; margin-left:6px; color:#f59e0b;"></i>
+                    <span>دانلود config.json</span>
                 </a>
             </div>
 

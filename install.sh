@@ -1689,6 +1689,31 @@ install_tunnel_tools() {
     done
     [ -d "${PANEL_DIR}/bin" ] && chmod +x ${PANEL_DIR}/bin/snispoof* 2>/dev/null || true
 
+    # Ensure Go compiler is installed and compile SNI Spoofing binaries for this server
+    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
+        if ! command -v go >/dev/null 2>&1; then
+            echo -e "    ${CYAN}Installing Go compiler (golang-go)...${NC}"
+            run_apt update 2>/dev/null || true
+            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
+        fi
+        if command -v go >/dev/null 2>&1; then
+            echo -e "    ${GREEN}[✓] Compiling SNI Spoofing binaries for this server...${NC}"
+            (
+                cd "${PANEL_DIR}/bin" || exit 0
+                srv_ip="${SERVER_IP:-$(curl -s4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
+                srv_domain="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_ip})"
+                GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client.exe ]; then
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                chmod +x snispoof* 2>/dev/null || true
+            )
+        fi
+    fi
+
     # AmneziaWG tools & userspace binary
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
         for b in awg awg-quick amneziawg-go; do
