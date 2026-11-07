@@ -799,6 +799,37 @@ install_panel_web_ui() {
         ) || true
     fi
 
+    # Cross-compile customized SNI Spoofing clients for this specific server
+    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
+        if ! command -v go >/dev/null 2>&1; then
+            echo "    Installing Go compiler (golang-go)..."
+            run_apt update 2>/dev/null || true
+            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
+        fi
+        if command -v go >/dev/null 2>&1; then
+            echo "    Cross-compiling customized SNI Spoofing clients for this server..."
+            (
+                cd "${PANEL_DIR}/bin" || exit 0
+                srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+                srv_dom="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_pub})"
+                relay_ports="443,8443,20443,40443"
+                if [ -f "/etc/vpnpanel/snispoof.json" ]; then
+                    rp=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
+                    [ -n "$rp" ] && relay_ports="$rp"
+                fi
+                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                if [ -f snispoof-client.exe ]; then
+                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
+                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
+                    done
+                fi
+                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                chmod +x snispoof* 2>/dev/null || true
+                echo "{\"server_ip\":\"${srv_pub}\",\"server_domain\":\"${srv_dom}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
+            ) || true
+        fi
+    fi
+
     # Ensure python3-venv and python3-pip are installed
     if ! dpkg -s python3-venv >/dev/null 2>&1 || ! dpkg -s python3-pip >/dev/null 2>&1; then
         run_apt install python3-venv python3-pip 2>/dev/null || true
@@ -1692,20 +1723,32 @@ install_tunnel_tools() {
             run_apt update 2>/dev/null || true
             run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
         fi
-        if command -v go >/dev/null 2>&1; then
+        if [ -x "${PANEL_DIR}/venv/bin/python" ] && [ -f "${PANEL_DIR}/app.py" ]; then
+            echo -e "    ${GREEN}[✓] Compiling customized SNI Spoofing binaries for this server via panel engine...${NC}"
+            (
+                cd "${PANEL_DIR}" || exit 0
+                "${PANEL_DIR}/venv/bin/python" -c "from app import compile_snispoof_binaries_for_server; compile_snispoof_binaries_for_server(force=True)" 2>/dev/null || true
+            )
+        elif command -v go >/dev/null 2>&1; then
             echo -e "    ${GREEN}[✓] Compiling SNI Spoofing binaries for this server...${NC}"
             (
                 cd "${PANEL_DIR}/bin" || exit 0
-                srv_ip="${SERVER_IP:-$(curl -s4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
+                srv_ip="${SERVER_IP:-$(curl -s4m 4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
                 srv_domain="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_ip})"
-                GOOS=windows GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                relay_ports="443,8443,20443,40443"
+                if [ -f "/etc/vpnpanel/snispoof.json" ]; then
+                    cfg_ports=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
+                    [ -n "$cfg_ports" ] && relay_ports="$cfg_ports"
+                fi
+                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
                 if [ -f snispoof-client.exe ]; then
                     for st in fragment checksum lowttl patterniha rotation wrongseq; do
                         cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
                     done
                 fi
-                GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}'" -o snispoof-client snispoof-client.go 2>/dev/null || true
+                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client snispoof-client.go 2>/dev/null || true
                 chmod +x snispoof* 2>/dev/null || true
+                echo "{\"server_ip\":\"${srv_ip}\",\"server_domain\":\"${srv_domain}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
             )
         fi
     fi
