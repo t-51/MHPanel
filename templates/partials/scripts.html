@@ -8967,6 +8967,56 @@
         toggleLoading(false);
     }
 
+    // --- Multiplexer Knowledge Base Tabs & Collapse ---
+    function switchMpxKbTab(tabName) {
+        const tabs = ['concept', 'how', 'steps', 'scenarios', 'faq'];
+        tabs.forEach(t => {
+            const btn = document.getElementById(`mpx-kb-btn-${t}`);
+            const content = document.getElementById(`mpx-kb-content-${t}`);
+            if (btn) {
+                if (t === tabName) {
+                    btn.classList.add('active');
+                    btn.style.background = '#0284c7';
+                    btn.style.color = '#ffffff';
+                    btn.style.borderColor = '#0284c7';
+                } else {
+                    btn.classList.remove('active');
+                    btn.style.background = 'rgba(0,0,0,0.03)';
+                    btn.style.color = 'var(--text-main)';
+                    btn.style.borderColor = 'var(--border-glow)';
+                }
+            }
+            if (content) {
+                content.style.display = (t === tabName) ? 'block' : 'none';
+            }
+        });
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function toggleMpxKnowledgeBase() {
+        const card = document.getElementById('mpx-knowledge-base-card');
+        if (!card) return;
+        const body = document.getElementById('mpx-knowledge-base-body');
+        if (body && body.style.display === 'none') {
+            toggleMpxKnowledgeBaseBody();
+        }
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function toggleMpxKnowledgeBaseBody() {
+        const body = document.getElementById('mpx-knowledge-base-body');
+        const icon = document.getElementById('mpx-kb-toggle-icon');
+        const text = document.getElementById('mpx-kb-toggle-text');
+        if (!body) return;
+        const isHidden = body.style.display === 'none';
+        body.style.display = isHidden ? 'block' : 'none';
+        if (text) text.textContent = isHidden ? 'جمع کردن مستندات' : 'مشاهده مستندات';
+        if (icon) {
+            icon.setAttribute('data-lucide', isHidden ? 'chevron-up' : 'chevron-down');
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
     // --- SSL Mode Switcher ---
     function switchSslMode(modeId) {
         document.querySelectorAll(".ssl-mode-btn").forEach(btn => {

@@ -13774,17 +13774,64 @@ def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, tar
         compiled_files.append(f"snispoof-{strat}.exe")
     os.chmod(target_exe, 0o755)
 
-    # Compile Linux binary (amd64)
-    env_lin = os.environ.copy()
-    env_lin["GOOS"] = "linux"
-    env_lin["GOARCH"] = "amd64"
-    env_lin["CGO_ENABLED"] = "0"
-    target_lin = os.path.join(bdir, "snispoof-client")
-    res_lin = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_lin, "snispoof-client.go"],
-                             cwd=bdir, env=env_lin, capture_output=True, text=True, timeout=60)
-    if res_lin.returncode == 0 and os.path.exists(target_lin):
-        os.chmod(target_lin, 0o755)
+    # Compile Linux amd64 (Real Linux x86_64)
+    env_lin_amd = os.environ.copy()
+    env_lin_amd["GOOS"] = "linux"
+    env_lin_amd["GOARCH"] = "amd64"
+    env_lin_amd["CGO_ENABLED"] = "0"
+    target_lin_amd = os.path.join(bdir, "snispoof-client-linux-amd64")
+    res_lin_amd = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_lin_amd, "snispoof-client.go"],
+                                 cwd=bdir, env=env_lin_amd, capture_output=True, text=True, timeout=60)
+    if res_lin_amd.returncode == 0 and os.path.exists(target_lin_amd):
+        os.chmod(target_lin_amd, 0o755)
+        compiled_files.append("snispoof-client-linux-amd64")
+        # Standard alias
+        shutil.copyfile(target_lin_amd, os.path.join(bdir, "snispoof-client"))
+        os.chmod(os.path.join(bdir, "snispoof-client"), 0o755)
         compiled_files.append("snispoof-client")
+        for strat in strategies:
+            strat_lin = os.path.join(bdir, f"snispoof-{strat}")
+            shutil.copyfile(target_lin_amd, strat_lin)
+            os.chmod(strat_lin, 0o755)
+            compiled_files.append(f"snispoof-{strat}")
+
+    # Compile Linux arm64 (Android Termux arm64 & ARM64 Real Linux)
+    env_arm64 = os.environ.copy()
+    env_arm64["GOOS"] = "linux"
+    env_arm64["GOARCH"] = "arm64"
+    env_arm64["CGO_ENABLED"] = "0"
+    target_arm64 = os.path.join(bdir, "snispoof-client-linux-arm64")
+    res_arm64 = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_arm64, "snispoof-client.go"],
+                               cwd=bdir, env=env_arm64, capture_output=True, text=True, timeout=60)
+    if res_arm64.returncode == 0 and os.path.exists(target_arm64):
+        os.chmod(target_arm64, 0o755)
+        compiled_files.append("snispoof-client-linux-arm64")
+        # Dedicated Termux arm64 alias
+        target_termux = os.path.join(bdir, "snispoof-client-termux-arm64")
+        shutil.copyfile(target_arm64, target_termux)
+        os.chmod(target_termux, 0o755)
+        compiled_files.append("snispoof-client-termux-arm64")
+        frag_termux = os.path.join(bdir, "snispoof-fragment-termux")
+        shutil.copyfile(target_arm64, frag_termux)
+        os.chmod(frag_termux, 0o755)
+        compiled_files.append("snispoof-fragment-termux")
+
+    # Compile Linux arm (32-bit ARM for older Android phones & Raspberry Pi)
+    env_arm = os.environ.copy()
+    env_arm["GOOS"] = "linux"
+    env_arm["GOARCH"] = "arm"
+    env_arm["GOARM"] = "7"
+    env_arm["CGO_ENABLED"] = "0"
+    target_arm = os.path.join(bdir, "snispoof-client-linux-arm")
+    res_arm = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_arm, "snispoof-client.go"],
+                             cwd=bdir, env=env_arm, capture_output=True, text=True, timeout=60)
+    if res_arm.returncode == 0 and os.path.exists(target_arm):
+        os.chmod(target_arm, 0o755)
+        compiled_files.append("snispoof-client-linux-arm")
+        target_termux_arm = os.path.join(bdir, "snispoof-client-termux-arm")
+        shutil.copyfile(target_arm, target_termux_arm)
+        os.chmod(target_termux_arm, 0o755)
+        compiled_files.append("snispoof-client-termux-arm")
 
     # Update .bat files
     for strat in ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq", "client"]:
@@ -13981,6 +14028,8 @@ def api_snispoof_config():
     cfg["server_host"] = srv
     cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{{{$true}}}}; Invoke-WebRequest -Uri \x27https://{srv}:{panel_port}/download/snispoof-client.exe\x27 -OutFile \x27snispoof-client.exe\x27; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
     cfg["client_cmd_python"] = f"python3 snispoof-client.py -s {srv} -p {port} -l 10808 --strategy {strat}"
+    cfg["client_cmd_linux"] = f"curl -k -fsSL https://{srv}:{panel_port}/download/snispoof/linux.sh | bash"
+    cfg["client_cmd_termux"] = f"pkg update -y && pkg install -y curl && curl -k -fsSL https://{srv}:{panel_port}/download/snispoof/termux.sh | bash"
 
     cfg["reality_port"] = d["r_port"]
     cfg["reality_sni"] = d["r_sni"]
@@ -14119,6 +14168,120 @@ def api_download_snispoof_client_go():
 def api_download_snispoof_file(filename):
     from flask import send_file, Response
     safe_name = os.path.basename(filename)
+
+    srv = get_server_domain() or get_server_public_ip() or "127.0.0.1"
+    panel_port = get_panel_port()
+
+    if safe_name in ["termux.sh", "install-termux.sh"]:
+        termux_script = f"""#!/bin/bash
+# MHPanel SNI Spoofing - Android Termux Automated Installer & Runner
+set -e
+CYAN='\\033[0;36m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[0;33m'
+NC='\\033[0m'
+
+echo -e "${{CYAN}}=================================================================${{NC}}"
+echo -e "${{CYAN}}      MHPanel SNI Spoofing - Android Termux Client Installer      ${{NC}}"
+echo -e "${{CYAN}}=================================================================${{NC}}"
+
+ARCH=$(uname -m)
+BIN_NAME="snispoof-client-termux-arm64"
+case "$ARCH" in
+    aarch64|arm64)
+        BIN_NAME="snispoof-client-termux-arm64"
+        ;;
+    armv7l|armv8l|arm)
+        BIN_NAME="snispoof-client-linux-arm"
+        ;;
+    x86_64|amd64)
+        BIN_NAME="snispoof-client-linux-amd64"
+        ;;
+    *)
+        BIN_NAME="snispoof-client-termux-arm64"
+        ;;
+esac
+
+if ! command -v curl >/dev/null 2>&1; then
+    echo -e "${{YELLOW}}[*] Installing curl...${{NC}}"
+    pkg update -y >/dev/null 2>&1 || true
+    pkg install -y curl
+fi
+
+TARGET_DIR="${{PREFIX:-/data/data/com.termux/files/usr}}/bin"
+[ ! -d "$TARGET_DIR" ] && TARGET_DIR="$HOME/bin"
+mkdir -p "$TARGET_DIR"
+
+TARGET_BIN="${{TARGET_DIR}}/snispoof-client"
+echo -e "${{CYAN}}[*] Downloading $BIN_NAME for architecture $ARCH...${{NC}}"
+curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/${{BIN_NAME}}" -o "$TARGET_BIN"
+chmod +x "$TARGET_BIN"
+ln -sf "$TARGET_BIN" "${{TARGET_DIR}}/snispoof" 2>/dev/null || true
+
+echo -e "${{GREEN}}[✓] Installed successfully! You can run it anytime with: snispoof${{NC}}"
+echo -e "${{CYAN}}[*] Launching SNI Spoofing Client now...${{NC}}\n"
+exec "$TARGET_BIN" "$@"
+"""
+        return Response(termux_script, mimetype="text/x-shellscript", headers={"Content-Disposition": "inline;filename=termux.sh"})
+
+    if safe_name in ["linux.sh", "install-linux.sh"]:
+        linux_script = f"""#!/bin/bash
+# MHPanel SNI Spoofing - Linux Client Automated Installer & Runner
+set -e
+CYAN='\\033[0;36m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[0;33m'
+NC='\\033[0m'
+
+echo -e "${{CYAN}}=================================================================${{NC}}"
+echo -e "${{CYAN}}        MHPanel SNI Spoofing - Linux Client Installer             ${{NC}}"
+echo -e "${{CYAN}}=================================================================${{NC}}"
+
+ARCH=$(uname -m)
+BIN_NAME="snispoof-client-linux-amd64"
+case "$ARCH" in
+    x86_64|amd64)
+        BIN_NAME="snispoof-client-linux-amd64"
+        ;;
+    aarch64|arm64)
+        BIN_NAME="snispoof-client-linux-arm64"
+        ;;
+    armv7l|armv8l|arm)
+        BIN_NAME="snispoof-client-linux-arm"
+        ;;
+    *)
+        BIN_NAME="snispoof-client-linux-amd64"
+        ;;
+esac
+
+TARGET_BIN="/usr/local/bin/snispoof-client"
+SUDO=""
+if [ "$(id -u)" -ne 0 ]; then
+    if sudo -n true 2>/dev/null || command -v sudo >/dev/null 2>&1; then
+        SUDO="sudo"
+    else
+        TARGET_BIN="$HOME/.local/bin/snispoof-client"
+        mkdir -p "$HOME/.local/bin"
+    fi
+fi
+
+echo -e "${{CYAN}}[*] Downloading ${{BIN_NAME}}...${{NC}}"
+$SUDO curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/${{BIN_NAME}}" -o "$TARGET_BIN"
+$SUDO chmod +x "$TARGET_BIN"
+
+if [ "$(id -u)" -eq 0 ] && command -v setcap >/dev/null 2>&1; then
+    setcap 'cap_net_bind_service=+ep' "$TARGET_BIN" 2>/dev/null || true
+elif [ -n "$SUDO" ] && sudo command -v setcap >/dev/null 2>&1; then
+    $SUDO setcap 'cap_net_bind_service=+ep' "$TARGET_BIN" 2>/dev/null || true
+fi
+
+$SUDO ln -sf "$TARGET_BIN" /usr/local/bin/snispoof 2>/dev/null || true
+
+echo -e "${{GREEN}}[✓] Installed successfully to ${{TARGET_BIN}}!${{NC}}"
+echo -e "${{CYAN}}[*] Launching SNI Spoofing Client...${{NC}}\n"
+exec "$TARGET_BIN" "$@"
+"""
+        return Response(linux_script, mimetype="text/x-shellscript", headers={"Content-Disposition": "inline;filename=linux.sh"})
     if safe_name in ["spec", "spec.md", "SNI_SPOOFING_SPEC.md", "sni_spoofing_spec.md", "sni_spoofing_mhpanel_android_spec.md"]:
         doc_path = "/www/wwwroot/mhpanel/docs/SNI_SPOOFING_SPEC.md"
         if os.path.exists(doc_path):
@@ -14149,7 +14312,7 @@ def api_download_snispoof_file(filename):
             headers={"Content-Disposition": "attachment;filename=config.json"}
         )
 
-    if safe_name.endswith(".exe") or safe_name in ["snispoof-client", "snispoof-client-arm64"]:
+    if safe_name.endswith(".exe") or safe_name in ["snispoof-client", "snispoof-client-linux-amd64", "snispoof-client-linux-arm64", "snispoof-client-termux-arm64", "snispoof-client-linux-arm", "snispoof-client-termux-arm", "snispoof-fragment", "snispoof-fragment-termux"]:
         compile_snispoof_binaries_for_server(force=False)
 
     path = os.path.join("/www/wwwroot/mhpanel/bin", safe_name)

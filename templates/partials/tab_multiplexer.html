@@ -12,6 +12,9 @@
                     </p>
 </div>
 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+<button class="btn btn-secondary btn-sm" onclick="toggleMpxKnowledgeBase()" style="padding: 8px 16px; font-size: 13px; color: #0284c7; border: 1.5px solid rgba(2, 132, 199, 0.4); background: rgba(2, 132, 199, 0.08); font-weight: 700;" type="button">
+<i class="btn-icon" data-lucide="book-open"></i> <span>دانش‌نامه و راهنمای جامع اشتراک پورت</span>
+</button>
 <button class="btn btn-secondary btn-sm" onclick="installMultiplexer()" style="padding: 8px 14px; font-size: 13px;" type="button">
 <i class="btn-icon" data-lucide="wrench"></i> <span data-i18n="mpx_haproxy">نصب / بررسی خودکار HAProxy</span>
 </button>
@@ -55,6 +58,392 @@
 </div>
 </div>
 </div>
+
+<!-- Multiplexer Knowledge Base & Comprehensive Documentation Suite -->
+<div class="glass-card config-card" id="mpx-knowledge-base-card" style="padding: 24px; border: 1.5px solid rgba(2, 132, 199, 0.35); background: linear-gradient(135deg, rgba(2, 132, 199, 0.04) 0%, rgba(99, 102, 241, 0.04) 100%);">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid rgba(2, 132, 199, 0.15); padding-bottom: 16px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);">
+                <i data-lucide="book-open" style="width: 24px; height: 24px;"></i>
+            </div>
+            <div>
+                <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <span>دانش‌نامه تخصصی و مستندات گام‌به‌گام اشتراک پورت (Port Multiplexer & SNI)</span>
+                    <span class="sidebar-badge sidebar-badge-blue" style="font-size: 11px;">مستندات مرجع</span>
+                </h3>
+                <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.5;">
+                    راهنمای جامع، آموزش مرحله‌به‌مرحله و مکانیزم فنی تجمیع همزمان ده‌ها پروتکل روی پورت ۴۴۳ بدون تداخل
+                </p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMpxKnowledgeBaseBody()" id="mpx-kb-toggle-btn" style="padding: 6px 14px; font-size: 12px; border-radius: 8px; font-weight: 600;">
+                <i data-lucide="chevron-up" id="mpx-kb-toggle-icon" style="width: 14px; height: 14px; margin-left: 4px;"></i>
+                <span id="mpx-kb-toggle-text">جمع کردن مستندات</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="mpx-knowledge-base-body">
+        <!-- Interactive Navigation Tabs -->
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; background: rgba(0,0,0,0.03); padding: 6px; border-radius: 10px; border: 1px solid var(--border-glow);">
+            <button type="button" class="btn btn-sm mpx-kb-nav-btn active" id="mpx-kb-btn-concept" onclick="switchMpxKbTab('concept')" style="padding: 8px 16px; font-size: 12.5px; font-weight: 700; border-radius: 8px; background: #0284c7; color: #fff; border: 1px solid #0284c7; transition: all 0.2s;">
+                <i data-lucide="help-circle" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 4px;"></i>
+                ۱. ماهیت و چرایی اشتراک پورت
+            </button>
+            <button type="button" class="btn btn-sm mpx-kb-nav-btn" id="mpx-kb-btn-how" onclick="switchMpxKbTab('how')" style="padding: 8px 16px; font-size: 12.5px; font-weight: 700; border-radius: 8px; background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-glow); transition: all 0.2s;">
+                <i data-lucide="cpu" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 4px;"></i>
+                ۲. مکانیزم فنی و معماری SNI
+            </button>
+            <button type="button" class="btn btn-sm mpx-kb-nav-btn" id="mpx-kb-btn-steps" onclick="switchMpxKbTab('steps')" style="padding: 8px 16px; font-size: 12.5px; font-weight: 700; border-radius: 8px; background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-glow); transition: all 0.2s;">
+                <i data-lucide="list-ordered" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 4px;"></i>
+                ۳. آموزش گام‌به‌گام راه‌اندازی
+            </button>
+            <button type="button" class="btn btn-sm mpx-kb-nav-btn" id="mpx-kb-btn-scenarios" onclick="switchMpxKbTab('scenarios')" style="padding: 8px 16px; font-size: 12.5px; font-weight: 700; border-radius: 8px; background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-glow); transition: all 0.2s;">
+                <i data-lucide="shield-check" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 4px;"></i>
+                ۴. سناریوهای ضد فیلتر و استتار
+            </button>
+            <button type="button" class="btn btn-sm mpx-kb-nav-btn" id="mpx-kb-btn-faq" onclick="switchMpxKbTab('faq')" style="padding: 8px 16px; font-size: 12.5px; font-weight: 700; border-radius: 8px; background: rgba(0,0,0,0.03); color: var(--text-main); border: 1px solid var(--border-glow); transition: all 0.2s;">
+                <i data-lucide="alert-circle" style="width: 14px; height: 14px; vertical-align: middle; margin-left: 4px;"></i>
+                ۵. خطایابی و سوالات متداول
+            </button>
+        </div>
+
+        <!-- TAB 1: CONCEPT & WHY -->
+        <div id="mpx-kb-content-concept" style="display: block;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #0284c7; font-weight: 700; font-size: 15px;">
+                        <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+                        <span>اشتراک پورت (Port Multiplexing) چیست؟</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.7; margin: 0;">
+                        در سیستم‌عامل‌های استاندارد لینوکس، هر پورت شبکه در یک لحظه تنها می‌تواند در انحصار <strong>یک نرم‌افزار</strong> باشد. اگر وب‌سایت شما پورت ۴۴۳ را گرفته باشد، هیچ سرویس دیگری نمی‌تواند روی پورت ۴۴۳ گوش دهد.
+                        <br><br>
+                        <strong>سیستم اشتراک پورت این محدودیت را حذف می‌کند:</strong> پورت ۴۴۳ در اختیار دیسپچر فوق سریع HAProxy قرار می‌گیرد و به عنوان دروازه اصلی عمل می‌کند؛ به این ترتیب شما می‌توانید همزمان وب‌سایت شرکتی، سیسکو AnyConnect، سافت‌ایزر SSTP، سینگ‌باکس VLESS Reality، اپن‌وی‌پی‌ان و SSH را روی همان یک پورت ۴۴۳ فعال داشته باشید!
+                    </p>
+                </div>
+
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #10b981; font-weight: 700; font-size: 15px;">
+                        <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
+                        <span>چرا پورت ۴۴۳ بالاترین ارزش ضد فیلترینگ را دارد؟</span>
+                    </div>
+                    <p style="font-size: 13px; color: var(--text-muted); line-height: 1.7; margin: 0;">
+                        پورت ۴۴۳ در سراسر دنیا پورت رسمی پروتکل امن HTTPS است. سیستم‌های فیلترینگ (DPI) <strong>نمی‌توانند پورت ۴۴۳ را به طور کلی ببندند</strong>، زیرا بستن آن به معنی قطع کامل تمامی سایت‌های دولتی، بانکی، درگاه‌های پرداخت و خدمات آنلاین کشور است.
+                        <br><br>
+                        وقتی پروتکل‌های فیلترشکن شما بر روی پورت ۴۴۳ منتقل می‌شوند، ترافیک آنها در میان میلیون‌ها بسته HTTPS عادی دیگر در شبکه کشور استتار شده و سیستم‌های هوشمند مسدودسازی توانایی مسدود کردن آن را از دست می‌دهند.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Comparison Table -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <h4 style="margin: 0 0 12px 0; font-size: 14.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="arrow-left-right" style="color: #6366f1; width: 16px; height: 16px;"></i>
+                    <span>مقایسه وضعیت سرور: حالت سنتی (بدون اشتراک پورت) در برابر حالت فعال (MHPanel)</span>
+                </h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12.5px; text-align: right;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid var(--border-glow); color: var(--text-muted);">
+                                <th style="padding: 10px 12px;">معیار فنی</th>
+                                <th style="padding: 10px 12px; color: #ef4444;">حالت سنتی (بدون اشتراک پورت)</th>
+                                <th style="padding: 10px 12px; color: #10b981;">حالت هوشمند اشتراک پورت (MHPanel)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border-glow);">
+                                <td style="padding: 10px 12px; font-weight: 600;">پورت اتصال کاربران</td>
+                                <td style="padding: 10px 12px; color: var(--text-muted);">پورت‌های مختلف و عجیب (۱۰۴۴۳، ۸۴۴۳، ۴۴۴۳، ۱۱۹۴)</td>
+                                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">همه کاربران با پورت استاندارد و امن ۴۴۳ وصل می‌شوند</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-glow);">
+                                <td style="padding: 10px 12px; font-weight: 600;">آسیب‌پذیری در فیلترینگ</td>
+                                <td style="padding: 10px 12px; color: var(--text-muted);">فیلتر فوری پورت‌ها توسط فایروال مخابرات به محض شناسایی</td>
+                                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">بسیار مقاوم؛ پورت ۴۴۳ به دلیل اهمیت اینترنت بسته نمی‌شود</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-glow);">
+                                <td style="padding: 10px 12px; font-weight: 600;">استتار با سایت واقعی</td>
+                                <td style="padding: 10px 12px; color: var(--text-muted);">غیرممکن؛ پورت ۴۴۳ اگر به سایت داده شود VPN غیرفعال می‌شود</td>
+                                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">کامل؛ وب‌سایت واقعی بالا است و بازرس فیلترینگ متوجه VPN نمی‌شود</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-glow);">
+                                <td style="padding: 10px 12px; font-weight: 600;">پشتیبانی از چند پورت همزمان</td>
+                                <td style="padding: 10px 12px; color: var(--text-muted);">نیاز به راه‌اندازی و کانفیگ جداگانه برای تک‌تک سرویس‌ها</td>
+                                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">فراخوانی آنی همه پروتکل‌ها روی پورت‌های امن ۲۰۸۷، ۲۰۹۶ و ۹۴۴۳</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 12px; font-weight: 600;">سرعت و مصرف سخت‌افزار</td>
+                                <td style="padding: 10px 12px; color: var(--text-muted);">اتصال مستقیم اما بدون قابلیت تجمیع</td>
+                                <td style="padding: 10px 12px; font-weight: 700; color: #10b981;">هدایت Zero-Copy در لایه ۴ با کمتر از ۰.۵ درصد مصرف پردازنده</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: HOW IT WORKS (TECHNICAL & SNI) -->
+        <div id="mpx-kb-content-how" style="display: none;">
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #0284c7; font-weight: 700; font-size: 15px;">
+                    <i data-lucide="network" style="width: 18px; height: 18px;"></i>
+                    <span>مفهوم SNI (Server Name Indication) چگونه تفکیک را ممکن می‌سازد؟</span>
+                </div>
+                <p style="font-size: 13px; color: var(--text-muted); line-height: 1.7; margin: 0 0 14px 0;">
+                    هنگامی که هر کلاینت (گوشی موبایل، لپ‌تاپ یا مودم) قصد برقراری یک ارتباط رمزنگاری‌شده امن (TLS/SSL) دارد، نخستین بسته‌ای که به سرور ارسال می‌کند فایلی استاندارد به نام <strong>ClientHello</strong> است. در این بسته، کلاینت در فیلدی به نام <strong>SNI</strong> نام دامنه‌ای را که قصد دارد به آن متصل شود (مثلاً <code style="direction: ltr; display: inline-block;">cisco.example.com</code>) به صورت متنی و شفاف ارسال می‌کند.
+                </p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+                    <div style="background: rgba(2, 132, 199, 0.05); border: 1px solid rgba(2, 132, 199, 0.2); border-radius: 10px; padding: 12px 14px;">
+                        <div style="font-weight: 700; font-size: 13px; color: #0284c7; margin-bottom: 4px;">۱. بررسی بدون رمزگشایی (Zero-Decryption)</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">روتر HAProxy نیازی به کلید خصوصی یا رمزگشایی ندارد. صرفاً هدر بسته را می‌خواند تا SNI را ببیند و سپس کل بسته را دست‌نخورده عبور می‌دهد.</div>
+                    </div>
+                    <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 10px; padding: 12px 14px;">
+                        <div style="font-weight: 700; font-size: 13px; color: #10b981; margin-bottom: 4px;">۲. بالاترین سرعت ممکن (Layer-4 TCP Pass-Through)</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">چون ترافیک در لایه انتقال (TCP) هدایت می‌شود، هیچ تاخیری (Latency) در پینگ کاربران ایجاد نمی‌شود و افت سرعت به صفر می‌رسد.</div>
+                    </div>
+                    <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 10px; padding: 12px 14px;">
+                        <div style="font-weight: 700; font-size: 13px; color: #f59e0b; margin-bottom: 4px;">۳. رفتار فال‌بک خودکار (Default Fallback)</div>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">اگر درخواستی بدون SNI باشد (مثلاً کسی با آی‌پی سرور وصل شود)، سیستم آن را به وب‌سایت عادی هدایت می‌کند تا سرور کاملاً موجه و سفید جلوه کند.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Pipeline Diagram -->
+            <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                <h4 style="margin: 0 0 14px 0; font-size: 14.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="git-branch" style="color: #0284c7; width: 16px; height: 16px;"></i>
+                    <span>نقشه معماری و مسیر بسته‌های ورودی به سرور (Traffic Pipeline Architecture)</span>
+                </h4>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; font-size: 12.5px;">
+                    <!-- Flow Row 1 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #e0f2fe; color: #0284c7; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 700;">cisco.domain.com:443</span>
+                            <span style="color: var(--text-muted);">کلاینت سیسکو AnyConnect</span>
+                        </div>
+                        <div style="color: #64748b; font-weight: 700;">➔ HAProxy SNI Match ➔</div>
+                        <div style="font-family: monospace; font-weight: 700; color: #0284c7; direction: ltr;">127.0.0.1:10443 (OCServ Cisco)</div>
+                    </div>
+
+                    <!-- Flow Row 2 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #e0f2fe; color: #06b6d4; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 700;">sstp.domain.com:443</span>
+                            <span style="color: var(--text-muted);">کلاینت ویندوز SSTP</span>
+                        </div>
+                        <div style="color: #64748b; font-weight: 700;">➔ HAProxy SNI Match ➔</div>
+                        <div style="font-family: monospace; font-weight: 700; color: #06b6d4; direction: ltr;">127.0.0.1:4443 (SoftEther VPN)</div>
+                    </div>
+
+                    <!-- Flow Row 3 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 700;">sb.domain.com:443</span>
+                            <span style="color: var(--text-muted);">کلاینت Sing-box / VLESS</span>
+                        </div>
+                        <div style="color: #64748b; font-weight: 700;">➔ HAProxy SNI Match ➔</div>
+                        <div style="font-family: monospace; font-weight: 700; color: #b45309; direction: ltr;">127.0.0.1:20443 (Sing-box Core)</div>
+                    </div>
+
+                    <!-- Flow Row 4 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 700;">ssh.domain.com:443</span>
+                            <span style="color: var(--text-muted);">کلاینت SSH TLS Stunnel</span>
+                        </div>
+                        <div style="color: #64748b; font-weight: 700;">➔ HAProxy SNI Match ➔</div>
+                        <div style="font-family: monospace; font-weight: 700; color: #15803d; direction: ltr;">127.0.0.1:4444 (Stunnel SSH)</div>
+                    </div>
+
+                    <!-- Flow Row 5 -->
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: rgba(0,0,0,0.02); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: #ede9fe; color: #6d28d9; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: 700;">https://SERVER_IP:443</span>
+                            <span style="color: var(--text-muted);">اسکنر فیلترینگ یا بدون SNI</span>
+                        </div>
+                        <div style="color: #64748b; font-weight: 700;">➔ Default Fallback ➔</div>
+                        <div style="font-family: monospace; font-weight: 700; color: #6d28d9; direction: ltr;">127.0.0.1:80/443 (سایت واقعی Apache/Nginx)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: STEP-BY-STEP SETUP GUIDE -->
+        <div id="mpx-kb-content-steps" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <!-- Step 1 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; display: flex; gap: 14px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">۱</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">تنظیم رکوردهای دامنه در کلودفلر یا پنل DNS (پیش‌نیاز ضروری)</div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 8px 0;">
+                            برای اینکه سیستم بتواند ترافیک پروتکل‌ها را بر اساس دامنه تفکیک کند، باید دامنه‌ها به آی‌پی سرور شما اشاره کنند. به پنل DNS دامنه (مثلاً کلودفلر) بروید:
+                        </p>
+                        <div style="background: rgba(0,0,0,0.03); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 12px; font-size: 12px; line-height: 1.6;">
+                            🔹 <strong>روش سریع و توصیه‌شده (رکورد وایلدکارد):</strong> یک رکورد با نام <code style="font-weight: 700;">*</code> از نوع <strong>A</strong> بسازید و مقدار آن را برابر با IP سرور قرار دهید. ابر کلودفلر حتماً باید <strong>خاموش (خاکستری / DNS Only)</strong> باشد. با این کار تمام ساب‌دامنه‌ها خودکار به سرور وصل می‌شوند.
+                            <br>
+                            🔹 <strong>روش دستی:</strong> ساب‌دامنه‌های دلخواه را بسازید (مانند <code style="direction: ltr;">cisco</code>, <code style="direction: ltr;">sstp</code>, <code style="direction: ltr;">sb</code>, <code style="direction: ltr;">ssh</code>) همگی با نوع A به سمت IP سرور بدون پروکسی ابر.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; display: flex; gap: 14px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">۲</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">فعال‌سازی کلید اصلی و انتخاب پورت‌های شنیداری (Listening Ports)</div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 8px 0;">
+                            در بخش ۱ همین تب، سوئیچ <strong>«فعال‌سازی سیستم اشتراک پورت»</strong> را روشن کنید. پورت اصلی <code style="font-weight: 700;">443</code> به طور پیش‌فرض انتخاب شده است.
+                        </p>
+                        <div style="font-size: 12px; color: #0284c7; line-height: 1.6;">
+                            💡 <strong>نکته کلیدی:</strong> با کلیک روی دکمه «+ پورت‌های امن کلودفلر»، پورت‌های ۲۰۸۷، ۲۰۹۶ و ۸۴۴۳ نیز اضافه می‌شوند. در این حالت کلاینت شما می‌تواند به دلخواه از پورت ۴۴۳ یا این پورت‌های کمکی استفاده کند.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; display: flex; gap: 14px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">۳</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">فعال‌سازی پروتکل‌ها و ثبت ساب‌دامنه مرتبط</div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 8px 0;">
+                            در بخش ۲ (تفکیک هوشمند پروتکل‌ها)، سوئیچ هر پروتکلی که می‌خواهید روی پورت ۴۴۳ کار کند را روشن کنید و در کادر <strong>SNI Domain</strong> ساب‌دامنه مرتبط را وارد کنید:
+                        </p>
+                        <ul style="margin: 0; padding-right: 18px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                            <li>برای سیسکو AnyConnect: مثلاً <code style="direction: ltr; font-weight: 700;">cisco.yourdomain.com</code></li>
+                            <li>برای ویندوز SSTP: مثلاً <code style="direction: ltr; font-weight: 700;">sstp.yourdomain.com</code></li>
+                            <li>برای سینگ‌باکس VLESS/Trojan: مثلاً <code style="direction: ltr; font-weight: 700;">sb.yourdomain.com</code></li>
+                            <li>برای وب‌سرور و سایت واقعی: مثلاً دامنه اصلی <code style="direction: ltr; font-weight: 700;">yourdomain.com</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; display: flex; gap: 14px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">۴</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">تعیین سرویس پیش‌فرض (Default Backend Fallback)</div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                            منوی کشویی «پروتکل پیش‌فرض برای اتصالات مستقیم با IP» را ترجیحاً روی <strong>وب‌سرور اصلی و پنل مدیریت (Web / MHPanel)</strong> یا <strong>هسته سینگ‌باکس</strong> قرار دهید تا درخواست‌های ناشناس، اسکنرهای فیلترینگ و ربات‌ها مستقیماً با یک سایت طبیعی و استاندارد مواجه شوند.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px; display: flex; gap: 14px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #0284c7; color: #fff; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">۵</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; font-size: 14px; color: var(--text-main); margin-bottom: 4px;">ذخیره و اعمال تنظیمات سراسری</div>
+                        <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                            روی دکمه سبز رنگ <strong>«ذخیره و اعمال تنظیمات»</strong> کلیک کنید. سیستم به صورت خودکار سلامت فایل کانفیگ HAProxy را تست کرده و سرویس را بدون حتی ۱ ثانیه قطعی اتصالات فعال قبلی ریلود می‌کند. اکنون کلاینت‌های شما آماده اتصال با ساب‌دامنه‌ها و پورت ۴۴۳ هستند!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: SCENARIOS & BEST PRACTICES -->
+        <div id="mpx-kb-content-scenarios" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+                <!-- Scenario 1 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #6366f1; font-weight: 700; font-size: 14.5px;">
+                        <i data-lucide="globe" style="width: 18px; height: 18px;"></i>
+                        <span>سناریو ۱: استتار بی‌نقص سرور با وب‌سایت شرکتی / وردپرس</span>
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 10px 0;">
+                        در این سناریو، روی دامنه اصلی <code style="direction: ltr;">example.com</code> یک سایت وردپرسی شخصی یا شرکتی روی آپاچی اجرا می‌شود.
+                    </p>
+                    <div style="font-size: 12px; color: var(--text-main); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 12px; line-height: 1.6;">
+                        ✅ <strong>نتیجه:</strong> هر کسی در ایران آدرس سایت یا IP سرور را در مرورگر باز کند، یک سایت کاملاً واقعی فروشگاهی یا شرکتی می‌بیند. اما اعضای شما با وارد کردن <code style="direction: ltr;">cisco.example.com</code> به سیسکو وصل می‌شوند! فیلترینگ امکان مسدود کردن این سرور را نخواهد داشت.
+                    </div>
+                </div>
+
+                <!-- Scenario 2 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #10b981; font-weight: 700; font-size: 14.5px;">
+                        <i data-lucide="shuffle" style="width: 18px; height: 18px;"></i>
+                        <span>سناریو ۲: نجات کلاینت‌ها هنگام اختلال پورت ۴۴۳</span>
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 10px 0;">
+                        در برخی اپراتورها در ساعات اوج مصرف، پورت ۴۴۳ دامنه‌های خارجی دچار کندی دستوری یا پکت‌لاس می‌شود.
+                    </p>
+                    <div style="font-size: 12px; color: var(--text-main); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 12px; line-height: 1.6;">
+                        ✅ <strong>راهکار فوری بدون دستکاری سرور:</strong> کافی است پورت‌های ۲۰۸۷ و ۲۰۹۶ را در اشتراک پورت فعال داشته باشید. کاربر در اپلیکیشن خود پورت را از ۴۴۳ به ۲۰۸۷ تغییر می‌دهد و بدون تغییر ساب‌دامنه فوراً متصل می‌شود!
+                    </div>
+                </div>
+
+                <!-- Scenario 3 -->
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 18px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; color: #f59e0b; font-weight: 700; font-size: 14.5px;">
+                        <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                        <span>سناریو ۳: هاب فراگیر برای همه سیستم‌عامل‌ها (All-in-One Hub)</span>
+                    </div>
+                    <p style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6; margin: 0 0 10px 0;">
+                        شما می‌خواهید بدون نیاز به چند سرور مختلف، برای تمام کلاینت‌ها بهترین پروتکل بومی‌شان را روی پورت ۴۴۳ ارائه دهید:
+                    </p>
+                    <div style="font-size: 12px; color: var(--text-main); background: rgba(0,0,0,0.03); border: 1px solid var(--border-glow); border-radius: 8px; padding: 10px 12px; line-height: 1.6;">
+                        💻 کاربران ویندوز: کانکشن بومی بدون برنامه با <code style="direction: ltr;">sstp.domain.com:443</code>
+                        <br>
+                        📱 کاربران آیفون و مک: با برنامه رسمی سیسکو <code style="direction: ltr;">vpn.domain.com:443</code>
+                        <br>
+                        🤖 کاربران اندروید و لینوکس: با سینگ‌باکس Reality روی <code style="direction: ltr;">sb.domain.com:443</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: FAQ & TROUBLESHOOTING -->
+        <div id="mpx-kb-content-faq" style="display: none;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px 16px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 6px;">
+                        ❓ سوال ۱: هنگام راه‌اندازی با خطای «HAProxy cannot bind to port 443» یا اشغال بودن پورت مواجه می‌شوم، چه کنم؟
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                        پاسخ: این خطا یعنی نرم‌افزاری دیگر (مثل وب‌سرور آپاچی، انجین‌یکس، یا یک کانتینر قدیمی) مستقیماً پورت ۴۴۳ را قفل کرده است. دکمه <strong>«نصب / بررسی خودکار HAProxy»</strong> را در بالای همین صفحه بزنید. پنل MHPanel به صورت هوشمند پورت وب‌سرور را به پورت ۸۰ یا پورت داخلی منتقل می‌کند تا پورت ۴۴۳ برای HAProxy آزاد شود.
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px 16px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 6px;">
+                        ❓ سوال ۲: آیا اشتراک پورت سرعت اینترنت را کم می‌کند یا پینگ را بالا می‌برد؟
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                        پاسخ: به هیچ وجه! روتر HAProxy از نظر مهندسی سریع‌ترین لودبالانسر شبکه در جهان است و با زبان بهینه C پیاده‌سازی شده است. در حالت TCP Mode ترافیک به صورت Raw عبور داده می‌شود و تاخیر آن کمتر از ۰.۲ میلی‌ثانیه است و اصلاً توسط انسان یا گیمرها حس نمی‌شود.
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px 16px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 6px;">
+                        ❓ سوال ۳: آیا نیاز است گواهینامه SSL برای HAProxy بسازم؟
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                        پاسخ: خیر! چون HAProxy در حالت Pass-Through ترافیک را هدایت می‌کند، نیازی به داشتن گواهینامه SSL در HAProxy نیست. هر پروتکل (سیسکو، SSTP، وب‌سرور یا سینگ‌باکس) سرتفیکیت اختصاصی خودش را مدیریت می‌کند و هندشیک امن بین کلاینت و سرویس نهایی انجام می‌شود.
+                    </div>
+                </div>
+
+                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 10px; padding: 14px 16px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 6px;">
+                        ❓ سوال ۴: چرا وقتی با ساب‌دامنه به سیسکو یا SSTP وصل می‌شوم ارور دریافت می‌کنم؟
+                    </div>
+                    <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.6;">
+                        پاسخ: دو نکته مهم را بررسی کنید:
+                        <br>
+                        ۱) حتماً در کلودفلر ابر ساب‌دامنه خاکستری (DNS Only) باشد؛ نباید ابر زرد پروکسی فعال باشد چون کلودفلر ترافیک پروتکل‌های VPN را متوقف می‌کند.
+                        <br>
+                        ۲) ساب‌دامنه‌ای که در اپلیکیشن وارد می‌کنید دقیقاً باید کاراکتر به کاراکتر با ساب‌دامنه‌ای که در کادر <strong>SNI Domain</strong> پنل وارد کرده‌اید همخوانی داشته باشد.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Master Switch & TCP Shared Multi-Ports Card -->
 <div class="glass-card config-card" style="padding: 24px;">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid rgba(0,0,0,0.06); padding-bottom: 14px;">

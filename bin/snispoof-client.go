@@ -184,6 +184,29 @@ func getSnapshotConfig() Config {
 	return cfg
 }
 
+func resolveConfigPath() string {
+	// 1. Current working directory config.json has highest priority
+	if _, err := os.Stat("config.json"); err == nil {
+		return "config.json"
+	}
+	// 2. Beside executable if writable
+	exeDir := getExeDir()
+	exeCfg := filepath.Join(exeDir, "config.json")
+	if _, err := os.Stat(exeCfg); err == nil {
+		return exeCfg
+	}
+	// 3. User config directory (~/.config/snispoof/config.json) if running from system bin or Termux bin
+	if strings.HasPrefix(exeDir, "/usr") || strings.HasPrefix(exeDir, "/bin") || strings.Contains(exeDir, "com.termux") {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			userCfgDir := filepath.Join(home, ".config", "snispoof")
+			_ = os.MkdirAll(userCfgDir, 0755)
+			return filepath.Join(userCfgDir, "config.json")
+		}
+	}
+	return exeCfg
+}
+
 func loadConfig() {
 	if builtServerDomain != "" {
 		defaultConfig.ServerDomain = builtServerDomain
@@ -227,7 +250,7 @@ func loadConfig() {
 		defaultConfig.Strategy = "sni_rotation"
 	}
 
-	cfgPath = filepath.Join(getExeDir(), "config.json")
+	cfgPath = resolveConfigPath()
 	data, err := os.ReadFile(cfgPath)
 	if err != nil {
 		cfg = defaultConfig
@@ -306,7 +329,18 @@ func saveConfig() {
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	cfgMutex.RUnlock()
 	if err == nil {
-		_ = os.WriteFile(cfgPath, data, 0644)
+		if writeErr := os.WriteFile(cfgPath, data, 0644); writeErr != nil {
+			if home, hErr := os.UserHomeDir(); hErr == nil {
+				userCfgDir := filepath.Join(home, ".config", "snispoof")
+				_ = os.MkdirAll(userCfgDir, 0755)
+				fallbackPath := filepath.Join(userCfgDir, "config.json")
+				_ = os.WriteFile(fallbackPath, data, 0644)
+				cfgPath = fallbackPath
+			} else {
+				_ = os.WriteFile("config.json", data, 0644)
+				cfgPath = "config.json"
+			}
+		}
 	}
 }
 
@@ -721,7 +755,11 @@ func StartProxy() error {
 			}(pList, targetP)
 			addLiveLog("PORT", fmt.Sprintf("Bound local relay 127.0.0.1:%d -> Remote:%d", p, targetP))
 		} else {
-			addLiveLog("WARN", fmt.Sprintf("Could not bind port %d: %v", p, pErr))
+			if p <= 1024 && (runtime.GOOS == "linux" || runtime.GOOS == "android") {
+				addLiveLog("WARN", fmt.Sprintf("Port %d requires root (sudo / setcap) on Linux/Termux. Skipped.", p))
+			} else {
+				addLiveLog("WARN", fmt.Sprintf("Could not bind port %d: %v", p, pErr))
+			}
 		}
 	}
 	extraListenersMutex.Unlock()
@@ -767,16 +805,23 @@ func clearScreen() {
 		cmd.Stdout = os.Stdout
 		_ = cmd.Run()
 	} else {
-		cmd := exec.Command("clear")
-		cmd.Stdout = os.Stdout
-		_ = cmd.Run()
+		fmt.Print("\033[H\033[2J")
 	}
 }
 
 func printBanner() {
 	clearScreen()
+	platformTitle := "Universal Client (Linux / Termux / Windows)"
+	if runtime.GOOS == "windows" {
+		platformTitle = "Windows Client"
+	} else if os.Getenv("TERMUX_VERSION") != "" || strings.Contains(os.Getenv("PREFIX"), "com.termux") {
+		platformTitle = "Android Termux Client"
+	} else {
+		platformTitle = "Linux Client"
+	}
+
 	fmt.Println("======================================================================")
-	fmt.Println("   MHPanel & Patterniha SNI-Spoofing Windows Terminal Client (v2.1)   ")
+	fmt.Printf("   MHPanel & Patterniha SNI-Spoofing %s (v2.2)\n", platformTitle)
 	fmt.Println("======================================================================")
 
 	currentCfg := getSnapshotConfig()
@@ -1332,7 +1377,14 @@ func main() {
 
 	for {
 		printBanner()
-		input, _ := reader.ReadString('\n')
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			sigChan := make(chan os.Signal, 1)
+			signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+			<-sigChan
+			StopProxy()
+			return
+		}
 		input = strings.TrimSpace(strings.ToUpper(input))
 
 		switch input {
