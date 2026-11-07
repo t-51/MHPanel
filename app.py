@@ -14728,6 +14728,11 @@ echo -e "${{CYAN}}[*] Launching SNI Spoofing Client...${{NC}}\n"
 exec "$TARGET_BIN" "$@"
 """
         return Response(linux_script, mimetype="text/x-shellscript", headers={"Content-Disposition": "inline;filename=linux.sh"})
+    if safe_name in ["android-spec", "android-spec.md", "ANDROID_DNS_TUNNEL_AND_MULTI_TRANSPORT_SPEC.md", "android_dns_tunnel_spec.md"]:
+        doc_path = "/www/wwwroot/mhpanel/docs/ANDROID_DNS_TUNNEL_AND_MULTI_TRANSPORT_SPEC.md"
+        if os.path.exists(doc_path):
+            return send_file(doc_path, as_attachment=False, download_name="ANDROID_DNS_TUNNEL_AND_MULTI_TRANSPORT_SPEC.md", mimetype="text/markdown; charset=utf-8")
+
     if safe_name in ["spec", "spec.md", "SNI_SPOOFING_SPEC.md", "sni_spoofing_spec.md", "sni_spoofing_mhpanel_android_spec.md"]:
         doc_path = "/www/wwwroot/mhpanel/docs/SNI_SPOOFING_SPEC.md"
         if os.path.exists(doc_path):
