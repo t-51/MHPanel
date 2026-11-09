@@ -22,6 +22,7 @@ import random
 import string
 import io
 import zipfile
+import copy
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session, render_template, send_from_directory, Response, send_file
 
@@ -2552,6 +2553,44 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     })
     proxy_tags.extend(ssh_tags)
 
+    # SNI Spoofing: Cloud Clean IP & Fragment Outbounds for Sing-box
+    try:
+        cf_cfg = get_cloudflare_snispoof_config()
+        clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142"]
+        clean_ip = clean_ips[0] if clean_ips else "104.18.119.142"
+        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or domain or "127.0.0.1"
+
+        cloud_outbound = {
+            "type": "trojan",
+            "tag": "MHPanel - [Cloud Clean IP] Trojan-WS",
+            "server": clean_ip,
+            "server_port": 443,
+            "password": password or "Sb_fhatutsq",
+            "tls": {
+                "enabled": True,
+                "server_name": cf_domain,
+                "utls": {"enabled": True, "fingerprint": "chrome"}
+            },
+            "transport": {
+                "type": "ws",
+                "path": "/trojan-ws",
+                "headers": {"Host": cf_domain}
+            }
+        }
+        outbounds.append(cloud_outbound)
+        proxy_tags.append(cloud_outbound["tag"])
+
+        frag_outbound = {
+            "type": "socks",
+            "tag": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)",
+            "server": "127.0.0.1",
+            "server_port": 40443
+        }
+        outbounds.append(frag_outbound)
+        proxy_tags.append(frag_outbound["tag"])
+    except Exception as e:
+        logger.error(f"Error adding snispoof outbounds to singbox: {e}")
+
     selector_outbound = {
         "type": "selector",
         "tag": "🚀 انتخاب سرور (PROXY)",
@@ -2640,6 +2679,74 @@ def generate_ssh_uris(username, password, domain, pub_ip):
         logger.error(f"Error appending singbox links to subscription: {e}")
 
     return uris
+
+def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
+    try:
+        cf_cfg = get_cloudflare_snispoof_config()
+        clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142", "104.25.165.92", "104.25.224.90"]
+        clean_ip = clean_ips[0] if clean_ips else "104.18.119.142"
+        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or domain or pub_ip or "127.0.0.1"
+
+        d_sni = get_snispoof_reality_and_client_configs()
+        r_pubkey = d_sni.get("r_pubkey", "")
+        r_shortid = d_sni.get("r_shortid", "")
+        sample_sni = d_sni.get("sample_sni", "sanjesh.org")
+        r_port = d_sni.get("r_port", 20443)
+
+        pwd = password or d_sni.get("r_trojan_pass", "Sb_fhatutsq")
+        uid = u_uuid or d_sni.get("r_uuid", "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc")
+
+        # 1. Cloud Mode URIs (Clean IP + Cloudflare Domain)
+        cloud_uris = [
+            {
+                "name": f"MHPanel - [Cloud Clean IP] Trojan-WS ({username})",
+                "uri": f"trojan://{pwd}@{clean_ip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS ({username})",
+                "type": "Trojan-WS",
+                "server": clean_ip,
+                "port": 443,
+                "sni": cf_domain
+            },
+            {
+                "name": f"MHPanel - [Cloud Clean IP] VLESS-WS ({username})",
+                "uri": f"vless://{uid}@{clean_ip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#MHPanel - [Cloud Clean IP] VLESS-WS ({username})",
+                "type": "VLESS-WS",
+                "server": clean_ip,
+                "port": 443,
+                "sni": cf_domain
+            }
+        ]
+
+        # 2. Fragment Mode URIs (Anti-DPI / Local Relay & Direct Fragment)
+        fragment_uris = [
+            {
+                "name": f"MHPanel - [Fragment] VLESS Reality ({username})",
+                "uri": f"vless://{uid}@{pub_ip or domain}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
+                "type": "VLESS Reality",
+                "server": pub_ip or domain,
+                "port": r_port,
+                "sni": sample_sni
+            },
+            {
+                "name": f"MHPanel - [Fragment/Relay] Trojan-40443 ({username})",
+                "uri": f"trojan://{pwd}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] Trojan-40443 ({username})",
+                "type": "Trojan Local Relay",
+                "server": "127.0.0.1",
+                "port": 40443,
+                "sni": sample_sni
+            },
+            {
+                "name": f"MHPanel - [Fragment/Relay] VLESS-40443 ({username})",
+                "uri": f"vless://{uid}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] VLESS-40443 ({username})",
+                "type": "VLESS Local Relay",
+                "server": "127.0.0.1",
+                "port": 40443,
+                "sni": sample_sni
+            }
+        ]
+        return cloud_uris, fragment_uris
+    except Exception as e:
+        logger.error(f"Error in generate_snispoof_sub_uris: {e}")
+        return [], []
 
 def generate_ssh_complete_text_info(username, password, domain, pub_ip):
     modes = generate_npv_all_modes(username, password, domain, pub_ip)
@@ -3131,6 +3238,10 @@ def client_subscription_view(sub_token):
                 "server": {"ip": server_ip, "domain": domain},
                 "ports": ports
             })
+        u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or (get_ssh_user_info(uname) or {}).get("uuid", "")
+        u_pwd = (udata.get("password") if isinstance(udata, dict) else "") or (get_ssh_user_info(uname) or {}).get("password", "")
+        c_uris, f_uris = generate_snispoof_sub_uris(uname, u_pwd, u_uuid, domain, server_ip)
+        cf_c = get_cloudflare_snispoof_config()
         return render_template(
             "subscription.html",
             proto_type="singbox",
@@ -3146,7 +3257,10 @@ def client_subscription_view(sub_token):
             traffic_pct=traffic_pct,
             days_left=days_left,
             ports=ports,
-            l2tp_psk="vpn"
+            l2tp_psk="vpn",
+            cloud_uris=c_uris,
+            fragment_uris=f_uris,
+            cf_config=cf_c
         )
 
     # 3. Radius / Standard User Subscription
@@ -3216,6 +3330,10 @@ def client_subscription_view(sub_token):
             "protocols": settings.get("protocols", {})
         })
         
+    u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or (get_ssh_user_info(uname) or {}).get("uuid", "")
+    u_pwd = (udata.get("password") if isinstance(udata, dict) else "") or (get_ssh_user_info(uname) or {}).get("password", "")
+    c_uris, f_uris = generate_snispoof_sub_uris(uname, u_pwd, u_uuid, domain, server_ip)
+    cf_c = get_cloudflare_snispoof_config()
     return render_template(
         "subscription.html",
         proto_type="radius",
@@ -3231,7 +3349,10 @@ def client_subscription_view(sub_token):
         traffic_pct=traffic_pct,
         days_left=days_left,
         ports=ports,
-        l2tp_psk=l2tp_psk
+        l2tp_psk=l2tp_psk,
+        cloud_uris=c_uris,
+        fragment_uris=f_uris,
+        cf_config=cf_c
     )
 
 @app.route("/sub/<sub_token>/json")
@@ -3636,6 +3757,48 @@ def client_sub_singbox_download(sub_token):
     resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox.json"'
     return resp
 
+@app.route("/sub/<sub_token>/singbox-cloud.json")
+def client_sub_singbox_cloud_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or uinfo.get("uuid", "")
+    domain = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
+    pub_ip = get_server_public_ip()
+
+    d_sni = get_snispoof_reality_and_client_configs()
+    cfg = copy.deepcopy(d_sni.get("singbox_cloud", {}))
+    for ob in cfg.get("outbounds", []):
+        if ob.get("type") == "trojan" and pwd:
+            ob["password"] = pwd
+        elif ob.get("type") == "vless" and u_uuid:
+            ob["uuid"] = u_uuid
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox-Cloud.json"'
+    return resp
+
+@app.route("/sub/<sub_token>/singbox-fragment.json")
+def client_sub_singbox_fragment_download(sub_token):
+    uname, udata, proto_type = find_user_by_sub_token(sub_token)
+    if not uname:
+        return "Not Found", 404
+    uinfo = get_ssh_user_info(uname)
+    pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
+    u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or uinfo.get("uuid", "")
+
+    d_sni = get_snispoof_reality_and_client_configs()
+    cfg = copy.deepcopy(d_sni.get("singbox_fragment", {}))
+    for ob in cfg.get("outbounds", []):
+        if ob.get("type") == "vless" and u_uuid:
+            ob["uuid"] = u_uuid
+        elif ob.get("type") == "trojan" and pwd:
+            ob["password"] = pwd
+    resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
+    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox-Fragment.json"'
+    return resp
+
 @app.route("/sub/<sub_token>/b64")
 def client_sub_b64(sub_token):
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
@@ -3671,6 +3834,14 @@ def client_sub_b64(sub_token):
             uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
     else:
         uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
+
+    # Append separate Cloud Clean IP and Fragment configs to subscription
+    u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or uinfo.get("uuid", "")
+    cloud_links, frag_links = generate_snispoof_sub_uris(uname, pwd, u_uuid, domain, pub_ip)
+    if cloud_links:
+        uris.extend([x["uri"] if isinstance(x, dict) else x for x in cloud_links])
+    if frag_links:
+        uris.extend([x["uri"] if isinstance(x, dict) else x for x in frag_links])
 
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
@@ -13737,6 +13908,58 @@ def api_download_stuntls_client_ps1():
     return "File not found", 404
 
 
+# --- SNI Spoofing Cloudflare Clean IP & Port Automation ---
+CF_SNISPOOF_FILE = "/etc/vpnpanel/cloudflare_snispoof.json"
+
+def get_cloudflare_snispoof_config():
+    default_cfg = {
+        "cf_token": "",
+        "domain": "",
+        "subdomain": "cf-sni",
+        "full_subdomain": "",
+        "clean_subdomain": "",
+        "clean_ips": ["104.18.119.142", "104.25.165.92", "104.25.224.90", "159.246.55.228", "172.67.69.51", "91.209.253.54", "199.33.231.234"],
+        "target_port": 20460,
+        "zone_id": "",
+        "proxied_record_id": "",
+        "clean_record_ids": [],
+        "origin_rule_status": "not_configured",
+        "websockets": "unknown",
+        "ssl_mode": "unknown",
+        "last_applied": "",
+        "status": "idle"
+    }
+    if os.path.exists(CF_SNISPOOF_FILE):
+        try:
+            with open(CF_SNISPOOF_FILE, "r") as f:
+                saved = json.load(f)
+                default_cfg.update(saved)
+        except Exception:
+            pass
+    return default_cfg
+
+def save_cloudflare_snispoof_config(cfg):
+    os.makedirs(os.path.dirname(CF_SNISPOOF_FILE), exist_ok=True)
+    with open(CF_SNISPOOF_FILE, "w") as f:
+        json.dump(cfg, f, indent=2)
+
+def cf_api_call(method, endpoint, token, data=None, params=None):
+    import requests
+    url = f"https://api.cloudflare.com/client/v4{endpoint}"
+    headers = {
+        "Authorization": f"Bearer {token.strip()}",
+        "Content-Type": "application/json"
+    }
+    try:
+        resp = requests.request(method, url, headers=headers, json=data, params=params, timeout=12)
+        try:
+            res_json = resp.json()
+        except Exception:
+            res_json = {"success": resp.ok, "errors": [{"message": resp.text}]}
+        return resp.status_code, res_json
+    except Exception as e:
+        return 500, {"success": False, "errors": [{"message": str(e)}]}
+
 # --- SNI Spoofing & Anti-DPI Protocol API ---
 def get_snispoof_reality_and_client_configs():
     cfg_file = "/etc/vpnpanel/snispoof.json"
@@ -13765,12 +13988,19 @@ def get_snispoof_reality_and_client_configs():
     frag_size = cfg.get("fragment_size", 2)
     frag_delay = cfg.get("fragment_delay_ms", 3)
 
+    cf_cfg = get_cloudflare_snispoof_config()
+    cf_full_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or srv
+    clean_ips_pool = cf_cfg.get("clean_ips") or ["104.18.119.142", "104.25.165.92", "104.25.224.90", "159.246.55.228", "172.67.69.51"]
+    chosen_clean_ip = clean_ips_pool[0] if clean_ips_pool else "104.18.119.142"
+    cf_target_port = int(cf_cfg.get("target_port") or 20460)
+
     # Extract Sing-box Reality settings & live user credentials
     r_port = 20443
     r_sni = "swdist.apple.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
     r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
+    r_trojan_pass = "Sb_fhatutsq"
 
     sb_cfg_file = "/etc/sing-box/config.json"
     if os.path.exists(sb_cfg_file):
@@ -13782,7 +14012,11 @@ def get_snispoof_reality_and_client_configs():
                 tls = ib.get("tls", {})
                 if tls.get("reality", {}).get("enabled"):
                     ib_reality = ib
-                    break
+                if ib.get("type") == "trojan":
+                    t_users = ib.get("users", [])
+                    if t_users and t_users[0].get("password"):
+                        r_trojan_pass = t_users[0]["password"]
+
             if ib_reality:
                 r_port = ib_reality.get("listen_port", 20443)
                 tls = ib_reality.get("tls", {})
@@ -13923,19 +14157,156 @@ def get_snispoof_reality_and_client_configs():
         }
     }
 
-    # 2. Sing-box Outbound Snippet
+    # 1-B. Sing-box Dedicated Config: Cloud Clean IP Mode
+    singbox_cloud = {
+        "log": {"disabled": False, "level": "info", "timestamp": True},
+        "dns": {
+            "servers": [
+                {"tag": "dns-remote", "address": "https://1.1.1.1/dns-query", "address_resolver": "dns-direct", "strategy": "ipv4_only", "detour": "MHPanel - [Cloud Clean IP] Trojan-WS"},
+                {"tag": "dns-direct", "address": "223.5.5.5", "address_resolver": "dns-local", "strategy": "ipv4_only", "detour": "direct"},
+                {"tag": "dns-local", "address": "local", "detour": "direct"}
+            ],
+            "rules": [
+                {"outbound": "any", "server": "dns-direct"},
+                {"rule_set": "geosite-ir", "server": "dns-direct"}
+            ],
+            "final": "dns-remote",
+            "strategy": "ipv4_only"
+        },
+        "inbounds": [
+            {"type": "tun", "tag": "tun-in", "interface_name": "tun0", "inet4_address": "172.19.0.1/30", "auto_route": True, "strict_route": True, "sniff": True},
+            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080, "sniff": True}
+        ],
+        "outbounds": [
+            {
+                "type": "trojan",
+                "tag": "MHPanel - [Cloud Clean IP] Trojan-WS",
+                "server": chosen_clean_ip,
+                "server_port": 443,
+                "password": r_trojan_pass,
+                "tls": {
+                    "enabled": True,
+                    "server_name": cf_full_domain,
+                    "utls": {"enabled": True, "fingerprint": "chrome"}
+                },
+                "transport": {
+                    "type": "ws",
+                    "path": "/trojan-ws",
+                    "headers": {"Host": cf_full_domain}
+                }
+            },
+            {
+                "type": "vless",
+                "tag": "MHPanel - [Cloud Clean IP] VLESS-WS",
+                "server": chosen_clean_ip,
+                "server_port": 443,
+                "uuid": r_uuid,
+                "tls": {
+                    "enabled": True,
+                    "server_name": cf_full_domain,
+                    "utls": {"enabled": True, "fingerprint": "chrome"}
+                },
+                "transport": {
+                    "type": "ws",
+                    "path": "/vless-ws",
+                    "headers": {"Host": cf_full_domain}
+                }
+            },
+            {"type": "direct", "tag": "direct"},
+            {"type": "dns", "tag": "dns-out"}
+        ],
+        "route": {
+            "auto_detect_interface": True,
+            "rules": [
+                {"protocol": "dns", "outbound": "dns-out"},
+                {"ip_is_private": True, "outbound": "direct"},
+                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
+            ],
+            "rule_set": [
+                {"tag": "geoip-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs", "download_detour": "direct"},
+                {"tag": "geosite-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs", "download_detour": "direct"}
+            ],
+            "final": "MHPanel - [Cloud Clean IP] Trojan-WS"
+        }
+    }
+
+    # 1-C. Sing-box Dedicated Config: Fragment & Anti-DPI Relay Mode
+    singbox_fragment = {
+        "log": {"disabled": False, "level": "info", "timestamp": True},
+        "dns": {
+            "servers": [
+                {"tag": "dns-remote", "address": "https://8.8.8.8/dns-query", "address_resolver": "dns-direct", "strategy": "ipv4_only", "detour": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)"},
+                {"tag": "dns-direct", "address": "223.5.5.5", "address_resolver": "dns-local", "strategy": "ipv4_only", "detour": "direct"},
+                {"tag": "dns-local", "address": "local", "detour": "direct"}
+            ],
+            "rules": [
+                {"outbound": "any", "server": "dns-direct"},
+                {"rule_set": "geosite-ir", "server": "dns-direct"}
+            ],
+            "final": "dns-remote",
+            "strategy": "ipv4_only"
+        },
+        "inbounds": [
+            {"type": "tun", "tag": "tun-in", "interface_name": "tun0", "inet4_address": "172.19.0.1/30", "auto_route": True, "strict_route": True, "sniff": True},
+            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080, "sniff": True}
+        ],
+        "outbounds": [
+            {
+                "type": "socks",
+                "tag": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)",
+                "server": "127.0.0.1",
+                "server_port": 40443
+            },
+            {
+                "type": "vless",
+                "tag": "MHPanel - [Fragment] Direct Reality",
+                "server": srv,
+                "server_port": r_port,
+                "uuid": r_uuid,
+                "flow": "xtls-rprx-vision",
+                "tls": {
+                    "enabled": True,
+                    "server_name": sample_sni,
+                    "utls": {"enabled": True, "fingerprint": "chrome"},
+                    "reality": {"enabled": True, "public_key": r_pubkey, "short_id": r_shortid}
+                },
+                "packet_encoding": "xudp"
+            },
+            {"type": "direct", "tag": "direct"},
+            {"type": "dns", "tag": "dns-out"}
+        ],
+        "route": {
+            "auto_detect_interface": True,
+            "rules": [
+                {"protocol": "dns", "outbound": "dns-out"},
+                {"ip_is_private": True, "outbound": "direct"},
+                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
+            ],
+            "rule_set": [
+                {"tag": "geoip-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs", "download_detour": "direct"},
+                {"tag": "geosite-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs", "download_detour": "direct"}
+            ],
+            "final": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)"
+        }
+    }
+
+    # Snippets
     singbox_snippet = singbox_full["outbounds"][0]
+    singbox_cloud_snippet = singbox_cloud["outbounds"][0]
+    singbox_fragment_snippet = singbox_fragment["outbounds"][0]
 
-    # 3. Direct VLESS Reality URI (with Chrome fingerprint, Reality params & vision flow)
+    # V2Ray URIs
     v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision#MHPanel-AntiDPI-Reality"
-
-    # 4. VLESS Relay URI through SNI Spoofing port
     v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
-
-    # 5. Local SOCKS5 URI for snispoof-client
     v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
 
-    # 6. Full Xray / V2Ray JSON Config with Fragment Dialer Proxy
+    v2ray_cloud_uri = f"trojan://{r_trojan_pass}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS"
+    v2ray_cloud_vless_uri = f"vless://{r_uuid}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Fvless-ws#MHPanel - [Cloud Clean IP] VLESS-WS"
+
+    v2ray_fragment_uri = f"trojan://{r_trojan_pass}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] Trojan-40443"
+    v2ray_fragment_vless_uri = f"vless://{r_uuid}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] VLESS-40443"
+
+    # Full Xray / V2Ray JSON Config with Fragment Dialer Proxy
     xray_full = {
         "log": {"loglevel": "warning"},
         "inbounds": [
@@ -14035,14 +14406,26 @@ def get_snispoof_reality_and_client_configs():
         "r_pubkey": r_pubkey,
         "r_shortid": r_shortid,
         "r_uuid": r_uuid,
+        "r_trojan_pass": r_trojan_pass,
         "sample_sni": sample_sni,
         "singbox_full": singbox_full,
         "singbox_snippet": singbox_snippet,
+        "singbox_cloud": singbox_cloud,
+        "singbox_cloud_snippet": singbox_cloud_snippet,
+        "singbox_fragment": singbox_fragment,
+        "singbox_fragment_snippet": singbox_fragment_snippet,
         "xray_full": xray_full,
         "xray_snippet": xray_snippet,
         "v2ray_vless_uri": v2ray_vless_uri,
         "v2ray_relay_uri": v2ray_relay_uri,
-        "v2ray_socks_uri": v2ray_socks_uri
+        "v2ray_socks_uri": v2ray_socks_uri,
+        "v2ray_cloud_uri": v2ray_cloud_uri,
+        "v2ray_cloud_vless_uri": v2ray_cloud_vless_uri,
+        "v2ray_fragment_uri": v2ray_fragment_uri,
+        "v2ray_fragment_vless_uri": v2ray_fragment_vless_uri,
+        "cf_cfg": cf_cfg,
+        "chosen_clean_ip": chosen_clean_ip,
+        "cf_full_domain": cf_full_domain
     }
 
 
@@ -14490,8 +14873,20 @@ def api_snispoof_config():
 
     cfg["singbox_full_json"] = json.dumps(d["singbox_full"], indent=2, ensure_ascii=False)
     cfg["singbox_snippet"] = json.dumps(d["singbox_snippet"], indent=2, ensure_ascii=False)
+    cfg["singbox_cloud_json"] = json.dumps(d["singbox_cloud"], indent=2, ensure_ascii=False)
+    cfg["singbox_cloud_snippet"] = json.dumps(d["singbox_cloud_snippet"], indent=2, ensure_ascii=False)
+    cfg["singbox_fragment_json"] = json.dumps(d["singbox_fragment"], indent=2, ensure_ascii=False)
+    cfg["singbox_fragment_snippet"] = json.dumps(d["singbox_fragment_snippet"], indent=2, ensure_ascii=False)
     cfg["xray_full_json"] = json.dumps(d["xray_full"], indent=2, ensure_ascii=False)
     cfg["xray_snippet"] = json.dumps(d["xray_snippet"], indent=2, ensure_ascii=False)
+
+    cfg["v2ray_cloud_uri"] = d.get("v2ray_cloud_uri", "")
+    cfg["v2ray_cloud_vless_uri"] = d.get("v2ray_cloud_vless_uri", "")
+    cfg["v2ray_fragment_uri"] = d.get("v2ray_fragment_uri", "")
+    cfg["v2ray_fragment_vless_uri"] = d.get("v2ray_fragment_vless_uri", "")
+    cfg["cf_cfg"] = d.get("cf_cfg", {})
+    cfg["chosen_clean_ip"] = d.get("chosen_clean_ip", "104.18.119.142")
+    cfg["cf_full_domain"] = d.get("cf_full_domain", srv)
 
     cfg["fragment_packets"] = f"1-{cfg.get('fragment_size', 2)}"
     cfg["fragment_length"] = "10-100"
@@ -14555,6 +14950,270 @@ def api_snispoof_upload_log():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     return jsonify({"error": "No file uploaded"}), 400
+
+
+@app.route("/api/snispoof/cloudflare/config", methods=["GET", "POST"])
+def api_snispoof_cf_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_cloudflare_snispoof_config()
+    if request.method == "POST":
+        data = request.json or {}
+        for k in ["cf_token", "domain", "subdomain", "target_port"]:
+            if k in data:
+                cfg[k] = data[k]
+        if "clean_ips" in data:
+            c_ips = data["clean_ips"]
+            if isinstance(c_ips, str):
+                cfg["clean_ips"] = [x.strip() for x in c_ips.replace("\n", ",").split(",") if x.strip()]
+            elif isinstance(c_ips, list):
+                cfg["clean_ips"] = [str(x).strip() for x in c_ips if str(x).strip()]
+        save_cloudflare_snispoof_config(cfg)
+        return jsonify({"success": True, "config": cfg})
+    return jsonify(cfg)
+
+
+@app.route("/api/snispoof/cloudflare/test", methods=["POST"])
+def api_snispoof_cf_test():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    token = (data.get("cf_token") or "").strip()
+    domain = (data.get("domain") or "").strip()
+    if not token:
+        cfg = get_cloudflare_snispoof_config()
+        token = cfg.get("cf_token", "").strip()
+    if not domain:
+        cfg = get_cloudflare_snispoof_config()
+        domain = cfg.get("domain", "").strip()
+    if not token:
+        return jsonify({"success": False, "error": "توکن کلودفلر وارد نشده است."}), 400
+
+    # 1. Verify Token
+    status, res = cf_api_call("GET", "/user/tokens/verify", token)
+    if not res.get("success"):
+        err_msg = res.get("errors", [{}])[0].get("message", "توکن نامعتبر است.")
+        return jsonify({"success": False, "error": f"اعتبارسنجی توکن ناموفق بود: {err_msg}"})
+
+    # 2. Check Domain Zone if provided
+    zone_info = None
+    if domain:
+        st_z, res_z = cf_api_call("GET", f"/zones?name={domain}", token)
+        if res_z.get("success") and res_z.get("result"):
+            zone_info = {
+                "id": res_z["result"][0]["id"],
+                "name": res_z["result"][0]["name"],
+                "status": res_z["result"][0]["status"],
+                "plan": res_z["result"][0].get("plan", {}).get("name", "Free")
+            }
+        else:
+            return jsonify({"success": False, "error": f"دامنه '{domain}' در حساب متصل به این توکن یافت نشد."})
+
+    return jsonify({
+        "success": True,
+        "message": "توکن معتبر است و دسترسی به کلودفلر تایید شد.",
+        "zone": zone_info
+    })
+
+
+@app.route("/api/snispoof/cloudflare/apply", methods=["POST"])
+def api_snispoof_cf_apply():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    token = (data.get("cf_token") or "").strip()
+    domain = (data.get("domain") or "").strip().lower()
+    subdomain = (data.get("subdomain") or "cf-sni").strip().lower()
+    target_port = int(data.get("target_port") or 20460)
+    clean_ips = data.get("clean_ips") or []
+    if isinstance(clean_ips, str):
+        clean_ips = [x.strip() for x in clean_ips.replace("\n", ",").split(",") if x.strip()]
+
+    if not token:
+        return jsonify({"success": False, "error": "لطفاً توکن کلودفلر (Cloudflare API Token) را وارد کنید."}), 400
+    if not domain:
+        return jsonify({"success": False, "error": "لطفاً نام دامنه اصلی (Root Domain) را وارد کنید."}), 400
+
+    # Step 1: Discover Zone ID
+    st, res = cf_api_call("GET", f"/zones?name={domain}", token)
+    if not res.get("success") or not res.get("result"):
+        err = res.get("errors", [{}])[0].get("message", "دامنه در حساب کلودفلر یافت نشد.")
+        return jsonify({"success": False, "error": f"خطا در شناسایی دامنه {domain}: {err}"}), 400
+
+    zone_id = res["result"][0]["id"]
+
+    # Normalize subdomain & full name
+    sub = subdomain.strip().rstrip(".")
+    if sub in ["@", "", domain]:
+        full_subdomain = domain
+        clean_subdomain = f"clean.{domain}"
+    else:
+        full_subdomain = f"{sub}.{domain}"
+        clean_subdomain = f"clean-{sub}.{domain}"
+
+    server_ip = get_server_public_ip()
+    log_steps = []
+
+    # Step 2: Setup Proxied A Record for full_subdomain -> server_ip
+    st_d, res_d = cf_api_call("GET", f"/zones/{zone_id}/dns_records?name={full_subdomain}&type=A", token)
+    existing_recs = res_d.get("result", []) if res_d.get("success") else []
+    proxied_rec_id = ""
+
+    if existing_recs:
+        proxied_rec_id = existing_recs[0]["id"]
+        st_u, res_u = cf_api_call("PUT", f"/zones/{zone_id}/dns_records/{proxied_rec_id}", token, data={
+            "type": "A",
+            "name": full_subdomain,
+            "content": server_ip,
+            "proxied": True,
+            "ttl": 1
+        })
+        if res_u.get("success"):
+            log_steps.append(f"✅ رکورد پروکسی‌شده A برای {full_subdomain} با آی‌پی {server_ip} بروزرسانی شد.")
+        else:
+            log_steps.append(f"⚠️ هشدار در بروزرسانی رکورد A: {res_u.get('errors')}")
+    else:
+        st_c, res_c = cf_api_call("POST", f"/zones/{zone_id}/dns_records", token, data={
+            "type": "A",
+            "name": full_subdomain,
+            "content": server_ip,
+            "proxied": True,
+            "ttl": 1
+        })
+        if res_c.get("success"):
+            proxied_rec_id = res_c.get("result", {}).get("id", "")
+            log_steps.append(f"✅ رکورد پروکسی‌شده A برای {full_subdomain} به سمت {server_ip} در کلودفلر ساخته شد.")
+        else:
+            log_steps.append(f"⚠️ هشدار در ساخت رکورد A: {res_c.get('errors')}")
+
+    # Step 3: Setup Clean IP A records (DNS Only, proxied: false)
+    clean_record_ids = []
+    if clean_ips:
+        st_old, res_old = cf_api_call("GET", f"/zones/{zone_id}/dns_records?name={clean_subdomain}&type=A", token)
+        if res_old.get("success"):
+            for o_rec in res_old.get("result", []):
+                cf_api_call("DELETE", f"/zones/{zone_id}/dns_records/{o_rec['id']}", token)
+
+        for cip in clean_ips:
+            cip = cip.strip()
+            if not cip: continue
+            st_cip, res_cip = cf_api_call("POST", f"/zones/{zone_id}/dns_records", token, data={
+                "type": "A",
+                "name": clean_subdomain,
+                "content": cip,
+                "proxied": False,
+                "ttl": 1
+            })
+            if res_cip.get("success"):
+                clean_record_ids.append(res_cip.get("result", {}).get("id"))
+
+        log_steps.append(f"✅ ساب‌دامین اختصاصی آی‌پی‌های سفید ({clean_subdomain}) با {len(clean_record_ids)} آی‌پی تمیز ساخته شد.")
+
+    # Step 4: Configure Origin Rule for Port Redirection (هدایت پورت)
+    rule_desc = f"MHPanel SNI Spoof Forward {full_subdomain} to Port {target_port}"
+    new_origin_rule = {
+        "description": rule_desc,
+        "expression": f'http.host eq "{full_subdomain}"',
+        "action": "route",
+        "action_parameters": {
+            "origin": {
+                "port": int(target_port)
+            }
+        },
+        "enabled": True
+    }
+
+    origin_rule_ok = False
+    st_r, res_r = cf_api_call("GET", f"/zones/{zone_id}/rulesets/phases/http_request_origin/entrypoint", token)
+    if res_r.get("success") and res_r.get("result"):
+        existing_rules = res_r["result"].get("rules", [])
+        filtered_rules = [r for r in existing_rules if not (full_subdomain in r.get("expression", "") or "MHPanel SNI Spoof" in r.get("description", ""))]
+        filtered_rules.append(new_origin_rule)
+        st_p, res_p = cf_api_call("PUT", f"/zones/{zone_id}/rulesets/phases/http_request_origin/entrypoint", token, data={"rules": filtered_rules})
+        if res_p.get("success"):
+            origin_rule_ok = True
+            log_steps.append(f"✅ قاعده Origin Rule کلودفلر با موفقیت ثبت شد: ترافیک پورت ۴۴۳ ساب‌دامین {full_subdomain} مستقیماً به پورت {target_port} سرور هدایت می‌شود.")
+        else:
+            log_steps.append(f"⚠️ ثبت Origin Rule با پاسخ: {res_p.get('errors')}")
+    else:
+        st_cr, res_cr = cf_api_call("POST", f"/zones/{zone_id}/rulesets", token, data={
+            "name": "default",
+            "kind": "zone",
+            "phase": "http_request_origin",
+            "rules": [new_origin_rule]
+        })
+        if res_cr.get("success"):
+            origin_rule_ok = True
+            log_steps.append(f"✅ رول‌ست Origin Rule کلودفلر ایجاد شد و پورت ۴۴۳ به {target_port} فوروارد گردید.")
+        else:
+            log_steps.append(f"⚠️ نتیجه ساخت Origin Rule: {res_cr.get('errors')}")
+
+    # Step 5: Enable WebSockets & Full SSL
+    cf_api_call("PATCH", f"/zones/{zone_id}/settings/websockets", token, data={"value": "on"})
+    cf_api_call("PATCH", f"/zones/{zone_id}/settings/ssl", token, data={"value": "full"})
+    log_steps.append("✅ وب‌سوکت‌ها (WebSockets) فعال و حالت رمزنگاری SSL/TLS روی Full قرار گرفت.")
+
+    # Save to JSON
+    saved_cfg = {
+        "cf_token": token,
+        "domain": domain,
+        "subdomain": subdomain,
+        "full_subdomain": full_subdomain,
+        "clean_subdomain": clean_subdomain,
+        "clean_ips": clean_ips,
+        "target_port": target_port,
+        "zone_id": zone_id,
+        "proxied_record_id": proxied_rec_id,
+        "clean_record_ids": clean_record_ids,
+        "origin_rule_status": "active" if origin_rule_ok else "partial",
+        "websockets": "on",
+        "ssl_mode": "full",
+        "last_applied": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "status": "applied_successfully"
+    }
+    save_cloudflare_snispoof_config(saved_cfg)
+
+    # Also update snispoof.json or active decoy SNI
+    try:
+        sni_file = "/etc/vpnpanel/snispoof.json"
+        if os.path.exists(sni_file):
+            with open(sni_file, "r") as sf:
+                s_data = json.load(sf)
+            if full_subdomain not in s_data.get("sni_pool", []):
+                s_data["sni_pool"] = [full_subdomain] + s_data.get("sni_pool", [])
+            with open(sni_file, "w") as sf:
+                json.dump(s_data, sf, indent=2)
+    except Exception:
+        pass
+
+    return jsonify({
+        "success": True,
+        "message": "تنظیمات کلودفلر با موفقیت روی دامنه اعمال گردید!",
+        "config": saved_cfg,
+        "logs": log_steps
+    })
+
+
+@app.route("/api/snispoof/cloudflare/delete", methods=["POST"])
+def api_snispoof_cf_delete():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = get_cloudflare_snispoof_config()
+    token = cfg.get("cf_token", "")
+    zone_id = cfg.get("zone_id", "")
+
+    if token and zone_id:
+        if cfg.get("proxied_record_id"):
+            cf_api_call("DELETE", f"/zones/{zone_id}/dns_records/{cfg['proxied_record_id']}", token)
+        for cid in cfg.get("clean_record_ids", []):
+            cf_api_call("DELETE", f"/zones/{zone_id}/dns_records/{cid}", token)
+
+    cfg["proxied_record_id"] = ""
+    cfg["clean_record_ids"] = []
+    cfg["origin_rule_status"] = "removed"
+    cfg["status"] = "idle"
+    save_cloudflare_snispoof_config(cfg)
+    return jsonify({"success": True, "message": "تنظیمات کلودفلر پاکسازی شد."})
 
 
 # Download routes for SNI Spoofing clients
@@ -14801,6 +15460,28 @@ def api_download_snispoof_xray_json():
         content,
         mimetype="application/json",
         headers={"Content-Disposition": "attachment;filename=mhpanel-xray-antidpi.json"}
+    )
+
+@app.route("/download/snispoof-singbox-cloud.json", methods=["GET"])
+def api_download_snispoof_singbox_cloud_json():
+    from flask import Response
+    d = get_snispoof_reality_and_client_configs()
+    content = json.dumps(d["singbox_cloud"], indent=2, ensure_ascii=False)
+    return Response(
+        content,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment;filename=mhpanel-singbox-cloud.json"}
+    )
+
+@app.route("/download/snispoof-singbox-fragment.json", methods=["GET"])
+def api_download_snispoof_singbox_fragment_json():
+    from flask import Response
+    d = get_snispoof_reality_and_client_configs()
+    content = json.dumps(d["singbox_fragment"], indent=2, ensure_ascii=False)
+    return Response(
+        content,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment;filename=mhpanel-singbox-fragment.json"}
     )
 
 

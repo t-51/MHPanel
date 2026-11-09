@@ -83,6 +83,129 @@
                 </div>
             </div>
 
+            <!-- Cloudflare Clean IP & Port Redirection Automation Hub -->
+            <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(15, 23, 42, 0.55); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+                <div class="config-header" style="margin-bottom: 14px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="width:42px; height:42px; border-radius:12px; background: rgba(245, 158, 11, 0.14); color:#f59e0b; display:flex; align-items:center; justify-content:center; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);">
+                            <i data-lucide="cloud-lightning" style="width:24px; height:24px;"></i>
+                        </div>
+                        <div>
+                            <h3 class="config-title" style="margin:0; font-size:16px; color:#f59e0b;">
+                                اتوماسیون ساخت دامنه و هدایت پورت در کلودفلر (Cloudflare Clean IP &amp; Port Automation)
+                            </h3>
+                            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                                اتصال خودکار با توکن، ساخت ساب‌دامین پروکسی، ست کردن آی‌پی‌های سفید (Clean IP) و هدایت پورت ۴۴۳ به پورت سرور از طریق Origin Rules
+                            </p>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span id="snispoof-cf-status-badge" style="font-size:12px; font-weight:600; padding:4px 10px; border-radius:6px; background:rgba(255,255,255,0.05); color:#94a3b8; border:1px solid rgba(255,255,255,0.1);">
+                            آماده پیکربندی
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Form: Cloudflare Details -->
+                <form id="snispoof-cf-form" onsubmit="applySniSpoofCloudflare(event);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px;">
+                        
+                        <!-- CF API Token -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12px; display:flex; justify-content:space-between; align-items:center;">
+                                <span>توکن اختصاصی کلودفلر (API Token)</span>
+                                <span onclick="toggleCfTokenVisibility();" style="cursor:pointer; color:#38bdf8; font-size:11px;">نمایش/مخفی</span>
+                            </label>
+                            <input type="password" class="form-input" id="snispoof-cf-token" placeholder="Bearer Token با دسترسی ویرایش DNS و Ruleset" required>
+                            <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;">
+                                توکن با دسترسی <code>Zone.DNS:Edit</code> و <code>Zone.Rulesets:Edit</code> در Cloudflare.
+                            </span>
+                        </div>
+
+                        <!-- Domain Name -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12px;">نام دامنه اصلی ثبت‌شده در کلودفلر (Root Domain)</label>
+                            <input type="text" class="form-input" id="snispoof-cf-domain" oninput="updateCfPreview();" placeholder="مثال: example.com" required dir="ltr">
+                            <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;">
+                                نام زون/دامنه فعال شما روی کلودفلر (بدون http یا www).
+                            </span>
+                        </div>
+
+                        <!-- Subdomain Prefix -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12px;">ساب‌دامین مورد نظر جهت ساخت (Subdomain)</label>
+                            <input type="text" class="form-input" id="snispoof-cf-subdomain" oninput="updateCfPreview();" placeholder="مثال: cf-sni یا ws" value="cf-sni" required dir="ltr">
+                            <span style="font-size:10.5px; color:#38bdf8; margin-top:3px; display:block;" id="snispoof-cf-full-preview">
+                                ساب‌دامین ساخته شده: <strong id="snispoof-preview-sub-txt">cf-sni.example.com</strong>
+                            </span>
+                        </div>
+
+                        <!-- Target Origin Port -->
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label class="form-label" style="font-weight:600; font-size:12px;">پورت مقصد در سرور (Origin Port Forwarding)</label>
+                            <select class="form-input" id="snispoof-cf-target-port">
+                                <option value="20460" selected>20460 (Trojan-WS - پیشنهادی و پرسرعت)</option>
+                                <option value="20451">20451 (VLESS-WS TLS)</option>
+                                <option value="20457">20457 (VMess-WS TLS)</option>
+                                <option value="443">443 (مستقیم HAProxy / Multiplexer)</option>
+                                <option value="15443">15443 (نود اصلی SNI Spoofing)</option>
+                                <option value="20455">20455 (VLESS-HTTPUpgrade)</option>
+                                <option value="20462">20462 (Trojan-HTTPUpgrade)</option>
+                            </select>
+                            <span style="font-size:10.5px; color:var(--text-muted); margin-top:3px; display:block;">
+                                ترافیک ورودی ۴۴۳ کلودفلر خودکار با Origin Rule به این پورت هدایت می‌شود.
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Clean IPs Management -->
+                    <div style="background:var(--bg-base); border-radius:10px; padding:12px; border:1px solid var(--border-glow); margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                            <label class="form-label" style="font-weight:600; font-size:12px; margin:0; display:flex; align-items:center; gap:6px;">
+                                <i data-lucide="shield-check" style="width:15px; height:15px; color:#10b981;"></i>
+                                <span>آی‌پی‌های سفید کلودفلر (Cloudflare Clean Anycast IPs)</span>
+                            </label>
+                            <span style="font-size:11px; color:var(--text-muted);">جهت افزودن سریع، روی آی‌پی‌های تاییدشده زیر کلیک کنید:</span>
+                        </div>
+
+                        <!-- Quick Pick Chips -->
+                        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('104.18.119.142');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 104.18.119.142</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('104.25.165.92');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 104.25.165.92</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('104.25.224.90');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 104.25.224.90</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('159.246.55.228');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 159.246.55.228</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('172.67.69.51');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 172.67.69.51</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('91.209.253.54');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 91.209.253.54</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="addCleanIpChip('199.33.231.234');" style="font-family:'JetBrains Mono',monospace; font-size:11px; padding:3px 9px;">+ 199.33.231.234</button>
+                        </div>
+
+                        <textarea id="snispoof-cf-clean-ips" class="form-input" rows="2" placeholder="104.18.119.142, 104.25.165.92, 104.25.224.90" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; padding:8px; resize:vertical;" dir="ltr"></textarea>
+                        <span style="font-size:10.5px; color:var(--text-muted); margin-top:4px; display:block;">
+                            این آی‌پی‌ها برای ساب‌دامین اختصاصی <code id="snispoof-preview-clean-sub">clean-cf-sni.example.com</code> بدون پروکسی (DNS-only) ثبت شده و به عنوان مقصد کانکشن کلاینت استفاده می‌شوند.
+                        </span>
+                    </div>
+
+                    <!-- Action Buttons & Logs -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="testSniSpoofCloudflare();" style="padding:8px 14px; border-color:rgba(56, 189, 248, 0.4); color:#38bdf8;">
+                                <i data-lucide="activity" style="width:14px; height:14px; margin-left:4px;"></i> <span>تست اعتبار توکن و دامنه</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="deleteSniSpoofCloudflare();" style="padding:8px 14px; border-color:rgba(239, 68, 68, 0.4); color:#f87171;">
+                                <i data-lucide="trash-2" style="width:14px; height:14px; margin-left:4px;"></i> <span>حذف تنظیمات</span>
+                            </button>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="padding:9px 22px; font-weight:700; background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border:none; box-shadow:0 4px 14px rgba(245, 158, 11, 0.35);">
+                            <i data-lucide="check" style="width:15px; height:15px; margin-left:6px;"></i> <span>اعمال خودکار تنظیمات در کلودفلر</span>
+                        </button>
+                    </div>
+
+                    <!-- Live Result / Details Box -->
+                    <div id="snispoof-cf-live-results" style="display:none; margin-top:14px; background:rgba(0,0,0,0.3); border-radius:8px; padding:12px; border:1px solid rgba(255,255,255,0.08); font-size:11.5px; line-height:1.7;">
+                    </div>
+                </form>
+            </div>
+
             <!-- Form: Configuration -->
             <form id="snispoof-config-form" onsubmit="saveSniSpoofConfig(event);">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 16px;">
@@ -420,9 +543,17 @@
                     <i data-lucide="cpu" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
                     <span style="font-weight:700;">کامپایل نرم‌افزارها برای این سرور</span>
                 </button>
+                <a href="/download/snispoof-singbox-cloud.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:180px; justify-content:center; padding: 10px; border-color: rgba(56, 189, 248, 0.4); color:#38bdf8;">
+                    <i data-lucide="cloud" style="width:16px; height:16px; margin-left:6px; color:#38bdf8;"></i>
+                    <span style="font-weight:700;">دانلود Sing-box (Cloud Clean IP)</span>
+                </a>
+                <a href="/download/snispoof-singbox-fragment.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:180px; justify-content:center; padding: 10px; border-color: rgba(236, 72, 153, 0.4); color:#f472b6;">
+                    <i data-lucide="scissors" style="width:16px; height:16px; margin-left:6px; color:#f472b6;"></i>
+                    <span style="font-weight:700;">دانلود Sing-box (Fragment Anti-DPI)</span>
+                </a>
                 <a href="/download/snispoof-singbox.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:170px; justify-content:center; padding: 10px; border-color: rgba(16, 185, 129, 0.3);">
                     <i data-lucide="box" style="width:16px; height:16px; margin-left:6px; color:#10b981;"></i>
-                    <span>دانلود کانفیگ Sing-box</span>
+                    <span>دانلود Sing-box پیش‌فرض</span>
                 </a>
                 <a href="/download/snispoof/config.json" download class="btn btn-secondary btn-sm" style="flex:1; min-width:150px; justify-content:center; padding: 10px; border-color: rgba(245, 158, 11, 0.3);">
                     <i data-lucide="file-json" style="width:16px; height:16px; margin-left:6px; color:#f59e0b;"></i>
@@ -442,7 +573,9 @@
             <div style="background: #0f172a; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); overflow: hidden;">
                 <div style="display:flex; border-bottom:1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2); overflow-x:auto;">
                     <button type="button" class="snispoof-tab-btn active" onclick="switchSniCliTab('vless')" style="padding:10px 16px; border:none; background:none; color:#38bdf8; font-weight:700; font-size:12px; cursor:pointer; border-bottom:2px solid #38bdf8;">لینک V2Ray (VLESS Reality)</button>
-                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-full')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">کانفیگ کامل Sing-box (ضد فیلتر)</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-cloud')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">⚡ Sing-box (Cloud Clean IP)</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-fragment')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">✂️ Sing-box (Fragment Anti-DPI)</button>
+                    <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('singbox-full')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">کانفیگ کامل Sing-box (پیش‌فرض)</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('xray-full')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">کانفیگ کامل Xray Fragment</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('powershell')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">Windows PowerShell</button>
                     <button type="button" class="snispoof-tab-btn" onclick="switchSniCliTab('linux')" style="padding:10px 16px; border:none; background:none; color:#94a3b8; font-weight:700; font-size:12px; cursor:pointer;">لینوکس (Linux CLI)</button>
@@ -464,6 +597,44 @@
                         </button>
                     </div>
                     <textarea id="snispoof-v2ray-vless" readonly style="width:100%; height:75px; background: rgba(0,0,0,0.4); border:1px solid rgba(56, 189, 248, 0.25); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:11.5px; padding:10px; resize:none;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab: Sing-box Cloud Clean IP Config -->
+                <div id="snispoof-cli-singbox-cloud" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span style="font-size:12px; font-weight:700; color:#38bdf8;">کانفیگ Sing-box حالت Cloudflare Clean IP (اتصال مستقیم به آی‌پی سفید کلودفلر با پورت استاندارد ۴۴۳):</span>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">اتصال پایدار از طریق آی‌پی سالم کلودفلر و ترنزمیشن WebSocket با هدایت پورت خودکار Cloudflare Origin Rules.</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <a href="/download/snispoof-singbox-cloud.json" download class="btn btn-secondary btn-sm" style="padding:6px 12px; font-size:11.5px; border-color:rgba(56, 189, 248, 0.4); color:#38bdf8;">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px; color:#38bdf8;"></i> <span>دانلود فایل .json</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-full-singbox-cloud')" style="padding:6px 12px; font-size:11.5px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="copy">کپی JSON</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="snispoof-full-singbox-cloud" readonly style="width:100%; height:220px; background: rgba(0,0,0,0.4); border:1px solid rgba(56, 189, 248, 0.25); border-radius:8px; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:11px; padding:10px; resize:vertical;" dir="ltr"></textarea>
+                </div>
+
+                <!-- Tab: Sing-box Fragment Anti-DPI Config -->
+                <div id="snispoof-cli-singbox-fragment" class="snispoof-cli-content" style="padding:16px; display:none;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span style="font-size:12px; font-weight:700; color:#f472b6;">کانفیگ Sing-box حالت Fragment / Anti-DPI Relay (عبور از فیلترینگ شدید با تقطیع بسته و رله محلی):</span>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:2px;">مسیردهی از طریق کلاینت تقطیع TLS لوکال روی پورت 40443 و شکستن هدر SNI در لایه سوکت.</div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <a href="/download/snispoof-singbox-fragment.json" download class="btn btn-secondary btn-sm" style="padding:6px 12px; font-size:11.5px; border-color:rgba(236, 72, 153, 0.4); color:#f472b6;">
+                                <i data-lucide="download" style="width:13px; height:13px; margin-left:4px; color:#f472b6;"></i> <span>دانلود فایل .json</span>
+                            </a>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="copySniText('snispoof-full-singbox-fragment')" style="padding:6px 12px; font-size:11.5px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="copy">کپی JSON</span>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="snispoof-full-singbox-fragment" readonly style="width:100%; height:220px; background: rgba(0,0,0,0.4); border:1px solid rgba(236, 72, 153, 0.25); border-radius:8px; color:#f472b6; font-family:'JetBrains Mono', monospace; font-size:11px; padding:10px; resize:vertical;" dir="ltr"></textarea>
                 </div>
 
                 <!-- Tab 2: Sing-box Full Config (Ready-to-use Anti-DPI JSON) -->

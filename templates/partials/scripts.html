@@ -19896,12 +19896,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById("snispoof-cmd-termux")) document.getElementById("snispoof-cmd-termux").value = data.client_cmd_termux || "";
             if (document.getElementById("snispoof-v2ray-vless")) document.getElementById("snispoof-v2ray-vless").value = data.v2ray_vless_uri || "";
             if (document.getElementById("snispoof-full-singbox")) document.getElementById("snispoof-full-singbox").value = data.singbox_full_json || "";
+            if (document.getElementById("snispoof-full-singbox-cloud")) document.getElementById("snispoof-full-singbox-cloud").value = data.singbox_cloud_json || "";
+            if (document.getElementById("snispoof-full-singbox-fragment")) document.getElementById("snispoof-full-singbox-fragment").value = data.singbox_fragment_json || "";
             if (document.getElementById("snispoof-full-xray")) document.getElementById("snispoof-full-xray").value = data.xray_full_json || "";
             if (document.getElementById("snispoof-snippet-singbox")) document.getElementById("snispoof-snippet-singbox").value = data.singbox_snippet || "";
             if (document.getElementById("snispoof-snippet-xray")) document.getElementById("snispoof-snippet-xray").value = data.xray_snippet || "";
             if (document.getElementById("snispoof-vless-params-hint") && data.fragment_packets) {
                 document.getElementById("snispoof-vless-params-hint").textContent = `packets: ${data.fragment_packets}, length: ${data.fragment_length || "10-100"}, interval: ${data.fragment_interval || "2-5"}`;
             }
+
+            fetchSniSpoofCfConfig();
 
         } catch (e) {
             console.error("fetchSniSpoofConfig error:", e);
@@ -20214,6 +20218,186 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const statLabel = document.getElementById("snispoof-stat-strategy");
         if (statLabel && info) {
             statLabel.textContent = `${info.title_en} (${info.title_fa})`;
+        }
+    }
+
+    // --- Cloudflare Clean IP & Port Automation for SNI Spoofing ---
+    function toggleCfTokenVisibility() {
+        const input = document.getElementById("snispoof-cf-token");
+        if (input) {
+            input.type = input.type === "password" ? "text" : "password";
+        }
+    }
+
+    function updateCfPreview() {
+        const sub = (document.getElementById("snispoof-cf-subdomain")?.value || "").trim().toLowerCase();
+        const dom = (document.getElementById("snispoof-cf-domain")?.value || "").trim().toLowerCase();
+        const full = sub && dom ? `${sub}.${dom}` : (dom || "---");
+        const cleanSub = sub && dom ? `clean-${sub}.${dom}` : "clean-sub.domain.com";
+        const p1 = document.getElementById("snispoof-preview-sub-txt");
+        const p2 = document.getElementById("snispoof-preview-clean-sub");
+        if (p1) p1.textContent = full;
+        if (p2) p2.textContent = cleanSub;
+    }
+
+    function addCleanIpChip(ip) {
+        const textarea = document.getElementById("snispoof-cf-clean-ips");
+        if (!textarea) return;
+        let list = textarea.value.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        if (!list.includes(ip)) {
+            list.push(ip);
+            textarea.value = list.join("\n");
+            showToast(`آی‌پی ${ip} به لیست اضافه شد`, "info");
+        }
+    }
+
+    async function fetchSniSpoofCfConfig() {
+        try {
+            const res = await fetch("/api/snispoof/cloudflare/config");
+            if (!res.ok) return;
+            const data = await res.json();
+            const cfg = data.config || {};
+            if (document.getElementById("snispoof-cf-token") && cfg.api_token) document.getElementById("snispoof-cf-token").value = cfg.api_token;
+            if (document.getElementById("snispoof-cf-domain") && cfg.domain) document.getElementById("snispoof-cf-domain").value = cfg.domain;
+            if (document.getElementById("snispoof-cf-subdomain") && cfg.subdomain) document.getElementById("snispoof-cf-subdomain").value = cfg.subdomain;
+            if (document.getElementById("snispoof-cf-origin-port") && cfg.origin_port) document.getElementById("snispoof-cf-origin-port").value = cfg.origin_port;
+            if (document.getElementById("snispoof-cf-clean-ips") && cfg.clean_ips && cfg.clean_ips.length) {
+                document.getElementById("snispoof-cf-clean-ips").value = cfg.clean_ips.join("\n");
+            }
+            updateCfPreview();
+            const badge = document.getElementById("snispoof-cf-status-badge");
+            if (badge) {
+                if (cfg.domain && cfg.subdomain) {
+                    badge.innerHTML = `<span class="status-dot active"></span> <span style="color:#10b981;">پیکربندی شده: ${cfg.subdomain}.${cfg.domain}</span>`;
+                } else {
+                    badge.innerHTML = `<span class="status-dot inactive"></span> <span style="color:#94a3b8;">آماده تنظیم</span>`;
+                }
+            }
+        } catch (e) {
+            console.error("fetchSniSpoofCfConfig error:", e);
+        }
+    }
+
+    async function testSniSpoofCloudflare() {
+        const token = document.getElementById("snispoof-cf-token")?.value.trim();
+        const domain = document.getElementById("snispoof-cf-domain")?.value.trim();
+        if (!token) {
+            showToast("لطفاً ابتدا توکن کلودفلر را وارد کنید", "warning");
+            return;
+        }
+        toggleLoading(true, "در حال بررسی و اعتبارسنجی توکن کلودفلر...");
+        try {
+            const res = await fetch("/api/snispoof/cloudflare/test", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ api_token: token, domain: domain })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                const zMsg = data.zone ? `دامنه ${data.zone.name} یافت شد (Zone ID: ${data.zone.id.substring(0,8)}...)` : "توکن معتبر است";
+                showToast(`✅ ${zMsg}`, "success");
+            } else {
+                showToast(data.error || "اعتبارسنجی توکن ناموفق بود", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه در ارتباط با سرور", "error");
+        }
+    }
+
+    async function applySniSpoofCloudflare(event) {
+        if (event) event.preventDefault();
+        const token = document.getElementById("snispoof-cf-token")?.value.trim();
+        const domain = document.getElementById("snispoof-cf-domain")?.value.trim();
+        const subdomain = document.getElementById("snispoof-cf-subdomain")?.value.trim();
+        const origin_port = parseInt(document.getElementById("snispoof-cf-origin-port")?.value) || 20460;
+        const clean_ips_raw = document.getElementById("snispoof-cf-clean-ips")?.value || "";
+        const clean_ips = clean_ips_raw.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+
+        if (!token) {
+            showToast("لطفاً توکن API کلودفلر را وارد کنید", "warning");
+            return;
+        }
+        if (!domain) {
+            showToast("لطفاً نام دامنه ریشه (domain.com) را وارد کنید", "warning");
+            return;
+        }
+        if (!subdomain) {
+            showToast("لطفاً ساب‌دامین مدنظر را وارد کنید", "warning");
+            return;
+        }
+
+        const liveBox = document.getElementById("snispoof-cf-live-results");
+        const logBox = document.getElementById("snispoof-cf-result-log");
+        const domainBadge = document.getElementById("snispoof-cf-res-domain");
+        const portBadge = document.getElementById("snispoof-cf-res-port");
+
+        toggleLoading(true, "در حال خودکارسازی تنظیمات کلودفلر و هدایت پورت...");
+        try {
+            const res = await fetch("/api/snispoof/cloudflare/apply", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    api_token: token,
+                    domain: domain,
+                    subdomain: subdomain,
+                    origin_port: origin_port,
+                    clean_ips: clean_ips
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+
+            if (data.success) {
+                showToast("دامنه و هدایت پورت با موفقیت در کلودفلر اعمال شد!", "success");
+                if (liveBox) liveBox.style.display = "block";
+                if (domainBadge) domainBadge.textContent = data.full_domain || `${subdomain}.${domain}`;
+                if (portBadge) portBadge.textContent = `${data.origin_port || origin_port} ➔ 443`;
+                if (logBox && data.logs) {
+                    logBox.textContent = data.logs.join("\n");
+                }
+                fetchSniSpoofConfig();
+                fetchSniSpoofCfConfig();
+            } else {
+                showToast(data.error || "خطا در اعمال تنظیمات کلودفلر", "error");
+                if (liveBox) liveBox.style.display = "block";
+                if (logBox && data.logs) {
+                    logBox.textContent = data.logs.join("\n") + "\n\n[ERROR]: " + (data.error || "Failed");
+                }
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور: " + e.message, "error");
+        }
+    }
+
+    async function deleteSniSpoofCloudflare() {
+        if (!confirm("آیا از حذف رکوردها و قوانین هدایت پورت کلودفلر برای این ساب‌دامین اطمینان دارید؟")) return;
+        const token = document.getElementById("snispoof-cf-token")?.value.trim();
+        const domain = document.getElementById("snispoof-cf-domain")?.value.trim();
+        const subdomain = document.getElementById("snispoof-cf-subdomain")?.value.trim();
+
+        toggleLoading(true, "در حال پاکسازی رکوردهای کلودفلر...");
+        try {
+            const res = await fetch("/api/snispoof/cloudflare/delete", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ api_token: token, domain: domain, subdomain: subdomain })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast("تنظیمات و رکوردهای کلودفلر با موفقیت حذف شدند", "success");
+                const liveBox = document.getElementById("snispoof-cf-live-results");
+                if (liveBox) liveBox.style.display = "none";
+                fetchSniSpoofCfConfig();
+            } else {
+                showToast(data.error || "خطا در حذف تنظیمات کلودفلر", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباطی", "error");
         }
     }
 

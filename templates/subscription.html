@@ -937,6 +937,127 @@
                 </div>
 </div>
             {% endif %}
+
+            <!-- 8. SNI Spoofing - Cloud Clean IP Mode -->
+            {% if cloud_uris %}
+            <div class="proto-card" style="border: 1px solid rgba(56, 189, 248, 0.4); background: linear-gradient(180deg, rgba(56, 189, 248, 0.04) 0%, rgba(15, 23, 42, 0.6) 100%);">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="cloud" style="color:#38bdf8; width:20px; height:20px;"></i>
+                        <span style="font-weight:700; color:#38bdf8;">کانفیگ‌های حالت Cloudflare Clean IP (اتصال با آی‌پی سفید و پورت ۴۴۳)</span>
+                        <span class="proto-tag" style="background:rgba(56, 189, 248, 0.15); color:#38bdf8; border:1px solid rgba(56,189,248,0.3);">Cloud Mode</span>
+                    </div>
+                    <div class="btn-group" style="flex-wrap: wrap; gap: 8px;">
+                        <a href="/sub/{{ sub_token }}/singbox-cloud.json" download="MHPanel-{{ username }}-SingBox-Cloud.json" class="btn btn-secondary" style="padding: 7px 14px; font-size:12px; font-weight:700; color:#38bdf8; border-color:rgba(56,189,248,0.4);">
+                            <i data-lucide="box" style="width:14px; height:14px;"></i><span>دانلود Sing-box کلود</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">آی‌پی سالم / Clean IP</span>
+                        <span class="field-value" style="color:#38bdf8; font-family:'JetBrains Mono',monospace;">{{ cloud_uris[0].server if cloud_uris else server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">پورت اتصال استاندارد</span>
+                        <span class="field-value">443 (HTTPS / WSS)</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">دامنه و SNI مجاز</span>
+                        <span class="field-value">{{ cloud_uris[0].sni if cloud_uris else server_host }}</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">ترنزمیشن و هدایت پورت</span>
+                        <span class="field-value">WebSocket ➔ پورت داخلی {{ cf_config.origin_port if cf_config else 20460 }}</span>
+                    </div>
+                </div>
+
+                <!-- Sub Links List for Cloud Mode -->
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">
+                        لینک‌های اتصال مستقیم V2Ray / Sing-box حالت کلودفلر:
+                    </div>
+                    {% for item in cloud_uris %}
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); border:1px solid rgba(56,189,248,0.2); border-radius:8px; padding:8px 12px; gap:10px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="proto-tag" style="background:#38bdf8; color:#0f172a; font-weight:700; font-size:11px;">{{ item.type }}</span>
+                            <span style="font-size:12px; font-weight:600; color:var(--text-main);">{{ item.name }}</span>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-secondary" onclick="copyText('{{ item.uri }}', 'لینک {{ item.type }} کپی شد!')" type="button" style="padding:4px 10px; font-size:11px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک
+                            </button>
+                            <button class="btn btn-secondary" onclick="showQrModal('{{ item.uri }}', '{{ item.name }}')" type="button" style="padding:4px 8px; font-size:11px;">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 9. SNI Spoofing - Fragment / Anti-DPI Relay Mode -->
+            {% if fragment_uris %}
+            <div class="proto-card" style="border: 1px solid rgba(236, 72, 153, 0.4); background: linear-gradient(180deg, rgba(236, 72, 153, 0.04) 0%, rgba(15, 23, 42, 0.6) 100%);">
+                <div class="proto-top">
+                    <div class="proto-name">
+                        <i data-lucide="scissors" style="color:#ec4899; width:20px; height:20px;"></i>
+                        <span style="font-weight:700; color:#f472b6;">کانفیگ‌های حالت Fragment و رله محلی (TLS Fragment Anti-DPI)</span>
+                        <span class="proto-tag" style="background:rgba(236, 72, 153, 0.15); color:#f472b6; border:1px solid rgba(236,72,153,0.3);">Fragment Mode</span>
+                    </div>
+                    <div class="btn-group" style="flex-wrap: wrap; gap: 8px;">
+                        <a href="/sub/{{ sub_token }}/singbox-fragment.json" download="MHPanel-{{ username }}-SingBox-Fragment.json" class="btn btn-secondary" style="padding: 7px 14px; font-size:12px; font-weight:700; color:#f472b6; border-color:rgba(236,72,153,0.4);">
+                            <i data-lucide="box" style="width:14px; height:14px;"></i><span>دانلود Sing-box فرگمنت</span>
+                        </a>
+                        <a href="/download/snispoof/snispoof-fragment.exe" download class="btn btn-secondary" style="padding: 7px 12px; font-size:12px; font-weight:700; color:#f472b6; border-color:rgba(236,72,153,0.4);">
+                            <i data-lucide="binary" style="width:14px; height:14px;"></i><span>دانلود کلاینت ویندوز (.exe)</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="proto-fields">
+                    <div class="field-item">
+                        <span class="field-title">مکانیزم دورزدن فیلترینگ</span>
+                        <span class="field-value" style="color:#f472b6;">تقطیع هدر SNI در ClientHello (SNI Slicing)</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">تنظیمات پکت فرگمنت کلاینت</span>
+                        <span class="field-value" style="font-family:'JetBrains Mono',monospace; color:#fcd34d;">packets: 1-3, length: 10-100, interval: 2-5</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">آدرس سرور و پورت رله لوکال</span>
+                        <span class="field-value">127.0.0.1:40443 (یا اتصال مستقیم با فرگمنت داخلی)</span>
+                    </div>
+                    <div class="field-item">
+                        <span class="field-title">دامنه و SNI اصلی</span>
+                        <span class="field-value">{{ server_host }}</span>
+                    </div>
+                </div>
+
+                <!-- Sub Links List for Fragment Mode -->
+                <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(236, 72, 153, 0.2); display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 12px; font-weight: 700; color: #f472b6; margin-bottom: 4px;">
+                        لینک‌های اتصال مستقیم V2Ray / Sing-box حالت تقطیع (Fragment):
+                    </div>
+                    {% for item in fragment_uris %}
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); border:1px solid rgba(236,72,153,0.2); border-radius:8px; padding:8px 12px; gap:10px; flex-wrap:wrap;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="proto-tag" style="background:#ec4899; color:#fff; font-weight:700; font-size:11px;">{{ item.type }}</span>
+                            <span style="font-size:12px; font-weight:600; color:var(--text-main);">{{ item.name }}</span>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn btn-secondary" onclick="copyText('{{ item.uri }}', 'لینک {{ item.type }} کپی شد!')" type="button" style="padding:4px 10px; font-size:11px;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی لینک
+                            </button>
+                            <button class="btn btn-secondary" onclick="showQrModal('{{ item.uri }}', '{{ item.name }}')" type="button" style="padding:4px 8px; font-size:11px;">
+                                <i data-lucide="qr-code" style="width:13px; height:13px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 <div class="footer">
