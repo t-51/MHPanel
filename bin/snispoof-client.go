@@ -87,7 +87,7 @@ var defaultConfig = Config{
 	ServerPort:      15443,
 	LocalSocksPort:  40808,
 	LocalRelayPort:  40443,
-	RelayPorts:      []int{20443, 20444, 20445, 20446, 20447, 20448, 20449, 20450, 20451, 20452, 20453, 20454, 20455, 20456, 20457, 20458, 20459, 20460, 20461, 20462, 20463, 20464, 40443},
+	RelayPorts:      []int{20443, 20444, 20445, 20446, 20447, 20448, 20449, 20450, 20451, 20452, 20453, 20454, 20455, 20456, 20457, 20458, 20459, 20460, 20461, 20462, 20463, 20464, 40443, 40433},
 	FakeSNI:         "sanjesh.org",
 	Strategy:        "patterniha_desync",
 	LowTTLHops:      5,
@@ -921,7 +921,7 @@ func handleTCPRelay(client net.Conn, targetAddr string, defaultPort int) {
 	start, _, sni := findSNIOffset(initialData)
 	if start > 0 && sni != "" {
 		addLiveLog("DETECT", fmt.Sprintf("Client TLS ClientHello: SNI = \"%s\"", sni))
-		if defaultPort == 40443 {
+		if defaultPort == 40443 || defaultPort == 40433 {
 			// Auto-route based on SNI if connected on universal port 40443
 			if sni == "cdn.jsdelivr.net" || strings.Contains(sni, "apple") || strings.Contains(sni, "unsplash") {
 				targetPort = 20443 // Reality default

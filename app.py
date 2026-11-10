@@ -2675,6 +2675,11 @@ def generate_ssh_uris(username, password, domain, pub_ip):
                     slink = generate_singbox_share_link(ib, server_host, target_user=target_u)
                     if slink:
                         uris.append(slink)
+                    if ib.get("tls", {}).get("reality", {}).get("enabled"):
+                        for extra_p in CLOUDFLARE_STANDARD_PORTS:
+                            extra_link = generate_singbox_share_link(ib, server_host, target_user=target_u, override_port=extra_p)
+                            if extra_link and extra_link not in uris:
+                                uris.append(extra_link)
     except Exception as e:
         logger.error(f"Error appending singbox links to subscription: {e}")
 
@@ -2683,64 +2688,107 @@ def generate_ssh_uris(username, password, domain, pub_ip):
 def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
     try:
         cf_cfg = get_cloudflare_snispoof_config()
-        clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142", "104.25.165.92", "104.25.224.90"]
-        clean_ip = clean_ips[0] if clean_ips else "104.18.119.142"
-        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or domain or pub_ip or "127.0.0.1"
+        raw_clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142", "104.25.165.92", "104.25.224.90"]
+        clean_ips = []
+        for cip in raw_clean_ips:
+            c = str(cip).strip()
+            if c and c not in clean_ips:
+                clean_ips.append(c)
+        if not clean_ips:
+            clean_ips = ["104.18.119.142"]
+
+        panel_domain = get_panel_sub_domain() or domain or pub_ip or "127.0.0.1"
+        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or panel_domain
 
         d_sni = get_snispoof_reality_and_client_configs()
         r_pubkey = d_sni.get("r_pubkey", "")
         r_shortid = d_sni.get("r_shortid", "")
-        sample_sni = d_sni.get("sample_sni", "sanjesh.org")
-        r_port = d_sni.get("r_port", 20443)
+        sample_sni = d_sni.get("sample_sni", "cdn.jsdelivr.net")
+        r_port = 443  # Reality external standard Cloudflare port
 
         pwd = password or d_sni.get("r_trojan_pass", "Sb_fhatutsq")
         uid = u_uuid or d_sni.get("r_uuid", "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc")
 
         # 1. Cloud Mode URIs (Clean IP + Cloudflare Domain)
-        cloud_uris = [
-            {
-                "name": f"MHPanel - [Cloud Clean IP] Trojan-WS ({username})",
-                "uri": f"trojan://{pwd}@{clean_ip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS ({username})",
-                "type": "Trojan-WS",
-                "server": clean_ip,
+        # Cloudflare Clean IP ONLY works on WebSocket (ws)
+        cloud_uris = []
+        for cip in clean_ips:
+            # VLESS-WS
+            cloud_uris.append({
+                "name": f"MHPanel - [Clean IP {cip}] VLESS-WS ({username})",
+                "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#MHPanel - [Clean IP {cip}] VLESS-WS ({username})",
+                "type": "VLESS-WS",
+                "server": cip,
                 "port": 443,
                 "sni": cf_domain
-            },
-            {
-                "name": f"MHPanel - [Cloud Clean IP] VLESS-WS ({username})",
-                "uri": f"vless://{uid}@{clean_ip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#MHPanel - [Cloud Clean IP] VLESS-WS ({username})",
-                "type": "VLESS-WS",
-                "server": clean_ip,
+            })
+            # Trojan-WS
+            cloud_uris.append({
+                "name": f"MHPanel - [Clean IP {cip}] Trojan-WS ({username})",
+                "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#MHPanel - [Clean IP {cip}] Trojan-WS ({username})",
+                "type": "Trojan-WS",
+                "server": cip,
                 "port": 443,
+                "sni": cf_domain
+            })
+            # VMess-WS
+            vmess_ws_dict = {
+                "v": "2",
+                "ps": f"MHPanel - [Clean IP {cip}] VMess-WS ({username})",
+                "add": cip,
+                "port": "443",
+                "id": uid,
+                "aid": "0",
+                "scy": "auto",
+                "net": "ws",
+                "type": "none",
+                "host": cf_domain,
+                "path": "/vmess-ws",
+                "tls": "tls",
                 "sni": cf_domain
             }
-        ]
+            cloud_uris.append({
+                "name": f"MHPanel - [Clean IP {cip}] VMess-WS ({username})",
+                "uri": f"vmess://{base64.b64encode(json.dumps(vmess_ws_dict).encode()).decode()}",
+                "type": "VMess-WS",
+                "server": cip,
+                "port": 443,
+                "sni": cf_domain
+            })
 
-        # 2. Fragment Mode URIs (Anti-DPI / Local Relay & Direct Fragment)
+        # 2. Fragment / SNI Spoofing Local Relay Mode URIs
+        # SNI must strictly be the real panel / server domain or IP (NOT fake!),
+        # because the local SNI spoofing client uses it to route and validate the server.
+        # Trojan and VMess are excluded due to relay structure incompatibilities; only VLESS over TCP is supported.
+        relay_sni = panel_domain or cf_domain or pub_ip or "127.0.0.1"
+
         fragment_uris = [
+            # Direct VLESS-Reality on standard Cloudflare port 443 (Iranian sites like www.digikala.com)
             {
-                "name": f"MHPanel - [Fragment] VLESS Reality ({username})",
-                "uri": f"vless://{uid}@{pub_ip or domain}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
+                "name": f"MHPanel - [Fragment] VLESS-Reality ({username})",
+                "uri": f"vless://{uid}@{domain or pub_ip}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment] VLESS-Reality ({username})",
                 "type": "VLESS Reality",
-                "server": pub_ip or domain,
+                "server": domain or pub_ip,
                 "port": r_port,
                 "sni": sample_sni
             },
+            # VLESS-TCP Local Relay (40443)
             {
-                "name": f"MHPanel - [Fragment/Relay] Trojan-40443 ({username})",
-                "uri": f"trojan://{pwd}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] Trojan-40443 ({username})",
-                "type": "Trojan Local Relay",
+                "name": f"MHPanel - [SNISpoof Relay] VLESS-TCP-40443 ({username})",
+                "uri": f"vless://{uid}@127.0.0.1:40443?security=tls&sni={relay_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [SNISpoof Relay] VLESS-TCP-40443 ({username})",
+                "type": "VLESS Local Relay (40443)",
                 "server": "127.0.0.1",
                 "port": 40443,
-                "sni": sample_sni
+                "sni": relay_sni
             },
+            # VLESS-TCP Local Relay (40433)
             {
-                "name": f"MHPanel - [Fragment/Relay] VLESS-40443 ({username})",
-                "uri": f"vless://{uid}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] VLESS-40443 ({username})",
-                "type": "VLESS Local Relay",
+                "name": f"MHPanel - [SNISpoof Relay] VLESS-TCP-40433 ({username})",
+                "uri": f"vless://{uid}@127.0.0.1:40433?security=tls&sni={relay_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [SNISpoof Relay] VLESS-TCP-40433 ({username})",
+                "type": "VLESS Local Relay (40433)",
                 "server": "127.0.0.1",
-                "port": 40443,
-                "sni": sample_sni
+                "port": 40433,
+                "sni": relay_sni
             }
         ]
         return cloud_uris, fragment_uris
@@ -3822,10 +3870,16 @@ def client_sub_b64(sub_token):
                     tag = ib.get("tag")
                     if not user_inbounds or tag in user_inbounds:
                         is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
-                        target_host = pub_ip if is_real else domain
+                        target_host = domain or pub_ip
                         slink = generate_singbox_share_link(ib, target_host, target_user=udata)
                         if slink:
                             uris.append(slink)
+                        # Standard Cloudflare ports for Reality:
+                        if is_real:
+                            for extra_p in CLOUDFLARE_STANDARD_PORTS:
+                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=extra_p)
+                                if extra_link and extra_link not in uris:
+                                    uris.append(extra_link)
         except Exception as e:
             logger.error(f"Error generating singbox sub links: {e}")
 
@@ -14059,7 +14113,7 @@ def get_snispoof_reality_and_client_configs():
 
     # Extract Sing-box Reality settings & live user credentials
     r_port = 20443
-    r_sni = "swdist.apple.com"
+    r_sni = "www.digikala.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
     r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
@@ -14359,15 +14413,20 @@ def get_snispoof_reality_and_client_configs():
     singbox_fragment_snippet = singbox_fragment["outbounds"][0]
 
     # V2Ray URIs
-    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision#MHPanel-AntiDPI-Reality"
-    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
+    r_port_ext = 443 if (int(r_port) == 20443 or int(r_port) not in [443, 2096]) else r_port
+    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel-AntiDPI-Reality"
+    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel-SNISpoof-Port{port}"
     v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
 
     v2ray_cloud_uri = f"trojan://{r_trojan_pass}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS"
     v2ray_cloud_vless_uri = f"vless://{r_uuid}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Fvless-ws#MHPanel - [Cloud Clean IP] VLESS-WS"
 
-    v2ray_fragment_uri = f"trojan://{r_trojan_pass}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] Trojan-40443"
-    v2ray_fragment_vless_uri = f"vless://{r_uuid}@127.0.0.1:40443?security=tls&sni={sample_sni}&type=tcp#MHPanel - [Fragment/Relay] VLESS-40443"
+    # SNI Spoofing local relay configs must have panel domain or panel IP as SNI (NOT fake)
+    # Exclusively VLESS over TCP for local relay (Trojan/VMess removed due to protocol structure)
+    relay_target_sni = cf_full_domain or srv
+    v2ray_fragment_vless_uri = f"vless://{r_uuid}@127.0.0.1:40443?security=tls&sni={relay_target_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment/Relay] VLESS-40443"
+    v2ray_fragment_vless_40433_uri = f"vless://{r_uuid}@127.0.0.1:40433?security=tls&sni={relay_target_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment/Relay] VLESS-40433"
+    v2ray_fragment_uri = v2ray_fragment_vless_uri
 
     # Full Xray / V2Ray JSON Config with Fragment Dialer Proxy
     xray_full = {
@@ -14402,10 +14461,10 @@ def get_snispoof_reality_and_client_configs():
                 "settings": {
                     "vnext": [{
                         "address": srv,
-                        "port": r_port,
+                        "port": r_port_ext,
                         "users": [{
                             "id": r_uuid,
-                            "flow": "",
+                            "flow": "xtls-rprx-vision",
                             "encryption": "none"
                         }]
                     }]
@@ -14419,7 +14478,7 @@ def get_snispoof_reality_and_client_configs():
                         "serverName": sample_sni,
                         "publicKey": r_pubkey,
                         "shortId": r_shortid,
-                        "spiderX": ""
+                        "spiderX": "/"
                     },
                     "sockopt": {
                         "dialerProxy": "fragment"
@@ -14486,6 +14545,7 @@ def get_snispoof_reality_and_client_configs():
         "v2ray_cloud_vless_uri": v2ray_cloud_vless_uri,
         "v2ray_fragment_uri": v2ray_fragment_uri,
         "v2ray_fragment_vless_uri": v2ray_fragment_vless_uri,
+        "v2ray_fragment_vless_40433_uri": v2ray_fragment_vless_40433_uri,
         "cf_cfg": cf_cfg,
         "chosen_clean_ip": chosen_clean_ip,
         "cf_full_domain": cf_full_domain
@@ -22980,8 +23040,8 @@ def check_listen_port_conflicts(ports):
         pass
     return conflicts
 
-def get_singbox_snis():
-    snis = set()
+def get_singbox_inbound_routes():
+    routes = []
     sb_cfg_path = "/etc/sing-box/config.json"
     if os.path.exists(sb_cfg_path):
         try:
@@ -22990,27 +23050,36 @@ def get_singbox_snis():
             inbounds = data.get("inbounds", [])
             for ib in inbounds:
                 l_port = ib.get("listen_port")
+                if not l_port:
+                    continue
+                tag = ib.get("tag", "")
                 tls = ib.get("tls", {})
                 reality = tls.get("reality", {}) if isinstance(tls, dict) else {}
                 is_reality = isinstance(reality, dict) and reality.get("enabled")
                 
-                # Only check reality inbound or inbounds bound directly to 20443
+                ib_snis = set()
                 if is_reality:
                     hs = reality.get("handshake", {})
                     if isinstance(hs, dict):
                         hs_server = hs.get("server")
                         if hs_server:
-                            snis.add(hs_server.strip())
+                            ib_snis.add(hs_server.strip())
                     sname = tls.get("server_name")
                     if sname:
-                        snis.add(sname.strip())
+                        ib_snis.add(sname.strip())
                 elif l_port == 20443:
                     sname = tls.get("server_name") if isinstance(tls, dict) else None
                     if sname:
-                        snis.add(sname.strip())
+                        ib_snis.add(sname.strip())
+
+                for s in ib_snis:
+                    routes.append({"sni": s, "port": l_port, "tag": tag})
         except Exception:
             pass
+    return routes
 
+def get_singbox_snis():
+    routes = get_singbox_inbound_routes()
     srv_domain = (get_server_domain() or "").strip().lower()
     excluded = {"localhost", "127.0.0.1"}
     if srv_domain:
@@ -23022,13 +23091,17 @@ def get_singbox_snis():
         excluded.add(f"ws.{srv_domain}")
 
     clean_snis = []
-    for s in snis:
+    seen = set()
+    for r in routes:
+        s = r.get("sni")
         if not s:
             continue
         s_lower = s.lower()
         if s_lower in excluded or s_lower.startswith("mhpanel.") or s_lower.startswith("panel."):
             continue
-        clean_snis.append(s)
+        if s not in seen:
+            seen.add(s)
+            clean_snis.append(s)
     return clean_snis
 
 def generate_haproxy_cfg(config):
@@ -23161,7 +23234,7 @@ def generate_haproxy_cfg(config):
             backend_blocks.append(f"backend {backend_name}\n    mode tcp\n    server {p_id} {p_host}:{p_port}")
             sni_items = [s.strip() for s in p_sni_str.replace(";", ",").split(",") if s.strip()]
             
-            # Automatically augment singbox with dynamically parsed reality & decoy SNIs
+            # Automatically augment singbox with dynamically parsed reality & decoy SNIs routed to exact inbound ports
             if p_id == "singbox":
                 other_snis = set()
                 for op in protocols:
@@ -23169,9 +23242,21 @@ def generate_haproxy_cfg(config):
                         for osni in op.get("sni", "").replace(";", ",").split(","):
                             if osni.strip():
                                 other_snis.add(osni.strip().lower())
-                for s in auto_sb_snis:
-                    if s and (s not in sni_items) and (s.lower() not in other_snis):
-                        sni_items.append(s)
+                sb_routes = get_singbox_inbound_routes()
+                seen_sb_snis = set()
+                for idx_r, r_info in enumerate(sb_routes):
+                    r_sni = r_info.get("sni", "").strip()
+                    r_port = r_info.get("port")
+                    if not r_sni or r_sni.lower() in other_snis or r_sni.lower() in seen_sb_snis:
+                        continue
+                    seen_sb_snis.add(r_sni.lower())
+                    r_backend = backend_name if r_port == p_port else f"singbox_{r_port}_backend"
+                    if r_port != p_port:
+                        b_def = f"backend {r_backend}\n    mode tcp\n    server sb_{r_port} {p_host}:{r_port}"
+                        if b_def not in backend_blocks:
+                            backend_blocks.append(b_def)
+                    acl_name = f"is_sb_r_{idx_r}"
+                    exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {r_sni}", f"    use_backend {r_backend} if {acl_name}"))
 
             # If default protocol, only map public IP and server domain if not claimed by other protocols
             if p_id == default_proto_id:
@@ -28061,7 +28146,7 @@ def build_default_singbox_full_suite():
             except Exception: pass
 
     inbounds = [
-        # 1. VLESS Reality Vision (TCP) - Camouflage with unblocked Apple CDN
+        # 1. VLESS Reality Vision (TCP) - Camouflage with Digikala
         {
             "type": "vless",
             "tag": "vless-reality-in",
@@ -28071,16 +28156,16 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
             "tls": {
                 "enabled": True,
-                "server_name": "swdist.apple.com",
+                "server_name": "www.digikala.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "swdist.apple.com", "server_port": 443},
+                    "handshake": {"server": "www.digikala.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 2. VLESS Reality gRPC - Camouflage with Unsplash Fastly CDN
+        # 2. VLESS Reality gRPC - Camouflage with Divar
         {
             "type": "vless",
             "tag": "vless-reality-grpc",
@@ -28094,16 +28179,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "images.unsplash.com",
+                "server_name": "divar.ir",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "images.unsplash.com", "server_port": 443},
+                    "handshake": {"server": "divar.ir", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 3. VLESS Reality HTTPUpgrade - Camouflage with JSDelivr CDN
+        # 3. VLESS Reality HTTPUpgrade - Camouflage with Digikala
         {
             "type": "vless",
             "tag": "vless-reality-upgrade",
@@ -28117,10 +28202,10 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "cdn.jsdelivr.net",
+                "server_name": "www.digikala.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "cdn.jsdelivr.net", "server_port": 443},
+                    "handshake": {"server": "www.digikala.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
@@ -28522,6 +28607,58 @@ def ensure_singbox_default_config():
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         except Exception: pass
 
+CLOUDFLARE_STANDARD_PORTS = [2096]
+
+def apply_singbox_reality_iptables():
+    try:
+        target_port = 20443
+        sb_cfg_file = "/etc/sing-box/config.json"
+        if os.path.exists(sb_cfg_file):
+            try:
+                with open(sb_cfg_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for ib in data.get("inbounds", []):
+                    if ib.get("tls", {}).get("reality", {}).get("enabled"):
+                        target_port = ib.get("listen_port", 20443)
+                        break
+            except Exception:
+                pass
+
+        subprocess.run("iptables -t nat -N SINGBOX_MULTIPORT 2>/dev/null || true", shell=True)
+        subprocess.run("iptables -t nat -C PREROUTING -j SINGBOX_MULTIPORT 2>/dev/null || iptables -t nat -I PREROUTING 1 -j SINGBOX_MULTIPORT", shell=True)
+        subprocess.run("iptables -t nat -F SINGBOX_MULTIPORT", shell=True)
+
+        subprocess.run("iptables -N SINGBOX_MULTIPORT_IN 2>/dev/null || true", shell=True)
+        subprocess.run("iptables -C INPUT -j SINGBOX_MULTIPORT_IN 2>/dev/null || iptables -I INPUT 1 -j SINGBOX_MULTIPORT_IN", shell=True)
+        subprocess.run("iptables -F SINGBOX_MULTIPORT_IN", shell=True)
+
+        # Do NOT redirect ports used by active system services (sshd:2053, httpd:2083, stunnel:2087, plesk:8443) to prevent port conflicts!
+        ports_to_redir = [p for p in CLOUDFLARE_STANDARD_PORTS if p != target_port and p not in RESERVED_SYSTEM_PORTS]
+        if ports_to_redir:
+            ports_csv = ",".join(str(p) for p in ports_to_redir)
+            subprocess.run(f"iptables -t nat -A SINGBOX_MULTIPORT -p tcp -m multiport --dports {ports_csv} -j REDIRECT --to-ports {target_port}", shell=True)
+            subprocess.run(f"iptables -A SINGBOX_MULTIPORT_IN -p tcp -m multiport --dports {ports_csv} -j ACCEPT", shell=True)
+
+        subprocess.run("which netfilter-persistent >/dev/null 2>&1 && netfilter-persistent save >/dev/null 2>&1 || true", shell=True)
+        subprocess.run("which iptables-save >/dev/null 2>&1 && iptables-save > /etc/iptables/rules.v4 2>/dev/null || true", shell=True)
+    except Exception as e:
+        logger.error(f"Error in apply_singbox_reality_iptables: {e}")
+
+def sync_singbox_multiplexer_and_iptables():
+    try:
+        apply_singbox_reality_iptables()
+    except Exception as e:
+        logger.error(f"Error applying singbox iptables: {e}")
+    try:
+        mpx = get_multiplexer_config()
+        if mpx.get("enabled", True):
+            cfg_text = generate_haproxy_cfg(mpx)
+            with open("/etc/haproxy/haproxy.cfg", "w") as f:
+                f.write(cfg_text)
+            subprocess.run(["systemctl", "reload", "haproxy"], capture_output=True)
+    except Exception as e:
+        logger.error(f"Error syncing haproxy for singbox: {e}")
+
 def save_singbox_config(cfg, restart=True):
     os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
     with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
@@ -28531,6 +28668,7 @@ def save_singbox_config(cfg, restart=True):
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         except Exception:
             pass
+    sync_singbox_multiplexer_and_iptables()
 
 def validate_singbox_config(cfg_obj):
     tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
@@ -28550,7 +28688,7 @@ def validate_singbox_config(cfg_obj):
             os.remove(tmp_path)
         return False, str(e)
 
-def generate_singbox_share_link(inbound, host_ip, target_user=None):
+def generate_singbox_share_link(inbound, host_ip, target_user=None, override_port=None):
     itype = inbound.get("type", "vless")
     port = inbound.get("listen_port", 443)
     tag = inbound.get("tag", itype)
@@ -28559,7 +28697,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "swdist.apple.com")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "www.digikala.com")
 
     users = inbound.get("users", [])
     user0 = users[0] if users else {}
@@ -28595,7 +28733,6 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         "mixed": "Mixed-SOCKS5"
     }
     display_title = friendly_names.get(clean_tag, tag)
-    tag_name = f"MHPanel - {display_title} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}"
 
     def _check_ip(address):
         if not address or not isinstance(address, str):
@@ -28609,14 +28746,27 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
 
     server_pub_ip = get_server_public_ip()
     if reality_enabled:
-        target_server = host_ip if _check_ip(host_ip) else server_pub_ip
+        # Standard Cloudflare ports for Reality: default to 443 if internal port 20443
+        if override_port:
+            port = int(override_port)
+        elif port == 20443 or port not in [443, 2096]:
+            port = 443
+        # Use host_ip (domain or IP), fallback to panel sub domain, server domain, or server IP
+        target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip
     else:
+        if override_port:
+            port = int(override_port)
         target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
 
+    port_label = f" (Port {port})" if (override_port or (reality_enabled and port != 443)) else ""
+    tag_name = f"MHPanel - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}{port_label}"
+
     if itype == "vless":
-        tp = inbound.get("transport", {}).get("type", "tcp")
+        tp = (inbound.get("transport") or {}).get("type", "tcp")
         user_flow = target_user.get("flow") if (target_user and "flow" in target_user) else user0.get("flow")
         flow = (user_flow or "") if tp == "tcp" else ""
+        if reality_enabled and tp == "tcp" and not flow:
+            flow = "xtls-rprx-vision"
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sids = reality_obj.get("short_id", [""])
@@ -28647,7 +28797,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None):
         if reality_enabled:
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
-            link += "&fp=chrome&spx=%2F"
+            link += "&fp=chrome&spx=%2F&path=%2F"
 
         link += f"#{tag_name}"
         return link
@@ -29114,18 +29264,34 @@ def sync_singbox_users_to_config():
 
         if itype in ["vless", "vmess"]:
             users_arr = []
-            is_tcp_trans = ib.get("transport", {}).get("type", "tcp") == "tcp"
-            existing_flow = next((x.get("flow") for x in ib.get("users", []) if x.get("flow")), "") if is_tcp_trans else ""
+            tp_obj = ib.get("transport") or {}
+            tp_type = tp_obj.get("type", "tcp")
+            is_tcp_trans = (tp_type == "tcp")
+            tls_obj = ib.get("tls") or {}
+            is_reality = bool((tls_obj.get("reality") or {}).get("enabled", False))
+            
+            # For VLESS Reality TCP, flow MUST be "xtls-rprx-vision"
+            req_flow = "xtls-rprx-vision" if (itype == "vless" and is_tcp_trans and is_reality) else ""
+            existing_flow = next((x.get("flow") for x in (ib.get("users") or []) if x.get("flow")), "") or req_flow
+
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
-                if itype == "vless" and existing_flow and is_tcp_trans:
-                    u_entry["flow"] = existing_flow
+                if itype == "vless":
+                    if is_tcp_trans and is_reality:
+                        u_entry["flow"] = "xtls-rprx-vision"
+                    elif is_tcp_trans and existing_flow:
+                        u_entry["flow"] = u.get("flow") or existing_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
                 users_arr.append(u_entry)
             if not users_arr:
-                existing = [x for x in ib.get("users", []) if x.get("name") not in local_usernames]
+                existing = [x for x in (ib.get("users") or []) if x.get("name") not in local_usernames]
+                for ex in existing:
+                    if itype == "vless" and is_tcp_trans and is_reality:
+                        ex["flow"] = "xtls-rprx-vision"
                 users_arr = existing if existing else [{"name": "default-user", "uuid": str(uuid.uuid4())}]
+                if not existing and itype == "vless" and is_tcp_trans and is_reality:
+                    users_arr[0]["flow"] = "xtls-rprx-vision"
             ib["users"] = users_arr
 
         elif itype == "trojan":
@@ -29559,6 +29725,7 @@ def api_singbox_config():
         with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
             json.dump(new_cfg, f, indent=2, ensure_ascii=False)
         subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+        sync_singbox_multiplexer_and_iptables()
         return jsonify({"success": True, "message": "کانفیگ سینگ‌باکس با موفقیت ذخیره و سرویس بازنشانی گردید."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -29621,6 +29788,7 @@ def api_singbox_inbound_add():
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "inbound": new_inbound, "message": f"اینباند {new_inbound.get('tag')} با موفقیت ایجاد و فعال شد."})
 
 @app.route("/api/singbox/inbound/<tag>/details", methods=["GET"])
@@ -29748,6 +29916,7 @@ def api_singbox_inbound_edit(tag):
             save_singbox_users(local_users)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "message": f"اینباند {new_tag} با موفقیت ویرایش و بروزرسانی شد.", "inbound": updated_inbound})
 
 @app.route("/api/singbox/inbound/<tag>/delete", methods=["POST", "DELETE"])
@@ -29781,6 +29950,7 @@ def api_singbox_inbound_delete(tag):
         save_singbox_users(local_users)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "message": f"اینباند {tag} با موفقیت حذف گردید."})
 
 # =========================================================================
@@ -29992,6 +30162,7 @@ def api_singbox_outbound_add():
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "outbound": new_outbound, "message": f"اوت‌باند '{tag}' با موفقیت افزوده شد."})
 
 
@@ -30070,6 +30241,7 @@ def api_singbox_outbound_edit(tag):
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "message": f"اوت‌باند '{new_tag}' با موفقیت ویرایش شد.", "outbound": updated_outbound})
 
 
@@ -30120,6 +30292,7 @@ def api_singbox_outbound_delete(tag):
         save_singbox_users(local_users)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({"success": True, "message": f"اوت‌باند '{tag}' با موفقیت حذف گردید."})
 
 @app.route("/api/singbox/generate-keys", methods=["GET"])
@@ -30171,8 +30344,8 @@ def api_singbox_inbound_share(tag):
     if not inbound:
         return jsonify({"error": "اینباند یافت نشد."}), 404
 
-    server_ip = get_server_public_ip()
-    share_link = generate_singbox_share_link(inbound, server_ip)
+    target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
+    share_link = generate_singbox_share_link(inbound, target_host)
 
     return jsonify({
         "success": True,
@@ -30273,6 +30446,7 @@ def api_singbox_init_defaults():
         json.dump(full_cfg, f, indent=2, ensure_ascii=False)
 
     subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+    sync_singbox_multiplexer_and_iptables()
     return jsonify({
         "success": True,
         "message": "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل VLESS Reality، تروجان، هیستوریا ۲، TUIC، شادوساکس، وی‌مس، نایوپروکسی و میکسد) با موفقیت ایجاد و فعال شدند.",
@@ -30543,21 +30717,33 @@ def api_singbox_user_links(username):
     with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
-    server_ip = get_server_public_ip()
+    target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     user_inbounds = target.get("inbounds", [])
 
     configs = []
     for ib in cfg.get("inbounds", []):
         tag = ib.get("tag")
         if not user_inbounds or tag in user_inbounds:
-            link = generate_singbox_share_link(ib, server_ip, target_user=target)
+            link = generate_singbox_share_link(ib, target_host, target_user=target)
             proto_type = ib.get("type", "")
+            is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
+            eff_port = 443 if (is_real and (ib.get("listen_port") == 20443 or ib.get("listen_port") not in [443, 2096])) else ib.get("listen_port")
             configs.append({
                 "tag": tag,
                 "type": proto_type,
-                "port": ib.get("listen_port"),
+                "port": eff_port,
                 "share_link": link
             })
+            if is_real:
+                for extra_p in CLOUDFLARE_STANDARD_PORTS:
+                    extra_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=extra_p)
+                    if extra_link:
+                        configs.append({
+                            "tag": f"{tag}-p{extra_p}",
+                            "type": proto_type,
+                            "port": extra_p,
+                            "share_link": extra_link
+                        })
 
     sub_token = target.get("sub_token", "")
     panel_dom = get_panel_sub_domain()
@@ -34588,6 +34774,11 @@ if __name__ == "__main__":
         threading.Thread(target=build_stuntls_client, daemon=True).start()
     except Exception as e:
         print(f"Error starting StunTLS client builder thread: {e}")
+
+    try:
+        sync_singbox_multiplexer_and_iptables()
+    except Exception as e:
+        print(f"Error syncing singbox HAProxy and iptables on startup: {e}")
 
     port = get_panel_port()
     app.run(host="0.0.0.0", port=port, ssl_context=ssl_context, debug=False)
