@@ -12678,28 +12678,52 @@ def sync_dnsmasq_routes():
     """
     try:
         routes = {}
+        pubkeys = {}
+        protos = {
+            5300: "dnstt",
+            5353: "vaydns",
+            5354: "slipstream",
+            5356: "masterdns"
+        }
 
-        def _add_route(domain, port):
+        def _add_route(domain, port, pubkey="", proto=""):
             d = (domain or "").strip().lower()
             if d and d not in routes:
                 try:
                     routes[d] = int(port)
+                    p_name = proto or protos.get(int(port), "dnstt")
+                    if not pubkey:
+                        # Try reading from default pubkey locations
+                        if p_name == "dnstt" and os.path.exists("/etc/dnstt/server.pub"):
+                            try:
+                                with open("/etc/dnstt/server.pub") as pkf:
+                                    pubkey = pkf.read().strip()
+                            except Exception:
+                                pass
+                        elif p_name == "vaydns" and os.path.exists("/etc/vaydns/server.pub"):
+                            try:
+                                with open("/etc/vaydns/server.pub") as pkf:
+                                    pubkey = pkf.read().strip()
+                            except Exception:
+                                pass
+                    if pubkey:
+                        pubkeys[d] = (pubkey.strip(), p_name)
                 except Exception:
                     pass
 
         # 1. Standard protocol configs
         configs = [
-            ("/etc/vpnpanel/dnstt.json", 5300),
-            ("/etc/vpnpanel/vaydns.json", 5353),
-            ("/etc/vpnpanel/slipstream.json", 5354),
-            ("/etc/vpnpanel/masterdnsvpn.json", 5356)
+            ("/etc/vpnpanel/dnstt.json", 5300, "dnstt"),
+            ("/etc/vpnpanel/vaydns.json", 5353, "vaydns"),
+            ("/etc/vpnpanel/slipstream.json", 5354, "slipstream"),
+            ("/etc/vpnpanel/masterdnsvpn.json", 5356, "masterdns")
         ]
-        for cfg_path, def_port in configs:
+        for cfg_path, def_port, p_name in configs:
             if os.path.exists(cfg_path):
                 try:
                     with open(cfg_path, "r", encoding="utf-8") as f:
                         c = json.load(f)
-                        _add_route(c.get("domain"), c.get("port", def_port))
+                        _add_route(c.get("domain"), c.get("port", def_port), c.get("pubkey", ""), p_name)
                 except Exception:
                     pass
 
@@ -12713,17 +12737,38 @@ def sync_dnsmasq_routes():
                     tdata = json.load(f)
                     for dt in tdata.get("dns_tunnels", []):
                         if dt.get("enabled", True) and (dt.get("mode", "server") == "server" or dt.get("role", "server") == "server"):
-                            _add_route(dt.get("domain"), dt.get("listen_port", 5300))
+                            _add_route(dt.get("domain"), dt.get("listen_port", 5300), dt.get("pubkey", ""))
             except Exception:
                 pass
 
+        # Detect default network interface dynamically
+        def_iface = "ens6"
+        try:
+            r_if = subprocess.run(["ip", "route", "show", "default"], capture_output=True, text=True)
+            m_if = re.search(r'dev\s+([^\s]+)', r_if.stdout)
+            if m_if:
+                def_iface = m_if.group(1).strip()
+        except Exception:
+            pass
+
+        # Server public IP for host-records
+        srv_ip = "212.227.143.16"
+        try:
+            pip = get_server_public_ip()
+            if pip and "." in pip:
+                srv_ip = pip.strip()
+        except Exception:
+            pass
+
         # 3. Ensure listener config exists for dnsmasq with optimized tunnel forwarding parameters
+        # no-resolv: Closes open recursive resolver vulnerability to the outside internet
         os.makedirs("/etc/dnsmasq.d", exist_ok=True)
         listen_conf = "/etc/dnsmasq.d/00-listen.conf"
         listen_content = (
-            "interface=ens6\n"
+            f"interface={def_iface}\n"
             "interface=lo\n"
             "bind-dynamic\n"
+            "no-resolv\n"
             "query-port=53053\n"
             "cache-size=0\n"
             "no-negcache\n"
@@ -12735,12 +12780,30 @@ def sync_dnsmasq_routes():
 
         # 4. Write slowdns.conf
         slowdns_conf = "/etc/dnsmasq.d/slowdns.conf"
-        lines = ["# MHPanel DNS Tunnels Dispatcher - Auto-generated\n"]
+        lines = [
+            "# MHPanel DNS Tunnels Dispatcher - Auto-generated\n",
+            "# Authoritative Nameserver Host Records\n",
+            f"host-record=vpn.kigaping.com,{srv_ip}\n",
+            f"host-record=ns.kigaping.com,{srv_ip}\n\n",
+            "# Protocol Dispatching Rules\n"
+        ]
         for d, p in routes.items():
             lines.append(f"server=/{d}/127.0.0.1#{p}\n")
 
+        # Add Apex TXT records so diagnostic queries and testers get protocol/pubkey info
+        lines.append("\n# Authoritative Apex Records for Diagnostics & Key Exchange\n")
+        for d, (pk, proto_name) in pubkeys.items():
+            lines.append(f'txt-record={d},"v={proto_name} pubkey={pk}"\n')
+
         with open(slowdns_conf, "w", encoding="utf-8") as f:
             f.writelines(lines)
+
+        # Remove temporary or stale test files
+        if os.path.exists("/etc/dnsmasq.d/99-test.conf"):
+            try:
+                os.remove("/etc/dnsmasq.d/99-test.conf")
+            except Exception:
+                pass
 
         # 5. Reload / Restart dnsmasq
         subprocess.run(["systemctl", "restart", "dnsmasq"], capture_output=True)
