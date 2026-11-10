@@ -15212,8 +15212,343 @@ def api_snispoof_cf_delete():
     cfg["clean_record_ids"] = []
     cfg["origin_rule_status"] = "removed"
     cfg["status"] = "idle"
+
     save_cloudflare_snispoof_config(cfg)
     return jsonify({"success": True, "message": "تنظیمات کلودفلر پاکسازی شد."})
+
+
+# ============================================================================
+# CLOUDFLARE AUTOMATION SUITE & MANAGER API
+# ============================================================================
+import cloudflare_manager as cf_mgr
+
+@app.route("/api/cloudflare/config", methods=["GET", "POST"])
+def api_cf_config():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    if request.method == "POST":
+        data = request.json or {}
+        for k in ["cf_token", "account_id", "account_name", "user_email", "active_zone_id", "active_zone_name"]:
+            if k in data:
+                cfg[k] = str(data[k]).strip()
+        cf_mgr.save_cf_config(cfg)
+        return jsonify({"success": True, "message": "تنظیمات با موفقیت ذخیره شد.", "config": cfg})
+    
+    cfg["server_ip"] = get_server_public_ip()
+    cfg["server_domain"] = get_server_domain()
+    return jsonify({"success": True, "config": cfg})
+
+@app.route("/api/cloudflare/verify", methods=["POST"])
+def api_cf_verify():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    token = (data.get("cf_token") or "").strip()
+    if not token:
+        cfg = cf_mgr.get_cf_config()
+        token = cfg.get("cf_token", "").strip()
+    if not token:
+        return jsonify({"success": False, "error": "لطفاً توکن کلودفلر را وارد کنید."}), 400
+
+    audit = cf_mgr.audit_token(token)
+    if audit.get("success"):
+        cfg = cf_mgr.get_cf_config()
+        cfg["cf_token"] = token
+        if audit.get("account_id"):
+            cfg["account_id"] = audit["account_id"]
+        if audit.get("account_name"):
+            cfg["account_name"] = audit["account_name"]
+        if audit.get("zones"):
+            cfg["zones"] = audit["zones"]
+            if not cfg.get("active_zone_id") or not any(z["id"] == cfg.get("active_zone_id") for z in audit["zones"]):
+                cfg["active_zone_id"] = audit["zones"][0]["id"]
+                cfg["active_zone_name"] = audit["zones"][0]["name"]
+        if "has_dns_permission" in audit:
+            cfg["has_dns_permission"] = audit["has_dns_permission"]
+            cfg["dns_audit_msg"] = audit.get("dns_audit_msg", "")
+        cfg["last_verified"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cf_mgr.save_cf_config(cfg)
+        return jsonify({
+            "success": True,
+            "message": "توکن کلودفلر با موفقیت اعتبارسنجی شد.",
+            "audit": audit,
+            "config": cfg
+        })
+    else:
+        return jsonify(audit), 400
+
+@app.route("/api/cloudflare/select-zone", methods=["POST"])
+def api_cf_select_zone():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    zone_id = (data.get("zone_id") or "").strip()
+    zone_name = (data.get("zone_name") or "").strip()
+    if not zone_id:
+        return jsonify({"success": False, "error": "شناسه دامنه (Zone ID) ارسال نشده است."}), 400
+
+    cfg = cf_mgr.get_cf_config()
+    cfg["active_zone_id"] = zone_id
+    if zone_name:
+        cfg["active_zone_name"] = zone_name
+    else:
+        for z in cfg.get("zones", []):
+            if z.get("id") == zone_id:
+                cfg["active_zone_name"] = z.get("name")
+                break
+    cf_mgr.save_cf_config(cfg)
+    return jsonify({"success": True, "message": f"دامنه فعال به {cfg.get('active_zone_name')} تغییر یافت.", "config": cfg})
+
+@app.route("/api/cloudflare/dns", methods=["GET", "POST"])
+def api_cf_dns():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = request.args.get("zone_id") or cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    if not zone_id or not token:
+        return jsonify({"success": False, "error": "توکن یا دامنه فعال تنظیم نشده است."}), 400
+
+    if request.method == "POST":
+        data = request.json or {}
+        name = (data.get("name") or "").strip()
+        rtype = (data.get("type") or "A").strip()
+        content = (data.get("content") or "").strip()
+        proxied = bool(data.get("proxied", False))
+        ttl = int(data.get("ttl") or 1)
+        priority = data.get("priority")
+        if not name or not content:
+            return jsonify({"success": False, "error": "نام ساب‌دامین و مقدار/آی‌پی الزامی است."}), 400
+        
+        zone_name = cfg.get("active_zone_name", "")
+        if zone_name and not name.endswith(zone_name) and name != "@":
+            name = f"{name}.{zone_name}"
+        elif name == "@":
+            name = zone_name
+
+        res = cf_mgr.upsert_dns_record(zone_id, token, name, rtype, content, proxied=proxied, ttl=ttl, priority=priority)
+        return jsonify(res), (200 if res.get("success") else 400)
+
+    # GET
+    rtype = request.args.get("type")
+    search = request.args.get("search")
+    res = cf_mgr.list_dns_records(zone_id, token, rtype=rtype, search=search)
+    return jsonify(res)
+
+@app.route("/api/cloudflare/dns/<record_id>", methods=["DELETE"])
+def api_cf_dns_delete(record_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = request.args.get("zone_id") or cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    if not zone_id or not token:
+        return jsonify({"success": False, "error": "توکن یا دامنه فعال تنظیم نشده است."}), 400
+    res = cf_mgr.delete_dns_record(zone_id, token, record_id)
+    return jsonify(res), (200 if res.get("success") else 400)
+
+@app.route("/api/cloudflare/dns/<record_id>/toggle-proxy", methods=["POST"])
+def api_cf_dns_toggle_proxy(record_id):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = request.args.get("zone_id") or cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    if not zone_id or not token:
+        return jsonify({"success": False, "error": "توکن یا دامنه فعال تنظیم نشده است."}), 400
+    res = cf_mgr.toggle_dns_proxy(zone_id, token, record_id)
+    return jsonify(res), (200 if res.get("success") else 400)
+
+@app.route("/api/cloudflare/protocols/provision", methods=["POST"])
+def api_cf_protocols_provision():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    root_domain = cfg.get("active_zone_name")
+    if not zone_id or not token or not root_domain:
+        return jsonify({"success": False, "error": "دامنه فعال یا توکن کلودفلر مشخص نشده است."}), 400
+
+    server_ip = get_server_public_ip()
+    data = request.json or {}
+    selected = data.get("protocols")
+    custom_prefixes = data.get("custom_prefixes", {})
+
+    res = cf_mgr.provision_protocol_subdomains(
+        zone_id=zone_id,
+        token=token,
+        server_ip=server_ip,
+        root_domain=root_domain,
+        protocols_to_provision=selected,
+        custom_prefixes=custom_prefixes
+    )
+    return jsonify(res)
+
+@app.route("/api/cloudflare/dns-tunnel/setup", methods=["POST"])
+def api_cf_dns_tunnel_setup():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    root_domain = cfg.get("active_zone_name")
+    if not zone_id or not token or not root_domain:
+        return jsonify({"success": False, "error": "دامنه فعال یا توکن کلودفلر مشخص نشده است."}), 400
+
+    server_ip = get_server_public_ip()
+    data = request.json or {}
+    tunnel_type = data.get("tunnel_type") or "dnstt"
+    ns_name = (data.get("ns_name") or "ns").strip()
+    tunnel_name = (data.get("tunnel_name") or "t").strip()
+
+    res = cf_mgr.provision_dns_tunnel_records(
+        zone_id=zone_id,
+        token=token,
+        server_ip=server_ip,
+        root_domain=root_domain,
+        tunnel_type=tunnel_type,
+        ns_name=ns_name,
+        tunnel_name=tunnel_name
+    )
+    return jsonify(res), (200 if res.get("success") else 400)
+
+@app.route("/api/cloudflare/origin-rules", methods=["GET", "POST", "DELETE"])
+def api_cf_origin_rules():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    if not zone_id or not token:
+        return jsonify({"success": False, "error": "دامنه فعال یا توکن کلودفلر مشخص نشده است."}), 400
+
+    if request.method == "POST":
+        data = request.json or {}
+        subdomain = (data.get("subdomain") or "").strip().lower()
+        target_port = int(data.get("target_port") or 443)
+        description = (data.get("description") or "").strip()
+        if not subdomain:
+            return jsonify({"success": False, "error": "نام زیردامنه/هاست الزامی است."}), 400
+        
+        zone_name = cfg.get("active_zone_name", "")
+        if zone_name and not subdomain.endswith(zone_name) and subdomain != "@":
+            subdomain = f"{subdomain}.{zone_name}"
+        elif subdomain == "@":
+            subdomain = zone_name
+
+        res = cf_mgr.add_origin_rule(zone_id, token, subdomain, target_port, description)
+        return jsonify(res), (200 if res.get("success") else 400)
+
+    elif request.method == "DELETE":
+        data = request.json or {}
+        rule_id = data.get("rule_id")
+        hostname = data.get("hostname")
+        res = cf_mgr.delete_origin_rule(zone_id, token, rule_id=rule_id, hostname=hostname)
+        return jsonify(res), (200 if res.get("success") else 400)
+
+    # GET
+    res = cf_mgr.list_origin_rules(zone_id, token)
+    return jsonify(res)
+
+@app.route("/api/cloudflare/workers/deploy", methods=["POST"])
+def api_cf_workers_deploy():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    account_id = cfg.get("account_id")
+    token = cfg.get("cf_token")
+    zone_id = cfg.get("active_zone_id")
+    root_domain = cfg.get("active_zone_name")
+
+    if not account_id or not token:
+        return jsonify({"success": False, "error": "حساب کلودفلر یا توکن یافت نشد. لطفاً ابتدا توکن را تست و اعتبارسنجی کنید."}), 400
+
+    data = request.json or {}
+    script_name = (data.get("script_name") or "mh-gas-relay").strip()
+    worker_type = data.get("worker_type") or "gas_relay"
+    gas_url = (data.get("gas_url") or "").strip()
+    custom_subdomain = (data.get("custom_subdomain") or "").strip()
+    target_port = str(data.get("target_port") or "8448")
+    auth_secret = (data.get("auth_secret") or "").strip()
+
+    if not gas_url and worker_type == "gas_relay":
+        try:
+            if os.path.exists(GAS_CONFIG_FILE):
+                with open(GAS_CONFIG_FILE, "r") as f:
+                    gdata = json.load(f)
+                    gas_url = gdata.get("google_webapp_url", "")
+                    if not auth_secret:
+                        auth_secret = gdata.get("secret", "")
+        except Exception:
+            pass
+
+    server_ip = get_server_public_ip()
+    vps_domain = get_server_domain() or server_ip
+
+    script_content = cf_mgr.generate_worker_script(
+        worker_type=worker_type,
+        vps_host=vps_domain,
+        vps_port=target_port,
+        gas_url=gas_url,
+        auth_secret=auth_secret
+    )
+
+    custom_route = ""
+    if custom_subdomain and root_domain:
+        if custom_subdomain == "@":
+            custom_route = f"{root_domain}/*"
+        else:
+            custom_route = f"{custom_subdomain}.{root_domain}/*"
+
+    res = cf_mgr.deploy_worker_to_cloudflare(
+        account_id=account_id,
+        token=token,
+        script_name=script_name,
+        script_content=script_content,
+        zone_id=zone_id,
+        custom_domain_route=custom_route,
+        enable_subdomain=True
+    )
+    res["generated_code"] = script_content
+    return jsonify(res), (200 if res.get("success") else 400)
+
+@app.route("/api/cloudflare/workers/presets", methods=["GET"])
+def api_cf_workers_presets():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    server_ip = get_server_public_ip()
+    server_dom = get_server_domain() or server_ip
+    
+    gas_url = ""
+    auth_secret = ""
+    try:
+        if os.path.exists(GAS_CONFIG_FILE):
+            with open(GAS_CONFIG_FILE, "r") as f:
+                gdata = json.load(f)
+                gas_url = gdata.get("google_webapp_url", "")
+                auth_secret = gdata.get("secret", "")
+    except Exception:
+        pass
+
+    gas_worker_js = cf_mgr.generate_worker_script("gas_relay", server_dom, "8448", gas_url=gas_url, auth_secret=auth_secret)
+    vless_worker_js = cf_mgr.generate_worker_script("vless_proxy", server_dom, "20456")
+    reverse_proxy_js = cf_mgr.generate_worker_script("reverse_proxy", server_dom, "8448")
+
+    return jsonify({
+        "success": True,
+        "gas_url": gas_url,
+        "auth_secret": auth_secret,
+        "server_ip": server_ip,
+        "server_domain": server_dom,
+        "scripts": {
+            "gas_relay": gas_worker_js,
+            "vless_proxy": vless_worker_js,
+            "reverse_proxy": reverse_proxy_js
+        }
+    })
+
 
 
 # Download routes for SNI Spoofing clients

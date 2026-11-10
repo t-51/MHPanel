@@ -8723,6 +8723,8 @@
         } else if (tabId === "dns-management") {
             fetchSystemDns();
             fetchProtocolDnsRouting();
+        } else if (tabId === "cloudflare-hub") {
+            loadCloudflareHubData();
         }
     }
 
@@ -29792,5 +29794,609 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
         } catch (_) {}
     });
+
+
+// ============================================================================
+// CLOUDFLARE AUTOMATION SUITE JAVASCRIPT CONTROLLER
+// ============================================================================
+let cfCurrentConfig = null;
+let cfCachedPresets = null;
+
+function toggleCfTokenVisibility() {
+    const input = document.getElementById("cf-cfg-token");
+    const icon = document.getElementById("cf-token-eye-icon");
+    if (!input) return;
+    if (input.type === "password") {
+        input.type = "text";
+        if (icon) icon.setAttribute("data-lucide", "eye-off");
+    } else {
+        input.type = "password";
+        if (icon) icon.setAttribute("data-lucide", "eye");
+    }
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+function scrollToSection(secId) {
+    const el = document.getElementById(secId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+async function loadCloudflareHubData() {
+    try {
+        const res = await fetch("/api/cloudflare/config");
+        const data = await res.json();
+        if (!data.success) return;
+        
+        cfCurrentConfig = data.config || {};
+        const cfg = cfCurrentConfig;
+        
+        // Fill token & server details
+        const tokenInput = document.getElementById("cf-cfg-token");
+        if (tokenInput && cfg.cf_token && !tokenInput.value) {
+            tokenInput.value = cfg.cf_token;
+        }
+        
+        const ipDisplay = document.getElementById("cf-server-ip-display");
+        if (ipDisplay) ipDisplay.textContent = cfg.server_ip || "-";
+        
+        const newRecContent = document.getElementById("cf-new-rec-content");
+        if (newRecContent && !newRecContent.value && cfg.server_ip) {
+            newRecContent.value = cfg.server_ip;
+        }
+
+        // Zone names & current selection
+        updateZoneDisplayNames(cfg.active_zone_name || cfg.server_domain || "domain.com");
+
+        // Auth status badge & connected box
+        const authBadge = document.getElementById("cf-auth-status-badge");
+        const connBox = document.getElementById("cf-connected-info-box");
+        const accName = document.getElementById("cf-account-name-val");
+        const zoneSel = document.getElementById("cf-zone-selector");
+
+        if (cfg.cf_token && cfg.active_zone_id) {
+            if (authBadge) {
+                authBadge.textContent = "وضعیت: متصل به کلودفلر ✅";
+                authBadge.style.background = "rgba(16, 185, 129, 0.15)";
+                authBadge.style.color = "#10b981";
+            }
+            if (connBox) connBox.style.display = "block";
+            if (accName) accName.textContent = cfg.account_name || cfg.account_id || "حساب کلودفلر";
+            const permBadge = document.getElementById("cf-permissions-status-val");
+            if (permBadge) {
+                if (cfg.has_dns_permission === false) {
+                    permBadge.textContent = "توجه: فاقد دسترسی DNS (نیازمند Zone:DNS:Edit)";
+                    permBadge.style.color = "#f59e0b";
+                } else {
+                    permBadge.textContent = "دسترسی تایید شده";
+                    permBadge.style.color = "#10b981";
+                }
+            }
+
+            // Populate zones selector
+            if (zoneSel && cfg.zones && cfg.zones.length > 0) {
+                zoneSel.innerHTML = "";
+                cfg.zones.forEach(z => {
+                    const opt = document.createElement("option");
+                    opt.value = z.id;
+                    opt.textContent = `${z.name} (${z.plan || 'Free'} - ${z.status})`;
+                    if (z.id === cfg.active_zone_id) opt.selected = true;
+                    zoneSel.appendChild(opt);
+                });
+            }
+
+            // Load DNS records & Origin rules
+            loadCloudflareDnsRecords();
+            loadCloudflareOriginRules();
+        } else {
+            if (authBadge) {
+                authBadge.textContent = "وضعیت: نیازمند ثبت و بررسی توکن ⚠️";
+                authBadge.style.background = "rgba(239, 68, 68, 0.15)";
+                authBadge.style.color = "#ef4444";
+            }
+            if (connBox) connBox.style.display = "none";
+        }
+
+        // Fetch presets for workers
+        loadCloudflareWorkerPresets();
+    } catch (e) {
+        console.error("Error loading Cloudflare Hub data:", e);
+    }
+}
+
+function updateZoneDisplayNames(domain) {
+    document.querySelectorAll(".cf-current-zone-name").forEach(el => {
+        el.textContent = domain;
+    });
+}
+
+async function verifyCloudflareToken() {
+    const tokenInput = document.getElementById("cf-cfg-token");
+    const token = tokenInput ? tokenInput.value.trim() : "";
+    if (!token) {
+        showToast("لطفاً ابتدا توکن کلودفلر را وارد کنید.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("btn-verify-cf-token");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="spin" style="width:16px; height:16px; margin-left:6px;"></i> در حال بررسی...`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch("/api/cloudflare/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cf_token: token })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("توکن با موفقیت تایید شد و دامنه‌ها بارگذاری شدند!", "success");
+            if (data.audit && data.audit.has_dns_permission === false) {
+                setTimeout(() => {
+                    showToast("توجه: این توکن فاقد دسترسی ویرایش رکوردهای DNS است. لطفاً در کلودفلر دسترسی Zone > DNS > Edit را به آن اضافه کنید.", "info");
+                }, 1800);
+            }
+            loadCloudflareHubData();
+        } else {
+            const errMsg = data.error || (data.errors && data.errors[0] && data.errors[0].message) || "خطا در اعتبارسنجی توکن";
+            showToast(errMsg, "error");
+        }
+    } catch (e) {
+        showToast("خطا در برقراری ارتباط با سرور: " + e.message, "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="shield-check" style="width:16px; height:16px; margin-left:6px;"></i> بررسی و ثبت اتصال`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+}
+
+async function changeActiveCloudflareZone(zoneId) {
+    if (!zoneId) return;
+    try {
+        const res = await fetch("/api/cloudflare/select-zone", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ zone_id: zoneId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            loadCloudflareHubData();
+        } else {
+            showToast(data.error || "خطا در تغییر دامنه", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    }
+}
+
+async function loadCloudflareDnsRecords() {
+    const tbody = document.getElementById("cf-dns-records-tbody");
+    if (!tbody) return;
+
+    try {
+        const res = await fetch("/api/cloudflare/dns");
+        const data = await res.json();
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#ef4444;">${data.error || 'خطا در بارگذاری رکوردهای DNS'}</td></tr>`;
+            return;
+        }
+
+        const records = data.records || [];
+        if (records.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:var(--text-muted);">هیچ رکوردی در این دامنه یافت نشد.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        records.forEach(rec => {
+            const isProxied = rec.proxied;
+            const canProxy = ["A", "AAAA", "CNAME"].includes(rec.type);
+            const proxyBadge = canProxy ? (
+                isProxied ? 
+                `<button type="button" onclick="toggleCloudflareDnsProxy('${rec.id}')" class="btn btn-sm" style="background:rgba(249,115,22,0.18); color:#f97316; border:1px solid rgba(249,115,22,0.4); padding:2px 8px; font-size:11px; border-radius:6px; cursor:pointer;" title="کلیک برای خاموش کردن پروکسی">🟠 روشن (پروکسی کلودفلر)</button>` :
+                `<button type="button" onclick="toggleCloudflareDnsProxy('${rec.id}')" class="btn btn-sm" style="background:rgba(100,116,139,0.18); color:#94a3b8; border:1px solid rgba(100,116,139,0.4); padding:2px 8px; font-size:11px; border-radius:6px; cursor:pointer;" title="کلیک برای روشن کردن پروکسی">⚪ خاموش (DNS مستقیم)</button>`
+            ) : `<span style="color:var(--text-muted); font-size:11px;">نامربوط</span>`;
+
+            html += `
+            <tr style="border-bottom:1px solid var(--border-glow);">
+                <td style="padding:10px 12px;"><span class="badge" style="background:rgba(99,102,241,0.15); color:#818cf8; font-weight:700;">${rec.type}</span></td>
+                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#fff;">${rec.name}</td>
+                <td style="padding:10px 12px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8; max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${rec.content}</td>
+                <td style="padding:10px 12px; text-align:center;">${proxyBadge}</td>
+                <td style="padding:10px 12px; text-align:center; font-size:11.5px; color:var(--text-muted);">${rec.ttl === 1 ? "Auto" : rec.ttl + "s"}</td>
+                <td style="padding:10px 12px; text-align:center;">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteCloudflareDnsRecord('${rec.id}', '${rec.name}')" style="padding:3px 8px; font-size:11px;">
+                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#ef4444;">خطای شبکه در بارگذاری رکوردها: ${e.message}</td></tr>`;
+    }
+}
+
+async function addNewCloudflareDnsRecord() {
+    const type = document.getElementById("cf-new-rec-type").value;
+    const name = document.getElementById("cf-new-rec-name").value.trim();
+    const content = document.getElementById("cf-new-rec-content").value.trim();
+    const proxied = document.getElementById("cf-new-rec-proxied").value === "true";
+
+    if (!name || !content) {
+        showToast("لطفاً نام ساب‌دامین و مقدار مقصد را وارد کنید.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("btn-add-dns-record");
+    if (btn) btn.disabled = true;
+
+    try {
+        const res = await fetch("/api/cloudflare/dns", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, type, content, proxied, ttl: 1 })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message || "رکورد با موفقیت ثبت شد.", "success");
+            document.getElementById("cf-new-rec-name").value = "";
+            loadCloudflareDnsRecords();
+        } else {
+            showToast(data.error || "خطا در ثبت رکورد", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function deleteCloudflareDnsRecord(recId, recName) {
+    if (!confirm(`آیا از حذف رکورد '${recName}' اطمینان دارید؟`)) return;
+    try {
+        const res = await fetch(`/api/cloudflare/dns/${recId}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message || "رکورد با موفقیت حذف گردید.", "success");
+            loadCloudflareDnsRecords();
+        } else {
+            showToast(data.error || "خطا در حذف رکورد", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    }
+}
+
+async function toggleCloudflareDnsProxy(recId) {
+    try {
+        const res = await fetch(`/api/cloudflare/dns/${recId}/toggle-proxy`, { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            loadCloudflareDnsRecords();
+        } else {
+            showToast(data.error || "خطا در تغییر وضعیت پروکسی", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    }
+}
+
+async function provisionAllProtocolsSubdomains() {
+    const btn = document.getElementById("btn-provision-protocols");
+    const resultBox = document.getElementById("cf-protocols-provision-result");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="spin" style="width:16px; height:16px; margin-left:6px;"></i> در حال ثبت ساب‌دامین‌ها...`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch("/api/cloudflare/protocols/provision", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({})
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(`تعداد ${data.success_count} ساب‌دامین با موفقیت ثبت و پیکربندی شدند!`, "success");
+            if (resultBox) {
+                resultBox.style.display = "block";
+                let listHtml = `<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:14px;">
+                    <div style="font-weight:700; color:#10b981; margin-bottom:8px;">گزارش ثبت ساب‌دامین‌های پروتکل‌ها:</div>
+                    <ul style="margin:0; padding-right:18px; font-size:12px; line-height:1.7;">`;
+                (data.results || []).forEach(r => {
+                    const stColor = r.status === 'success' ? '#10b981' : '#ef4444';
+                    listHtml += `<li><strong style="color:#fff;">${r.title}:</strong> <code style="color:#38bdf8;">${r.subdomain}</code> ➔ <span style="color:${stColor};">${r.message}</span></li>`;
+                });
+                listHtml += `</ul></div>`;
+                resultBox.innerHTML = listHtml;
+            }
+            loadCloudflareDnsRecords();
+        } else {
+            showToast(data.error || "خطا در ساخت ساب‌دامین‌ها", "error");
+        }
+    } catch (e) {
+        showToast("خطای شبکه: " + e.message, "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="sparkles" style="width:16px; height:16px; margin-left:6px;"></i> ثبت خودکار ساب‌دامین‌های تمام پروتکل‌ها`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+}
+
+async function setupCloudflareDnsTunnel() {
+    const tunnelType = document.getElementById("cf-tunnel-type-select").value;
+    const nsName = document.getElementById("cf-tunnel-ns-name").value.trim() || "ns";
+    const tunnelName = document.getElementById("cf-tunnel-sub-name").value.trim() || "t";
+    const btn = document.getElementById("btn-setup-dns-tunnel");
+    const resBox = document.getElementById("cf-dns-tunnel-result-box");
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="spin" style="width:16px; height:16px; margin-left:6px;"></i> در حال ساخت رکوردهای تانل...`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch("/api/cloudflare/dns-tunnel/setup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tunnel_type: tunnelType, ns_name: nsName, tunnel_name: tunnelName })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("رکوردهای تانل DNS با موفقیت ایجاد و سرور همگام شد!", "success");
+            if (resBox) {
+                resBox.style.display = "block";
+                resBox.innerHTML = `
+                <div style="background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.3); border-radius:10px; padding:14px;">
+                    <div style="font-weight:700; color:#a855f7; margin-bottom:8px;">✅ تانل DNS با موفقیت آماده شد:</div>
+                    <div style="font-size:12px; line-height:1.7; margin-bottom:10px;">
+                        <div>• رکورد سرور نام (NS A-Record): <code style="color:#fff;">${data.ns_domain} ➔ ${data.server_ip}</code></div>
+                        <div>• رکورد دامنه تانل (Tunnel NS-Record): <code style="color:#fff;">${data.tunnel_domain} ➔ ${data.ns_domain}</code></div>
+                        <div>• سرویس‌های همگام‌شده در سرور: <span style="color:#10b981; font-weight:600;">${(data.synced_services || []).join(', ') || 'DNSTT'}</span></div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        <label class="form-label" style="font-size:11.5px; margin-bottom:4px; display:block;">دستور اتصال کلاینت (DNSTT Client Command):</label>
+                        <div style="display:flex; gap:6px;">
+                            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; font-size:11.5px;" type="text" readonly value="${data.client_command}" id="cf-tunnel-cmd-val">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('cf-tunnel-cmd-val').value); showToast('دستور کپی شد', 'success');" style="white-space:nowrap;">
+                                <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> کپی
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+            loadCloudflareDnsRecords();
+        } else {
+            showToast(data.error || "خطا در تنظیم تانل DNS", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="satellite" style="width:16px; height:16px; margin-left:6px;"></i> ایجاد رکوردهای تانل DNS و همگام‌سازی با سرور`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+}
+
+function setOriginPortPreset(port, sub) {
+    const portInput = document.getElementById("cf-origin-target-port");
+    const subInput = document.getElementById("cf-origin-subdomain");
+    if (portInput) portInput.value = port;
+    if (subInput && !subInput.value) subInput.value = sub;
+}
+
+async function loadCloudflareOriginRules() {
+    const tbody = document.getElementById("cf-origin-rules-tbody");
+    if (!tbody) return;
+
+    try {
+        const res = await fetch("/api/cloudflare/origin-rules");
+        const data = await res.json();
+        if (!data.success) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#ef4444;">${data.error || 'خطا در بارگذاری قوانین'}</td></tr>`;
+            return;
+        }
+
+        const rules = data.rules || [];
+        if (rules.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:14px; color:var(--text-muted);">هیچ قانون فوروارد پورتی (Origin Rule) ثبت نشده است.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        rules.forEach(r => {
+            html += `
+            <tr style="border-bottom:1px solid var(--border-glow);">
+                <td style="padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8;">${r.expression}</td>
+                <td style="padding:8px 10px; font-family:'JetBrains Mono', monospace; font-size:12px; color:#10b981; font-weight:700;">:${r.target_port}</td>
+                <td style="padding:8px 10px; font-size:12px; color:var(--text-muted);">${r.description}</td>
+                <td style="padding:8px 10px; text-align:center;">
+                    <button type="button" class="btn btn-danger btn-sm" onclick="deleteCloudflareOriginRule('${r.id || ""}', '')" style="padding:2px 7px; font-size:11px;">
+                        <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                    </button>
+                </td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:14px; color:#ef4444;">خطای شبکه: ${e.message}</td></tr>`;
+    }
+}
+
+async function addCloudflareOriginRule() {
+    const sub = document.getElementById("cf-origin-subdomain").value.trim();
+    const port = document.getElementById("cf-origin-target-port").value.trim();
+    if (!sub || !port) {
+        showToast("لطفاً ساب‌دامین و پورت مقصد سرور را وارد کنید.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("btn-add-origin-rule");
+    if (btn) btn.disabled = true;
+
+    try {
+        const res = await fetch("/api/cloudflare/origin-rules", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subdomain: sub, target_port: port })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            loadCloudflareOriginRules();
+        } else {
+            showToast(data.error || "خطا در ثبت قانون فوروارد پورت", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function deleteCloudflareOriginRule(ruleId, hostname) {
+    if (!confirm("آیا از حذف این قانون فوروارد پورت اطمینان دارید؟")) return;
+    try {
+        const res = await fetch("/api/cloudflare/origin-rules", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rule_id: ruleId, hostname: hostname })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast(data.message, "success");
+            loadCloudflareOriginRules();
+        } else {
+            showToast(data.error || "خطا در حذف قانون", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    }
+}
+
+function onWorkerTypeChange(type) {
+    const gasWrap = document.getElementById("cf-gas-url-wrapper");
+    if (gasWrap) {
+        gasWrap.style.display = (type === "gas_relay") ? "block" : "none";
+    }
+}
+
+async function loadCloudflareWorkerPresets() {
+    try {
+        const res = await fetch("/api/cloudflare/workers/presets");
+        const data = await res.json();
+        if (data.success) {
+            cfCachedPresets = data;
+            const gasInput = document.getElementById("cf-worker-gas-url");
+            if (gasInput && !gasInput.value && data.gas_url) {
+                gasInput.value = data.gas_url;
+            }
+        }
+    } catch (e) {
+        console.error("Error loading worker presets:", e);
+    }
+}
+
+async function deployCloudflareWorkerNow() {
+    const wType = document.getElementById("cf-worker-type-select").value;
+    const wName = document.getElementById("cf-worker-name-input").value.trim() || "mhpanel-gas-relay";
+    const gasUrl = document.getElementById("cf-worker-gas-url") ? document.getElementById("cf-worker-gas-url").value.trim() : "";
+    const customSub = document.getElementById("cf-worker-subdomain") ? document.getElementById("cf-worker-subdomain").value.trim() : "";
+    const btn = document.getElementById("btn-deploy-worker");
+    const resBox = document.getElementById("cf-worker-deploy-result");
+
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i data-lucide="loader" class="spin" style="width:16px; height:16px; margin-left:6px;"></i> در حال استقرار در کلودفلر...`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    try {
+        const res = await fetch("/api/cloudflare/workers/deploy", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                worker_type: wType,
+                script_name: wName,
+                gas_url: gasUrl,
+                custom_subdomain: customSub
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast("ورکر کلودفلر با موفقیت مستقر و منتشر گردید!", "success");
+            if (resBox) {
+                resBox.style.display = "block";
+                resBox.innerHTML = `
+                <div style="background:rgba(249,115,22,0.08); border:1px solid rgba(249,115,22,0.3); border-radius:10px; padding:14px;">
+                    <div style="font-weight:700; color:#f97316; margin-bottom:8px;">✅ استقرار ورکر انجام شد:</div>
+                    <div style="font-size:12px; line-height:1.7; margin-bottom:10px;">
+                        <div>• نام ورکر: <code style="color:#fff;">${data.script_name}</code></div>
+                        ${data.worker_url ? `<div>• آدرس عمومی ورکر: <a href="${data.worker_url}" target="_blank" rel="noopener noreferrer" style="color:#f97316; font-weight:700; text-decoration:underline;">${data.worker_url}</a></div>` : ''}
+                    </div>
+                    <div style="font-size:11.5px; color:var(--text-muted);">
+                        ${(data.logs || []).map(l => `<div>${l}</div>`).join('')}
+                    </div>
+                </div>`;
+            }
+        } else {
+            showToast(data.error || "خطا در استقرار ورکر", "error");
+        }
+    } catch (e) {
+        showToast("خطا: " + e.message, "error");
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="upload-cloud" style="width:16px; height:16px; margin-left:6px;"></i> استقرار آنی ورکر در کلودفلر (Deploy)`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+}
+
+function showWorkerCodePreview() {
+    const wType = document.getElementById("cf-worker-type-select").value;
+    const modal = document.getElementById("cf-worker-code-modal");
+    const txt = document.getElementById("cf-worker-code-textarea");
+    if (!modal || !txt) return;
+
+    if (cfCachedPresets && cfCachedPresets.scripts && cfCachedPresets.scripts[wType]) {
+        txt.value = cfCachedPresets.scripts[wType];
+    } else {
+        txt.value = "// در حال آماده‌سازی کد...";
+    }
+    modal.style.display = "flex";
+}
+
+function closeWorkerCodeModal() {
+    const modal = document.getElementById("cf-worker-code-modal");
+    if (modal) modal.style.display = "none";
+}
+
+function copyWorkerCodeToClipboard() {
+    const txt = document.getElementById("cf-worker-code-textarea");
+    if (txt) {
+        navigator.clipboard.writeText(txt.value);
+        showToast("کد اسکریپت در کلیپ‌بورد کپی شد.", "success");
+    }
+}
 
 </script>
