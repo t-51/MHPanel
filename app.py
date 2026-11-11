@@ -2403,8 +2403,6 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         "uuid": u_uuid
                     }
                     if reality_enabled:
-                        if tp_type == "tcp":
-                            ob["flow"] = "xtls-rprx-vision"
                         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
                         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
                         ob["tls"] = {
@@ -2763,10 +2761,10 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         relay_sni = panel_domain or cf_domain or pub_ip or "127.0.0.1"
 
         fragment_uris = [
-            # Direct VLESS-Reality on standard Cloudflare port 443 (Iranian sites like www.digikala.com)
+            # Direct VLESS-Reality on standard Cloudflare port 443 (Iranian sites like www.digikala.com - XTLS disabled for broad compatibility)
             {
                 "name": f"MHPanel - [Fragment] VLESS-Reality ({username})",
-                "uri": f"vless://{uid}@{domain or pub_ip}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment] VLESS-Reality ({username})",
+                "uri": f"vless://{uid}@{domain or pub_ip}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
                 "type": "VLESS Reality",
                 "server": domain or pub_ip,
                 "port": r_port,
@@ -2775,7 +2773,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
             # VLESS-TCP Local Relay (40443)
             {
                 "name": f"MHPanel - [SNISpoof Relay] VLESS-TCP-40443 ({username})",
-                "uri": f"vless://{uid}@127.0.0.1:40443?security=tls&sni={relay_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [SNISpoof Relay] VLESS-TCP-40443 ({username})",
+                "uri": f"vless://{uid}@127.0.0.1:40443?security=tls&sni={relay_sni}&type=tcp&headerType=none#MHPanel - [SNISpoof Relay] VLESS-TCP-40443 ({username})",
                 "type": "VLESS Local Relay (40443)",
                 "server": "127.0.0.1",
                 "port": 40443,
@@ -2784,7 +2782,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
             # VLESS-TCP Local Relay (40433)
             {
                 "name": f"MHPanel - [SNISpoof Relay] VLESS-TCP-40433 ({username})",
-                "uri": f"vless://{uid}@127.0.0.1:40433?security=tls&sni={relay_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [SNISpoof Relay] VLESS-TCP-40433 ({username})",
+                "uri": f"vless://{uid}@127.0.0.1:40433?security=tls&sni={relay_sni}&type=tcp&headerType=none#MHPanel - [SNISpoof Relay] VLESS-TCP-40433 ({username})",
                 "type": "VLESS Local Relay (40433)",
                 "server": "127.0.0.1",
                 "port": 40433,
@@ -14227,7 +14225,6 @@ def get_snispoof_reality_and_client_configs():
                 "server": srv,
                 "server_port": r_port,
                 "uuid": r_uuid,
-                "flow": "xtls-rprx-vision",
                 "tls": {
                     "enabled": True,
                     "server_name": sample_sni,
@@ -14380,7 +14377,6 @@ def get_snispoof_reality_and_client_configs():
                 "server": srv,
                 "server_port": r_port,
                 "uuid": r_uuid,
-                "flow": "xtls-rprx-vision",
                 "tls": {
                     "enabled": True,
                     "server_name": sample_sni,
@@ -14414,18 +14410,18 @@ def get_snispoof_reality_and_client_configs():
 
     # V2Ray URIs
     r_port_ext = 443 if (int(r_port) == 20443 or int(r_port) not in [443, 2096]) else r_port
-    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel-AntiDPI-Reality"
-    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel-SNISpoof-Port{port}"
+    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-AntiDPI-Reality"
+    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
     v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
 
     v2ray_cloud_uri = f"trojan://{r_trojan_pass}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS"
     v2ray_cloud_vless_uri = f"vless://{r_uuid}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Fvless-ws#MHPanel - [Cloud Clean IP] VLESS-WS"
 
     # SNI Spoofing local relay configs must have panel domain or panel IP as SNI (NOT fake)
-    # Exclusively VLESS over TCP for local relay (Trojan/VMess removed due to protocol structure)
+    # Exclusively VLESS over TCP for local relay (XTLS Vision turned off for stability)
     relay_target_sni = cf_full_domain or srv
-    v2ray_fragment_vless_uri = f"vless://{r_uuid}@127.0.0.1:40443?security=tls&sni={relay_target_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment/Relay] VLESS-40443"
-    v2ray_fragment_vless_40433_uri = f"vless://{r_uuid}@127.0.0.1:40433?security=tls&sni={relay_target_sni}&type=tcp&headerType=none&flow=xtls-rprx-vision&spx=%2F&path=%2F#MHPanel - [Fragment/Relay] VLESS-40433"
+    v2ray_fragment_vless_uri = f"vless://{r_uuid}@127.0.0.1:40443?security=tls&sni={relay_target_sni}&type=tcp&headerType=none#MHPanel - [Fragment/Relay] VLESS-40443"
+    v2ray_fragment_vless_40433_uri = f"vless://{r_uuid}@127.0.0.1:40433?security=tls&sni={relay_target_sni}&type=tcp&headerType=none#MHPanel - [Fragment/Relay] VLESS-40433"
     v2ray_fragment_uri = v2ray_fragment_vless_uri
 
     # Full Xray / V2Ray JSON Config with Fragment Dialer Proxy
@@ -14464,7 +14460,7 @@ def get_snispoof_reality_and_client_configs():
                         "port": r_port_ext,
                         "users": [{
                             "id": r_uuid,
-                            "flow": "xtls-rprx-vision",
+                            "flow": "",
                             "encryption": "none"
                         }]
                     }]
@@ -14478,7 +14474,7 @@ def get_snispoof_reality_and_client_configs():
                         "serverName": sample_sni,
                         "publicKey": r_pubkey,
                         "shortId": r_shortid,
-                        "spiderX": "/"
+                        "spiderX": ""
                     },
                     "sockopt": {
                         "dialerProxy": "fragment"
@@ -28153,7 +28149,7 @@ def build_default_singbox_full_suite():
             "listen": "::",
             "listen_port": 20443,
             "sniff": True,
-            "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
             "tls": {
                 "enabled": True,
                 "server_name": "www.digikala.com",
@@ -28708,7 +28704,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
 
     clean_tag = tag.replace("-in", "")
     friendly_names = {
-        "vless-reality": "VLESS-Reality-Vision",
+        "vless-reality": "VLESS-Reality",
         "vless-reality-grpc": "VLESS-Reality-gRPC",
         "vless-reality-upgrade": "VLESS-Reality-HTTPUpgrade",
         "vless-ws": "VLESS-WS-TLS",
@@ -28764,9 +28760,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     if itype == "vless":
         tp = (inbound.get("transport") or {}).get("type", "tcp")
         user_flow = target_user.get("flow") if (target_user and "flow" in target_user) else user0.get("flow")
-        flow = (user_flow or "") if tp == "tcp" else ""
-        if reality_enabled and tp == "tcp" and not flow:
-            flow = "xtls-rprx-vision"
+        flow = "" if reality_enabled else ((user_flow or "") if tp == "tcp" else "")
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sids = reality_obj.get("short_id", [""])
@@ -28797,7 +28791,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         if reality_enabled:
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
-            link += "&fp=chrome&spx=%2F&path=%2F"
+            link += "&fp=chrome"
 
         link += f"#{tag_name}"
         return link
@@ -29270,28 +29264,23 @@ def sync_singbox_users_to_config():
             tls_obj = ib.get("tls") or {}
             is_reality = bool((tls_obj.get("reality") or {}).get("enabled", False))
             
-            # For VLESS Reality TCP, flow MUST be "xtls-rprx-vision"
-            req_flow = "xtls-rprx-vision" if (itype == "vless" and is_tcp_trans and is_reality) else ""
-            existing_flow = next((x.get("flow") for x in (ib.get("users") or []) if x.get("flow")), "") or req_flow
+            # XTLS Vision is disabled across Reality configs for universal client compatibility
+            existing_flow = next((x.get("flow") for x in (ib.get("users") or []) if x.get("flow")), "") if not is_reality else ""
 
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
                 if itype == "vless":
-                    if is_tcp_trans and is_reality:
-                        u_entry["flow"] = "xtls-rprx-vision"
-                    elif is_tcp_trans and existing_flow:
+                    if not is_reality and is_tcp_trans and (u.get("flow") or existing_flow):
                         u_entry["flow"] = u.get("flow") or existing_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
                 users_arr.append(u_entry)
             if not users_arr:
                 existing = [x for x in (ib.get("users") or []) if x.get("name") not in local_usernames]
-                for ex in existing:
-                    if itype == "vless" and is_tcp_trans and is_reality:
-                        ex["flow"] = "xtls-rprx-vision"
+                if is_reality:
+                    for ex in existing:
+                        ex.pop("flow", None)
                 users_arr = existing if existing else [{"name": "default-user", "uuid": str(uuid.uuid4())}]
-                if not existing and itype == "vless" and is_tcp_trans and is_reality:
-                    users_arr[0]["flow"] = "xtls-rprx-vision"
             ib["users"] = users_arr
 
         elif itype == "trojan":
@@ -29470,7 +29459,7 @@ def build_inbound_from_request(req, existing_inbound=None):
         user_name = req.get("user_name") or (existing_users[0].get("name") if existing_users else "") or f"{itype}-user"
         user_obj = {"name": user_name, "uuid": uuid_val}
         if itype == "vless":
-            # Flow 'xtls-rprx-vision' is strictly for TCP transport ONLY
+            # Optional flow (e.g. if explicitly specified) is strictly for TCP transport ONLY
             flow_val = (req.get("flow") or "").strip() if is_tcp else ""
             if flow_val:
                 user_obj["flow"] = flow_val
@@ -30563,7 +30552,7 @@ def api_singbox_user_add():
         "enabled": True,
         "category": category,
         "inbounds": inbounds,
-        "flow": req.get("flow", "xtls-rprx-vision"),
+        "flow": req.get("flow", ""),
         "traffic_limit_gb": traffic_limit,
         "used_traffic_bytes": 0,
         "upload_bytes": 0,
@@ -30937,7 +30926,7 @@ def api_singbox_users_bulk_add():
             "enabled": True,
             "category": category,
             "inbounds": inbounds,
-            "flow": "xtls-rprx-vision",
+            "flow": "",
             "traffic_limit_gb": traffic_limit,
             "used_traffic_bytes": 0,
             "upload_bytes": 0,
