@@ -23252,7 +23252,8 @@ def generate_haproxy_cfg(config):
                         if b_def not in backend_blocks:
                             backend_blocks.append(b_def)
                     acl_name = f"is_sb_r_{idx_r}"
-                    exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {r_sni}", f"    use_backend {r_backend} if {acl_name}"))
+                    sni_match = f"{r_sni} {r_sni[4:]}" if r_sni.startswith("www.") else r_sni
+                    exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {sni_match}", f"    use_backend {r_backend} if {acl_name}"))
 
             # If default protocol, only map public IP and server domain if not claimed by other protocols
             if p_id == default_proto_id:
