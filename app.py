@@ -28540,8 +28540,8 @@ def build_default_singbox_full_suite():
         },
         "dns": {
             "servers": [
-                {"tag": "dns-direct", "address": "1.1.1.1", "strategy": "ipv4_only", "detour": "direct"},
-                {"tag": "dns-google", "address": "8.8.8.8", "strategy": "ipv4_only", "detour": "direct"}
+                {"tag": "dns-direct", "type": "udp", "server": "1.1.1.1"},
+                {"tag": "dns-google", "type": "udp", "server": "8.8.8.8"}
             ],
             "strategy": "ipv4_only"
         },
@@ -28551,7 +28551,12 @@ def build_default_singbox_full_suite():
             {"type": "block", "tag": "block"}
         ],
         "route": {
+            "default_domain_resolver": {
+                "server": "dns-direct",
+                "strategy": "ipv4_only"
+            },
             "rules": [
+                {"action": "sniff"},
                 {"protocol": "dns", "outbound": "direct"},
                 {"ip_is_private": True, "outbound": "direct"}
             ]
@@ -28570,24 +28575,60 @@ def ensure_singbox_default_config():
             if not c.get("inbounds"):
                 need_init = True
             else:
-                # Ensure DNS IPv4 only and QUIC blocking are present
+                changed = False
+                # Remove legacy inbound fields for sing-box >= 1.14
+                for ib in c.get("inbounds", []):
+                    for k in ["sniff", "sniff_override_destination", "sniff_timeout", "domain_strategy"]:
+                        if k in ib:
+                            del ib[k]
+                            changed = True
+
+                # Modernize DNS
                 dns_obj = c.get("dns", {})
+                new_servers = []
+                for s in dns_obj.get("servers", []):
+                    srv = dict(s)
+                    addr = srv.pop("address", None)
+                    srv.pop("strategy", None)
+                    srv.pop("detour", None)
+                    if addr:
+                        srv["type"] = "udp"
+                        srv["server"] = addr
+                    new_servers.append(srv)
+                dns_obj["servers"] = new_servers
+                dns_obj["strategy"] = "ipv4_only"
+                c["dns"] = dns_obj
+
+                # Clean Outbounds
+                for ob in c.get("outbounds", []):
+                    if "domain_strategy" in ob:
+                        del ob["domain_strategy"]
+                        changed = True
+
+                # Modernize Route
                 route_obj = c.get("route", {})
+                route_obj["default_domain_resolver"] = {
+                    "server": "dns-direct",
+                    "strategy": "ipv4_only"
+                }
                 rules = route_obj.get("rules", [])
+                if not any(r.get("action") == "sniff" for r in rules if isinstance(r, dict)):
+                    rules.insert(0, {"action": "sniff"})
+                    changed = True
+                for r in rules:
+                    if isinstance(r, dict) and r.get("geoip") == "private":
+                        del r["geoip"]
+                        r["ip_is_private"] = True
+                        changed = True
+
                 has_quic_block = any(r.get("port") == [443] and "udp" in r.get("network", []) and r.get("outbound") == "block" for r in rules if isinstance(r, dict))
-                if not has_quic_block or dns_obj.get("strategy") != "ipv4_only":
-                    dns_obj["strategy"] = "ipv4_only"
-                    for s in dns_obj.get("servers", []):
-                        if isinstance(s, dict):
-                            s["strategy"] = "ipv4_only"
-                    c["dns"] = dns_obj
-                    for ob in c.get("outbounds", []):
-                        if isinstance(ob, dict) and ob.get("tag") == "direct":
-                            ob["domain_strategy"] = "ipv4_only"
-                    if not has_quic_block:
-                        rules.insert(1, {"port": [443], "network": ["udp"], "outbound": "block"})
-                        route_obj["rules"] = rules
-                        c["route"] = route_obj
+                if not has_quic_block:
+                    rules.insert(1, {"port": [443], "network": ["udp"], "outbound": "block"})
+                    changed = True
+                route_obj["rules"] = rules
+                c["route"] = route_obj
+
+                if changed:
                     with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f_out:
                         json.dump(c, f_out, indent=2, ensure_ascii=False)
                     try:
