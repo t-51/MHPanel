@@ -23,6 +23,10 @@
                     <i data-lucide="arrow-up-right" style="width: 16px; height: 16px;"></i>
                     <span>افزودن اوت‌باند جدید</span>
                 </button>
+                <button class="btn btn-secondary" onclick="switchSingboxSubTab('cleanips')" type="button" style="display: flex; align-items: center; gap: 7px; border: 1.5px solid rgba(14, 165, 233, 0.55); color: #0284c7; background: rgba(14, 165, 233, 0.08); font-weight: 700; box-shadow: 0 2px 6px rgba(14, 165, 233, 0.12);" title="مدیریت و ثبت آی‌پی‌های سفید کلودفلر (Clean IPs)">
+                    <i data-lucide="cloud-lightning" style="width: 16px; height: 16px; color: #0284c7;"></i>
+                    <span>⚡ آی‌پی‌های سفید کلودفلر (Clean IPs)</span>
+                </button>
                 <button class="btn btn-primary" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
                     <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i>
                     <span data-i18n="singbox_add_user_btn">افزودن کاربر محلی</span>
@@ -63,6 +67,10 @@
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-outbounds" onclick="switchSingboxSubTab('outbounds')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="arrow-up-right" style="color: #ec4899; width: 14px; height: 14px;"></i> <span>خروجی‌ها و اوت‌باندها (Outbounds)</span>
                 <span class="badge-pill" id="sb-badge-outbounds-count" style="font-size: 11px; padding: 1px 6px; background: rgba(236, 72, 153, 0.2); color: #ec4899;">-</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-cleanips" onclick="switchSingboxSubTab('cleanips')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="cloud-lightning" style="color: #0284c7; width: 14px; height: 14px;"></i> <span>آی‌پی‌های سفید کلودفلر (Clean IPs)</span>
+                <span class="badge-pill" id="sb-badge-cleanips-count" style="font-size: 11px; padding: 1px 6px; background: rgba(14, 165, 233, 0.2); color: #0284c7;">-</span>
             </button>
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-logs" onclick="switchSingboxSubTab('logs')" style="font-weight: 600; display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="terminal" style="color: #10b981; width: 14px; height: 14px;"></i> <span>لاگ‌های زنده هسته (Live Logs)</span>
@@ -151,6 +159,24 @@
                 </div>
                 <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
                     تخصیص مستقل کانفیگ و اشتراک
+                </div>
+            </div>
+
+            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(14, 165, 233, 0.35); background: var(--bg-card); cursor: pointer;" onclick="switchSingboxSubTab('cleanips')">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #0284c7; font-weight: 700; display: block; margin-bottom: 4px;">آی‌پی‌های سفید کلودفلر:</span>
+                        <div style="display:flex; align-items:baseline; gap:6px;">
+                            <span id="singbox-stat-cleanips-count" style="font-size: 26px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">-</span>
+                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">IP سفید فعال</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(14, 165, 233, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">
+                    اتصال مستقیم WebSocket و ضد فیلتر
                 </div>
             </div>
 
@@ -462,6 +488,204 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- PANE: Cloudflare Clean IPs Management Card -->
+        <div class="glass-card" id="sb-pane-cleanips" style="display: none; padding: 24px; border: 1px solid rgba(14, 165, 233, 0.35); border-radius: 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="cloud-lightning" style="color: #0284c7; width: 20px; height: 20px;"></i>
+                        <span>مدیریت و دسته‌بندی آی‌پی‌های سفید کلودفلر بر اساس اپراتورها (Clean IPs by Operator)</span>
+                    </h3>
+                    <p style="margin: 4px 0 0; font-size: 12.5px; color: var(--text-muted);">
+                        تعریف و مدیریت آی‌پی‌های سفید تفکیک‌شده برای هر اپراتور (همراه اول، ایرانسل، رایتل، مخابرات و...) جهت درج هوشمند در لینک‌های ساب و کانفیگ‌های کاربران.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadSingboxCleanIps()" style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <span>بروزرسانی</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="testActiveOperatorCleanIps()" style="display: flex; align-items: center; gap: 6px; border: 1.5px solid rgba(16, 185, 129, 0.4); color: #10b981;">
+                        <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+                        <span>تست پینگ اپراتور انتخابی</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="testAllSingboxCleanIps()" style="display: flex; align-items: center; gap: 6px; border: 1.5px solid rgba(14, 165, 233, 0.4); color: #0284c7;">
+                        <i data-lucide="activity" style="width: 14px; height: 14px;"></i>
+                        <span>تست همه آی‌پی‌ها</span>
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="saveSingboxCleanIps()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                        <i data-lucide="save" style="width: 14px; height: 14px;"></i>
+                        <span>ثبت و ذخیره تغییرات</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div style="background: rgba(14, 165, 233, 0.04); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 12px; padding: 18px 20px; margin-bottom: 22px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                    <div>
+                        <label class="form-label" style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <i data-lucide="globe" style="width: 14px; height: 14px;"></i>
+                            <span>دامنه یا ساب‌دامین اختصاصی کلودفلر (SNI / Host Header):</span>
+                        </label>
+                        <input type="text" id="sb-cleanip-domain-input" class="form-input" placeholder="e.g. vpn.kigaping.com" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">
+                            این دامنه در کلودفلر به عنوان SNI در هندشیک TLS و Host وب‌سوکت ارسال می‌شود و ترافیک از آی‌پی تمیز به آن هدایت می‌گردد.
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+                            <span>نحوه عملکرد دسته‌بندی اپراتورها در اشتراک کاربران:</span>
+                        </label>
+                        <div style="font-size: 12px; color: var(--text-muted); line-height: 1.7; background: rgba(0,0,0,0.1); padding: 10px 12px; border-radius: 8px;">
+                            در لینک‌های سابسکرایب (<code style="color:#0284c7;">/sub/token/b64</code> و <code style="color:#0284c7;">singbox.json</code>) کانفیگ‌ها بر اساس نام هر اپراتور نام‌گذاری می‌شوند (مثلاً <code style="color:#10b981;">[همراه اول] VLESS-WS</code>، <code style="color:#f59e0b;">[ایرانسل] VLESS-WS</code>، <code style="color:#a855f7;">[رایتل] VLESS-WS</code>) تا کاربران در ایران به راحتی کانفیگ متناسب با شبکه خود را انتخاب کنند.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operator Category Switcher Tabs -->
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                        <label class="form-label" style="font-weight: 700; margin: 0; color: #0284c7; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="layers" style="width: 15px; height: 15px;"></i>
+                            <span>انتخاب دسته‌بندی اپراتور جهت مدیریت آی‌پی‌ها:</span>
+                        </label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="showAddOperatorModal()" style="font-size: 11.5px; padding: 4px 10px; display: flex; align-items: center; gap: 5px; border-color: rgba(14, 165, 233, 0.4); color: #0284c7;">
+                            <i data-lucide="plus-circle" style="width: 13px; height: 13px;"></i>
+                            <span>افزودن دسته اپراتور جدید</span>
+                        </button>
+                    </div>
+                    <div id="sb-cleanip-operator-pills" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: rgba(0,0,0,0.12); border-radius: 10px; border: 1px solid var(--border-color);">
+                        <!-- Dynamic Operator Pills Generated by JS -->
+                    </div>
+                </div>
+
+                <!-- Active Operator Edit Box -->
+                <div id="sb-active-operator-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="sb-active-op-badge" style="padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; background: #0284c7; color: #fff;">MCI</span>
+                            <span id="sb-active-op-title" style="font-size: 13.5px; font-weight: 700;">همراه اول (MCI)</span>
+                            <span id="sb-active-op-count" style="font-size: 11.5px; color: var(--text-muted);">(0 آی‌پی)</span>
+                        </div>
+                        <div style="display: flex; gap: 6px; align-items: center;">
+                            <button type="button" class="btn btn-secondary btn-sm" id="sb-edit-op-name-btn" onclick="renameActiveOperator()" style="font-size: 11px; padding: 3px 8px;">
+                                <i data-lucide="edit-2" style="width: 12px; height: 12px;"></i> تغییر عنوان اپراتور
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="sb-delete-op-btn" onclick="deleteActiveOperator()" style="font-size: 11px; padding: 3px 8px; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">
+                                <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> حذف این دسته
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="clearSingboxCleanIpsInput()" style="font-size: 11px; padding: 3px 8px; color: var(--text-muted);">
+                                <i data-lucide="eraser" style="width: 12px; height: 12px;"></i> خالی کردن
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 12px;">
+                        <textarea id="sb-cleanip-textarea" class="form-input" rows="4" placeholder="104.18.119.142&#10;104.25.165.92" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; resize: vertical;" oninput="syncActiveOperatorTextarea()"></textarea>
+                    </div>
+
+                    <!-- Chips of recommended clean IPs -->
+                    <div>
+                        <span style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 6px;">
+                            آی‌پی‌های تمیز پیشنهادی و تست‌شده (برای افزودن به این اپراتور کلیک کنید):
+                        </span>
+                        <div style="display: flex; flex-wrap: wrap; gap: 6px;" id="sb-cleanip-chips-container">
+                            <!-- Chips injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; border-top: 1px dashed rgba(14, 165, 233, 0.2); padding-top: 12px;">
+                    <button type="button" class="btn btn-primary" onclick="saveSingboxCleanIps()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); font-weight:700;">
+                        <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                        <span>ثبت و ذخیره کلیه تغییرات اپراتورها در هسته</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table of currently active Clean IPs with live ping status -->
+            <div style="margin-bottom: 22px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                    <h4 style="margin: 0; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="check-circle-2" style="color: #10b981; width: 16px; height: 16px;"></i>
+                        <span>آی‌پی‌های سفید ثبت‌شده در هسته (<span id="sb-cleanips-active-count">0</span> مورد)</span>
+                    </h4>
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                        آخرین ذخیره‌سازی: <span id="sb-cleanips-last-updated" style="font-family: 'JetBrains Mono', monospace;">-</span>
+                    </span>
+                </div>
+                <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                        <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
+                            <tr>
+                                <th style="padding: 10px 14px; width: 50px;">#</th>
+                                <th style="padding: 10px 14px;">آدرس آی‌پی تمیز</th>
+                                <th style="padding: 10px 14px;">دسته‌بندی اپراتور</th>
+                                <th style="padding: 10px 14px;">شبکه / سرویس‌دهنده</th>
+                                <th style="padding: 10px 14px;">پورت استاندارد</th>
+                                <th style="padding: 10px 14px;">وضعیت اتصال و پینگ سرور</th>
+                                <th style="padding: 10px 14px; text-align: center; width: 160px;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sb-cleanips-table-body">
+                            <tr>
+                                <td colspan="7" style="text-align: center; padding: 20px; color: var(--text-muted);">
+                                    در حال بارگذاری اطلاعات آی‌پی‌های سفید هسته...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Preview Sample Configs Box -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px 20px;">
+                <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="link" style="color: #8b5cf6; width: 16px; height: 16px;"></i>
+                    <span>پیش‌نمایش کانفیگ‌های تولیدی به تفکیک اپراتور (Clean IP Operator Links Preview)</span>
+                </h4>
+                <p style="margin: 0 0 12px 0; font-size: 12px; color: var(--text-muted);">
+                    نمونه کانفیگ‌های VLESS-WS و Trojan-WS برای هر اپراتور که به صورت خودکار در سابسکرایب کاربران قرار می‌گیرند.
+                </p>
+                <div id="sb-cleanips-samples-box" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="color: var(--text-muted); font-size: 12px;">در حال آماده‌سازی پیش‌نمایش...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Add Custom Operator Category -->
+        <div id="modal-sb-add-operator" class="modal-backdrop" style="display: none; position: fixed; inset: 0; z-index: 9999; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+            <div class="glass-card" style="width: 100%; max-width: 440px; margin: 16px; padding: 22px; border: 1px solid rgba(14, 165, 233, 0.4); border-radius: 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="margin: 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                        <i data-lucide="plus-circle" style="color: #0284c7; width: 18px; height: 18px;"></i>
+                        <span>افزودن دسته‌بندی اپراتور جدید</span>
+                    </h3>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddOperatorModal()" style="padding: 2px 8px; font-size: 14px; border: none;">✕</button>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-weight: 600; font-size: 12.5px; margin-bottom: 4px; display: block;">شناسه انگلیسی اپراتور (Code - حروف کوچک و لاتین):</label>
+                    <input type="text" id="sb-new-op-code" class="form-input" placeholder="e.g. shatel, asiatech, mobinnet" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 13px;">
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label class="form-label" style="font-weight: 600; font-size: 12.5px; margin-bottom: 4px; display: block;">عنوان نمایشی اپراتور (Display Name):</label>
+                    <input type="text" id="sb-new-op-name" class="form-input" placeholder="مثال: شاتل (Shatel)" style="font-size: 13px;">
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label class="form-label" style="font-weight: 600; font-size: 12.5px; margin-bottom: 4px; display: block;">آی‌پی‌های تمیز اولیه (اختیاری - هر خط یک آی‌پی):</label>
+                    <textarea id="sb-new-op-ips" class="form-input" rows="3" placeholder="104.18.119.142" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12px;"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeAddOperatorModal()">انصراف</button>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="confirmAddNewOperator()" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+                        <span>افزودن دسته‌بندی</span>
+                    </button>
+                </div>
             </div>
         </div>
 

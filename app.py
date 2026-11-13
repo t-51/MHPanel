@@ -2343,6 +2343,224 @@ def generate_npv_config_bundle(username, password, domain, pub_ip):
         ]
     }
 
+SINGBOX_CLEAN_IPS_FILE = "/etc/sing-box/clean_ips.json"
+DEFAULT_CLOUDFLARE_CLEAN_IPS = [
+    "104.18.119.142",
+    "104.25.165.92",
+    "104.25.224.90",
+    "159.246.55.228",
+    "172.67.69.51",
+    "91.209.253.54",
+    "199.33.231.234",
+    "104.16.242.176",
+    "172.64.150.28",
+    "162.159.138.85"
+]
+
+DEFAULT_OPERATOR_CLEAN_IPS = [
+    {
+        "code": "mci",
+        "name": "همراه اول (MCI)",
+        "ips": ["104.18.119.142", "104.25.165.92", "104.16.153.15"]
+    },
+    {
+        "code": "mtn",
+        "name": "ایرانسل (MTN)",
+        "ips": ["172.67.69.51", "104.25.224.90", "172.66.193.96"]
+    },
+    {
+        "code": "rtl",
+        "name": "رایتل (Rightel)",
+        "ips": ["159.246.55.228", "162.159.138.85"]
+    },
+    {
+        "code": "mkh",
+        "name": "مخابرات (TCI)",
+        "ips": ["199.33.231.234", "91.209.253.54"]
+    },
+    {
+        "code": "other",
+        "name": "سایر / عمومی",
+        "ips": ["104.16.242.176", "172.64.150.28"]
+    }
+]
+
+def get_singbox_clean_ips_config():
+    default_cfg = {
+        "operators": copy.deepcopy(DEFAULT_OPERATOR_CLEAN_IPS),
+        "clean_ips": list(DEFAULT_CLOUDFLARE_CLEAN_IPS),
+        "cf_domain": "",
+        "updated_at": ""
+    }
+    if os.path.exists(SINGBOX_CLEAN_IPS_FILE):
+        try:
+            with open(SINGBOX_CLEAN_IPS_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    default_cfg.update(saved)
+                elif isinstance(saved, list):
+                    default_cfg["clean_ips"] = saved
+        except Exception as e:
+            logger.error(f"Error reading {SINGBOX_CLEAN_IPS_FILE}: {e}")
+    else:
+        cf_snispoof_path = "/etc/vpnpanel/cloudflare_snispoof.json"
+        if os.path.exists(cf_snispoof_path):
+            try:
+                with open(cf_snispoof_path, "r", encoding="utf-8") as f:
+                    cfs = json.load(f)
+                    if cfs.get("clean_ips"):
+                        default_cfg["clean_ips"] = cfs.get("clean_ips")
+                    sub = cfs.get("subdomain")
+                    dom = cfs.get("domain")
+                    full = cfs.get("full_subdomain") or (f"{sub}.{dom}" if sub and dom else "")
+                    if full:
+                        default_cfg["cf_domain"] = full
+            except Exception:
+                pass
+
+    if not default_cfg.get("cf_domain"):
+        default_cfg["cf_domain"] = get_panel_sub_domain() or get_server_domain() or ""
+
+    # Normalize operators structure
+    raw_ops = default_cfg.get("operators")
+    normalized_ops = []
+    seen_codes = set()
+    if isinstance(raw_ops, list):
+        for op in raw_ops:
+            if not isinstance(op, dict): continue
+            code = str(op.get("code") or "other").strip().lower()
+            name = str(op.get("name") or code).strip()
+            raw_ips = op.get("ips") or op.get("clean_ips") or []
+            if isinstance(raw_ips, str):
+                raw_ips = [x.strip() for x in raw_ips.replace("\r", "\n").replace("،", ",").replace(",", "\n").split("\n") if x.strip()]
+            cleaned_ips = []
+            for ip in raw_ips:
+                ips_str = str(ip).strip()
+                if ips_str and ips_str not in cleaned_ips:
+                    cleaned_ips.append(ips_str)
+            if code not in seen_codes:
+                seen_codes.add(code)
+                normalized_ops.append({
+                    "code": code,
+                    "name": name,
+                    "ips": cleaned_ips
+                })
+
+    if not normalized_ops:
+        normalized_ops = copy.deepcopy(DEFAULT_OPERATOR_CLEAN_IPS)
+        legacy_ips = default_cfg.get("clean_ips") or []
+        existing_op_ips = set()
+        for op in normalized_ops:
+            existing_op_ips.update(op["ips"])
+        unassigned = [x for x in legacy_ips if x not in existing_op_ips]
+        if unassigned:
+            for op in normalized_ops:
+                if op["code"] == "other":
+                    op["ips"].extend(unassigned)
+                    break
+
+    default_cfg["operators"] = normalized_ops
+
+    # Sync flat clean_ips list
+    all_clean_ips = []
+    for op in normalized_ops:
+        for ip in op.get("ips", []):
+            if ip not in all_clean_ips:
+                all_clean_ips.append(ip)
+    if not all_clean_ips:
+        all_clean_ips = list(DEFAULT_CLOUDFLARE_CLEAN_IPS)
+    default_cfg["clean_ips"] = all_clean_ips
+
+    return default_cfg
+
+def save_singbox_clean_ips_config(data):
+    os.makedirs(os.path.dirname(SINGBOX_CLEAN_IPS_FILE), exist_ok=True)
+    raw_ops = data.get("operators")
+    normalized_ops = []
+    seen_codes = set()
+    if isinstance(raw_ops, list) and raw_ops:
+        for op in raw_ops:
+            if not isinstance(op, dict): continue
+            code = str(op.get("code") or "other").strip().lower()
+            name = str(op.get("name") or code).strip()
+            raw_ips = op.get("ips") or op.get("clean_ips") or []
+            if isinstance(raw_ips, str):
+                raw_ips = [x.strip() for x in raw_ips.replace("\r", "\n").replace("،", ",").replace(",", "\n").split("\n") if x.strip()]
+            cleaned_ips = []
+            for ip in raw_ips:
+                ips_str = str(ip).strip()
+                if ips_str and ips_str not in cleaned_ips:
+                    cleaned_ips.append(ips_str)
+            if code not in seen_codes:
+                seen_codes.add(code)
+                normalized_ops.append({
+                    "code": code,
+                    "name": name,
+                    "ips": cleaned_ips
+                })
+    else:
+        raw_ips = data.get("clean_ips", [])
+        if isinstance(raw_ips, str):
+            raw_ips = [x.strip() for x in raw_ips.replace("\r", "\n").replace("،", ",").replace(",", "\n").split("\n") if x.strip()]
+        cleaned = [str(x).strip() for x in raw_ips if str(x).strip()]
+        normalized_ops = [
+            {"code": "mci", "name": "همراه اول (MCI)", "ips": [cleaned[0]] if cleaned else ["104.18.119.142"]},
+            {"code": "mtn", "name": "ایرانسل (MTN)", "ips": [cleaned[1]] if len(cleaned) > 1 else ["172.67.69.51"]},
+            {"code": "rtl", "name": "رایتل (Rightel)", "ips": [cleaned[2]] if len(cleaned) > 2 else ["159.246.55.228"]},
+            {"code": "mkh", "name": "مخابرات (TCI)", "ips": [cleaned[3]] if len(cleaned) > 3 else ["199.33.231.234"]},
+            {"code": "other", "name": "سایر / عمومی", "ips": cleaned[4:] if len(cleaned) > 4 else ["104.16.242.176"]}
+        ]
+
+    all_clean_ips = []
+    for op in normalized_ops:
+        for ip in op.get("ips", []):
+            if ip not in all_clean_ips:
+                all_clean_ips.append(ip)
+
+    if not all_clean_ips:
+        all_clean_ips = list(DEFAULT_CLOUDFLARE_CLEAN_IPS)
+
+    cf_domain = str(data.get("cf_domain", "")).strip()
+    if not cf_domain:
+        cf_domain = get_panel_sub_domain() or get_server_domain() or ""
+
+    saved_cfg = {
+        "operators": normalized_ops,
+        "clean_ips": all_clean_ips,
+        "cf_domain": cf_domain,
+        "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    with open(SINGBOX_CLEAN_IPS_FILE, "w", encoding="utf-8") as f:
+        json.dump(saved_cfg, f, indent=2, ensure_ascii=False)
+
+    try:
+        cf_snispoof_path = "/etc/vpnpanel/cloudflare_snispoof.json"
+        if os.path.exists(cf_snispoof_path):
+            with open(cf_snispoof_path, "r", encoding="utf-8") as f:
+                cfs = json.load(f)
+            cfs["clean_ips"] = all_clean_ips
+            if cf_domain:
+                cfs["full_subdomain"] = cf_domain
+            with open(cf_snispoof_path, "w", encoding="utf-8") as f:
+                json.dump(cfs, f, indent=2)
+    except Exception as e:
+        logger.error(f"Error syncing clean_ips to cloudflare_snispoof: {e}")
+
+    return saved_cfg
+
+def test_clean_ip_latency(ip, port=443, timeout=1.5):
+    import socket, time
+    t0 = time.time()
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(timeout)
+        s.connect((ip, port))
+        s.close()
+        return True, round((time.time() - t0) * 1000)
+    except Exception as e:
+        return False, str(e)
+
 def generate_singbox_ssh_config(username, password, domain, pub_ip):
     domain = domain or pub_ip or "127.0.0.1"
     host_ip = pub_ip or domain
@@ -2551,32 +2769,60 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     })
     proxy_tags.extend(ssh_tags)
 
-    # SNI Spoofing: Cloud Clean IP & Fragment Outbounds for Sing-box
+    # SNI Spoofing: Cloud Clean IP & Fragment Outbounds for Sing-box (Per Operator)
     try:
-        cf_cfg = get_cloudflare_snispoof_config()
-        clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142"]
-        clean_ip = clean_ips[0] if clean_ips else "104.18.119.142"
-        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or domain or "127.0.0.1"
+        sb_clean_cfg = get_singbox_clean_ips_config()
+        operators = sb_clean_cfg.get("operators") or []
+        cf_domain = sb_clean_cfg.get("cf_domain") or domain or "127.0.0.1"
 
-        cloud_outbound = {
-            "type": "trojan",
-            "tag": "MHPanel - [Cloud Clean IP] Trojan-WS",
-            "server": clean_ip,
-            "server_port": 443,
-            "password": password or "Sb_fhatutsq",
-            "tls": {
-                "enabled": True,
-                "server_name": cf_domain,
-                "utls": {"enabled": True, "fingerprint": "chrome"}
-            },
-            "transport": {
-                "type": "ws",
-                "path": "/trojan-ws",
-                "headers": {"Host": cf_domain}
+        if operators:
+            for op in operators:
+                op_code = str(op.get("code") or "OP").upper()
+                op_name = op.get("name") or op_code
+                op_ips = op.get("ips") or []
+                if not op_ips: continue
+                first_ip = op_ips[0]
+                cloud_outbound = {
+                    "type": "trojan",
+                    "tag": f"MHPanel - [{op_name}] Trojan-WS",
+                    "server": first_ip,
+                    "server_port": 443,
+                    "password": password or "Sb_fhatutsq",
+                    "tls": {
+                        "enabled": True,
+                        "server_name": cf_domain,
+                        "utls": {"enabled": True, "fingerprint": "chrome"}
+                    },
+                    "transport": {
+                        "type": "ws",
+                        "path": "/trojan-ws",
+                        "headers": {"Host": cf_domain}
+                    }
+                }
+                outbounds.append(cloud_outbound)
+                proxy_tags.append(cloud_outbound["tag"])
+        else:
+            clean_ips = sb_clean_cfg.get("clean_ips") or ["104.18.119.142"]
+            clean_ip = clean_ips[0] if clean_ips else "104.18.119.142"
+            cloud_outbound = {
+                "type": "trojan",
+                "tag": "MHPanel - [Cloud Clean IP] Trojan-WS",
+                "server": clean_ip,
+                "server_port": 443,
+                "password": password or "Sb_fhatutsq",
+                "tls": {
+                    "enabled": True,
+                    "server_name": cf_domain,
+                    "utls": {"enabled": True, "fingerprint": "chrome"}
+                },
+                "transport": {
+                    "type": "ws",
+                    "path": "/trojan-ws",
+                    "headers": {"Host": cf_domain}
+                }
             }
-        }
-        outbounds.append(cloud_outbound)
-        proxy_tags.append(cloud_outbound["tag"])
+            outbounds.append(cloud_outbound)
+            proxy_tags.append(cloud_outbound["tag"])
 
         frag_outbound = {
             "type": "socks",
@@ -2685,18 +2931,10 @@ def generate_ssh_uris(username, password, domain, pub_ip):
 
 def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
     try:
-        cf_cfg = get_cloudflare_snispoof_config()
-        raw_clean_ips = cf_cfg.get("clean_ips") or ["104.18.119.142", "104.25.165.92", "104.25.224.90"]
-        clean_ips = []
-        for cip in raw_clean_ips:
-            c = str(cip).strip()
-            if c and c not in clean_ips:
-                clean_ips.append(c)
-        if not clean_ips:
-            clean_ips = ["104.18.119.142"]
-
+        sb_clean_cfg = get_singbox_clean_ips_config()
+        operators = sb_clean_cfg.get("operators") or []
         panel_domain = get_panel_sub_domain() or domain or pub_ip or "127.0.0.1"
-        cf_domain = cf_cfg.get("full_subdomain") or (f"{cf_cfg.get('subdomain')}.{cf_cfg.get('domain')}" if cf_cfg.get('domain') and cf_cfg.get('subdomain') else "") or panel_domain
+        cf_domain = sb_clean_cfg.get("cf_domain") or panel_domain
 
         d_sni = get_snispoof_reality_and_client_configs()
         r_pubkey = d_sni.get("r_pubkey", "")
@@ -2707,52 +2945,85 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         pwd = password or d_sni.get("r_trojan_pass", "Sb_fhatutsq")
         uid = u_uuid or d_sni.get("r_uuid", "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc")
 
-        # 1. Cloud Mode URIs (Clean IP + Cloudflare Domain)
+        # 1. Cloud Mode URIs (Clean IP + Cloudflare Domain) per Operator
         # Cloudflare Clean IP ONLY works on WebSocket (ws)
         cloud_uris = []
-        for cip in clean_ips:
-            # VLESS-WS
-            cloud_uris.append({
-                "name": f"MHPanel - [Clean IP {cip}] VLESS-WS ({username})",
-                "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#MHPanel - [Clean IP {cip}] VLESS-WS ({username})",
-                "type": "VLESS-WS",
-                "server": cip,
-                "port": 443,
-                "sni": cf_domain
-            })
-            # Trojan-WS
-            cloud_uris.append({
-                "name": f"MHPanel - [Clean IP {cip}] Trojan-WS ({username})",
-                "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#MHPanel - [Clean IP {cip}] Trojan-WS ({username})",
-                "type": "Trojan-WS",
-                "server": cip,
-                "port": 443,
-                "sni": cf_domain
-            })
-            # VMess-WS
-            vmess_ws_dict = {
-                "v": "2",
-                "ps": f"MHPanel - [Clean IP {cip}] VMess-WS ({username})",
-                "add": cip,
-                "port": "443",
-                "id": uid,
-                "aid": "0",
-                "scy": "auto",
-                "net": "ws",
-                "type": "none",
-                "host": cf_domain,
-                "path": "/vmess-ws",
-                "tls": "tls",
-                "sni": cf_domain
-            }
-            cloud_uris.append({
-                "name": f"MHPanel - [Clean IP {cip}] VMess-WS ({username})",
-                "uri": f"vmess://{base64.b64encode(json.dumps(vmess_ws_dict).encode()).decode()}",
-                "type": "VMess-WS",
-                "server": cip,
-                "port": 443,
-                "sni": cf_domain
-            })
+        if operators:
+            for op in operators:
+                op_code = str(op.get("code") or "OP").upper()
+                op_name = op.get("name") or op_code
+                op_ips = op.get("ips") or []
+                for idx, cip in enumerate(op_ips, 1):
+                    tag_prefix = f"[{op_name}]" if len(op_ips) == 1 else f"[{op_name}-{idx}]"
+                    # VLESS-WS
+                    vless_title = f"MHPanel - {tag_prefix} VLESS-WS ({username})"
+                    cloud_uris.append({
+                        "name": vless_title,
+                        "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#{vless_title}",
+                        "type": f"VLESS-WS ({op_name})",
+                        "operator": op_code,
+                        "server": cip,
+                        "port": 443,
+                        "sni": cf_domain
+                    })
+                    # Trojan-WS
+                    trojan_title = f"MHPanel - {tag_prefix} Trojan-WS ({username})"
+                    cloud_uris.append({
+                        "name": trojan_title,
+                        "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#{trojan_title}",
+                        "type": f"Trojan-WS ({op_name})",
+                        "operator": op_code,
+                        "server": cip,
+                        "port": 443,
+                        "sni": cf_domain
+                    })
+                    # VMess-WS
+                    vmess_title = f"MHPanel - {tag_prefix} VMess-WS ({username})"
+                    vmess_ws_dict = {
+                        "v": "2",
+                        "ps": vmess_title,
+                        "add": cip,
+                        "port": "443",
+                        "id": uid,
+                        "aid": "0",
+                        "scy": "auto",
+                        "net": "ws",
+                        "type": "none",
+                        "host": cf_domain,
+                        "path": "/vmess-ws",
+                        "tls": "tls",
+                        "sni": cf_domain
+                    }
+                    cloud_uris.append({
+                        "name": vmess_title,
+                        "uri": f"vmess://{base64.b64encode(json.dumps(vmess_ws_dict).encode()).decode()}",
+                        "type": f"VMess-WS ({op_name})",
+                        "operator": op_code,
+                        "server": cip,
+                        "port": 443,
+                        "sni": cf_domain
+                    })
+        else:
+            raw_clean_ips = sb_clean_cfg.get("clean_ips") or ["104.18.119.142"]
+            for cip in raw_clean_ips:
+                vless_title = f"MHPanel - [Clean IP {cip}] VLESS-WS ({username})"
+                cloud_uris.append({
+                    "name": vless_title,
+                    "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#{vless_title}",
+                    "type": "VLESS-WS",
+                    "server": cip,
+                    "port": 443,
+                    "sni": cf_domain
+                })
+                trojan_title = f"MHPanel - [Clean IP {cip}] Trojan-WS ({username})"
+                cloud_uris.append({
+                    "name": trojan_title,
+                    "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#{trojan_title}",
+                    "type": "Trojan-WS",
+                    "server": cip,
+                    "port": 443,
+                    "sni": cf_domain
+                })
 
         # 2. Fragment / SNI Spoofing Local Relay Mode URIs
         # SNI must strictly be the real panel / server domain or IP (NOT fake!),
@@ -13076,12 +13347,13 @@ WantedBy=multi-user.target
 def api_dns_slipnet_config():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    proto = request.args.get("proto") or (request.json.get("proto") if request.is_json and request.json else "slipstream")
-    username = request.args.get("user") or (request.json.get("user") if request.is_json and request.json else "")
-    password = request.args.get("pass") or (request.json.get("pass") if request.is_json and request.json else "")
-    domain = request.args.get("domain") or (request.json.get("domain") if request.is_json and request.json else "")
-    resolvers = request.args.get("resolvers") or (request.json.get("resolvers") if request.is_json and request.json else "8.8.8.8:53:0,1.1.1.1:53:0")
-    doh_url = request.args.get("doh_url") or (request.json.get("doh_url") if request.is_json and request.json else "https://cloudflare-dns.com/dns-query")
+    req_json = request.get_json(silent=True) or {}
+    proto = request.args.get("proto") or req_json.get("proto") or "slipstream"
+    username = request.args.get("user") or req_json.get("user") or ""
+    password = request.args.get("pass") or req_json.get("pass") or ""
+    domain = request.args.get("domain") or req_json.get("domain") or ""
+    resolvers = request.args.get("resolvers") or req_json.get("resolvers") or "8.8.8.8:53:0,1.1.1.1:53:0"
+    doh_url = request.args.get("doh_url") or req_json.get("doh_url") or "https://cloudflare-dns.com/dns-query"
     
     # If password not provided, find from tunnel users
     if username and not password:
@@ -29399,7 +29671,7 @@ def sync_singbox_users_to_config():
             "auth_user": [u["username"]],
             "outbound": target_ob
         })
-    rules.append({"geoip": "private", "outbound": "direct"})
+    rules.append({"ip_is_private": True, "outbound": "direct"})
     rules.append({"port": [443], "network": ["udp"], "outbound": "block"})
     cfg.setdefault("route", {})["rules"] = rules
 
@@ -29719,6 +29991,8 @@ def api_singbox_status():
 
     inbounds = cfg.get("inbounds", [])
     users = load_singbox_users()
+    clean_cfg = get_singbox_clean_ips_config()
+    clean_ips_list = clean_cfg.get("clean_ips", [])
     return jsonify({
         "success": True,
         "is_active": is_active,
@@ -29726,7 +30000,8 @@ def api_singbox_status():
         "inbounds_count": len(inbounds),
         "inbounds": inbounds,
         "users_count": len(users),
-        "outbounds_count": len(cfg.get("outbounds", []))
+        "outbounds_count": len(cfg.get("outbounds", [])),
+        "clean_ips_count": len(clean_ips_list)
     })
 
 @app.route("/api/singbox/config", methods=["GET", "POST"])
@@ -29760,6 +30035,71 @@ def api_singbox_config():
         return jsonify({"success": True, "message": "کانفیگ سینگ‌باکس با موفقیت ذخیره و سرویس بازنشانی گردید."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/singbox/clean-ips", methods=["GET", "POST"])
+def api_singbox_clean_ips():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "GET":
+        cfg = get_singbox_clean_ips_config()
+        return jsonify({
+            "success": True,
+            "operators": cfg.get("operators", []),
+            "clean_ips": cfg.get("clean_ips", []),
+            "cf_domain": cfg.get("cf_domain", ""),
+            "updated_at": cfg.get("updated_at", ""),
+            "count": len(cfg.get("clean_ips", []))
+        })
+
+    req = request.get_json() or {}
+    if "operators" not in req and "clean_ips" not in req:
+        return jsonify({"error": "اطلاعات دسته‌بندی اپراتورها یا لیست آی‌پی‌ها ارسال نشده است."}), 400
+
+    saved = save_singbox_clean_ips_config(req)
+    return jsonify({
+        "success": True,
+        "message": "دسته‌بندی اپراتورها و آی‌پی‌های سفید کلودفلر با موفقیت ثبت و ذخیره گردید.",
+        "operators": saved.get("operators", []),
+        "clean_ips": saved.get("clean_ips", []),
+        "cf_domain": saved.get("cf_domain", ""),
+        "count": len(saved.get("clean_ips", []))
+    })
+
+@app.route("/api/singbox/clean-ips/test", methods=["POST"])
+def api_singbox_clean_ips_test():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    ips = req.get("ips")
+    op_code = req.get("operator")
+    target_port = int(req.get("port") or 443)
+    if not ips:
+        cfg = get_singbox_clean_ips_config()
+        if op_code and op_code != "all":
+            for op in cfg.get("operators", []):
+                if op.get("code") == op_code:
+                    ips = op.get("ips", [])
+                    break
+        if not ips:
+            ips = cfg.get("clean_ips", [])
+    if isinstance(ips, str):
+        ips = [ips]
+
+    results = {}
+    for ip in ips:
+        ip = str(ip).strip()
+        if not ip: continue
+        ok, res = test_clean_ip_latency(ip, port=target_port, timeout=1.5)
+        results[ip] = {
+            "ok": ok,
+            "latency": res if ok else None,
+            "error": None if ok else str(res)
+        }
+    return jsonify({
+        "success": True,
+        "results": results
+    })
 
 @app.route("/api/singbox/service/<action>", methods=["POST"])
 def api_singbox_service_action(action):
@@ -30775,6 +31115,21 @@ def api_singbox_user_links(username):
                             "port": extra_p,
                             "share_link": extra_link
                         })
+
+    # Append Cloudflare Clean IP configs (VLESS-WS, Trojan-WS, VMess-WS)
+    pwd = target.get("password") or ""
+    u_uuid = target.get("uuid") or ""
+    try:
+        cloud_links, _ = generate_snispoof_sub_uris(username, pwd, u_uuid, target_host, get_server_public_ip())
+        for cl in cloud_links:
+            configs.append({
+                "tag": f"cleanip-{cl['type'].lower()}-{cl['server']}",
+                "type": f"{cl['type']} (Clean IP {cl['server']})",
+                "port": cl.get("port", 443),
+                "share_link": cl.get("uri")
+            })
+    except Exception as e:
+        logger.error(f"Error adding clean ip configs to user links: {e}")
 
     sub_token = target.get("sub_token", "")
     panel_dom = get_panel_sub_domain()

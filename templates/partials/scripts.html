@@ -21594,6 +21594,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const obCountStat = document.getElementById("singbox-stat-outbounds-count");
                 if (obCountStat) obCountStat.textContent = data.outbounds_count || 0;
 
+                const cleanIpsCountPill = document.getElementById("sb-badge-cleanips-count");
+                if (cleanIpsCountPill && data.clean_ips_count !== undefined) cleanIpsCountPill.textContent = data.clean_ips_count;
+
+                const cleanIpsStat = document.getElementById("singbox-stat-cleanips-count");
+                if (cleanIpsStat && data.clean_ips_count !== undefined) cleanIpsStat.textContent = data.clean_ips_count;
+
                 const svcTextEl = document.getElementById("singbox-stat-service-text");
                 if (svcTextEl) {
                     svcTextEl.textContent = data.is_active ? "فعال و در حال اجرا" : "متوقف شده";
@@ -21641,6 +21647,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const usersPane = document.getElementById("sb-pane-users");
         const outboundsPane = document.getElementById("sb-pane-outbounds");
         const logsPane = document.getElementById("sb-pane-logs");
+        const cleanIpsPane = document.getElementById("sb-pane-cleanips");
         const banner = document.getElementById("sb-protocol-filter-banner");
 
         if (subTab === "logs") {
@@ -21648,6 +21655,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (inboundsPane) inboundsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (logsPane) logsPane.style.display = "block";
             fetchSingboxLogs();
@@ -21657,6 +21665,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (inboundsPane) inboundsPane.style.display = "none";
             if (logsPane) logsPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (usersPane) usersPane.style.display = "block";
             loadSingboxUsers();
@@ -21666,14 +21675,25 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (inboundsPane) inboundsPane.style.display = "none";
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "block";
             loadSingboxOutbounds();
+        } else if (subTab === "cleanips") {
+            stopSingboxLogAutoRefresh();
+            if (inboundsPane) inboundsPane.style.display = "none";
+            if (logsPane) logsPane.style.display = "none";
+            if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
+            if (banner) banner.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "block";
+            loadSingboxCleanIps();
         } else {
             stopSingboxLogAutoRefresh();
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (inboundsPane) inboundsPane.style.display = "block";
 
             if (subTab === "inbounds") {
@@ -23858,6 +23878,649 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     window.onSingboxOutboundRealityChange = onSingboxOutboundRealityChange;
     window.submitSingboxOutbound = submitSingboxOutbound;
     window.deleteSingboxOutbound = deleteSingboxOutbound;
+
+    // =========================================================================
+    // --- Sing-box Cloudflare Clean IPs & Operator Categories Management ---
+    // =========================================================================
+    let currentSingboxCleanIpsData = { operators: [], clean_ips: [], cf_domain: "" };
+    let currentSingboxCleanIpsPingResults = {};
+    let singboxActiveOperator = "mci";
+
+    const PRESET_CLOUDFLARE_CLEAN_IPS = [
+        { ip: "104.18.119.142", desc: "MCI & MTN Fast Anycast" },
+        { ip: "104.25.165.92", desc: "Cloudflare Anycast IR" },
+        { ip: "104.25.224.90", desc: "Cloudflare Edge Low Ping" },
+        { ip: "159.246.55.228", desc: "Rightel / MCI Clean Route" },
+        { ip: "172.67.69.51", desc: "MTN Irancell Fast Route" },
+        { ip: "91.209.253.54", desc: "TCI Mokhaberat Anycast" },
+        { ip: "199.33.231.234", desc: "TCI / Shatel Clean Edge" },
+        { ip: "104.16.242.176", desc: "Cloudflare Fast CDN Edge" },
+        { ip: "172.64.150.28", desc: "Cloudflare Anycast IPv4" },
+        { ip: "162.159.138.85", desc: "Cloudflare Low Latency" }
+    ];
+
+    const OPERATOR_COLOR_MAP = {
+        mci: { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.4)", text: "#ef4444", icon: "🔴", label: "همراه اول" },
+        mtn: { bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.4)", text: "#f59e0b", icon: "🟡", label: "ایرانسل" },
+        rtl: { bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.4)", text: "#a855f7", icon: "🟣", label: "رایتل" },
+        mkh: { bg: "rgba(59, 130, 246, 0.15)", border: "rgba(59, 130, 246, 0.4)", text: "#3b82f6", icon: "🔵", label: "مخابرات" },
+        other: { bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.4)", text: "#10b981", icon: "🌐", label: "سایر / عمومی" }
+    };
+
+    function getOperatorMeta(code) {
+        return OPERATOR_COLOR_MAP[code] || {
+            bg: "rgba(14, 165, 233, 0.15)",
+            border: "rgba(14, 165, 233, 0.4)",
+            text: "#0ea5e9",
+            icon: "⚡",
+            label: code.toUpperCase()
+        };
+    }
+
+    async function loadSingboxCleanIps() {
+        try {
+            const res = await fetch("/api/singbox/clean-ips");
+            const data = await res.json();
+            if (data.success) {
+                currentSingboxCleanIpsData = data;
+                const operators = data.operators || [];
+                const ips = data.clean_ips || [];
+
+                // Domain input
+                const domInp = document.getElementById("sb-cleanip-domain-input");
+                if (domInp && !domInp.value) domInp.value = data.cf_domain || "";
+
+                // Stats & counts
+                const count = ips.length;
+                const badge = document.getElementById("sb-badge-cleanips-count");
+                if (badge) badge.textContent = count;
+                const statEl = document.getElementById("singbox-stat-cleanips-count");
+                if (statEl) statEl.textContent = count;
+                const activeCountEl = document.getElementById("sb-cleanips-active-count");
+                if (activeCountEl) activeCountEl.textContent = count;
+                const lastUpdatedEl = document.getElementById("sb-cleanips-last-updated");
+                if (lastUpdatedEl) lastUpdatedEl.textContent = data.updated_at || "پیش‌فرض سیستم";
+
+                // Ensure active operator exists
+                if (operators.length > 0) {
+                    const exists = operators.some(o => o.code === singboxActiveOperator);
+                    if (!exists && singboxActiveOperator !== "all") {
+                        singboxActiveOperator = operators[0].code;
+                    }
+                } else {
+                    singboxActiveOperator = "all";
+                }
+
+                // Render pills and active editor
+                renderSingboxOperatorPills();
+                renderSingboxActiveOperatorBox();
+                renderSingboxCleanIpChips();
+
+                // Render table and preview samples
+                renderSingboxCleanIpsTable();
+                renderSingboxCleanIpsSamples(data.cf_domain);
+            }
+        } catch (err) {
+            console.error("loadSingboxCleanIps error:", err);
+        }
+    }
+
+    function renderSingboxOperatorPills() {
+        const container = document.getElementById("sb-cleanip-operator-pills");
+        if (!container) return;
+        const operators = currentSingboxCleanIpsData.operators || [];
+        const totalIps = (currentSingboxCleanIpsData.clean_ips || []).length;
+
+        let html = "";
+        // All pill
+        const allActive = (singboxActiveOperator === "all");
+        const allStyle = allActive 
+            ? "background: #0284c7; color: #fff; font-weight: 700; border-color: #0284c7; box-shadow: 0 0 10px rgba(14,165,233,0.4);" 
+            : "background: rgba(255,255,255,0.04); color: var(--text-main); border-color: var(--border-color);";
+        html += `<button type="button" class="btn btn-sm" onclick="selectSingboxOperator('all')" style="padding: 5px 12px; border-radius: 8px; font-size: 12.5px; display: flex; align-items: center; gap: 6px; cursor: pointer; ${allStyle}">
+            <span>📱 همه اپراتورها</span>
+            <span style="padding: 1px 6px; border-radius: 10px; font-size: 11px; font-family:'JetBrains Mono',monospace; background: rgba(0,0,0,0.25);">${totalIps}</span>
+        </button>`;
+
+        // Operator pills
+        operators.forEach(op => {
+            const isActive = (singboxActiveOperator === op.code);
+            const meta = getOperatorMeta(op.code);
+            const opIps = op.ips || [];
+            const style = isActive
+                ? `background: ${meta.text}; color: #fff; font-weight: 700; border-color: ${meta.text}; box-shadow: 0 0 10px ${meta.border};`
+                : `background: ${meta.bg}; color: ${meta.text}; border-color: ${meta.border};`;
+            html += `<button type="button" class="btn btn-sm" onclick="selectSingboxOperator('${op.code}')" style="padding: 5px 12px; border-radius: 8px; font-size: 12.5px; display: flex; align-items: center; gap: 6px; cursor: pointer; ${style}">
+                <span>${meta.icon} ${escapeHtml(op.name || op.code)}</span>
+                <span style="padding: 1px 6px; border-radius: 10px; font-size: 11px; font-family:'JetBrains Mono',monospace; background: rgba(0,0,0,0.25); color: #fff;">${opIps.length}</span>
+            </button>`;
+        });
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function selectSingboxOperator(code) {
+        singboxActiveOperator = code;
+        renderSingboxOperatorPills();
+        renderSingboxActiveOperatorBox();
+        renderSingboxCleanIpChips();
+        renderSingboxCleanIpsTable();
+    }
+
+    function renderSingboxActiveOperatorBox() {
+        const badgeEl = document.getElementById("sb-active-op-badge");
+        const titleEl = document.getElementById("sb-active-op-title");
+        const countEl = document.getElementById("sb-active-op-count");
+        const txt = document.getElementById("sb-cleanip-textarea");
+        const editBtn = document.getElementById("sb-edit-op-name-btn");
+        const delBtn = document.getElementById("sb-delete-op-btn");
+
+        const operators = currentSingboxCleanIpsData.operators || [];
+        if (singboxActiveOperator === "all") {
+            if (badgeEl) {
+                badgeEl.textContent = "ALL";
+                badgeEl.style.background = "#0284c7";
+            }
+            if (titleEl) titleEl.textContent = "مدیریت جامع کلیه آی‌پی‌های سفید (همه اپراتورها)";
+            const total = (currentSingboxCleanIpsData.clean_ips || []).length;
+            if (countEl) countEl.textContent = `(${total} آی‌پی در کل)`;
+            if (txt) {
+                txt.value = (currentSingboxCleanIpsData.clean_ips || []).join("\n");
+                txt.readOnly = false;
+            }
+            if (editBtn) editBtn.style.display = "none";
+            if (delBtn) delBtn.style.display = "none";
+        } else {
+            const op = operators.find(o => o.code === singboxActiveOperator);
+            if (!op) return;
+            const meta = getOperatorMeta(op.code);
+            if (badgeEl) {
+                badgeEl.textContent = op.code.toUpperCase();
+                badgeEl.style.background = meta.text;
+            }
+            if (titleEl) titleEl.textContent = op.name || op.code;
+            const opIps = op.ips || [];
+            if (countEl) countEl.textContent = `(${opIps.length} آی‌پی ثبت‌شده)`;
+            if (txt) {
+                txt.value = opIps.join("\n");
+                txt.readOnly = false;
+            }
+            if (editBtn) editBtn.style.display = "inline-flex";
+            if (delBtn) delBtn.style.display = "inline-flex";
+        }
+    }
+
+    function syncActiveOperatorTextarea() {
+        const txt = document.getElementById("sb-cleanip-textarea");
+        if (!txt) return;
+        const current = txt.value.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        const operators = currentSingboxCleanIpsData.operators || [];
+
+        if (singboxActiveOperator === "all") {
+            currentSingboxCleanIpsData.clean_ips = current;
+        } else {
+            const op = operators.find(o => o.code === singboxActiveOperator);
+            if (op) {
+                op.ips = current;
+                // Sync clean_ips flat list
+                const allIps = [];
+                operators.forEach(o => {
+                    (o.ips || []).forEach(ip => {
+                        if (!allIps.includes(ip)) allIps.push(ip);
+                    });
+                });
+                currentSingboxCleanIpsData.clean_ips = allIps;
+            }
+        }
+        renderSingboxOperatorPills();
+        renderSingboxCleanIpChips();
+        renderSingboxCleanIpsTable();
+    }
+
+    function renderSingboxCleanIpChips() {
+        const container = document.getElementById("sb-cleanip-chips-container");
+        if (!container) return;
+        const txt = document.getElementById("sb-cleanip-textarea");
+        const currentIps = (txt ? txt.value : "").split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+
+        let html = "";
+        PRESET_CLOUDFLARE_CLEAN_IPS.forEach(p => {
+            const exists = currentIps.includes(p.ip);
+            const style = exists 
+                ? "background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.35); color: #10b981;" 
+                : "background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.3); color: #0284c7;";
+            const icon = exists ? "✓" : "+";
+            html += `<button type="button" class="btn btn-sm" onclick="addSingboxCleanIpChip('${p.ip}')" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; padding:3px 9px; border-radius:6px; cursor:pointer; ${style}" title="${p.desc}">
+                ${icon} ${p.ip}
+            </button>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function addSingboxCleanIpChip(ip) {
+        const txt = document.getElementById("sb-cleanip-textarea");
+        if (!txt) return;
+        const current = txt.value.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        if (!current.includes(ip)) {
+            current.push(ip);
+            txt.value = current.join("\n");
+            syncActiveOperatorTextarea();
+            showToast(`آی‌پی ${ip} به اپراتور فعال اضافه شد. جهت ذخیره، دکمه ثبت تغییرات را بزنید.`, "info");
+        } else {
+            showToast(`آی‌پی ${ip} در این دسته موجود است.`, "warning");
+        }
+    }
+
+    function clearSingboxCleanIpsInput() {
+        if (!confirm("آیا از پاک‌سازی کادر متنی آی‌پی‌های این بخش اطمینان دارید؟")) return;
+        const txt = document.getElementById("sb-cleanip-textarea");
+        if (txt) {
+            txt.value = "";
+            syncActiveOperatorTextarea();
+        }
+    }
+
+    function showAddOperatorModal() {
+        const modal = document.getElementById("modal-sb-add-operator");
+        if (modal) {
+            modal.style.display = "flex";
+            const codeInp = document.getElementById("sb-new-op-code");
+            const nameInp = document.getElementById("sb-new-op-name");
+            const ipsInp = document.getElementById("sb-new-op-ips");
+            if (codeInp) codeInp.value = "";
+            if (nameInp) nameInp.value = "";
+            if (ipsInp) ipsInp.value = "";
+        }
+    }
+
+    function closeAddOperatorModal() {
+        const modal = document.getElementById("modal-sb-add-operator");
+        if (modal) modal.style.display = "none";
+    }
+
+    function confirmAddNewOperator() {
+        const codeInp = document.getElementById("sb-new-op-code");
+        const nameInp = document.getElementById("sb-new-op-name");
+        const ipsInp = document.getElementById("sb-new-op-ips");
+
+        const rawCode = (codeInp ? codeInp.value.trim().toLowerCase() : "");
+        const code = rawCode.replace(/[^a-z0-9_-]/g, "");
+        const name = (nameInp ? nameInp.value.trim() : "") || code.toUpperCase();
+        if (!code) {
+            showToast("لطفاً یک شناسه انگلیسی معتبر برای اپراتور وارد کنید (مانند shatel یا asiatech).", "warning");
+            return;
+        }
+
+        const operators = currentSingboxCleanIpsData.operators || [];
+        if (operators.some(o => o.code === code)) {
+            showToast(`اپراتوری با شناسه ${code} قبلاً تعریف شده است.`, "warning");
+            return;
+        }
+
+        const initialIps = (ipsInp ? ipsInp.value : "").split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+        operators.push({
+            code: code,
+            name: name,
+            ips: initialIps
+        });
+        currentSingboxCleanIpsData.operators = operators;
+
+        closeAddOperatorModal();
+        selectSingboxOperator(code);
+        showToast(`دسته‌بندی اپراتور "${name}" ایجاد گردید. برای دائمی شدن، دکمه ثبت تغییرات را بزنید.`, "success");
+    }
+
+    function renameActiveOperator() {
+        if (singboxActiveOperator === "all") return;
+        const operators = currentSingboxCleanIpsData.operators || [];
+        const op = operators.find(o => o.code === singboxActiveOperator);
+        if (!op) return;
+
+        const newName = prompt(`عنوان جدید برای اپراتور (${op.code}):`, op.name);
+        if (newName && newName.trim() && newName.trim() !== op.name) {
+            op.name = newName.trim();
+            renderSingboxOperatorPills();
+            renderSingboxActiveOperatorBox();
+            renderSingboxCleanIpsTable();
+            showToast("عنوان اپراتور بروزرسانی گردید.", "info");
+        }
+    }
+
+    function deleteActiveOperator() {
+        if (singboxActiveOperator === "all") return;
+        const operators = currentSingboxCleanIpsData.operators || [];
+        const op = operators.find(o => o.code === singboxActiveOperator);
+        if (!op) return;
+
+        if (!confirm(`آیا از حذف دسته‌بندی اپراتور "${op.name || op.code}" و آی‌پی‌های مربوط به آن مطمئن هستید؟`)) return;
+
+        currentSingboxCleanIpsData.operators = operators.filter(o => o.code !== singboxActiveOperator);
+        singboxActiveOperator = "all";
+        syncActiveOperatorTextarea();
+        renderSingboxOperatorPills();
+        renderSingboxActiveOperatorBox();
+        renderSingboxCleanIpsTable();
+        showToast("دسته‌بندی اپراتور با موفقیت حذف شد.", "success");
+    }
+
+    async function saveSingboxCleanIps() {
+        const domInp = document.getElementById("sb-cleanip-domain-input");
+        const cf_domain = (domInp ? domInp.value.trim() : "");
+        const operators = currentSingboxCleanIpsData.operators || [];
+
+        if (typeof toggleLoading === "function") toggleLoading(true);
+        try {
+            const res = await fetch("/api/singbox/clean-ips", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ operators, cf_domain })
+            });
+            const data = await res.json();
+            if (typeof toggleLoading === "function") toggleLoading(false);
+            if (data.success) {
+                showToast("دسته‌بندی اپراتورها و آی‌پی‌های تمیز کلودفلر با موفقیت ذخیره گردید.", "success");
+                loadSingboxCleanIps();
+                loadSingboxData();
+            } else {
+                showToast(`خطا در ذخیره‌سازی: ${data.error || 'ناشناخته'}`, "error");
+            }
+        } catch (e) {
+            if (typeof toggleLoading === "function") toggleLoading(false);
+            showToast("خطای شبکه در ارتباط با سرور: " + e.message, "error");
+        }
+    }
+
+    async function testSingboxCleanIp(ip) {
+        const badge = document.getElementById(`sb-cleanip-status-${ip.replace(/\./g, '_')}`);
+        if (badge) {
+            badge.innerHTML = `<i data-lucide="loader" class="spin" style="width:12px; height:12px; vertical-align:middle;"></i> در حال تست...`;
+            badge.style.background = "rgba(14, 165, 233, 0.15)";
+            badge.style.color = "#0284c7";
+            if (window.lucide) lucide.createIcons();
+        }
+        try {
+            const res = await fetch("/api/singbox/clean-ips/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ips: [ip] })
+            });
+            const data = await res.json();
+            if (data.success && data.results && data.results[ip]) {
+                const r = data.results[ip];
+                currentSingboxCleanIpsPingResults[ip] = r;
+                updateCleanIpRowBadge(ip, r);
+                if (r.ok) {
+                    showToast(`پینگ ${ip}: ${r.latency}ms (آنلاین و فعال)`, "success");
+                } else {
+                    showToast(`آی‌پی ${ip} در پورت ۴۴۳ پاسخ نداد.`, "warning");
+                }
+            }
+        } catch (e) {
+            if (badge) badge.innerHTML = `<span style="color:#ef4444;">خطای تست</span>`;
+        }
+    }
+
+    async function testActiveOperatorCleanIps() {
+        let ips = [];
+        if (singboxActiveOperator === "all") {
+            ips = currentSingboxCleanIpsData.clean_ips || [];
+        } else {
+            const op = (currentSingboxCleanIpsData.operators || []).find(o => o.code === singboxActiveOperator);
+            ips = op ? (op.ips || []) : [];
+        }
+        if (!ips.length) {
+            showToast("هیچ آی‌پی برای این اپراتور تعریف نشده است.", "warning");
+            return;
+        }
+        showToast(`تست پینگ ${ips.length} آی‌پی اپراتور فعال آغاز شد...`, "info");
+        ips.forEach(ip => {
+            const badge = document.getElementById(`sb-cleanip-status-${ip.replace(/\./g, '_')}`);
+            if (badge) {
+                badge.innerHTML = `<i data-lucide="loader" class="spin" style="width:12px; height:12px; vertical-align:middle;"></i> تست...`;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+        try {
+            const res = await fetch("/api/singbox/clean-ips/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ips })
+            });
+            const data = await res.json();
+            if (data.success && data.results) {
+                let okCount = 0;
+                for (const [ip, r] of Object.entries(data.results)) {
+                    currentSingboxCleanIpsPingResults[ip] = r;
+                    updateCleanIpRowBadge(ip, r);
+                    if (r.ok) okCount++;
+                }
+                showToast(`تست کامل شد: ${okCount} از ${ips.length} آی‌پی پاسخ مثبت دادند.`, "success");
+            }
+        } catch (e) {
+            showToast("خطا در تست آی‌پی‌های اپراتور", "error");
+        }
+    }
+
+    async function testAllSingboxCleanIps() {
+        const ips = currentSingboxCleanIpsData.clean_ips || [];
+        if (!ips.length) {
+            showToast("هیچ آی‌پی برای تست موجود نیست.", "warning");
+            return;
+        }
+        showToast("تست پینگ کلیه آی‌پی‌های تمامی اپراتورها آغاز شد...", "info");
+        ips.forEach(ip => {
+            const badge = document.getElementById(`sb-cleanip-status-${ip.replace(/\./g, '_')}`);
+            if (badge) {
+                badge.innerHTML = `<i data-lucide="loader" class="spin" style="width:12px; height:12px; vertical-align:middle;"></i> تست...`;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+        try {
+            const res = await fetch("/api/singbox/clean-ips/test", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ips })
+            });
+            const data = await res.json();
+            if (data.success && data.results) {
+                let okCount = 0;
+                for (const [ip, r] of Object.entries(data.results)) {
+                    currentSingboxCleanIpsPingResults[ip] = r;
+                    updateCleanIpRowBadge(ip, r);
+                    if (r.ok) okCount++;
+                }
+                showToast(`تست کلیه اپراتورها کامل شد: ${okCount} از ${ips.length} آی‌پی آنلاین هستند.`, "success");
+            }
+        } catch (e) {
+            showToast("خطا در اجرای تست کلیه آی‌پی‌ها", "error");
+        }
+    }
+
+    function updateCleanIpRowBadge(ip, r) {
+        const badge = document.getElementById(`sb-cleanip-status-${ip.replace(/\./g, '_')}`);
+        if (!badge) return;
+        if (r.ok) {
+            let col = "#10b981";
+            if (r.latency > 150) col = "#f59e0b";
+            badge.style.background = "rgba(16, 185, 129, 0.12)";
+            badge.style.color = col;
+            badge.innerHTML = `<span style="font-weight:700;">🟢 ${r.latency}ms</span> <span style="font-size:11px; color:var(--text-muted);">(آنلاین)</span>`;
+        } else {
+            badge.style.background = "rgba(239, 68, 68, 0.12)";
+            badge.style.color = "#ef4444";
+            badge.innerHTML = `<span style="font-weight:700;">🔴 قطع</span> <span style="font-size:10px;">(${escapeHtml(r.error || 'timeout')})</span>`;
+        }
+    }
+
+    function deleteSingboxCleanIp(ip, opCode) {
+        if (!confirm(`آیا از حذف آی‌پی ${ip} مطمئن هستید؟`)) return;
+        const operators = currentSingboxCleanIpsData.operators || [];
+        if (opCode && opCode !== "all") {
+            const op = operators.find(o => o.code === opCode);
+            if (op) {
+                op.ips = (op.ips || []).filter(x => x !== ip);
+            }
+        } else {
+            operators.forEach(o => {
+                o.ips = (o.ips || []).filter(x => x !== ip);
+            });
+        }
+        // Sync
+        const allIps = [];
+        operators.forEach(o => {
+            (o.ips || []).forEach(x => {
+                if (!allIps.includes(x)) allIps.push(x);
+            });
+        });
+        currentSingboxCleanIpsData.clean_ips = allIps;
+
+        renderSingboxOperatorPills();
+        renderSingboxActiveOperatorBox();
+        renderSingboxCleanIpsTable();
+        saveSingboxCleanIps();
+    }
+
+    function copyCleanIpToClipboard(ip) {
+        navigator.clipboard.writeText(ip).then(() => {
+            showToast(`آی‌پی ${ip} کپی شد.`, "success");
+        }).catch(() => {
+            prompt("آی‌پی:", ip);
+        });
+    }
+
+    function renderSingboxCleanIpsTable() {
+        const tbody = document.getElementById("sb-cleanips-table-body");
+        if (!tbody) return;
+
+        const operators = currentSingboxCleanIpsData.operators || [];
+        // Flatten list of items with operator code
+        let items = [];
+        if (singboxActiveOperator === "all") {
+            operators.forEach(op => {
+                (op.ips || []).forEach(ip => {
+                    items.push({ ip: ip, opCode: op.code, opName: op.name });
+                });
+            });
+        } else {
+            const op = operators.find(o => o.code === singboxActiveOperator);
+            if (op) {
+                (op.ips || []).forEach(ip => {
+                    items.push({ ip: ip, opCode: op.code, opName: op.name });
+                });
+            }
+        }
+
+        if (!items.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">هیچ آی‌پی سفیدی برای این اپراتور ثبت نشده است. لطفاً از طریق کادر بالا آی‌پی وارد و ذخیره کنید.</td></tr>`;
+            return;
+        }
+
+        let html = "";
+        items.forEach((item, idx) => {
+            const ip = item.ip;
+            const idSafe = ip.replace(/\./g, '_');
+            const meta = getOperatorMeta(item.opCode);
+            const prevRes = currentSingboxCleanIpsPingResults[ip];
+            let statusBadge = `<span id="sb-cleanip-status-${idSafe}" style="font-size:11.5px; padding:3px 9px; border-radius:6px; background:rgba(255,255,255,0.05); color:var(--text-muted); font-family:'JetBrains Mono',monospace;">تست نشده</span>`;
+            if (prevRes) {
+                if (prevRes.ok) {
+                    statusBadge = `<span id="sb-cleanip-status-${idSafe}" style="font-size:11.5px; padding:3px 9px; border-radius:6px; background:rgba(16,185,129,0.12); color:#10b981; font-family:'JetBrains Mono',monospace; font-weight:700;">🟢 ${prevRes.latency}ms</span>`;
+                } else {
+                    statusBadge = `<span id="sb-cleanip-status-${idSafe}" style="font-size:11.5px; padding:3px 9px; border-radius:6px; background:rgba(239,68,68,0.12); color:#ef4444; font-family:'JetBrains Mono',monospace; font-weight:700;">🔴 قطع</span>`;
+                }
+            }
+
+            html += `
+            <tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 10px 14px; color: var(--text-muted); font-family:'JetBrains Mono',monospace;">${idx+1}</td>
+                <td style="padding: 10px 14px; font-weight: 700; font-family:'JetBrains Mono',monospace; color: var(--text-main);">
+                    <i data-lucide="shield-check" style="width:14px; height:14px; color:#0284c7; vertical-align:middle; margin-left:4px;"></i>
+                    <span>${escapeHtml(ip)}</span>
+                </td>
+                <td style="padding: 10px 14px;">
+                    <span style="font-size:11.5px; padding:3px 8px; border-radius:6px; background:${meta.bg}; color:${meta.text}; border:1px solid ${meta.border}; font-weight:600;">
+                        ${meta.icon} ${escapeHtml(item.opName || item.opCode)}
+                    </span>
+                </td>
+                <td style="padding: 10px 14px; color: var(--text-muted); font-size:12px;">Cloudflare Anycast CDN</td>
+                <td style="padding: 10px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:#10b981;">443 (HTTPS)</td>
+                <td style="padding: 10px 14px;">${statusBadge}</td>
+                <td style="padding: 10px 14px; text-align: center;">
+                    <div style="display:flex; justify-content:center; gap:6px;">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="testSingboxCleanIp('${ip}')" title="تست اتصال این آی‌پی" style="padding:4px 8px;">
+                            <i data-lucide="zap" style="width:13px; height:13px; color:#10b981;"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyCleanIpToClipboard('${ip}')" title="کپی آی‌پی" style="padding:4px 8px;">
+                            <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="deleteSingboxCleanIp('${ip}', '${item.opCode}')" title="حذف این آی‌پی" style="padding:4px 8px; color:#ef4444;">
+                            <i data-lucide="trash-2" style="width:13px; height:13px;"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function renderSingboxCleanIpsSamples(domain) {
+        const box = document.getElementById("sb-cleanips-samples-box");
+        if (!box) return;
+        const operators = currentSingboxCleanIpsData.operators || [];
+        const dom = domain || document.getElementById("sb-cleanip-domain-input")?.value?.trim() || "vpn.example.com";
+
+        if (!operators.length || !operators.some(o => (o.ips || []).length > 0)) {
+            box.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">برای مشاهده پیش‌نمایش کانفیگ‌های اپراتورها، حداقل یک آی‌پی سفید در دسته‌ها ذخیره نمایید.</span>`;
+            return;
+        }
+
+        let html = "";
+        operators.forEach(op => {
+            const opIps = op.ips || [];
+            if (!opIps.length) return;
+            const sampleIp = opIps[0];
+            const meta = getOperatorMeta(op.code);
+
+            const vlessLink = `vless://b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc@${sampleIp}:443?security=tls&sni=${dom}&type=ws&host=${dom}&path=%2Fvless-ws#MHPanel - [${op.name}] VLESS-WS`;
+            const trojanLink = `trojan://Sb_fhatutsq@${sampleIp}:443?security=tls&sni=${dom}&type=ws&host=${dom}&path=%2Ftrojan-ws#MHPanel - [${op.name}] Trojan-WS`;
+
+            html += `
+                <div style="background:rgba(0,0,0,0.12); padding:10px 12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr; font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-main);">
+                        <span style="color:${meta.text}; font-weight:700;">[${meta.icon} ${escapeHtml(op.name)}]</span> ${escapeHtml(vlessLink)}
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${vlessLink}'); showToast('کانفیگ نمونه کپی شد', 'success');" type="button" title="کپی" style="padding:4px 8px; flex-shrink:0;">
+                        <i data-lucide="copy" style="width:12px; height:12px;"></i>
+                    </button>
+                </div>
+            `;
+        });
+        box.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    window.loadSingboxCleanIps = loadSingboxCleanIps;
+    window.renderSingboxOperatorPills = renderSingboxOperatorPills;
+    window.selectSingboxOperator = selectSingboxOperator;
+    window.renderSingboxActiveOperatorBox = renderSingboxActiveOperatorBox;
+    window.syncActiveOperatorTextarea = syncActiveOperatorTextarea;
+    window.renderSingboxCleanIpChips = renderSingboxCleanIpChips;
+    window.addSingboxCleanIpChip = addSingboxCleanIpChip;
+    window.clearSingboxCleanIpsInput = clearSingboxCleanIpsInput;
+    window.showAddOperatorModal = showAddOperatorModal;
+    window.closeAddOperatorModal = closeAddOperatorModal;
+    window.confirmAddNewOperator = confirmAddNewOperator;
+    window.renameActiveOperator = renameActiveOperator;
+    window.deleteActiveOperator = deleteActiveOperator;
+    window.saveSingboxCleanIps = saveSingboxCleanIps;
+    window.testSingboxCleanIp = testSingboxCleanIp;
+    window.testActiveOperatorCleanIps = testActiveOperatorCleanIps;
+    window.testAllSingboxCleanIps = testAllSingboxCleanIps;
+    window.deleteSingboxCleanIp = deleteSingboxCleanIp;
+    window.copyCleanIpToClipboard = copyCleanIpToClipboard;
 
     async function loadSingboxUsers() {
         try {
