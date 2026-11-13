@@ -12855,7 +12855,28 @@ def generate_slipnet_uri(proto, domain="", pubkey="", upstream="127.0.0.1:22", u
     fields = [""] * 60
     fields[0] = "22"
     
-    is_ssh = (":22" in str(upstream) or ":2222" in str(upstream) or not upstream or str(upstream).endswith("22"))
+    # Auto-resolve tunnel credentials if missing
+    if not username:
+        try:
+            tun_users = get_dns_tunnel_users()
+            if tun_users:
+                username = tun_users[0].get("username", "")
+                password = tun_users[0].get("password", "")
+        except Exception:
+            pass
+    elif username and not password:
+        try:
+            for u in get_dns_tunnel_users():
+                if u.get("username") == username:
+                    password = u.get("password", "")
+                    break
+        except Exception:
+            pass
+
+    is_dns_tunnel = proto in ["slipstream", "dnstt", "vaydns", "noizdns", "masterdnsvpn", "doh"]
+    is_ssh = (":22" in str(upstream) or ":2222" in str(upstream) or not upstream or str(upstream).endswith("22") or is_dns_tunnel or bool(username))
+    if proto in ["naive", "naiveproxy", "tor"]:
+        is_ssh = False
     
     if proto == "slipstream":
         fields[1] = "slipstream_ssh" if is_ssh else "ss"
@@ -12926,7 +12947,9 @@ def generate_slipnet_uri(proto, domain="", pubkey="", upstream="127.0.0.1:22", u
         fields[16] = password
         ssh_port = "22"
         if ":" in str(upstream):
-            ssh_port = str(upstream).split(":")[-1]
+            p = str(upstream).split(":")[-1]
+            if p != "443" or not is_dns_tunnel:
+                ssh_port = p
         fields[17] = ssh_port
         fields[19] = "127.0.0.1"
     elif proto not in ["naive", "naiveproxy", "tor"]:
@@ -23404,7 +23427,7 @@ def generate_haproxy_cfg(config):
     
     lines.extend([
         "    mode tcp",
-        "    tcp-request inspect-delay 5s",
+        "    tcp-request inspect-delay 15s",
         "",
         "    # 1. Plain SSH Handshake Detection (SSH-...)",
         "    acl is_ssh_raw payload(0,4) -m str SSH-",
@@ -23429,7 +23452,9 @@ def generate_haproxy_cfg(config):
     backend_blocks = []
     if "ssh" in enabled_protos or "ssh_ws" in enabled_protos:
         lines.append("    use_backend ssh_raw_backend if is_ssh_raw")
-        backend_blocks.append("backend ssh_raw_backend\n    mode tcp\n    server ssh_raw 127.0.0.1:22")
+        lines.append("    acl from_local src 127.0.0.1")
+        lines.append("    use_backend ssh_raw_backend if from_local !is_http_raw !is_ssl_hello")
+        backend_blocks.append("backend ssh_raw_backend\n    mode tcp\n    timeout server 1h\n    timeout client 1h\n    timeout tunnel 1h\n    server ssh_raw 127.0.0.1:22")
         lines.append("    acl is_ssh_http_ws payload(0,128) -m sub /ssh /ws Upgrade: upgrade:")
         lines.append("    use_backend ssh_ws_plain_backend if is_http_raw is_ssh_http_ws")
         backend_blocks.append("backend ssh_ws_plain_backend\n    mode tcp\n    server ssh_ws_plain 127.0.0.1:8888")
