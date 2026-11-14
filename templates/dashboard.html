@@ -5,12 +5,14 @@
     {% include 'partials/styles.html' %}
     <script>
         (function() {
-            var l = localStorage.getItem("panel_language") || "fa";
+            var params = new URLSearchParams(window.location.search);
+            var l = params.get("lang") || localStorage.getItem("panel_language") || "fa";
             document.documentElement.dir = (l === "fa" || l === "ar" ? "rtl" : "ltr");
             document.documentElement.lang = l;
-            var t = localStorage.getItem("panel_theme") || "dark";
+            var t = params.get("theme") || localStorage.getItem("panel_theme") || "dark";
             document.documentElement.setAttribute("data-theme", t);
             if (t === "dark") document.documentElement.classList.add("dark-mode");
+            else document.documentElement.classList.remove("dark-mode");
         })();
     </script>
 </head>
@@ -60,6 +62,7 @@
                     {% include 'partials/tab_cloudflare_hub.html' %}
                     {% include 'partials/tab_system.html' %}
                     {% include 'partials/tab_terminal.html' %}
+                    {% include 'partials/tab_docs.html' %}
                 </main>
             </div>
         </div>

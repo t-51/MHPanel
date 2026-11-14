@@ -42,18 +42,18 @@
         </div>
 
         <!-- Sub-Navigation Protocol Pills -->
-        <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-            <button type="button" class="btn-subtab active" id="awg-subtab-btn-clients" onclick="switchAwgSubTab('clients')" style="font-weight:700;">
-                <i data-lucide="users" style="width:14px; height:14px; color:#10b981;"></i>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+            <button type="button" class="btn-subtab active" id="awg-subtab-btn-clients" onclick="switchAwgSubTab('clients')">
+                <i data-lucide="users" style="width:14px; height:14px; color:var(--color-emerald);"></i>
                 <span>مدیریت کاربران و کانفیگ‌ها</span>
-                <span class="badge-pill" id="awg-badge-total-count" style="font-size:11px; padding:1px 7px; background:rgba(16,185,129,0.15); color:#10b981; border-radius:999px;">0</span>
+                <span class="badge-pill" id="awg-badge-total-count" style="font-size:11px; padding:2px 8px; background:rgba(16,185,129,0.15); color:var(--color-emerald); border-radius:9999px;">0</span>
             </button>
-            <button type="button" class="btn-subtab" id="awg-subtab-btn-create" onclick="switchAwgSubTab('create')" style="font-weight:700;">
-                <i data-lucide="plus-circle" style="width:14px; height:14px; color:#059669;"></i>
+            <button type="button" class="btn-subtab" id="awg-subtab-btn-create" onclick="switchAwgSubTab('create')">
+                <i data-lucide="plus-circle" style="width:14px; height:14px; color:var(--color-emerald);"></i>
                 <span>ساخت اکانت (تکی و دسته‌ای)</span>
             </button>
-            <button type="button" class="btn-subtab" id="awg-subtab-btn-settings" onclick="switchAwgSubTab('settings')" style="font-weight:700;">
-                <i data-lucide="shield-alert" style="width:14px; height:14px; color:#6366f1;"></i>
+            <button type="button" class="btn-subtab" id="awg-subtab-btn-settings" onclick="switchAwgSubTab('settings')">
+                <i data-lucide="shield-alert" style="width:14px; height:14px; color:var(--color-primary);"></i>
                 <span>تنظیمات ضد فیلترینگ و چندپورته</span>
             </button>
         </div>
@@ -61,7 +61,7 @@
         <!-- ================= SUBTAB 1: CLIENTS LIST ================= -->
         <div id="awg-subtab-pane-clients" class="awg-subtab-content" style="display:flex; flex-direction:column; gap:16px;">
             <!-- Filter & Search Toolbar -->
-            <div class="glass-card config-card" style="padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
+            <div class="spec-card" style="padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <!-- Status Filter Pills -->
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -95,32 +95,32 @@
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="folder" style="width:14px; height:14px;"></i> دسته:</span>
-                            <select id="awg-group-filter-select" onchange="filterAwgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:8px; min-width:130px;">
+                            <select id="awg-group-filter-select" onchange="filterAwgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:var(--radius-sm); min-width:130px;">
                                 <option value="all">همه دسته‌ها (گروه‌ها)</option>
                             </select>
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentAwgGroupPortalLink()" style="font-size:12px; height:34px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="کپی لینک پرتال اختصاصی این گروه جهت ارائه به مالک گروه">
-                            <i data-lucide="external-link" style="width:13px; height:13px; color:#10b981;"></i>
+                            <i data-lucide="external-link" style="width:13px; height:13px; color:var(--color-emerald);"></i>
                             <span>لینک پرتال گروه</span>
                         </button>
                         <div style="position:relative;">
-                            <input type="text" id="awg-clients-search" oninput="filterAwgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:170px;">
+                            <input type="text" id="awg-clients-search" oninput="filterAwgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-inline-start:14px; font-size:12px; height:34px; border-radius:var(--radius-sm); min-width:170px;">
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- AmneziaWG Bulk Actions Bar -->
-            <div id="awg-bulk-bar" class="glass-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:10px; border:1px solid var(--border-color); background:rgba(16,185,129,0.03);">
+            <div id="awg-bulk-bar" class="spec-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); background:var(--surface-secondary);">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-main); user-select:none;">
-                        <input type="checkbox" id="awg-select-all-chk" onchange="toggleSelectAllAwgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#10b981;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-primary); user-select:none;">
+                        <input type="checkbox" id="awg-select-all-chk" onchange="toggleSelectAllAwgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:var(--color-emerald);">
                         <span>انتخاب همه</span>
                     </label>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSelectAllAwgClients(true)" style="font-size:11px; padding:2px 8px; height:26px;">
                         انتخاب همه لیست
                     </button>
-                    <span id="awg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); border-radius:999px; font-weight:700; display:none;">
+                    <span id="awg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(16,185,129,0.15); color:var(--color-emerald); border:1px solid rgba(16,185,129,0.3); border-radius:9999px; font-weight:700; display:none;">
                         <span id="awg-bulk-selected-count">۰</span> کلاینت انتخاب شد
                     </span>
                 </div>
@@ -173,9 +173,9 @@
 
         <!-- ================= SUBTAB 2: CREATE ACCOUNTS ================= -->
         <div id="awg-subtab-pane-create" class="awg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
                 <!-- Card 1: Create Single Client -->
-                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                     <div class="config-header" style="margin-bottom:0;">
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
                             <i data-lucide="user-plus" style="color:var(--color-emerald); width:20px; height:20px;"></i>
@@ -188,25 +188,25 @@
                     <div style="display:flex; flex-direction:column; gap:14px;">
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">نام کاربر (Client Name)</label>
-                            <input class="form-input" id="awg-client-name" placeholder="مثلاً AWG-User یا Irancell-VIP" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                            <input class="form-input" id="awg-client-name" placeholder="مثلاً AWG-User یا Irancell-VIP" style="padding-inline-start:14px; font-family:'JetBrains Mono';" type="text"/>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
-                            <input class="form-input" id="awg-client-group" list="awg-group-datalist" placeholder="مثلاً VIP، همراه اول، خانواده یا نام جدید..." style="padding-left:14px;" type="text" value="عمومی"/>
+                            <input class="form-input" id="awg-client-group" list="awg-group-datalist" placeholder="مثلاً VIP، همراه اول، خانواده یا نام جدید..." style="padding-inline-start:14px;" type="text" value="عمومی"/>
                             <datalist id="awg-group-datalist"></datalist>
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="awg-client-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" min="1"/>
+                                <input class="form-input" id="awg-client-limit" placeholder="نامحدود" style="padding-inline-start:14px;" type="number" min="1"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="awg-client-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="awg-client-expire-days" min="1" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
-                                <input class="form-input" id="awg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
+                                <input class="form-input" id="awg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-inline-start:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -220,7 +220,7 @@
                 </div>
 
                 <!-- Card 2: Bulk Create Clients -->
-                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                     <div class="config-header" style="margin-bottom:0;">
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
                             <i data-lucide="users" style="color:var(--color-primary); width:20px; height:20px;"></i>
@@ -234,29 +234,29 @@
                         <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12.5px;">پیشوند نام (Prefix)</label>
-                                <input class="form-input" id="awg-bulk-prefix" placeholder="Client" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="Client"/>
+                                <input class="form-input" id="awg-bulk-prefix" placeholder="Client" required="" style="padding-inline-start:14px; font-family:'JetBrains Mono';" type="text" value="Client"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12.5px;">تعداد (۱ تا ۵۰)</label>
-                                <input class="form-input" id="awg-bulk-count" max="50" min="1" required="" style="padding-left:14px;" type="number" value="5"/>
+                                <input class="form-input" id="awg-bulk-count" max="50" min="1" required="" style="padding-inline-start:14px;" type="number" value="5"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
-                            <input class="form-input" id="awg-bulk-group" list="awg-group-datalist" placeholder="مثلاً همراه اول، مخابرات..." style="padding-left:14px;" type="text" value="عمومی"/>
+                            <input class="form-input" id="awg-bulk-group" list="awg-group-datalist" placeholder="مثلاً همراه اول، مخابرات..." style="padding-inline-start:14px;" type="text" value="عمومی"/>
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="awg-bulk-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="awg-bulk-limit" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="awg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="awg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
-                                <input class="form-input" id="awg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
+                                <input class="form-input" id="awg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-inline-start:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -271,13 +271,13 @@
             </div>
 
             <!-- Single Result Card Modal / Box -->
-            <div id="awg-single-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.04);">
+            <div id="awg-single-result" class="spec-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.05);">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <h4 style="margin:0; color:#10b981; display:flex; align-items:center; gap:6px;">
+                    <h4 style="margin:0; color:var(--color-emerald); display:flex; align-items:center; gap:6px;">
                         <i data-lucide="check-circle" style="width:18px; height:18px;"></i> اکانت با موفقیت ساخته شد!
                     </h4>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn btn-secondary btn-sm" id="awg-copy-sub-btn" type="button" style="font-size:12px; padding:6px 12px; color:#6366f1;">
+                        <button class="btn btn-secondary btn-sm" id="awg-copy-sub-btn" type="button" style="font-size:12px; padding:6px 12px; color:var(--color-primary);">
                             <i data-lucide="link" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی ساب‌لینک
                         </button>
                         <button class="btn btn-secondary btn-sm" id="awg-dl-btn" type="button" style="font-size:12px; padding:6px 12px;">
@@ -290,14 +290,14 @@
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr auto; gap:20px; align-items:start;">
                     <div class="code-box" id="awg-config-text" style="max-height:240px; overflow-y:auto; margin:0; font-size:12px; direction:ltr; text-align:left;"></div>
-                    <div id="awg-qrcode-canvas" style="background:white; padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center;"></div>
+                    <div id="awg-qrcode-canvas" style="background:#ffffff; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:center;"></div>
                 </div>
             </div>
 
             <!-- Bulk Result Card -->
-            <div id="awg-bulk-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.04);">
+            <div id="awg-bulk-result" class="spec-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.05);">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <h4 style="margin:0; color:#10b981; display:flex; align-items:center; gap:6px;">
+                    <h4 style="margin:0; color:var(--color-emerald); display:flex; align-items:center; gap:6px;">
                         <i data-lucide="check-circle" style="width:18px; height:18px;"></i> پروفایل‌های دسته‌ای ساخته شدند
                     </h4>
                     <button class="btn btn-primary btn-sm" id="awg-bulk-dl-all-btn" type="button">
@@ -311,10 +311,10 @@
         <!-- ================= SUBTAB 3: SETTINGS & ANTI-FILTERING ================= -->
         <div id="awg-subtab-pane-settings" class="awg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
             <!-- Anti-Filtering Presets Card (تنظیمات پیش‌فرض ضد فیلترینگ حرفه‌ای) -->
-            <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px; border:1px solid rgba(245, 158, 11, 0.35);">
+            <div class="spec-card" style="display:flex; flex-direction:column; gap:16px; border:1px solid rgba(245, 158, 11, 0.35);">
                 <div class="config-header" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:38px; height:38px; border-radius:10px; background:rgba(245, 158, 11, 0.15); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:38px; height:38px; border-radius:var(--radius-md); background:rgba(245, 158, 11, 0.15); color:var(--color-amber); display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="sparkles" style="width:20px; height:20px;"></i>
                         </div>
                         <div>
@@ -331,13 +331,13 @@
 
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:14px;">
                     <!-- Preset 1: MCI & Irancell Mobile Bypass -->
-                    <div style="background:var(--bg-surface); border:1px solid rgba(16, 185, 129, 0.3); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div style="background:var(--surface-secondary); border:1px solid rgba(16, 185, 129, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <strong style="color:#10b981; font-size:14px; display:flex; align-items:center; gap:6px;">
+                                <strong style="color:var(--color-emerald); font-size:14px; display:flex; align-items:center; gap:6px;">
                                     <i data-lucide="smartphone" style="width:16px; height:16px;"></i> همراه اول و ایرانسل
                                 </strong>
-                                <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:#10b981; font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">پیشنهادی موبایل</span>
+                                <span class="badge" style="background:rgba(16, 185, 129, 0.15); color:var(--color-emerald); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">پیشنهادی موبایل</span>
                             </div>
                             <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin:0;">
                                 پکت‌های تصادفی (Jc=5, Jmin=50, Jmax=100) و پدینگ هدرها (S1=64, S2=48, S3=56, S4=56) جهت فریب سیستم بازرسی عمیق بسته‌ها (DPI)
@@ -349,13 +349,13 @@
                     </div>
 
                     <!-- Preset 2: ADSL / Fixed Broadband Balanced -->
-                    <div style="background:var(--bg-surface); border:1px solid rgba(14, 165, 233, 0.3); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div style="background:var(--surface-secondary); border:1px solid rgba(14, 165, 233, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <strong style="color:#0284c7; font-size:14px; display:flex; align-items:center; gap:6px;">
+                                <strong style="color:var(--color-cyan); font-size:14px; display:flex; align-items:center; gap:6px;">
                                     <i data-lucide="wifi" style="width:16px; height:16px;"></i> اینترنت خانگی و ثابت
                                 </strong>
-                                <span class="badge" style="background:rgba(14, 165, 233, 0.15); color:#0284c7; font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">پایدار و سبک</span>
+                                <span class="badge" style="background:rgba(14, 165, 233, 0.15); color:var(--color-cyan); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">پایدار و سبک</span>
                             </div>
                             <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin:0;">
                                 متوازن برای مخابرات، شاتل، آسیاتک و های‌وب (Jc=3, Jmin=30, Jmax=60, S1=32, S2=32) با حداقل اورهد و سرعت بالا
@@ -367,13 +367,13 @@
                     </div>
 
                     <!-- Preset 3: Deep Neural DPI Extreme -->
-                    <div style="background:var(--bg-surface); border:1px solid rgba(139, 92, 246, 0.3); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div style="background:var(--surface-secondary); border:1px solid rgba(139, 92, 246, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <strong style="color:#8b5cf6; font-size:14px; display:flex; align-items:center; gap:6px;">
+                                <strong style="color:var(--color-purple); font-size:14px; display:flex; align-items:center; gap:6px;">
                                     <i data-lucide="shield-alert" style="width:16px; height:16px;"></i> استتار حداکثری هوش مصنوعی
                                 </strong>
-                                <span class="badge" style="background:rgba(139, 92, 246, 0.15); color:#8b5cf6; font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">DPI سنگین</span>
+                                <span class="badge" style="background:rgba(139, 92, 246, 0.15); color:var(--color-purple); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">DPI سنگین</span>
                             </div>
                             <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin:0;">
                                 پکت‌های فیک بزرگ (Jc=8, Jmax=140) و پدینگ چندمرحله‌ای (S1=96, S2=72, S3=80, S4=80) برای دور زدن تحلیل آماری جریان ترافیک
@@ -385,13 +385,13 @@
                     </div>
 
                     <!-- Preset 4: Randomize Keys -->
-                    <div style="background:var(--bg-surface); border:1px solid rgba(245, 158, 11, 0.3); border-radius:12px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+                    <div style="background:var(--surface-secondary); border:1px solid rgba(245, 158, 11, 0.3); border-radius:var(--radius-lg); padding:16px; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
                         <div>
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                                <strong style="color:#d97706; font-size:14px; display:flex; align-items:center; gap:6px;">
+                                <strong style="color:var(--color-amber); font-size:14px; display:flex; align-items:center; gap:6px;">
                                     <i data-lucide="shuffle" style="width:16px; height:16px;"></i> تولید هدرهای تصادفی تازه
                                 </strong>
-                                <span class="badge" style="background:rgba(245, 158, 11, 0.15); color:#d97706; font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">Unique Keys</span>
+                                <span class="badge" style="background:rgba(245, 158, 11, 0.15); color:var(--color-amber); font-size:10.5px; padding:2px 8px; border-radius:6px; font-weight:700;">Unique Keys</span>
                             </div>
                             <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin:0;">
                                 ریست و بازتولید کلیه شناسه‌های ۴ گانه هندشیک (H1 تا H4) به همراه تصادفی‌سازی سایز پکت‌ها برای فرار از بلک‌لیست
@@ -405,10 +405,10 @@
             </div>
 
             <!-- AmneziaWG Multi-Port Manager Card -->
-            <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+            <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                 <div class="config-header" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:38px; height:38px; border-radius:10px; background:rgba(16, 185, 129, 0.12); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:38px; height:38px; border-radius:var(--radius-md); background:rgba(16, 185, 129, 0.12); color:var(--color-emerald); display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="network" style="width:20px; height:20px;"></i>
                         </div>
                         <div>
@@ -423,9 +423,9 @@
                     <span class="sidebar-badge sidebar-badge-green">iptables NAT</span>
                 </div>
 
-                <div style="background:var(--bg-surface); padding:16px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:14px;">
+                <div style="background:var(--surface-secondary); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <span style="font-size:13px; font-weight:600;">پورت‌های فعال ریدایرکت شده:</span>
+                        <span style="font-size:13px; font-weight:600; color:var(--text-primary);">پورت‌های فعال ریدایرکت شده:</span>
                         <div style="display:flex; gap:8px;">
                             <input type="number" id="awg-add-port-input" placeholder="پورت جدید (مثلاً 53 یا 80)" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; width:150px;" min="1" max="65535">
                             <button type="button" class="btn btn-secondary btn-sm" onclick="addAwgMultiportFromInput()">
@@ -439,17 +439,17 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:10px;">
-                    <button class="btn btn-primary" onclick="saveAwgMultiportConfig()" type="button" style="padding:8px 20px;">
+                    <button class="btn btn-primary" onclick="saveAwgMultiportConfig()" type="button" style="padding:8px 20px; background:#059669; border-color:#059669;">
                         <i class="btn-icon" data-lucide="save"></i> ذخیره و اعمال پورت‌های همزمان
                     </button>
                 </div>
             </div>
 
             <!-- Parameters Editor Card -->
-            <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+            <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                 <div class="config-header" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:38px; height:38px; border-radius:10px; background:rgba(99, 102, 241, 0.12); color:#6366f1; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:38px; height:38px; border-radius:var(--radius-md); background:rgba(99, 102, 241, 0.12); color:var(--color-primary); display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="sliders" style="width:20px; height:20px;"></i>
                         </div>
                         <div>
@@ -476,7 +476,7 @@
                         <!-- Filled dynamically via JS -->
                     </div>
                     <div style="margin-top:16px; display:flex; justify-content:flex-end; gap:10px;">
-                        <button class="btn btn-primary" type="submit" style="padding:8px 20px;">
+                        <button class="btn btn-primary" type="submit" style="padding:8px 20px; background:#059669; border-color:#059669;">
                             <i class="btn-icon" data-lucide="save"></i> ذخیره تغییرات پارامترها
                         </button>
                     </div>
@@ -484,21 +484,21 @@
             </div>
 
             <!-- Cloudflare WARP Routing for AmneziaWG Card -->
-            <div class="glass-card config-card" style="border: 1px solid rgba(249, 115, 22, 0.3); background: rgba(249, 115, 22, 0.04); padding: 16px;">
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <div class="spec-card" style="border: 1px solid rgba(249, 115, 22, 0.3); background: var(--surface-primary); padding: 18px;">
+                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(249, 115, 22, 0.15); color: #ea580c; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: rgba(249, 115, 22, 0.15); color: var(--color-amber); display: flex; align-items: center; justify-content: center;">
                             <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div>
-                            <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-color);">خروج ترافیک کاربران AmneziaWG از Cloudflare WARP</h4>
+                            <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-primary);">خروج ترافیک کاربران AmneziaWG از Cloudflare WARP</h4>
                             <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
                                 عبور ترافیک از شبکه وارپ جهت رفع فیلتر سایت‌های خارجی و پنهان‌سازی آی‌پی سرور
                             </p>
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <span class="badge" id="awg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; color: #475569;">
+                        <span class="badge" id="awg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 9999px; background: var(--surface-secondary); color: var(--text-secondary); border: 1px solid var(--border-subtle);">
                             -
                         </span>
                         <button class="btn btn-sm" id="awg-warp-toggle-btn" onclick="toggleAwgWarpClick()" style="padding: 6px 14px; font-size: 12px; width:auto;" type="button">
@@ -506,10 +506,10 @@
                         </button>
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, 0.06); font-size: 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 12px; border-top: 1px solid var(--border-subtle); font-size: 12px;">
                     <div style="display:flex; gap:16px; flex-wrap:wrap;">
-                        <span>وضعیت سرویس وارپ: <strong id="awg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-color);">-</strong></span>
-                        <span>آی‌پی خروجی کلودفلر: <strong id="awg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#ea580c;">-</strong></span>
+                        <span>وضعیت سرویس وارپ: <strong id="awg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-primary);">-</strong></span>
+                        <span>آی‌پی خروجی کلودفلر: <strong id="awg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:var(--color-amber);">-</strong></span>
                         <span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (Table 51821)</strong></span>
                     </div>
                 </div>

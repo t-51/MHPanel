@@ -1,8 +1,9 @@
 <div class="tab-pane" id="tab-protocols">
     <section style="display: flex; flex-direction: column; gap: 20px;">
+        <!-- Header -->
         <div class="section-header" style="margin-bottom: 0;">
             <div>
-                <h2 class="section-title" style="margin: 0; font-size: 20px;">
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
                     <i data-lucide="server" style="color: var(--color-primary); width: 22px; height: 22px;"></i>
                     <span data-i18n="proto_page_title">مدیریت پروتکل‌های ارتباطی و VPN</span>
                 </h2>
@@ -10,44 +11,44 @@
                     پایش لحظه‌ای، تغییر پورت، مدیریت سرویس‌ها و تنظیمات اختصاصی هر پروتکل
                 </p>
             </div>
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <button type="button" class="btn btn-primary btn-sm" onclick="openBatchInstallModal()" style="width: auto; padding: 8px 16px;">
-                    <i data-lucide="download-cloud" style="width: 14px; height: 14px; margin-right: 4px;"></i> <span data-i18n="proto_batch_install">نصب گروهی پروتکل‌ها</span>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="openBatchInstallModal()" style="width: auto; padding: 7px 16px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="download-cloud" style="width: 14px; height: 14px;"></i> <span data-i18n="proto_batch_install">نصب گروهی پروتکل‌ها</span>
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchProtocols()" style="width: auto; padding: 8px 14px;">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px; margin-right: 4px;"></i> <span data-i18n="proto_refresh_status">بروزرسانی وضعیت</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="fetchProtocols()" style="width: auto; padding: 7px 14px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> <span data-i18n="proto_refresh_status">بروزرسانی وضعیت</span>
                 </button>
             </div>
         </div>
 
         <!-- Modular Architecture & SSL Quick Link Banner -->
-        <div class="config-card" style="border-radius: 12px; padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div class="spec-card" style="border-radius: var(--radius-md); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-secondary); border: 1px solid var(--border-subtle);">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <i data-lucide="sparkles" style="color: var(--color-primary); width: 20px; height: 20px; flex-shrink: 0;"></i>
+                <i data-lucide="sparkles" style="color: var(--color-primary); width: 18px; height: 18px; flex-shrink: 0;"></i>
                 <div style="font-size: 12.5px; color: var(--text-main);" data-i18n="proto_modular_note">
                     نصب ماژولار و مستقل: هر پروتکل به همراه پکیج‌ها و تنظیماتش به صورت مجزا با ۱ کلیک قابل نصب است.
                 </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('ssl')" style="width: auto; padding: 6px 14px; font-size: 12px;">
-                <i data-lucide="lock" style="width: 13px; height: 13px; margin-left: 4px;"></i> <span data-i18n="proto_ssl_btn">تنظیمات SSL دامنه / IP</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('ssl')" style="width: auto; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="lock" style="width: 13px; height: 13px;"></i> <span data-i18n="proto_ssl_btn">تنظیمات SSL دامنه / IP</span>
             </button>
         </div>
 
         <!-- Unified RADIUS Info Banner -->
-        <div class="config-card" style="border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div class="spec-card" style="border-radius: var(--radius-md); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-secondary); border: 1px solid var(--border-subtle);">
             <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+                <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.12); color: var(--color-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
                 </div>
                 <div>
-                    <strong style="font-size: 13px;" data-i18n="proto_radius_banner_title">یکپارچه‌سازی کامل احراز هویت با FreeRADIUS سراسری</strong>
+                    <strong style="font-size: 13px; color: var(--text-main);" data-i18n="proto_radius_banner_title">یکپارچه‌سازی کامل احراز هویت با FreeRADIUS سراسری</strong>
                     <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="proto_radius_banner_desc">
                         تمامی پروتکل‌های اصلی سرور (IKEv2، Cisco AnyConnect، OpenVPN، SSH Tunnel و L2TP) به ردیوس متصل هستند.
                     </div>
                 </div>
             </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('radius')" style="width: auto; padding: 6px 14px; font-size: 12px; border-color: rgba(99, 102, 241, 0.3);">
-                <span data-i18n="proto_radius_btn">مدیریت کاربران ردیوس</span> <i data-lucide="arrow-left" style="width: 14px; height: 14px; margin-left: 4px;"></i>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('radius')" style="width: auto; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                <span data-i18n="proto_radius_btn">مدیریت کاربران ردیوس</span> <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
             </button>
         </div>
 

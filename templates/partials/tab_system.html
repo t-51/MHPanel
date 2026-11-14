@@ -4,40 +4,40 @@
     <!-- TOP SECTION: پورت‌های فعال سرور (Listening Ports - Full Width) -->
     <!-- ======================================================== -->
     <section style="margin-top: 0; width: 100%;">
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px; overflow: hidden; width:100%;">
-            <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom: 0;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="width:38px; height:38px; border-radius:10px; background:rgba(99,102,241,0.12); color:var(--color-primary); display:flex; align-items:center; justify-content:center;">
-                        <i data-lucide="network" style="width:20px; height:20px;"></i>
+        <div class="spec-card" style="display:flex; flex-direction:column; gap:16px; overflow: hidden; width:100%;">
+            <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 0;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:var(--radius-md); background:rgba(99,102,241,0.12); color:var(--color-primary); display:flex; align-items:center; justify-content:center;">
+                        <i data-lucide="network" style="width:22px; height:22px;"></i>
                     </div>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 class="spec-title" style="margin:0; font-size:16px; font-weight:700;">
                             <span data-i18n="sys_ports_title">پورت‌های فعال سرور (Listening Ports)</span>
                         </h3>
-                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12.5px; color:var(--text-muted); margin-top:3px; margin-bottom:0;">
                             مشاهده زنده کلیه سرویس‌ها، پورت‌های باز UDP/TCP، آدرس‌های اتصالی و شناسه فرآیندها (PID)
                         </p>
                     </div>
                 </div>
                 <div style="display:flex; gap:10px; align-items:center;">
-                    <button class="btn btn-secondary btn-sm" id="refresh-ports-btn" onclick="fetchListeningPorts()" style="padding:6px 14px; font-size:12px;">
-                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-inline-end:4px; display:inline-block; vertical-align:middle;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    <button class="btn btn-secondary btn-sm" id="refresh-ports-btn" onclick="fetchListeningPorts()" style="padding:7px 16px; font-size:12.5px;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-inline-end:6px; display:inline-block; vertical-align:middle;"></i> <span data-i18n="refresh">بروزرسانی</span>
                     </button>
                 </div>
             </div>
             <div style="display:flex; gap:10px;">
-                <input class="form-input" data-i18n-placeholder="sys_search_port_service" id="ports-filter-input" oninput="filterPortsTable()" placeholder="جستجوی پورت، پردازش یا سرویس..." style="padding-left:16px; font-size:13px; height:38px; width:100%; max-width:350px;" type="text"/>
+                <input class="form-input" data-i18n-placeholder="sys_search_port_service" id="ports-filter-input" oninput="filterPortsTable()" placeholder="جستجوی پورت، پردازش یا سرویس..." style="padding-inline-start:16px; font-size:13px; height:40px; width:100%; max-width:380px; border-radius:var(--radius-md);" type="text"/>
             </div>
-            <div style="overflow-y:auto; max-height: 320px; border-radius: 8px; border: 1px solid var(--border-color);">
+            <div style="overflow-y:auto; max-height: 320px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--bg-surface);">
                 <div class="table-responsive-wrapper" style="width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;">
                     <table style="width:100%; border-collapse:collapse; font-size:13px; text-align:start;">
                         <thead>
-                            <tr style="background:var(--bg-muted); border-bottom: 1px solid var(--border-color); color:var(--text-color); font-weight:600;">
-                                <th data-i18n="col_proto" style="padding:10px 12px;">پروتکل</th>
-                                <th data-i18n="col_port" style="padding:10px 12px;">پورت</th>
-                                <th data-i18n="col_address" style="padding:10px 12px;">آدرس</th>
-                                <th data-i18n="col_process" style="padding:10px 12px;">پردازش / سرویس</th>
-                                <th style="padding:10px 12px;">PID</th>
+                            <tr style="background:var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); color:var(--text-muted); font-size:11.5px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">
+                                <th data-i18n="col_proto" style="padding:11px 14px;">پروتکل</th>
+                                <th data-i18n="col_port" style="padding:11px 14px;">پورت</th>
+                                <th data-i18n="col_address" style="padding:11px 14px;">آدرس</th>
+                                <th data-i18n="col_process" style="padding:11px 14px;">پردازش / سرویس</th>
+                                <th style="padding:11px 14px;">PID</th>
                             </tr>
                         </thead>
                         <tbody id="listening-ports-table-body">
@@ -57,41 +57,41 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 1, COL 1: آدرس و پورت وب پنل (Panel Access)     -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="spec-card" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="link" style="color: #3b82f6; width: 20px; height: 20px;"></i>
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
+                        <i data-lucide="link" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="panel_access_title">آدرس و پورت وب پنل (Panel URL)</span>
                     </h3>
-                    <span class="sidebar-badge sidebar-badge-blue" style="font-size: 11px;">Network Access</span>
+                    <span class="badge badge-primary" style="font-size: 11px;">Network Access</span>
                 </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;" data-i18n="panel_access_desc">
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;" data-i18n="panel_access_desc">
                     جهت مخفی‌سازی پنل از دید اسکنرهای عمومی اینترنت، می‌توانید یک مسیر مخفی (Secret Path) و پورت دلخواه تنظیم کنید.
                 </p>
                 <form id="panel-access-form" onsubmit="savePanelAccess(event)">
                     <div class="form-group" style="margin-bottom:12px;">
                         <label class="form-label" data-i18n="panel_path_label" style="font-weight:600; font-size:12px;">مسیر اختصاصی ورود (Secret Path):</label>
-                        <input class="form-input" id="panel-path-input" placeholder="/my-secret-admin" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
+                        <input class="form-input" id="panel-path-input" placeholder="/my-secret-admin" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:var(--radius-md);" type="text"/>
                         <small data-i18n="panel_path_help" style="font-size:11px; color:var(--text-muted); margin-top:3px; display:block;">
                             در صورت تعیین مسیر، روت (/) خطای 404 می‌دهد. (خالی = مسیر پیش‌فرض).
                         </small>
                     </div>
                     <div class="form-group" style="margin-bottom:14px;">
                         <label class="form-label" data-i18n="panel_port_label" style="font-weight:600; font-size:12px;">پورت وب پنل (Port):</label>
-                        <input class="form-input" id="panel-port-input" max="65535" min="1" required="" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="number" value="9090"/>
+                        <input class="form-input" id="panel-port-input" max="65535" min="1" required="" style="padding-left:14px; direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:var(--radius-md);" type="number" value="9090"/>
                     </div>
                     <!-- URL Preview Box -->
-                    <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:10px; margin-bottom:14px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; margin-bottom:14px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                             <span data-i18n="panel_full_url" style="font-size:11px; color:var(--text-muted);">آدرس کامل دسترسی به پنل:</span>
-                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('panel-url-preview').textContent)" style="padding:2px 8px; font-size:11px;" type="button">
-                                <i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="copy_link">کپی لینک</span>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('panel-url-preview').textContent)" style="padding:3px 10px; font-size:11px;" type="button">
+                                <i data-lucide="copy" style="width:12px; height:12px; margin-inline-end:4px;"></i> <span data-i18n="copy_link">کپی لینک</span>
                             </button>
                         </div>
-                        <div id="panel-url-preview" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#2563eb; word-break:break-all; direction:ltr; text-align:left;">-</div>
+                        <div id="panel-url-preview" style="font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--color-primary); word-break:break-all; direction:ltr; text-align:left; font-weight:600;">-</div>
                     </div>
-                    <button class="btn btn-primary" id="save-panel-access-btn" style="width:100%; padding:9px;" type="submit">
+                    <button class="btn btn-primary" id="save-panel-access-btn" style="width:100%; padding:10px;" type="submit">
                         <i class="btn-icon" data-lucide="save"></i> <span data-i18n="panel_access_save">ذخیره آدرس و پورت پنل</span>
                     </button>
                 </form>
@@ -101,27 +101,27 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 1, COL 2: مشخصات ورود مدیر پنل (Admin Credentials) -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="spec-card" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <div class="config-header" style="margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
+                <div class="spec-header" style="margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
                         <i data-lucide="user-cog" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="sys_admin_creds">مشخصات ورود مدیر پنل (Admin)</span>
                     </h3>
                 </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     تغییر نام کاربری و رمز عبور اصلی جهت احراز هویت ورود به کنسول وب و مدیریت سیستم MHPanel.
                 </p>
                 <form id="credentials-form">
                     <div class="form-group" style="margin-bottom:14px;">
                         <label class="form-label" data-i18n="login_username" style="font-weight:600; font-size:12px;">نام کاربری ادمین:</label>
-                        <input class="form-input" id="admin-user-input" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="text" value="{{ saved_username }}"/>
+                        <input class="form-input" id="admin-user-input" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono',monospace; border-radius:var(--radius-md);" type="text" value="{{ saved_username }}"/>
                     </div>
                     <div class="form-group" style="margin-bottom:16px;">
                         <label class="form-label" data-i18n="sys_new_pass" style="font-weight:600; font-size:12px;">رمز عبور جدید:</label>
-                        <input class="form-input" data-i18n-placeholder="sys_enter_new_password" id="admin-pass-input" placeholder="رمز عبور جدید را وارد کنید" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono';" type="password"/>
+                        <input class="form-input" data-i18n-placeholder="sys_enter_new_password" id="admin-pass-input" placeholder="رمز عبور جدید را وارد کنید" required="" style="padding-left:14px; direction:ltr; font-family:'JetBrains Mono',monospace; border-radius:var(--radius-md);" type="password"/>
                     </div>
-                    <button class="btn btn-primary" id="save-credentials-btn" style="width:100%; padding:9px;" type="submit">
+                    <button class="btn btn-primary" id="save-credentials-btn" style="width:100%; padding:10px;" type="submit">
                         <i class="btn-icon" data-lucide="save"></i> <span data-i18n="sys_save_creds">ذخیره مشخصات ورود</span>
                     </button>
                 </form>
@@ -131,24 +131,24 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 2, COL 1: احراز هویت دو مرحله‌ای (2FA TOTP)     -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="spec-card" style="display:flex; flex-direction:column; justify-content:space-between;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="shield-check" style="color: #6366f1; width: 20px; height: 20px;"></i>
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
+                        <i data-lucide="shield-check" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="twofa_title">ورود دو مرحله‌ای (2FA TOTP)</span>
                     </h3>
-                    <span class="sidebar-badge sidebar-badge-blue" id="tab-sys-twofa-badge">Google Auth</span>
+                    <span class="badge badge-primary" id="tab-sys-twofa-badge">Google Auth</span>
                 </div>
-                <p data-i18n="twofa_settings_desc" style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
+                <p data-i18n="twofa_settings_desc" style="font-size:12.5px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
                     افزایش چشمگیر امنیت ورود به پنل با تولید کدهای ۶ رقمی یکبار مصرف در نرم‌افزارهای Google Authenticator و Microsoft Authenticator.
                 </p>
-                <div style="background: rgba(99, 102, 241, 0.08); padding: 12px 14px; border-radius: 10px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; border: 1px solid rgba(99,102,241,0.15);">
-                    <span data-i18n="twofa_status_label" style="font-size: 12px; font-weight: 600;">وضعیت احراز هویت دو مرحله‌ای:</span>
-                    <strong id="tab-sys-twofa-status-text" style="font-size: 12px; color: #dc2626;">-</strong>
+                <div style="background: var(--bg-subtle); padding: 12px 14px; border-radius: var(--radius-md); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-subtle);">
+                    <span data-i18n="twofa_status_label" style="font-size: 12.5px; font-weight: 600;">وضعیت احراز هویت دو مرحله‌ای:</span>
+                    <strong id="tab-sys-twofa-status-text" style="font-size: 12.5px; color: var(--color-danger);">-</strong>
                 </div>
             </div>
-            <button class="btn btn-secondary" onclick="openTwoFactorModal()" style="width: 100%; padding: 9px;" type="button">
+            <button class="btn btn-secondary" onclick="openTwoFactorModal()" style="width: 100%; padding: 10px;" type="button">
                 <i class="btn-icon" data-lucide="key"></i> <span data-i18n="twofa_manage_btn">تنظیم و فعال‌سازی 2FA</span>
             </button>
         </div>
@@ -156,82 +156,82 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 2, COL 2: منطقه حساس و عملیات بحرانی (Danger Zone) -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="border: 1px solid rgba(239, 68, 68, 0.4); background: linear-gradient(180deg, rgba(239, 68, 68, 0.06) 0%, rgba(20, 24, 39, 0.75) 100%); display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="spec-card" style="border: 1px solid rgba(239, 68, 68, 0.35); background: linear-gradient(180deg, rgba(239, 68, 68, 0.04) 0%, var(--bg-surface) 100%); display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; color: #ef4444; margin:0;">
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; color: #ef4444; margin:0; font-size:15.5px;">
                         <i data-lucide="alert-triangle" style="color: #ef4444; width: 20px; height: 20px;"></i>
                         <span data-i18n="sys_danger_zone_title">منطقه حساس و عملیات بحرانی (Danger Zone)</span>
                     </h3>
-                    <span class="sidebar-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);">Critical Control</span>
+                    <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25);">Critical Control</span>
                 </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     عملیات‌های سطح روت سرور شامل ری‌استارت پردازش، ریبوت سخت‌افزاری سرور یا پاکسازی کامل نرم‌افزار.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <!-- ری‌استارت سرویس وب -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div>
-                            <strong style="font-size: 12.5px; color: var(--text-main); display: block;">ری‌استارت وب پنل</strong>
+                            <strong style="font-size: 13px; color: var(--text-main); display: block;">ری‌استارت وب پنل</strong>
                             <span style="font-size: 11px; color: var(--text-muted);">راه‌اندازی مجدد mhpanel.service بدون ریبوت</span>
                         </div>
-                        <button class="btn btn-secondary btn-sm" onclick="restartPanelService()" style="padding: 5px 12px; font-size: 11.5px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;" type="button">
-                            <i data-lucide="rotate-cw" style="width: 12px; height: 12px; margin-left: 3px;"></i> ری‌استارت
+                        <button class="btn btn-secondary btn-sm" onclick="restartPanelService()" style="padding: 5px 14px; font-size: 11.5px; border-color: rgba(245, 158, 11, 0.4); color: #f59e0b;" type="button">
+                            <i data-lucide="rotate-cw" style="width: 12px; height: 12px; margin-inline-end: 4px;"></i> ری‌استارت
                         </button>
                     </div>
 
                     <!-- ریبوت سرور -->
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: rgba(0, 0, 0, 0.25); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.25);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: var(--bg-subtle); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div>
-                            <strong style="font-size: 12.5px; color: var(--text-main); display: block;">راه‌اندازی مجدد سرور</strong>
+                            <strong style="font-size: 13px; color: var(--text-main); display: block;">راه‌اندازی مجدد سرور</strong>
                             <span style="font-size: 11px; color: var(--text-muted);">ریبوت کامل سیستم‌عامل لینوکس</span>
                         </div>
-                        <button class="btn btn-sm" onclick="rebootSystemServer()" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; padding: 5px 12px; font-size: 11.5px; font-weight: 700;" type="button">
-                            <i data-lucide="power" style="width: 12px; height: 12px; margin-left: 3px;"></i> ریبوت سرور
+                        <button class="btn btn-sm" onclick="rebootSystemServer()" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); padding: 5px 14px; font-size: 11.5px; font-weight: 700;" type="button">
+                            <i data-lucide="power" style="width: 12px; height: 12px; margin-inline-end: 4px;"></i> ریبوت سرور
                         </button>
                     </div>
                 </div>
             </div>
             <!-- حذف پنل -->
-            <button class="btn" onclick="openUninstallPanelModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; width: 100%; padding: 8px; font-size: 12px; font-weight: 700; margin-top: 10px;" type="button">
-                <i data-lucide="trash-2" style="width: 14px; height: 14px; margin-left: 4px;"></i> حذف کامل MH Panel...
+            <button class="btn" onclick="openUninstallPanelModal()" style="background: #dc2626; color: #fff; border: 1px solid #b91c1c; width: 100%; padding: 9px; font-size: 12px; font-weight: 700; margin-top: 12px; border-radius: var(--radius-md);" type="button">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px; margin-inline-end: 4px;"></i> حذف کامل MH Panel...
             </button>
         </div>
 
         <!-- ---------------------------------------------------- -->
         <!-- ROW 3, COL 1: شتاب‌دهنده شبکه (TCP BBR)              -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
+        <div class="spec-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="gauge" style="color: #2563eb; width: 20px; height: 20px;"></i>
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
+                        <i data-lucide="gauge" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="sys_tcp_bbr">بهینه‌ساز شبکه و شتاب‌دهنده رشته‌ها (TCP BBR)</span>
                     </h3>
                     <span data-i18n-html="elem_tab_system_66" id="bbr-status-badge" style="font-size:12px; font-weight:700; display:flex; align-items:center; gap:6px;">
                         <span class="status-dot active"></span> در حال بررسی...
                     </span>
                 </div>
-                <p data-i18n-html="elem_tab_system_68" style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                <p data-i18n-html="elem_tab_system_68" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     الگوریتم ازدحام <strong>Google BBR</strong> همراه با صف‌بندی هوشمند <strong>Fair Queuing (FQ)</strong> باعث کاهش شدید پینگ، پرش پکت (Packet Loss) و افزایش چشمگیر سرعت دانلود/آپلود در شبکه ایران می‌شود.
                 </p>
                 <!-- BBR Info Grid -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_congestion" style="color:var(--text-muted); font-size:11px;">الگوریتم فعال (Congestion)</div>
-                        <div data-i18n="sys_bbr_active" id="bbr-current-algo" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">BBR (فعال)</div>
+                        <div data-i18n="sys_bbr_active" id="bbr-current-algo" style="font-weight:700; color:var(--color-primary); font-family:'JetBrains Mono',monospace; margin-top:2px;">BBR (فعال)</div>
                     </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_packet_queue_management_qdisc" style="color:var(--text-muted); font-size:11px;">مدیریت صف پکت‌ها (Qdisc)</div>
-                        <div id="bbr-current-qdisc" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">FQ (Fair Queuing)</div>
+                        <div id="bbr-current-qdisc" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace; margin-top:2px;">FQ (Fair Queuing)</div>
                     </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_optimized_buffers" style="color:var(--text-muted); font-size:11px;">بافرهای بهینه‌شده</div>
-                        <div id="bbr-current-buffers" style="font-weight:700; color:#059669;">16MB Window Scale</div>
+                        <div id="bbr-current-buffers" style="font-weight:700; color:#10b981; margin-top:2px;">16MB Window Scale</div>
                     </div>
                 </div>
-                <div data-i18n-html="elem_tab_system_69" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:12px; font-size:11px; color:var(--text-muted); line-height:1.6;">
-                    <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; color:#059669; margin-left:4px;"></i> <span data-i18n="awg_parameters">پارامترهای</span> <code>tcp_fastopen = 3</code>، <code>tcp_slow_start_after_idle = 0</code> و بافرهای شبکه به صورت دائمی در هسته لینوکس ذخیره و فعال خواهند شد.
+                <div data-i18n-html="elem_tab_system_69" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; font-size:11.5px; color:var(--text-muted); line-height:1.6;">
+                    <i data-lucide="check-circle" style="width:13px; height:13px; vertical-align:middle; color:#10b981; margin-inline-end:4px;"></i> <span data-i18n="awg_parameters">پارامترهای</span> <code>tcp_fastopen = 3</code>، <code>tcp_slow_start_after_idle = 0</code> و بافرهای شبکه به صورت دائمی در هسته لینوکس ذخیره و فعال خواهند شد.
                 </div>
             </div>
             <!-- BBR Optimize Button -->
@@ -243,10 +243,10 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 3, COL 2: مرکز کلادفلر وارپ (Cloudflare WARP)   -->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
+        <div class="spec-card" style="display:flex; flex-direction:column; justify-content:space-between; gap:16px;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
                         <i data-lucide="cloud-lightning" style="color: #ea580c; width: 20px; height: 20px;"></i>
                         <span data-i18n="sys_cloudflare_warp_management_center">مرکز مدیریت کلادفلر وارپ (Cloudflare WARP)</span>
                     </h3>
@@ -254,49 +254,49 @@
                         <span class="status-dot active"></span> در حال بررسی...
                     </span>
                 </div>
-                <p data-i18n="sys_item" style="font-size:12px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
+                <p data-i18n="sys_item" style="font-size:12.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.6;">
                     سرویس وارپ خروجی ترافیک سرور را از بستر شبکه جهانی کلودفلر رد می‌کند. این قابلیت آی‌پی تمیز کلودفلر، پایداری اتصالات وب‌سوکت و رفع تحریم سایت‌ها را برای سرور به ارمغان می‌آورد.
                 </p>
                 <!-- WARP Info Grid -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px; font-size:12px;">
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_account_type" style="color:var(--text-muted); font-size:11px;">نوع اکانت</div>
-                        <div id="warp-account-type" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">Free</div>
+                        <div id="warp-account-type" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace; margin-top:2px;">Free</div>
                     </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_port_sax_5_warp" style="color:var(--text-muted); font-size:11px;">پورت ساکس ۵ وارپ</div>
-                        <div id="warp-socks-port" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace;">127.0.0.1:40000</div>
+                        <div id="warp-socks-port" style="font-weight:700; color:var(--text-main); font-family:'JetBrains Mono',monospace; margin-top:2px;">127.0.0.1:40000</div>
                     </div>
-                    <div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border: 1px solid var(--border-subtle);">
                         <div data-i18n="sys_item_7" style="color:var(--text-muted); font-size:11px;">حالت کاری</div>
-                        <div data-i18n="sys_socks5_proxy_secure" id="warp-mode" style="font-weight:700; color:#059669;">SOCKS5 Proxy (امن)</div>
+                        <div data-i18n="sys_socks5_proxy_secure" id="warp-mode" style="font-weight:700; color:#10b981; margin-top:2px;">SOCKS5 Proxy (امن)</div>
                     </div>
                 </div>
                 <!-- License Key Form -->
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:10px; padding:14px; margin-bottom:14px;">
+                <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius:var(--radius-md); padding:14px; margin-bottom:14px;">
                     <label class="form-label" data-i18n="sys_license_warp_plus_zerotrust_optional" style="font-weight:600; font-size:12px; margin-bottom:6px;">لایسنس وارپ پلاس یا زیروتراست (اختیاری):</label>
                     <div style="display:flex; gap:8px;">
-                        <input class="form-input" data-i18n-placeholder="sys_warp_24" id="warp-license-input" placeholder="کلید لایسنس WARP+ (مثلا 24 کاراکتری)" style="padding-left:12px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; font-size:12px;" type="text"/>
+                        <input class="form-input" data-i18n-placeholder="sys_warp_24" id="warp-license-input" placeholder="کلید لایسنس WARP+ (مثلا 24 کاراکتری)" style="padding-left:12px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:left; font-size:12px; border-radius:var(--radius-md);" type="text"/>
                         <button class="btn btn-secondary btn-sm" data-i18n="sys_license_registration" onclick="setWarpLicense()" style="white-space:nowrap; padding:6px 14px;" type="button">
                             ثبت لایسنس
                         </button>
                     </div>
                     <div style="font-size:12px; color:var(--text-muted); margin-top:8px; display:flex; align-items:center; gap:6px;">
                         <span>لایسنس فعال:</span>
-                        <strong id="warp-current-license" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#059669;">-</strong>
+                        <strong id="warp-current-license" style="font-family:'JetBrains Mono',monospace; font-weight:700; color:#10b981;">-</strong>
                     </div>
                 </div>
             </div>
             <!-- WARP Action Buttons -->
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button class="btn btn-primary btn-sm" id="warp-connect-btn" onclick="toggleWarpConnect(true)" style="flex:1;" type="button">
-                    <i data-lucide="play" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_connect">اتصال به وارپ (Connect)</span>
+                    <i data-lucide="play" style="width:14px; height:14px; margin-inline-end:4px;"></i> <span data-i18n="sys_connect">اتصال به وارپ (Connect)</span>
                 </button>
                 <button class="btn btn-secondary btn-sm" id="warp-disconnect-btn" onclick="toggleWarpConnect(false)" style="flex:1;" type="button">
-                    <i data-lucide="square" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_disconnect">قطع اتصال (Disconnect)</span>
+                    <i data-lucide="square" style="width:14px; height:14px; margin-inline-end:4px;"></i> <span data-i18n="sys_disconnect">قطع اتصال (Disconnect)</span>
                 </button>
                 <button class="btn btn-secondary btn-sm" data-i18n-title="sys_item_6" onclick="resetWarpFree()" style="white-space:nowrap;" title="ساخت مجدد اکانت رایگان کلادفلر" type="button">
-                    <i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-left:4px;"></i> <span data-i18n="sys_new_free_account">اکانت رایگان جدید</span>
+                    <i data-lucide="rotate-ccw" style="width:14px; height:14px; margin-inline-end:4px;"></i> <span data-i18n="sys_new_free_account">اکانت رایگان جدید</span>
                 </button>
             </div>
         </div>
@@ -304,47 +304,47 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 4, COL 1: مدیریت حافظه مجازی اسواپ (SWAP Studio)-->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="border: 1px solid rgba(168, 85, 247, 0.25); display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="spec-card" style="border: 1px solid rgba(168, 85, 247, 0.25); display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
+                <div class="spec-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:36px; height:36px; border-radius:10px; background:rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:38px; height:38px; border-radius:var(--radius-md); background:rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="layers" style="width:20px; height:20px;"></i>
                         </div>
                         <div>
-                            <h3 class="config-title" style="margin:0; font-size:15.5px;" data-i18n="sys_swap_title">
+                            <h3 class="spec-title" style="margin:0; font-size:15.5px;" data-i18n="sys_swap_title">
                                 مدیریت حافظه مجازی و اسواپ سرور (SWAP)
                             </h3>
                         </div>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSwapStatus()" style="padding:4px 10px; font-size: 11.5px;">
-                        <i data-lucide="refresh-cw" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="refresh">بروزرسانی</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="fetchSwapStatus()" style="padding:5px 12px; font-size: 11.5px;">
+                        <i data-lucide="refresh-cw" style="width:12px; height:12px; margin-inline-end:4px;"></i> <span data-i18n="refresh">بروزرسانی</span>
                     </button>
                 </div>
-                <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;" data-i18n="sys_swap_subtitle">
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px; line-height:1.5;" data-i18n="sys_swap_subtitle">
                     افزایش رم مجازی جهت پایداری پردازش‌ها، جلوگیری از خطای OOM-Killer و بهینه‌سازی Swappiness.
                 </p>
 
                 <!-- Status Indicator Grid -->
                 <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; margin-bottom:12px;">
-                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                    <div style="background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swap_total_label">حجم کل اسواپ</div>
                         <div style="font-weight:700; color:#a855f7; font-family:'JetBrains Mono',monospace; margin-top:2px; font-size:14px;" id="swap-mgr-total">0 MB</div>
                     </div>
-                    <div style="background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
+                    <div style="background:var(--bg-subtle); padding:10px 12px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;" data-i18n="sys_swap_free_label">فضای آزاد</div>
                         <div style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:2px; font-size:14px;" id="swap-mgr-free">0 MB</div>
                     </div>
                 </div>
 
                 <!-- Progress Meter -->
-                <div style="margin-bottom:14px; background:var(--bg-base); padding:10px 12px; border-radius:8px; border:1px solid var(--border-glow);">
-                    <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px;">
+                <div style="margin-bottom:14px; background:var(--bg-subtle); padding:12px 14px; border-radius:var(--radius-md); border:1px solid var(--border-subtle);">
+                    <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:6px;">
                         <span style="font-weight:600; color:var(--text-main);" data-i18n="sys_swap_utilization">درصد اشغال اسواپ:</span>
                         <span id="swap-mgr-percent-label" style="font-weight:700; color:#a855f7;">0%</span>
                     </div>
-                    <div style="background:rgba(255,255,255,0.08); height:8px; border-radius:6px; overflow:hidden;">
-                        <div id="swap-mgr-progress" style="width:0%; height:100%; background:linear-gradient(90deg, #a855f7, #ec4899); border-radius:6px; transition:width 0.4s ease;"></div>
+                    <div style="background:var(--bg-base); height:8px; border-radius:var(--radius-full); overflow:hidden; border:1px solid var(--border-subtle);">
+                        <div id="swap-mgr-progress" style="width:0%; height:100%; background:linear-gradient(90deg, #a855f7, #ec4899); border-radius:var(--radius-full); transition:width 0.4s ease;"></div>
                     </div>
                 </div>
 
@@ -354,10 +354,10 @@
                         تغییر سریع حجم حافظه اسواپ:
                     </label>
                     <div class="quick-chip-group" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button type="button" class="quick-chip" onclick="resizeSwap(1)" style="padding: 3px 10px; font-size: 11.5px;">1 GB</button>
-                        <button type="button" class="quick-chip" onclick="resizeSwap(2)" style="padding: 3px 10px; font-size: 11.5px;">2 GB</button>
-                        <button type="button" class="quick-chip active" onclick="resizeSwap(4)" style="padding: 3px 10px; font-size: 11.5px;">4 GB (پیشنهادی)</button>
-                        <button type="button" class="quick-chip" onclick="resizeSwap(8)" style="padding: 3px 10px; font-size: 11.5px;">8 GB</button>
+                        <button type="button" class="quick-chip" onclick="resizeSwap(1)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">1 GB</button>
+                        <button type="button" class="quick-chip" onclick="resizeSwap(2)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">2 GB</button>
+                        <button type="button" class="quick-chip active" onclick="resizeSwap(4)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">4 GB (پیشنهادی)</button>
+                        <button type="button" class="quick-chip" onclick="resizeSwap(8)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">8 GB</button>
                     </div>
                 </div>
 
@@ -366,16 +366,16 @@
                         تنظیم تمایل به اسواپ (vm.swappiness):
                     </label>
                     <div class="quick-chip-group" style="display: flex; gap: 6px; flex-wrap: wrap;">
-                        <button type="button" class="quick-chip" onclick="setSwappiness(10)" style="padding: 3px 10px; font-size: 11.5px;">10 (بهینه سرور)</button>
-                        <button type="button" class="quick-chip active" onclick="setSwappiness(60)" style="padding: 3px 10px; font-size: 11.5px;">60 (پیش‌فرض)</button>
-                        <button type="button" class="quick-chip" onclick="setSwappiness(100)" style="padding: 3px 10px; font-size: 11.5px;">100</button>
+                        <button type="button" class="quick-chip" onclick="setSwappiness(10)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">10 (بهینه سرور)</button>
+                        <button type="button" class="quick-chip active" onclick="setSwappiness(60)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">60 (پیش‌فرض)</button>
+                        <button type="button" class="quick-chip" onclick="setSwappiness(100)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-full);">100</button>
                     </div>
                 </div>
             </div>
 
             <!-- Purge Cache Button -->
             <button type="button" class="btn btn-secondary" onclick="flushSwapCache()" style="width:100%; padding:9px; font-size:12px; font-weight:700;">
-                <i data-lucide="trash-2" style="width:13px; height:13px; margin-left:4px; color:#ef4444;"></i>
+                <i data-lucide="trash-2" style="width:13px; height:13px; margin-inline-end:4px; color:#ef4444;"></i>
                 <span data-i18n="sys_swap_flush_btn">تخلیه بلادرنگ کش و بازنشانی اسواپ</span>
             </button>
         </div>
@@ -383,11 +383,11 @@
         <!-- ---------------------------------------------------- -->
         <!-- ROW 4, COL 2: رابط برنامه‌نویسی وضعیت (Developer API)-->
         <!-- ---------------------------------------------------- -->
-        <div class="glass-card config-card" style="display:flex; flex-direction:column; justify-content:space-between;">
+        <div class="spec-card" style="display:flex; flex-direction:column; justify-content:space-between;">
             <div>
-                <div class="config-header" style="margin-bottom:12px;">
-                    <h3 class="config-title" style="display:flex; align-items:center; gap:8px; margin:0;">
-                        <i data-lucide="code" style="color: var(--color-secondary); width: 20px; height: 20px;"></i>
+                <div class="spec-header" style="margin-bottom:12px;">
+                    <h3 class="spec-title" style="display:flex; align-items:center; gap:8px; margin:0; font-size:15.5px;">
+                        <i data-lucide="code" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="sys_api_title">رابط برنامه‌نویسی وضعیت سرور (Developer Status API)</span>
                     </h3>
                 </div>
@@ -396,16 +396,16 @@
                 </p>
                 <div class="form-group" style="margin-bottom: 14px;">
                     <label class="form-label" data-i18n="sys_api_url" style="font-size:12px; font-weight:600;">اندپوینت عمومی وضعیت سرور:</label>
-                    <div class="code-box" id="api-url-box"></div>
+                    <div class="code-box" id="api-url-box" style="border-radius: var(--radius-md); border: 1px solid var(--border-subtle); background: var(--bg-subtle);"></div>
                 </div>
-                <div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 8px; padding: 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6;">
-                    <i data-lucide="info" style="width: 14px; height: 14px; color: var(--color-primary); vertical-align: middle; margin-left: 4px;"></i>
+                <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 12px; font-size: 11.5px; color: var(--text-muted); line-height: 1.6;">
+                    <i data-lucide="info" style="width: 14px; height: 14px; color: var(--color-primary); vertical-align: middle; margin-inline-end: 4px;"></i>
                     این کلید دسترسی به صورت خودکار با هر راه‌اندازی سرور تولید شده و برای ارتباط نرم‌افزارهای مانیتورینگ خارجی یا ربات‌های تلگرام به کار می‌رود.
                 </div>
             </div>
             <div style="padding-top: 10px;">
-                <button class="btn btn-secondary" onclick="copyText(document.getElementById('api-url-box').textContent)" style="width:100%; padding:9px; font-size:12px;" type="button">
-                    <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی لینک API وضعیت
+                <button class="btn btn-secondary" onclick="copyText(document.getElementById('api-url-box').textContent)" style="width:100%; padding:10px; font-size:12px;" type="button">
+                    <i data-lucide="copy" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی لینک API وضعیت
                 </button>
             </div>
         </div>

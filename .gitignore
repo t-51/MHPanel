@@ -69,3 +69,9 @@ group_tokens.json
 npv_tables.json
 ssh_domains.json
 *.stamp
+
+.*.stamp
+bin/config.json
+bin/.*.stamp
+**/.*.stamp
+.server_stamp

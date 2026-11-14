@@ -2,76 +2,76 @@
     <!-- 1. System resource summary cards -->
     <section class="system-stats-grid">
         <!-- CPU Card -->
-        <div class="glass-card stat-card" style="border-top: 3px solid #8b5cf6;">
+        <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-label-wrap">
                     <span class="stat-label" data-i18n="stat_cpu">مصرف پردازنده</span>
                 </div>
                 <div class="stat-icon-box stat-icon-cpu">
-                    <i data-lucide="cpu" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="cpu" style="width: 18px; height: 18px;"></i>
                 </div>
             </div>
             <div class="stat-card-body">
-                <span class="stat-value" id="cpu-val" style="color: #8b5cf6;">- %</span>
+                <span class="stat-value" id="cpu-val">- %</span>
                 <div class="stat-progress-track">
-                    <div id="cpu-progress-bar" class="stat-progress-fill" style="width: 0%; background: #8b5cf6;"></div>
+                    <div id="cpu-progress-bar" class="stat-progress-fill" style="width: 0%; background: var(--brand-primary);"></div>
                 </div>
                 <span class="stat-meta" id="cpu-meta" data-i18n="stat_multicore">وضعیت چند هسته‌ای</span>
             </div>
         </div>
 
         <!-- RAM Card -->
-        <div class="glass-card stat-card" style="border-top: 3px solid #06b6d4;">
+        <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-label-wrap">
                     <span class="stat-label" data-i18n="stat_ram">مصرف حافظه رم</span>
                 </div>
                 <div class="stat-icon-box stat-icon-ram">
-                    <i data-lucide="hard-drive" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="hard-drive" style="width: 18px; height: 18px;"></i>
                 </div>
             </div>
             <div class="stat-card-body">
-                <span class="stat-value" id="ram-val" style="color: #06b6d4;">- %</span>
+                <span class="stat-value" id="ram-val">- %</span>
                 <div class="stat-progress-track">
-                    <div id="ram-progress-bar" class="stat-progress-fill" style="width: 0%; background: #06b6d4;"></div>
+                    <div id="ram-progress-bar" class="stat-progress-fill" style="width: 0%; background: var(--accent-info);"></div>
                 </div>
                 <span class="stat-meta" id="ram-meta">- GB / - GB</span>
             </div>
         </div>
 
         <!-- DISK Card -->
-        <div class="glass-card stat-card" style="border-top: 3px solid var(--color-gold);">
+        <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-label-wrap">
                     <span class="stat-label" data-i18n="stat_disk">فضای دیسک سرور</span>
                 </div>
-                <div class="stat-icon-box stat-icon-disk" style="background: var(--color-gold-bg); color: var(--color-gold); border: 1px solid var(--color-gold-border);">
-                    <i data-lucide="database" style="width: 20px; height: 20px;"></i>
+                <div class="stat-icon-box stat-icon-disk">
+                    <i data-lucide="database" style="width: 18px; height: 18px;"></i>
                 </div>
             </div>
             <div class="stat-card-body">
-                <span class="stat-value" id="disk-val" style="color: var(--color-gold);">- %</span>
+                <span class="stat-value" id="disk-val">- %</span>
                 <div class="stat-progress-track">
-                    <div id="disk-progress-bar" class="stat-progress-fill" style="width: 0%; background: var(--color-gold-gradient);"></div>
+                    <div id="disk-progress-bar" class="stat-progress-fill" style="width: 0%; background: var(--accent-warning);"></div>
                 </div>
                 <span class="stat-meta" id="disk-meta">- GB / - GB</span>
             </div>
         </div>
 
         <!-- NET Card -->
-        <div class="glass-card stat-card" style="border-top: 3px solid #10b981;">
+        <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-label-wrap">
                     <span class="stat-label" data-i18n="stat_net">ترافیک زنده شبکه</span>
                 </div>
                 <div class="stat-icon-box stat-icon-net">
-                    <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
                 </div>
             </div>
             <div class="stat-card-body">
                 <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 6px;">
-                    <span class="stat-value" id="net-speed-val" style="color: #10b981; font-size: 21px;">0 KB/s</span>
-                    <span style="font-size: 10.5px; font-weight: 600; color: var(--text-muted);" data-i18n="net_live_speed">سرعت کل</span>
+                    <span class="stat-value" id="net-speed-val" style="font-size: 20px;">0 KB/s</span>
+                    <span style="font-size: 10px; font-weight: 500; color: var(--text-muted);" data-i18n="net_live_speed">سرعت کل</span>
                 </div>
                 <div class="net-pills-row">
                     <span class="net-pill net-pill-rx" title="سرعت دانلود">
@@ -88,19 +88,19 @@
         </div>
 
         <!-- SWAP Card -->
-        <div class="glass-card stat-card" style="border-top: 3px solid #a855f7;">
+        <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-label-wrap">
                     <span class="stat-label" data-i18n="stat_swap">حافظه مجازی (SWAP)</span>
                 </div>
-                <div class="stat-icon-box stat-icon-swap" style="background: rgba(168, 85, 247, 0.12); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3);">
-                    <i data-lucide="layers" style="width: 20px; height: 20px;"></i>
+                <div class="stat-icon-box stat-icon-swap">
+                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
                 </div>
             </div>
             <div class="stat-card-body">
-                <span class="stat-value" id="swap-val" style="color: #a855f7;">- %</span>
+                <span class="stat-value" id="swap-val">- %</span>
                 <div class="stat-progress-track">
-                    <div id="swap-progress-bar" class="stat-progress-fill" style="width: 0%; background: #a855f7;"></div>
+                    <div id="swap-progress-bar" class="stat-progress-fill" style="width: 0%; background: #9333ea;"></div>
                 </div>
                 <span class="stat-meta" id="swap-meta">- GB / - GB</span>
             </div>
@@ -110,15 +110,15 @@
     <!-- 2. Hardware Specifications & Per-Core Workload Capacity -->
     <section class="overview-specs-grid">
         <!-- Card A: Server OS & Hardware Specifications -->
-        <div class="glass-card spec-card">
+        <div class="spec-card">
             <div>
                 <div class="spec-card-header">
                     <h3 class="spec-card-title">
-                        <i data-lucide="server" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
+                        <i data-lucide="server" style="color: var(--brand-primary); width: 18px; height: 18px;"></i>
                         <span data-i18n="spec_server_title">مشخصات فنی و سخت‌افزاری سرور</span>
                     </h3>
-                    <span id="spec-uptime-badge" class="badge-gold" style="font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
-                        <span data-i18n="spec_uptime">روشن:</span> <span id="spec-uptime-val">-</span>
+                    <span id="spec-uptime-badge" class="badge-pill" style="font-size: 11px; padding: 3px 10px; background: var(--surface-secondary); color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-pill); font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <span data-i18n="spec_uptime">روشن:</span> <span id="spec-uptime-val" style="font-family: 'JetBrains Mono', monospace;">-</span>
                     </span>
                 </div>
 
@@ -187,14 +187,14 @@
         </div>
 
         <!-- Card B: Per-Core Workload Capacity -->
-        <div class="glass-card spec-card">
+        <div class="spec-card">
             <div>
                 <div class="spec-card-header">
                     <h3 class="spec-card-title">
-                        <i data-lucide="activity" style="color: var(--color-emerald); width: 20px; height: 20px;"></i>
+                        <i data-lucide="activity" style="color: var(--accent-success); width: 18px; height: 18px;"></i>
                         <span data-i18n="spec_cores_workload">ظرفیت کاری هر هسته پردازنده</span>
                     </h3>
-                    <span style="font-size: 11px; padding: 4px 10px; background: rgba(16, 185, 129, 0.1); color: var(--color-emerald); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 999px; font-weight: 700;" data-i18n="live_realtime">
+                    <span style="font-size: 11px; padding: 3px 10px; background: var(--accent-success-soft); color: var(--accent-success); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: var(--radius-pill); font-weight: 600;" data-i18n="live_realtime">
                         زنده و بلادرنگ
                     </span>
                 </div>
@@ -208,24 +208,24 @@
     </section>
 
     <!-- 3. Real-time performance chart -->
-    <section class="chart-section" style="margin-top: 24px;">
-        <div class="glass-card chart-card">
+    <section class="chart-section" style="margin-top: 20px;">
+        <div class="chart-card">
             <div class="chart-header">
                 <h3 class="chart-title">
-                    <i data-lucide="trending-up" style="color: #a78bfa; width: 20px; height: 20px;"></i>
+                    <i data-lucide="trending-up" style="color: var(--brand-primary); width: 18px; height: 18px;"></i>
                     <span data-i18n="overview_cpu_ram_chart">روند مصرف منابع سخت‌افزاری سرور (CPU & RAM)</span>
                 </h3>
             </div>
             <div style="flex:1; min-height:220px; position:relative;">
                 <canvas id="usageChart" style="width:100%; height:250px;"></canvas>
-                <div id="chart-fallback" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text-muted); font-size:14px;">Charts library offline. Stats updating in cards above.</div>
+                <div id="chart-fallback" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--text-muted); font-size:13px;">Charts library offline. Stats updating in cards above.</div>
             </div>
         </div>
         
-        <div class="glass-card chart-card">
+        <div class="chart-card">
             <div class="chart-header">
                 <h3 class="chart-title">
-                    <i data-lucide="arrow-down-up" style="color: #34d399; width: 20px; height: 20px;"></i>
+                    <i data-lucide="arrow-down-up" style="color: var(--accent-success); width: 18px; height: 18px;"></i>
                     <span data-i18n="overview_bandwidth_chart">نرخ مصرف پهنای باند شبکه سرور (Bandwidth Rate)</span>
                 </h3>
             </div>
@@ -237,11 +237,11 @@
 
     <!-- 4. Protocol Bandwidth & Consumption Breakdown -->
     <section class="proto-bandwidth-section">
-        <div class="glass-card" style="padding: 24px;">
+        <div class="spec-card" style="padding: 20px 22px;">
             <div class="spec-card-header" style="flex-wrap: wrap; gap: 14px;">
                 <div>
                     <h3 class="spec-card-title">
-                        <i data-lucide="network" style="color: var(--color-secondary); width: 22px; height: 22px;"></i>
+                        <i data-lucide="network" style="color: var(--accent-info); width: 20px; height: 20px;"></i>
                         <span data-i18n="overview_proto_traffic">سهم ترافیک و پهنای باند پروتکل‌ها</span>
                     </h3>
                     <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="overview_proto_traffic_desc">
@@ -249,15 +249,15 @@
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
-                    <span style="font-size: 12px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); color: var(--color-primary); padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11.5px; background: var(--brand-primary-soft); border: 1px solid rgba(99, 102, 241, 0.2); color: var(--brand-primary); padding: 4px 10px; border-radius: var(--radius-pill); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                         <i data-lucide="database" style="width: 13px; height: 13px;"></i>
                         <span data-i18n="total_proto_traffic">مجموع ترافیک پروتکل‌ها:</span> <strong id="proto-total-all-val" style="font-family: 'JetBrains Mono', monospace;">0 GB</strong>
                     </span>
-                    <span style="font-size: 12px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); color: #10b981; padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11.5px; background: var(--accent-success-soft); border: 1px solid rgba(16, 185, 129, 0.2); color: var(--accent-success); padding: 4px 10px; border-radius: var(--radius-pill); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                         <i data-lucide="activity" style="width: 13px; height: 13px;"></i>
                         <span data-i18n="proto_active_consuming_label">پروتکل‌های دارای مصرف و فعال:</span> <strong id="proto-active-count-badge" style="font-family: 'JetBrains Mono', monospace;">0</strong>
                     </span>
-                    <span style="font-size: 12px; background: rgba(14, 165, 233, 0.1); border: 1px solid rgba(14, 165, 233, 0.25); color: #0ea5e9; padding: 5px 12px; border-radius: 999px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 11.5px; background: var(--accent-info-soft); border: 1px solid rgba(14, 165, 233, 0.2); color: var(--accent-info); padding: 4px 10px; border-radius: var(--radius-pill); font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
                         <i data-lucide="gauge" style="width: 13px; height: 13px;"></i>
                         <span>نرخ زنده لحظه‌ای:</span> <strong id="proto-live-speed-total" style="font-family: 'JetBrains Mono', monospace;">0 KB/s</strong>
                     </span>
@@ -265,16 +265,16 @@
             </div>
 
             <!-- Visual Traffic Share Distribution Bar & Legend -->
-            <div style="margin-top: 18px; padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px;">
+            <div style="margin-top: 14px; padding: 12px 16px; background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 12px; font-weight: 700; color: var(--text-main); display: inline-flex; align-items: center; gap: 6px;">
-                        <i data-lucide="pie-chart" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-primary); display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="pie-chart" style="width: 14px; height: 14px; color: var(--brand-primary);"></i>
                         <span>نوار توزیع سهم مصرف پروتکل‌ها (Traffic Share Distribution)</span>
                     </span>
                     <span style="font-size: 11px; color: var(--text-muted);" id="proto-share-bar-caption">نمایش سهم درصدی حجم هر پروتکل از کل ترافیک سرور</span>
                 </div>
                 <!-- Stacked Progress Bar -->
-                <div id="proto-share-bar-container" style="height: 14px; background: rgba(148, 163, 184, 0.15); border-radius: 999px; overflow: hidden; display: flex; width: 100%; border: 1px solid rgba(148, 163, 184, 0.25);">
+                <div id="proto-share-bar-container" style="height: 10px; background: var(--surface-tertiary); border-radius: var(--radius-pill); overflow: hidden; display: flex; width: 100%; border: 1px solid var(--border-subtle);">
                     <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-muted);">در حال محاسبه توزیع ترافیک...</div>
                 </div>
                 <!-- Interactive Legend Chips -->
@@ -284,20 +284,20 @@
             </div>
 
             <!-- Toolbar: Filters, Sorting and Search -->
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
                 <!-- Filter Pills -->
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                    <button type="button" class="btn btn-sm proto-filter-btn active" id="proto-filter-btn-consuming" onclick="setProtoFilter('consuming')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;">
+                    <button type="button" class="btn btn-sm proto-filter-btn active" id="proto-filter-btn-consuming" onclick="setProtoFilter('consuming')" style="border-radius: var(--radius-pill); padding: 4px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
                         <i data-lucide="star" style="width: 12px; height: 12px;"></i>
                         <span>دارای مصرف و فعال (پیش‌فرض)</span>
-                        <span id="proto-pill-count-consuming" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(99, 102, 241, 0.2); color: var(--color-primary); border-radius: 999px;">-</span>
+                        <span id="proto-pill-count-consuming" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: var(--brand-primary-soft); color: var(--brand-primary); border-radius: var(--radius-pill);">-</span>
                     </button>
-                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-throughput" onclick="setProtoFilter('throughput')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
-                        <i data-lucide="zap" style="width: 12px; height: 12px; color: #10b981;"></i>
+                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-throughput" onclick="setProtoFilter('throughput')" style="border-radius: var(--radius-pill); padding: 4px 12px; font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="zap" style="width: 12px; height: 12px; color: var(--accent-success);"></i>
                         <span>در حال تبادل لحظه‌ای (Rx/Tx > 0)</span>
-                        <span id="proto-pill-count-throughput" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 999px;">0</span>
+                        <span id="proto-pill-count-throughput" class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: var(--accent-success-soft); color: var(--accent-success); border-radius: var(--radius-pill);">0</span>
                     </button>
-                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-all" onclick="setProtoFilter('all')" style="border-radius: 999px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                    <button type="button" class="btn btn-sm btn-ghost proto-filter-btn" id="proto-filter-btn-all" onclick="setProtoFilter('all')" style="border-radius: var(--radius-pill); padding: 4px 12px; font-size: 11.5px; font-weight: 500; display: inline-flex; align-items: center; gap: 5px;">
                         <i data-lucide="list" style="width: 12px; height: 12px;"></i>
                         <span>همه پروتکل‌ها (۲۷ پروتکل)</span>
                     </button>
@@ -306,8 +306,8 @@
                 <!-- Sort & Search -->
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <label for="proto-sort-select" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; margin: 0;">مرتب‌سازی:</label>
-                        <select id="proto-sort-select" onchange="setProtoSort(this.value)" class="form-control" style="font-size: 11.5px; padding: 4px 10px; height: 30px; border-radius: 8px; width: auto; min-width: 140px;">
+                        <label for="proto-sort-select" style="font-size: 11.5px; color: var(--text-muted); font-weight: 500; margin: 0;">مرتب‌سازی:</label>
+                        <select id="proto-sort-select" onchange="setProtoSort(this.value)" class="form-control" style="font-size: 11.5px; padding: 3px 8px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--surface-primary); color: var(--text-primary); width: auto; min-width: 140px;">
                             <option value="bytes_desc" selected>بیشترین حجم کل</option>
                             <option value="speed_desc">بیشترین سرعت لحظه‌ای</option>
                             <option value="conns_desc">بیشترین اتصال فعال</option>
@@ -315,7 +315,7 @@
                         </select>
                     </div>
                     <div style="position: relative; min-width: 170px;">
-                        <input type="text" id="proto-search-input" oninput="onProtoSearchChange(this.value)" placeholder="جستجوی پروتکل..." class="form-control" style="font-size: 11.5px; padding: 4px 28px 4px 10px; height: 30px; border-radius: 8px;">
+                        <input type="text" id="proto-search-input" oninput="onProtoSearchChange(this.value)" placeholder="جستجوی پروتکل..." class="form-control" style="font-size: 11.5px; padding: 3px 28px 3px 10px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--surface-primary); color: var(--text-primary);">
                         <i data-lucide="search" style="position: absolute; right: 8px; top: 8px; width: 13px; height: 13px; color: var(--text-muted); pointer-events: none;"></i>
                     </div>
                 </div>
@@ -330,62 +330,62 @@
     </section>
 
     <!-- 4.5. Multi-Protocol Architecture, Port Sharing & Smart Channels Showcase -->
-    <section class="architecture-showcase-section" style="margin-top: 24px;">
-        <div class="glass-card" style="padding: 24px; border: 1px solid rgba(99, 102, 241, 0.25); background: linear-gradient(135deg, rgba(99, 102, 241, 0.04), rgba(14, 165, 233, 0.02));">
+    <section class="architecture-showcase-section" style="margin-top: 20px;">
+        <div class="spec-card" style="padding: 20px 22px;">
             <div class="spec-card-header" style="flex-wrap: wrap; gap: 12px;">
                 <div>
                     <h3 class="spec-card-title" style="display: flex; align-items: center; gap: 10px;">
-                        <i data-lucide="layers" style="color: #6366f1; width: 22px; height: 22px;"></i>
+                        <i data-lucide="layers" style="color: var(--brand-primary); width: 20px; height: 20px;"></i>
                         <span>معماری مولتی‌پروتکل و اشتراک پورت ۴۴۳ (Port Multiplexing & Smart Routing)</span>
                     </h3>
-                    <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
                         پشتیبانی همزمان بیش از ۲۶ پروتکل، اجرای بدون تداخل روی یک پورت مشترک با تفکیک هوشمند SNI و مانیتورینگ بلادرنگ
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('multiplexer')" style="font-size: 11.5px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('multiplexer')" style="font-size: 11.5px; border-radius: var(--radius-sm);">
                         <i data-lucide="network"></i> <span>تنظیمات اشتراک پورت</span>
                     </button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="openArchitectureGuideModal()" style="font-size: 11.5px;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openArchitectureGuideModal()" style="font-size: 11.5px; border-radius: var(--radius-sm);">
                         <i data-lucide="file-text"></i> <span>مشاهده دیاگرام و راهنما</span>
                     </button>
                 </div>
             </div>
 
             <!-- Visual Flowchart Summary Grid -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 14px; margin-top: 18px;">
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(99, 102, 241, 0.15); color: #818cf8; display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="share-2" style="width: 16px; height: 16px;"></i>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px; margin-top: 14px;">
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--brand-primary-soft); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="share-2" style="width: 15px; height: 15px;"></i>
                         </span>
-                        <strong style="font-size: 13px; color: var(--text-main);">اشتراک پورت ۴۴۳</strong>
+                        <strong style="font-size: 12.5px; color: var(--text-primary);">اشتراک پورت ۴۴۳</strong>
                     </div>
-                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 0;">
                         شنود همزمان وب پنل، Trojan، Reality، سیسکو و SSTP روی پورت ۴۴۳ از طریق تفکیک هدر SNI و ALPN.
                     </p>
                 </div>
 
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #34d399; display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="activity" style="width: 16px; height: 16px;"></i>
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent-success-soft); color: var(--accent-success); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="activity" style="width: 15px; height: 15px;"></i>
                         </span>
-                        <strong style="font-size: 13px; color: var(--text-main);">رادار و مانیتورینگ زنده</strong>
+                        <strong style="font-size: 12.5px; color: var(--text-primary);">رادار و مانیتورینگ زنده</strong>
                     </div>
-                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 0;">
                         پایش بلادرنگ ۵۳ پورت و سوکت فعال، بررسی کیفیت اتصال شبکه ملی و اینترنت جهانی با نمره سلامت ۱۰۰/۱۰۰.
                     </p>
                 </div>
 
-                <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                        <span style="width: 28px; height: 28px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #fbbf24; display: flex; align-items: center; justify-content: center;">
-                            <i data-lucide="route" style="width: 16px; height: 16px;"></i>
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <span style="width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent-warning-soft); color: var(--accent-warning); display: flex; align-items: center; justify-content: center;">
+                            <i data-lucide="route" style="width: 15px; height: 15px;"></i>
                         </span>
-                        <strong style="font-size: 13px; color: var(--text-main);">مسیریابی هوشمند و چنل</strong>
+                        <strong style="font-size: 12.5px; color: var(--text-primary);">مسیریابی هوشمند و چنل</strong>
                     </div>
-                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                    <p style="font-size: 11.5px; color: var(--text-muted); line-height: 1.5; margin: 0;">
                         تفکیک خودکار سایت‌های بانکی و ملی ایران، تونل‌های دوطرفه IPv6 Dual-Stack و سازگاری با روترهای میکروتیک.
                     </p>
                 </div>
@@ -395,11 +395,11 @@
 
     <!-- 5. Destructive Attack Warnings & Security Log Radar -->
     <section class="security-radar-section">
-        <div class="glass-card" style="padding: 24px;">
+        <div class="spec-card" style="padding: 20px 22px;">
             <div class="spec-card-header">
                 <div>
-                    <h3 class="spec-card-title" style="color: #ef4444;">
-                        <i data-lucide="shield-alert" style="color: #ef4444; width: 22px; height: 22px;"></i>
+                    <h3 class="spec-card-title" style="color: var(--accent-danger);">
+                        <i data-lucide="shield-alert" style="color: var(--accent-danger); width: 20px; height: 20px;"></i>
                         <span data-i18n="overview_sec_radar">مرکز پایش لاگ‌های سیستم و اخطار حملات</span>
                     </h3>
                     <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;" data-i18n="overview_sec_radar_desc">
@@ -407,7 +407,7 @@
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <button class="btn btn-secondary" id="sec-refresh-btn" onclick="refreshSecurityLogs()" style="font-size: 12px; padding: 6px 14px; min-height: unset; display: flex; align-items: center; gap: 6px;">
+                    <button class="btn btn-secondary" id="sec-refresh-btn" onclick="refreshSecurityLogs()" style="font-size: 12px; padding: 6px 14px; min-height: unset; display: flex; align-items: center; gap: 6px; border-radius: var(--radius-sm);">
                         <i data-lucide="refresh-cw" id="sec-refresh-icon" style="width: 14px; height: 14px;"></i>
                         <span data-i18n="refresh_logs">تازه‌سازی لاگ‌ها</span>
                     </button>
@@ -417,42 +417,42 @@
             <!-- Top Security Stat Pills -->
             <div class="sec-stats-bar">
                 <div class="sec-stat-pill">
-                    <div class="sec-pill-icon" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25);">
-                        <i data-lucide="shield-ban" style="width: 22px; height: 22px;"></i>
+                    <div class="sec-pill-icon" style="background: var(--accent-danger-soft); color: var(--accent-danger); border: 1px solid rgba(239, 68, 68, 0.2);">
+                        <i data-lucide="shield-ban" style="width: 20px; height: 20px;"></i>
                     </div>
                     <div class="sec-pill-info">
                         <span class="sec-pill-label" data-i18n="sec_total_banned">کل حملات مسدود شده</span>
-                        <span class="sec-pill-val" id="sec-total-banned-val" style="color: #ef4444;">-</span>
+                        <span class="sec-pill-val" id="sec-total-banned-val" style="color: var(--accent-danger);">-</span>
                     </div>
                 </div>
 
                 <div class="sec-stat-pill">
-                    <div class="sec-pill-icon" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);">
-                        <i data-lucide="user-x" style="width: 22px; height: 22px;"></i>
+                    <div class="sec-pill-icon" style="background: var(--accent-warning-soft); color: var(--accent-warning); border: 1px solid rgba(245, 158, 11, 0.2);">
+                        <i data-lucide="user-x" style="width: 20px; height: 20px;"></i>
                     </div>
                     <div class="sec-pill-info">
                         <span class="sec-pill-label" data-i18n="sec_current_banned">آی‌پی‌های مسدود جاری</span>
-                        <span class="sec-pill-val" id="sec-current-banned-val" style="color: #f59e0b;">-</span>
+                        <span class="sec-pill-val" id="sec-current-banned-val" style="color: var(--accent-warning);">-</span>
                     </div>
                 </div>
 
                 <div class="sec-stat-pill">
-                    <div class="sec-pill-icon" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25);">
-                        <i data-lucide="eye" style="width: 22px; height: 22px;"></i>
+                    <div class="sec-pill-icon" style="background: var(--brand-primary-soft); color: var(--brand-primary); border: 1px solid rgba(99, 102, 241, 0.2);">
+                        <i data-lucide="eye" style="width: 20px; height: 20px;"></i>
                     </div>
                     <div class="sec-pill-info">
                         <span class="sec-pill-label" data-i18n="sec_failed_attempts">تلاش‌های نفوذ رصد شده</span>
-                        <span class="sec-pill-val" id="sec-failed-attempts-val" style="color: #3b82f6;">-</span>
+                        <span class="sec-pill-val" id="sec-failed-attempts-val" style="color: var(--brand-primary);">-</span>
                     </div>
                 </div>
 
                 <div class="sec-stat-pill">
-                    <div class="sec-pill-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">
-                        <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+                    <div class="sec-pill-icon" style="background: var(--accent-success-soft); color: var(--accent-success); border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
                     </div>
                     <div class="sec-pill-info">
                         <span class="sec-pill-label" data-i18n="sec_shield_status">وضعیت سپر دفاعی</span>
-                        <span class="sec-pill-val" style="color: #10b981; font-size: 15px;" data-i18n="sec_shield_active">فعال و هوشیار</span>
+                        <span class="sec-pill-val" style="color: var(--accent-success); font-size: 14px;" data-i18n="sec_shield_active">فعال و هوشیار</span>
                     </div>
                 </div>
             </div>

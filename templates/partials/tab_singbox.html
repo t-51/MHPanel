@@ -108,16 +108,16 @@
 
         <!-- Quick Stats Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px;">
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(99, 102, 241, 0.25); background: var(--bg-card);">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span data-i18n="singbox_active_inbounds_label" style="font-size: 11.5px; color: var(--color-primary); font-weight: 700; display: block; margin-bottom: 4px;">اینباندهای فعال پروکسی:</span>
+                        <span data-i18n="singbox_active_inbounds_label" style="font-size: 11.5px; color: var(--color-primary); font-weight: 600; display: block; margin-bottom: 4px;">اینباندهای فعال پروکسی:</span>
                         <div style="display:flex; align-items:baseline; gap:6px;">
-                            <span id="singbox-stat-inbounds-count" style="font-size: 26px; font-weight: 800; color: var(--color-primary); font-family:'JetBrains Mono', monospace;">0</span>
-                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">پروتکل فعال</span>
+                            <span id="singbox-stat-inbounds-count" style="font-size: 26px; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">0</span>
+                            <span style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;">پروتکل فعال</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); color: var(--color-primary); display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.12); color: var(--color-primary); display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -126,16 +126,16 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(236, 72, 153, 0.25); background: var(--bg-card); cursor: pointer;" onclick="switchSingboxSubTab('outbounds')">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary); cursor: pointer;" onclick="switchSingboxSubTab('outbounds')">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span style="font-size: 11.5px; color: #ec4899; font-weight: 700; display: block; margin-bottom: 4px;">اوت‌باندهای خروجی:</span>
+                        <span style="font-size: 11.5px; color: #ec4899; font-weight: 600; display: block; margin-bottom: 4px;">اوت‌باندهای خروجی:</span>
                         <div style="display:flex; align-items:baseline; gap:6px;">
-                            <span id="singbox-stat-outbounds-count" style="font-size: 26px; font-weight: 800; color: #ec4899; font-family:'JetBrains Mono', monospace;">-</span>
-                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">مسیر فعال</span>
+                            <span id="singbox-stat-outbounds-count" style="font-size: 26px; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">-</span>
+                            <span style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;">مسیر فعال</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(236, 72, 153, 0.15); color: #ec4899; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(236, 72, 153, 0.12); color: #ec4899; display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="arrow-up-right" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -144,16 +144,16 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(59, 130, 246, 0.25); background: var(--bg-card);">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span style="font-size: 11.5px; color: #3b82f6; font-weight: 700; display: block; margin-bottom: 4px;">کاربران محلی سینگ‌باکس:</span>
+                        <span style="font-size: 11.5px; color: var(--color-primary); font-weight: 600; display: block; margin-bottom: 4px;">کاربران محلی سینگ‌باکس:</span>
                         <div style="display:flex; align-items:baseline; gap:6px;">
-                            <span id="singbox-stat-users-count" style="font-size: 26px; font-weight: 800; color: #3b82f6; font-family:'JetBrains Mono', monospace;">0</span>
-                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">کاربر متصل</span>
+                            <span id="singbox-stat-users-count" style="font-size: 26px; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">0</span>
+                            <span style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;">کاربر متصل</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('users')">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(59, 130, 246, 0.12); color: var(--color-primary); display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('users')">
                         <i data-lucide="users" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -162,16 +162,16 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(14, 165, 233, 0.35); background: var(--bg-card); cursor: pointer;" onclick="switchSingboxSubTab('cleanips')">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary); cursor: pointer;" onclick="switchSingboxSubTab('cleanips')">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span style="font-size: 11.5px; color: #0284c7; font-weight: 700; display: block; margin-bottom: 4px;">آی‌پی‌های سفید کلودفلر:</span>
+                        <span style="font-size: 11.5px; color: #0284c7; font-weight: 600; display: block; margin-bottom: 4px;">آی‌پی‌های سفید کلودفلر:</span>
                         <div style="display:flex; align-items:baseline; gap:6px;">
-                            <span id="singbox-stat-cleanips-count" style="font-size: 26px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">-</span>
-                            <span style="font-size: 13px; color: var(--text-muted); font-weight: 600;">IP سفید فعال</span>
+                            <span id="singbox-stat-cleanips-count" style="font-size: 26px; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">-</span>
+                            <span style="font-size: 12.5px; color: var(--text-muted); font-weight: 500;">IP سفید فعال</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(14, 165, 233, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(14, 165, 233, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -180,15 +180,15 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(16, 185, 129, 0.25); background: var(--bg-card);">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span data-i18n="singbox_core_status_label" style="font-size: 11.5px; color: #10b981; font-weight: 700; display: block; margin-bottom: 4px;">وضعیت سرویس دائم:</span>
+                        <span data-i18n="singbox_core_status_label" style="font-size: 11.5px; color: var(--color-emerald); font-weight: 600; display: block; margin-bottom: 4px;">وضعیت سرویس دائم:</span>
                         <div style="display:flex; align-items:baseline; gap:6px;">
-                            <span id="singbox-stat-service-text" style="font-size: 20px; font-weight: 800; color: #10b981;">بررسی...</span>
+                            <span id="singbox-stat-service-text" style="font-size: 20px; font-weight: 700; color: var(--color-emerald);">بررسی...</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.12); color: var(--color-emerald); display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -197,15 +197,15 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(2, 132, 199, 0.25); background: var(--bg-card);">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span data-i18n="singbox_core_version_label" style="font-size: 11.5px; color: #0284c7; font-weight: 700; display: block; margin-bottom: 4px;">نسخه و کامپایل هسته:</span>
+                        <span data-i18n="singbox_core_version_label" style="font-size: 11.5px; color: #0284c7; font-weight: 600; display: block; margin-bottom: 4px;">نسخه و کامپایل هسته:</span>
                         <div style="display:flex; align-items:center; gap:8px; margin-top: 4px;">
-                            <span id="singbox-stat-version-text" style="font-size: 16px; font-weight: 800; color: #0284c7; font-family:'JetBrains Mono', monospace;">1.9.3</span>
+                            <span id="singbox-stat-version-text" style="font-size: 16px; font-weight: 700; color: var(--text-main); font-family: var(--font-mono);">1.9.3</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(2, 132, 199, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(2, 132, 199, 0.12); color: #0284c7; display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="cpu" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -214,16 +214,16 @@
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 16px 18px; border: 1px solid rgba(168, 85, 247, 0.25); background: var(--bg-card);">
+            <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
-                        <span style="font-size: 11.5px; color: #a855f7; font-weight: 700; display: block; margin-bottom: 4px;">استریم لاگ زنده هسته:</span>
+                        <span style="font-size: 11.5px; color: #a855f7; font-weight: 600; display: block; margin-bottom: 4px;">استریم لاگ زنده هسته:</span>
                         <div style="display:flex; align-items:center; gap:6px; margin-top: 4px;">
                             <span class="status-dot active"></span>
-                            <span id="singbox-stat-log-status" style="font-size: 14px; font-weight: 700; color: #a855f7;">فعال و متصل</span>
+                            <span id="singbox-stat-log-status" style="font-size: 13.5px; font-weight: 600; color: var(--text-main);">فعال و متصل</span>
                         </div>
                     </div>
-                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(168, 85, 247, 0.15); color: #a855f7; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('logs')" title="مشاهده لاگ‌های زنده">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(168, 85, 247, 0.12); color: #a855f7; display: flex; align-items: center; justify-content: center; cursor: pointer;" onclick="switchSingboxSubTab('logs')" title="مشاهده لاگ‌های زنده">
                         <i data-lucide="terminal" style="width: 18px; height: 18px;"></i>
                     </div>
                 </div>
@@ -234,9 +234,9 @@
         </div>
 
         <!-- Protocol Filter Banner (Shown when a specific protocol tab is active) -->
-        <div id="sb-protocol-filter-banner" style="display:none; padding: 14px 18px; border-radius: 10px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div id="sb-protocol-filter-banner" style="display:none; padding: 14px 18px; border-radius: var(--radius-md); background: var(--surface-secondary); border: 1px solid var(--border-subtle); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
             <div style="display: flex; align-items: center; gap: 10px;">
-                <div id="sb-filter-banner-icon" style="width: 32px; height: 32px; border-radius: 8px; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center;">
+                <div id="sb-filter-banner-icon" style="width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--color-primary); color: white; display: flex; align-items: center; justify-content: center;">
                     <i data-lucide="shield"></i>
                 </div>
                 <div>
@@ -255,11 +255,11 @@
         </div>
 
         <!-- PANE 1: Inbounds Table Card -->
-        <div class="glass-card" id="sb-pane-inbounds" style="padding: 24px; border: 1px solid var(--border-color); border-radius: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+        <div class="spec-card" id="sb-pane-inbounds" style="padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                 <div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="radio" style="width: 18px; height: 18px; color: #6366f1;"></i>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                        <i data-lucide="radio" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
                         <span data-i18n="singbox_inbounds_table_title">لیست اینباندهای فعال در هسته Sing-box</span>
                     </h3>
                     <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);" data-i18n="singbox_inbounds_table_desc">
@@ -278,10 +278,10 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
-                    <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
-                        <tr>
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead>
+                        <tr style="background: var(--surface-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_tag">تگ / نام</th>
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_protocol">پروتکل</th>
                             <th style="padding: 12px 16px; font-weight: 600;" data-i18n="singbox_col_port">پورت شنود</th>
@@ -303,11 +303,11 @@
         </div>
 
         <!-- PANE 2: Local Users Card -->
-        <div class="glass-card" id="sb-pane-users" style="display: none; padding: 24px; border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+        <div class="spec-card" id="sb-pane-users" style="display: none; padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
                 <div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="users" style="width: 18px; height: 18px; color: #3b82f6;"></i>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                        <i data-lucide="users" style="width: 18px; height: 18px; color: var(--color-primary);"></i>
                         <span data-i18n="singbox_users_table_title">مدیریت کاربران محلی هسته Sing-box (Local Users)</span>
                     </h3>
                     <p style="margin: 4px 0 0 0; font-size: 12.5px; color: var(--text-muted);" data-i18n="singbox_users_table_desc">
@@ -315,31 +315,31 @@
                     </p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 6px; background: var(--bg-muted); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 6px; background: var(--surface-secondary); padding: 4px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <i data-lucide="folder" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
                         <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">دسته‌بندی:</span>
-                        <select id="sb-users-category-filter" class="form-input" style="padding: 2px 8px; font-size: 12px; width: auto; font-weight: 700; border: none; background: transparent; cursor: pointer;" onchange="onSingboxCategoryFilterChange(this.value)">
+                        <select id="sb-users-category-filter" class="form-input" style="padding: 2px 8px; font-size: 12px; width: auto; font-weight: 600; border: none; background: transparent; cursor: pointer;" onchange="onSingboxCategoryFilterChange(this.value)">
                             <option value="ALL">همه دسته‌ها (All)</option>
                         </select>
                     </div>
 
                     <!-- Export All Sub Links Button -->
-                    <button class="btn btn-secondary btn-sm" onclick="exportSingboxSubLinks('ALL')" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.12); color: #059669; border-color: rgba(16, 185, 129, 0.35); font-weight: 700;" title="خروجی و دانلود یکپارچه تمام لینک‌های سابسکرایب (Sub URLs)">
+                    <button class="btn btn-secondary btn-sm" onclick="exportSingboxSubLinks('ALL')" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600;" title="خروجی و دانلود یکپارچه تمام لینک‌های سابسکرایب (Sub URLs)">
                         <i data-lucide="rss" style="width: 14px; height: 14px;"></i>
                         <span>خروجی همه ساب‌لینک‌ها</span>
                     </button>
 
-                    <button class="btn btn-secondary btn-sm" onclick="exportCurrentCategoryLinks()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; border-color: rgba(99, 102, 241, 0.3);" title="خروجی و دانلود یکپارچه تمام کانفیگ‌های خام دسته">
+                    <button class="btn btn-secondary btn-sm" onclick="exportCurrentCategoryLinks()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600;" title="خروجی و دانلود یکپارچه تمام کانفیگ‌های خام دسته">
                         <i data-lucide="share-2" style="width: 14px; height: 14px;"></i>
                         <span>خروجی کانفیگ‌های دسته</span>
                     </button>
 
-                    <button class="btn btn-secondary btn-sm" onclick="openSingboxBulkUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: rgba(14, 165, 233, 0.12); color: #0284c7; border-color: rgba(14, 165, 233, 0.3);" title="ساخت انبوه کاربران با تولید پسورد، UUID و کانفیگ">
+                    <button class="btn btn-secondary btn-sm" onclick="openSingboxBulkUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600;" title="ساخت انبوه کاربران با تولید پسورد، UUID و کانفیگ">
                         <i data-lucide="users" style="width: 14px; height: 14px;"></i>
                         <span>ساخت انبوه کاربران</span>
                     </button>
 
-                    <button class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                    <button class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
                         <span data-i18n="singbox_btn_add_user">افزودن کاربر محلی</span>
                     </button>
@@ -351,9 +351,9 @@
             </div>
 
             <!-- Bulk Actions Toolbar (Visible when 1+ users checked) -->
-            <div id="sb-users-bulk-bar" style="display: none; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); border: 1px solid rgba(99, 102, 241, 0.4); box-shadow: 0 4px 20px rgba(0,0,0,0.3); border-radius: 12px; padding: 10px 16px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+            <div id="sb-users-bulk-bar" style="display: none; align-items: center; justify-content: space-between; background: var(--surface-secondary); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-md); border-radius: var(--radius-md); padding: 10px 16px; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <span class="badge-pill" id="sb-bulk-selected-count" style="background: rgba(99, 102, 241, 0.25); color: #818cf8; font-weight: 700; font-size: 12.5px; padding: 4px 12px; border-radius: 6px; font-family: 'JetBrains Mono';">
+                    <span class="badge-pill" id="sb-bulk-selected-count" style="background: rgba(99, 102, 241, 0.15); color: var(--color-primary); font-weight: 600; font-size: 12px; padding: 4px 12px; border-radius: var(--radius-sm); font-family: var(--font-mono);">
                         ۰ کاربر انتخاب شده
                     </span>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="deselectAllSingboxUsers()" style="padding: 4px 10px; font-size: 11px;">
@@ -363,33 +363,33 @@
 
                 <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                     <!-- Bulk Sub Export -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('sub')" style="display: flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-color: rgba(16, 185, 129, 0.35); font-weight: 700;" title="خروجی و مشاهده ساب‌لینک‌های کاربران انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('sub')" style="display: flex; align-items: center; gap: 4px; font-weight: 600;" title="خروجی و مشاهده ساب‌لینک‌های کاربران انتخاب شده">
                         <i data-lucide="rss" style="width: 13px; height: 13px;"></i>
                         <span>خروجی ساب‌لینک‌ها</span>
                     </button>
 
                     <!-- Bulk Share Links Export -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('raw')" style="display: flex; align-items: center; gap: 4px; background: rgba(99, 102, 241, 0.15); color: #818cf8; border-color: rgba(99, 102, 241, 0.35);" title="خروجی لینک‌های خام کانفیگ کاربران انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="exportSelectedSingboxUsers('raw')" style="display: flex; align-items: center; gap: 4px;" title="خروجی لینک‌های خام کانفیگ کاربران انتخاب شده">
                         <i data-lucide="share-2" style="width: 13px; height: 13px;"></i>
                         <span>خروجی کانفیگ‌ها</span>
                     </button>
 
-                    <span style="color: var(--border-color); height: 18px; width: 1px; background: var(--border-color); margin: 0 2px;"></span>
+                    <span style="color: var(--border-subtle); height: 18px; width: 1px; background: var(--border-subtle); margin: 0 2px;"></span>
 
                     <!-- Bulk Enable -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('enable')" style="display: flex; align-items: center; gap: 4px; color: #10b981; border-color: rgba(16, 185, 129, 0.3);" title="فعال‌سازی دسته‌جمعی">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('enable')" style="display: flex; align-items: center; gap: 4px; color: var(--color-emerald);" title="فعال‌سازی دسته‌جمعی">
                         <i data-lucide="check-circle" style="width: 13px; height: 13px;"></i>
                         <span>فعال‌سازی</span>
                     </button>
 
                     <!-- Bulk Disable -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('disable')" style="display: flex; align-items: center; gap: 4px; color: #f59e0b; border-color: rgba(245, 158, 11, 0.3);" title="غیرفعال‌سازی دسته‌جمعی">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('disable')" style="display: flex; align-items: center; gap: 4px; color: var(--color-warning);" title="غیرفعال‌سازی دسته‌جمعی">
                         <i data-lucide="pause-circle" style="width: 13px; height: 13px;"></i>
                         <span>غیرفعال</span>
                     </button>
 
                     <!-- Bulk Reset Traffic -->
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('reset_traffic')" style="display: flex; align-items: center; gap: 4px; color: #38bdf8; border-color: rgba(56, 189, 248, 0.3);" title="صفر کردن ترافیک مصرفی">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="bulkActionSingboxUsers('reset_traffic')" style="display: flex; align-items: center; gap: 4px; color: #38bdf8;" title="صفر کردن ترافیک مصرفی">
                         <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i>
                         <span>ریست ترافیک</span>
                     </button>
@@ -420,10 +420,10 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
-                    <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
-                        <tr>
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead>
+                        <tr style="background: var(--surface-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
                             <th style="width: 40px; padding: 12px 14px; text-align: center;">
                                 <input type="checkbox" id="sb-users-select-all" onchange="toggleSelectAllSingboxUsers(this.checked)" style="width: 16px; height: 16px; cursor: pointer;" title="انتخاب همه کاربران">
                             </th>
@@ -446,10 +446,10 @@
         </div>
 
         <!-- PANE: Outbounds Management Card -->
-        <div class="glass-card" id="sb-pane-outbounds" style="display: none; padding: 24px; border: 1px solid rgba(236, 72, 153, 0.3); border-radius: 14px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+        <div class="spec-card" id="sb-pane-outbounds" style="display: none; padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px;">
                 <div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
                         <i data-lucide="arrow-up-right" style="color: #ec4899; width: 18px; height: 18px;"></i>
                         <span>مدیریت خروجی‌ها و اوت‌باندهای هسته Sing-box (Outbounds / Egress)</span>
                     </h3>
@@ -462,17 +462,17 @@
                         <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
                         <span>بروزرسانی</span>
                     </button>
-                    <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxAddOutboundModal()" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxAddOutboundModal()" style="display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
                         <span>افزودن اوت‌باند جدید</span>
                     </button>
                 </div>
             </div>
 
-            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 10px;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
-                    <thead style="background: rgba(255, 255, 255, 0.03); border-bottom: 1px solid var(--border-color);">
-                        <tr>
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                <table class="table" style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <thead>
+                        <tr style="background: var(--surface-secondary); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
                             <th style="padding: 12px 16px; font-weight: 600;">تگ اوت‌باند (Tag)</th>
                             <th style="padding: 12px 16px; font-weight: 600;">نوع پروتکل (Type)</th>
                             <th style="padding: 12px 16px; font-weight: 600;">آدرس و پورت سرور</th>
@@ -492,7 +492,7 @@
         </div>
 
         <!-- PANE: Cloudflare Clean IPs Management Card -->
-        <div class="glass-card" id="sb-pane-cleanips" style="display: none; padding: 24px; border: 1px solid rgba(14, 165, 233, 0.35); border-radius: 14px;">
+        <div class="spec-card" id="sb-pane-cleanips" style="display: none; padding: 22px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
                 <div>
                     <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
@@ -690,19 +690,19 @@
         </div>
 
         <!-- PANE 3: Live Logs Viewer Card -->
-        <div class="glass-card" id="sb-pane-logs" style="display: none; padding: 22px; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px;">
+        <div class="spec-card" id="sb-pane-logs" style="display: none; padding: 22px;">
             <!-- Live Log Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; animation: pulse 1.5s infinite;"></div>
-                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                        <i data-lucide="terminal" style="color: #10b981; width: 18px; height: 18px;"></i>
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--color-emerald); animation: pulse 1.5s infinite;"></div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                        <i data-lucide="terminal" style="color: var(--color-emerald); width: 18px; height: 18px;"></i>
                         <span data-i18n="singbox_live_logs_title">استریم لاگ‌های زنده هسته Sing-box (Live Console)</span>
                     </h3>
-                    <span class="badge-pill" id="sb-log-count-pill" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">- خط</span>
+                    <span class="badge-pill" id="sb-log-count-pill" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.12); color: var(--color-emerald); font-weight: 600; border-radius: var(--radius-sm);">- خط</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); background: var(--bg-muted); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; color: var(--text-main); background: var(--surface-secondary); padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <input type="checkbox" id="sb-log-auto-refresh" checked onchange="toggleSingboxLogAutoRefresh(this.checked)">
                         <span data-i18n="singbox_logs_auto_refresh">بروزرسانی خودکار (۲.۵ ثانیه)</span>
                     </label>
@@ -726,8 +726,8 @@
             </div>
 
             <!-- Terminal Viewer Body -->
-            <div id="sb-logs-terminal" style="background: #0b0f19; border: 1px solid #1e293b; border-radius: 10px; padding: 14px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.7; color: #e2e8f0; height: 480px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; direction: ltr; text-align: left; box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);">
-                <span style="color: #64748b;">در حال دریافت لاگ‌های هسته سینگ‌باکس...</span>
+            <div id="sb-logs-terminal" style="background: #0a0d14; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; font-family: var(--font-mono); font-size: 12px; line-height: 1.7; color: #e2e8f0; height: 480px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; direction: ltr; text-align: left; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);">
+                <span style="color: var(--text-muted);">در حال دریافت لاگ‌های هسته سینگ‌باکس...</span>
             </div>
         </div>
     </section>

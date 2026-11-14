@@ -2,15 +2,21 @@
     <div style="max-width: 1250px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 20px;">
         
         <!-- RADIUS Master Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
-            <div>
-                <h2 style="font-size: 20px; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 10px; margin: 0;">
-                    <i data-lucide="shield-check" style="color: #059669; width: 24px; height: 24px;"></i>
-                    <span data-i18n="radius_title">مدیریت یکپارچه ردیوس و کاربران سراسری (Radius Hub)</span>
-                </h2>
-                <p style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">
-                    سامانه متمرکز احراز هویت AAA، مدیریت پلن‌ها، اتصال روترها (NAS)، تولید کارت شارژ (Vouchers) و نشست‌های آنلاین
-                </p>
+        <div class="spec-card" style="padding: 24px; position: relative; overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div style="width:46px; height:46px; border-radius:12px; background: rgba(16, 185, 129, 0.12); color:#10b981; display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);">
+                        <i data-lucide="shield-check" style="width:24px; height:24px;"></i>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 19px; font-weight: 800; color: var(--text-primary); margin: 0; letter-spacing: -0.02em;">
+                            <span data-i18n="radius_title">مدیریت یکپارچه ردیوس و کاربران سراسری (Radius Hub)</span>
+                        </h2>
+                        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0; line-height: 1.5;">
+                            سامانه متمرکز احراز هویت AAA، مدیریت پلن‌ها، اتصال روترها (NAS)، تولید کارت شارژ (Vouchers) و نشست‌های آنلاین
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -30,12 +36,12 @@
                 <button class="rad-tab-btn" id="subtab-btn-nas" onclick="switchRadiusSubTab('nas')" type="button">
                     <i data-lucide="server" style="width: 16px; height: 16px; color: #6366f1;"></i>
                     <span>روترها و اکسس سرورها (NAS)</span>
-                    <span class="badge-pill" id="rad-pill-nas-count" style="background: rgba(99, 102, 241, 0.15); color: #4f46e5;">0</span>
+                    <span class="badge-pill" id="rad-pill-nas-count" style="background: rgba(99, 102, 241, 0.15); color: #6366f1;">0</span>
                 </button>
                 <button class="rad-tab-btn" id="subtab-btn-online" onclick="switchRadiusSubTab('online')" type="button">
                     <i data-lucide="radio" style="width: 16px; height: 16px; color: #10b981;"></i>
                     <span data-i18n="rad_online_meetings">نشست‌های آنلاین</span>
-                    <span class="badge-pill" id="rad-pill-online-count" style="background: rgba(16, 185, 129, 0.15); color: #059669;">0</span>
+                    <span class="badge-pill" id="rad-pill-online-count" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">0</span>
                 </button>
                 <button class="rad-tab-btn" id="subtab-btn-vouchers" onclick="switchRadiusSubTab('vouchers')" type="button">
                     <i data-lucide="ticket" style="width: 16px; height: 16px; color: #f59e0b;"></i>
@@ -54,64 +60,64 @@
         <div class="rad-subpane" id="rad-subpane-users" style="display: flex; flex-direction: column; gap: 18px;">
             <!-- Quick Stats Cards Row -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(79, 70, 229, 0.1); display: flex; align-items: center; justify-content: center; color: #4f46e5;">
-                        <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #6366f1;">
+                        <i data-lucide="users" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div data-i18n="rad_all_radius_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کل کاربران ردیوس</div>
-                        <div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
+                        <div data-i18n="rad_all_radius_users" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">کل کاربران ردیوس</div>
+                        <div id="stat-rad-total" style="font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-                        <i data-lucide="user-check" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                        <i data-lucide="user-check" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div data-i18n="rad_authorized_active_users" style="font-size: 11.5px; color: #64748b; font-weight: 600;">کاربران مجاز و فعال</div>
-                        <div id="stat-rad-active" style="font-size: 20px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono';">0</div>
+                        <div data-i18n="rad_authorized_active_users" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">کاربران مجاز و فعال</div>
+                        <div id="stat-rad-active" style="font-size: 20px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(14, 165, 233, 0.1); display: flex; align-items: center; justify-content: center; color: #0284c7;">
-                        <i data-lucide="activity" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(14, 165, 233, 0.12); display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                        <i data-lucide="activity" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div data-i18n="rad_simultaneous_online_meetings" style="font-size: 11.5px; color: #64748b; font-weight: 600;">نشست‌های آنلاین</div>
-                        <div id="stat-rad-online" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono';">0</div>
+                        <div data-i18n="rad_simultaneous_online_meetings" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">نشست‌های آنلاین</div>
+                        <div id="stat-rad-online" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center; color: #dc2626;">
-                        <i data-lucide="user-x" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(239, 68, 68, 0.12); display: flex; align-items: center; justify-content: center; color: #ef4444;">
+                        <i data-lucide="user-x" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div data-i18n="rad_expired_blocked" style="font-size: 11.5px; color: #64748b; font-weight: 600;">منقضی یا مسدود</div>
-                        <div id="stat-rad-expired" style="font-size: 20px; font-weight: 800; color: #dc2626; font-family: 'JetBrains Mono';">0</div>
+                        <div data-i18n="rad_expired_blocked" style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">منقضی یا مسدود</div>
+                        <div id="stat-rad-expired" style="font-size: 20px; font-weight: 800; color: #ef4444; font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
             </div>
 
             <!-- Toolbar & Actions Bar -->
-            <div class="glass-card" style="padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div class="spec-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
                     <!-- Search Input -->
                     <div style="position: relative; min-width: 220px;">
-                        <i data-lucide="search" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #94a3b8;"></i>
-                        <input class="form-input" id="search-rad-user" oninput="filterRadiusUsersTable()" placeholder="جستجوی نام کاربری..." style="padding-right: 36px; padding-left: 12px; height: 38px; font-size: 12.5px;" type="text"/>
+                        <i data-lucide="search" style="position: absolute; inset-inline-end: 12px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-muted);"></i>
+                        <input class="form-input" id="search-rad-user" oninput="filterRadiusUsersTable()" placeholder="جستجوی نام کاربری..." style="padding-inline-end: 36px; padding-inline-start: 12px; height: 38px; font-size: 12.5px; border-radius: 10px;" type="text"/>
                     </div>
                     <!-- Group Filter -->
-                    <select class="form-select form-input" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 160px;">
+                    <select class="form-select form-input" id="filter-rad-group" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 160px; border-radius: 10px;">
                         <option value="">همه بسته‌ها / پلن‌ها</option>
                         <option value="default">پکیج استاندارد (Standard)</option>
                         <option value="vip">پکیج ویژه (VIP)</option>
                         <option value="night">بسته شبانه (Nightly)</option>
                     </select>
                     <!-- Status Filter -->
-                    <select class="form-select form-input" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 140px;">
+                    <select class="form-select form-input" id="filter-rad-status" onchange="filterRadiusUsersTable()" style="height: 38px; font-size: 12.5px; width: auto; min-width: 140px; border-radius: 10px;">
                         <option value="all">همه وضعیت‌ها</option>
                         <option value="active">فقط فعال</option>
                         <option value="disabled">فقط غیرفعال/منقضی</option>
@@ -120,34 +126,34 @@
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444 !important; background: rgba(239, 68, 68, 0.12);" type="button">
-                        <i class="btn-icon" data-lucide="trash-2" style="color:#dc2626;"></i> <span>حذف انتخابی (</span><span id="bulk-selected-count">0</span>)
+                    <button class="btn btn-secondary" id="btn-rad-bulk-delete" onclick="confirmBulkDeleteRadiusUsers()" style="display: none; height: 38px; padding: 0 14px; font-size: 12.5px; border-color: rgba(239, 68, 68, 0.4); color: #ef4444 !important; background: rgba(239, 68, 68, 0.12); border-radius:10px;" type="button">
+                        <i class="btn-icon" data-lucide="trash-2" style="color:#ef4444;"></i> <span>حذف انتخابی (</span><span id="bulk-selected-count">0</span>)
                     </button>
-                    <button class="btn btn-secondary" onclick="exportRadiusUsersCsv()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="خروجی فایل اکسل / CSV" type="button">
+                    <button class="btn btn-secondary" onclick="exportRadiusUsersCsv()" style="height: 38px; padding: 0 14px; font-size: 12.5px; border-radius:10px; font-weight:600;" title="خروجی فایل اکسل / CSV" type="button">
                         <i class="btn-icon" data-lucide="download"></i> <span>خروجی CSV</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="openBatchRadiusModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" type="button">
+                    <button class="btn btn-secondary" onclick="openBatchRadiusModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px; border-radius:10px; font-weight:600;" type="button">
                         <i class="btn-icon" data-lucide="users"></i> <span>ساخت دسته‌جمعی</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="openSubSettingsModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px;" title="تنظیمات پورتال و صفحه ساب" type="button">
+                    <button class="btn btn-secondary" onclick="openSubSettingsModal()" style="height: 38px; padding: 0 14px; font-size: 12.5px; border-radius:10px; font-weight:600;" title="تنظیمات پورتال و صفحه ساب" type="button">
                         <i class="btn-icon" data-lucide="link" style="color: #6366f1;"></i> <span>تنظیمات ساب</span>
                     </button>
-                    <button class="btn btn-primary" onclick="toggleAddRadiusUserBox()" style="height: 38px; padding: 0 16px; font-size: 12.5px;" type="button">
+                    <button class="btn btn-primary" onclick="toggleAddRadiusUserBox()" style="height: 38px; padding: 0 16px; font-size: 12.5px; border-radius:10px; font-weight:700;" type="button">
                         <i class="btn-icon" data-lucide="user-plus"></i> <span>کاربر جدید</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Single User Add / Edit Box (Minimalist, Clean, Fast) -->
-            <div id="add-radius-user-box" class="glass-card" style="display: none; padding: 22px 24px; border: 1px solid var(--border-glow); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+            <!-- Single User Add / Edit Box -->
+            <div id="add-radius-user-box" class="spec-card" style="display: none; padding: 22px 24px; border-radius: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #4f46e5;">
+                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #6366f1;">
                             <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i>
                         </div>
                         <div>
-                            <h4 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0;" id="radius-user-form-title">مشخصات کاربر جدید ردیوس</h4>
-                            <span style="font-size: 12px; color: #64748b;">با انتخاب پکیج، حجم، سرعت و مدت اعتبار به صورت خودکار اعمال خواهند شد.</span>
+                            <h4 style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0;" id="radius-user-form-title">مشخصات کاربر جدید ردیوس</h4>
+                            <span style="font-size: 12px; color: var(--text-muted);">با انتخاب پکیج، حجم، سرعت و مدت اعتبار به صورت خودکار اعمال خواهند شد.</span>
                         </div>
                     </div>
                     <button class="modal-close" onclick="toggleAddRadiusUserBox(false)" type="button"><i data-lucide="x"></i></button>
@@ -157,21 +163,21 @@
                     <!-- Core 3 Fields: Username, Password, Profile -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-bottom: 16px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-weight: 700;">نام کاربری (Username):</label>
-                            <input class="form-input" id="new-rad-user" placeholder="مثال: user101" required style="padding-left:14px; font-family:'JetBrains Mono'; height: 40px;" type="text"/>
+                            <label class="form-label" style="font-weight: 700; color:var(--text-secondary); font-size:12px;">نام کاربری (Username):</label>
+                            <input class="form-input" id="new-rad-user" placeholder="مثال: user101" required style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; height: 40px; border-radius:10px;" type="text"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-weight: 700;">رمز عبور (Password):</label>
+                            <label class="form-label" style="font-weight: 700; color:var(--text-secondary); font-size:12px;">رمز عبور (Password):</label>
                             <div style="display:flex; gap:6px;">
-                                <input class="form-input" id="new-rad-pass" placeholder="رمز عبور" required style="padding-left:14px; font-family:'JetBrains Mono'; height: 40px;" type="text"/>
-                                <button class="btn btn-secondary" onclick="generateRandomPassForInput('new-rad-pass')" style="padding:0 12px; height: 40px;" title="تولید رمز رندوم" type="button">
+                                <input class="form-input" id="new-rad-pass" placeholder="رمز عبور" required style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; height: 40px; border-radius:10px;" type="text"/>
+                                <button class="btn btn-secondary" onclick="generateRandomPassForInput('new-rad-pass')" style="padding:0 12px; height: 40px; border-radius:10px;" title="تولید رمز رندوم" type="button">
                                     <i data-lucide="shuffle" style="width:14px; height:14px;"></i>
                                 </button>
                             </div>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" style="font-weight: 700;">پکیج / پلن خدمات (Service Profile):</label>
-                            <select class="form-select form-input" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)" style="height: 40px; font-weight:600;">
+                            <label class="form-label" style="font-weight: 700; color:var(--text-secondary); font-size:12px;">پکیج / پلن خدمات (Service Profile):</label>
+                            <select class="form-select form-input" id="new-rad-group" onchange="onSingleUserGroupSelect(this.value)" style="height: 40px; font-weight:600; border-radius:10px;">
                                 <option value="default">پکیج استاندارد (Standard)</option>
                                 <option value="vip">پکیج ویژه (VIP)</option>
                                 <option value="night">بسته شبانه (Nightly)</option>
@@ -182,86 +188,86 @@
                     <!-- Secondary Fields: Expire Date, Status, Note -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">تاریخ انقضا (Expire Date):</label>
-                            <input class="form-input" id="new-rad-expire" style="padding-left:12px; height: 40px; font-family:'JetBrains Mono';" type="date"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">تاریخ انقضا (Expire Date):</label>
+                            <input class="form-input" id="new-rad-expire" style="padding-inline-start:12px; height: 40px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="date"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">وضعیت حساب:</label>
-                            <select class="form-select form-input" id="new-rad-status" style="height: 40px;">
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">وضعیت حساب:</label>
+                            <select class="form-select form-input" id="new-rad-status" style="height: 40px; border-radius:10px;">
                                 <option value="active" selected>فعال (مجاز به اتصال)</option>
                                 <option value="disabled">مسدود / غیرفعال</option>
                             </select>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">یادداشت / نام مشتری (اختیاری):</label>
-                            <input class="form-input" id="new-rad-note" placeholder="مثلاً: کاربر تست شرکت" style="padding-left:12px; height: 40px;" type="text"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">یادداشت / نام مشتری (اختیاری):</label>
+                            <input class="form-input" id="new-rad-note" placeholder="مثلاً: کاربر تست شرکت" style="padding-inline-start:12px; height: 40px; border-radius:10px;" type="text"/>
                         </div>
                     </div>
 
                     <!-- Package Specifications Summary Banner -->
-                    <div id="pkg-preview-banner" style="background: rgba(99, 102, 241, 0.05); border: 1px dashed rgba(99, 102, 241, 0.25); border-radius: 12px; padding: 10px 14px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <i data-lucide="info" style="width: 15px; height: 15px; color: #4f46e5;"></i>
-                            <span style="font-weight: 700; color: var(--text-main);">مشخصات بسته انتخابی:</span>
-                            <span id="preview-pkg-specs" style="color: #64748b;">در حال محاسبه...</span>
+                    <div id="pkg-preview-banner" style="background: rgba(99, 102, 241, 0.06); border: 1px dashed rgba(99, 102, 241, 0.3); border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12.5px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="info" style="width: 16px; height: 16px; color: #6366f1;"></i>
+                            <span style="font-weight: 700; color: var(--text-primary);">مشخصات بسته انتخابی:</span>
+                            <span id="preview-pkg-specs" style="color: var(--text-muted);">در حال محاسبه...</span>
                         </div>
-                        <button type="button" onclick="toggleUserAdvancedOverrides()" style="background: none; border: none; font-size: 11.5px; color: #4f46e5; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 0;">
+                        <button type="button" onclick="toggleUserAdvancedOverrides()" style="background: none; border: none; font-size: 12px; color: #6366f1; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 0;">
                             <i data-lucide="sliders" style="width: 13px; height: 13px;"></i>
                             <span id="toggle-overrides-label">تغییر دستی سهمیه این کاربر (اختیاری)</span>
                         </button>
                     </div>
 
-                    <!-- Optional Overrides Box (Collapsed by Default) -->
-                    <div id="user-custom-overrides-box" style="display: none; background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 14px; margin-bottom: 18px;">
-                        <div style="font-size: 11.5px; font-weight: 700; color: #64748b; margin-bottom: 10px;">
+                    <!-- Optional Overrides Box -->
+                    <div id="user-custom-overrides-box" style="display: none; background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px;">
                             سفارشی‌سازی دستی مقادیر برای این کاربر خاص (فراتر از بسته):
                         </div>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
                             <div>
-                                <label style="font-size: 11px; color: #64748b;">سقف ترافیک کل (GB):</label>
-                                <input class="form-input" id="new-rad-limit" placeholder="پیش‌فرض پکیج" style="height: 36px; padding: 0 10px;" type="number" step="0.5"/>
+                                <label style="font-size: 11px; color: var(--text-muted); display:block; margin-bottom:4px;">سقف ترافیک کل (GB):</label>
+                                <input class="form-input" id="new-rad-limit" placeholder="پیش‌فرض پکیج" style="height: 36px; padding: 0 10px; border-radius:8px;" type="number" step="0.5"/>
                             </div>
                             <div>
-                                <label style="font-size: 11px; color: #64748b;">سقف اتصال همزمان:</label>
-                                <input class="form-input" id="new-rad-sim-use" placeholder="پیش‌فرض پکیج" style="height: 36px; padding: 0 10px;" type="number" min="1" max="100"/>
+                                <label style="font-size: 11px; color: var(--text-muted); display:block; margin-bottom:4px;">سقف اتصال همزمان:</label>
+                                <input class="form-input" id="new-rad-sim-use" placeholder="پیش‌فرض پکیج" style="height: 36px; padding: 0 10px; border-radius:8px;" type="number" min="1" max="100"/>
                             </div>
                             <div>
-                                <label style="font-size: 11px; color: #64748b;">محدودیت سرعت سفارشی:</label>
-                                <input class="form-input" id="new-rad-rate-limit" placeholder="مثلاً: 20M/20M" style="height: 36px; padding: 0 10px; font-family:'JetBrains Mono';" type="text"/>
+                                <label style="font-size: 11px; color: var(--text-muted); display:block; margin-bottom:4px;">محدودیت سرعت سفارشی:</label>
+                                <input class="form-input" id="new-rad-rate-limit" placeholder="مثلاً: 20M/20M" style="height: 36px; padding: 0 10px; font-family:'JetBrains Mono', monospace; border-radius:8px;" type="text"/>
                             </div>
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button class="btn btn-secondary" onclick="toggleAddRadiusUserBox(false)" type="button">انصراف</button>
-                        <button class="btn btn-primary" type="submit" style="padding: 0 20px; height: 40px;">
+                        <button class="btn btn-secondary" onclick="toggleAddRadiusUserBox(false)" style="border-radius:10px; font-weight:600;" type="button">انصراف</button>
+                        <button class="btn btn-primary" type="submit" style="padding: 0 22px; height: 40px; border-radius:10px; font-weight:700;">
                             <i class="btn-icon" data-lucide="check"></i> <span>ذخیره و ایجاد کاربر</span>
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- Users Interactive Table Card (Clean, Fixed Row Heights, No Jumping Widgets) -->
-            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow); box-shadow: 0 4px 20px -2px rgba(0,0,0,0.03);">
+            <!-- Users Interactive Table Card -->
+            <div class="spec-card" style="padding: 0; overflow: hidden; border-radius: 16px;">
                 <div style="overflow-x: auto;">
-                    <table id="radius-users-table" class="rad-users-table">
+                    <table id="radius-users-table" class="rad-users-table" style="width:100%; border-collapse:collapse;">
                         <thead>
-                            <tr>
-                                <th style="width: 44px; text-align: center;">
+                            <tr style="background: var(--surface-elevated); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-size: 12px; font-weight: 600;">
+                                <th style="width: 44px; text-align: center; padding: 12px 14px;">
                                     <input class="rad-table-check" id="check-select-all-rad" onchange="toggleSelectAllRadiusUsers(this.checked)" title="انتخاب همه" type="checkbox"/>
                                 </th>
-                                <th style="min-width: 180px;">نام کاربر</th>
-                                <th style="min-width: 140px;">پکیج / پلن</th>
-                                <th style="min-width: 180px;">مصرف ترافیک</th>
-                                <th style="min-width: 130px; text-align: center;">سرعت (Rate Limit)</th>
-                                <th style="min-width: 140px;">اعتبار / انقضا</th>
-                                <th style="min-width: 120px; text-align: center;">وضعیت اتصال</th>
-                                <th style="min-width: 160px; text-align: center;">عملیات</th>
+                                <th style="min-width: 180px; padding: 12px 14px; text-align:start;">نام کاربر</th>
+                                <th style="min-width: 140px; padding: 12px 14px; text-align:start;">پکیج / پلن</th>
+                                <th style="min-width: 180px; padding: 12px 14px; text-align:start;">مصرف ترافیک</th>
+                                <th style="min-width: 130px; text-align: center; padding: 12px 14px;">سرعت (Rate Limit)</th>
+                                <th style="min-width: 140px; padding: 12px 14px; text-align:start;">اعتبار / انقضا</th>
+                                <th style="min-width: 120px; text-align: center; padding: 12px 14px;">وضعیت اتصال</th>
+                                <th style="min-width: 160px; text-align: center; padding: 12px 14px;">عملیات</th>
                             </tr>
                         </thead>
                         <tbody id="radius-users-tbody">
                             <tr>
-                                <td colspan="8" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
                                     در حال بارگذاری کاربران ردیوس...
                                 </td>
                             </tr>
@@ -275,17 +281,17 @@
         <!-- SUB-TAB 2: GROUPS & PACKAGES (PROFILES)   -->
         <!-- ========================================== -->
         <div class="rad-subpane" id="rad-subpane-groups" style="display: none; flex-direction: column; gap: 20px;">
-            <div class="glass-card" style="padding: 18px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div class="spec-card" style="padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                 <div>
-                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="layers" style="color: var(--color-primary); width:20px; height:20px;"></i>
                         <span>بسته‌ها و پروفایل‌های کاربری (Service Profiles & Plans)</span>
                     </h3>
-                    <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0; line-height: 1.5;">
                         تعریف سهمیه ترافیک (GB/MB)، سرعت پهنای باند (Mbps/Kbps)، سقف اتصال همزمان، اعتبار و سیاست‌های شبکه
                     </p>
                 </div>
-                <button class="btn btn-primary" onclick="openAddRadiusGroupModal()" style="padding: 9px 18px; font-size: 13px;" type="button">
+                <button class="btn btn-primary" onclick="openAddRadiusGroupModal()" style="padding: 9px 18px; font-size: 13px; border-radius:10px; font-weight:700;" type="button">
                     <i class="btn-icon" data-lucide="plus-circle"></i> <span>تعریف بسته جدید</span>
                 </button>
             </div>
@@ -302,62 +308,62 @@
         <div class="rad-subpane" id="rad-subpane-nas" style="display: none; flex-direction: column; gap: 20px;">
             <!-- NAS Stats Row -->
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px;">
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(99, 102, 241, 0.1); display: flex; align-items: center; justify-content: center; color: #6366f1;">
-                        <i data-lucide="server" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.12); display: flex; align-items: center; justify-content: center; color: #6366f1;">
+                        <i data-lucide="server" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">روترهای متصل (NAS Routers)</div>
-                        <div id="stat-nas-total" style="font-size: 20px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';">0</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">روترهای متصل (NAS Routers)</div>
+                        <div id="stat-nas-total" style="font-size: 20px; font-weight: 800; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(2, 132, 199, 0.1); display: flex; align-items: center; justify-content: center; color: #0284c7;">
-                        <i data-lucide="router" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(2, 132, 199, 0.12); display: flex; align-items: center; justify-content: center; color: #0284c7;">
+                        <i data-lucide="router" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">روترهای RouterOS</div>
-                        <div id="stat-nas-mikrotik" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono';">0</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">روترهای RouterOS</div>
+                        <div id="stat-nas-mikrotik" style="font-size: 20px; font-weight: 800; color: #0284c7; font-family: 'JetBrains Mono', monospace; margin-top:2px;">0</div>
                     </div>
                 </div>
 
-                <div class="glass-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; color: #10b981;">
-                        <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
+                <div class="spec-card" style="padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                        <i data-lucide="zap" style="width: 22px; height: 22px;"></i>
                     </div>
                     <div>
-                        <div style="font-size: 11.5px; color: #64748b; font-weight: 600;">درگاه CoA / PoD قطع نشست</div>
-                        <div style="font-size: 13.5px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono';">UDP 3799 / 1700</div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600;">درگاه CoA / PoD قطع نشست</div>
+                        <div style="font-size: 13.5px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; margin-top:2px;">UDP 3799 / 1700</div>
                     </div>
                 </div>
             </div>
 
             <!-- NAS Toolbar -->
-            <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div class="spec-card" style="padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                 <div>
-                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="network" style="color: #6366f1; width:20px; height:20px;"></i>
                         <span>روترها و اکسس سرورهای مجاز (Network Access Servers - NAS)</span>
                     </h3>
-                    <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;">
                         روترها یا سرورهایی که مجاز به ارسال درخواست احراز هویت به این سرور FreeRADIUS هستند
                     </p>
                 </div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-secondary" onclick="fetchRadiusNas()" style="padding: 8px 16px; font-size: 12.5px;" type="button">
+                    <button class="btn btn-secondary" onclick="fetchRadiusNas()" style="padding: 8px 16px; font-size: 12.5px; border-radius:10px; font-weight:600;" type="button">
                         <i class="btn-icon" data-lucide="refresh-cw"></i> <span>بروزرسانی روترها</span>
                     </button>
-                    <button class="btn btn-primary" onclick="toggleAddNasBox()" style="padding: 8px 16px; font-size: 12.5px;" type="button">
+                    <button class="btn btn-primary" onclick="toggleAddNasBox()" style="padding: 8px 16px; font-size: 12.5px; border-radius:10px; font-weight:700;" type="button">
                         <i class="btn-icon" data-lucide="plus-circle"></i> <span>افزودن روتر / NAS جدید</span>
                     </button>
                 </div>
             </div>
 
             <!-- Collapsible Box: Add NAS Form -->
-            <div id="add-nas-box" class="glass-card" style="display: none; padding: 22px 24px; border: 1px solid var(--border-glow); border-radius: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
-                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; margin: 0;">
+            <div id="add-nas-box" class="spec-card" style="display: none; padding: 22px 24px; border-radius: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 12px;">
+                    <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; margin: 0;">
                         <i data-lucide="plus" style="width: 18px; height: 18px; color: #6366f1;"></i>
                         <span>مشخصات روتر / NAS جدید</span>
                     </h4>
@@ -366,18 +372,18 @@
                 <form id="form-add-nas" onsubmit="submitAddNas(event)">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">نام یا شناسه روتر (Router Name):</label>
-                            <input class="form-input" id="new-nas-name" placeholder="مثال: Core-Router-1" required style="padding-left:14px;" type="text"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">نام یا شناسه روتر (Router Name):</label>
+                            <input class="form-input" id="new-nas-name" placeholder="مثال: Core-Router-1" required style="padding-inline-start:14px; border-radius:10px;" type="text"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">آدرس IP روتر (یا ساب‌نت مثلاً 10.0.0.0/24):</label>
-                            <input class="form-input" id="new-nas-ip" placeholder="مثال: 192.168.88.1 یا 0.0.0.0/0" required style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">آدرس IP روتر (یا ساب‌نت مثلاً 10.0.0.0/24):</label>
+                            <input class="form-input" id="new-nas-ip" placeholder="مثال: 192.168.88.1 یا 0.0.0.0/0" required style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">کلید مشترک امنیتی (Secret):</label>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">کلید مشترک امنیتی (Secret):</label>
                             <div style="display:flex; gap:6px;">
-                                <input class="form-input" id="new-nas-secret" placeholder="رمز امنیتی ردیوس" required style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="testing123"/>
-                                <button class="btn btn-secondary" onclick="generateRandomPassForInput('new-nas-secret')" style="padding:0 10px;" title="تولید رمز رندوم" type="button">
+                                <input class="form-input" id="new-nas-secret" placeholder="رمز امنیتی ردیوس" required style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" value="testing123"/>
+                                <button class="btn btn-secondary" onclick="generateRandomPassForInput('new-nas-secret')" style="padding:0 10px; border-radius:10px;" title="تولید رمز رندوم" type="button">
                                     <i data-lucide="key" style="width:14px; height:14px;"></i>
                                 </button>
                             </div>
@@ -386,8 +392,8 @@
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">نوع دستگاه / سیستم‌عامل (Type):</label>
-                            <select class="form-select form-input" id="new-nas-type" onchange="onNasTypeChange(this.value)" style="height: 40px;">
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">نوع دستگاه / سیستم‌عامل (Type):</label>
+                            <select class="form-select form-input" id="new-nas-type" onchange="onNasTypeChange(this.value)" style="height: 40px; border-radius:10px;">
                                 <option value="mikrotik_v7">RouterOS v7 (CoA: 3799)</option>
                                 <option value="mikrotik_v6">RouterOS v6 (CoA: 1700)</option>
                                 <option value="cisco">Cisco IOS / ASA</option>
@@ -395,18 +401,18 @@
                             </select>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">درگاه قطع نشست (CoA / PoD Port):</label>
-                            <input class="form-input" id="new-nas-coa" style="padding-left:14px; font-family:'JetBrains Mono';" type="number" value="3799"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">درگاه قطع نشست (CoA / PoD Port):</label>
+                            <input class="form-input" id="new-nas-coa" style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="number" value="3799"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">یادداشت / توضیحات:</label>
-                            <input class="form-input" id="new-nas-desc" placeholder="مثلاً: روتر اصلی دیتاسنتر" style="padding-left:14px;" type="text"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">یادداشت / توضیحات:</label>
+                            <input class="form-input" id="new-nas-desc" placeholder="مثلاً: روتر اصلی دیتاسنتر" style="padding-inline-start:14px; border-radius:10px;" type="text"/>
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button class="btn btn-secondary" onclick="toggleAddNasBox(false)" type="button">انصراف</button>
-                        <button class="btn btn-primary" type="submit" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                        <button class="btn btn-secondary" onclick="toggleAddNasBox(false)" style="border-radius:10px; font-weight:600;" type="button">انصراف</button>
+                        <button class="btn btn-primary" type="submit" style="border-radius:10px; font-weight:700;">
                             <i class="btn-icon" data-lucide="check"></i> <span>ذخیره روتر و همگام‌سازی FreeRADIUS</span>
                         </button>
                     </div>
@@ -414,11 +420,11 @@
             </div>
 
             <!-- NAS Table Card -->
-            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
+            <div class="spec-card" style="padding: 0; overflow: hidden; border-radius: 16px;">
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: start;">
                         <thead>
-                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: #64748b; font-weight: 700; font-size: 12px;">
+                            <tr style="background: var(--surface-elevated); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-weight: 600; font-size: 12px;">
                                 <th style="padding: 14px 16px;">نام / برچسب روتر</th>
                                 <th style="padding: 14px 16px;">آدرس IP / Subnet</th>
                                 <th style="padding: 14px 16px;">کلید امنیتی (Secret)</th>
@@ -430,7 +436,7 @@
                         </thead>
                         <tbody id="radius-nas-tbody">
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
                                     در حال بارگذاری لیست روترهای NAS...
                                 </td>
                             </tr>
@@ -444,33 +450,33 @@
         <!-- SUB-TAB 4: ONLINE SESSIONS & COA          -->
         <!-- ========================================== -->
         <div class="rad-subpane" id="rad-subpane-online" style="display: none; flex-direction: column; gap: 20px;">
-            <div class="glass-card" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div class="spec-card" style="padding: 18px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span class="status-dot active" style="box-shadow: 0 0 10px #10b981;"></span>
-                        <strong style="color: var(--text-main); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور و روترها</strong>
+                        <strong style="color: var(--text-primary); font-size: 15px;">نشست‌های فعال متصل در سراسر سرور و روترها</strong>
                     </div>
-                    <span class="badge-pill" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;">0 اتصال</span>
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #10b981; font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                    <span class="badge-pill" id="live-online-pill-header" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">0 اتصال</span>
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #10b981; font-weight: 600; background: rgba(16, 185, 129, 0.1); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(16, 185, 129, 0.2);">
                         <span class="status-dot active"></span>
                         <span id="rad-auto-refresh-label">پایش زنده فعال (هر ۳.۵ ثانیه)</span>
                     </div>
                 </div>
                 <div style="display: flex; gap: 8px; align-items: center;">
-                    <button class="btn btn-secondary" id="rad-auto-refresh-toggle-btn" onclick="toggleRadiusAutoRefresh()" style="padding: 7px 14px; font-size: 12px;" type="button" title="مکث یا فعال‌سازی بروزرسانی خودکار">
+                    <button class="btn btn-secondary" id="rad-auto-refresh-toggle-btn" onclick="toggleRadiusAutoRefresh()" style="padding: 7px 14px; font-size: 12px; border-radius:10px; font-weight:600;" type="button" title="مکث یا فعال‌سازی بروزرسانی خودکار">
                         <i class="btn-icon" data-lucide="pause" id="rad-auto-refresh-icon"></i> <span id="rad-auto-refresh-btn-text">مکث پایش</span>
                     </button>
-                    <button class="btn btn-secondary" onclick="refreshRadiusOnlineLive(true)" style="padding: 7px 14px; font-size: 12px;" type="button">
+                    <button class="btn btn-secondary" onclick="refreshRadiusOnlineLive(true)" style="padding: 7px 14px; font-size: 12px; border-radius:10px; font-weight:600;" type="button">
                         <i class="btn-icon" data-lucide="refresh-cw" id="rad-manual-refresh-icon"></i> <span>بروزرسانی فوری</span>
                     </button>
                 </div>
             </div>
 
-            <div class="glass-card" style="padding: 0; overflow: hidden; border-radius: 16px; border: 1px solid var(--border-glow);">
+            <div class="spec-card" style="padding: 0; overflow: hidden; border-radius: 16px;">
                 <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: right;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: start;">
                         <thead>
-                            <tr style="background: var(--bg-base); border-bottom: 1px solid var(--border-glow); color: var(--text-muted); font-weight: 700; font-size: 12px;">
+                            <tr style="background: var(--surface-elevated); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); font-weight: 600; font-size: 12px;">
                                 <th style="padding: 14px 16px;">نام کاربری</th>
                                 <th style="padding: 14px 16px;">پروتکل / منبع</th>
                                 <th style="padding: 14px 16px;">آدرس IP کلاینت</th>
@@ -482,7 +488,7 @@
                         </thead>
                         <tbody id="radius-online-tbody">
                             <tr>
-                                <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
                                     در حال جستجو و پایش نشست‌های آنلاین سرور...
                                 </td>
                             </tr>
@@ -496,16 +502,16 @@
         <!-- SUB-TAB 5: VOUCHERS GENERATOR             -->
         <!-- ========================================== -->
         <div class="rad-subpane" id="rad-subpane-vouchers" style="display: none; flex-direction: column; gap: 20px;">
-            <div class="glass-card" style="padding: 22px 26px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+            <div class="spec-card" style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px;">
                     <div>
-                        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:10px;">
-                            <div style="width:34px; height:34px; border-radius:10px; background:linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1)); display:flex; align-items:center; justify-content:center; border:1px solid rgba(245,158,11,0.3);">
+                        <h3 style="font-size: 17px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:10px; background:rgba(245,158,11,0.15); display:flex; align-items:center; justify-content:center; border:1px solid rgba(245,158,11,0.3);">
                                 <i data-lucide="ticket" style="color: #f59e0b; width:20px; height:20px;"></i>
                             </div>
                             <span>استودیو طراحی و تولید کارت شارژ و ووچر (Vouchers & Recharge Cards)</span>
                         </h3>
-                        <p style="font-size: 13px; color: #64748b; margin: 6px 0 0 0;">
+                        <p style="font-size: 12.5px; color: var(--text-muted); margin: 6px 0 0 0; line-height: 1.5;">
                             تولید دسته‌ای کارت‌های اعتباری و پین‌های یک‌بارمصرف با قابلیت چاپ A4، تولید بارکد QR اختصاصی، تگ قیمت و خروجی اکسل
                         </p>
                     </div>
@@ -517,18 +523,16 @@
                 <!-- Generator Controls Grid -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 18px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label" style="display:flex; justify-content:space-between; align-items:center;">
-                            <span>انتخاب پکیج / پلن کاربری:</span>
-                        </label>
-                        <select class="form-select form-input" id="voucher-group-select" onchange="updateVoucherGroupBadge()" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">انتخاب پکیج / پلن کاربری:</label>
+                        <select class="form-select form-input" id="voucher-group-select" onchange="updateVoucherGroupBadge()" style="height: 40px; border-radius:10px;">
                             <option value="default">پکیج استاندارد (Standard - نامحدود)</option>
                             <option value="vip">پکیج ویژه (VIP - 100GB)</option>
                             <option value="night">بسته شبانه (Nightly - 50GB)</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تعداد کارت‌های شارژ:</label>
-                        <select class="form-select form-input" id="voucher-count-select" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">تعداد کارت‌های شارژ:</label>
+                        <select class="form-select form-input" id="voucher-count-select" style="height: 40px; border-radius:10px;">
                             <option value="5">۵ عدد</option>
                             <option value="10" selected>۱۰ عدد</option>
                             <option value="20">۲۰ عدد</option>
@@ -538,23 +542,23 @@
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">عنوان برند / روی کارت:</label>
-                        <input class="form-input" id="voucher-brand-title" placeholder="مثلاً: اینترنت پرسرعت VIP" style="padding-left:14px;" type="text" value="MH Panel VIP Ultra Internet"/>
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">عنوان برند / روی کارت:</label>
+                        <input class="form-input" id="voucher-brand-title" placeholder="مثلاً: اینترنت پرسرعت VIP" style="padding-inline-start:14px; border-radius:10px;" type="text" value="MH Panel VIP Ultra Internet"/>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تگ قیمت نمایشی (اختیاری):</label>
-                        <input class="form-input" id="voucher-price" placeholder="مثلاً: ۵۰,۰۰۰ تومان یا $5" style="padding-left:14px;" type="text" value=""/>
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">تگ قیمت نمایشی (اختیاری):</label>
+                        <input class="form-input" id="voucher-price" placeholder="مثلاً: ۵۰,۰۰۰ تومان یا $5" style="padding-inline-start:14px; border-radius:10px;" type="text" value=""/>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 18px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">پیشوند نام کاربری / سریال:</label>
-                        <input class="form-input" id="voucher-prefix" placeholder="مثلاً: VIP- یا NET-" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="VIP-"/>
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">پیشوند نام کاربری / سریال:</label>
+                        <input class="form-input" id="voucher-prefix" placeholder="مثلاً: VIP- یا NET-" style="padding-inline-start:14px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" value="VIP-"/>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">طول کد تصادفی:</label>
-                        <select class="form-select form-input" id="voucher-length-select" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">طول کد تصادفی:</label>
+                        <select class="form-select form-input" id="voucher-length-select" style="height: 40px; border-radius:10px;">
                             <option value="6" selected>۶ کاراکتر (استاندارد)</option>
                             <option value="8">۸ کاراکتر (امن‌تر)</option>
                             <option value="10">۱۰ کاراکتر</option>
@@ -562,16 +566,16 @@
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">نوع کاراکترهای کد:</label>
-                        <select class="form-select form-input" id="voucher-charset-select" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">نوع کاراکترهای کد:</label>
+                        <select class="form-select form-input" id="voucher-charset-select" style="height: 40px; border-radius:10px;">
                             <option value="numbers">فقط ارقام عددی (مناسب تایپ تلفنی / پین)</option>
                             <option value="easy" selected>حروف و ارقام خوانا (بدون کاراکترهای مشابه O/0 و l/1)</option>
                             <option value="alphanumeric">حروف بزرگ و ارقام</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">حالت رمز عبور:</label>
-                        <select class="form-select form-input" id="voucher-passmode-select" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">حالت رمز عبور:</label>
+                        <select class="form-select form-input" id="voucher-passmode-select" style="height: 40px; border-radius:10px;">
                             <option value="same" selected>پین تک‌کده (User = Pass - اتصال آسان)</option>
                             <option value="distinct">تولید رمز عبور مجزا و امن</option>
                         </select>
@@ -581,65 +585,65 @@
                 <!-- Visual & Overrides Grid -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 22px;">
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">محتوای بارکد QR:</label>
-                        <select class="form-select form-input" id="voucher-qr-type" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">محتوای بارکد QR:</label>
+                        <select class="form-select form-input" id="voucher-qr-type" style="height: 40px; border-radius:10px;">
                             <option value="sub" selected>لینک هوشمند اشتراک (اتصال خودکار کلاینت‌ها)</option>
                             <option value="credentials">مشخصات اکانت (User:Pass)</option>
                             <option value="none">بدون بارکد QR</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">استایل ظاهری کارت:</label>
-                        <select class="form-select form-input" id="voucher-style-select" style="height: 40px;">
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">استایل ظاهری کارت:</label>
+                        <select class="form-select form-input" id="voucher-style-select" style="height: 40px; border-radius:10px;">
                             <option value="glass" selected>گلس‌مورفیسم لوکس (Glassmorphism Dark/Light)</option>
                             <option value="scratch">کارت اعتباری چاپی با خط برش ✂️ (Print-Ready)</option>
                             <option value="gold">گرادیان نئون طلایی VIP (Golden Neon)</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تغییر حجم پکیج (GB - اختیاری):</label>
-                        <input class="form-input" id="voucher-override-traffic" placeholder="خالی = مطابق پلن" type="number" min="0" step="1"/>
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">تغییر حجم پکیج (GB - اختیاری):</label>
+                        <input class="form-input" id="voucher-override-traffic" placeholder="خالی = مطابق پلن" type="number" min="0" step="1" style="border-radius:10px;"/>
                     </div>
                     <div class="form-group" style="margin: 0;">
-                        <label class="form-label">تغییر مدت اعتبار (روز - اختیاری):</label>
-                        <input class="form-input" id="voucher-override-days" placeholder="خالی = مطابق پلن" type="number" min="1" step="1"/>
+                        <label class="form-label" style="font-size:12px; color:var(--text-secondary);">تغییر مدت اعتبار (روز - اختیاری):</label>
+                        <input class="form-input" id="voucher-override-days" placeholder="خالی = مطابق پلن" type="number" min="1" step="1" style="border-radius:10px;"/>
                     </div>
                 </div>
 
                 <!-- Action Submit -->
                 <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
-                    <button class="btn btn-primary" onclick="generateVouchers()" style="flex: 2; min-width: 240px; background: linear-gradient(135deg, #f59e0b, #d97706); height: 44px; font-weight: 700; font-size: 14px;" type="button">
+                    <button class="btn btn-primary" onclick="generateVouchers()" style="flex: 2; min-width: 240px; height: 44px; font-weight: 700; font-size: 14px; border-radius:10px;" type="button">
                         <i class="btn-icon" data-lucide="ticket"></i> <span>تولید و فعال‌سازی آنی کارت‌های شارژ</span>
                     </button>
                 </div>
             </div>
 
             <!-- Output Management Toolbar -->
-            <div id="vouchers-output-toolbar" class="glass-card no-print" style="display: none; padding: 14px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border: 1px solid var(--border-glow);">
+            <div id="vouchers-output-toolbar" class="spec-card no-print" style="display: none; padding: 14px 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; border-radius: 14px;">
                 <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                    <span id="voucher-output-count" class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-weight: 700; padding: 6px 12px; border-radius: 8px; font-size: 13px;">
+                    <span id="voucher-output-count" class="badge" style="background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); font-weight: 700; padding: 6px 14px; border-radius: 8px; font-size: 13px;">
                         ۰ کارت شارژ
                     </span>
                     <div style="position: relative; width: 220px;">
-                        <input class="form-input" placeholder="جستجو در کارت‌ها..." style="padding: 6px 32px 6px 12px; font-size: 12.5px; height: 34px;" oninput="filterVoucherCards(this.value)" type="text"/>
-                        <i data-lucide="search" style="position: absolute; right: 10px; top: 9px; width: 14px; height: 14px; color: #94a3b8;"></i>
+                        <input class="form-input" placeholder="جستجو در کارت‌ها..." style="padding-inline-start: 12px; padding-inline-end: 32px; font-size: 12.5px; height: 34px; border-radius:8px;" oninput="filterVoucherCards(this.value)" type="text"/>
+                        <i data-lucide="search" style="position: absolute; inset-inline-end: 10px; top: 9px; width: 14px; height: 14px; color: var(--text-muted);"></i>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-secondary btn-sm" onclick="printVouchersCards()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                    <button class="btn btn-secondary btn-sm" onclick="printVouchersCards()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-radius:8px;">
                         <i data-lucide="printer" style="width: 15px; height: 15px; color: var(--color-primary);"></i>
                         <span>چاپ با کیفیت (Print A4)</span>
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersCsv()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersCsv()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-radius:8px;">
                         <i data-lucide="file-spreadsheet" style="width: 15px; height: 15px; color: #10b981;"></i>
                         <span>خروجی اکسل (CSV)</span>
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersTxt()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportVouchersTxt()" type="button" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; border-radius:8px;">
                         <i data-lucide="file-text" style="width: 15px; height: 15px; color: #38bdf8;"></i>
                         <span>خروجی متنی (TXT)</span>
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="clearGeneratedVouchers()" type="button" style="display: inline-flex; align-items: center; gap: 6px; color: #ef4444;" title="پاکسازی نمایش">
+                    <button class="btn btn-secondary btn-sm" onclick="clearGeneratedVouchers()" type="button" style="display: inline-flex; align-items: center; gap: 6px; color: #ef4444; border-radius:8px;" title="پاکسازی نمایش">
                         <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
                     </button>
                 </div>
@@ -652,11 +656,11 @@
 
             <!-- QR Zoom Modal -->
             <div id="rad-voucher-qr-modal" class="modal-backdrop" style="display: none;" onclick="closeVoucherQrModal()">
-                <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px; text-align: center; padding: 24px;">
-                    <h4 id="rad-voucher-qr-modal-title" style="margin: 0 0 14px 0; font-size: 15px; color: var(--text-main); font-weight: 700;">بارکد اتصال</h4>
+                <div class="modal-box" onclick="event.stopPropagation()" style="max-width: 360px; text-align: center; padding: 24px; border-radius: 16px;">
+                    <h4 id="rad-voucher-qr-modal-title" style="margin: 0 0 14px 0; font-size: 15px; color: var(--text-primary); font-weight: 700;">بارکد اتصال</h4>
                     <div id="rad-voucher-qr-modal-box" style="display: inline-block; background: #fff; padding: 14px; border-radius: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); margin-bottom: 12px;"></div>
-                    <p id="rad-voucher-qr-modal-text" style="font-family:'JetBrains Mono'; font-size: 11.5px; word-break: break-all; color: #64748b; background: rgba(0,0,0,0.04); padding: 8px 10px; border-radius: 8px; margin: 0 0 16px 0; max-height: 80px; overflow-y: auto;"></p>
-                    <button class="btn btn-secondary" onclick="closeVoucherQrModal()" style="width: 100%;">بستن</button>
+                    <p id="rad-voucher-qr-modal-text" style="font-family:'JetBrains Mono', monospace; font-size: 11.5px; word-break: break-all; color: var(--text-muted); background: var(--surface-elevated); padding: 8px 10px; border-radius: 8px; margin: 0 0 16px 0; max-height: 80px; overflow-y: auto;"></p>
+                    <button class="btn btn-secondary" onclick="closeVoucherQrModal()" style="width: 100%; border-radius:10px;">بستن</button>
                 </div>
             </div>
         </div>
@@ -664,37 +668,37 @@
         <!-- ========================================== -->
         <!-- SUB-TAB 6: CORE ENGINE & EXTERNAL GATEWAY -->
         <!-- ========================================== -->
-        <div class="rad-subpane" id="rad-subpane-server" style="display: none; flex-direction: column; gap: 24px;">
+        <div class="rad-subpane" id="rad-subpane-server" style="display: none; flex-direction: column; gap: 20px;">
             
             <!-- Operating Mode Selector -->
-            <div class="glass-card" style="padding: 20px 24px;">
-                <div style="margin-bottom: 14px;">
-                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+            <div class="spec-card" style="padding: 24px;">
+                <div style="margin-bottom: 16px;">
+                    <h3 style="font-size: 16px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="shuffle" style="color: var(--color-primary); width:20px; height:20px;"></i>
                         <span>حالت کاری سامانه ردیوس (Operating Mode)</span>
                     </h3>
-                    <p style="font-size: 12.5px; color: #64748b; margin: 4px 0 0 0;">
+                    <p style="font-size: 12.5px; color: var(--text-muted); margin: 4px 0 0 0;">
                         مشخص کنید آیا این سرور به عنوان سرور ردیوس مستقل عمل کند یا به عنوان درگاه به یک سیستم اکانتینگ خارجی (IBSng یا User Manager) متصل گردد
                     </p>
                 </div>
 
                 <div style="display: flex; gap: 14px; flex-wrap: wrap;">
-                    <div class="rad-mode-card active" id="mode-card-internal" onclick="setRadiusOperatingMode('internal')">
+                    <div class="rad-mode-card active" id="mode-card-internal" onclick="setRadiusOperatingMode('internal')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                             <i data-lucide="server" style="color: #10b981; width: 22px; height: 22px;"></i>
-                            <strong style="color: var(--text-main); font-size: 14px;">سرور مستقل FreeRADIUS و مدیریت داخلی</strong>
+                            <strong style="color: var(--text-primary); font-size: 14px;">سرور مستقل FreeRADIUS و مدیریت داخلی</strong>
                         </div>
-                        <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
                             تمام کاربران، پلن‌ها و روترهای NAS مستقیماً روی همین سرور ذخیره و مدیریت می‌شوند. روترهای شما به این سرور وصل می‌شوند.
                         </p>
                     </div>
 
-                    <div class="rad-mode-card" id="mode-card-external" onclick="setRadiusOperatingMode('external')">
+                    <div class="rad-mode-card" id="mode-card-external" onclick="setRadiusOperatingMode('external')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
                             <i data-lucide="external-link" style="color: #6366f1; width: 22px; height: 22px;"></i>
-                            <strong style="color: var(--text-main); font-size: 14px;">درگاه اتصال به ردیوس خارجی (External RADIUS Gateway)</strong>
+                            <strong style="color: var(--text-primary); font-size: 14px;">درگاه اتصال به ردیوس خارجی (External RADIUS Gateway)</strong>
                         </div>
-                        <p style="font-size: 12px; color: #64748b; margin: 0; line-height: 1.5;">
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 0; line-height: 1.5;">
                             پروتکل‌های این پنل (OpenVPN, Cisco AnyConnect, IKEv2, SSTP, SSH) برای بررسی نام کاربری و رمز به User Manager یا IBSng خارجی متصل می‌شوند.
                         </p>
                     </div>
@@ -702,144 +706,144 @@
             </div>
 
             <!-- External Provider Presets (Visible when mode is external) -->
-            <div id="external-presets-container" class="glass-card" style="display: none; padding: 20px 24px;">
-                <div style="margin-bottom: 14px;">
-                    <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-main); margin: 0; display:flex; align-items:center; gap:8px;">
+            <div id="external-presets-container" class="spec-card" style="display: none; padding: 22px 24px;">
+                <div style="margin-bottom: 16px;">
+                    <h4 style="font-size: 14.5px; font-weight: 700; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="layers" style="color: #6366f1; width:18px; height:18px;"></i>
                         <span>انتخاب الگوی اتصال ردیوس خارجی (Preset Provider)</span>
                     </h4>
-                    <p style="font-size: 12px; color: #64748b; margin: 4px 0 0 0;">
+                    <p style="font-size: 12px; color: var(--text-muted); margin: 4px 0 0 0;">
                         با کلیک روی هر الگو، پورت‌ها و پارامترهای استاندارد به همراه راهنمای تنظیم مرحله‌به‌مرحله آماده خواهد شد
                     </p>
                 </div>
 
-                <div class="rad-preset-grid">
-                    <div class="rad-preset-card active" id="preset-card-mikrotik_v7" onclick="selectRadiusPreset('mikrotik_v7')">
+                <div class="rad-preset-grid" style="margin-bottom: 16px;">
+                    <div class="rad-preset-card active" id="preset-card-mikrotik_v7" onclick="selectRadiusPreset('mikrotik_v7')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="router" style="color: #0284c7; width: 18px; height: 18px;"></i>
-                            <strong style="font-size: 13px; color: var(--text-main);">RouterOS v7 User Manager</strong>
+                            <strong style="font-size: 13px; color: var(--text-primary);">RouterOS v7 User Manager</strong>
                         </div>
-                        <span style="font-size: 11px; color: #64748b;">RouterOS 7 (Auth: 1812, CoA: 3799)</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">RouterOS 7 (Auth: 1812, CoA: 3799)</span>
                     </div>
 
-                    <div class="rad-preset-card" id="preset-card-mikrotik_v6" onclick="selectRadiusPreset('mikrotik_v6')">
+                    <div class="rad-preset-card" id="preset-card-mikrotik_v6" onclick="selectRadiusPreset('mikrotik_v6')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="router" style="color: #0284c7; width: 18px; height: 18px;"></i>
-                            <strong style="font-size: 13px; color: var(--text-main);">RouterOS v6 User Manager</strong>
+                            <strong style="font-size: 13px; color: var(--text-primary);">RouterOS v6 User Manager</strong>
                         </div>
-                        <span style="font-size: 11px; color: #64748b;">RouterOS 6 (Auth: 1812, CoA: 1700)</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">RouterOS 6 (Auth: 1812, CoA: 1700)</span>
                     </div>
 
-                    <div class="rad-preset-card" id="preset-card-ibsng" onclick="selectRadiusPreset('ibsng')">
+                    <div class="rad-preset-card" id="preset-card-ibsng" onclick="selectRadiusPreset('ibsng')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="database" style="color: #10b981; width: 18px; height: 18px;"></i>
-                            <strong style="font-size: 13px; color: var(--text-main);">IBSng Accounting Server</strong>
+                            <strong style="font-size: 13px; color: var(--text-primary);">IBSng Accounting Server</strong>
                         </div>
-                        <span style="font-size: 11px; color: #64748b;">اکانتینگ IBSng بر پایه پورت‌های 1812/1813</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">اکانتینگ IBSng بر پایه پورت‌های 1812/1813</span>
                     </div>
 
-                    <div class="rad-preset-card" id="preset-card-cisco" onclick="selectRadiusPreset('cisco')">
+                    <div class="rad-preset-card" id="preset-card-cisco" onclick="selectRadiusPreset('cisco')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="shield" style="color: #6366f1; width: 18px; height: 18px;"></i>
-                            <strong style="font-size: 13px; color: var(--text-main);">Cisco ACS / ISE</strong>
+                            <strong style="font-size: 13px; color: var(--text-primary);">Cisco ACS / ISE</strong>
                         </div>
-                        <span style="font-size: 11px; color: #64748b;">سیسکو AAA و احراز هویت انترپرایز</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">سیسکو AAA و احراز هویت انترپرایز</span>
                     </div>
 
-                    <div class="rad-preset-card" id="preset-card-custom" onclick="selectRadiusPreset('custom')">
+                    <div class="rad-preset-card" id="preset-card-custom" onclick="selectRadiusPreset('custom')" style="border-radius:12px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <i data-lucide="sliders" style="color: #f59e0b; width: 18px; height: 18px;"></i>
-                            <strong style="font-size: 13px; color: var(--text-main);">Custom FreeRADIUS</strong>
+                            <strong style="font-size: 13px; color: var(--text-primary);">Custom FreeRADIUS</strong>
                         </div>
-                        <span style="font-size: 11px; color: #64748b;">سفارشی بر پایه RFC 2865 / 2866</span>
+                        <span style="font-size: 11px; color: var(--text-muted);">سفارشی بر پایه RFC 2865 / 2866</span>
                     </div>
                 </div>
 
                 <!-- Provider Setup Instruction Box -->
-                <div id="preset-instruction-box" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius: 12px; padding: 16px;">
-                    <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
+                <div id="preset-instruction-box" style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 16px;">
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px; display:flex; align-items:center; gap:6px;">
                         <i data-lucide="book-open" style="width:16px; height:16px; color:#6366f1;"></i>
                         <span id="preset-guide-title">راهنمای اتصال به RouterOS v7 User Manager</span>
                     </div>
-                    <div id="preset-guide-content" style="font-size: 12px; color: #64748b; line-height: 1.6;">
+                    <div id="preset-guide-content" style="font-size: 12px; color: var(--text-muted); line-height: 1.6;">
                         <!-- Injected via JavaScript -->
                     </div>
                 </div>
             </div>
 
             <!-- Core FreeRADIUS Engine Card (Internal Mode) -->
-            <div id="internal-server-details-card" class="glass-card config-card" style="border: 1px solid rgba(16, 185, 129, 0.25);">
-                <div class="config-header" style="margin-bottom: 16px;">
-                    <h3 class="config-title" style="color: var(--color-emerald); font-size: 16px;">
+            <div id="internal-server-details-card" class="spec-card" style="padding: 24px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap:wrap; gap:12px;">
+                    <h3 style="color: #10b981; font-size: 16px; font-weight: 800; margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="cpu" style="color: #10b981; width: 22px; height: 22px;"></i> <span data-i18n="rad_internal_freeradius_engine">موتور ردیوس محلی (Internal FreeRADIUS Engine)</span>
                     </h3>
-                    <span id="radius-internal-status-badge" style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                    <span id="radius-internal-status-badge" style="font-size: 13px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25);">
                         <span class="status-dot active"></span> سرویس FreeRADIUS فعال و آماده است
                     </span>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px; font-size: 13px;">
-                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                        <div data-i18n="rad_item_4" style="color: #64748b; font-size: 11px; font-weight: 600;">پورت احراز هویت / اکانتینگ</div>
-                        <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">UDP 1812 / UDP 1813</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div style="background: var(--surface-elevated); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="rad_item_4" style="color: var(--text-muted); font-size: 11.5px; font-weight: 600;">پورت احراز هویت / اکانتینگ</div>
+                        <div style="font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top: 6px; font-size: 15px;">UDP 1812 / UDP 1813</div>
                     </div>
-                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                        <div data-i18n="rad_address_local_radius_server" style="color: #64748b; font-size: 11px; font-weight: 600;">آدرس سرور ردیوس محلی</div>
-                        <div style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">127.0.0.1 / localhost</div>
+                    <div style="background: var(--surface-elevated); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="rad_address_local_radius_server" style="color: var(--text-muted); font-size: 11.5px; font-weight: 600;">آدرس سرور ردیوس محلی</div>
+                        <div style="font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top: 6px; font-size: 15px;">127.0.0.1 / localhost</div>
                     </div>
-                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                        <div data-i18n="rad_secret" style="color: #64748b; font-size: 11px; font-weight: 600;">کلید امنیتی اشتراکی (Secret)</div>
-                        <div id="rad-secret-display" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">testing123</div>
+                    <div style="background: var(--surface-elevated); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="rad_secret" style="color: var(--text-muted); font-size: 11.5px; font-weight: 600;">کلید امنیتی اشتراکی (Secret)</div>
+                        <div id="rad-secret-display" style="font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top: 6px; font-size: 15px;">testing123</div>
                     </div>
-                    <div style="background: var(--bg-base); padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border-glow);">
-                        <div data-i18n="rad_integrated_user_bank" style="color: #64748b; font-size: 11px; font-weight: 600;">بانک کاربران یکپارچه</div>
-                        <div id="rad-total-users" style="font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; margin-top: 4px;">0 کاربر</div>
+                    <div style="background: var(--surface-elevated); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="rad_integrated_user_bank" style="color: var(--text-muted); font-size: 11.5px; font-weight: 600;">بانک کاربران یکپارچه</div>
+                        <div id="rad-total-users" style="font-weight: 700; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; margin-top: 6px; font-size: 15px;">0 کاربر</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                    <button class="btn" id="rad-init-internal-btn" style="flex: 1; min-width: 260px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);" type="button">
+                    <button class="btn" id="rad-init-internal-btn" style="flex: 1; min-width: 260px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-weight: 700; border-radius: 10px; padding: 10px 18px;" type="button">
                         <i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_item_10">اتصال خودکار و یکپارچه‌سازی تمام پروتکل‌ها به ردیوس</span>
                     </button>
                 </div>
             </div>
 
             <!-- RADIUS Connection & Protocols Form Card -->
-            <div class="glass-card config-card" style="border: 1px solid var(--border-glow);">
-                <div class="config-header" style="margin-bottom: 20px;">
-                    <h3 class="config-title" style="font-size: 15px;">
+            <div class="spec-card" style="padding: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap:wrap; gap:12px;">
+                    <h3 style="font-size: 15px; font-weight: 800; color: var(--text-primary); margin: 0; display:flex; align-items:center; gap:8px;">
                         <i data-lucide="sliders" style="color: var(--color-primary); width: 20px; height: 20px;"></i>
                         <span data-i18n="rad_radius_server_connection_configuration_ac">پیکربندی اتصال سرور ردیوس و پروتکل‌های فعال</span>
                     </h3>
-                    <span id="radius-connection-badge" style="font-size: 13px; font-weight:600; color: #10b981; display:flex; align-items:center; gap:6px;">
+                    <span id="radius-connection-badge" style="font-size: 13px; font-weight:600; color: #10b981; display:flex; align-items:center; gap:6px; padding: 4px 12px; border-radius: 14px; background: rgba(16, 185, 129, 0.1);">
                         <span class="status-dot active"></span> متصل
                     </span>
                 </div>
                 <form id="radius-form">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" data-i18n="rad_radius_server_address_host_ip">آدرس سرور ردیوس (Host/IP)</label>
-                            <input class="form-input" id="rad-ip" placeholder="127.0.0.1" style="padding-left:16px; font-family:'JetBrains Mono';" type="text"/>
+                            <label class="form-label" data-i18n="rad_radius_server_address_host_ip" style="font-size:12px; color:var(--text-secondary);">آدرس سرور ردیوس (Host/IP)</label>
+                            <input class="form-input" id="rad-ip" placeholder="127.0.0.1" style="padding-inline-start:16px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" data-i18n="rad_shared_security_key_shared_secret">کلید امنیتی مشترک (Shared Secret)</label>
-                            <input class="form-input" id="rad-secret" placeholder="testing123" style="padding-left:16px; font-family:'JetBrains Mono';" type="password"/>
+                            <label class="form-label" data-i18n="rad_shared_security_key_shared_secret" style="font-size:12px; color:var(--text-secondary);">کلید امنیتی مشترک (Shared Secret)</label>
+                            <input class="form-input" id="rad-secret" placeholder="testing123" style="padding-inline-start:16px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="password"/>
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" data-i18n="rad_authentication_port">پورت احراز هویت (Auth Port)</label>
-                            <input class="form-input" id="rad-auth-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="1812"/>
+                            <label class="form-label" data-i18n="rad_authentication_port" style="font-size:12px; color:var(--text-secondary);">پورت احراز هویت (Auth Port)</label>
+                            <input class="form-input" id="rad-auth-port" style="padding-inline-start:16px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="number" value="1812"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label" data-i18n="rad_accounting_port">پورت حسابداری (Acct Port)</label>
-                            <input class="form-input" id="rad-acct-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="1813"/>
+                            <label class="form-label" data-i18n="rad_accounting_port" style="font-size:12px; color:var(--text-secondary);">پورت حسابداری (Acct Port)</label>
+                            <input class="form-input" id="rad-acct-port" style="padding-inline-start:16px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="number" value="1813"/>
                         </div>
                         <div class="form-group" style="margin: 0;">
-                            <label class="form-label">درگاه قطع اتصال (CoA Port):</label>
-                            <input class="form-input" id="rad-coa-port" style="padding-left:16px; font-family:'JetBrains Mono';" type="number" value="3799"/>
+                            <label class="form-label" style="font-size:12px; color:var(--text-secondary);">درگاه قطع اتصال (CoA Port):</label>
+                            <input class="form-input" id="rad-coa-port" style="padding-inline-start:16px; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="number" value="3799"/>
                         </div>
                     </div>
 
-                    <h4 class="form-label" data-i18n="rad_item_3" style="margin-bottom: 12px;">پروتکل‌های متصل به هسته احراز هویت ردیوس:</h4>
+                    <h4 class="form-label" data-i18n="rad_item_3" style="margin-bottom: 12px; font-weight:700; color:var(--text-primary);">پروتکل‌های متصل به هسته احراز هویت ردیوس:</h4>
                     <div class="toggle-grid">
                         <div class="toggle-item">
                             <span class="toggle-item-label">SSH Tunnel</span>
@@ -886,16 +890,16 @@
                     </div>
 
                     <div style="display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="rad-test-btn" style="flex:1; min-width: 220px;" type="button">
+                        <button class="btn btn-secondary" id="rad-test-btn" style="flex:1; min-width: 220px; border-radius:10px; font-weight:600;" type="button">
                             <i class="btn-icon" data-lucide="zap"></i> <span data-i18n="rad_test_link">تست ارتباط با ردیوس (Test Link)</span>
                         </button>
-                        <button class="btn btn-primary" id="rad-save-btn" style="flex:1; min-width: 220px;" type="submit">
+                        <button class="btn btn-primary" id="rad-save-btn" style="flex:1; min-width: 220px; border-radius:10px; font-weight:700;" type="submit">
                             <i class="btn-icon" data-lucide="save"></i> <span data-i18n="proto_action_save">ذخیره و اعمال تغییرات</span>
                         </button>
                     </div>
 
                     <!-- Diagnostic radtest output box -->
-                    <div id="rad-test-output-box" style="display: none; margin-top: 18px; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; color: #38bdf8; max-height: 220px; overflow-y: auto;">
+                    <div id="rad-test-output-box" style="display: none; margin-top: 18px; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; direction: ltr; text-align: left; color: #38bdf8; max-height: 220px; overflow-y: auto;">
                     </div>
                 </form>
             </div>

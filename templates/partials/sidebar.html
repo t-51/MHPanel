@@ -4,8 +4,8 @@
         <!-- Mobile Sidebar Close Header -->
         <div class="sidebar-mobile-header">
             <div style="display:flex; align-items:center; gap:8px;">
-                <i data-lucide="shield" style="color: var(--color-gold); width:20px; height:20px;"></i>
-                <strong style="color: var(--text-main); font-size:15px;" data-i18n="login_title">MH Panel</strong>
+                <i data-lucide="shield" style="color: var(--brand-primary); width:20px; height:20px;"></i>
+                <strong style="color: var(--text-primary); font-size:15px;" data-i18n="login_title">MH Panel</strong>
             </div>
             <button type="button" class="sidebar-mobile-close" onclick="toggleMobileSidebar(false)" aria-label="Close Navigation">
                 <i data-lucide="x" style="width:18px; height:18px;"></i>
@@ -16,7 +16,7 @@
         <div class="sidebar-desktop-header">
             <span class="sidebar-header-label" data-i18n="nav_menu_title">منوی ناوبری</span>
             <button type="button" class="sidebar-collapse-toggle" onclick="toggleSidebarCollapse()" title="جمع کردن / باز کردن منو" data-i18n-title="sidebar_collapse_expand_menu" aria-label="Toggle Sidebar">
-                <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="sidebar" id="sidebar-collapse-icon" style="width: 15px; height: 15px;"></i>
             </button>
         </div>
 
@@ -35,349 +35,307 @@
     <!-- Independent Scroll Container for Nav Items -->
     <div class="sidebar-scroll-container">
         <nav class="sidebar-nav">
-        <!-- ۱. بخش داشبورد و آمار عمومی -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-header">
-                <i data-lucide="layout-grid"></i>
-                <span data-i18n="nav_sec_dashboard">داشبورد و وضعیت</span>
-            </div>
-            <button class="sidebar-nav-item active" onclick="switchTab('overview')">
-                <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
-                <span data-i18n="nav_overview">نمای کلی (Overview)</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('radar')">
-                <i data-lucide="radar" style="color: #ef4444;"></i>
-                <span data-i18n="nav_radar">رادار فیلترینگ و اتصال</span>
-                <span class="sidebar-badge sidebar-badge-gold"><i data-lucide="zap" style="width:10px; height:10px;"></i> Radar</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('protocols')">
-                <i data-lucide="activity" style="color: #0ea5e9;"></i>
-                <span data-i18n="nav_protocols">وضعیت کلی پروتکل‌ها</span>
-            </button>
-        </div>
 
-        <div class="sidebar-divider"></div>
-
-        <!-- ۲. بخش هسته جامع سینگ‌باکس و پروتکل‌های زیرمجموعه آن -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-header">
-                <i data-lucide="box" style="color: var(--color-gold);"></i>
-                <span data-i18n="nav_sec_singbox">هسته سینگ‌باکس (Sing-box Core Suite)</span>
-                <span class="sidebar-badge sidebar-badge-gold"><i data-lucide="sparkles" style="width:10px; height:10px;"></i> Universal</span>
-            </div>
-
-            <!-- دانشنامه تخصصی پروتکل‌ها و راهنمای مدیر سیستم -->
-            <button class="sidebar-nav-item" onclick="openSingboxEncyclopedia()" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(99, 102, 241, 0.1) 100%); border: 1.5px solid rgba(245, 158, 11, 0.4); padding: 10px 14px; margin-bottom: 8px; border-radius: 9px; display: flex; align-items: center; gap: 9px;">
-                <i data-lucide="book-open" style="color: #f59e0b; width: 19px; height: 19px; flex-shrink: 0;"></i>
-                <span data-i18n="nav_singbox_docs" style="font-weight: 800; color: #f59e0b; font-size: 13px;">دانشنامه تخصصی پروتکل‌ها و SNI</span>
-                <span class="sidebar-badge sidebar-badge-gold" style="font-weight: 800; padding: 3px 8px; font-size: 10.5px; margin-inline-start: auto;">Docs</span>
-            </button>
-            
-            <!-- داشبورد و اینباندهای Sing-box -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('inbounds');">
-                <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
-                <span data-i18n="nav_singbox">داشبورد و اینباندهای Sing-box</span>
-            </button>
-
-            <!-- آی‌پی‌های سفید کلودفلر (Clean IPs) -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('cleanips');">
-                <i data-lucide="cloud-lightning" style="color: #0284c7;"></i>
-                <span>آی‌پی‌های سفید کلودفلر (Clean IPs)</span>
-                <span class="sidebar-badge" style="background: rgba(14, 165, 233, 0.15); color: #0284c7;">Clean IP</span>
-            </button>
-
-            <!-- کاربران محلی هسته (Users) -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('users');">
-                <i data-lucide="users" style="color: #3b82f6;"></i>
-                <span data-i18n="nav_singbox_users">کاربران محلی هسته (Users)</span>
-                <span class="sidebar-badge sidebar-badge-blue">Multi-Config</span>
-            </button>
-
-            <!-- لاگ‌های زنده هسته (Live Logs) -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('logs');">
-                <i data-lucide="terminal" style="color: #10b981;"></i>
-                <span data-i18n="nav_singbox_logs">لاگ‌های زنده هسته (Live Logs)</span>
-                <span class="sidebar-badge sidebar-badge-green">Logs</span>
-            </button>
-
-            <!-- VLESS Reality زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');">
-                <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
-                <span data-i18n="nav_singbox_vless">پروتکل VLESS Reality</span>
-                <span class="sidebar-badge sidebar-badge-purple">Reality</span>
-            </button>
-
-            <!-- Trojan TLS زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('trojan')">
-                <i data-lucide="shield" style="color: #0ea5e9;"></i>
-                <span data-i18n="nav_trojan">پروتکل Trojan (تروجان)</span>
-                <span class="sidebar-badge sidebar-badge-blue">TLS</span>
-            </button>
-
-            <!-- Hysteria 2 زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('hysteria2')">
-                <i data-lucide="flame" style="color: #ef4444;"></i>
-                <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
-                <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
-            </button>
-
-            <!-- TUIC Protocol زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('tuic')">
-                <i data-lucide="zap" style="color: #6366f1;"></i>
-                <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
-                <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
-            </button>
-
-            <!-- Shadowsocks زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')">
-                <i data-lucide="lock" style="color: #10b981;"></i>
-                <span data-i18n="nav_shadowsocks">شادوساکس (Shadowsocks 2022)</span>
-                <span class="sidebar-badge sidebar-badge-blue">2022</span>
-            </button>
-
-            <!-- NaiveProxy زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')">
-                <i data-lucide="compass" style="color: #f59e0b;"></i>
-                <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
-                <span class="sidebar-badge sidebar-badge-green">Chrome</span>
-            </button>
-
-            <!-- VMess زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');">
-                <i data-lucide="layers" style="color: #06b6d4;"></i>
-                <span data-i18n="nav_singbox_vmess">پروتکل VMess</span>
-                <span class="sidebar-badge sidebar-badge-blue">WS</span>
-            </button>
-
-            <!-- ShadowTLS زیرمجموعه سینگ‌باکس -->
-            <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');">
-                <i data-lucide="eye-off" style="color: #ec4899;"></i>
-                <span data-i18n="nav_singbox_shadowtls">پروتکل ShadowTLS v3</span>
-                <span class="sidebar-badge sidebar-badge-purple">Stealth</span>
-            </button>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <!-- ۳. سایر پروتکل‌های اتصال و VPN (کلاسیک و تونل) -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-header">
-                <i data-lucide="shield"></i>
-                <span data-i18n="nav_sec_vpn_classic">سایر پروتکل‌های VPN و تونل</span>
-            </div>
-            
-            <!-- Cisco AnyConnect (OCServ) -->
-            <button class="sidebar-nav-item" onclick="switchTab('ocserv')">
-                <i data-lucide="radio" style="color: #0284c7;"></i>
-                <span data-i18n="nav_ocserv">سیسکو AnyConnect</span>
-                <span class="sidebar-badge sidebar-badge-blue">Cisco</span>
-            </button>
-
-            <!-- StunTLS (WebRTC VoIP) -->
-            <button class="sidebar-nav-item" onclick="switchTab('stuntls')">
-                <i data-lucide="radio-tower" style="color: #a855f7;"></i>
-                <span data-i18n="nav_stuntls">پروتکل StunTLS</span>
-                <span class="sidebar-badge sidebar-badge-purple">STUN</span>
-            </button>
-
-            <!-- SNI Spoofing (Anti-DPI Bypass) -->
-            <button class="sidebar-nav-item" onclick="switchTab('snispoof')">
-                <i data-lucide="shield-check" style="color: #ec4899;"></i>
-                <span data-i18n="nav_snispoof">جعل SNI (SNI Spoofing)</span>
-                <span class="sidebar-badge sidebar-badge-pink">Anti-DPI</span>
-            </button>
-
-            <!-- Google Apps Script Full Tunnel Relay -->
-            <button class="sidebar-nav-item" onclick="switchTab('google-script')">
-                <i data-lucide="cloud-lightning" style="color: #4285F4;"></i>
-                <span data-i18n="nav_google_script">تونل گوگل اسکریپت (GAS)</span>
-                <span class="sidebar-badge sidebar-badge-blue">Google-CDN</span>
-            </button>
-
-            <!-- DNS Tunnels (DNSTT / VayDNS / Slipstream / NoizDNS / MasterdnsVPN) -->
-            <button class="sidebar-nav-item" onclick="switchTab('dns-tunnels')">
-                <i data-lucide="globe" style="color: #14b8a6;"></i>
-                <span data-i18n="nav_dns_tunnels">تونل‌های DNS (SlowDNS)</span>
-                <span class="sidebar-badge sidebar-badge-green">Anti-Filter</span>
-            </button>
-
-            <!-- NoizDNS Anti-DPI -->
-            <button class="sidebar-nav-item" onclick="switchTab('noizdns')">
-                <i data-lucide="radio" style="color: #ec4899;"></i>
-                <span data-i18n="nav_noizdns">نویز دی‌ان‌اس (NoizDNS)</span>
-                <span class="sidebar-badge sidebar-badge-purple">Stealth</span>
-            </button>
-
-            <!-- MasterdnsVPN Core -->
-            <button class="sidebar-nav-item" onclick="switchTab('masterdnsvpn')">
-                <i data-lucide="activity" style="color: #06b6d4;"></i>
-                <span data-i18n="nav_masterdnsvpn">مستر دی‌ان‌اس (MasterdnsVPN)</span>
-                <span class="sidebar-badge sidebar-badge-blue">Core</span>
-            </button>
-
-            <!-- Tor Bridges -->
-            <button class="sidebar-nav-item" onclick="switchTab('tor')">
-                <i data-lucide="shield-alert" style="color: #8b5cf6;"></i>
-                <span data-i18n="nav_tor">پل‌های تور (Tor Bridges)</span>
-                <span class="sidebar-badge sidebar-badge-blue">obfs4</span>
-            </button>
-
-            <!-- AmneziaWG (Anti-DPI) -->
-            <button class="sidebar-nav-item" onclick="switchTab('amneziawg')">
-                <i data-lucide="shield-check" style="color: #10b981;"></i>
-                <span data-i18n="nav_amneziawg">AmneziaWG</span>
-                <span class="sidebar-badge sidebar-badge-green">Anti-DPI</span>
-            </button>
-
-            <!-- WireGuard Normal -->
-            <button class="sidebar-nav-item" onclick="switchTab('wireguard')">
-                <i data-lucide="zap" style="color: #8b5cf6;"></i>
-                <span data-i18n="nav_wireguard">وایرگارد معمولی</span>
-            </button>
-
-            <!-- OpenVPN -->
-            <button class="sidebar-nav-item" onclick="switchTab('openvpn')">
-                <i data-lucide="lock" style="color: #f59e0b;"></i>
-                <span data-i18n="nav_openvpn">اوپن‌وی‌پی‌ان (OpenVPN)</span>
-                <span class="sidebar-badge sidebar-badge-blue">Dual</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('openvpn-addons')" style="font-size: 12.5px; padding-right: 32px;">
-                <i data-lucide="puzzle" style="color: #f59e0b; width: 16px; height: 16px;"></i>
-                <span data-i18n="nav_openvpn_addons">افزونه‌ها و ضد فیلتر OpenVPN</span>
-            </button>
-
-            <!-- SSH Tunnel -->
-            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('overview');">
-                <i data-lucide="terminal" style="color: #059669;"></i>
-                <span data-i18n="nav_ssh">تونل SSH (داشبورد)</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('users');" style="font-size: 12.5px; padding-right: 32px;">
-                <i data-lucide="users" style="color: #3b82f6; width: 16px; height: 16px;"></i>
-                <span>کاربران SSH</span>
-                <span class="badge-pill" id="sidebar-ssh-users-count" style="font-size:10px; padding:1px 6px;">۰</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('domains');" style="font-size: 12.5px; padding-right: 32px;">
-                <i data-lucide="globe" style="color: #10b981; width: 16px; height: 16px;"></i>
-                <span>دامنه‌ها و تفکیک SNI</span>
-                <span class="sidebar-badge sidebar-badge-blue" style="font-size:9px;">SNI</span>
-            </button>
-
-            <!-- IKEv2 / IPsec -->
-            <button class="sidebar-nav-item" onclick="switchTab('ikev2')">
-                <i data-lucide="smartphone" style="color: #ec4899;"></i>
-                <span data-i18n="nav_ikev2">پروتکل IKEv2</span>
-                <span class="sidebar-badge sidebar-badge-purple">iOS/Win</span>
-            </button>
-
-            <!-- L2TP / IPsec -->
-            <button class="sidebar-nav-item" onclick="switchTab('l2tp')">
-                <i data-lucide="layers" style="color: #6366f1;"></i>
-                <span data-i18n="nav_l2tp">پروتکل L2TP / IPsec</span>
-            </button>
-
-            <!-- SSTP -->
-            <button class="sidebar-nav-item" onclick="switchTab('sstp')">
-                <i data-lucide="shuffle" style="color: #06b6d4;"></i>
-                <span data-i18n="nav_sstp">پروتکل SSTP</span>
-            </button>
-
-            <!-- MTProto & SOCKS Proxies -->
-            <button class="sidebar-nav-item" onclick="switchTab('mtproto')">
-                <i data-lucide="send" style="color: #0ea5e9;"></i>
-                <span data-i18n="nav_mtproto">پروکسی‌ها (MTProto / ساکس)</span>
-                <span class="sidebar-badge sidebar-badge-blue">Proxy</span>
-            </button>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <!-- ۳. بخش سرورهای ریموت و کلاستر -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-header">
-                <i data-lucide="server"></i>
-                <span data-i18n="nav_sec_cluster">ریموت سرور و کلاستر</span>
-            </div>
-            <button class="sidebar-nav-item" onclick="switchTab('tunnels')">
-                <i data-lucide="route" style="color: #6366f1;"></i>
-                <span data-i18n="nav_tunnels">تونل‌های شبکه (Tunnels)</span>
-                <span class="sidebar-badge sidebar-badge-blue">MikroTik</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('servers')">
-                <i data-lucide="server" style="color: #4f46e5;"></i>
-                <span data-i18n="nav_servers">سرورهای ریموت (Servers)</span>
-            </button>
-        </div>
-
-        <div class="sidebar-divider"></div>
-
-        <!-- ۴. بخش تنظیمات و مدیریت هسته پنل -->
-        <div class="sidebar-section">
-            <div class="sidebar-section-header">
-                <i data-lucide="settings"></i>
-                <span data-i18n="nav_sec_settings">تنظیمات و هسته پنل</span>
-            </div>
-            <button class="sidebar-nav-item" onclick="switchTab('radius')">
-                <i data-lucide="database" style="color: #059669;"></i>
-                <span data-i18n="nav_radius">تنظیمات ردیوس (RADIUS)</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('ssl')">
-                <i data-lucide="badge-check" style="color: #d97706;"></i>
-                <span data-i18n="nav_ssl">گواهی‌های امنیتی SSL</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('multiplexer')">
-                <i data-lucide="network" style="color: #0284c7;"></i>
-                <span data-i18n="nav_multiplexer">اشتراک پورت و مولتی‌پورت</span>
-                <span class="sidebar-badge sidebar-badge-blue">MultiPort</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('dns-management')">
-                <i data-lucide="network" style="color: #14b8a6;"></i>
-                <span data-i18n="nav_dns_management">مدیریت DNS و مسیریابی خروجی</span>
-                <span class="sidebar-badge sidebar-badge-green">DNS Hub</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('cloudflare-hub')">
-                <i data-lucide="cloud-lightning" style="color: #f97316;"></i>
-                <span data-i18n="nav_cloudflare_hub">اتوماسیون کلودفلر (Cloudflare Suite)</span>
-                <span class="sidebar-badge" style="background:rgba(249,115,22,0.2); color:#f97316; font-size:10px;">Auto 1-Click</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('system')">
-                <i data-lucide="sliders" style="color: #64748b;"></i>
-                <span data-i18n="nav_system">سیستم</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="switchTab('terminal')">
-                <i data-lucide="terminal" style="color: #10b981;"></i>
-                <span data-i18n="nav_terminal">ترمینال سرور (Terminal CLI)</span>
-                <span class="sidebar-badge sidebar-badge-green">CLI</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="openTwoFactorModal()" style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="shield-check" style="color: #6366f1;"></i>
-                    <span data-i18n="nav_twofa">احراز هویت دو مرحله‌ای (2FA)</span>
+            <!-- ۱. داشبورد و وضعیت (Dashboard & Monitoring) -->
+            <div class="sidebar-accordion-group expanded" data-group="dashboard">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="داشبورد و وضعیت" data-i18n-title="nav_sec_dashboard">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="layout-grid" class="sidebar-group-icon"></i>
+                        <span data-i18n="nav_sec_dashboard">داشبورد و وضعیت</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item active" onclick="switchTab('overview')" title="نمای کلی (Overview)" data-i18n-title="nav_overview">
+                        <i data-lucide="layout-dashboard" style="color: #6366f1;"></i>
+                        <span data-i18n="nav_overview">نمای کلی (Overview)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('radar')" title="رادار فیلترینگ و اتصال" data-i18n-title="nav_radar">
+                        <i data-lucide="radar" style="color: #ef4444;"></i>
+                        <span data-i18n="nav_radar">رادار فیلترینگ و اتصال</span>
+                        <span class="sidebar-badge sidebar-badge-gold">Radar</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('protocols')" title="وضعیت کلی پروتکل‌ها" data-i18n-title="nav_protocols">
+                        <i data-lucide="activity" style="color: #0ea5e9;"></i>
+                        <span data-i18n="nav_protocols">وضعیت کلی پروتکل‌ها</span>
+                    </button>
                 </div>
-                <span id="sidebar-twofa-badge" class="sidebar-badge sidebar-badge-blue">2FA</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="openBackupModal()" style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="archive" style="color: #10b981;"></i>
-                    <span data-i18n="nav_backup_restore">پشتیبان‌گیری و بازگردانی</span>
+            </div>
+
+            <!-- ۲. هسته سینگ‌باکس (Sing-box Core Suite) -->
+            <div class="sidebar-accordion-group" data-group="singbox-suite">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="هسته سینگ‌باکس (Sing-box)" data-i18n-title="nav_sec_singbox">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="box" class="sidebar-group-icon" style="color: #8b5cf6;"></i>
+                        <span data-i18n="nav_sec_singbox">هسته سینگ‌باکس (Sing-box)</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox')" title="پروتکل Trojan (تروجان)" data-i18n-title="nav_trojan">
+                        <i data-lucide="layout" style="color: #8b5cf6;"></i>
+                        <span>استودیوی جامع هسته</span>
+                        <span class="sidebar-badge sidebar-badge-purple" style="margin-inline-start: auto;">Core</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('trojan')" title="ریالیتی (VLESS Reality)">
+                        <i data-lucide="shield" style="color: #0ea5e9;"></i>
+                        <span data-i18n="nav_trojan">پروتکل Trojan (تروجان)</span>
+                        <span class="sidebar-badge sidebar-badge-blue">TLS</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('hysteria2')" title="هیستوریا ۲ (Hysteria 2)" data-i18n-title="nav_hysteria2">
+                        <i data-lucide="flame" style="color: #ef4444;"></i>
+                        <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
+                        <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('tuic')" title="پروتکل TUIC (کوییک)" data-i18n-title="nav_tuic">
+                        <i data-lucide="zap" style="color: #6366f1;"></i>
+                        <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
+                        <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')" title="شادوساکس (Shadowsocks 2022)" data-i18n-title="nav_shadowsocks">
+                        <i data-lucide="lock" style="color: #10b981;"></i>
+                        <span data-i18n="nav_shadowsocks">شادوساکس (Shadowsocks 2022)</span>
+                        <span class="sidebar-badge sidebar-badge-blue">2022</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');" title="کاربران هسته (Singbox Users)" data-i18n-title="nav_singbox_users">
+                        <i data-lucide="sparkles" style="color: #059669;"></i>
+                        <span>ریالیتی (VLESS Reality)</span>
+                        <span class="sidebar-badge sidebar-badge-green">Reality</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');" title="پروتکل VMess (ویمیس)">
+                        <i data-lucide="network" style="color: #3b82f6;"></i>
+                        <span>پروتکل VMess (ویمیس)</span>
+                        <span class="sidebar-badge sidebar-badge-blue">VMess</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('users');" title="ابزارهای ضد فیلترینگ">
+                        <i data-lucide="users" style="color: #3b82f6;"></i>
+                        <span data-i18n="nav_singbox_users">کاربران هسته (Singbox Users)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('logs');" title="لاگ‌های زنده هسته (Live Logs)" data-i18n-title="nav_singbox_logs">
+                        <i data-lucide="terminal" style="color: #10b981;"></i>
+                        <span data-i18n="nav_singbox_logs">لاگ‌های زنده هسته (Live Logs)</span>
+                    </button>
                 </div>
-                <span class="sidebar-badge sidebar-badge-green">Backup</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="openTelegramBotModal()" style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="send" style="color: #0284c7;"></i>
-                    <span data-i18n="nav_telegram_bot">ربات تلگرام مدیر و هشدار</span>
+            </div>
+
+            <!-- ۳. ابزارها و روش‌های ضد فیلترینگ (Anti-DPI & Bypass Tools) -->
+            <div class="sidebar-accordion-group" data-group="anti-dpi">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="جعل SNI و ضد انسداد" data-i18n-title="nav_snispoof">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="shield-alert" class="sidebar-group-icon" style="color: #f59e0b;"></i>
+                        <span>ابزارهای ضد فیلترینگ</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');" title="جعل SNI و ضد انسداد" data-i18n-title="nav_snispoof">
+                        <i data-lucide="shield-check" style="color: #6366f1;"></i>
+                        <span>شادو تی‌ال‌اس (ShadowTLS v3)</span>
+                        <span class="sidebar-badge sidebar-badge-purple">v3</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('snispoof')" title="نویز دی‌ان‌اس (NoizDNS)">
+                        <i data-lucide="split" style="color: #14b8a6;"></i>
+                        <span data-i18n="nav_snispoof">جعل SNI و ضد انسداد</span>
+                        <span class="sidebar-badge sidebar-badge-green">Anti-DPI</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('naiveproxy')" title="پروتکل NaiveProxy" data-i18n-title="nav_naiveproxy">
+                        <i data-lucide="compass" style="color: #f59e0b;"></i>
+                        <span data-i18n="nav_naiveproxy">پروتکل NaiveProxy</span>
+                        <span class="sidebar-badge sidebar-badge-green">Chrome</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('tor')" title="پل‌های شبکه تور (Tor Bridges)" data-i18n-title="nav_tor">
+                        <i data-lucide="globe" style="color: #7c3aed;"></i>
+                        <span data-i18n="nav_tor">پل‌های شبکه تور (Tor Bridges)</span>
+                        <span class="sidebar-badge sidebar-badge-purple">Onion</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('dns-tunnels')" title="تونل‌های DNS ضد فیلتر" data-i18n-title="nav_dns_tunnels">
+                        <i data-lucide="radio" style="color: #10b981;"></i>
+                        <span data-i18n="nav_dns_tunnels">تونل‌های DNS ضد فیلتر</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('noizdns')" title="گوگل اسکریپت (Google Script)" data-i18n-title="nav_google_script">
+                        <i data-lucide="shield-alert" style="color: #f59e0b;"></i>
+                        <span>نویز دی‌ان‌اس (NoizDNS)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('masterdnsvpn')" title="مستر دی‌ان‌اس (MasterDNS VPN)">
+                        <i data-lucide="zap" style="color: #ec4899;"></i>
+                        <span>مستر دی‌ان‌اس (MasterDNS VPN)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('google-script')" title="آی‌پی‌های تمیز کلودفلر (Clean IPs)">
+                        <i data-lucide="cpu" style="color: #f97316;"></i>
+                        <span data-i18n="nav_google_script">گوگل اسکریپت (Google Script)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('mtproto')" title="پروکسی تلگرام (MTProto)" data-i18n-title="nav_mtproto">
+                        <i data-lucide="send" style="color: #0284c7;"></i>
+                        <span data-i18n="nav_mtproto">پروکسی تلگرام (MTProto)</span>
+                        <span class="sidebar-badge sidebar-badge-blue">TG</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('cleanips');" title="تونل و دسترسی SSH" data-i18n-title="nav_ssh">
+                        <i data-lucide="cloud-lightning" style="color: #0284c7;"></i>
+                        <span>آی‌پی‌های تمیز کلودفلر (Clean IPs)</span>
+                    </button>
                 </div>
-                <span class="sidebar-badge sidebar-badge-blue">Bot</span>
-            </button>
-            <button class="sidebar-nav-item" onclick="openDecoyWpModal()" style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="globe" style="color: #8b5cf6;"></i>
-                    <span data-i18n="nav_decoy_wp">سایت استتار وردپرس (Anti-DPI)</span>
+            </div>
+
+            <!-- ۴. پروتکل‌های استاندارد VPN و SSH (Standard VPN & SSH Protocols) -->
+            <div class="sidebar-accordion-group" data-group="standard-vpn">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="تونل و دسترسی SSH" data-i18n-title="nav_ssh">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="lock" class="sidebar-group-icon" style="color: #10b981;"></i>
+                        <span>پروتکل‌های استاندارد VPN و SSH</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('overview');" title="کاربران SSH">
+                        <i data-lucide="terminal" style="color: #059669;"></i>
+                        <span data-i18n="nav_ssh">تونل و دسترسی SSH</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('users');" title="امنزیا وایرگارد (AmneziaWG)" data-i18n-title="nav_amneziawg">
+                        <i data-lucide="users" style="color: #3b82f6;"></i>
+                        <span>کاربران SSH</span>
+                        <span class="badge-pill" id="sidebar-ssh-users-count" style="font-size:10px; padding:1px 6px; margin-inline-start:auto;">۰</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('domains');" title="دامنه‌ها و تفکیک SNI">
+                        <i data-lucide="globe" style="color: #10b981;"></i>
+                        <span>دامنه‌ها و تفکیک SNI</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('amneziawg')" title="کاربران، سرورها و رادیوس">
+                        <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
+                        <span data-i18n="nav_amneziawg">امنزیا وایرگارد (AmneziaWG)</span>
+                        <span class="sidebar-badge sidebar-badge-purple">AWG</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('wireguard')" title="وایرگارد (WireGuard)" data-i18n-title="nav_wireguard">
+                        <i data-lucide="shield" style="color: #10b981;"></i>
+                        <span data-i18n="nav_wireguard">وایرگارد (WireGuard)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('openvpn')" title="اوپن‌وی‌پی‌ان (OpenVPN)" data-i18n-title="nav_openvpn">
+                        <i data-lucide="shield-check" style="color: #f59e0b;"></i>
+                        <span data-i18n="nav_openvpn">اوپن‌وی‌پی‌ان (OpenVPN)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('openvpn-addons')" title="افزونه‌های OpenVPN" data-i18n-title="nav_openvpn_addons">
+                        <i data-lucide="puzzle" style="color: #ec4899;"></i>
+                        <span data-i18n="nav_openvpn_addons">افزونه‌های OpenVPN</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('ocserv')" title="سیسکو انی‌کانکت (Ocserv)" data-i18n-title="nav_ocserv">
+                        <i data-lucide="shield" style="color: #0284c7;"></i>
+                        <span data-i18n="nav_ocserv">سیسکو انی‌کانکت (Ocserv)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('stuntls')" title="استون تی‌ال‌اس (StunTLS)" data-i18n-title="nav_stuntls">
+                        <i data-lucide="shield" style="color: #8b5cf6;"></i>
+                        <span data-i18n="nav_stuntls">استون تی‌ال‌اس (StunTLS)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('ikev2')" title="پروتکل IKEv2 / IPsec" data-i18n-title="nav_ikev2">
+                        <i data-lucide="shield" style="color: #6366f1;"></i>
+                        <span data-i18n="nav_ikev2">پروتکل IKEv2 / IPsec</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('l2tp')" title="پروتکل L2TP / IPsec" data-i18n-title="nav_l2tp">
+                        <i data-lucide="shield" style="color: #14b8a6;"></i>
+                        <span data-i18n="nav_l2tp">پروتکل L2TP / IPsec</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('sstp')" title="پروتکل SSTP" data-i18n-title="nav_sstp">
+                        <i data-lucide="shield" style="color: #059669;"></i>
+                        <span data-i18n="nav_sstp">پروتکل SSTP</span>
+                    </button>
                 </div>
-                <span class="sidebar-badge sidebar-badge-purple">Anti-DPI</span>
-            </button>
-        </div>
-    </nav>
+            </div>
+
+            <!-- ۵. ابزارهای شبکه و کلودفلر (Network Tools & Cloudflare) -->
+            <div class="sidebar-accordion-group" data-group="network-tools">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="ابزارهای شبکه و کلودفلر" data-i18n-title="nav_sec_network_tools">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="network" class="sidebar-group-icon"></i>
+                        <span data-i18n="nav_sec_network_tools">ابزارهای شبکه و کلودفلر</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('tunnels')" title="مدیریت تونل‌های سرور" data-i18n-title="nav_tunnels">
+                        <i data-lucide="route" style="color: #f59e0b;"></i>
+                        <span data-i18n="nav_tunnels">مدیریت تونل‌های سرور</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('cloudflare-hub')" title="مرکز مدیریت کلودفلر" data-i18n-title="nav_cloudflare_hub">
+                        <i data-lucide="cloud" style="color: #f97316;"></i>
+                        <span data-i18n="nav_cloudflare_hub">مرکز مدیریت کلودفلر</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('dns-management')" title="مدیریت DNS و روتینگ" data-i18n-title="nav_dns_management">
+                        <i data-lucide="globe" style="color: #3b82f6;"></i>
+                        <span data-i18n="nav_dns_management">مدیریت DNS و روتینگ</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('multiplexer')" title="مولتی‌پلکسر ترافیک" data-i18n-title="nav_multiplexer">
+                        <i data-lucide="shuffle" style="color: #8b5cf6;"></i>
+                        <span data-i18n="nav_multiplexer">مولتی‌پلکسر ترافیک</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ۶. کاربران، سرورها و احراز هویت (Users, Servers & RADIUS) -->
+            <div class="sidebar-accordion-group" data-group="users-radius">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="تنظیمات ردیوس (RADIUS)" data-i18n-title="nav_radius">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="users" class="sidebar-group-icon"></i>
+                        <span>کاربران، سرورها و رادیوس</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('radius')" title="تنظیمات ردیوس (RADIUS)" data-i18n-title="nav_radius">
+                        <i data-lucide="database" style="color: #059669;"></i>
+                        <span data-i18n="nav_radius">تنظیمات ردیوس (RADIUS)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('servers')" title="سرورهای ریموت (Servers)" data-i18n-title="nav_servers">
+                        <i data-lucide="server" style="color: #4f46e5;"></i>
+                        <span data-i18n="nav_servers">سرورهای ریموت (Servers)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ۷. سیستم و ابزارهای امنیتی (System & Security) -->
+            <div class="sidebar-accordion-group" data-group="system-tools">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="سیستم و ابزارها" data-i18n-title="nav_sec_system">
+                    <div class="sidebar-group-title">
+                        <i data-lucide="settings" class="sidebar-group-icon"></i>
+                        <span data-i18n="nav_sec_system">سیستم و ابزارها</span>
+                    </div>
+                    <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
+                </button>
+                <div class="sidebar-group-content">
+                    <button class="sidebar-nav-item" onclick="switchTab('system')" title="سیستم و تنظیمات پنل" data-i18n-title="nav_system">
+                        <i data-lucide="sliders" style="color: #0ea5e9;"></i>
+                        <span data-i18n="nav_system">سیستم و تنظیمات پنل</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('ssl')" title="گواهی SSL و دامنه" data-i18n-title="nav_ssl">
+                        <i data-lucide="lock" style="color: #10b981;"></i>
+                        <span data-i18n="nav_ssl">گواهی SSL و دامنه</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('terminal')" title="ترمینال لینوکس (Web SSH)" data-i18n-title="nav_terminal">
+                        <i data-lucide="terminal" style="color: #6366f1;"></i>
+                        <span data-i18n="nav_terminal">ترمینال لینوکس (Web SSH)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('2fa')" title="امنیت ۲ مرحله‌ای (2FA)" data-i18n-title="nav_2fa">
+                        <i data-lucide="shield-alert" style="color: #10b981;"></i>
+                        <span data-i18n="nav_2fa">امنیت ۲ مرحله‌ای (2FA)</span>
+                        <span id="sidebar-twofa-badge" style="font-size:10px; margin-inline-start:auto;"></span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('backup')" title="پشتیبان‌گیری و بازگردانی" data-i18n-title="nav_backup">
+                        <i data-lucide="download-cloud" style="color: #3b82f6;"></i>
+                        <span data-i18n="nav_backup">پشتیبان‌گیری و بازگردانی</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('telegram')" title="ربات تلگرام هوشمند" data-i18n-title="nav_telegram">
+                        <i data-lucide="bot" style="color: #0284c7;"></i>
+                        <span data-i18n="nav_telegram">ربات تلگرام هوشمند</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('decoy')" title="دامنه استتار (فیک‌سایت)" data-i18n-title="nav_decoy">
+                        <i data-lucide="globe-2" style="color: #f59e0b;"></i>
+                        <span data-i18n="nav_decoy">دامنه استتار (فیک‌سایت)</span>
+                    </button>
+                    <button class="sidebar-nav-item" onclick="switchTab('docs')" title="راهنما و آموزش پنل" data-i18n-title="nav_docs">
+                        <i data-lucide="help-circle" style="color: #059669;"></i>
+                        <span data-i18n="nav_docs">راهنما و آموزش پنل</span>
+                    </button>
+                </div>
+            </div>
+
+        </nav>
     </div>
 
     <!-- Sidebar Footer Quick Language Switcher with SVG Flags (8 Languages Grid) -->

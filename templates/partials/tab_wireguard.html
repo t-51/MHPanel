@@ -4,7 +4,7 @@
         <div class="section-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
             <div>
                 <h2 class="section-title" style="margin:0; font-size:20px; display:flex; align-items:center; gap:10px;">
-                    <i data-lucide="shield" style="color:#0284c7; width:24px; height:24px;"></i>
+                    <i data-lucide="shield" style="color:var(--color-primary); width:24px; height:24px;"></i>
                     <span data-i18n="nav_wireguard">مدیریت وایرگارد استاندارد (WireGuard Core)</span>
                     <span class="sidebar-badge sidebar-badge-blue" id="wg-active-port-pill">UDP 51820</span>
                     <span class="sidebar-badge sidebar-badge-green" id="wg-live-status-pill">Active</span>
@@ -20,7 +20,7 @@
                     <span>ساخت اکانت جدید</span>
                 </button>
                 <button class="btn btn-secondary" onclick="openWgMultiportModal()" type="button" style="display:flex; align-items:center; gap:6px;">
-                    <i data-lucide="network" style="width:16px; height:16px; color:#0ea5e9;"></i>
+                    <i data-lucide="network" style="width:16px; height:16px; color:var(--color-primary);"></i>
                     <span>کانفیگ چند پورته همزمان</span>
                 </button>
                 <button class="btn btn-secondary" onclick="fetchWireGuardClients()" type="button" title="بروزرسانی لیست">
@@ -30,18 +30,18 @@
         </div>
 
         <!-- Sub-Navigation Protocol Pills -->
-        <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-color); padding-bottom:12px;">
-            <button type="button" class="btn-subtab active" id="wg-subtab-btn-clients" onclick="switchWgSubTab('clients')" style="font-weight:700;">
-                <i data-lucide="users" style="width:14px; height:14px; color:#0284c7;"></i>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+            <button type="button" class="btn-subtab active" id="wg-subtab-btn-clients" onclick="switchWgSubTab('clients')">
+                <i data-lucide="users" style="width:14px; height:14px; color:var(--color-primary);"></i>
                 <span>مدیریت کاربران و کانفیگ‌ها</span>
-                <span class="badge-pill" id="wg-badge-total-count" style="font-size:11px; padding:1px 7px; background:rgba(2,132,199,0.15); color:#0284c7; border-radius:999px;">0</span>
+                <span class="badge-pill" id="wg-badge-total-count" style="font-size:11px; padding:2px 8px; background:rgba(99,102,241,0.15); color:var(--color-primary); border-radius:9999px;">0</span>
             </button>
-            <button type="button" class="btn-subtab" id="wg-subtab-btn-create" onclick="switchWgSubTab('create')" style="font-weight:700;">
-                <i data-lucide="plus-circle" style="width:14px; height:14px; color:#10b981;"></i>
+            <button type="button" class="btn-subtab" id="wg-subtab-btn-create" onclick="switchWgSubTab('create')">
+                <i data-lucide="plus-circle" style="width:14px; height:14px; color:var(--color-emerald);"></i>
                 <span>ساخت اکانت (تکی و دسته‌ای)</span>
             </button>
-            <button type="button" class="btn-subtab" id="wg-subtab-btn-settings" onclick="switchWgSubTab('settings')" style="font-weight:700;">
-                <i data-lucide="sliders" style="width:14px; height:14px; color:#6366f1;"></i>
+            <button type="button" class="btn-subtab" id="wg-subtab-btn-settings" onclick="switchWgSubTab('settings')">
+                <i data-lucide="sliders" style="width:14px; height:14px; color:var(--color-primary);"></i>
                 <span>تنظیمات سرور و چندپورته</span>
             </button>
         </div>
@@ -49,7 +49,7 @@
         <!-- ================= SUBTAB 1: CLIENTS LIST ================= -->
         <div id="wg-subtab-pane-clients" class="wg-subtab-content" style="display:flex; flex-direction:column; gap:16px;">
             <!-- Filter & Search Toolbar -->
-            <div class="glass-card config-card" style="padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
+            <div class="spec-card" style="padding:14px 18px; display:flex; flex-direction:column; gap:12px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <!-- Status Filter Pills -->
                     <div style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -83,61 +83,61 @@
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
                         <div style="display:flex; align-items:center; gap:6px;">
                             <span style="font-size:12px; color:var(--text-muted);"><i data-lucide="folder" style="width:14px; height:14px;"></i> دسته:</span>
-                            <select id="wg-group-filter-select" onchange="filterWgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:8px; min-width:130px;">
+                            <select id="wg-group-filter-select" onchange="filterWgClients()" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; border-radius:var(--radius-sm); min-width:130px;">
                                 <option value="all">همه دسته‌ها (گروه‌ها)</option>
                             </select>
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentWgGroupPortalLink()" style="font-size:12px; height:34px; padding:0 10px; display:inline-flex; align-items:center; gap:5px;" title="کپی لینک پرتال اختصاصی این گروه جهت ارائه به مالک گروه">
-                            <i data-lucide="external-link" style="width:13px; height:13px; color:#6366f1;"></i>
+                            <i data-lucide="external-link" style="width:13px; height:13px; color:var(--color-primary);"></i>
                             <span>لینک پرتال گروه</span>
                         </button>
                         <div style="position:relative;">
-                            <input type="text" id="wg-clients-search" oninput="filterWgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-left:14px; font-size:12px; height:34px; border-radius:8px; min-width:170px;">
+                            <input type="text" id="wg-clients-search" oninput="filterWgClients()" placeholder="جستجوی کاربر یا IP..." class="form-input" style="padding-inline-start:14px; font-size:12px; height:34px; border-radius:var(--radius-sm); min-width:170px;">
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- WireGuard Bulk Actions Bar -->
-            <div id="wg-bulk-bar" class="glass-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:10px; border:1px solid var(--border-color); background:rgba(2,132,199,0.03);">
+            <div id="wg-bulk-bar" class="spec-card" style="padding:10px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); background:var(--surface-secondary);">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-main); user-select:none;">
-                        <input type="checkbox" id="wg-select-all-chk" onchange="toggleSelectAllWgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:#0284c7;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin:0; font-size:13px; font-weight:700; color:var(--text-primary); user-select:none;">
+                        <input type="checkbox" id="wg-select-all-chk" onchange="toggleSelectAllWgClients(this.checked)" style="width:17px; height:17px; cursor:pointer; accent-color:var(--color-primary);">
                         <span>انتخاب همه</span>
                     </label>
                     <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSelectAllWgClients(true)" style="font-size:11px; padding:2px 8px; height:26px;">
                         انتخاب همه لیست
                     </button>
-                    <span id="wg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(2,132,199,0.15); color:#0284c7; border:1px solid rgba(2,132,199,0.3); border-radius:999px; font-weight:700; display:none;">
+                    <span id="wg-bulk-counter-pill" class="badge-pill" style="font-size:11.5px; padding:3px 10px; background:rgba(99,102,241,0.15); color:var(--color-primary); border:1px solid rgba(99,102,241,0.3); border-radius:9999px; font-weight:700; display:none;">
                         <span id="wg-bulk-selected-count">۰</span> کلاینت انتخاب شد
                     </span>
                 </div>
                 <div id="wg-bulk-actions-group" style="display:none; align-items:center; gap:6px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'pause')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#f97316; border-color:rgba(249,115,22,0.3);" title="متوقف کردن اتصال کلاینت‌های انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'pause')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-amber); border-color:rgba(245,158,11,0.3);" title="متوقف کردن اتصال کلاینت‌های انتخاب شده">
                         <i data-lucide="pause-circle" style="width:13px; height:13px;"></i>
                         <span>متوقف کردن همه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'resume')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="فعال‌سازی مجدد اتصال کلاینت‌های انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'resume')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-emerald); border-color:rgba(16,185,129,0.3);" title="فعال‌سازی مجدد اتصال کلاینت‌های انتخاب شده">
                         <i data-lucide="play-circle" style="width:13px; height:13px;"></i>
                         <span>فعال‌سازی همه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'reset_usage')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#06b6d4; border-color:rgba(6,182,212,0.3);" title="صفر کردن حجم مصرفی تمام کلاینت‌های انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkAction('wireguard', 'reset_usage')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-cyan); border-color:rgba(6,182,212,0.3);" title="صفر کردن حجم مصرفی تمام کلاینت‌های انتخاب شده">
                         <i data-lucide="rotate-ccw" style="width:13px; height:13px;"></i>
                         <span>ریست همه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkRenewModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#10b981; border-color:rgba(16,185,129,0.3);" title="تمدید اعتبار و تاریخ انقضای تمام کاربران انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkRenewModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-emerald); border-color:rgba(16,185,129,0.3);" title="تمدید اعتبار و تاریخ انقضای تمام کاربران انتخاب شده">
                         <i data-lucide="clock" style="width:13px; height:13px;"></i>
                         <span>تمدید اعتبار همه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkGroupModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#6366f1; border-color:rgba(99,102,241,0.3);" title="تغییر دسته / گروه کلاینت‌های انتخاب شده">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkGroupModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-primary); border-color:rgba(99,102,241,0.3);" title="تغییر دسته / گروه کلاینت‌های انتخاب شده">
                         <i data-lucide="folder" style="width:13px; height:13px;"></i>
                         <span>تغییر گروه</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkTrafficModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#eab308; border-color:rgba(234,179,8,0.3);" title="تنظیم سقف حجم">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkTrafficModal('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-amber); border-color:rgba(245,158,11,0.3);" title="تنظیم سقف حجم">
                         <i data-lucide="pie-chart" style="width:13px; height:13px;"></i>
                         <span>سقف حجم</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkDownload('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:#0284c7; border-color:rgba(2,132,199,0.3);" title="دانلود کانفیگ تمام کاربران انتخاب شده بصورت یک فایل ZIP">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerBulkDownload('wireguard')" style="font-size:12px; height:32px; padding:0 10px; display:inline-flex; align-items:center; gap:5px; color:var(--color-primary); border-color:rgba(99,102,241,0.3);" title="دانلود کانفیگ تمام کاربران انتخاب شده بصورت یک فایل ZIP">
                         <i data-lucide="archive" style="width:13px; height:13px;"></i>
                         <span>دانلود ZIP</span>
                     </button>
@@ -161,9 +161,9 @@
 
         <!-- ================= SUBTAB 2: CREATE ACCOUNTS ================= -->
         <div id="wg-subtab-pane-create" class="wg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:24px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:24px;">
                 <!-- Card 1: Create Single Client -->
-                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                     <div class="config-header" style="margin-bottom:0;">
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
                             <i data-lucide="user-plus" style="color:var(--color-emerald); width:20px; height:20px;"></i>
@@ -176,25 +176,25 @@
                     <div style="display:flex; flex-direction:column; gap:14px;">
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">نام کاربر (Client Name)</label>
-                            <input class="form-input" id="wg-client-name" placeholder="مثلاً User-Ali یا Phone-1" style="padding-left:14px; font-family:'JetBrains Mono';" type="text"/>
+                            <input class="form-input" id="wg-client-name" placeholder="مثلاً User-Ali یا Phone-1" style="padding-inline-start:14px; font-family:'JetBrains Mono';" type="text"/>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
-                            <input class="form-input" id="wg-client-group" list="wg-group-datalist" placeholder="مثلاً VIP، عمومی، خانواده یا نام جدید..." style="padding-left:14px;" type="text" value="عمومی"/>
+                            <input class="form-input" id="wg-client-group" list="wg-group-datalist" placeholder="مثلاً VIP، عمومی، خانواده یا نام جدید..." style="padding-inline-start:14px;" type="text" value="عمومی"/>
                             <datalist id="wg-group-datalist"></datalist>
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="wg-client-limit" placeholder="نامحدود" style="padding-left:14px;" type="number" min="1"/>
+                                <input class="form-input" id="wg-client-limit" placeholder="نامحدود" style="padding-inline-start:14px;" type="number" min="1"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="wg-client-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="wg-client-expire-days" min="1" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
-                                <input class="form-input" id="wg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
+                                <input class="form-input" id="wg-client-sim-use" min="1" max="100" placeholder="۱" style="padding-inline-start:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -208,7 +208,7 @@
                 </div>
 
                 <!-- Card 2: Bulk Create Clients -->
-                <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+                <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                     <div class="config-header" style="margin-bottom:0;">
                         <h3 class="config-title" style="display:flex; align-items:center; gap:8px;">
                             <i data-lucide="users" style="color:var(--color-primary); width:20px; height:20px;"></i>
@@ -222,29 +222,29 @@
                         <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12.5px;">پیشوند نام (Prefix)</label>
-                                <input class="form-input" id="wg-bulk-prefix" placeholder="Client" required="" style="padding-left:14px; font-family:'JetBrains Mono';" type="text" value="Client"/>
+                                <input class="form-input" id="wg-bulk-prefix" placeholder="Client" required="" style="padding-inline-start:14px; font-family:'JetBrains Mono';" type="text" value="Client"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12.5px;">تعداد (۱ تا ۵۰)</label>
-                                <input class="form-input" id="wg-bulk-count" max="50" min="1" required="" style="padding-left:14px;" type="number" value="5"/>
+                                <input class="form-input" id="wg-bulk-count" max="50" min="1" required="" style="padding-inline-start:14px;" type="number" value="5"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label class="form-label" style="font-weight:600; font-size:12.5px;">دسته‌بندی / گروه (Category)</label>
-                            <input class="form-input" id="wg-bulk-group" list="wg-group-datalist" placeholder="مثلاً VIP، دسته تست..." style="padding-left:14px;" type="text" value="عمومی"/>
+                            <input class="form-input" id="wg-bulk-group" list="wg-group-datalist" placeholder="مثلاً VIP، دسته تست..." style="padding-inline-start:14px;" type="text" value="عمومی"/>
                         </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px;">
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">محدودیت حجم (GB)</label>
-                                <input class="form-input" id="wg-bulk-limit" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="wg-bulk-limit" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">مدت اعتبار (روز)</label>
-                                <input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-left:14px;" type="number"/>
+                                <input class="form-input" id="wg-bulk-expire-days" min="1" placeholder="نامحدود" style="padding-inline-start:14px;" type="number"/>
                             </div>
                             <div class="form-group" style="margin:0;">
                                 <label class="form-label" style="font-weight:600; font-size:12px;">تعداد کاربر مجاز</label>
-                                <input class="form-input" id="wg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-left:14px;" type="number" value="1"/>
+                                <input class="form-input" id="wg-bulk-sim-use" min="1" max="100" placeholder="۱" style="padding-inline-start:14px;" type="number" value="1"/>
                             </div>
                         </div>
                         <div class="form-group" style="margin:0; display:flex; align-items:center; gap:8px;">
@@ -259,13 +259,13 @@
             </div>
 
             <!-- Single Result Card Modal / Box -->
-            <div id="wg-single-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.04);">
+            <div id="wg-single-result" class="spec-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(16, 185, 129, 0.4); background:rgba(16, 185, 129, 0.05);">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                    <h4 style="margin:0; color:#10b981; display:flex; align-items:center; gap:6px;">
+                    <h4 style="margin:0; color:var(--color-emerald); display:flex; align-items:center; gap:6px;">
                         <i data-lucide="check-circle" style="width:18px; height:18px;"></i> اکانت با موفقیت ساخته شد!
                     </h4>
                     <div style="display:flex; gap:8px;">
-                        <button class="btn btn-secondary btn-sm" id="wg-copy-sub-btn" type="button" style="font-size:12px; padding:6px 12px; color:#6366f1;">
+                        <button class="btn btn-secondary btn-sm" id="wg-copy-sub-btn" type="button" style="font-size:12px; padding:6px 12px; color:var(--color-primary);">
                             <i data-lucide="link" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی ساب‌لینک
                         </button>
                         <button class="btn btn-secondary btn-sm" id="wg-dl-btn" type="button" style="font-size:12px; padding:6px 12px;">
@@ -278,12 +278,12 @@
                 </div>
                 <div style="display:grid; grid-template-columns: 1fr auto; gap:20px; align-items:start;">
                     <div class="code-box" id="wg-config-text" style="max-height:220px; overflow-y:auto; margin:0; font-size:12px; direction:ltr; text-align:left;"></div>
-                    <div id="qrcode-canvas" style="background:white; padding:8px; border-radius:10px; display:flex; align-items:center; justify-content:center;"></div>
+                    <div id="qrcode-canvas" style="background:#ffffff; padding:10px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; align-items:center; justify-content:center;"></div>
                 </div>
             </div>
 
             <!-- Bulk Result Card -->
-            <div id="wg-bulk-result" class="glass-card config-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(99, 102, 241, 0.4); background:rgba(99, 102, 241, 0.04);">
+            <div id="wg-bulk-result" class="spec-card" style="display:none; flex-direction:column; gap:14px; border:1px solid rgba(99, 102, 241, 0.4); background:rgba(99, 102, 241, 0.05);">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <h4 style="margin:0; color:var(--color-primary); display:flex; align-items:center; gap:6px;">
                         <i data-lucide="check-circle" style="width:18px; height:18px;"></i> پروفایل‌های دسته‌ای ساخته شدند
@@ -299,24 +299,24 @@
         <!-- ================= SUBTAB 3: SETTINGS & MULTIPORT ================= -->
         <div id="wg-subtab-pane-settings" class="wg-subtab-content" style="display:none; flex-direction:column; gap:20px;">
             <!-- WireGuard Status Banner -->
-            <div style="background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25); border-radius: 10px; padding: 14px 18px;">
+            <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: var(--radius-lg); padding: 16px 20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span class="status-dot active"></span>
-                        <span style="font-weight:700; color:#0284c7; font-size:14px;">سرویس WireGuard استاندارد فعال و عملیاتی است</span>
+                        <span style="font-weight:700; color:var(--color-primary); font-size:14px;">سرویس WireGuard استاندارد فعال و عملیاتی است</span>
                     </div>
                     <div style="display:flex; gap:12px; font-size:12px; font-family:'JetBrains Mono', monospace;">
-                        <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">پورت هسته: <strong id="wg-stat-core-port">UDP 51820</strong></span>
-                        <span style="background:rgba(255,255,255,0.06); padding:4px 8px; border-radius:6px;">ساب‌نت: <strong>10.66.66.1/24</strong></span>
+                        <span style="background:var(--surface-secondary); border:1px solid var(--border-subtle); padding:4px 8px; border-radius:var(--radius-sm);">پورت هسته: <strong id="wg-stat-core-port">UDP 51820</strong></span>
+                        <span style="background:var(--surface-secondary); border:1px solid var(--border-subtle); padding:4px 8px; border-radius:var(--radius-sm);">ساب‌نت: <strong>10.66.66.1/24</strong></span>
                     </div>
                 </div>
             </div>
 
             <!-- WireGuard Multi-Port Manager Card -->
-            <div class="glass-card config-card" style="display:flex; flex-direction:column; gap:16px;">
+            <div class="spec-card" style="display:flex; flex-direction:column; gap:16px;">
                 <div class="config-header" style="margin-bottom:0; display:flex; justify-content:space-between; align-items:center;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:38px; height:38px; border-radius:10px; background:rgba(2, 132, 199, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:38px; height:38px; border-radius:var(--radius-md); background:rgba(99, 102, 241, 0.12); color:var(--color-primary); display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="network" style="width:20px; height:20px;"></i>
                         </div>
                         <div>
@@ -331,9 +331,9 @@
                     <span class="sidebar-badge sidebar-badge-blue">iptables NAT</span>
                 </div>
 
-                <div style="background:var(--bg-surface); padding:16px; border-radius:10px; border:1px solid var(--border-glow); display:flex; flex-direction:column; gap:14px;">
+                <div style="background:var(--surface-secondary); padding:16px; border-radius:var(--radius-md); border:1px solid var(--border-subtle); display:flex; flex-direction:column; gap:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-                        <span style="font-size:13px; font-weight:600;">پورت‌های فعال ریدایرکت شده:</span>
+                        <span style="font-size:13px; font-weight:600; color:var(--text-primary);">پورت‌های فعال ریدایرکت شده:</span>
                         <div style="display:flex; gap:8px;">
                             <input type="number" id="wg-add-port-input" placeholder="پورت جدید (مثلاً 8443)" class="form-input" style="padding:4px 10px; font-size:12px; height:34px; width:150px;" min="1" max="65535">
                             <button type="button" class="btn btn-secondary btn-sm" onclick="addWgMultiportFromInput()">
@@ -357,14 +357,14 @@
             </div>
 
             <!-- WireGuard over Cloudflare CDN (WebSocket Tunnel) Card -->
-            <div class="glass-card config-card" style="border: 1px solid rgba(245, 158, 11, 0.35); background: linear-gradient(135deg, rgba(254, 243, 199, 0.08) 0%, rgba(20, 24, 39, 0.6) 100%);">
+            <div class="spec-card" style="border: 1px solid rgba(245, 158, 11, 0.35); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width:40px; height:40px; border-radius:10px; background:rgba(245, 158, 11, 0.15); color:#d97706; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:40px; height:40px; border-radius:var(--radius-md); background:rgba(245, 158, 11, 0.15); color:var(--color-amber); display:flex; align-items:center; justify-content:center;">
                             <i data-lucide="cloud-lightning" style="width:22px; height:22px;"></i>
                         </div>
                         <div>
-                            <h4 style="margin:0; font-size:16px; font-weight:700; color:#d97706;">
+                            <h4 style="margin:0; font-size:16px; font-weight:700; color:var(--color-amber);">
                                 عبور وایرگارد از کلودفلر (WireGuard over Cloudflare CDN)
                             </h4>
                             <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
@@ -384,21 +384,21 @@
                 </div>
                 <!-- Quick Stats -->
                 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-bottom:14px; font-size:12px;">
-                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--surface-secondary); padding:10px 12px; border-radius:var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;">پورت وب‌سوکت سرور</div>
-                        <div id="wg-cf-stat-port" style="font-weight:700; color:#d97706; font-family:'JetBrains Mono',monospace;">2082 (HTTP/WS)</div>
+                        <div id="wg-cf-stat-port" style="font-weight:700; color:var(--color-amber); font-family:'JetBrains Mono',monospace;">2082 (HTTP/WS)</div>
                     </div>
-                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--surface-secondary); padding:10px 12px; border-radius:var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;">مسیر وب‌سوکت (Path)</div>
-                        <div id="wg-cf-stat-path" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">wg-cf</div>
+                        <div id="wg-cf-stat-path" style="font-weight:700; color:var(--color-emerald); font-family:'JetBrains Mono',monospace;">wg-cf</div>
                     </div>
-                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--surface-secondary); padding:10px 12px; border-radius:var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;">مقصد محلی (Target)</div>
-                        <div id="wg-cf-stat-target" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">127.0.0.1:51820</div>
+                        <div id="wg-cf-stat-target" style="font-weight:700; color:var(--color-primary); font-family:'JetBrains Mono',monospace;">127.0.0.1:51820</div>
                     </div>
-                    <div style="background: var(--bg-surface); padding:10px 12px; border-radius:8px; border: 1px solid var(--border-glow);">
+                    <div style="background: var(--surface-secondary); padding:10px 12px; border-radius:var(--radius-sm); border: 1px solid var(--border-subtle);">
                         <div style="color:var(--text-muted); font-size:11px;">پورت عمومی کلادفلر</div>
-                        <div style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace;">443 (HTTPS/WSS)</div>
+                        <div style="font-weight:700; color:var(--color-primary); font-family:'JetBrains Mono',monospace;">443 (HTTPS/WSS)</div>
                     </div>
                 </div>
                 <!-- Config Form -->
@@ -427,21 +427,21 @@
             </div>
 
             <!-- Cloudflare WARP Routing for WireGuard Card -->
-            <div class="glass-card config-card" style="border: 1px solid rgba(6, 182, 212, 0.35); background: rgba(6, 182, 212, 0.04); padding: 16px;">
-                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+            <div class="spec-card" style="border: 1px solid rgba(6, 182, 212, 0.35); background: var(--surface-primary); padding: 18px;">
+                <div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <div style="width: 36px; height: 36px; border-radius: 10px; background: rgba(6, 182, 212, 0.15); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: rgba(6, 182, 212, 0.15); color: var(--color-cyan); display: flex; align-items: center; justify-content: center;">
                             <i data-lucide="zap" style="width: 20px; height: 20px;"></i>
                         </div>
                         <div>
-                            <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-color);">خروج ترافیک کاربران WireGuard از Cloudflare WARP</h4>
+                            <h4 style="margin: 0; font-size: 14.5px; font-weight: 700; color: var(--text-primary);">خروج ترافیک کاربران WireGuard از Cloudflare WARP</h4>
                             <p style="margin: 2px 0 0; font-size: 12px; color: var(--text-muted);">
                                 عبور مستقیم ترافیک کلاینت‌ها از شبکه امن وارپ جهت پنهان‌سازی آی‌پی اصلی سرور و رفع مسدودی‌ها
                             </p>
                         </div>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <span class="badge" id="wg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 20px; background: #e2e8f0; color: #475569;">
+                        <span class="badge" id="wg-warp-status-badge" style="padding: 5px 12px; font-size: 12px; font-weight: 700; border-radius: 9999px; background: var(--surface-secondary); color: var(--text-secondary); border: 1px solid var(--border-subtle);">
                             -
                         </span>
                         <button class="btn btn-sm" id="wg-warp-toggle-btn" onclick="toggleWgWarpClick()" style="padding: 6px 14px; font-size: 12px; width:auto;" type="button">
@@ -449,13 +449,40 @@
                         </button>
                     </div>
                 </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 10px; border-top: 1px solid rgba(0, 0, 0, 0.06); font-size: 12px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-top: 12px; border-top: 1px solid var(--border-subtle); font-size: 12px;">
                     <div style="display:flex; gap:16px; flex-wrap:wrap;">
-                        <span>وضعیت سرویس وارپ: <strong id="wg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-color);">-</strong></span>
-                        <span>آی‌پی خروجی کلودفلر: <strong id="wg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:#0284c7;">-</strong></span>
+                        <span>وضعیت سرویس وارپ: <strong id="wg-warp-svc-status" style="font-family:'JetBrains Mono', monospace; color:var(--text-primary);">-</strong></span>
+                        <span>آی‌پی خروجی کلودفلر: <strong id="wg-warp-exit-ip" style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">-</strong></span>
                         <span>موتور مسیریابی: <strong style="font-family:'JetBrains Mono', monospace; color:var(--color-primary);">tun2socks (Table 51821)</strong></span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- WireGuard Multiport Modal for Client -->
+<div class="modal" id="modal-wg-client-multiport">
+    <div class="modal-card" style="max-width: 650px;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display:flex; align-items:center; gap:8px;">
+                <i data-lucide="network" style="color:var(--color-primary); width:18px; height:18px;"></i>
+                <span>کانفیگ‌های چند پورته وایرگارد</span>
+            </h3>
+            <button class="modal-close" onclick="closeWgClientMultiportModal()"><i data-lucide="x"></i></button>
+        </header>
+        <div style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+            <p style="font-size:12.5px; color:var(--text-muted); margin:0;">
+                سرور روی کلیه پورت‌های زیر ترافیک این اکانت را می‌پذیرد. در صورت مسدود شدن یا اختلال یک پورت، از پورت‌های جایگزین استفاده کنید:
+            </p>
+            <div id="wg-client-mp-list" style="display:flex; flex-direction:column; gap:10px; max-height:360px; overflow-y:auto;">
+                <!-- Injected via JS -->
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-subtle); padding-top:12px; margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="closeWgClientMultiportModal()" type="button">بستن</button>
+                <a id="wg-modal-mp-zip-btn" href="#" class="btn btn-primary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                    <i data-lucide="archive" style="width:14px; height:14px;"></i> دانلود همه پورت‌ها (فایل ZIP)
+                </a>
             </div>
         </div>
     </div>

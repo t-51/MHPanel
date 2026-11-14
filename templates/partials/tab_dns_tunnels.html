@@ -1,971 +1,1008 @@
 <div class="tab-pane" id="tab-dns-tunnels">
-<!-- DNS Tunnels Header -->
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-<div>
-<h3 class="config-title" data-i18n="dns_tunnels_title" style="margin:0; font-size:18px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="globe" style="color:#14b8a6; width:22px; height:22px;"></i> <span data-i18n="dns_tunnels_title">تونل‌های پیشرفته DNS و عبور از فیلترینگ (DNS Tunnels)</span>
-</h3>
-<p data-i18n="dns_tunnels_subtitle" style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-                    پروتکل‌های عبور از شدیدترین محدودیت‌های اینترنت با تبدیل ترافیک به کوئری‌های DNS استاندارد و رمزنگاری‌شده (SlowDNS).
-                </p>
-</div>
-<!-- DNS Tunnel Sub-Tabs Selector -->
-<div style="display:flex; gap:8px; background:var(--bg-muted); padding:4px; border-radius:8px; border:1px solid var(--border-color);">
-<button class="btn btn-sm" id="dns-tab-btn-dnstt" onclick="switchDnsSubTab('dnstt')" style="background:var(--color-primary); color:#fff; padding:6px 14px; font-weight:600;" type="button">
-                    DNSTT (SlowDNS)
-                </button>
-<button class="btn btn-sm btn-secondary" id="dns-tab-btn-vaydns" onclick="switchDnsSubTab('vaydns')" style="padding:6px 14px; font-weight:600;" type="button">
-                    VayDNS (KCP)
-                </button>
-<button class="btn btn-sm btn-secondary" id="dns-tab-btn-slipstream" onclick="switchDnsSubTab('slipstream')" style="padding:6px 14px; font-weight:600;" type="button">
-                    Slipstream (QUIC)
-                </button>
-<button class="btn btn-sm btn-secondary" id="dns-tab-btn-noizdns" onclick="switchDnsSubTab('noizdns')" style="padding:6px 14px; font-weight:600;" type="button">
-                    NoizDNS (Anti-DPI)
-                </button>
-<button class="btn btn-sm btn-secondary" id="dns-tab-btn-masterdnsvpn" onclick="switchDnsSubTab('masterdnsvpn')" style="padding:6px 14px; font-weight:600;" type="button">
-                    MasterdnsVPN (Chunked)
-                </button>
-<button class="btn btn-sm btn-secondary" id="dns-tab-btn-doh" onclick="switchDnsSubTab('doh')" style="padding:6px 14px; font-weight:600;" type="button">
-                    DoH (DNS over HTTPS)
-                </button>
-</div>
-</div>
-<div style="margin-top: 14px; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 8px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-    <div style="display:flex; align-items:center; gap:8px;">
-        <i data-lucide="cloud-lightning" style="color:#f97316; width:18px; height:18px;"></i>
-        <span style="font-size:12.5px; color:#fff;">نیاز به ساخت رکوردهای NS و A برای تانل در کلودفلر دارید؟</span>
-    </div>
-    <button type="button" class="btn btn-sm" onclick="switchTab('cloudflare-hub'); setTimeout(() => scrollToSection('sec-cf-dns-tunnel'), 200);" style="background:#f97316; color:#fff; border:none; padding:5px 14px; font-size:11.5px; font-weight:600; cursor:pointer;">
-        ⚡ راه‌اندازی با ۱ کلیک در مرکز کلودفلر
-    </button>
-</div>
-</div>
-
-<!-- ================= DNS PREREQUISITES & FIREWALL / CLOUDFLARE SETUP GUIDE ================= -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border: 1px solid rgba(20, 184, 166, 0.4); background: linear-gradient(135deg, rgba(20,184,166,0.06) 0%, rgba(15,23,42,0.7) 100%);">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:40px; height:40px; border-radius:10px; background:rgba(20,184,166,0.18); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
-                <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
-            </div>
-            <div>
-                <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
-                    <span>راهنمای پیش‌نیازها: پورت‌های باز فایروال و رکوردهای دامنه / NS در Cloudflare</span>
-                    <span class="badge" style="background:rgba(245,158,11,0.2); color:#f59e0b; font-size:11px; padding:2px 8px; border-radius:10px;">الزامی برای اتصال</span>
-                </h4>
-                <p style="margin:2px 0 0 0; font-size:12px; color:var(--text-muted);">
-                    برای کارکرد صحیح پروتکل‌های DNS و عبور از فیلترینگ شدید همراه اول و ایرانسل، این موارد را در فایروال و کلودفلر ست کنید.
-                </p>
-            </div>
-        </div>
-        <button type="button" class="btn btn-secondary btn-sm" onclick="toggleDnsPrereqGuide()" id="dns-prereq-toggle-btn" style="padding:5px 12px; font-size:12px;">
-            <i data-lucide="chevron-up" id="dns-prereq-chevron" style="width:14px; height:14px; margin-left:4px;"></i>
-            <span id="dns-prereq-btn-text">بستن راهنما</span>
-        </button>
-    </div>
-
-    <!-- Quick Summary Badges -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:10px; margin-bottom:14px;">
-        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
-            <div style="font-size:11px; color:var(--text-muted);">پورت‌های فایروال سرور (Inbound)</div>
-            <div style="font-weight:700; color:#14b8a6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
-                53 UDP • 5300-5356 UDP • 22 TCP
-            </div>
-        </div>
-        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
-            <div style="font-size:11px; color:var(--text-muted);">رکورد ۱ کلودفلر (Glue Record)</div>
-            <div style="font-weight:700; color:#3b82f6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
-                A: ns -> <span class="dns-srv-ip">212.227.143.16</span> <span style="color:#ef4444; font-size:11px;">(DNS Only)</span>
-            </div>
-        </div>
-        <div style="background:var(--bg-base); padding:10px 14px; border-radius:8px; border:1px solid var(--border-glow);">
-            <div style="font-size:11px; color:var(--text-muted);">رکورد ۲ کلودفلر (Delegation)</div>
-            <div style="font-weight:700; color:#8b5cf6; font-family:'JetBrains Mono',monospace; font-size:12.5px; margin-top:2px;">
-                NS: t -> ns.yourdomain.com
-            </div>
-        </div>
-    </div>
-
-    <!-- Detailed Guide Content -->
-    <div id="dns-prereq-full-content" style="display:block; border-top:1px dashed var(--border-color); padding-top:16px; margin-top:6px;">
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
-            
-            <!-- Section 1: Cloudflare DNS Records -->
-            <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
-                <h5 style="margin:0 0 10px 0; font-size:14px; color:#f59e0b; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="cloud" style="width:18px; height:18px;"></i>
-                    <span>۱. نحوه ثبت رکوردهای دامنه در Cloudflare</span>
-                </h5>
-                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-                    در پروتکل‌های SlowDNS (مانند DNSTT، VayDNS، Slipstream و MasterdnsVPN) کوئری‌های DNS از اپراتورهای ایران به سمت سرور شما هدایت می‌شوند. برای کارکرد درست، باید این ۲ رکورد را در بخش <strong>DNS Records</strong> کلودفلر ثبت کنید:
-                </p>
-                <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
-                    <!-- Record A -->
-                    <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #3b82f6;">
-                        <div style="font-weight:700; color:var(--text-main); margin-bottom:4px;">
-                            گام اول: ایجاد رکورد A (نام‌سرور اصلی سرور)
-                        </div>
-                        <div style="color:var(--text-muted); line-height:1.7;">
-                            • <strong>Type:</strong> <code style="color:#3b82f6;">A</code><br>
-                            • <strong>Name:</strong> <code>ns</code> (دامنه می‌شود: <code>ns.yourdomain.com</code>)<br>
-                            • <strong>IPv4 Address:</strong> <code class="dns-srv-ip">212.227.143.16</code> (آی‌پی سرور شما)<br>
-                            • <strong>Proxy status:</strong> <strong style="color:#ef4444;">DNS Only (ابر خاکستری / خاموش)</strong> ⚠️<br>
-                            <span style="font-size:11px; color:#ef4444;">* بسیار مهم: اگر وضعیت پروکسی کلودفلر (ابر نارنجی) روشن باشد، پورت UDP 53 مسدود می‌شود و هیچ اتصالی برقرار نخواهد شد!</span>
-                        </div>
+    <div style="max-width: 1250px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- DNS Tunnels Header -->
+        <div class="spec-card" style="padding: 24px; position: relative; overflow: hidden;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div style="width:46px; height:46px; border-radius:12px; background: rgba(20, 184, 166, 0.12); color:#14b8a6; display:flex; align-items:center; justify-content:center; box-shadow: 0 0 16px rgba(20, 184, 166, 0.15); flex-shrink: 0;">
+                        <i data-lucide="globe" style="width:24px; height:24px;"></i>
                     </div>
-
-                    <!-- Record NS -->
-                    <div style="background:var(--bg-surface); padding:10px 12px; border-radius:8px; border-left:3px solid #8b5cf6;">
-                        <div style="font-weight:700; color:var(--text-main); margin-bottom:4px;">
-                            گام دوم: ایجاد رکورد NS (ساب‌دامین تونل)
-                        </div>
-                        <div style="color:var(--text-muted); line-height:1.7;">
-                            • <strong>Type:</strong> <code style="color:#8b5cf6;">NS</code><br>
-                            • <strong>Name:</strong> <code>t</code> (ساب‌دامین تونل می‌شود: <code>t.yourdomain.com</code>)<br>
-                            • <strong>Nameserver:</strong> <code>ns.yourdomain.com</code> (دقیقاً نام رکوردی که در گام اول ساختید)<br>
-                            • <strong>TTL:</strong> روی <code>Auto</code> یا <code>2 min</code> قرار دهید.
-                        </div>
+                    <div>
+                        <h3 class="config-title" data-i18n="dns_tunnels_title" style="margin:0; font-size:18px; font-weight:800; color:var(--text-primary); letter-spacing:-0.02em; display:flex; align-items:center; gap:8px;">
+                            <span data-i18n="dns_tunnels_title">تونل‌های پیشرفته DNS و عبور از فیلترینگ (DNS Tunnels)</span>
+                        </h3>
+                        <p data-i18n="dns_tunnels_subtitle" style="font-size:12.5px; color:var(--text-muted); margin:3px 0 0 0; line-height:1.5;">
+                            پروتکل‌های عبور از شدیدترین محدودیت‌های اینترنت با تبدیل ترافیک به کوئری‌های DNS استاندارد و رمزنگاری‌شده (SlowDNS).
+                        </p>
                     </div>
+                </div>
 
-                    <div style="background:rgba(20,184,166,0.08); border-radius:6px; padding:8px 10px; font-size:11px; color:var(--text-muted); line-height:1.6;">
-                        <strong style="color:#14b8a6;">نکته تنظیم پنل:</strong> بعد از ساخت این دو رکورد، در کادرهای زیر در فیلد <em>دامنه تونل (NS Record Domain)</em> دقیقاً آدرس <code>t.yourdomain.com</code> را وارد کرده و دکمه ذخیره را بزنید.
+                <!-- DNS Tunnel Sub-Tabs Selector -->
+                <div class="rad-tab-nav" style="display:flex; gap:6px; background:var(--surface-elevated); padding:5px; border-radius:12px; border:1px solid var(--border-subtle); flex-wrap:wrap;">
+                    <button class="rad-tab-btn active" id="dns-tab-btn-dnstt" onclick="switchDnsSubTab('dnstt')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        DNSTT (SlowDNS)
+                    </button>
+                    <button class="rad-tab-btn" id="dns-tab-btn-vaydns" onclick="switchDnsSubTab('vaydns')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        VayDNS (KCP)
+                    </button>
+                    <button class="rad-tab-btn" id="dns-tab-btn-slipstream" onclick="switchDnsSubTab('slipstream')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        Slipstream (QUIC)
+                    </button>
+                    <button class="rad-tab-btn" id="dns-tab-btn-noizdns" onclick="switchDnsSubTab('noizdns')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        NoizDNS (Anti-DPI)
+                    </button>
+                    <button class="rad-tab-btn" id="dns-tab-btn-masterdnsvpn" onclick="switchDnsSubTab('masterdnsvpn')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        MasterdnsVPN (Chunked)
+                    </button>
+                    <button class="rad-tab-btn" id="dns-tab-btn-doh" onclick="switchDnsSubTab('doh')" style="padding:7px 14px; font-weight:600; font-size:12px; border-radius:8px;" type="button">
+                        DoH (DNS over HTTPS)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cloudflare Banner -->
+            <div style="margin-top: 18px; background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <i data-lucide="cloud-lightning" style="color:#f97316; width:20px; height:20px;"></i>
+                    <span style="font-size:13px; color:var(--text-primary); font-weight:600;">نیاز به ساخت رکوردهای NS و A برای تانل در کلودفلر دارید؟</span>
+                </div>
+                <button type="button" class="btn btn-sm" onclick="switchTab('cloudflare-hub'); setTimeout(() => scrollToSection('sec-cf-dns-tunnel'), 200);" style="background:#f97316; color:#fff; border:none; padding:6px 16px; font-size:12px; font-weight:700; border-radius:8px; cursor:pointer;">
+                    ⚡ راه‌اندازی با ۱ کلیک در مرکز کلودفلر
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= DNS PREREQUISITES & FIREWALL / CLOUDFLARE SETUP GUIDE ================= -->
+        <div class="spec-card" style="padding: 24px; border: 1px solid rgba(20, 184, 166, 0.35);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:10px; background:rgba(20,184,166,0.15); color:#14b8a6; display:flex; align-items:center; justify-content:center; flex-shrink: 0;">
+                        <i data-lucide="shield-check" style="width:22px; height:22px;"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0; font-size:15px; font-weight:800; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                            <span>راهنمای پیش‌نیازها: پورت‌های باز فایروال و رکوردهای دامنه / NS در Cloudflare</span>
+                            <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:11px; padding:2px 8px; border-radius:10px; font-weight:700;">الزامی برای اتصال</span>
+                        </h4>
+                        <p style="margin:3px 0 0 0; font-size:12px; color:var(--text-muted);">
+                            برای کارکرد صحیح پروتکل‌های DNS و عبور از فیلترینگ شدید همراه اول و ایرانسل، این موارد را در فایروال و کلودفلر ست کنید.
+                        </p>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="toggleDnsPrereqGuide()" id="dns-prereq-toggle-btn" style="padding:6px 14px; font-size:12px; border-radius:8px; font-weight:600;">
+                    <i data-lucide="chevron-up" id="dns-prereq-chevron" style="width:14px; height:14px; margin-inline-end:4px;"></i>
+                    <span id="dns-prereq-btn-text">بستن راهنما</span>
+                </button>
+            </div>
+
+            <!-- Quick Summary Badges -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
+                <div style="background:var(--surface-elevated); padding:12px 16px; border-radius:10px; border:1px solid var(--border-subtle);">
+                    <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">پورت‌های فایروال سرور (Inbound)</div>
+                    <div style="font-weight:700; color:#14b8a6; font-family:'JetBrains Mono',monospace; font-size:13px; margin-top:4px;">
+                        53 UDP • 5300-5356 UDP • 22 TCP
+                    </div>
+                </div>
+                <div style="background:var(--surface-elevated); padding:12px 16px; border-radius:10px; border:1px solid var(--border-subtle);">
+                    <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">رکورد ۱ کلودفلر (Glue Record)</div>
+                    <div style="font-weight:700; color:#3b82f6; font-family:'JetBrains Mono',monospace; font-size:13px; margin-top:4px;">
+                        A: ns -&gt; <span class="dns-srv-ip">212.227.143.16</span> <span style="color:#ef4444; font-size:11px;">(DNS Only)</span>
+                    </div>
+                </div>
+                <div style="background:var(--surface-elevated); padding:12px 16px; border-radius:10px; border:1px solid var(--border-subtle);">
+                    <div style="font-size:11.5px; color:var(--text-muted); font-weight:500;">رکورد ۲ کلودفلر (Delegation)</div>
+                    <div style="font-weight:700; color:#8b5cf6; font-family:'JetBrains Mono',monospace; font-size:13px; margin-top:4px;">
+                        NS: t -&gt; ns.yourdomain.com
                     </div>
                 </div>
             </div>
 
-            <!-- Section 2: Firewall & Ports -->
-            <div style="background:var(--bg-base); border-radius:10px; border:1px solid var(--border-color); padding:16px;">
-                <h5 style="margin:0 0 10px 0; font-size:14px; color:#10b981; display:flex; align-items:center; gap:8px;">
-                    <i data-lucide="shield" style="width:18px; height:18px;"></i>
-                    <span>۲. پورت‌های باز فایروال سرور و کلود (Firewall)</span>
-                </h5>
-                <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
-                    اگر از سرورهای Hetzner، OVH، AWS، آروان، اوراکل یا لینوکس با UFW استفاده می‌کنید، این پورت‌ها را در فایروال سرور و بخش Inbound Rules پنل ابری باز کنید:
-                </p>
-                
-                <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:12px;">
-                    <thead>
-                        <tr style="border-bottom:1px solid var(--border-color); color:var(--text-muted); text-align:right;">
-                            <th style="padding:5px 6px;">پورت</th>
-                            <th style="padding:5px 6px;">پروتکل</th>
-                            <th style="padding:5px 6px;">کاربرد و سرویس</th>
-                        </tr>
-                    </thead>
-                    <tbody style="color:var(--text-main);">
-                        <tr style="border-bottom:1px solid var(--border-glow);">
-                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#10b981;">53</td>
-                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981;">UDP/TCP</span></td>
-                            <td style="padding:5px 6px; font-size:11px;">پورت اصلی DNS جهانی (کوئری‌های اپراتورها به این پورت می‌رسند)</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid var(--border-glow);">
-                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#3b82f6;">5300</td>
-                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6;">UDP</span></td>
-                            <td style="padding:5px 6px; font-size:11px;">پورت شنود تونل DNSTT (SlowDNS)</td>
-                        </tr>
-                        <tr style="border-bottom:1px solid var(--border-glow);">
-                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#8b5cf6;">5353 - 5356</td>
-                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6;">UDP</span></td>
-                            <td style="padding:5px 6px; font-size:11px;">پورت‌های VayDNS (5353)، Slipstream (5354)، NoizDNS (5355)، Masterdns (5356)</td>
-                        </tr>
-                        <tr>
-                            <td style="padding:5px 6px; font-family:'JetBrains Mono'; font-weight:700; color:#f59e0b;">22 (یا پورت SSH)</td>
-                            <td style="padding:5px 6px;"><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b;">TCP</span></td>
-                            <td style="padding:5px 6px; font-size:11px;">پورت Upstream جهت اتصال SSH و تانل کاربران در SlipNet</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <!-- Detailed Guide Content -->
+            <div id="dns-prereq-full-content" style="display:block; border-top:1px dashed var(--border-subtle); padding-top:16px; margin-top:6px;">
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:18px;">
+                    
+                    <!-- Section 1: Cloudflare DNS Records -->
+                    <div style="background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle); padding:18px;">
+                        <h5 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:#f59e0b; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="cloud" style="width:18px; height:18px;"></i>
+                            <span>۱. نحوه ثبت رکوردهای دامنه در Cloudflare</span>
+                        </h5>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                            در پروتکل‌های SlowDNS (مانند DNSTT، VayDNS، Slipstream و MasterdnsVPN) کوئری‌های DNS از اپراتورهای ایران به سمت سرور شما هدایت می‌شوند. برای کارکرد درست، باید این ۲ رکورد را در بخش <strong>DNS Records</strong> کلودفلر ثبت کنید:
+                        </p>
+                        <div style="display:flex; flex-direction:column; gap:10px; font-size:12px;">
+                            <!-- Record A -->
+                            <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border-inline-start:3px solid #3b82f6;">
+                                <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px;">
+                                    گام اول: ایجاد رکورد A (نام‌سرور اصلی سرور)
+                                </div>
+                                <div style="color:var(--text-secondary); line-height:1.7;">
+                                    • <strong>Type:</strong> <code style="color:#3b82f6;">A</code><br>
+                                    • <strong>Name:</strong> <code>ns</code> (دامنه می‌شود: <code>ns.yourdomain.com</code>)<br>
+                                    • <strong>IPv4 Address:</strong> <code class="dns-srv-ip">212.227.143.16</code> (آی‌پی سرور شما)<br>
+                                    • <strong>Proxy status:</strong> <strong style="color:#ef4444;">DNS Only (ابر خاکستری / خاموش)</strong> ⚠️<br>
+                                    <span style="font-size:11px; color:#ef4444;">* بسیار مهم: اگر وضعیت پروکسی کلودفلر (ابر نارنجی) روشن باشد، پورت UDP 53 مسدود می‌شود و هیچ اتصالی برقرار نخواهد شد!</span>
+                                </div>
+                            </div>
 
-                <!-- One click copy command -->
-                <div>
-                    <label class="form-label" style="font-size:11px; margin-bottom:4px; font-weight:600;">دستور بازگشایی سریع پورت‌های مورد نیاز در لینوکس (UFW):</label>
-                    <div style="display:flex; gap:6px;">
-                        <input class="form-input" id="dns-ufw-cmd-box" readonly style="direction:ltr; font-family:'JetBrains Mono',monospace; font-size:11px; background:#0f172a; color:#a7f3d0;" value="sudo ufw allow 53/udp && sudo ufw allow 5300:5356/udp && sudo ufw allow 22/tcp && sudo ufw reload">
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('dns-ufw-cmd-box'); showToast('دستور فایروال UFW کپی شد', 'success');" style="width:auto; padding:4px 10px;">
-                            <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                            <!-- Record NS -->
+                            <div style="background:var(--bg-base); padding:12px 14px; border-radius:10px; border-inline-start:3px solid #8b5cf6;">
+                                <div style="font-weight:700; color:var(--text-primary); margin-bottom:4px;">
+                                    گام دوم: ایجاد رکورد NS (ساب‌دامین تونل)
+                                </div>
+                                <div style="color:var(--text-secondary); line-height:1.7;">
+                                    • <strong>Type:</strong> <code style="color:#8b5cf6;">NS</code><br>
+                                    • <strong>Name:</strong> <code>t</code> (ساب‌دامین تونل می‌شود: <code>t.yourdomain.com</code>)<br>
+                                    • <strong>Nameserver:</strong> <code>ns.yourdomain.com</code> (دقیقاً نام رکوردی که در گام اول ساختید)<br>
+                                    • <strong>TTL:</strong> روی <code>Auto</code> یا <code>2 min</code> قرار دهید.
+                                </div>
+                            </div>
+
+                            <div style="background:rgba(20,184,166,0.08); border-radius:8px; padding:10px 12px; font-size:11.5px; color:var(--text-muted); line-height:1.6;">
+                                <strong style="color:#14b8a6;">نکته تنظیم پنل:</strong> بعد از ساخت این دو رکورد، در کادرهای زیر در فیلد <em>دامنه تونل (NS Record Domain)</em> دقیقاً آدرس <code>t.yourdomain.com</code> را وارد کرده و دکمه ذخیره را بزنید.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Firewall & Ports -->
+                    <div style="background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle); padding:18px;">
+                        <h5 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:#10b981; display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="shield" style="width:18px; height:18px;"></i>
+                            <span>۲. پورت‌های باز فایروال سرور و کلود (Firewall)</span>
+                        </h5>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:12px;">
+                            اگر از سرورهای Hetzner، OVH، AWS، آروان، اوراکل یا لینوکس با UFW استفاده می‌کنید، این پورت‌ها را در فایروال سرور و بخش Inbound Rules پنل ابری باز کنید:
+                        </p>
+                        
+                        <table style="width:100%; font-size:12px; border-collapse:collapse; margin-bottom:14px;">
+                            <thead>
+                                <tr style="border-bottom:1px solid var(--border-subtle); color:var(--text-muted); text-align:start;">
+                                    <th style="padding:6px 8px;">پورت</th>
+                                    <th style="padding:6px 8px;">پروتکل</th>
+                                    <th style="padding:6px 8px;">کاربرد و سرویس</th>
+                                </tr>
+                            </thead>
+                            <tbody style="color:var(--text-primary);">
+                                <tr style="border-bottom:1px solid var(--border-subtle);">
+                                    <td style="padding:6px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:#10b981;">53</td>
+                                    <td style="padding:6px 8px;"><span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; border-radius:6px; padding:2px 6px;">UDP/TCP</span></td>
+                                    <td style="padding:6px 8px; font-size:11.5px; color:var(--text-muted);">پورت اصلی DNS جهانی (کوئری‌های اپراتورها به این پورت می‌رسند)</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid var(--border-subtle);">
+                                    <td style="padding:6px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:#3b82f6;">5300</td>
+                                    <td style="padding:6px 8px;"><span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6; border-radius:6px; padding:2px 6px;">UDP</span></td>
+                                    <td style="padding:6px 8px; font-size:11.5px; color:var(--text-muted);">پورت شنود تونل DNSTT (SlowDNS)</td>
+                                </tr>
+                                <tr style="border-bottom:1px solid var(--border-subtle);">
+                                    <td style="padding:6px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:#8b5cf6;">5353 - 5356</td>
+                                    <td style="padding:6px 8px;"><span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6; border-radius:6px; padding:2px 6px;">UDP</span></td>
+                                    <td style="padding:6px 8px; font-size:11.5px; color:var(--text-muted);">پورت‌های VayDNS (5353)، Slipstream (5354)، NoizDNS (5355)، Masterdns (5356)</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:6px 8px; font-family:'JetBrains Mono',monospace; font-weight:700; color:#f59e0b;">22 (یا پورت SSH)</td>
+                                    <td style="padding:6px 8px;"><span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border-radius:6px; padding:2px 6px;">TCP</span></td>
+                                    <td style="padding:6px 8px; font-size:11.5px; color:var(--text-muted);">پورت Upstream جهت اتصال SSH و تانل کاربران در SlipNet</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- One click copy command -->
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; margin-bottom:4px; font-weight:600; color:var(--text-secondary);">دستور بازگشایی سریع پورت‌های مورد نیاز در لینوکس (UFW):</label>
+                            <div style="display:flex; gap:6px;">
+                                <input class="form-input" id="dns-ufw-cmd-box" readonly style="direction:ltr; font-family:'JetBrains Mono',monospace; font-size:11px; background:var(--bg-base); color:#10b981; border-radius:8px;" value="sudo ufw allow 53/udp && sudo ufw allow 5300:5356/udp && sudo ufw allow 22/tcp && sudo ufw reload">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="copyElementText('dns-ufw-cmd-box'); showToast('دستور فایروال UFW کپی شد', 'success');" style="width:auto; padding:4px 12px; border-radius:8px;">
+                                    <i data-lucide="copy" style="width:13px; height:13px;"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div style="margin-top:12px; font-size:11.5px; color:var(--text-muted); line-height:1.6;">
+                            <strong>تفاوت پروتکل‌ها:</strong> پروتکل‌های DNSTT، VayDNS، Slipstream و MasterdnsVPN نیاز به رکوردهای NS بالا دارند. پروتکل <strong>NoizDNS</strong> بدون نیاز به NS با پورت مستقیم ۵۳۵۵ و نویز کار می‌کند. پروتکل <strong>DoH</strong> نیز روی پورت HTTPS (443) بدون نیاز به باز بودن پورت ۵۳ در اپراتور فعالیت می‌کند.
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUB-PANE 1: DNSTT ================= -->
+        <div id="dns-subpane-dnstt">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot" id="dnstt-status-dot"></span>
+                        <strong data-i18n="dns_dnstt_getlantern_bamsoftware" style="font-size:16px; font-weight:800; color:var(--text-primary);">سرور تونل DNSTT (GetLantern / Bamsoftware)</strong>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="controlProtocol('dnstt', 'restart')" style="border-radius:8px; font-weight:600;">
+                            <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="dnstt-toggle-btn" onclick="toggleProtocolQuick('dnstt')" style="border-radius:8px; font-weight:700;">
+                            <span data-i18n="toggle_service">تغییر وضعیت</span>
                         </button>
                     </div>
                 </div>
 
-                <div style="margin-top:10px; font-size:11px; color:var(--text-muted); line-height:1.6;">
-                    <strong>تفاوت پروتکل‌ها:</strong> پروتکل‌های DNSTT، VayDNS، Slipstream و MasterdnsVPN نیاز به رکوردهای NS بالا دارند. پروتکل <strong>NoizDNS</strong> بدون نیاز به NS با پورت مستقیم ۵۳۵۵ و نویز کار می‌کند. پروتکل <strong>DoH</strong> نیز روی پورت HTTPS (443) بدون نیاز به باز بودن پورت ۵۳ در اپراتور فعالیت می‌کند.
+                <!-- Stats Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="port" style="color:var(--text-muted); font-size:11px; font-weight:500;">پورت شنود (UDP)</div>
+                        <div id="dnstt-stat-port" style="font-weight:700; color:#6366f1; font-family:'JetBrains Mono',monospace; margin-top:4px;">5300</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="domain" style="color:var(--text-muted); font-size:11px; font-weight:500;">دامنه NS</div>
+                        <div id="dnstt-stat-domain" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:4px;">t.example.com</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="upstream" style="color:var(--text-muted); font-size:11px; font-weight:500;">مقصد هدایت (Upstream)</div>
+                        <div id="dnstt-stat-upstream" style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace; margin-top:4px;">127.0.0.1:22 (SSH)</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px; font-weight:500;">اتصالات فعال</div>
+                        <div id="dnstt-stat-conns" style="font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:4px;">0</div>
+                    </div>
+                </div>
+
+                <!-- Public Key Box -->
+                <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius:12px; padding:14px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label class="form-label" data-i18n="dnstt_pubkey" style="margin:0; font-weight:700; font-size:12px; color:var(--text-primary);">کلید عمومی سرور (Public Key)</label>
+                        <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-pubkey-display').textContent)" style="padding:3px 10px; font-size:11px; border-radius:6px;" type="button">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-inline-end:4px;"></i> <span data-i18n="ssh_copy_key">کپی کلید</span>
+                        </button>
+                    </div>
+                    <div id="dnstt-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#38bdf8; word-break:break-all; direction:ltr; text-align:left; background: rgba(15, 23, 42, 0.9); padding:10px 12px; border-radius:8px; border: 1px solid rgba(255, 255, 255, 0.08);">-</div>
+                </div>
+
+                <!-- Configuration Form -->
+                <form id="dnstt-config-form" onsubmit="saveDnsttConfig(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_port_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">پورت سرور (UDP)</label>
+                            <input class="form-input" id="dnstt-port-input" max="65535" min="1" required="" type="number" value="5300" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_domain_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">دامنه تونل (NS Record Domain)</label>
+                            <input class="form-input" id="dnstt-domain-input" placeholder="t.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_upstream_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">مقصد فوروارد ترافیک (Upstream)</label>
+                            <select class="form-input" id="dnstt-upstream-select" style="border-radius:10px;">
+                                <option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
+                                <option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
+                                <option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                                <option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                                <option data-i18n="dns_127_0_0_1_8080" value="127.0.0.1:8080">127.0.0.1:8080 (پروکسی HTTP)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="save-dnstt-btn" type="submit" style="border-radius:10px; font-weight:700;">
+                        <i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات DNSTT</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- SlipNet Android Card for DNSTT -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #6366f1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#6366f1;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+                        <span class="badge" style="background:rgba(99,102,241,0.15); color:#6366f1; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">مخصوص DNSTT</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="dnstt-slipnet-user" onchange="onSlipnetUserChange('dnstt')" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="dnstt-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#6366f1;"></i>
+                            در برنامه <strong>SlipNet</strong> یا <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> با اسکن یا ایمپورت لینک متصل شوید.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="dnstt-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن با دوربین SlipNet</span>
+                    </div>
                 </div>
             </div>
 
-        </div>
-    </div>
-</div>
-
-<!-- ================= SUB-PANE 1: DNSTT ================= -->
-<div id="dns-subpane-dnstt">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="dnstt-status-dot"></span>
-<strong data-i18n="dns_dnstt_getlantern_bamsoftware" style="font-size:15px;">سرور تونل DNSTT (GetLantern / Bamsoftware)</strong>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="controlProtocol('dnstt', 'restart')">
-<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
-</button>
-<button class="btn btn-primary btn-sm" id="dnstt-toggle-btn" onclick="toggleProtocolQuick('dnstt')">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-</div>
-</div>
-<!-- Stats Grid -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
-<div id="dnstt-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5300</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="domain" style="color:var(--text-muted); font-size:11px;">دامنه NS</div>
-<div id="dnstt-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">t.example.com</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">مقصد هدایت (Upstream)</div>
-<div id="dnstt-stat-upstream" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">127.0.0.1:22 (SSH)</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
-<div id="dnstt-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
-</div>
-</div>
-<!-- Public Key Box -->
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; margin-bottom:16px;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-<label class="form-label" data-i18n="dnstt_pubkey" style="margin:0; font-weight:600; font-size:12px;">کلید عمومی سرور (Public Key)</label>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;" type="button">
-<i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssh_copy_key">کپی کلید</span>
-</button>
-</div>
-<div id="dnstt-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background: var(--bg-surface); padding:8px; border-radius:6px; border: 1px solid var(--border-glow);">-</div>
-</div>
-<!-- Configuration Form -->
-<form id="dnstt-config-form" onsubmit="saveDnsttConfig(event)">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_port_label">پورت سرور (UDP)</label>
-<input class="form-input" id="dnstt-port-input" max="65535" min="1" required="" type="number" value="5300"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_domain_label">دامنه تونل (NS Record Domain)</label>
-<input class="form-input" id="dnstt-domain-input" placeholder="t.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_upstream_label">مقصد فوروارد ترافیک (Upstream)</label>
-<select class="form-input" id="dnstt-upstream-select">
-<option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
-<option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
-<option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
-<option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
-<option data-i18n="dns_127_0_0_1_8080" value="127.0.0.1:8080">127.0.0.1:8080 (پروکسی HTTP)</option>
-</select>
-</div>
-</div>
-<button class="btn btn-primary" id="save-dnstt-btn" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات DNSTT</span>
-</button>
-</form>
-</div>
-<!-- SlipNet Android Card for DNSTT -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #6366f1;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#6366f1;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
-<span class="badge" style="background:rgba(99,102,241,0.15); color:#6366f1; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص DNSTT</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="dnstt-slipnet-user" onchange="onSlipnetUserChange('dnstt')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="dnstt-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-در برنامه <strong>SlipNet</strong> یا <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> با اسکن یا ایمپورت لینک متصل شوید.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="dnstt-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
-</div>
-</div>
-</div>
-
-<!-- Client Guide Card -->
-<div class="glass-card config-card">
-<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
-<span data-i18n="client_guide">دستور اتصال کلاینت (Client Commands)</span>
-</h4>
-<p data-i18n-html="elem_tab_dns_tunnels_8" style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
-                برای اتصال در نرم‌افزارهای کلاینت (نظیر <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> در اندروید) کافیست دامنه NS و کلید عمومی بالا را به همراه DoH دلخواه وارد کنید. برای ویندوز و لینوکس:
-            </p>
-<div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="dnstt-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">dnstt-client -doh https://cloudflare-dns.com/dns-query -pubkey ...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-client-cmd-box').textContent)" type="button">
-<i data-lucide="copy" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-</div>
-<!-- ================= SUB-PANE 2: VAYDNS ================= -->
-<div id="dns-subpane-vaydns" style="display:none;">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="vaydns-status-dot"></span>
-<strong data-i18n="dns_vaydns_server_developed_bypass_iranian" style="font-size:15px;">سرور VayDNS (توسعه‌یافته برای دور زدن فیلترینگ ایران - Net2Share)</strong>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="controlProtocol('vaydns', 'restart')">
-<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
-</button>
-<button class="btn btn-primary btn-sm" id="vaydns-toggle-btn" onclick="toggleProtocolQuick('vaydns')">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-</div>
-</div>
-<!-- Stats Grid -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
-<div id="vaydns-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5353</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="domain" style="color:var(--text-muted); font-size:11px;">دامنه NS</div>
-<div id="vaydns-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">v.example.com</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">مقصد هدایت (Upstream)</div>
-<div id="vaydns-stat-upstream" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">127.0.0.1:22 (SSH)</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
-<div id="vaydns-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
-</div>
-</div>
-<!-- Public Key Box -->
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; margin-bottom:16px;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-<label class="form-label" data-i18n="dns_vaydns_public_key_public_key" style="margin:0; font-weight:600; font-size:12px;">کلید عمومی VayDNS (Public Key)</label>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-pubkey-display').textContent)" style="padding:2px 8px; font-size:11px;" type="button">
-<i data-lucide="copy" style="width:12px; height:12px; margin-left:3px;"></i> <span data-i18n="ssh_copy_key">کپی کلید</span>
-</button>
-</div>
-<div id="vaydns-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:#1e293b; word-break:break-all; direction:ltr; text-align:left; background: var(--bg-surface); padding:8px; border-radius:6px; border: 1px solid var(--border-glow);">-</div>
-</div>
-<!-- Configuration Form -->
-<form id="vaydns-config-form" onsubmit="saveVaydnsConfig(event)">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_port_label">پورت سرور (UDP)</label>
-<input class="form-input" id="vaydns-port-input" max="65535" min="1" required="" type="number" value="5353"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_domain_label">دامنه تونل (NS Record Domain)</label>
-<input class="form-input" id="vaydns-domain-input" placeholder="v.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_upstream_label">مقصد فوروارد ترافیک (Upstream)</label>
-<select class="form-input" id="vaydns-upstream-select">
-<option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
-<option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
-<option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
-<option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
-</select>
-</div>
-</div>
-<div style="margin-bottom:16px;">
-<label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer;">
-<input checked="" id="vaydns-compat-checkbox" type="checkbox"/>
-<span><span data-i18n="dns_enabling_compatibility_mode_standard_dnst">فعال‌سازی حالت سازگاری با کلاینت‌های DNSTT استاندارد (</span><code>-dnstt-compat</code>)</span>
-</label>
-</div>
-<button class="btn btn-primary" id="save-vaydns-btn" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="dns_vaydns">ذخیره و اعمال تنظیمات VayDNS</span>
-</button>
-</form>
-</div>
-<!-- SlipNet Android Card for VayDNS -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #14b8a6;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#14b8a6;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
-<span class="badge" style="background:rgba(20,184,166,0.15); color:#14b8a6; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص VayDNS KCP</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="vaydns-slipnet-user" onchange="onSlipnetUserChange('vaydns')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="vaydns-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-پروتکل VayDNS با متراکم‌سازی کوئری‌های DNS بر بستر KCP برای عبور از فیلترینگ شدید همراه اول و ایرانسل.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="vaydns-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
-</div>
-</div>
-</div>
-
-<!-- Client Guide Card -->
-<div class="glass-card config-card">
-<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:16px; height:16px; color:#14b8a6;"></i>
-<span data-i18n="dns_vaydns_client_command">دستور کلاینت VayDNS</span>
-</h4>
-<div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="vaydns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">vaydns-client -udp 8.8.8.8:53 -pubkey ... -domain ... -listen 127.0.0.1:1080 -dnstt-compat</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-client-cmd-box').textContent)" type="button">
-<i data-lucide="copy" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-</div>
-<!-- ================= SUB-PANE 3: SLIPSTREAM ================= -->
-<div id="dns-subpane-slipstream" style="display:none;">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="slipstream-status-dot"></span>
-<strong data-i18n="dns_slipstream_server_quic_multipath_secret" style="font-size:15px;">سرور Slipstream (تونل مخفی QUIC Multipath بر بستر DNS)</strong>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="controlProtocol('slipstream', 'restart')">
-<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
-</button>
-<button class="btn btn-primary btn-sm" id="slipstream-toggle-btn" onclick="toggleProtocolQuick('slipstream')">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-</div>
-</div>
-<!-- Stats Grid -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
-<div id="slipstream-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5354</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="domain" style="color:var(--text-muted); font-size:11px;">دامنه NS</div>
-<div id="slipstream-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">s.example.com</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">مقصد هدایت (Target)</div>
-<div id="slipstream-stat-upstream" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">127.0.0.1:22</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
-<div id="slipstream-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
-</div>
-</div>
-<div data-i18n-html="elem_tab_dns_tunnels_9" style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
-<i data-lucide="zap" style="width:14px; height:14px; color:#f59e0b; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="col_proto">پروتکل</span> <strong>Slipstream</strong> از معماری QUIC چندمسیره بهره می‌برد که هدر آن تا ۶۰٪ نسبت به DNSTT کوچک‌تر بوده و دارای کنترل ازدحام اختصاصی برای دی‌ان‌اس سرورهای Rate-limited است.
-            </div>
-<!-- Configuration Form -->
-<form id="slipstream-config-form" onsubmit="saveSlipstreamConfig(event)">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dnstt_port_label">پورت سرور (UDP)</label>
-<input class="form-input" id="slipstream-port-input" max="65535" min="1" required="" type="number" value="5354"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dns_dedicated_domain">دامنه اختصاصی (Domain)</label>
-<input class="form-input" id="slipstream-domain-input" placeholder="s.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dns_target_2">مقصد فوروارد ترافیک (Target)</label>
-<select class="form-input" id="slipstream-upstream-select">
-<option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
-<option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
-<option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
-<option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
-</select>
-</div>
-</div>
-<button class="btn btn-primary" id="save-slipstream-btn" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="dns_save_apply_slipstream_settings">ذخیره و اعمال تنظیمات Slipstream</span>
-</button>
-</form>
-</div>
-<!-- SlipNet Android Card for Slipstream -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#3b82f6;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
-<span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص Slipstream QUIC</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="slipstream-slipnet-user" onchange="onSlipnetUserChange('slipstream')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-
-<!-- Cloudflare NS Setup Notice -->
-<div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); border-radius:8px; padding:12px; margin-bottom:14px; font-size:12px; line-height:1.6;">
-<div style="font-weight:700; color:#d97706; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-<i data-lucide="alert-triangle" style="width:15px; height:15px;"></i>
-<span>الزام ثبت رکورد در Cloudflare جهت کارکرد اینترنت ملی و SlipNet:</span>
-</div>
-<div>
-برای برقراری اتصال تانل در همراه اول/ایرانسل، باید دو رکورد زیر در پنل Cloudflare دامنه ثبت شوند:
-<ul style="margin:6px 0 0 18px; padding:0;">
-<li><strong>رکورد A:</strong> با نام <code>ns</code> و مقدار آی‌پی سرور (<code><span class="dns-srv-ip">212.227.143.16</span></code>) در وضعیت <strong>DNS Only (ابر خاکستری - خاموش)</strong>.</li>
-<li><strong>رکورد NS:</strong> با نام <code>s.vpn</code> و مقدار <code>ns.example.com</code> (یا ساب‌دامین اختصاصی تنظیم‌شده در بالا).</li>
-</ul>
-</div>
-</div>
-
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="slipstream-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-در برنامه اندروید <strong>SlipNet</strong> روی علامت <strong>+</strong> یا <strong>Import from Clipboard</strong> ضربه بزنید تا کانفیگ مستقیماً اضافه شود و سپس دکمه Connect را بزنید.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="slipstream-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px;">اسکن با دوربین SlipNet</span>
-</div>
-</div>
-</div>
-
-<!-- Client Guide Card -->
-<div class="glass-card config-card">
-<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:16px; height:16px; color:#3b82f6;"></i>
-<span data-i18n="dns_slipstream_client_command">دستور کلاینت Slipstream (CLI لینوکس و ویندوز)</span>
-</h4>
-<div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="slipstream-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">slipstream-client -l 1080 -d ... -r 8.8.8.8:53</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-client-cmd-box').textContent)" type="button">
-<i data-lucide="copy" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-</div>
-<!-- ================= SUB-PANE 4: NOIZDNS ================= -->
-<div id="dns-subpane-noizdns" style="display:none;">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="noizdns-status-dot"></span>
-<strong data-i18n="dns_noizdns_title" style="font-size:15px;">سرور NoizDNS (پراکسی ضد DPI با نویز تصادفی و پدینگ فریم)</strong>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="controlProtocol('noizdns', 'restart')">
-<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
-</button>
-<button class="btn btn-primary btn-sm" id="noizdns-toggle-btn" onclick="toggleProtocolQuick('noizdns')">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-</div>
-</div>
-<!-- Stats Grid -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
-<div id="noizdns-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5355</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">دی‌ان‌اس بالادستی (Upstream)</div>
-<div id="noizdns-stat-upstream" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">1.1.1.1:53</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="dns_padding_range" style="color:var(--text-muted); font-size:11px;">محدوده پدینگ نویز</div>
-<div id="noizdns-stat-padding" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">16 - 64 Bytes</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
-<div id="noizdns-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
-</div>
-</div>
-<div style="background: var(--bg-base); border: 1px solid var(--border-glow); border-radius:8px; padding:12px; font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.6;">
-<i data-lucide="shield" style="width:14px; height:14px; color:#10b981; vertical-align:middle; margin-left:4px;"></i> <span data-i18n="dns_noizdns_desc">پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های تصادفی نویز و دگرگون‌سازی طول پکت‌های DNS مانع شناسایی الگوهای درخواست توسط سامانه‌های مانیتورینگ DPI و کاهش سرعت کوئری‌ها می‌شود.</span>
-</div>
-<!-- Configuration Form -->
-<form id="noizdns-config-form" onsubmit="saveNoizdnsConfig(event)">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="port">پورت شنود سرور (UDP)</label>
-<input class="form-input" id="noizdns-port-input" max="65535" min="1" required="" type="number" value="5355"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="upstream">دی‌ان‌اس بالادستی (Upstream DNS)</label>
-<input class="form-input" id="noizdns-upstream-input" placeholder="1.1.1.1:53" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text" value="1.1.1.1:53"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dns_pad_min">حداقل نویز پدینگ (Bytes)</label>
-<input class="form-input" id="noizdns-padmin-input" max="256" min="4" required="" type="number" value="16"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="dns_pad_max">حداکثر نویز پدینگ (Bytes)</label>
-<input class="form-input" id="noizdns-padmax-input" max="512" min="16" required="" type="number" value="64"/>
-</div>
-</div>
-<button class="btn btn-primary" id="save-noizdns-btn" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات NoizDNS</span>
-</button>
-</form>
-</div>
-<!-- Client Guide Card -->
-<div class="glass-card config-card">
-<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:16px; height:16px; color:#10b981;"></i>
-<span data-i18n="client_guide">دستور اتصال کلاینت NoizDNS</span>
-</h4>
-<div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="noizdns-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">noizdns-client -server SERVER_IP:5355 -local 127.0.0.1:53</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-client-cmd-box').textContent)" type="button">
-<i data-lucide="copy" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-<!-- SlipNet Android Card for NoizDNS -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #8b5cf6;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#8b5cf6;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (حالت ضد فیلتر NoizDNS Stealth)</span>
-<span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6; font-size:11px; padding:2px 8px; border-radius:12px;">SayeDNS + Stealth</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="noizdns-slipnet-user" onchange="onSlipnetUserChange('noizdns')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="noizdns-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-پروتکل SayeDNS/NoizDNS با افزودن نویز تصادفی و پدینگ متغیر بسته‌ها، سیستم‌های DPI و فیلترینگ عمیق اینترنت را دور می‌زند. در برنامه <strong>SlipNet</strong> با اسکن QR Code متصل شوید.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="noizdns-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
-</div>
-</div>
-</div>
-
-<!-- NoizDNS Usage & Setup Guide Card -->
-<div class="glass-card config-card" style="margin-top: 20px; border-top: 3px solid #ec4899;">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
-        <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px; color:var(--text-main);">
-            <i data-lucide="book-open" style="width:20px; height:20px; color:#ec4899;"></i>
-            <span>راهنمای جامع راه‌اندازی و استفاده از نویز دی‌ان‌اس (NoizDNS Anti-DPI)</span>
-        </h4>
-        <span class="badge" style="background:rgba(236,72,153,0.15); color:#ec4899; font-size:12px; padding:3px 10px; border-radius:12px; font-weight:600;">
-            Anti-DPI & Stealth Protocol
-        </span>
-    </div>
-
-    <!-- Intro box -->
-    <div style="background:rgba(236,72,153,0.06); border:1px solid rgba(236,72,153,0.2); border-radius:10px; padding:14px; margin-bottom:20px; font-size:13px; line-height:1.7; color:var(--text-main);">
-        <strong style="color:#ec4899;">💡 پروتکل NoizDNS چیست و چگونه کار می‌کند؟</strong><br>
-        در فیلترینگ شدید (DPI) و اختلالات ملی، سیستم‌های فیلترینگ الگوی بسته‌های DNS و طول فریم‌ها را رصد و مسدود می‌کنند. پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های نویز تصادفی (Padding Random Noise) بین ۱۶ الی ۶۴ بایت به هر بسته DNS و دگرگون‌سازی هدر پکت‌ها، اثر انگشت (Fingerprint) ترافیک را مخدوش کرده و بدون امکان مسدودسازی از دیواره‌های آتش عبور می‌کند.
-    </div>
-
-    <!-- Step-by-step Apps Grid -->
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
-        
-        <!-- App 1: SlipNet -->
-        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:36px; height:36px; border-radius:8px; background:rgba(139,92,246,0.15); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
-                    <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
-                </div>
-                <div>
-                    <strong style="font-size:14px; display:block;">۱. اپلیکیشن SlipNet (اندروید)</strong>
-                    <span style="font-size:11px; color:#10b981; font-weight:600;">اتصال آسان ۱ کلیک (پیشنهادی)</span>
+            <!-- Client Guide Card -->
+            <div class="spec-card" style="padding: 24px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
+                    <span data-i18n="client_guide">دستور اتصال کلاینت (Client Commands)</span>
+                </h4>
+                <p data-i18n-html="elem_tab_dns_tunnels_8" style="font-size:12.5px; color:var(--text-muted); margin-bottom:12px;">
+                    برای اتصال در نرم‌افزارهای کلاینت (نظیر <strong>HTTP Custom</strong> و <strong>NapsternetV</strong> در اندروید) کافیست دامنه NS و کلید عمومی بالا را به همراه DoH دلخواه وارد کنید. برای ویندوز و لینوکس:
+                </p>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="code-box" id="dnstt-client-cmd-box" style="flex:1; margin:0; padding:10px 14px; font-size:12px; border-radius:10px;">dnstt-client -doh https://cloudflare-dns.com/dns-query -pubkey ...</div>
+                    <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('dnstt-client-cmd-box').textContent)" type="button" style="border-radius:10px;">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    </button>
                 </div>
             </div>
-            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
-                <li>در کادر بالا کاربر SSH مورد نظر را انتخاب کنید.</li>
-                <li>با برنامه <strong>SlipNet</strong> کد QR را اسکن کنید یا روی دکمه کپی لینک <code style="color:#8b5cf6;">slipnet://</code> کلیک کرده و در برنامه وارد نمایید.</li>
-                <li>پروتکل به صورت خودکار روی حالت <strong>SayeDNS Stealth</strong> تنظیم شده و تنها با فشردن دکمه <strong>Connect</strong> اینترنت آزاد در دسترس شماست.</li>
-            </ul>
         </div>
 
-        <!-- App 2: HTTP Custom & NapsternetV -->
-        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:36px; height:36px; border-radius:8px; background:rgba(20,184,166,0.15); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
-                    <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+        <!-- ================= SUB-PANE 2: VAYDNS ================= -->
+        <div id="dns-subpane-vaydns" style="display:none;">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot" id="vaydns-status-dot"></span>
+                        <strong data-i18n="dns_vaydns_server_developed_bypass_iranian" style="font-size:16px; font-weight:800; color:var(--text-primary);">سرور VayDNS (توسعه‌یافته برای دور زدن فیلترینگ ایران - Net2Share)</strong>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="controlProtocol('vaydns', 'restart')" style="border-radius:8px; font-weight:600;">
+                            <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="vaydns-toggle-btn" onclick="toggleProtocolQuick('vaydns')" style="border-radius:8px; font-weight:700;">
+                            <span data-i18n="toggle_service">تغییر وضعیت</span>
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <strong style="font-size:14px; display:block;">۲. نرم‌افزارهای HTTP Custom / NapsternetV</strong>
-                    <span style="font-size:11px; color:var(--text-muted);">اندروید و آی‌او‌اس</span>
+
+                <!-- Stats Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="port" style="color:var(--text-muted); font-size:11px; font-weight:500;">پورت شنود (UDP)</div>
+                        <div id="vaydns-stat-port" style="font-weight:700; color:#6366f1; font-family:'JetBrains Mono',monospace; margin-top:4px;">5353</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="domain" style="color:var(--text-muted); font-size:11px; font-weight:500;">دامنه NS</div>
+                        <div id="vaydns-stat-domain" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:4px;">v.example.com</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="upstream" style="color:var(--text-muted); font-size:11px; font-weight:500;">مقصد هدایت (Upstream)</div>
+                        <div id="vaydns-stat-upstream" style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace; margin-top:4px;">127.0.0.1:22 (SSH)</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px; font-weight:500;">اتصالات فعال</div>
+                        <div id="vaydns-stat-conns" style="font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:4px;">0</div>
+                    </div>
+                </div>
+
+                <!-- Public Key Box -->
+                <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius:12px; padding:14px; margin-bottom:18px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                        <label class="form-label" data-i18n="dns_vaydns_public_key_public_key" style="margin:0; font-weight:700; font-size:12px; color:var(--text-primary);">کلید عمومی VayDNS (Public Key)</label>
+                        <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-pubkey-display').textContent)" style="padding:3px 10px; font-size:11px; border-radius:6px;" type="button">
+                            <i data-lucide="copy" style="width:12px; height:12px; margin-inline-end:4px;"></i> <span data-i18n="ssh_copy_key">کپی کلید</span>
+                        </button>
+                    </div>
+                    <div id="vaydns-pubkey-display" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:#38bdf8; word-break:break-all; direction:ltr; text-align:left; background: rgba(15, 23, 42, 0.9); padding:10px 12px; border-radius:8px; border: 1px solid rgba(255, 255, 255, 0.08);">-</div>
+                </div>
+
+                <!-- Configuration Form -->
+                <form id="vaydns-config-form" onsubmit="saveVaydnsConfig(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_port_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">پورت سرور (UDP)</label>
+                            <input class="form-input" id="vaydns-port-input" max="65535" min="1" required="" type="number" value="5353" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_domain_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">دامنه تونل (NS Record Domain)</label>
+                            <input class="form-input" id="vaydns-domain-input" placeholder="v.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_upstream_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">مقصد فوروارد ترافیک (Upstream)</label>
+                            <select class="form-input" id="vaydns-upstream-select" style="border-radius:10px;">
+                                <option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
+                                <option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
+                                <option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                                <option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:18px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; color:var(--text-secondary);">
+                            <input checked="" id="vaydns-compat-checkbox" type="checkbox"/>
+                            <span><span data-i18n="dns_enabling_compatibility_mode_standard_dnst">فعال‌سازی حالت سازگاری با کلاینت‌های DNSTT استاندارد (</span><code style="font-family:'JetBrains Mono',monospace;">-dnstt-compat</code>)</span>
+                        </label>
+                    </div>
+                    <button class="btn btn-primary" id="save-vaydns-btn" type="submit" style="border-radius:10px; font-weight:700;">
+                        <i class="btn-icon" data-lucide="save"></i> <span data-i18n="dns_vaydns">ذخیره و اعمال تنظیمات VayDNS</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- SlipNet Android Card for VayDNS -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #14b8a6;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#14b8a6;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+                        <span class="badge" style="background:rgba(20,184,166,0.15); color:#14b8a6; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">مخصوص VayDNS KCP</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="vaydns-slipnet-user" onchange="onSlipnetUserChange('vaydns')" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="vaydns-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#14b8a6;"></i>
+                            پروتکل VayDNS با متراکم‌سازی کوئری‌های DNS بر بستر KCP برای عبور از فیلترینگ شدید همراه اول و ایرانسل.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="vaydns-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن با دوربین SlipNet</span>
+                    </div>
                 </div>
             </div>
-            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
-                <li>در نرم‌افزار حالت اتصال را روی <strong>SlowDNS / DNS Tunnel</strong> قرار دهید.</li>
-                <li>در فیلد DNS Server آی‌پی سرور خود و پورت <code style="color:#14b8a6;">5355</code> (UDP) را وارد نمایید.</li>
-                <li>در بخش SSH، آی‌پی سرور و پورت SSH (معمولاً ۲۲) و نام کاربری و رمز عبور کاربر خود را ثبت کرده و متصل شوید.</li>
-            </ul>
+
+            <!-- Client Guide Card -->
+            <div class="spec-card" style="padding: 24px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; color:#14b8a6;"></i>
+                    <span data-i18n="dns_vaydns_client_command">دستور کلاینت VayDNS</span>
+                </h4>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="code-box" id="vaydns-client-cmd-box" style="flex:1; margin:0; padding:10px 14px; font-size:12px; border-radius:10px;">vaydns-client -udp 8.8.8.8:53 -pubkey ... -domain ... -listen 127.0.0.1:1080 -dnstt-compat</div>
+                    <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('vaydns-client-cmd-box').textContent)" type="button" style="border-radius:10px;">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- App 3: Desktop / Linux Client -->
-        <div style="background:var(--bg-base); border:1px solid var(--border-color); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:36px; height:36px; border-radius:8px; background:rgba(59,130,246,0.15); color:#3b82f6; display:flex; align-items:center; justify-content:center;">
-                    <i data-lucide="terminal" style="width:20px; height:20px;"></i>
+        <!-- ================= SUB-PANE 3: SLIPSTREAM ================= -->
+        <div id="dns-subpane-slipstream" style="display:none;">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot" id="slipstream-status-dot"></span>
+                        <strong data-i18n="dns_slipstream_server_quic_multipath_secret" style="font-size:16px; font-weight:800; color:var(--text-primary);">سرور Slipstream (تونل مخفی QUIC Multipath بر بستر DNS)</strong>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="controlProtocol('slipstream', 'restart')" style="border-radius:8px; font-weight:600;">
+                            <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="slipstream-toggle-btn" onclick="toggleProtocolQuick('slipstream')" style="border-radius:8px; font-weight:700;">
+                            <span data-i18n="toggle_service">تغییر وضعیت</span>
+                        </button>
+                    </div>
                 </div>
-                <div>
-                    <strong style="font-size:14px; display:block;">۳. کلاینت NoizDNS (ویندوز / مک / لینوکس)</strong>
-                    <span style="font-size:11px; color:var(--text-muted);">تونل کل سیستم و دسکتاپ</span>
+
+                <!-- Stats Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="port" style="color:var(--text-muted); font-size:11px; font-weight:500;">پورت شنود (UDP)</div>
+                        <div id="slipstream-stat-port" style="font-weight:700; color:#6366f1; font-family:'JetBrains Mono',monospace; margin-top:4px;">5354</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="domain" style="color:var(--text-muted); font-size:11px; font-weight:500;">دامنه NS</div>
+                        <div id="slipstream-stat-domain" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:4px;">s.example.com</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="upstream" style="color:var(--text-muted); font-size:11px; font-weight:500;">مقصد هدایت (Target)</div>
+                        <div id="slipstream-stat-upstream" style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace; margin-top:4px;">127.0.0.1:22</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px; font-weight:500;">اتصالات فعال</div>
+                        <div id="slipstream-stat-conns" style="font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:4px;">0</div>
+                    </div>
+                </div>
+
+                <div data-i18n-html="elem_tab_dns_tunnels_9" style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius:10px; padding:12px 16px; font-size:12.5px; color:var(--text-muted); margin-bottom:18px; line-height:1.6;">
+                    <i data-lucide="zap" style="width:14px; height:14px; color:#f59e0b; vertical-align:middle; margin-inline-end:4px;"></i> <span data-i18n="col_proto">پروتکل</span> <strong>Slipstream</strong> از معماری QUIC چندمسیره بهره می‌برد که هدر آن تا ۶۰٪ نسبت به DNSTT کوچک‌تر بوده و دارای کنترل ازدحام اختصاصی برای دی‌ان‌اس سرورهای Rate-limited است.
+                </div>
+
+                <!-- Configuration Form -->
+                <form id="slipstream-config-form" onsubmit="saveSlipstreamConfig(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dnstt_port_label" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">پورت سرور (UDP)</label>
+                            <input class="form-input" id="slipstream-port-input" max="65535" min="1" required="" type="number" value="5354" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dns_dedicated_domain" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">دامنه اختصاصی (Domain)</label>
+                            <input class="form-input" id="slipstream-domain-input" placeholder="s.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dns_target_2" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">مقصد فوروارد ترافیک (Target)</label>
+                            <select class="form-input" id="slipstream-upstream-select" style="border-radius:10px;">
+                                <option data-i18n="dns_127_0_0_1_22" value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH مستقیم)</option>
+                                <option value="127.0.0.1:443">127.0.0.1:443 (مالتی‌پلکسر HAProxy)</option>
+                                <option data-i18n="dns_127_0_0_1_2222" value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                                <option data-i18n="dns_127_0_0_1_1080" value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="save-slipstream-btn" type="submit" style="border-radius:10px; font-weight:700;">
+                        <i class="btn-icon" data-lucide="save"></i> <span data-i18n="dns_save_apply_slipstream_settings">ذخیره و اعمال تنظیمات Slipstream</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- SlipNet Android Card for Slipstream -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #3b82f6;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#3b82f6;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (اندروید)</span>
+                        <span class="badge" style="background:rgba(59,130,246,0.15); color:#3b82f6; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">مخصوص Slipstream QUIC</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="slipstream-slipnet-user" onchange="onSlipnetUserChange('slipstream')" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Cloudflare NS Setup Notice -->
+                <div style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.25); border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:12.5px; line-height:1.6;">
+                    <div style="font-weight:700; color:#d97706; display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+                        <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i>
+                        <span>الزام ثبت رکورد در Cloudflare جهت کارکرد اینترنت ملی و SlipNet:</span>
+                    </div>
+                    <div style="color:var(--text-secondary);">
+                        برای برقراری اتصال تانل در همراه اول/ایرانسل، باید دو رکورد زیر در پنل Cloudflare دامنه ثبت شوند:
+                        <ul style="margin:6px 0 0 18px; padding:0;">
+                            <li><strong>رکورد A:</strong> با نام <code>ns</code> و مقدار آی‌پی سرور (<code><span class="dns-srv-ip">212.227.143.16</span></code>) در وضعیت <strong>DNS Only (ابر خاکستری - خاموش)</strong>.</li>
+                            <li><strong>رکورد NS:</strong> با نام <code>s.vpn</code> و مقدار <code>ns.example.com</code> (یا ساب‌دامین اختصاصی تنظیم‌شده در بالا).</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="slipstream-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#3b82f6;"></i>
+                            در برنامه اندروید <strong>SlipNet</strong> روی علامت <strong>+</strong> یا <strong>Import from Clipboard</strong> ضربه بزنید تا کانفیگ مستقیماً اضافه شود و سپس دکمه Connect را بزنید.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="slipstream-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن با دوربین SlipNet</span>
+                    </div>
                 </div>
             </div>
-            <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-right:18px;">
-                <li>کلاینت NoizDNS را در سیستم خود اجرا کرده و دستور جعبه دستور اتصال را فراخوانی کنید.</li>
-                <li>کلاینت پورت محلی <code style="color:#3b82f6;">127.0.0.1:53</code> را ایجاد می‌کند که کلیه درخواست‌های DNS سیستم شما با نویز ضد فیلتر ارسال شود.</li>
-                <li>ترافیک DNS کل سیستم به صورت کاملاً رمزنگاری و نویزگذاری شده بدون فیلترینگ عبور داده می‌شود.</li>
-            </ul>
+
+            <!-- Client Guide Card -->
+            <div class="spec-card" style="padding: 24px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; color:#3b82f6;"></i>
+                    <span data-i18n="dns_slipstream_client_command">دستور کلاینت Slipstream (CLI لینوکس و ویندوز)</span>
+                </h4>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="code-box" id="slipstream-client-cmd-box" style="flex:1; margin:0; padding:10px 14px; font-size:12px; border-radius:10px;">slipstream-client -l 1080 -d ... -r 8.8.8.8:53</div>
+                    <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('slipstream-client-cmd-box').textContent)" type="button" style="border-radius:10px;">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUB-PANE 4: NOIZDNS ================= -->
+        <div id="dns-subpane-noizdns" style="display:none;">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot" id="noizdns-status-dot"></span>
+                        <strong data-i18n="dns_noizdns_title" style="font-size:16px; font-weight:800; color:var(--text-primary);">سرور NoizDNS (پراکسی ضد DPI با نویز تصادفی و پدینگ فریم)</strong>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="controlProtocol('noizdns', 'restart')" style="border-radius:8px; font-weight:600;">
+                            <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="noizdns-toggle-btn" onclick="toggleProtocolQuick('noizdns')" style="border-radius:8px; font-weight:700;">
+                            <span data-i18n="toggle_service">تغییر وضعیت</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="port" style="color:var(--text-muted); font-size:11px; font-weight:500;">پورت شنود (UDP)</div>
+                        <div id="noizdns-stat-port" style="font-weight:700; color:#6366f1; font-family:'JetBrains Mono',monospace; margin-top:4px;">5355</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="upstream" style="color:var(--text-muted); font-size:11px; font-weight:500;">دی‌ان‌اس بالادستی (Upstream)</div>
+                        <div id="noizdns-stat-upstream" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:4px;">1.1.1.1:53</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="dns_padding_range" style="color:var(--text-muted); font-size:11px; font-weight:500;">محدوده پدینگ نویز</div>
+                        <div id="noizdns-stat-padding" style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace; margin-top:4px;">16 - 64 Bytes</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px; font-weight:500;">اتصالات فعال</div>
+                        <div id="noizdns-stat-conns" style="font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:4px;">0</div>
+                    </div>
+                </div>
+
+                <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius:10px; padding:12px 16px; font-size:12.5px; color:var(--text-muted); margin-bottom:18px; line-height:1.6;">
+                    <i data-lucide="shield" style="width:14px; height:14px; color:#10b981; vertical-align:middle; margin-inline-end:4px;"></i> <span data-i18n="dns_noizdns_desc">پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های تصادفی نویز و دگرگون‌سازی طول پکت‌های DNS مانع شناسایی الگوهای درخواست توسط سامانه‌های مانیتورینگ DPI و کاهش سرعت کوئری‌ها می‌شود.</span>
+                </div>
+
+                <!-- Configuration Form -->
+                <form id="noizdns-config-form" onsubmit="saveNoizdnsConfig(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="port" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">پورت شنود سرور (UDP)</label>
+                            <input class="form-input" id="noizdns-port-input" max="65535" min="1" required="" type="number" value="5355" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="upstream" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">دی‌ان‌اس بالادستی (Upstream DNS)</label>
+                            <input class="form-input" id="noizdns-upstream-input" placeholder="1.1.1.1:53" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text" value="1.1.1.1:53"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dns_pad_min" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">حداقل نویز پدینگ (Bytes)</label>
+                            <input class="form-input" id="noizdns-padmin-input" max="256" min="4" required="" type="number" value="16" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="dns_pad_max" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">حداکثر نویز پدینگ (Bytes)</label>
+                            <input class="form-input" id="noizdns-padmax-input" max="512" min="16" required="" type="number" value="64" style="border-radius:10px;"/>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="save-noizdns-btn" type="submit" style="border-radius:10px; font-weight:700;">
+                        <i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات NoizDNS</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Client Guide Card -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; color:#10b981;"></i>
+                    <span data-i18n="client_guide">دستور اتصال کلاینت NoizDNS</span>
+                </h4>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="code-box" id="noizdns-client-cmd-box" style="flex:1; margin:0; padding:10px 14px; font-size:12px; border-radius:10px;">noizdns-client -server SERVER_IP:5355 -local 127.0.0.1:53</div>
+                    <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-client-cmd-box').textContent)" type="button" style="border-radius:10px;">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SlipNet Android Card for NoizDNS -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #8b5cf6;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#8b5cf6;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (حالت ضد فیلتر NoizDNS Stealth)</span>
+                        <span class="badge" style="background:rgba(139,92,246,0.15); color:#8b5cf6; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">SayeDNS + Stealth</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="noizdns-slipnet-user" onchange="onSlipnetUserChange('noizdns')" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="noizdns-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('noizdns-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#8b5cf6;"></i>
+                            پروتکل SayeDNS/NoizDNS با افزودن نویز تصادفی و پدینگ متغیر بسته‌ها، سیستم‌های DPI و فیلترینگ عمیق اینترنت را دور می‌زند. در برنامه <strong>SlipNet</strong> با اسکن QR Code متصل شوید.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="noizdns-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن سریع در SlipNet</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NoizDNS Usage & Setup Guide Card -->
+            <div class="spec-card" style="padding: 24px; border-top: 3px solid #ec4899;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+                    <h4 style="margin:0; font-size:16px; font-weight:800; display:flex; align-items:center; gap:8px; color:var(--text-primary);">
+                        <i data-lucide="book-open" style="width:20px; height:20px; color:#ec4899;"></i>
+                        <span>راهنمای جامع راه‌اندازی و استفاده از نویز دی‌ان‌اس (NoizDNS Anti-DPI)</span>
+                    </h4>
+                    <span class="badge" style="background:rgba(236,72,153,0.15); color:#ec4899; font-size:12px; padding:3px 10px; border-radius:12px; font-weight:600;">
+                        Anti-DPI &amp; Stealth Protocol
+                    </span>
+                </div>
+
+                <!-- Intro box -->
+                <div style="background:rgba(236,72,153,0.06); border:1px solid rgba(236,72,153,0.2); border-radius:12px; padding:16px; margin-bottom:20px; font-size:12.5px; line-height:1.7; color:var(--text-primary);">
+                    <strong style="color:#ec4899;">💡 پروتکل NoizDNS چیست و چگونه کار می‌کند؟</strong><br>
+                    در فیلترینگ شدید (DPI) و اختلالات ملی، سیستم‌های فیلترینگ الگوی بسته‌های DNS و طول فریم‌ها را رصد و مسدود می‌کنند. پروتکل <strong>NoizDNS</strong> با تزریق بایت‌های نویز تصادفی (Padding Random Noise) بین ۱۶ الی ۶۴ بایت به هر بسته DNS و دگرگون‌سازی هدر پکت‌ها، اثر انگشت (Fingerprint) ترافیک را مخدوش کرده و بدون امکان مسدودسازی از دیواره‌های آتش عبور می‌کند.
+                </div>
+
+                <!-- Step-by-step Apps Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; margin-bottom:20px;">
+                    
+                    <!-- App 1: SlipNet -->
+                    <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(139,92,246,0.15); color:#8b5cf6; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="smartphone" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:14px; font-weight:700; color:var(--text-primary); display:block;">۱. اپلیکیشن SlipNet (اندروید)</strong>
+                                <span style="font-size:11px; color:#10b981; font-weight:600;">اتصال آسان ۱ کلیک (پیشنهادی)</span>
+                            </div>
+                        </div>
+                        <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-inline-start:18px;">
+                            <li>در کادر بالا کاربر SSH مورد نظر را انتخاب کنید.</li>
+                            <li>با برنامه <strong>SlipNet</strong> کد QR را اسکن کنید یا روی دکمه کپی لینک <code style="color:#8b5cf6;">slipnet://</code> کلیک کرده و در برنامه وارد نمایید.</li>
+                            <li>پروتکل به صورت خودکار روی حالت <strong>SayeDNS Stealth</strong> تنظیم شده و تنها با فشردن دکمه <strong>Connect</strong> اینترنت آزاد در دسترس شماست.</li>
+                        </ul>
+                    </div>
+
+                    <!-- App 2: HTTP Custom & NapsternetV -->
+                    <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(20,184,166,0.15); color:#14b8a6; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="sliders" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:14px; font-weight:700; color:var(--text-primary); display:block;">۲. نرم‌افزارهای HTTP Custom / NapsternetV</strong>
+                                <span style="font-size:11px; color:var(--text-muted);">اندروید و آی‌او‌اس</span>
+                            </div>
+                        </div>
+                        <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-inline-start:18px;">
+                            <li>در نرم‌افزار حالت اتصال را روی <strong>SlowDNS / DNS Tunnel</strong> قرار دهید.</li>
+                            <li>در فیلد DNS Server آی‌پی سرور خود و پورت <code style="color:#14b8a6;">5355</code> (UDP) را وارد نمایید.</li>
+                            <li>در بخش SSH، آی‌پی سرور و پورت SSH (معمولاً ۲۲) و نام کاربری و رمز عبور کاربر خود را ثبت کرده و متصل شوید.</li>
+                        </ul>
+                    </div>
+
+                    <!-- App 3: Desktop / Linux Client -->
+                    <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:18px; display:flex; flex-direction:column; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <div style="width:36px; height:36px; border-radius:8px; background:rgba(59,130,246,0.15); color:#3b82f6; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="terminal" style="width:20px; height:20px;"></i>
+                            </div>
+                            <div>
+                                <strong style="font-size:14px; font-weight:700; color:var(--text-primary); display:block;">۳. کلاینت NoizDNS (ویندوز / مک / لینوکس)</strong>
+                                <span style="font-size:11px; color:var(--text-muted);">تونل کل سیستم و دسکتاپ</span>
+                            </div>
+                        </div>
+                        <ul style="font-size:12px; color:var(--text-muted); line-height:1.8; margin:0; padding-inline-start:18px;">
+                            <li>کلاینت NoizDNS را در سیستم خود اجرا کرده و دستور جعبه دستور اتصال را فراخوانی کنید.</li>
+                            <li>کلاینت پورت محلی <code style="color:#3b82f6;">127.0.0.1:53</code> را ایجاد می‌کند که کلیه درخواست‌های DNS سیستم شما با نویز ضد فیلتر ارسال شود.</li>
+                            <li>ترافیک DNS کل سیستم به صورت کاملاً رمزنگاری و نویزگذاری شده بدون فیلترینگ عبور داده می‌شود.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Troubleshooting Tips -->
+                <div style="background:var(--surface-elevated); border-radius:10px; padding:14px 18px; font-size:12px; line-height:1.6; border:1px solid var(--border-subtle);">
+                    <strong style="color:#f59e0b; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                        <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> نکات فنی برای حداکثر پایداری و دور زدن فیلترینگ:
+                    </strong>
+                    <div style="display:flex; flex-direction:column; gap:4px; color:var(--text-muted);">
+                        <div>• پورت پیش‌فرض شنود سرور ۵۳۵۵ (UDP) است؛ در صورت بسته‌بودن رنج پورت‌ها در اپراتور، می‌توانید در فرم بالا پورت را به ۵۳ یا دیگر پورت‌های باز تغییر دهید.</div>
+                        <div>• اگر سرعت انتقال کوئری‌ها کند بود، DNS بالادستی (Upstream) را روی <code>1.1.1.1:53</code> یا <code>8.8.8.8:53</code> تنظیم کنید.</div>
+                        <div>• برای خطوط همراه اول و ایرانسل با محدودیت پکت بالا، مقدار حداقل پدینگ را روی <code>32</code> و حداکثر را روی <code>128</code> بایت قرار دهید.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUB-PANE 5: MASTERDNSVPN ================= -->
+        <div id="dns-subpane-masterdnsvpn" style="display:none;">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; flex-wrap:wrap; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot" id="masterdnsvpn-status-dot"></span>
+                        <strong data-i18n="dns_masterdnsvpn_title" style="font-size:16px; font-weight:800; color:var(--text-primary);">سرور MasterdnsVPN (تونل چانک بیس۶۴ با سرعت بالا بر بستر DNS)</strong>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="controlProtocol('masterdnsvpn', 'restart')" style="border-radius:8px; font-weight:600;">
+                            <i data-lucide="rotate-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="masterdnsvpn-toggle-btn" onclick="toggleProtocolQuick('masterdnsvpn')" style="border-radius:8px; font-weight:700;">
+                            <span data-i18n="toggle_service">تغییر وضعیت</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="port" style="color:var(--text-muted); font-size:11px; font-weight:500;">پورت شنود (UDP)</div>
+                        <div id="masterdnsvpn-stat-port" style="font-weight:700; color:#6366f1; font-family:'JetBrains Mono',monospace; margin-top:4px;">5356</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="domain" style="color:var(--text-muted); font-size:11px; font-weight:500;">دامنه NS</div>
+                        <div id="masterdnsvpn-stat-domain" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; margin-top:4px;">t.example.com</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="upstream" style="color:var(--text-muted); font-size:11px; font-weight:500;">مقصد هدایت (Target)</div>
+                        <div id="masterdnsvpn-stat-upstream" style="font-weight:700; color:#0284c7; font-family:'JetBrains Mono',monospace; margin-top:4px;">127.0.0.1:1080 (SOCKS5)</div>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:12px 14px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px; font-weight:500;">اتصالات فعال</div>
+                        <div id="masterdnsvpn-stat-conns" style="font-weight:700; color:#f59e0b; font-family:'JetBrains Mono',monospace; margin-top:4px;">0</div>
+                    </div>
+                </div>
+
+                <!-- Configuration Form -->
+                <form id="masterdnsvpn-config-form" onsubmit="saveMasterdnsvpnConfig(event)">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="port" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">پورت سرور (UDP)</label>
+                            <input class="form-input" id="masterdnsvpn-port-input" max="65535" min="1" required="" type="number" value="5356" style="border-radius:10px;"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="domain" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">دامنه تونل (NS Record Domain)</label>
+                            <input class="form-input" id="masterdnsvpn-domain-input" placeholder="t.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="masterdnsvpn_key" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">کلید احراز هویت (Auth Key)</label>
+                            <input class="form-input" id="masterdnsvpn-key-input" placeholder="master-secret-key-mhpanel" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono',monospace; border-radius:10px;" type="text"/>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label class="form-label" data-i18n="upstream" style="font-size:12px; color:var(--text-secondary); margin-bottom:4px; display:block;">مقصد فوروارد ترافیک (Target)</label>
+                            <select class="form-input" id="masterdnsvpn-upstream-select" style="border-radius:10px;">
+                                <option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
+                                <option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
+                                <option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="save-masterdnsvpn-btn" type="submit" style="border-radius:10px; font-weight:700;">
+                        <i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات MasterdnsVPN</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Client Guide Card -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <h4 style="margin:0 0 10px 0; font-size:14px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                    <i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
+                    <span data-i18n="client_guide">دستور کلاینت MasterdnsVPN</span>
+                </h4>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <div class="code-box" id="masterdnsvpn-client-cmd-box" style="flex:1; margin:0; padding:10px 14px; font-size:12px; border-radius:10px;">masterdnsvpn-client -domain t.example.com -key ... -l 1080</div>
+                    <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-client-cmd-box').textContent)" type="button" style="border-radius:10px;">
+                        <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SlipNet Android Card for MasterdnsVPN -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #0284c7;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#0284c7;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (مستر دی‌ان‌اس VPN)</span>
+                        <span class="badge" style="background:rgba(2,132,199,0.15); color:#0284c7; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">مخصوص MasterDNS</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="masterdnsvpn-slipnet-user" onchange="onSlipnetUserChange('masterdnsvpn')" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="masterdnsvpn-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#0284c7;"></i>
+                            تونل MasterdnsVPN با رمزنگاری پیشرفته و چانک کوئری‌های DNS، اینترنت بدون فیلتر ارائه می‌دهد. مستقیماً در اپلیکیشن <strong>SlipNet</strong> اسکن نمایید.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="masterdnsvpn-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن سریع در SlipNet</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= SUB-PANE 6: DoH (DNS over HTTPS) ================= -->
+        <div id="dns-subpane-doh" style="display:none;">
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="status-dot active"></span>
+                        <strong style="font-size:16px; font-weight:800; color:var(--text-primary);">تونل DNS بر بستر HTTPS (DoH - Encrypted HTTPS Transport)</strong>
+                    </div>
+                    <span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:12px; padding:4px 12px; border-radius:12px; font-weight:700;">پروتکل ضد فیلتر پورت ۵۳</span>
+                </div>
+                <p style="font-size:12.5px; color:var(--text-muted); margin-bottom:18px; line-height:1.7;">
+                    در زمان اختلال یا مسدودی پورت ۵۳ (UDP) توسط اپراتورها، ترنسپورت DoH تمام کوئری‌های تونل را درون ترافیک رمزنگاری‌شده TLS پورت ۴۴۳ به سرورهای کلودفلر یا گوگل کپسوله می‌کند و از مسدودی سیستم فیلترینگ بدون نیاز به پورت باز UDP عبور می‌نماید.
+                </p>
+
+                <!-- Provider Selector & Stats -->
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:18px;">
+                    <div style="background: var(--surface-elevated); padding:14px 16px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <label class="form-label" style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px; display:block;">ارائه‌دهنده سرویس DoH (Endpoint):</label>
+                        <select class="form-input" id="doh-provider-select" onchange="onDohConfigChange()" style="font-size:12px; font-family:'JetBrains Mono',monospace; border-radius:8px;">
+                            <option value="https://cloudflare-dns.com/dns-query" selected>Cloudflare DoH (cloudflare-dns.com)</option>
+                            <option value="https://dns.google/dns-query">Google DoH (dns.google)</option>
+                            <option value="https://dns.adguard-dns.com/dns-query">AdGuard DoH (dns.adguard-dns.com)</option>
+                            <option value="https://doh.opendns.com/dns-query">OpenDNS DoH (doh.opendns.com)</option>
+                        </select>
+                    </div>
+                    <div style="background: var(--surface-elevated); padding:14px 16px; border-radius:10px; border: 1px solid var(--border-subtle);">
+                        <div style="font-size:11.5px; color:var(--text-muted); margin-bottom:6px;">دامنه معتبر معکوس (NS):</div>
+                        <div id="doh-stat-domain" style="font-weight:700; color:#10b981; font-family:'JetBrains Mono',monospace; font-size:14px; margin-top:6px;">t.example.com</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SlipNet Android Card for DoH -->
+            <div class="spec-card" style="padding: 24px; margin-bottom: 20px; border-inline-start: 4px solid #10b981;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+                    <h4 style="margin:0; font-size:15px; font-weight:700; color:var(--text-primary); display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="smartphone" style="width:18px; height:18px; color:#10b981;"></i>
+                        <span>اتصال آسان در اپلیکیشن SlipNet (حالت امن DoH)</span>
+                        <span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:11px; padding:2px 8px; border-radius:12px; font-weight:700;">DoH Mode</span>
+                    </h4>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
+                        <select class="form-input" id="doh-slipnet-user" onchange="onDohConfigChange()" style="padding:4px 8px; font-size:12px; width:auto; height:34px; border-radius:8px;">
+                            <option value="">(در حال دریافت کاربران...)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display:flex; gap:18px; align-items:flex-start; flex-wrap:wrap;">
+                    <div style="flex:1; min-width:260px;">
+                        <label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600; color:var(--text-secondary);">لینک اختصاصی SlipNet DoH (One-Tap URI):</label>
+                        <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+                            <div class="code-box" id="doh-slipnet-uri-box" style="flex:1; margin:0; padding:10px 12px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto; border-radius:8px;">در حال تولید لینک...</div>
+                            <button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('doh-slipnet-uri-box').textContent)" title="کپی لینک" type="button" style="border-radius:8px;">
+                                <i data-lucide="copy" style="width:14px; height:14px;"></i>
+                            </button>
+                        </div>
+                        <p style="font-size:11.5px; color:var(--text-muted); margin:0; line-height:1.6;">
+                            <i data-lucide="info" style="width:13px; height:13px; vertical-align:middle; color:#10b981;"></i>
+                            این کانفیگ مستقیماً از طریق بسته‌های رمزنگاری‌شده HTTPS به کلودفلر ارسال شده و از مسدودسازی پورت ۵۳ عبور می‌کند. کافیست در نرم‌افزار <strong>SlipNet</strong> اسکن کنید.
+                        </p>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px; background:var(--surface-elevated); border-radius:12px; border:1px solid var(--border-subtle);">
+                        <div id="doh-slipnet-qr" style="width:200px; height:200px; min-width:200px; min-height:200px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.15);"></div>
+                        <span style="font-size:11.5px; color:var(--text-muted); margin-top:8px; font-weight:600;">اسکن سریع در SlipNet</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
-
-    <!-- Troubleshooting Tips -->
-    <div style="background:var(--bg-muted); border-radius:8px; padding:12px 16px; font-size:12px; line-height:1.6; border:1px solid var(--border-glow);">
-        <strong style="color:#f59e0b; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-            <i data-lucide="alert-triangle" style="width:15px; height:15px;"></i> نکات فنی برای حداکثر پایداری و دور زدن فیلترینگ:
-        </strong>
-        <div style="display:flex; flex-direction:column; gap:4px; color:var(--text-muted);">
-            <div>• پورت پیش‌فرض شنود سرور ۵۳۵۵ (UDP) است؛ در صورت بسته‌بودن رنج پورت‌ها در اپراتور، می‌توانید در فرم بالا پورت را به ۵۳ یا دیگر پورت‌های باز تغییر دهید.</div>
-            <div>• اگر سرعت انتقال کوئری‌ها کند بود، DNS بالادستی (Upstream) را روی <code>1.1.1.1:53</code> یا <code>8.8.8.8:53</code> تنظیم کنید.</div>
-            <div>• برای خطوط همراه اول و ایرانسل با محدودیت پکت بالا، مقدار حداقل پدینگ را روی <code>32</code> و حداکثر را روی <code>128</code> بایت قرار دهید.</div>
-        </div>
-    </div>
-</div>
-</div>
-<!-- ================= SUB-PANE 5: MASTERDNSVPN ================= -->
-<div id="dns-subpane-masterdnsvpn" style="display:none;">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot" id="masterdnsvpn-status-dot"></span>
-<strong data-i18n="dns_masterdnsvpn_title" style="font-size:15px;">سرور MasterdnsVPN (تونل چانک بیس۶۴ با سرعت بالا بر بستر DNS)</strong>
-</div>
-<div style="display:flex; gap:8px;">
-<button class="btn btn-secondary btn-sm" onclick="controlProtocol('masterdnsvpn', 'restart')">
-<i data-lucide="rotate-cw" style="width:13px; height:13px; margin-left:4px;"></i> <span data-i18n="restart">راه‌اندازی مجدد</span>
-</button>
-<button class="btn btn-primary btn-sm" id="masterdnsvpn-toggle-btn" onclick="toggleProtocolQuick('masterdnsvpn')">
-<span data-i18n="toggle_service">تغییر وضعیت</span>
-</button>
-</div>
-</div>
-<!-- Stats Grid -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="port" style="color:var(--text-muted); font-size:11px;">پورت شنود (UDP)</div>
-<div id="masterdnsvpn-stat-port" style="font-weight:700; color:#4f46e5; font-family:'JetBrains Mono',monospace;">5356</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="domain" style="color:var(--text-muted); font-size:11px;">دامنه NS</div>
-<div id="masterdnsvpn-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace;">t.example.com</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="upstream" style="color:var(--text-muted); font-size:11px;">مقصد هدایت (Target)</div>
-<div id="masterdnsvpn-stat-upstream" style="font-weight:700; color:#2563eb; font-family:'JetBrains Mono',monospace;">127.0.0.1:1080 (SOCKS5)</div>
-</div>
-<div style="background: var(--bg-base); padding:10px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div data-i18n="online_conns" style="color:var(--text-muted); font-size:11px;">اتصالات فعال</div>
-<div id="masterdnsvpn-stat-conns" style="font-weight:700; color:#ea580c; font-family:'JetBrains Mono',monospace;">0</div>
-</div>
-</div>
-<!-- Configuration Form -->
-<form id="masterdnsvpn-config-form" onsubmit="saveMasterdnsvpnConfig(event)">
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:16px;">
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="port">پورت سرور (UDP)</label>
-<input class="form-input" id="masterdnsvpn-port-input" max="65535" min="1" required="" type="number" value="5356"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="domain">دامنه تونل (NS Record Domain)</label>
-<input class="form-input" id="masterdnsvpn-domain-input" placeholder="t.yourdomain.com" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="masterdnsvpn_key">کلید احراز هویت (Auth Key)</label>
-<input class="form-input" id="masterdnsvpn-key-input" placeholder="master-secret-key-mhpanel" required="" style="direction:ltr; text-align:left; font-family:'JetBrains Mono';" type="text"/>
-</div>
-<div class="form-group" style="margin:0;">
-<label class="form-label" data-i18n="upstream">مقصد فوروارد ترافیک (Target)</label>
-<select class="form-input" id="masterdnsvpn-upstream-select">
-<option value="127.0.0.1:1080">127.0.0.1:1080 (پروکسی SOCKS5)</option>
-<option value="127.0.0.1:22">127.0.0.1:22 (سیستم SSH)</option>
-<option value="127.0.0.1:2222">127.0.0.1:2222 (سرویس SSH پنل)</option>
-</select>
-</div>
-</div>
-<button class="btn btn-primary" id="save-masterdnsvpn-btn" type="submit">
-<i class="btn-icon" data-lucide="save"></i> <span data-i18n="save_apply">ذخیره و اعمال تنظیمات MasterdnsVPN</span>
-</button>
-</form>
-</div>
-<!-- Client Guide Card -->
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<h4 style="margin:0 0 10px 0; font-size:14px; display:flex; align-items:center; gap:6px;">
-<i data-lucide="terminal" style="width:16px; height:16px; color:#6366f1;"></i>
-<span data-i18n="client_guide">دستور کلاینت MasterdnsVPN</span>
-</h4>
-<div style="display:flex; gap:8px; align-items:center;">
-<div class="code-box" id="masterdnsvpn-client-cmd-box" style="flex:1; margin:0; padding:10px; font-size:12px;">masterdnsvpn-client -domain t.example.com -key ... -l 1080</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-client-cmd-box').textContent)" type="button">
-<i data-lucide="copy" style="width:13px; height:13px;"></i>
-</button>
-</div>
-</div>
-
-<!-- SlipNet Android Card for MasterdnsVPN -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #0284c7;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#0284c7;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (مستر دی‌ان‌اس VPN)</span>
-<span class="badge" style="background:rgba(2,132,199,0.15); color:#0284c7; font-size:11px; padding:2px 8px; border-radius:12px;">مخصوص MasterDNS</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="masterdnsvpn-slipnet-user" onchange="onSlipnetUserChange('masterdnsvpn')" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="masterdnsvpn-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('masterdnsvpn-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-تونل MasterdnsVPN با رمزنگاری پیشرفته و چانک کوئری‌های DNS، اینترنت بدون فیلتر ارائه می‌دهد. مستقیماً در اپلیکیشن <strong>SlipNet</strong> اسکن نمایید.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="masterdnsvpn-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
-</div>
-</div>
-</div>
-</div>
-
-<!-- ================= SUB-PANE 6: DoH (DNS over HTTPS) ================= -->
-<div id="dns-subpane-doh" style="display:none;">
-<div class="glass-card config-card" style="margin-bottom: 20px;">
-<div class="config-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-<div style="display:flex; align-items:center; gap:8px;">
-<span class="status-dot active"></span>
-<strong style="font-size:15px;">تونل DNS بر بستر HTTPS (DoH - Encrypted HTTPS Transport)</strong>
-</div>
-<span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:12px; padding:4px 10px; border-radius:12px;">پروتکل ضد فیلتر پورت ۵۳</span>
-</div>
-<p style="font-size:12px; color:var(--text-muted); margin-bottom:16px; line-height:1.7;">
-در زمان اختلال یا مسدودی پورت ۵۳ (UDP) توسط اپراتورها، ترنسپورت DoH تمام کوئری‌های تونل را درون ترافیک رمزنگاری‌شده TLS پورت ۴۴۳ به سرورهای کلودفلر یا گوگل کپسوله می‌کند و از مسدودی سیستم فیلترینگ بدون نیاز به پورت باز UDP عبور می‌نماید.
-</p>
-<!-- Provider Selector & Stats -->
-<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:12px; margin-bottom:16px;">
-<div style="background: var(--bg-base); padding:12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<label class="form-label" style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">ارائه‌دهنده سرویس DoH (Endpoint):</label>
-<select class="form-input" id="doh-provider-select" onchange="onDohConfigChange()" style="font-size:12px; font-family:'JetBrains Mono',monospace;">
-<option value="https://cloudflare-dns.com/dns-query" selected>Cloudflare DoH (cloudflare-dns.com)</option>
-<option value="https://dns.google/dns-query">Google DoH (dns.google)</option>
-<option value="https://dns.adguard-dns.com/dns-query">AdGuard DoH (dns.adguard-dns.com)</option>
-<option value="https://doh.opendns.com/dns-query">OpenDNS DoH (doh.opendns.com)</option>
-</select>
-</div>
-<div style="background: var(--bg-base); padding:12px; border-radius:8px; border: 1px solid var(--border-glow);">
-<div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">دامنه معتبر معکوس (NS):</div>
-<div id="doh-stat-domain" style="font-weight:700; color:#059669; font-family:'JetBrains Mono',monospace; font-size:13px;">t.example.com</div>
-</div>
-</div>
-</div>
-
-<!-- SlipNet Android Card for DoH -->
-<div class="glass-card config-card" style="margin-bottom: 20px; border-left: 4px solid #10b981;">
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-<h4 style="margin:0; font-size:15px; display:flex; align-items:center; gap:8px;">
-<i data-lucide="smartphone" style="width:18px; height:18px; color:#10b981;"></i>
-<span>اتصال آسان در اپلیکیشن SlipNet (حالت امن DoH)</span>
-<span class="badge" style="background:rgba(16,185,129,0.15); color:#10b981; font-size:11px; padding:2px 8px; border-radius:12px;">DoH Mode</span>
-</h4>
-<div style="display:flex; align-items:center; gap:8px;">
-<label style="font-size:12px; color:var(--text-muted); margin:0;">اکانت متصل (SSH):</label>
-<select class="form-input" id="doh-slipnet-user" onchange="onDohConfigChange()" style="padding:4px 8px; font-size:12px; width:auto; height:32px;">
-<option value="">(در حال دریافت کاربران...)</option>
-</select>
-</div>
-</div>
-<div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
-<div style="flex:1; min-width:260px;">
-<label class="form-label" style="font-size:12px; margin-bottom:6px; font-weight:600;">لینک اختصاصی SlipNet DoH (One-Tap URI):</label>
-<div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
-<div class="code-box" id="doh-slipnet-uri-box" style="flex:1; margin:0; padding:10px; font-size:11px; word-break:break-all; max-height:80px; overflow-y:auto;">در حال تولید لینک...</div>
-<button class="btn btn-secondary btn-sm" onclick="copyText(document.getElementById('doh-slipnet-uri-box').textContent)" title="کپی لینک" type="button">
-<i data-lucide="copy" style="width:14px; height:14px;"></i>
-</button>
-</div>
-<p style="font-size:11px; color:var(--text-muted); margin:0; line-height:1.5;">
-<i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i>
-این کانفیگ مستقیماً از طریق بسته‌های رمزنگاری‌شده HTTPS به کلودفلر ارسال شده و از مسدودسازی پورت ۵۳ عبور می‌کند. کافیست در نرم‌افزار <strong>SlipNet</strong> اسکن کنید.
-</p>
-</div>
-<div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px; background:var(--bg-base); border-radius:8px; border:1px solid var(--border-glow);">
-<div id="doh-slipnet-qr" style="width:220px; height:220px; min-width:220px; min-height:220px; display:flex; align-items:center; justify-content:center; background:#fff; padding:8px; border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,0.2);"></div>
-<span style="font-size:11px; color:var(--text-muted); margin-top:6px; font-weight:600;">اسکن سریع در SlipNet</span>
-</div>
-</div>
-</div>
-</div>
 </div>

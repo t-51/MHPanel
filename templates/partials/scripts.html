@@ -68,7 +68,9 @@
 
     // --- Dark / Light Theme Engine ---
     function initTheme() {
-        const savedTheme = localStorage.getItem("panel_theme") || "dark";
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlTheme = urlParams.get("theme");
+        const savedTheme = urlTheme || localStorage.getItem("panel_theme") || "dark";
         applyTheme(savedTheme);
     }
 
@@ -147,6 +149,32 @@
             if (matches) visibleCount++;
         });
 
+        // Filter & auto-expand accordion groups
+        const accordionGroups = sidebar.querySelectorAll(".sidebar-accordion-group");
+        accordionGroups.forEach(group => {
+            const items = group.querySelectorAll(".sidebar-nav-item");
+            const hasVisible = Array.from(items).some(item => item.style.display !== "none");
+            group.style.display = hasVisible ? "flex" : "none";
+            if (query && hasVisible) {
+                group.classList.add("expanded");
+            } else if (!query) {
+                const hasActive = group.querySelector(".sidebar-nav-item.active");
+                if (hasActive) {
+                    group.classList.add("expanded");
+                } else {
+                    group.classList.remove("expanded");
+                }
+            }
+        });
+
+        // Filter standalone items
+        const standaloneWrappers = sidebar.querySelectorAll(".sidebar-standalone-wrapper");
+        standaloneWrappers.forEach(wrap => {
+            const items = wrap.querySelectorAll(".sidebar-nav-item");
+            const hasVisible = Array.from(items).some(item => item.style.display !== "none");
+            wrap.style.display = hasVisible ? "block" : "none";
+        });
+
         const sections = sidebar.querySelectorAll(".sidebar-section");
         sections.forEach(section => {
             const items = section.querySelectorAll(".sidebar-nav-item");
@@ -211,9 +239,9 @@
     // --- Dynamic Chart Theme & Language Functions ---
     function updateChartsTheme(theme) {
         const isDark = (theme === "dark");
-        const tickColor = isDark ? "#f8fafc" : "#475569";
-        const gridColor = isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(226, 232, 240, 0.8)";
-        const labelColor = isDark ? "#ffffff" : "#0f172a";
+        const tickColor = isDark ? "#A1AAB8" : "#475569";
+        const gridColor = isDark ? "rgba(52, 61, 73, 0.6)" : "rgba(226, 232, 240, 0.8)";
+        const labelColor = isDark ? "#E6EAF0" : "#0f172a";
 
         [usageChart, bandwidthChart].forEach(chart => {
             if (!chart) return;
@@ -864,7 +892,8 @@
     }
 
     // Apply language immediately
-    applyLanguage(localStorage.getItem("panel_language") || "fa");
+    const _urlLangParam = new URLSearchParams(window.location.search).get("lang");
+    applyLanguage(_urlLangParam || localStorage.getItem("panel_language") || "fa");
 
     // Toast Helper
     function showToast(message, type = "info") {
@@ -3415,12 +3444,21 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    // Auto-restore sidebar state on page load - ensure full width & prevent accidental half/collapse
+    // Auto-restore sidebar state on page load from localStorage
     (function restoreSidebarState() {
         const sidebar = document.getElementById("app-sidebar");
         if (sidebar) {
-            sidebar.classList.remove("collapsed");
-            localStorage.setItem("sidebar_collapsed", "false");
+            const isCollapsed = localStorage.getItem("sidebar_collapsed") === "true";
+            if (isCollapsed) {
+                sidebar.classList.add("collapsed");
+                const icon = document.getElementById("sidebar-collapse-icon");
+                if (icon) {
+                    const isRtl = document.documentElement.dir === "rtl";
+                    icon.setAttribute("data-lucide", isRtl ? "chevrons-left" : "chevrons-right");
+                }
+            } else {
+                sidebar.classList.remove("collapsed");
+            }
         }
     })();
 
@@ -8495,7 +8533,33 @@
         toggleLoading(false);
     });
 
-    // --- Sidebar Tab Switching ---
+    // --- Sidebar Accordion & Tab Switching ---
+    function toggleSidebarGroup(btn) {
+        const group = btn.closest('.sidebar-accordion-group');
+        if (!group) return;
+        const isExpanded = group.classList.contains('expanded');
+        document.querySelectorAll('.sidebar-accordion-group').forEach(g => {
+            if (g !== group) {
+                g.classList.remove('expanded');
+            }
+        });
+        if (isExpanded) {
+            group.classList.remove('expanded');
+        } else {
+            group.classList.add('expanded');
+        }
+    }
+
+    function expandSidebarGroup(group) {
+        if (!group) return;
+        document.querySelectorAll('.sidebar-accordion-group').forEach(g => {
+            if (g !== group) {
+                g.classList.remove('expanded');
+            }
+        });
+        group.classList.add('expanded');
+    }
+
     function toggleDropdown(btn) {
         const submenu = btn.nextElementSibling;
         const icon = btn.querySelector('.dropdown-icon');
@@ -8538,12 +8602,17 @@
             // Update active state on sidebar links
             const links = document.querySelectorAll(".sidebar-nav-item");
             links.forEach(link => link.classList.remove("active"));
-            let targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabId}')"]`);
+            let targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabId}')"]`) ||
+                             document.querySelector(`.sidebar-nav-item[onclick*="switchTab('${tabId}')"]`);
             if (!targetLink) {
-                targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('dns-tunnels')"]`);
+                targetLink = document.querySelector(`.sidebar-nav-item[onclick*="switchTab('dns-tunnels')"]`);
             }
             if (targetLink) {
                 targetLink.classList.add("active");
+                const parentAccordionGroup = targetLink.closest('.sidebar-accordion-group');
+                if (parentAccordionGroup) {
+                    expandSidebarGroup(parentAccordionGroup);
+                }
                 const parentSubmenu = targetLink.closest('.sidebar-submenu');
                 if (parentSubmenu) {
                     parentSubmenu.style.display = 'flex';
@@ -8590,9 +8659,17 @@
         // Update active state on sidebar links
         const links = document.querySelectorAll(".sidebar-nav-item");
         links.forEach(link => link.classList.remove("active"));
-        const targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabId}')"]`);
+        let targetLink = document.querySelector(`.sidebar-nav-item[onclick="switchTab('${tabId}')"]`) ||
+                         document.querySelector(`.sidebar-nav-item[onclick*="switchTab('${tabId}')"]`);
+        if (!targetLink) {
+            targetLink = document.querySelector(`.sidebar-nav-item[onclick*="'${tabId}'"]`);
+        }
         if (targetLink) {
             targetLink.classList.add("active");
+            const parentAccordionGroup = targetLink.closest('.sidebar-accordion-group');
+            if (parentAccordionGroup) {
+                expandSidebarGroup(parentAccordionGroup);
+            }
             const parentSubmenu = targetLink.closest('.sidebar-submenu');
             if (parentSubmenu) {
                 parentSubmenu.style.display = 'flex';

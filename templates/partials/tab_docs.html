@@ -1,0 +1,426 @@
+<div class="tab-pane" id="tab-docs">
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+
+        <!-- Header -->
+        <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h2 class="section-title" style="margin: 0; font-size: 20px; display: flex; align-items: center; gap: 10px;">
+                    <i data-lucide="book-open" style="color: var(--brand-primary); width: 24px; height: 24px;"></i>
+                    <span>دانشنامه جامع و راهنمای کار با MH Panel و پروتکل‌ها</span>
+                    <span class="sidebar-badge sidebar-badge-blue"><span class="status-dot active"></span> Comprehensive Docs</span>
+                </h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">
+                    راهنمای گام‌به‌گام راه‌اندازی سرور، مفاهیم پروتکل‌ها، روش‌های ضد فیلترینگ و دور زدن DPI، اتوماسیون تانل و عیب‌یابی کلاینت‌ها
+                </p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.print()" style="display: inline-flex; align-items: center; gap: 6px;">
+                    <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                    <span>چاپ / ذخیره PDF</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Quick Filter Search & Navigation Pills -->
+        <div class="panel-card" style="padding: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 8px 14px;">
+                    <i data-lucide="search" style="color: var(--text-muted); width: 18px; height: 18px; flex-shrink: 0;"></i>
+                    <input type="text" id="docs-search-input" placeholder="جستجو در مباحث دانشنامه (مثلاً Reality، Hysteria، تانل، کلاینت، Amnezia، پورت)..." oninput="filterDocs(this.value)" style="flex: 1; background: transparent; border: none; outline: none; color: var(--text-primary); font-size: 13px; font-family: inherit;">
+                    <button type="button" id="docs-search-clear" onclick="clearDocsFilter()" style="display: none; background: transparent; border: none; color: var(--text-muted); cursor: pointer; padding: 2px;">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    </button>
+                </div>
+                <div class="docs-nav-pills" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+                    <button type="button" class="btn btn-sm btn-subtab active" onclick="filterDocsCategory('all')" data-category="all">
+                        <i data-lucide="layers" style="width: 14px; height: 14px;"></i> همه موضوعات
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('quickstart')" data-category="quickstart">
+                        <i data-lucide="zap" style="width: 14px; height: 14px; color: var(--color-amber);"></i> شروع سریع
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('singbox')" data-category="singbox">
+                        <i data-lucide="box" style="width: 14px; height: 14px; color: #8b5cf6;"></i> هسته Sing-box
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('antidpi')" data-category="antidpi">
+                        <i data-lucide="shield-alert" style="width: 14px; height: 14px; color: #f59e0b;"></i> ضد فیلترینگ و DPI
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('standardvpn')" data-category="standardvpn">
+                        <i data-lucide="shield" style="width: 14px; height: 14px; color: var(--color-emerald);"></i> پروتکل‌های استاندارد
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('tunnels')" data-category="tunnels">
+                        <i data-lucide="network" style="width: 14px; height: 14px; color: var(--color-sky);"></i> تانل و کلودفلر
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('clients')" data-category="clients">
+                        <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i> نرم‌افزارهای کلاینت
+                    </button>
+                    <button type="button" class="btn btn-sm btn-subtab" onclick="filterDocsCategory('faq')" data-category="faq">
+                        <i data-lucide="help-circle" style="width: 14px; height: 14px; color: var(--color-rose);"></i> سوالات متداول
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation Content Sections -->
+        <div id="docs-content-container" style="display: flex; flex-direction: column; gap: 20px;">
+
+            <!-- SECTION 1: شروع سریع و معماری پنل -->
+            <div class="docs-card panel-card" data-category="quickstart" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: var(--color-amber);">
+                        <i data-lucide="zap" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۱. شروع سریع و معماری پایه‌ای MH Panel</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">مبانی ورود، مدیریت کاربران، لینک سابسکریپشن و امنیت</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 12px;">
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="users" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            مدیریت و افزودن کاربر جدید
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            برای ایجاد کاربر، می‌توانید از بخش <strong>کاربران هسته (Sing-box)</strong> یا <strong>کاربران SSH</strong> یا <strong>مرکز جامع FreeRADIUS</strong> استفاده کنید. به ازای هر کاربر محدودیت حجم (Traffic Limit) و تاریخ انقضا (Expiry Date) قابل تنظیم است.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="qr-code" style="width: 16px; height: 16px; color: var(--color-emerald);"></i>
+                            لینک هوشمند سابسکریپشن (Sub)
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            پنل به طور خودکار لینک‌های استاندارد سابسکریپشن Base64 و JSON را تولید می‌کند. کاربر تنها با وارد کردن این لینک در نرم‌افزار خود (v2rayNG, Nekobox, Sing-box)، تمام کانفیگ‌های فعال را همراه با اطلاعات باقیمانده حجم و اعتبار دریافت می‌کند.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="shield-check" style="width: 16px; height: 16px; color: var(--color-sky);"></i>
+                            امنیت سرور و ورود دو مرحله‌ای (2FA)
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            پیشنهاد اکید می‌شود در بخش «سیستم و ابزارها > احراز هویت دو مرحله‌ای»، 2FA را از طریق Google Authenticator فعال نمایید تا دسترسی به کنترل پنل حتی در صورت افشای پسورد کاملاً امن باقی بماند.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: هسته سینگ‌باکس -->
+            <div class="docs-card panel-card" data-category="singbox" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6;">
+                        <i data-lucide="box" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۲. هسته سینگ‌باکس (Sing-box Core Suite) و پروتکل‌های نسل جدید</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">معرفی، نحوه عملکرد و توصیه‌های پیکربندی پروتکل‌های هسته</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <!-- VLESS Reality -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                            <h4 style="margin: 0; font-size: 14.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span class="status-dot active"></span>
+                                VLESS Reality (ریالیتی) - شاهکار پنهان‌سازی ترافیک
+                            </h4>
+                            <span class="sidebar-badge sidebar-badge-green">مقاوم‌ترین روش در برابر فیلترینگ</span>
+                        </div>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0 0 10px 0;">
+                            پروتکل <strong>Reality</strong> برای پنهان‌سازی نیاز به دامنه شخصی و ثبت گواهی ندارد؛ بلکه گواهی و امضای یک وبسایت معتبر خارجی (مانند <code>dl.google.com</code> یا <code>www.microsoft.com</code>) را قرض می‌گیرد. به این ترتیب سیستم فیلترینگ (DPI) در هنگام بازرسی پکت‌ها تصور می‌کند کاربر در حال دانلود از سرور رسمی گوگل یا مایکروسافت است.
+                        </p>
+                        <div style="background: var(--surface-tertiary); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text-muted);">
+                            <strong style="color: var(--text-primary);">💡 نکته طلایی پیکربندی:</strong> برای SNI همواره سایتی را انتخاب کنید که دارای پروتکل <code>TLS 1.3</code> و <code>H2</code> باشد و ترجیحاً پورت را روی <code>443</code> تنظیم کنید.
+                        </div>
+                    </div>
+
+                    <!-- Hysteria 2 -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                            <h4 style="margin: 0; font-size: 14.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span class="status-dot active" style="background: var(--color-rose);"></span>
+                                Hysteria 2 (هیستوریا ۲) - پرسرعت‌ترین پروتکل مبتنی بر UDP
+                            </h4>
+                            <span class="sidebar-badge sidebar-badge-gold">مناسب اینترنت همراه و استریم ۴K</span>
+                        </div>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0 0 10px 0;">
+                            هیستوریا ۲ از یک الگوریتم اختصاصی کنترل تراکم به نام <strong>Brutal</strong> بر پایه پروتکل QUIC و UDP استفاده می‌کند. این پروتکل حتی در شرایطی که پکت‌لاس شبکه تا ۴۰٪ افزایش یابد، با ارسال تهاجمی بسته‌ها نهایت پهنای باند را در دسترس کاربر قرار می‌دهد.
+                        </p>
+                        <div style="background: var(--surface-tertiary); border-radius: 8px; padding: 10px 14px; font-size: 12px; color: var(--text-muted);">
+                            <strong style="color: var(--text-primary);">💡 قابلیت Port Hopping:</strong> با فعال‌سازی محدوده پورت در پنل (مثلاً <code>20000-50000</code>)، کلاینت مدام پورت اتصال را تغییر می‌دهد تا از لیمیت شدن UDP توسط اپراتورهای همراه جلوگیری شود.
+                        </div>
+                    </div>
+
+                    <!-- TUIC v5 -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                            <h4 style="margin: 0; font-size: 14.5px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                                <span class="status-dot active" style="background: var(--color-amber);"></span>
+                                TUIC v5 (تویک) - اتصال کم‌تاخیر 0-RTT
+                            </h4>
+                            <span class="sidebar-badge sidebar-badge-blue">عالی برای گیمینگ و تماس صوتی</span>
+                        </div>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0;">
+                            پروتکل <strong>TUIC</strong> به صورت مستقیم روی استک QUIC اجرا شده و با حذف سربار لایه‌های اضافی و پشتیبانی از 0-RTT Handshake، حداقل پینگ و تاخیر زمانی را ارائه می‌دهد.
+                        </p>
+                    </div>
+
+                    <!-- Trojan & VMess & Shadowsocks -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary);">
+                            Trojan TLS، VMess و Shadowsocks 2022
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0;">
+                            <strong>Trojan:</strong> پروتکل استانداردی که ترافیک را دقیقاً شبیه ترافیک واقعی مرور وب از طریق TLS رمزنگاری می‌کند.<br>
+                            <strong>VMess:</strong> پروتکل مطمئن و قدیمی اکوسیستم V2Ray با قابلیت اتصال روی WebSocket و gRPC با CDN.<br>
+                            <strong>Shadowsocks 2022:</strong> نسخه مدرن شدوساکس با استفاده از الگوریتم رمزنگاری جدید <code>2022-blake3-aes-128-gcm</code> که کاملاً در برابر بازرسی غیرفعال و فعال (Active Probing) ایمن شده است.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: ابزارهای ضد فیلترینگ و دور زدن DPI -->
+            <div class="docs-card panel-card" data-category="antidpi" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: #f59e0b;">
+                        <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۳. ابزارهای پیشرفته ضد فیلترینگ و دور زدن بازرسی بسته (Anti-DPI Suite)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">فناوری‌های عبور از محدودیت در شرایط اختلال شدید و قطعی اینترنت</p>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-top: 10px;">
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="shield" style="width: 16px; height: 16px; color: var(--brand-primary);"></i>
+                            ShadowTLS v3
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            این پروتکل ترافیک را پشت یک هندشیک واقعی با سرور ثالث پنهان می‌کند. فایروال هیچ اثری از ترافیک پراکسی مشاهده نمی‌کند چون هندشیک اولیه به یک سرور بزرگ و بدون فیلتر هدایت می‌شود.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="split" style="width: 16px; height: 16px; color: var(--color-emerald);"></i>
+                            جعل SNI (SNI Spoofing) و Fragment
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            با تکه‌تکه کردن بسته <code>ClientHello</code> به قطعات کوچک (Fragment) و جایگزینی SNI مجاز، تجهیزات فیلترینگ قادر به خواندن نام دامنه اصلی در لایه TLS نخواهند بود و ارتباط برقرار می‌شود.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="globe" style="width: 16px; height: 16px; color: var(--color-sky);"></i>
+                            NaiveProxy
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            از استک شبکه مرورگر رسمی Google Chromium استفاده می‌کند و ترافیک را داخل نشست استاندارد HTTP/2 یا HTTP/3 کپسوله می‌کند؛ لذا ۱۰۰٪ غیرقابل تفکیک از وب‌گردی عادی است.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 8px 0; font-size: 14px; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="binary" style="width: 16px; height: 16px; color: #a855f7;"></i>
+                            تونل‌های DNS (NoizDNS, MasterDNS, Slipstream, DNSTT)
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 0;">
+                            ارسال ترافیک داده در قالب بسته‌های استاندارد پرس‌وجوی DNS روی پورت ۵۳ (UDP/TCP). این پروتکل‌ها فرشته نجات در زمان <strong>قطعی سراسری اینترنت و اینترنت ملی</strong> هستند.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: پروتکل‌های استاندارد -->
+            <div class="docs-card panel-card" data-category="standardvpn" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(16, 185, 129, 0.15); color: var(--color-emerald);">
+                        <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۴. پروتکل‌های استاندارد VPN و تونلینگ امن SSH</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">سرویس‌های VPN سطح هسته و روش‌های اتصال با نرم‌افزارهای سازمانی</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <!-- AmneziaWG -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 6px 0; font-size: 14px; color: var(--text-primary);">
+                            AmneziaWG (امنزیا وایرگارد) - وایرگارد ضد شناسایی
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0;">
+                            وایرگارد معمولی به دلیل داشتن امضای ثابت در هدر پکت‌های Handshake، در چند ثانیه اول توسط فایروال شناسایی و مسدود می‌شود. <strong>AmneziaWG</strong> با تزریق بایت‌های آشغال و تصادفی (Junk Packet: Jc, Jmin, Jmax) و تغییر هدرهای آغازین (H1, H2, H3, H4)، امضای وایرگارد را کاملاً از دید DPI مخفی می‌کند و با کلاینت رسمی AmneziaVPN در اندروید، ویندوز و iOS کار می‌کند.
+                        </p>
+                    </div>
+
+                    <!-- SSH Access -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 6px 0; font-size: 14px; color: var(--text-primary);">
+                            دسترسی SSH (SSH Direct & SSH TLS/WebSocket)
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0;">
+                            اتصال مستقیم SSH از طریق پروتکل TCP یا در بسته‌بندی WebSocket/TLS با پورت 443 یا 22. کاربران با برنامه‌هایی نظیر NapsternetV یا Termius یا PuTTY به راحتی می‌توانند تونل SSH ایجاد کرده و اینترنت امن دریافت نمایند.
+                        </p>
+                    </div>
+
+                    <!-- OpenVPN, Cisco, IKEv2, L2TP, SSTP -->
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                        <h4 style="margin: 0 0 6px 0; font-size: 14px; color: var(--text-primary);">
+                            سایر پروتکل‌های استاندارد: OpenVPN، Cisco AnyConnect (Ocserv)، IKEv2 و SSTP
+                        </h4>
+                        <p style="font-size: 12.5px; line-height: 1.7; color: var(--text-secondary); margin: 0;">
+                            <strong>OpenVPN:</strong> با ادان‌های تغییر مسیر و استتار پکت برای شبکه همراه.<br>
+                            <strong>Cisco AnyConnect:</strong> اتصال فوق‌العاده سریع با نرم‌افزار رسمی Cisco بدون نیاز به نصب نرم‌افزار ثالث.<br>
+                            <strong>IKEv2 & L2TP:</strong> پشتیبانی بومی در تنظیمات پیش‌فرض ویندوز، مک و iOS بدون نصب اپلیکیشن اضافه.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: کلاینت‌ها و نرم‌افزارهای اتصال -->
+            <div class="docs-card panel-card" data-category="clients" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(56, 189, 248, 0.15); color: var(--color-sky);">
+                        <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۵. جدول نرم‌افزارهای پیشنهادی کلاینت برای کاربران</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">بهترین اپلیکیشن‌های تست‌شده و سازگار با پروتکل‌های MH Panel</p>
+                    </div>
+                </div>
+
+                <div style="overflow-x: auto; margin-top: 10px;">
+                    <table class="table" style="width: 100%; border-collapse: collapse; font-size: 12.5px;">
+                        <thead>
+                            <tr style="background: var(--surface-tertiary); text-align: start;">
+                                <th style="padding: 10px 14px;">سیستم‌عامل</th>
+                                <th style="padding: 10px 14px;">نرم‌افزارهای پیشنهادی</th>
+                                <th style="padding: 10px 14px;">پروتکل‌های پشتیبانی‌شده</th>
+                                <th style="padding: 10px 14px;">نحوه افزودن کانفیگ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">اندروید (Android)</td>
+                                <td style="padding: 10px 14px;"><strong>v2rayNG</strong>، <strong>Nekobox</strong>، <strong>Sing-box</strong>، <strong>AmneziaVPN</strong></td>
+                                <td style="padding: 10px 14px;">Reality, Hysteria 2, TUIC, AmneziaWG, Trojan, VMess, SSH</td>
+                                <td style="padding: 10px 14px;">اسکن QR Code یا افزودن لینک سابسکریپشن</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">آیفون و آیپد (iOS)</td>
+                                <td style="padding: 10px 14px;"><strong>Streisand</strong> (رایگان)، <strong>Sing-box</strong> (رایگان)، <strong>V2Box</strong>، <strong>Shadowrocket</strong></td>
+                                <td style="padding: 10px 14px;">Reality, Hysteria 2, TUIC, Trojan, WireGuard, Cisco</td>
+                                <td style="padding: 10px 14px;">کپی لینک هوشمند سابسکریپشن و باز کردن در اپ</td>
+                            </tr>
+                            <tr style="border-bottom: 1px solid var(--border-subtle);">
+                                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">ویندوز (Windows)</td>
+                                <td style="padding: 10px 14px;"><strong>v2rayN</strong>، <strong>Nekoray</strong>، <strong>Hiddify</strong>، <strong>AmneziaVPN</strong></td>
+                                <td style="padding: 10px 14px;">کلیه پروتکل‌های هسته و استاندارد</td>
+                                <td style="padding: 10px 14px;">Paste لینک سابسکریپشن در منوی Subscription</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px 14px; font-weight: 600; color: var(--text-primary);">مک (macOS)</td>
+                                <td style="padding: 10px 14px;"><strong>Sing-box</strong>، <strong>V2Box</strong>، <strong>FoXray</strong>، <strong>NekoBox</strong></td>
+                                <td style="padding: 10px 14px;">Reality, Hysteria 2, Wireguard, Trojan</td>
+                                <td style="padding: 10px 14px;">وارد کردن لینک هوشمند Sub</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SECTION 6: پرسش‌های متداول و عیب‌یابی -->
+            <div class="docs-card panel-card" data-category="faq" style="padding: 22px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+                    <span style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(244, 63, 94, 0.15); color: var(--color-rose);">
+                        <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+                    </span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 16px; color: var(--text-primary); font-weight: 700;">۶. راهنمای عیب‌یابی و پرسش‌های متداول (Troubleshooting FAQ)</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted);">پاسخ به خطاهای رایج در هنگام اتصال و راه‌اندازی سرور</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                        <strong style="color: var(--text-primary); font-size: 13.5px;">پرسش: چرا کانفیگ پینگ می‌دهد ولی اینترنت باز نمی‌شود؟</strong>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 6px 0 0 0;">
+                            پاسخ: این مسئله معمولاً به دلیل فیلتر شدن DNS در سمت اپراتور کلاینت است. در تنظیمات کلاینت (v2rayNG یا Nekobox)، بخش Remote DNS را روی <code>1.1.1.1</code> یا <code>8.8.8.8</code> یا DoH قرار دهید. همچنین در پروتکل Reality مطمئن شوید وبسایت SNI در اپراتور کاربر فیلتر نباشد.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                        <strong style="color: var(--text-primary); font-size: 13.5px;">پرسش: چرا پورت جدید ایجادشده در سرور باز نمی‌شود و متصل نمی‌گردد؟</strong>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 6px 0 0 0;">
+                            پاسخ: در فایروال سرور لینوکس (UFW / iptables) باید پورت باز شود. از طریق تب ترمینال می‌توانید دستور <code>ufw allow PORT/tcp</code> و <code>ufw allow PORT/udp</code> را اجرا کنید. همچنین اگر سرور شما پشت فایروال کلود (مثل Hetzner, AWS, DigitalOcean) است، باید در پنل کلود نیز پورت را مجاز کنید.
+                        </p>
+                    </div>
+
+                    <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                        <strong style="color: var(--text-primary); font-size: 13.5px;">پرسش: بهترین پروتکل برای همراه اول و ایرانسل در ساعات اوج فیلترینگ چیست؟</strong>
+                        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-secondary); margin: 6px 0 0 0;">
+                            پاسخ: ترکیب <strong>Hysteria 2</strong> با Port Hopping و <strong>VLESS Reality</strong> با پورت ۴۴۳ و دامنه‌های معتبر مایکروسافت/گوگل، و همچنین <strong>AmneziaWG</strong> با پارامترهای آشغال‌سازی پکت، پایدارترین عملکرد را دارند. در صورت قطعی اینترنت بین‌الملل، از تونل‌های <strong>NoizDNS / MasterDNS</strong> استفاده کنید.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+function filterDocs(query) {
+    const q = query.trim().toLowerCase();
+    const clearBtn = document.getElementById('docs-search-clear');
+    if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+
+    const cards = document.querySelectorAll('.docs-card');
+    cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        if (!q || text.includes(q)) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+function clearDocsFilter() {
+    const input = document.getElementById('docs-search-input');
+    if (input) {
+        input.value = '';
+        filterDocs('');
+    }
+}
+
+function filterDocsCategory(cat) {
+    // Update active pill button
+    const pills = document.querySelectorAll('.docs-nav-pills button');
+    pills.forEach(btn => {
+        if (btn.dataset.category === cat) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const cards = document.querySelectorAll('.docs-card');
+    cards.forEach(card => {
+        if (cat === 'all' || card.dataset.category === cat) {
+            card.style.display = 'block';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>

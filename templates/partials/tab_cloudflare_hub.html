@@ -1,43 +1,43 @@
 <div class="tab-pane" id="tab-cloudflare-hub">
-    <section style="max-width: 1100px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 24px;">
+    <section style="max-width: 1100px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 20px;">
 
         <!-- 1. HEADER HERO CARD -->
-        <div class="glass-card config-card" style="border: 1px solid rgba(249, 115, 22, 0.35); background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, rgba(20, 20, 30, 0.6) 100%);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div class="spec-card" style="padding: 24px; position: relative; overflow: hidden; border: 1px solid rgba(249, 115, 22, 0.35);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
                 <div style="display:flex; align-items:center; gap:14px;">
-                    <div style="width:50px; height:50px; border-radius:14px; background: rgba(249, 115, 22, 0.18); color:#f97316; display:flex; align-items:center; justify-content:center; box-shadow: 0 0 20px rgba(249, 115, 22, 0.25);">
-                        <i data-lucide="cloud-lightning" style="width:28px; height:28px;"></i>
+                    <div style="width:48px; height:48px; border-radius:14px; background: rgba(249, 115, 22, 0.15); color:#f97316; display:flex; align-items:center; justify-content:center; box-shadow: 0 0 20px rgba(249, 115, 22, 0.2); flex-shrink: 0;">
+                        <i data-lucide="cloud-lightning" style="width:26px; height:26px;"></i>
                     </div>
                     <div>
                         <div style="display:flex; align-items:center; gap:8px;">
-                            <h3 class="config-title" style="margin:0; font-size:20px; font-weight:700; color:#fff;" data-i18n="cf_hub_title">
+                            <h3 class="config-title" style="margin:0; font-size:19px; font-weight:800; color:var(--text-primary); letter-spacing:-0.02em;" data-i18n="cf_hub_title">
                                 مرکز اتوماسیون جامع کلودفلر (Cloudflare 1-Click Suite)
                             </h3>
-                            <span class="badge" style="background:#f97316; color:#fff; font-size:11px; padding:2px 8px; border-radius:6px; font-weight:600;">v2.0 Auto</span>
+                            <span class="badge" style="background:#f97316; color:#fff; font-size:11px; padding:2px 8px; border-radius:6px; font-weight:700;">v2.0 Auto</span>
                         </div>
-                        <p style="font-size:12.5px; color:var(--text-muted); margin-top:4px; line-height:1.6;" data-i18n="cf_hub_subtitle">
+                        <p style="font-size:12.5px; color:var(--text-muted); margin-top:3px; line-height:1.6;" data-i18n="cf_hub_subtitle">
                             اتصال توکن کلودفلر، ثبت خودکار ساب‌دامین‌های تمام پروتکل‌ها، ایجاد رکوردهای NS برای تانل DNS، فوروارد پورت از طریق Origin Rules، و استقرار خودکار ورکر کلودفلر و گوگل اسکریپت با یک کلیک و بدون سردرگمی.
                         </p>
                     </div>
                 </div>
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadCloudflareHubData();" style="width:auto; padding: 8px 16px; border-color: rgba(249,115,22,0.3);">
-                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="refresh">بروزرسانی داده‌ها</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadCloudflareHubData();" style="padding: 8px 16px; border-radius: 10px; font-weight:600;">
+                        <i data-lucide="refresh-cw" style="width:14px; height:14px; margin-inline-end:6px;"></i> <span data-i18n="refresh">بروزرسانی داده‌ها</span>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- 2. CLOUDFLARE ACCOUNT & TOKEN AUTHENTICATION CARD -->
-        <div class="glass-card config-card" style="border: 1px solid rgba(255, 255, 255, 0.08);">
-            <div class="config-header" style="margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div class="spec-card" style="padding: 24px;">
+            <div style="margin-bottom: 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="key-round" style="color: #f97316; width: 22px; height: 22px;"></i>
-                    <h3 class="config-title" style="margin:0; font-size:16px;" data-i18n="cf_auth_title">
+                    <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);" data-i18n="cf_auth_title">
                         ۱. اتصال حساب و توکن کلودفلر (Cloudflare API Token)
                     </h3>
                 </div>
-                <span id="cf-auth-status-badge" style="font-size:12px; font-weight:600; padding:4px 12px; border-radius:6px; background:rgba(239,68,68,0.15); color:#ef4444;">
+                <span id="cf-auth-status-badge" style="font-size:12px; font-weight:600; padding:4px 12px; border-radius:8px; background:rgba(239,68,68,0.12); color:#ef4444; border: 1px solid rgba(239,68,68,0.25);">
                     وضعیت: در انتظار بررسی توکن
                 </span>
             </div>
@@ -45,53 +45,53 @@
             <!-- Token Input & Actions -->
             <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px;">
                 <div>
-                    <label class="form-label" style="font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+                    <label class="form-label" style="font-weight:600; font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;">
                         <span data-i18n="cf_token_label">توکن اختصاصی کلودفلر (Cloudflare API Token)</span>
-                        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener noreferrer" style="font-size:11.5px; color:#f97316; text-decoration:none; display:flex; align-items:center; gap:4px;">
+                        <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener noreferrer" style="font-size:11.5px; color:#f97316; text-decoration:none; display:flex; align-items:center; gap:4px; font-weight:600;">
                             <span>دریافت توکن از پنل کلودفلر</span> <i data-lucide="external-link" style="width:12px; height:12px;"></i>
                         </a>
                     </label>
                     <div style="display:flex; gap:10px; align-items:center;">
                         <div style="position:relative; flex:1;">
-                            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; padding-right:38px;" type="password" id="cf-cfg-token" placeholder="مثال: cfut_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                            <button type="button" onclick="toggleCfTokenVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
+                            <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; padding-inline-end:38px; border-radius:10px;" type="password" id="cf-cfg-token" placeholder="مثال: cfut_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                            <button type="button" onclick="toggleCfTokenVisibility()" style="position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px;">
                                 <i data-lucide="eye" id="cf-token-eye-icon" style="width:16px; height:16px;"></i>
                             </button>
                         </div>
-                        <button type="button" class="btn btn-primary" onclick="verifyCloudflareToken()" id="btn-verify-cf-token" style="width:auto; padding: 9px 20px; background:#f97316; border-color:#f97316; white-space:nowrap;">
-                            <i data-lucide="shield-check" style="width:16px; height:16px; margin-left:6px;"></i> <span>بررسی و ثبت اتصال</span>
+                        <button type="button" class="btn btn-primary" onclick="verifyCloudflareToken()" id="btn-verify-cf-token" style="padding: 9px 20px; background:#f97316; border-color:#f97316; border-radius:10px; font-weight:700; white-space:nowrap;">
+                            <i data-lucide="shield-check" style="width:16px; height:16px; margin-inline-end:6px;"></i> <span>بررسی و ثبت اتصال</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Token Requirements Helper Box -->
-                <div style="background: rgba(249, 115, 22, 0.05); border: 1px dashed rgba(249, 115, 22, 0.3); border-radius: 10px; padding: 12px 14px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
-                    <div style="font-weight: 700; color: #f97316; margin-bottom: 4px; display:flex; align-items:center; gap:6px;">
+                <div style="background: rgba(249, 115, 22, 0.06); border: 1px dashed rgba(249, 115, 22, 0.3); border-radius: 12px; padding: 14px 16px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                    <div style="font-weight: 700; color: #f97316; margin-bottom: 6px; display:flex; align-items:center; gap:6px;">
                         <i data-lucide="info" style="width:15px; height:15px;"></i> دسترسی‌های لازم هنگام ساخت توکن در کلودفلر:
                     </div>
-                    <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
-                        <span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 5px;">Zone > DNS > Edit (ثبت و تغییر ساب‌دامین)</span>
-                        <span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 5px;">Zone > Zone > Read (شناسایی دامنه‌ها)</span>
-                        <span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 5px;">Zone > Zone Settings > Edit (وب‌سوکت و قوانین)</span>
-                        <span style="background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 5px;">Account > Workers Scripts > Edit (ورکرها)</span>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;">
+                        <span style="background: var(--surface-elevated); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); color:var(--text-primary);">Zone &gt; DNS &gt; Edit (ثبت و تغییر ساب‌دامین)</span>
+                        <span style="background: var(--surface-elevated); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); color:var(--text-primary);">Zone &gt; Zone &gt; Read (شناسایی دامنه‌ها)</span>
+                        <span style="background: var(--surface-elevated); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); color:var(--text-primary);">Zone &gt; Zone Settings &gt; Edit (وب‌سوکت و قوانین)</span>
+                        <span style="background: var(--surface-elevated); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-subtle); color:var(--text-primary);">Account &gt; Workers Scripts &gt; Edit (ورکرها)</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Connected Zone & Account Details (Shown when verified) -->
-            <div id="cf-connected-info-box" style="display:none; padding-top:14px; border-top:1px solid var(--border-glow);">
+            <!-- Connected Zone & Account Details -->
+            <div id="cf-connected-info-box" style="display:none; padding-top:16px; border-top:1px solid var(--border-subtle);">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
                     <div>
-                        <label class="form-label" style="font-weight:600;">دامنه فعال در کلودفلر (Active Domain / Zone):</label>
-                        <select class="form-input" id="cf-zone-selector" onchange="changeActiveCloudflareZone(this.value)" style="font-weight:600; color:#f97316; direction:ltr;">
+                        <label class="form-label" style="font-weight:600; font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">دامنه فعال در کلودفلر (Active Domain / Zone):</label>
+                        <select class="form-input" id="cf-zone-selector" onchange="changeActiveCloudflareZone(this.value)" style="font-weight:600; color:#f97316; direction:ltr; border-radius:10px;">
                             <!-- Populated dynamically -->
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">مشخصات حساب متصل:</label>
-                        <div style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glow); border-radius:8px; padding:9px 14px; font-size:12.5px; display:flex; justify-content:space-between; align-items:center;">
-                            <span id="cf-account-name-val" style="color:#fff; font-weight:600;">-</span>
-                            <span id="cf-permissions-status-val" style="color:#10b981; font-size:11px;">دسترسی کامل</span>
+                        <label class="form-label" style="font-weight:600; font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">مشخصات حساب متصل:</label>
+                        <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:10px; padding:10px 14px; font-size:12.5px; display:flex; justify-content:space-between; align-items:center;">
+                            <span id="cf-account-name-val" style="color:var(--text-primary); font-weight:700;">-</span>
+                            <span id="cf-permissions-status-val" style="color:#10b981; font-size:11.5px; font-weight:600;">دسترسی کامل</span>
                         </div>
                     </div>
                 </div>
@@ -100,147 +100,147 @@
 
         <!-- 3. QUICK 1-CLICK AUTOMATION ACTIONS CARDS -->
         <div>
-            <div style="margin-bottom: 12px; display:flex; align-items:center; gap:8px;">
+            <div style="margin-bottom: 14px; display:flex; align-items:center; gap:8px;">
                 <i data-lucide="zap" style="color: #f59e0b; width: 20px; height: 20px;"></i>
-                <h4 style="margin:0; font-size:16px; font-weight:700;">عملیات هوشمند با ۱ کلیک (1-Click Wizards)</h4>
+                <h4 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">عملیات هوشمند با ۱ کلیک (1-Click Wizards)</h4>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px;">
                 <!-- Action 1: Provision Protocol Subdomains -->
-                <div class="glass-card" style="padding:16px; display:flex; flex-direction:column; justify-content:space-between; border: 1px solid rgba(14, 165, 233, 0.25); background: rgba(14, 165, 233, 0.04); border-radius:12px;">
+                <div class="spec-card" style="padding:18px; display:flex; flex-direction:column; justify-content:space-between; border-radius:14px;">
                     <div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:rgba(14, 165, 233, 0.15); color:#0ea5e9; display:flex; align-items:center; justify-content:center;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(14, 165, 233, 0.12); color:#0284c7; display:flex; align-items:center; justify-content:center;">
                                 <i data-lucide="globe" style="width:20px; height:20px;"></i>
                             </div>
-                            <strong style="font-size:14px; color:#fff;">ساب‌دامین پروتکل‌ها</strong>
+                            <strong style="font-size:14px; color:var(--text-primary); font-weight:700;">ساب‌دامین پروتکل‌ها</strong>
                         </div>
-                        <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
                             ساخت خودکار تمام ساب‌دامین‌های Reality, VLESS-WS, Trojan, Hy2, TUIC, SSH متصل به آی‌پی این سرور.
                         </p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-protocols')" style="width:100%; justify-content:center; border-color:rgba(14,165,233,0.4); color:#0ea5e9;">
-                        <span>تنظیم ساب‌دامین‌ها</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-right:4px;"></i>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-protocols')" style="width:100%; justify-content:center; border-radius:10px; font-weight:600;">
+                        <span>تنظیم ساب‌دامین‌ها</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-inline-start:4px;"></i>
                     </button>
                 </div>
 
                 <!-- Action 2: DNS Tunnel & NS Setup -->
-                <div class="glass-card" style="padding:16px; display:flex; flex-direction:column; justify-content:space-between; border: 1px solid rgba(168, 85, 247, 0.25); background: rgba(168, 85, 247, 0.04); border-radius:12px;">
+                <div class="spec-card" style="padding:18px; display:flex; flex-direction:column; justify-content:space-between; border-radius:14px;">
                     <div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:rgba(168, 85, 247, 0.15); color:#a855f7; display:flex; align-items:center; justify-content:center;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(168, 85, 247, 0.12); color:#a855f7; display:flex; align-items:center; justify-content:center;">
                                 <i data-lucide="satellite" style="width:20px; height:20px;"></i>
                             </div>
-                            <strong style="font-size:14px; color:#fff;">رکوردهای تانل DNS (NS)</strong>
+                            <strong style="font-size:14px; color:var(--text-primary); font-weight:700;">رکوردهای تانل DNS (NS)</strong>
                         </div>
-                        <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
                             ساخت فوری رکورد A برای NS و رکورد NS برای DNSTT / Slipstream بدون نیاز به تنظیم دستی.
                         </p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-dns-tunnel')" style="width:100%; justify-content:center; border-color:rgba(168,85,247,0.4); color:#a855f7;">
-                        <span>راه‌اندازی تانل DNS</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-right:4px;"></i>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-dns-tunnel')" style="width:100%; justify-content:center; border-radius:10px; font-weight:600;">
+                        <span>راه‌اندازی تانل DNS</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-inline-start:4px;"></i>
                     </button>
                 </div>
 
                 <!-- Action 3: Port Forwarding / Origin Rules -->
-                <div class="glass-card" style="padding:16px; display:flex; flex-direction:column; justify-content:space-between; border: 1px solid rgba(16, 185, 129, 0.25); background: rgba(16, 185, 129, 0.04); border-radius:12px;">
+                <div class="spec-card" style="padding:18px; display:flex; flex-direction:column; justify-content:space-between; border-radius:14px;">
                     <div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:rgba(16, 185, 129, 0.15); color:#10b981; display:flex; align-items:center; justify-content:center;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(16, 185, 129, 0.12); color:#10b981; display:flex; align-items:center; justify-content:center;">
                                 <i data-lucide="repeat" style="width:20px; height:20px;"></i>
                             </div>
-                            <strong style="font-size:14px; color:#fff;">فوروارد پورت (Origin Rule)</strong>
+                            <strong style="font-size:14px; color:var(--text-primary); font-weight:700;">فوروارد پورت (Origin Rule)</strong>
                         </div>
-                        <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
                             هدایت خودکار ترافیک پورت ۴۴۳ کلودفلر به پورت‌های دلخواه سرور (Sing-box, GAS, Gost, SSH).
                         </p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-origin-rules')" style="width:100%; justify-content:center; border-color:rgba(16,185,129,0.4); color:#10b981;">
-                        <span>فوروارد پورت</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-right:4px;"></i>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-origin-rules')" style="width:100%; justify-content:center; border-radius:10px; font-weight:600;">
+                        <span>فوروارد پورت</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-inline-start:4px;"></i>
                     </button>
                 </div>
 
                 <!-- Action 4: Worker & Google Script Deployer -->
-                <div class="glass-card" style="padding:16px; display:flex; flex-direction:column; justify-content:space-between; border: 1px solid rgba(249, 115, 22, 0.25); background: rgba(249, 115, 22, 0.04); border-radius:12px;">
+                <div class="spec-card" style="padding:18px; display:flex; flex-direction:column; justify-content:space-between; border-radius:14px;">
                     <div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:8px;">
-                            <div style="width:36px; height:36px; border-radius:10px; background:rgba(249, 115, 22, 0.15); color:#f97316; display:flex; align-items:center; justify-content:center;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                            <div style="width:38px; height:38px; border-radius:10px; background:rgba(249, 115, 22, 0.12); color:#f97316; display:flex; align-items:center; justify-content:center;">
                                 <i data-lucide="cpu" style="width:20px; height:20px;"></i>
                             </div>
-                            <strong style="font-size:14px; color:#fff;">استقرار ورکر و گوگل اسکریپت</strong>
+                            <strong style="font-size:14px; color:var(--text-primary); font-weight:700;">استقرار ورکر و گوگل اسکریپت</strong>
                         </div>
-                        <p style="font-size:11.5px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.5; margin-bottom:14px;">
                             نصب مستقیم اسکریپت ورکر کلودفلر متصل به سرور و Google Apps Script تنها با ۱ کلیک.
                         </p>
                     </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-workers')" style="width:100%; justify-content:center; border-color:rgba(249,115,22,0.4); color:#f97316;">
-                        <span>استقرار ورکر</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-right:4px;"></i>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="scrollToSection('sec-cf-workers')" style="width:100%; justify-content:center; border-radius:10px; font-weight:600;">
+                        <span>استقرار ورکر</span> <i data-lucide="arrow-down" style="width:14px; height:14px; margin-inline-start:4px;"></i>
                     </button>
                 </div>
             </div>
         </div>
 
         <!-- 4. SECTION: PROTOCOL SUBDOMAINS PROVISIONING -->
-        <div class="glass-card config-card" id="sec-cf-protocols">
-            <div class="config-header" style="margin-bottom: 16px;">
+        <div class="spec-card" id="sec-cf-protocols" style="padding: 24px;">
+            <div style="margin-bottom: 20px;">
                 <div style="display:flex; align-items:center; gap:10px;">
-                    <i data-lucide="layers" style="color: #0ea5e9; width: 22px; height: 22px;"></i>
+                    <i data-lucide="layers" style="color: #0284c7; width: 22px; height: 22px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">
                             ۲. ساخت خودکار ساب‌دامین‌های پروتکل‌ها (1-Click Protocol Subdomains)
                         </h3>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
-                            سیستم به طور خودکار آی‌پی عمومی سرور (<span id="cf-server-ip-display" style="font-family:'JetBrains Mono', monospace; color:#0ea5e9; font-weight:700;">-</span>) را برای تمام پروتکل‌ها با تنظیمات صحیح (پروکسی روشن برای WS، پروکسی خاموش برای UDP/Reality) ست می‌کند.
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+                            سیستم به طور خودکار آی‌پی عمومی سرور (<span id="cf-server-ip-display" style="font-family:'JetBrains Mono', monospace; color:#0284c7; font-weight:700;">-</span>) را برای تمام پروتکل‌ها با تنظیمات صحیح (پروکسی روشن برای WS، پروکسی خاموش برای UDP/Reality) ست می‌کند.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 18px;">
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">Reality / Direct</span>
-                        <span class="badge" style="background:rgba(100,116,139,0.3); color:#94a3b8; font-size:10px;">DNS Only</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Reality / Direct</span>
+                        <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8;">reality.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">reality.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">VLESS WebSocket</span>
-                        <span class="badge" style="background:rgba(249,115,22,0.25); color:#f97316; font-size:10px;">Proxied 🟠</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">VLESS WebSocket</span>
+                        <span class="badge" style="background:rgba(249,115,22,0.15); color:#f97316; font-size:10px; border-radius:6px; padding:2px 6px;">Proxied 🟠</span>
                     </div>
                     <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#f97316;">vless.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">Trojan / VMess WS</span>
-                        <span class="badge" style="background:rgba(249,115,22,0.25); color:#f97316; font-size:10px;">Proxied 🟠</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Trojan / VMess WS</span>
+                        <span class="badge" style="background:rgba(249,115,22,0.15); color:#f97316; font-size:10px; border-radius:6px; padding:2px 6px;">Proxied 🟠</span>
                     </div>
                     <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#f97316;">ws.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">Hysteria 2 (UDP)</span>
-                        <span class="badge" style="background:rgba(100,116,139,0.3); color:#94a3b8; font-size:10px;">DNS Only</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Hysteria 2 (UDP)</span>
+                        <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8;">hy2.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">hy2.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">TUIC v5 (QUIC)</span>
-                        <span class="badge" style="background:rgba(100,116,139,0.3); color:#94a3b8; font-size:10px;">DNS Only</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">TUIC v5 (QUIC)</span>
+                        <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#38bdf8;">tuic.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">tuic.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
-                <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glow); border-radius:10px; padding:12px;">
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:#fff;">Google Script / Relay</span>
-                        <span class="badge" style="background:rgba(249,115,22,0.25); color:#f97316; font-size:10px;">Proxied 🟠</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Google Script / Relay</span>
+                        <span class="badge" style="background:rgba(249,115,22,0.15); color:#f97316; font-size:10px; border-radius:6px; padding:2px 6px;">Proxied 🟠</span>
                     </div>
                     <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#f97316;">gas.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
@@ -250,8 +250,8 @@
                 <span style="font-size:12px; color:var(--text-muted);">
                     با کلیک روی دکمه زیر، تمام رکوردهای فوق به صورت خودکار در کلودفلر ایجاد یا بروزرسانی می‌شوند.
                 </span>
-                <button type="button" class="btn btn-primary" onclick="provisionAllProtocolsSubdomains()" id="btn-provision-protocols" style="width:auto; padding: 10px 24px; background:#0ea5e9; border-color:#0ea5e9;">
-                    <i data-lucide="sparkles" style="width:16px; height:16px; margin-left:6px;"></i> <span>ثبت خودکار ساب‌دامین‌های تمام پروتکل‌ها</span>
+                <button type="button" class="btn btn-primary" onclick="provisionAllProtocolsSubdomains()" id="btn-provision-protocols" style="padding: 10px 24px; background:#0284c7; border-color:#0284c7; border-radius:10px; font-weight:700;">
+                    <i data-lucide="sparkles" style="width:16px; height:16px; margin-inline-end:6px;"></i> <span>ثبت خودکار ساب‌دامین‌های تمام پروتکل‌ها</span>
                 </button>
             </div>
             
@@ -259,25 +259,25 @@
         </div>
 
         <!-- 5. SECTION: DNS TUNNELS & NS AUTOMATION -->
-        <div class="glass-card config-card" id="sec-cf-dns-tunnel">
-            <div class="config-header" style="margin-bottom: 16px;">
+        <div class="spec-card" id="sec-cf-dns-tunnel" style="padding: 24px;">
+            <div style="margin-bottom: 20px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="satellite" style="color: #a855f7; width: 22px; height: 22px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">
                             ۳. راه‌اندازی رکوردهای NS برای تانل DNS (DNSTT / Slipstream / VayDNS)
                         </h3>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             تانل‌های دی‌ان‌اس نیازمند دو رکورد هستند: یک رکورد A برای نام‌سرور (<span style="color:#a855f7; font-family:'JetBrains Mono', monospace;">ns.domain.com</span>) و یک رکورد NS برای دامنه تانل (<span style="color:#a855f7; font-family:'JetBrains Mono', monospace;">t.domain.com</span>). سیستم این کار را با ۱ کلیک انجام می‌دهد!
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 18px;">
                 <div>
-                    <label class="form-label">نوع تانل دی‌ان‌اس:</label>
-                    <select class="form-input" id="cf-tunnel-type-select">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">نوع تانل دی‌ان‌اس:</label>
+                    <select class="form-input" id="cf-tunnel-type-select" style="border-radius:10px;">
                         <option value="dnstt">📡 DNSTT (SlowDNS Core)</option>
                         <option value="slipstream">⚡ Slipstream (QUIC DNS Tunnel)</option>
                         <option value="vaydns">🛡️ VayDNS (Anti-Censorship)</option>
@@ -286,17 +286,17 @@
                 </div>
 
                 <div>
-                    <label class="form-label">نام ساب‌دامین سرور نام (NS Prefix):</label>
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">نام ساب‌دامین سرور نام (NS Prefix):</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-tunnel-ns-name" value="ns">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-tunnel-ns-name" value="ns">
                         <span style="color:var(--text-muted); font-size:12px; font-family:'JetBrains Mono', monospace;">.<span class="cf-current-zone-name">domain.com</span></span>
                     </div>
                 </div>
 
                 <div>
-                    <label class="form-label">نام ساب‌دامین تانل (Tunnel Domain):</label>
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">نام ساب‌دامین تانل (Tunnel Domain):</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-tunnel-sub-name" value="t">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-tunnel-sub-name" value="t">
                         <span style="color:var(--text-muted); font-size:12px; font-family:'JetBrains Mono', monospace;">.<span class="cf-current-zone-name">domain.com</span></span>
                     </div>
                 </div>
@@ -306,8 +306,8 @@
                 <div style="font-size:12px; color:var(--text-muted);">
                     نتیجه ساخت: <code style="color:#a855f7;">ns.<span class="cf-current-zone-name">domain</span> (A ➔ IP)</code> و <code style="color:#a855f7;">t.<span class="cf-current-zone-name">domain</span> (NS ➔ ns)</code>
                 </div>
-                <button type="button" class="btn btn-primary" onclick="setupCloudflareDnsTunnel()" id="btn-setup-dns-tunnel" style="width:auto; padding: 10px 24px; background:#a855f7; border-color:#a855f7;">
-                    <i data-lucide="satellite" style="width:16px; height:16px; margin-left:6px;"></i> <span>ایجاد رکوردهای تانل DNS و همگام‌سازی با سرور</span>
+                <button type="button" class="btn btn-primary" onclick="setupCloudflareDnsTunnel()" id="btn-setup-dns-tunnel" style="padding: 10px 24px; background:#a855f7; border-color:#a855f7; border-radius:10px; font-weight:700;">
+                    <i data-lucide="satellite" style="width:16px; height:16px; margin-inline-end:6px;"></i> <span>ایجاد رکوردهای تانل DNS و همگام‌سازی با سرور</span>
                 </button>
             </div>
 
@@ -315,15 +315,15 @@
         </div>
 
         <!-- 6. SECTION: PORT FORWARDING / ORIGIN RULES -->
-        <div class="glass-card config-card" id="sec-cf-origin-rules">
-            <div class="config-header" style="margin-bottom: 16px;">
+        <div class="spec-card" id="sec-cf-origin-rules" style="padding: 24px;">
+            <div style="margin-bottom: 20px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="repeat" style="color: #10b981; width: 22px; height: 22px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">
                             ۴. فوروارد پورت از طریق قوانین کلودفلر (Origin Rules Port Forwarding)
                         </h3>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             کلودفلر ترافیک پورت ۴۴۳ کاربران را دریافت می‌کند و از طریق Origin Rules مستقیماً به هر پورتی از سرور شما که مایل باشید ارسال می‌کند (بدون تداخل با پورت‌های دیگر).
                         </p>
                     </div>
@@ -332,61 +332,61 @@
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; margin-bottom: 14px;">
                 <div>
-                    <label class="form-label">ساب‌دامین مبدا در کلودفلر:</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-origin-subdomain" placeholder="مثال: vless یا cf-port">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">ساب‌دامین مبدا در کلودفلر:</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-origin-subdomain" placeholder="مثال: vless یا cf-port">
                 </div>
 
                 <div>
-                    <label class="form-label">پورت مقصد روی سرور شما (VPS Destination Port):</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="number" id="cf-origin-target-port" placeholder="20456">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">پورت مقصد روی سرور شما (VPS Destination Port):</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="number" id="cf-origin-target-port" placeholder="20456">
                 </div>
             </div>
 
             <!-- Quick Port Preset Tags -->
-            <div style="margin-bottom: 16px;">
-                <label class="form-label" style="font-size:11.5px; margin-bottom:6px; display:block;">الگوهای سریع پورت‌های پنل:</label>
+            <div style="margin-bottom: 18px;">
+                <label class="form-label" style="font-size:11.5px; margin-bottom:6px; display:block; color:var(--text-secondary);">الگوهای سریع پورت‌های پنل:</label>
                 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('20456', 'vless')" style="font-size:11.5px; padding:3px 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('20456', 'vless')" style="font-size:11.5px; padding:4px 12px; border-radius:8px;">
                         <span>Sing-box (20456)</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('20460', 'sni')" style="font-size:11.5px; padding:3px 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('20460', 'sni')" style="font-size:11.5px; padding:4px 12px; border-radius:8px;">
                         <span>SNI Spoof (20460)</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('8448', 'gas')" style="font-size:11.5px; padding:3px 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('8448', 'gas')" style="font-size:11.5px; padding:4px 12px; border-radius:8px;">
                         <span>Google Script (8448)</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('2083', 'cf')" style="font-size:11.5px; padding:3px 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('2083', 'cf')" style="font-size:11.5px; padding:4px 12px; border-radius:8px;">
                         <span>HTTPS Alt (2083)</span>
                     </button>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('22', 'ssh')" style="font-size:11.5px; padding:3px 10px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="setOriginPortPreset('22', 'ssh')" style="font-size:11.5px; padding:4px 12px; border-radius:8px;">
                         <span>SSH (22)</span>
                     </button>
                 </div>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
-                <button type="button" class="btn btn-primary" onclick="addCloudflareOriginRule()" id="btn-add-origin-rule" style="width:auto; padding: 9px 22px; background:#10b981; border-color:#10b981;">
-                    <i data-lucide="check" style="width:16px; height:16px; margin-left:6px;"></i> <span>ثبت قانون فوروارد پورت در کلودفلر</span>
+            <div style="display:flex; justify-content:flex-end; margin-bottom:18px;">
+                <button type="button" class="btn btn-primary" onclick="addCloudflareOriginRule()" id="btn-add-origin-rule" style="padding: 9px 22px; background:#10b981; border-color:#10b981; border-radius:10px; font-weight:700;">
+                    <i data-lucide="check" style="width:16px; height:16px; margin-inline-end:6px;"></i> <span>ثبت قانون فوروارد پورت در کلودفلر</span>
                 </button>
             </div>
 
             <!-- Active Origin Rules Table -->
-            <div style="font-weight:600; font-size:13px; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px; display:flex; align-items:center; gap:6px; color:var(--text-primary);">
                 <i data-lucide="list-filter" style="width:15px; height:15px; color:#10b981;"></i> قوانین فعال فوروارد پورت:
             </div>
-            <div class="table-responsive" style="max-height: 250px; overflow-y:auto;">
-                <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-subtle); border-radius:12px; max-height:250px;">
+                <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
                     <thead>
-                        <tr style="border-bottom:1px solid var(--border-glow); text-align:right;">
-                            <th style="padding:8px 10px;">شرط دامنه (Expression)</th>
-                            <th style="padding:8px 10px;">پورت مقصد سرور</th>
-                            <th style="padding:8px 10px;">توضیحات</th>
-                            <th style="padding:8px 10px; text-align:center;">عملیات</th>
+                        <tr style="background:var(--surface-elevated); border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:12px; font-weight:600;">
+                            <th style="padding:10px 12px;">شرط دامنه (Expression)</th>
+                            <th style="padding:10px 12px;">پورت مقصد سرور</th>
+                            <th style="padding:10px 12px;">توضیحات</th>
+                            <th style="padding:10px 12px; text-align:center;">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="cf-origin-rules-tbody">
                         <tr>
-                            <td colspan="4" style="text-align:center; padding:16px; color:var(--text-muted);">
+                            <td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">
                                 در حال بارگذاری قوانین فوروارد پورت...
                             </td>
                         </tr>
@@ -396,25 +396,25 @@
         </div>
 
         <!-- 7. SECTION: WORKERS & GOOGLE APPS SCRIPT SUITE -->
-        <div class="glass-card config-card" id="sec-cf-workers">
-            <div class="config-header" style="margin-bottom: 16px;">
+        <div class="spec-card" id="sec-cf-workers" style="padding: 24px;">
+            <div style="margin-bottom: 20px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="cpu" style="color: #f97316; width: 22px; height: 22px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
-                            ۵. استقرار ورکر کلودفلر و اتصال به گوگل اسکریپت (Workers & Google Apps Script)
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">
+                            ۵. استقرار ورکر کلودفلر و اتصال به گوگل اسکریپت (Workers &amp; Google Apps Script)
                         </h3>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             استقرار فوری اسکریپت ورکر کلودفلر روی حساب شما جهت رله کردن ترافیک به Google Apps Script یا اتصال مستقیم به هسته سرور.
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 14px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 16px;">
                 <div>
-                    <label class="form-label">نوع الگوی ورکر (Worker Template):</label>
-                    <select class="form-input" id="cf-worker-type-select" onchange="onWorkerTypeChange(this.value)">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">نوع الگوی ورکر (Worker Template):</label>
+                    <select class="form-input" id="cf-worker-type-select" onchange="onWorkerTypeChange(this.value)" style="border-radius:10px;">
                         <option value="gas_relay">🟠 رله به گوگل اسکریپت (Google Apps Script Relay)</option>
                         <option value="vless_proxy">⚡ ورکر پروکسی وب‌سوکت (VLESS / WS High-Speed)</option>
                         <option value="reverse_proxy">🔄 ریورس پروکسی سرور (Universal Reverse Proxy)</option>
@@ -422,19 +422,19 @@
                 </div>
 
                 <div>
-                    <label class="form-label">نام اسکریپت ورکر (Worker Name):</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-worker-name-input" value="mhpanel-gas-relay">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">نام اسکریپت ورکر (Worker Name):</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-worker-name-input" value="mhpanel-gas-relay">
                 </div>
 
                 <div id="cf-gas-url-wrapper">
-                    <label class="form-label">آدرس وب‌اپ گوگل اسکریپت (Google WebApp Exec URL):</label>
-                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-worker-gas-url" placeholder="https://script.google.com/macros/s/.../exec">
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">آدرس وب‌اپ گوگل اسکریپت (Google WebApp Exec URL):</label>
+                    <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-worker-gas-url" placeholder="https://script.google.com/macros/s/.../exec">
                 </div>
 
                 <div>
-                    <label class="form-label">ساب‌دامین اختصاصی روی دامنه (اختیاری):</label>
+                    <label class="form-label" style="font-size:12px; color:var(--text-secondary); margin-bottom:6px; display:block;">ساب‌دامین اختصاصی روی دامنه (اختیاری):</label>
                     <div style="display:flex; align-items:center; gap:4px;">
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-worker-subdomain" placeholder="مثال: worker">
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:10px;" type="text" id="cf-worker-subdomain" placeholder="مثال: worker">
                         <span style="color:var(--text-muted); font-size:12px; font-family:'JetBrains Mono', monospace;">.<span class="cf-current-zone-name">domain.com</span></span>
                     </div>
                 </div>
@@ -445,11 +445,11 @@
                     ورکر مستقیماً در حساب کلودفلر شما منتشر و لینک اختصاصی <code style="color:#f97316;">*.workers.dev</code> فعال خواهد شد.
                 </div>
                 <div style="display:flex; gap:8px;">
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="showWorkerCodePreview()" style="width:auto; padding:8px 14px;">
-                        <i data-lucide="code" style="width:14px; height:14px; margin-left:4px;"></i> <span>مشاهده کد اسکریپت</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="showWorkerCodePreview()" style="padding:8px 16px; border-radius:10px; font-weight:600;">
+                        <i data-lucide="code" style="width:14px; height:14px; margin-inline-end:4px;"></i> <span>مشاهده کد اسکریپت</span>
                     </button>
-                    <button type="button" class="btn btn-primary" onclick="deployCloudflareWorkerNow()" id="btn-deploy-worker" style="width:auto; padding: 10px 24px; background:#f97316; border-color:#f97316;">
-                        <i data-lucide="upload-cloud" style="width:16px; height:16px; margin-left:6px;"></i> <span>استقرار آنی ورکر در کلودفلر (Deploy)</span>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="deployCloudflareWorkerNow()" id="btn-deploy-worker" style="padding: 10px 24px; background:#f97316; border-color:#f97316; border-radius:10px; font-weight:700;">
+                        <i data-lucide="upload-cloud" style="width:16px; height:16px; margin-inline-end:6px;"></i> <span>استقرار آنی ورکر در کلودفلر (Deploy)</span>
                     </button>
                 </div>
             </div>
@@ -458,33 +458,33 @@
         </div>
 
         <!-- 8. SECTION: FULL DNS RECORDS MANAGER -->
-        <div class="glass-card config-card" id="sec-cf-dns-manager">
-            <div class="config-header" style="margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div class="spec-card" id="sec-cf-dns-manager" style="padding: 24px;">
+            <div style="margin-bottom: 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div style="display:flex; align-items:center; gap:10px;">
                     <i data-lucide="list" style="color: #6366f1; width: 22px; height: 22px;"></i>
                     <div>
-                        <h3 class="config-title" style="margin:0; font-size:16px;">
+                        <h3 style="margin:0; font-size:16px; font-weight:800; color:var(--text-primary);">
                             ۶. مدیریت و مشاهده رکوردهای DNS دامنه
                         </h3>
-                        <p style="font-size:11.5px; color:var(--text-muted); margin-top:2px;">
+                        <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">
                             مشاهده لیست رکوردهای ثبت‌شده، افزودن ساب‌دامین جدید و تغییر وضعیت ابر نارنجی کلودفلر (Proxy) با یک کلیک.
                         </p>
                     </div>
                 </div>
-                <button type="button" class="btn btn-secondary btn-sm" onclick="loadCloudflareDnsRecords();" style="width:auto; padding: 6px 14px;">
-                    <i data-lucide="refresh-cw" style="width:13px; height:13px; margin-left:4px;"></i> بروزرسانی جدول
+                <button type="button" class="btn btn-secondary btn-sm" onclick="loadCloudflareDnsRecords();" style="padding: 7px 16px; border-radius:10px; font-weight:600;">
+                    <i data-lucide="refresh-cw" style="width:13px; height:13px; margin-inline-end:4px;"></i> بروزرسانی جدول
                 </button>
             </div>
 
             <!-- Form: Add DNS Record -->
-            <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-glow); border-radius:12px; padding:16px; margin-bottom:18px;">
-                <div style="font-weight:600; font-size:13px; color:#fff; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+            <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:14px; padding:18px; margin-bottom:20px;">
+                <div style="font-weight:700; font-size:13px; color:var(--text-primary); margin-bottom:14px; display:flex; align-items:center; gap:6px;">
                     <i data-lucide="plus-circle" style="width:16px; height:16px; color:#6366f1;"></i> ثبت ساب‌دامین / رکورد DNS جدید:
                 </div>
                 <div style="display: grid; grid-template-columns: 100px 1fr 1fr 140px auto; gap: 10px; align-items: end;">
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">نوع رکورد:</label>
-                        <select class="form-input" id="cf-new-rec-type" style="padding:7px;">
+                        <label class="form-label" style="font-size:11.5px; color:var(--text-secondary); margin-bottom:4px; display:block;">نوع رکورد:</label>
+                        <select class="form-input" id="cf-new-rec-type" style="padding:7px; border-radius:8px;">
                             <option value="A">A</option>
                             <option value="AAAA">AAAA</option>
                             <option value="CNAME">CNAME</option>
@@ -493,44 +493,44 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">نام ساب‌دامین:</label>
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-new-rec-name" placeholder="sub یا @">
+                        <label class="form-label" style="font-size:11.5px; color:var(--text-secondary); margin-bottom:4px; display:block;">نام ساب‌دامین:</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:8px;" type="text" id="cf-new-rec-name" placeholder="sub یا @">
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">آدرس IP / مقدار مقصد:</label>
-                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace;" type="text" id="cf-new-rec-content" placeholder="آی‌پی سرور">
+                        <label class="form-label" style="font-size:11.5px; color:var(--text-secondary); margin-bottom:4px; display:block;">آدرس IP / مقدار مقصد:</label>
+                        <input class="form-input" style="direction:ltr; font-family:'JetBrains Mono', monospace; border-radius:8px;" type="text" id="cf-new-rec-content" placeholder="آی‌پی سرور">
                     </div>
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">وضعیت پروکسی:</label>
-                        <select class="form-input" id="cf-new-rec-proxied" style="padding:7px;">
+                        <label class="form-label" style="font-size:11.5px; color:var(--text-secondary); margin-bottom:4px; display:block;">وضعیت پروکسی:</label>
+                        <select class="form-input" id="cf-new-rec-proxied" style="padding:7px; border-radius:8px;">
                             <option value="false">خاموش (DNS Only)</option>
                             <option value="true">روشن (ابر نارنجی 🟠)</option>
                         </select>
                     </div>
                     <div>
-                        <button type="button" class="btn btn-primary" onclick="addNewCloudflareDnsRecord()" id="btn-add-dns-record" style="height:38px; width:auto; padding:0 18px; background:#6366f1; border-color:#6366f1; white-space:nowrap;">
-                            <i data-lucide="plus" style="width:15px; height:15px; margin-left:4px;"></i> ثبت رکورد
+                        <button type="button" class="btn btn-primary" onclick="addNewCloudflareDnsRecord()" id="btn-add-dns-record" style="height:38px; width:auto; padding:0 18px; border-radius:8px; font-weight:700; white-space:nowrap;">
+                            <i data-lucide="plus" style="width:15px; height:15px; margin-inline-end:4px;"></i> ثبت رکورد
                         </button>
                     </div>
                 </div>
             </div>
 
             <!-- DNS Records Table -->
-            <div class="table-responsive" style="max-height: 450px; overflow-y:auto;">
-                <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-subtle); border-radius:14px; max-height:450px;">
+                <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
                     <thead>
-                        <tr style="border-bottom:1px solid var(--border-glow); text-align:right;">
-                            <th style="padding:10px 12px;">نوع</th>
-                            <th style="padding:10px 12px;">نام کامل ساب‌دامین</th>
-                            <th style="padding:10px 12px;">آدرس آی‌پی / محتوا</th>
-                            <th style="padding:10px 12px; text-align:center;">وضعیت پروکسی کلودفلر</th>
-                            <th style="padding:10px 12px; text-align:center;">TTL</th>
-                            <th style="padding:10px 12px; text-align:center;">عملیات</th>
+                        <tr style="background:var(--surface-elevated); border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:12px; font-weight:600;">
+                            <th style="padding:10px 14px;">نوع</th>
+                            <th style="padding:10px 14px;">نام کامل ساب‌دامین</th>
+                            <th style="padding:10px 14px;">آدرس آی‌پی / محتوا</th>
+                            <th style="padding:10px 14px; text-align:center;">وضعیت پروکسی کلودفلر</th>
+                            <th style="padding:10px 14px; text-align:center;">TTL</th>
+                            <th style="padding:10px 14px; text-align:center;">عملیات</th>
                         </tr>
                     </thead>
                     <tbody id="cf-dns-records-tbody">
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">
+                            <td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted);">
                                 در حال دریافت رکوردهای دامنه از کلودفلر...
                             </td>
                         </tr>
@@ -543,23 +543,23 @@
 </div>
 
 <!-- Modal: Worker Code Preview -->
-<div id="cf-worker-code-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(4px); z-index:9999; align-items:center; justify-content:center;">
-    <div style="background:#161922; border:1px solid var(--border-glow); border-radius:14px; width:90%; max-width:700px; max-height:85vh; display:flex; flex-direction:column; padding:20px; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+<div id="cf-worker-code-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:16px; width:90%; max-width:700px; max-height:85vh; display:flex; flex-direction:column; padding:22px; box-shadow:0 20px 50px rgba(0,0,0,0.5);">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
             <div style="display:flex; align-items:center; gap:8px;">
                 <i data-lucide="code" style="color:#f97316; width:20px; height:20px;"></i>
-                <strong style="color:#fff; font-size:15px;">کد اسکریپت ورکر کلودفلر</strong>
+                <strong style="color:var(--text-primary); font-size:16px; font-weight:700;">کد اسکریپت ورکر کلودفلر</strong>
             </div>
             <button type="button" onclick="closeWorkerCodeModal()" style="background:none; border:none; color:var(--text-muted); cursor:pointer;">
                 <i data-lucide="x" style="width:20px; height:20px;"></i>
             </button>
         </div>
-        <textarea id="cf-worker-code-textarea" readonly style="flex:1; width:100%; min-height:350px; background:#0d1117; color:#58a6ff; font-family:'JetBrains Mono', monospace; font-size:12px; border:1px solid #30363d; border-radius:8px; padding:12px; direction:ltr; resize:none;"></textarea>
-        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:14px;">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="copyWorkerCodeToClipboard()" style="width:auto; padding:8px 16px;">
-                <i data-lucide="copy" style="width:14px; height:14px; margin-left:4px;"></i> کپی کد
+        <textarea id="cf-worker-code-textarea" readonly style="flex:1; width:100%; min-height:350px; background:var(--surface-elevated); color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:12px; border:1px solid var(--border-subtle); border-radius:10px; padding:14px; direction:ltr; resize:none;"></textarea>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:16px;">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyWorkerCodeToClipboard()" style="border-radius:10px; font-weight:600; padding:8px 16px;">
+                <i data-lucide="copy" style="width:14px; height:14px; margin-inline-end:4px;"></i> کپی کد
             </button>
-            <button type="button" class="btn btn-primary btn-sm" onclick="closeWorkerCodeModal()" style="width:auto; padding:8px 18px; background:#f97316; border-color:#f97316;">
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeWorkerCodeModal()" style="border-radius:10px; font-weight:700; padding:8px 20px; background:#f97316; border-color:#f97316;">
                 بستن
             </button>
         </div>
