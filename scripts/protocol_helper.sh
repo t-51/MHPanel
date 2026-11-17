@@ -122,10 +122,19 @@ ensure_binary() {
 
     # Verify if binary exists and is a valid ELF executable (not an HTML error page or tar.gz)
     if [ -x "/usr/local/bin/${bin_name}" ]; then
-        if file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
+        if [ "${bin_name}" = "sing-box" ]; then
+            local sb_v=$(/usr/local/bin/sing-box version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+            local sb_maj=$(echo "$sb_v" | cut -d. -f1)
+            local sb_min=$(echo "$sb_v" | cut -d. -f2)
+            if [ "$sb_maj" -gt 1 ] 2>/dev/null || { [ "$sb_maj" -eq 1 ] && [ "$sb_min" -ge 14 ]; } 2>/dev/null; then
+                return 0
+            fi
+            rm -f "/usr/local/bin/${bin_name}"
+        elif file -b "/usr/local/bin/${bin_name}" 2>/dev/null | grep -qiE "ELF|script|text"; then
             return 0
+        else
+            rm -f "/usr/local/bin/${bin_name}"
         fi
-        rm -f "/usr/local/bin/${bin_name}"
     fi
 
     # Check panel repo bin/ and daemons directories
@@ -2282,12 +2291,19 @@ install_trojan() {
     local arch="$(uname -m)"
     local sb_arch="amd64"
     if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz"
 
-    # Fix any corrupted DNS fields in existing config
+    # Modernize DNS fields in existing trojan config for sing-box >= 1.14 compatibility
     if [ -f /etc/vpnpanel/trojan.json ]; then
-        sed -i 's/"type": "udp",//g' /etc/vpnpanel/trojan.json 2>/dev/null || true
-        sed -i 's/"server":/"address":/g' /etc/vpnpanel/trojan.json 2>/dev/null || true
+        python3 -c '
+import json
+try:
+    with open("/etc/vpnpanel/trojan.json") as f:
+        c = json.load(f)
+    c.setdefault("dns", {})["servers"] = [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]
+    with open("/etc/vpnpanel/trojan.json", "w") as f:
+        json.dump(c, f, indent=2)
+except Exception: pass' 2>/dev/null || true
     fi
 
     # If missing or invalid sing-box config, regenerate fresh clean config
@@ -2298,7 +2314,7 @@ install_trojan() {
         cat > /etc/vpnpanel/trojan.json <<EOF
 {
   "log": {"level": "warn"},
-  "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
+  "dns": {"servers": [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]},
   "inbounds": [
     {
       "type": "trojan",
@@ -2393,12 +2409,19 @@ install_naiveproxy() {
     local arch="$(uname -m)"
     local sb_arch="amd64"
     if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then sb_arch="arm64"; fi
-    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz"
+    ensure_binary "sing-box" "https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box" "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz"
 
-    # Fix any corrupted DNS fields in existing config
+    # Modernize DNS fields in existing naiveproxy config for sing-box >= 1.14 compatibility
     if [ -f /etc/vpnpanel/naiveproxy.json ]; then
-        sed -i 's/"type": "udp",//g' /etc/vpnpanel/naiveproxy.json 2>/dev/null || true
-        sed -i 's/"server":/"address":/g' /etc/vpnpanel/naiveproxy.json 2>/dev/null || true
+        python3 -c '
+import json
+try:
+    with open("/etc/vpnpanel/naiveproxy.json") as f:
+        c = json.load(f)
+    c.setdefault("dns", {})["servers"] = [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]
+    with open("/etc/vpnpanel/naiveproxy.json", "w") as f:
+        json.dump(c, f, indent=2)
+except Exception: pass' 2>/dev/null || true
     fi
 
     # If missing or invalid sing-box config, regenerate fresh clean config
@@ -2409,7 +2432,7 @@ install_naiveproxy() {
         cat > /etc/vpnpanel/naiveproxy.json <<EOF
 {
   "log": {"level": "warn"},
-  "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
+  "dns": {"servers": [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]},
   "inbounds": [
     {
       "type": "naive",
@@ -3076,19 +3099,39 @@ set_port_tor() {
 # ----------------- SING-BOX UNIVERSAL SUITE CORE -----------------
 install_singbox() {
     local port=${1:-20443}
-    echo "Installing & verifying Sing-box Universal Suite Core..."
-    for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
-        if [ -f "${bdir}/sing-box" ]; then
-            cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
-            chmod +x /usr/local/bin/sing-box 2>/dev/null || true
-            break
+    echo "Installing & verifying Sing-box Universal Suite Core (v1.14.4)..."
+    local arch="$(uname -m)"
+    local sb_arch="amd64"
+    [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
+
+    local need_install=1
+    if [ -x /usr/local/bin/sing-box ]; then
+        local curr_ver=$(/usr/local/bin/sing-box version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+        local major=$(echo "$curr_ver" | cut -d. -f1)
+        local minor=$(echo "$curr_ver" | cut -d. -f2)
+        if [ "$major" -gt 1 ] 2>/dev/null || { [ "$major" -eq 1 ] && [ "$minor" -ge 14 ]; } 2>/dev/null; then
+            need_install=0
         fi
-    done
-    if [ ! -x /usr/local/bin/sing-box ]; then
-        local arch="$(uname -m)"
-        local sb_arch="amd64"
-        [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
-        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+    fi
+
+    if [ "$need_install" -eq 1 ]; then
+        for bdir in /www/wwwroot/mhpanel/bin /root/mhpanel-repo/bin; do
+            if [ -f "${bdir}/sing-box" ]; then
+                local b_ver=$("${bdir}/sing-box" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+                local b_major=$(echo "$b_ver" | cut -d. -f1)
+                local b_minor=$(echo "$b_ver" | cut -d. -f2)
+                if [ "$b_major" -gt 1 ] 2>/dev/null || { [ "$b_major" -eq 1 ] && [ "$b_minor" -ge 14 ]; } 2>/dev/null; then
+                    cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
+                    chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+                    need_install=0
+                    break
+                fi
+            fi
+        done
+    fi
+
+    if [ "$need_install" -eq 1 ] || [ ! -x /usr/local/bin/sing-box ]; then
+        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
         chmod +x /usr/local/bin/sing-box 2>/dev/null || true
     fi
 

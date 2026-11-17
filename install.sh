@@ -1461,21 +1461,40 @@ install_tunnel_tools() {
     fi
 
     # Sing-box Universal Suite
+    local sb_need_install=0
     if [ ! -x /usr/local/bin/sing-box ]; then
-        echo "    Checking / Downloading Sing-box Universal Suite..."
+        sb_need_install=1
+    else
+        local curr_sb_ver=$(/usr/local/bin/sing-box version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+        local sb_maj=$(echo "$curr_sb_ver" | cut -d. -f1)
+        local sb_min=$(echo "$curr_sb_ver" | cut -d. -f2)
+        if [ "$sb_maj" -lt 1 ] 2>/dev/null || { [ "$sb_maj" -eq 1 ] && [ "$sb_min" -lt 14 ]; } 2>/dev/null; then
+            sb_need_install=1
+        fi
+    fi
+
+    if [ "$sb_need_install" -eq 1 ]; then
+        echo "    Checking / Downloading Sing-box Universal Suite (v1.14.4)..."
+        local sb_copied=0
         for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
             if [ -f "${bdir}/sing-box" ]; then
-                cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
-                chmod +x /usr/local/bin/sing-box 2>/dev/null || true
-                break
+                local b_ver=$("${bdir}/sing-box" version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n1)
+                local b_maj=$(echo "$b_ver" | cut -d. -f1)
+                local b_min=$(echo "$b_ver" | cut -d. -f2)
+                if [ "$b_maj" -gt 1 ] 2>/dev/null || { [ "$b_maj" -eq 1 ] && [ "$b_min" -ge 14 ]; } 2>/dev/null; then
+                    cp -f "${bdir}/sing-box" /usr/local/bin/sing-box 2>/dev/null || true
+                    chmod +x /usr/local/bin/sing-box 2>/dev/null || true
+                    sb_copied=1
+                    break
+                fi
             fi
         done
-        if [ ! -x /usr/local/bin/sing-box ]; then
+        if [ "$sb_copied" -eq 0 ]; then
             local arch="$(uname -m)"
             local sb_arch="amd64"
             [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
             curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
-            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
             chmod +x /usr/local/bin/sing-box 2>/dev/null || true
         fi
         if [ -x /usr/local/bin/sing-box ]; then

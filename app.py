@@ -13764,7 +13764,7 @@ def api_trojan_config():
 
         cfg = {
             "log": {"level": "warn", "timestamp": True},
-            "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
+            "dns": {"servers": [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]},
             "inbounds": [inbound_cfg],
             "outbounds": [{"type": "direct", "tag": "direct"}]
         }
@@ -13950,7 +13950,7 @@ def api_naiveproxy_config():
 
         cfg = {
             "log": {"level": "warn"},
-            "dns": {"servers": [{"tag": "remote", "address": "8.8.8.8"}]},
+            "dns": {"servers": [{"type": "udp", "tag": "remote", "server": "8.8.8.8"}]},
             "inbounds": [
                 {
                     "type": "naive",
@@ -27852,7 +27852,7 @@ def install_tunnel_tool_binary(tool_key):
         "udp2raw": 'curl -fsSL https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && chmod +x /usr/local/bin/udp2raw && rm -rf /tmp/udp2raw*',
         "rtt": 'curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null && unzip -o /tmp/rtt.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rtt && rm -f /tmp/rtt.zip',
         "dnstt": 'curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-server -o /usr/local/bin/dnstt-server 2>/dev/null && chmod +x /usr/local/bin/dnstt-server',
-        "singbox": 'curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-amd64.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
+        "singbox": 'curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-amd64.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
     }
     if tool_key in dl_scripts:
         try:
@@ -28367,7 +28367,119 @@ SINGBOX_CONFIG_DIR = "/etc/sing-box"
 SINGBOX_CONFIG_FILE = "/etc/sing-box/config.json"
 SINGBOX_SERVICE_NAME = "mhpanel-singbox.service"
 
+def get_singbox_binary_version(binary_path="/usr/local/bin/sing-box"):
+    try:
+        r = subprocess.run([binary_path, "version"], capture_output=True, text=True, timeout=3)
+        out = r.stdout or r.stderr or ""
+        m = re.search(r'sing-box\s+version\s+([0-9]+)\.([0-9]+)(?:\.([0-9]+))?', out)
+        if m:
+            major = int(m.group(1))
+            minor = int(m.group(2))
+            patch = int(m.group(3) or 0)
+            return (major, minor, patch)
+    except Exception:
+        pass
+    return (1, 14, 4)
+
+def ensure_modern_singbox_binary():
+    try:
+        cur_ver = get_singbox_binary_version("/usr/local/bin/sing-box") if os.path.exists("/usr/local/bin/sing-box") else (0, 0, 0)
+        if cur_ver < (1, 14, 0):
+            for bdir in ["/www/wwwroot/mhpanel/bin", "/root/mhpanel-repo/bin"]:
+                b_path = os.path.join(bdir, "sing-box")
+                if os.path.exists(b_path):
+                    bv = get_singbox_binary_version(b_path)
+                    if bv >= (1, 14, 0):
+                        shutil.copy2(b_path, "/usr/local/bin/sing-box")
+                        os.chmod("/usr/local/bin/sing-box", 0o755)
+                        return
+            arch = platform.machine()
+            sb_arch = "arm64" if arch in ["aarch64", "arm64"] else "amd64"
+            dl_cmd = f'curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-{sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
+            subprocess.run(dl_cmd, shell=True, capture_output=True)
+    except Exception as e:
+        logger.error(f"Error ensuring sing-box binary: {e}")
+
+def sanitize_singbox_config(cfg_obj):
+    import copy
+    cfg = copy.deepcopy(cfg_obj)
+    ver = get_singbox_binary_version("/usr/local/bin/sing-box")
+    
+    if ver >= (1, 12, 0):
+        dns_obj = cfg.get("dns", {})
+        if "servers" in dns_obj and isinstance(dns_obj["servers"], list):
+            new_servers = []
+            for s in dns_obj["servers"]:
+                if isinstance(s, dict):
+                    srv = dict(s)
+                    addr = srv.pop("address", None)
+                    srv.pop("strategy", None)
+                    srv.pop("detour", None)
+                    if addr and "server" not in srv:
+                        srv["type"] = "udp"
+                        srv["server"] = addr
+                    elif "server" in srv and "type" not in srv:
+                        srv["type"] = "udp"
+                    new_servers.append(srv)
+                else:
+                    new_servers.append(s)
+            dns_obj["servers"] = new_servers
+            dns_obj["strategy"] = "ipv4_only"
+            cfg["dns"] = dns_obj
+
+        route_obj = cfg.get("route", {})
+        if route_obj:
+            route_obj.setdefault("default_domain_resolver", {
+                "server": "dns-direct",
+                "strategy": "ipv4_only"
+            })
+            rules = route_obj.get("rules", [])
+            if not any(isinstance(r, dict) and r.get("action") == "sniff" for r in rules):
+                rules.insert(0, {"action": "sniff"})
+            for r in rules:
+                if isinstance(r, dict) and r.get("geoip") == "private":
+                    del r["geoip"]
+                    r["ip_is_private"] = True
+            route_obj["rules"] = rules
+            cfg["route"] = route_obj
+
+        if ver >= (1, 13, 0):
+            for ib in cfg.get("inbounds", []):
+                if isinstance(ib, dict):
+                    for k in ["sniff", "sniff_override_destination", "sniff_timeout", "domain_strategy"]:
+                        ib.pop(k, None)
+
+        for ob in cfg.get("outbounds", []):
+            if isinstance(ob, dict):
+                ob.pop("domain_strategy", None)
+    else:
+        dns_obj = cfg.get("dns", {})
+        if "servers" in dns_obj and isinstance(dns_obj["servers"], list):
+            new_servers = []
+            for s in dns_obj["servers"]:
+                if isinstance(s, dict):
+                    srv = dict(s)
+                    srv.pop("type", None)
+                    server_val = srv.pop("server", None)
+                    if server_val and "address" not in srv:
+                        srv["address"] = server_val
+                    new_servers.append(srv)
+                else:
+                    new_servers.append(s)
+            dns_obj["servers"] = new_servers
+            cfg["dns"] = dns_obj
+
+        route_obj = cfg.get("route", {})
+        if route_obj:
+            route_obj.pop("default_domain_resolver", None)
+            rules = [r for r in route_obj.get("rules", []) if not (isinstance(r, dict) and r.get("action") == "sniff")]
+            route_obj["rules"] = rules
+            cfg["route"] = route_obj
+
+    return cfg
+
 def ensure_singbox_service():
+    ensure_modern_singbox_binary()
     os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
     svc_path = f"/etc/systemd/system/{SINGBOX_SERVICE_NAME}"
     if not os.path.exists(svc_path):
@@ -28446,7 +28558,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-reality-in",
             "listen": "::",
             "listen_port": 20443,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "tls": {
                 "enabled": True,
@@ -28465,7 +28576,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-reality-grpc",
             "listen": "::",
             "listen_port": 20452,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "transport": {
                 "type": "grpc",
@@ -28488,7 +28598,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-reality-upgrade",
             "listen": "::",
             "listen_port": 20453,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "transport": {
                 "type": "httpupgrade",
@@ -28511,7 +28620,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-ws-in",
             "listen": "::",
             "listen_port": 20451,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "transport": {
                 "type": "ws",
@@ -28530,7 +28638,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-grpc-tls",
             "listen": "::",
             "listen_port": 20454,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "transport": {
                 "type": "grpc",
@@ -28549,7 +28656,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-upgrade-tls",
             "listen": "::",
             "listen_port": 20455,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "transport": {
                 "type": "httpupgrade",
@@ -28568,7 +28674,6 @@ def build_default_singbox_full_suite():
             "tag": "vless-tcp-tls",
             "listen": "::",
             "listen_port": 20456,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "tls": {
                 "enabled": True,
@@ -28583,7 +28688,6 @@ def build_default_singbox_full_suite():
             "tag": "vmess-in",
             "listen": "::",
             "listen_port": 20448,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vmess_uuid}]
         },
         # 9. VMess WS TLS
@@ -28592,7 +28696,6 @@ def build_default_singbox_full_suite():
             "tag": "vmess-ws-tls",
             "listen": "::",
             "listen_port": 20457,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vmess_uuid}],
             "transport": {
                 "type": "ws",
@@ -28611,7 +28714,6 @@ def build_default_singbox_full_suite():
             "tag": "vmess-grpc-tls",
             "listen": "::",
             "listen_port": 20458,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vmess_uuid}],
             "transport": {
                 "type": "grpc",
@@ -28630,7 +28732,6 @@ def build_default_singbox_full_suite():
             "tag": "vmess-upgrade-tls",
             "listen": "::",
             "listen_port": 20459,
-            "sniff": True,
             "users": [{"name": "default-user", "uuid": vmess_uuid}],
             "transport": {
                 "type": "httpupgrade",
@@ -28649,7 +28750,6 @@ def build_default_singbox_full_suite():
             "tag": "trojan-in",
             "listen": "::",
             "listen_port": 20444,
-            "sniff": True,
             "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
             "tls": {
                 "enabled": True,
@@ -28664,7 +28764,6 @@ def build_default_singbox_full_suite():
             "tag": "trojan-ws-tls",
             "listen": "::",
             "listen_port": 20460,
-            "sniff": True,
             "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
             "transport": {
                 "type": "ws",
@@ -28683,7 +28782,6 @@ def build_default_singbox_full_suite():
             "tag": "trojan-grpc-tls",
             "listen": "::",
             "listen_port": 20461,
-            "sniff": True,
             "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
             "transport": {
                 "type": "grpc",
@@ -28702,7 +28800,6 @@ def build_default_singbox_full_suite():
             "tag": "trojan-upgrade-tls",
             "listen": "::",
             "listen_port": 20462,
-            "sniff": True,
             "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
             "transport": {
                 "type": "httpupgrade",
@@ -28820,11 +28917,10 @@ def build_default_singbox_full_suite():
             "tag": "mixed-in",
             "listen": "::",
             "listen_port": 2080,
-            "sniff": True
         }
     ]
 
-    return {
+    return sanitize_singbox_config({
         "log": {
             "level": "info",
             "timestamp": True,
@@ -28858,7 +28954,7 @@ def build_default_singbox_full_suite():
                 {"ip_is_private": True, "outbound": "direct"}
             ]
         }
-    }
+    })
 
 def ensure_singbox_default_config():
     os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
@@ -28995,9 +29091,11 @@ def sync_singbox_multiplexer_and_iptables():
         logger.error(f"Error syncing haproxy for singbox: {e}")
 
 def save_singbox_config(cfg, restart=True):
+    ensure_modern_singbox_binary()
+    cfg_to_save = sanitize_singbox_config(cfg)
     os.makedirs(SINGBOX_CONFIG_DIR, exist_ok=True)
     with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=2, ensure_ascii=False)
+        json.dump(cfg_to_save, f, indent=2, ensure_ascii=False)
     if restart:
         try:
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
@@ -29006,10 +29104,12 @@ def save_singbox_config(cfg, restart=True):
     sync_singbox_multiplexer_and_iptables()
 
 def validate_singbox_config(cfg_obj):
+    ensure_modern_singbox_binary()
+    cfg_to_test = sanitize_singbox_config(cfg_obj)
     tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
     try:
         with open(tmp_path, "w", encoding="utf-8") as f:
-            json.dump(cfg_obj, f, indent=2)
+            json.dump(cfg_to_test, f, indent=2)
         r = subprocess.run(["/usr/local/bin/sing-box", "check", "-c", tmp_path], capture_output=True, text=True)
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
@@ -29729,28 +29829,30 @@ def build_inbound_from_request(req, existing_inbound=None):
     if existing.get("disabled") is not None:
         inbound["disabled"] = existing.get("disabled")
 
-    # Advanced Inbound Engine Options
-    sniff_val = req.get("sniff")
-    if sniff_val is not None:
-        inbound["sniff"] = bool(sniff_val) if not isinstance(sniff_val, str) else (sniff_val.lower() in ["true", "1", "yes"])
-    elif "sniff" in existing:
-        inbound["sniff"] = existing["sniff"]
-    else:
-        inbound["sniff"] = True
+    # Advanced Inbound Engine Options: Only for legacy singbox (< 1.13)
+    sb_ver = get_singbox_binary_version()
+    if sb_ver < (1, 13, 0):
+        sniff_val = req.get("sniff")
+        if sniff_val is not None:
+            inbound["sniff"] = bool(sniff_val) if not isinstance(sniff_val, str) else (sniff_val.lower() in ["true", "1", "yes"])
+        elif "sniff" in existing:
+            inbound["sniff"] = existing["sniff"]
+        else:
+            inbound["sniff"] = True
 
-    sniff_ov = req.get("sniff_override_destination")
-    if sniff_ov is not None:
-        inbound["sniff_override_destination"] = bool(sniff_ov) if not isinstance(sniff_ov, str) else (sniff_ov.lower() in ["true", "1", "yes"])
-    elif "sniff_override_destination" in existing:
-        inbound["sniff_override_destination"] = existing["sniff_override_destination"]
+        sniff_ov = req.get("sniff_override_destination")
+        if sniff_ov is not None:
+            inbound["sniff_override_destination"] = bool(sniff_ov) if not isinstance(sniff_ov, str) else (sniff_ov.lower() in ["true", "1", "yes"])
+        elif "sniff_override_destination" in existing:
+            inbound["sniff_override_destination"] = existing["sniff_override_destination"]
 
-    sniff_to = (req.get("sniff_timeout") or existing.get("sniff_timeout") or "300ms").strip()
-    if sniff_to:
-        inbound["sniff_timeout"] = sniff_to
+        sniff_to = (req.get("sniff_timeout") or existing.get("sniff_timeout") or "300ms").strip()
+        if sniff_to:
+            inbound["sniff_timeout"] = sniff_to
 
-    dom_strat = (req.get("domain_strategy") or existing.get("domain_strategy") or "").strip()
-    if dom_strat:
-        inbound["domain_strategy"] = dom_strat
+        dom_strat = (req.get("domain_strategy") or existing.get("domain_strategy") or "").strip()
+        if dom_strat:
+            inbound["domain_strategy"] = dom_strat
 
     tfo_val = req.get("tcp_fast_open")
     if tfo_val is not None:
@@ -30005,7 +30107,7 @@ def api_singbox_status():
     is_active = (r.stdout.strip() == "active")
 
     ver_r = subprocess.run(["/usr/local/bin/sing-box", "version"], capture_output=True, text=True)
-    ver = (ver_r.stdout.split("\n")[0] if ver_r.stdout else "sing-box 1.9.3").strip()
+    ver = (ver_r.stdout.split("\n")[0] if ver_r.stdout else "sing-box 1.14.4").strip()
 
     cfg = {}
     if os.path.exists(SINGBOX_CONFIG_FILE):

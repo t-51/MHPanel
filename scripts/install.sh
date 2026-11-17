@@ -1475,7 +1475,7 @@ install_tunnel_tools() {
             local sb_arch="amd64"
             [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
             curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
-            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.9.3/sing-box-1.9.3-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
             chmod +x /usr/local/bin/sing-box 2>/dev/null || true
         fi
         if [ -x /usr/local/bin/sing-box ]; then
