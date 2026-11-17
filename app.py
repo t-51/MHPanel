@@ -98,11 +98,48 @@ class RedirectServer:
                     except Exception:
                         pass
 
+            def _proxy_sub(self):
+                try:
+                    import urllib.request
+                    import ssl
+                    port = get_panel_port()
+                    ctx = ssl._create_unverified_context()
+                    url = f"https://127.0.0.1:{port}{self.path}"
+                    req = urllib.request.Request(url, method=self.command)
+                    for k, v in self.headers.items():
+                        if k.lower() not in ["host", "content-length", "connection", "accept-encoding"]:
+                            req.add_header(k, v)
+                    req.add_header("X-Forwarded-Proto", "http")
+                    req.add_header("X-Forwarded-For", self.client_address[0])
+                    host = self.headers.get("Host", "")
+                    if host:
+                        req.add_header("Host", host)
+
+                    with urllib.request.urlopen(req, context=ctx, timeout=20) as resp:
+                        self.send_response(resp.status)
+                        for hk, hv in resp.getheaders():
+                            if hk.lower() not in ["transfer-encoding", "content-length", "connection"]:
+                                self.send_header(hk, hv)
+                        content = resp.read()
+                        self.send_header("Content-Length", str(len(content)))
+                        self.send_header("Connection", "close")
+                        self.end_headers()
+                        if self.command != 'HEAD':
+                            self.wfile.write(content)
+                except Exception as e:
+                    try:
+                        self.send_error(502, f"Bad Gateway: {e}")
+                    except Exception:
+                        pass
+
             def do_GET(self):
                 upgrade = self.headers.get('Upgrade', '').lower()
                 path = (self.path or '').lower()
                 if upgrade == 'websocket' or path.startswith('/ssh') or path.startswith('/ws'):
                     return self._proxy_to_ws()
+
+                if path.startswith('/sub/'):
+                    return self._proxy_sub()
 
                 host = self.headers.get('Host', '')
                 if ':' in host:
@@ -111,6 +148,12 @@ class RedirectServer:
                 self.send_response(301)
                 self.send_header('Location', f'https://{host}:{port}{self.path}')
                 self.end_headers()
+
+            def do_HEAD(self):
+                path = (self.path or '').lower()
+                if path.startswith('/sub/'):
+                    return self._proxy_sub()
+                self.send_error(405, "Method Not Allowed")
 
             def do_CONNECT(self):
                 return self._proxy_to_ws()
@@ -398,6 +441,67 @@ def get_panel_port():
         except Exception:
             pass
     return 8443
+
+def is_tcp_port_locally_bound(port):
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(('0.0.0.0', port))
+        s.close()
+        return False
+    except OSError:
+        return True
+
+def get_panel_sub_base_url(prefer_http_for_ip=True):
+    """
+    Returns the base URL for subscriptions (e.g. 'https://domain.com:9090' or 'http://206.1.103.68').
+    If accessing via bare IP or self-signed cert, prefers clean HTTP port 80 to ensure 100% compatibility
+    with all mobile VPN clients (v2rayNG, Hiddify, NekoBox) which reject self-signed SSL certs.
+    """
+    try:
+        from flask import has_request_context, request
+        if has_request_context() and request.host:
+            host_header = request.host
+            h_only = host_header.split(":")[0]
+            if prefer_http_for_ip and (is_ip_address(h_only) or h_only in ["localhost", "127.0.0.1"]):
+                return f"http://{h_only}"
+            scheme = "https" if request.is_secure or request.scheme == "https" else "http"
+            return f"{scheme}://{host_header}"
+    except Exception:
+        pass
+
+    panel_dom_file = "/etc/vpnpanel/panel_domain.txt"
+    if os.path.exists(panel_dom_file):
+        try:
+            with open(panel_dom_file, "r") as f:
+                d = f.read().strip()
+                if d and "." in d and not d.startswith("#") and not is_ip_address(d):
+                    return f"https://{d}"
+        except Exception:
+            pass
+
+    server_dom = get_server_domain()
+    if server_dom and not server_dom.startswith("vpn.") and not is_ip_address(server_dom):
+        return f"https://{server_dom}"
+
+    ip = get_server_public_ip() or "127.0.0.1"
+    if prefer_http_for_ip:
+        return f"http://{ip}"
+    port = get_panel_port()
+    port_suffix = f":{port}" if (port and port != 443) else ""
+    return f"https://{ip}{port_suffix}"
+
+def is_ip_address(val: str) -> bool:
+    if not val or not isinstance(val, str):
+        return False
+    val = val.split(":")[0].strip()
+    try:
+        import ipaddress
+        ipaddress.ip_address(val)
+        return True
+    except Exception:
+        return False
 
 def ensure_panel_certificate():
     os.makedirs(PANEL_SSL_DIR, exist_ok=True)
@@ -2937,7 +3041,8 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         sb_clean_cfg = get_singbox_clean_ips_config()
         operators = sb_clean_cfg.get("operators") or []
         panel_domain = get_panel_sub_domain() or domain or pub_ip or "127.0.0.1"
-        cf_domain = sb_clean_cfg.get("cf_domain") or panel_domain
+        cf_domain = sb_clean_cfg.get("cf_domain") or ""
+        has_real_cf_domain = bool(cf_domain and "." in cf_domain and not is_ip_address(cf_domain))
 
         d_sni = get_snispoof_reality_and_client_configs()
         r_pubkey = d_sni.get("r_pubkey", "")
@@ -2949,9 +3054,9 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         uid = u_uuid or d_sni.get("r_uuid", "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc")
 
         # 1. Cloud Mode URIs (Clean IP + Cloudflare Domain) per Operator
-        # Cloudflare Clean IP ONLY works on WebSocket (ws)
+        # Cloudflare Clean IP ONLY works on WebSocket (ws) and REQUIRES a real Cloudflare registered domain
         cloud_uris = []
-        if operators:
+        if has_real_cf_domain and operators:
             for op in operators:
                 op_code = str(op.get("code") or "OP").upper()
                 op_name = op.get("name") or op_code
@@ -3006,7 +3111,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
                         "port": 443,
                         "sni": cf_domain
                     })
-        else:
+        elif has_real_cf_domain:
             raw_clean_ips = sb_clean_cfg.get("clean_ips") or ["104.18.119.142"]
             for cip in raw_clean_ips:
                 vless_title = f"MHPanel - [Clean IP {cip}] VLESS-WS ({username})"
@@ -4147,11 +4252,12 @@ def client_sub_b64(sub_token):
                         if slink:
                             uris.append(slink)
                         # Standard Cloudflare ports for Reality:
-                        if is_real:
+                        if is_real and ib.get("tag") == "vless-reality-in":
                             for extra_p in CLOUDFLARE_STANDARD_PORTS:
-                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=extra_p)
-                                if extra_link and extra_link not in uris:
-                                    uris.append(extra_link)
+                                if extra_p != ib.get("listen_port"):
+                                    extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=extra_p)
+                                    if extra_link and extra_link not in uris:
+                                        uris.append(extra_link)
         except Exception as e:
             logger.error(f"Error generating singbox sub links: {e}")
 
@@ -4167,7 +4273,7 @@ def client_sub_b64(sub_token):
     if cloud_links:
         uris.extend([x["uri"] if isinstance(x, dict) else x for x in cloud_links])
     if frag_links:
-        uris.extend([x["uri"] if isinstance(x, dict) else x for x in frag_links])
+        uris.extend([x["uri"] if isinstance(x, dict) else x for x in frag_links if not str(x.get("server", "")).startswith("127.")])
 
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
@@ -29056,7 +29162,7 @@ def ensure_singbox_default_config():
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         except Exception: pass
 
-CLOUDFLARE_STANDARD_PORTS = [2096]
+CLOUDFLARE_STANDARD_PORTS = [443, 2096]
 
 def apply_singbox_reality_iptables():
     try:
@@ -29067,7 +29173,7 @@ def apply_singbox_reality_iptables():
                 with open(sb_cfg_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 for ib in data.get("inbounds", []):
-                    if ib.get("tls", {}).get("reality", {}).get("enabled"):
+                    if ib.get("tag") == "vless-reality-in" or ib.get("tls", {}).get("reality", {}).get("enabled"):
                         target_port = ib.get("listen_port", 20443)
                         break
             except Exception:
@@ -29081,8 +29187,13 @@ def apply_singbox_reality_iptables():
         subprocess.run("iptables -C INPUT -j SINGBOX_MULTIPORT_IN 2>/dev/null || iptables -I INPUT 1 -j SINGBOX_MULTIPORT_IN", shell=True)
         subprocess.run("iptables -F SINGBOX_MULTIPORT_IN", shell=True)
 
-        # Do NOT redirect ports used by active system services (sshd:2053, httpd:2083, stunnel:2087, plesk:8443) to prevent port conflicts!
-        ports_to_redir = [p for p in CLOUDFLARE_STANDARD_PORTS if p != target_port and p not in RESERVED_SYSTEM_PORTS]
+        panel_p = get_panel_port()
+        ports_to_redir = []
+        for cand_port in [443, 2096]:
+            if cand_port != target_port and cand_port != panel_p:
+                if not is_tcp_port_locally_bound(cand_port):
+                    ports_to_redir.append(cand_port)
+
         if ports_to_redir:
             ports_csv = ",".join(str(p) for p in ports_to_redir)
             subprocess.run(f"iptables -t nat -A SINGBOX_MULTIPORT -p tcp -m multiport --dports {ports_csv} -j REDIRECT --to-ports {target_port}", shell=True)
@@ -29124,6 +29235,17 @@ def save_singbox_config(cfg, restart=True):
 def validate_singbox_config(cfg_obj):
     ensure_modern_singbox_binary()
     cfg_to_test = sanitize_singbox_config(cfg_obj)
+
+    # Validate no duplicate listen ports among inbounds
+    used_ports = {}
+    for ib in cfg_to_test.get("inbounds", []):
+        p = ib.get("listen_port")
+        tag = ib.get("tag", "unknown")
+        if p:
+            if p in used_ports:
+                return False, f"تداخل پورت: پورت {p} همزمان در اینباند '{used_ports[p]}' و اینباند '{tag}' استفاده شده است."
+            used_ports[p] = tag
+
     tmp_path = f"/tmp/singbox_test_{uuid.uuid4().hex[:6]}.json"
     try:
         with open(tmp_path, "w", encoding="utf-8") as f:
@@ -29198,20 +29320,17 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             return False
 
     server_pub_ip = get_server_public_ip()
+    if override_port:
+        port = int(override_port)
+    else:
+        port = int(inbound.get("listen_port", 443))
+
     if reality_enabled:
-        # Standard Cloudflare ports for Reality: default to 443 if internal port 20443
-        if override_port:
-            port = int(override_port)
-        elif port == 20443 or port not in [443, 2096]:
-            port = 443
-        # Use host_ip (domain or IP), fallback to panel sub domain, server domain, or server IP
         target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip
     else:
-        if override_port:
-            port = int(override_port)
         target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
 
-    port_label = f" (Port {port})" if (override_port or (reality_enabled and port != 443)) else ""
+    port_label = f" (Port {port})" if (override_port or port not in [443, 20443]) else ""
     tag_name = f"MHPanel - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}{port_label}"
 
     if itype == "vless":
@@ -29249,6 +29368,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
             link += "&fp=chrome"
+        elif tls_enabled:
+            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+            if is_self_signed:
+                link += "&allowInsecure=1"
 
         link += f"#{tag_name}"
         return link
@@ -29278,6 +29401,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             "path": v_path,
             "tls": "tls" if tls_enabled else ""
         }
+        if tls_enabled:
+            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+            if is_self_signed:
+                vmess_dict["allowInsecure"] = "1"
         b64_json = base64.b64encode(json.dumps(vmess_dict).encode()).decode()
         return f"vmess://{b64_json}"
 
@@ -29285,7 +29412,9 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         sec = "tls" if tls_enabled else "none"
         tp = inbound.get("transport", {}).get("type", "tcp")
         target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
-        link = f"trojan://{u_pass}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}"
+        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+        insec_flag = "&allowInsecure=1" if (tls_enabled and is_self_signed) else ""
+        link = f"trojan://{u_pass}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}{insec_flag}"
         if tp == "ws":
             ws_path = inbound.get("transport", {}).get("path", "/trojan-ws")
             link += f"&path={ws_path}"
@@ -29673,10 +29802,10 @@ def load_singbox_users():
             u["sub_token"] = secrets.token_urlsafe(16)
             needs_save = True
 
-        panel_dom = get_panel_sub_domain()
-        u["sub_url"] = f"https://{panel_dom}/sub/{u['sub_token']}"
-        u["sub_b64_url"] = f"https://{panel_dom}/sub/{u['sub_token']}/b64"
-        u["sub_json_url"] = f"https://{panel_dom}/sub/{u['sub_token']}/singbox.json"
+        base_url = get_panel_sub_base_url()
+        u["sub_url"] = f"{base_url}/sub/{u['sub_token']}"
+        u["sub_b64_url"] = f"{base_url}/sub/{u['sub_token']}/b64"
+        u["sub_json_url"] = f"{base_url}/sub/{u['sub_token']}/singbox.json"
 
     if needs_save:
         try:
@@ -30296,6 +30425,12 @@ def api_singbox_inbound_add():
     new_inbound, err = build_inbound_from_request(req)
     if not new_inbound:
         return jsonify({"error": err or "تنظیمات اینباند نامعتبر است."}), 400
+
+    new_port = new_inbound.get("listen_port")
+    if new_port:
+        conflicting_ib = next((ib for ib in cfg.get("inbounds", []) if ib.get("listen_port") == new_port), None)
+        if conflicting_ib:
+            return jsonify({"error": f"پورت {new_port} از قبل توسط اینباند '{conflicting_ib.get('tag')}' استفاده شده است."}), 400
 
     test_cfg = dict(cfg)
     test_cfg["inbounds"] = list(test_cfg.get("inbounds", [])) + [new_inbound]
@@ -31074,16 +31209,16 @@ def api_singbox_user_add():
         expire_date = f"پس از اولین اتصال ({validity_days} روزه)"
 
     user_sub_tok = secrets.token_urlsafe(16)
-    panel_dom = get_panel_sub_domain()
+    base_url = get_panel_sub_base_url()
 
     new_user = {
         "username": username,
         "uuid": user_uuid,
         "password": user_pass,
         "sub_token": user_sub_tok,
-        "sub_url": f"https://{panel_dom}/sub/{user_sub_tok}",
-        "sub_b64_url": f"https://{panel_dom}/sub/{user_sub_tok}/b64",
-        "sub_json_url": f"https://{panel_dom}/sub/{user_sub_tok}/singbox.json",
+        "sub_url": f"{base_url}/sub/{user_sub_tok}",
+        "sub_b64_url": f"{base_url}/sub/{user_sub_tok}/b64",
+        "sub_json_url": f"{base_url}/sub/{user_sub_tok}/singbox.json",
         "enabled": True,
         "category": category,
         "inbounds": inbounds,
@@ -31251,23 +31386,24 @@ def api_singbox_user_links(username):
             link = generate_singbox_share_link(ib, target_host, target_user=target)
             proto_type = ib.get("type", "")
             is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
-            eff_port = 443 if (is_real and (ib.get("listen_port") == 20443 or ib.get("listen_port") not in [443, 2096])) else ib.get("listen_port")
+            eff_port = ib.get("listen_port")
             configs.append({
                 "tag": tag,
                 "type": proto_type,
                 "port": eff_port,
                 "share_link": link
             })
-            if is_real:
+            if is_real and ib.get("tag") == "vless-reality-in":
                 for extra_p in CLOUDFLARE_STANDARD_PORTS:
-                    extra_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=extra_p)
-                    if extra_link:
-                        configs.append({
-                            "tag": f"{tag}-p{extra_p}",
-                            "type": proto_type,
-                            "port": extra_p,
-                            "share_link": extra_link
-                        })
+                    if extra_p != ib.get("listen_port"):
+                        extra_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=extra_p)
+                        if extra_link:
+                            configs.append({
+                                "tag": f"{tag}-p{extra_p}",
+                                "type": proto_type,
+                                "port": extra_p,
+                                "share_link": extra_link
+                            })
 
     # Append Cloudflare Clean IP configs (VLESS-WS, Trojan-WS, VMess-WS)
     pwd = target.get("password") or ""
@@ -31285,10 +31421,10 @@ def api_singbox_user_links(username):
         logger.error(f"Error adding clean ip configs to user links: {e}")
 
     sub_token = target.get("sub_token", "")
-    panel_dom = get_panel_sub_domain()
-    sub_url = f"https://{panel_dom}/sub/{sub_token}" if sub_token else ""
-    sub_b64_url = f"https://{panel_dom}/sub/{sub_token}/b64" if sub_token else ""
-    sub_json_url = f"https://{panel_dom}/sub/{sub_token}/singbox.json" if sub_token else ""
+    base_url = get_panel_sub_base_url()
+    sub_url = f"{base_url}/sub/{sub_token}" if sub_token else ""
+    sub_b64_url = f"{base_url}/sub/{sub_token}/b64" if sub_token else ""
+    sub_json_url = f"{base_url}/sub/{sub_token}/singbox.json" if sub_token else ""
 
     return jsonify({
         "success": True,
