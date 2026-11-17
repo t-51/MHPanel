@@ -23908,20 +23908,21 @@ def api_multiplexer_config_post():
 def ensure_haproxy_installed():
     """
     Checks if HAProxy and firewall persistence packages are installed.
-    Installs them automatically if missing without hanging interactive debconf prompts.
+    Installs them automatically if missing without hanging interactive debconf prompts or stalled repositories.
     """
     if os.path.exists("/usr/sbin/haproxy"):
         return True, "HAProxy is already installed"
     try:
-        logger.info("HAProxy not found. Installing haproxy and netfilter-persistent non-interactively...")
+        logger.info("HAProxy not found. Installing haproxy non-interactively...")
         cmd = (
             "export DEBIAN_FRONTEND=noninteractive; "
             "echo 'iptables-persistent iptables-persistent/autosave_v4 boolean true' | debconf-set-selections 2>/dev/null || true; "
             "echo 'iptables-persistent iptables-persistent/autosave_v6 boolean true' | debconf-set-selections 2>/dev/null || true; "
-            "apt-get update -y && "
-            "apt-get install -y --no-install-recommends haproxy iptables-persistent netfilter-persistent"
+            "apt-get install -y -o Acquire::http::Timeout=5 -o Acquire::https::Timeout=5 --no-install-recommends haproxy || "
+            "(apt-get update -y -o Acquire::http::Timeout=5 -o Acquire::https::Timeout=5 2>/dev/null; "
+            "apt-get install -y -o Acquire::http::Timeout=5 -o Acquire::https::Timeout=5 --no-install-recommends haproxy)"
         )
-        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
         os.makedirs("/etc/haproxy", exist_ok=True)
         subprocess.run(["systemctl", "enable", "--now", "haproxy"], capture_output=True)
         if os.path.exists("/usr/sbin/haproxy"):
