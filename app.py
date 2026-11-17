@@ -23,6 +23,9 @@ import string
 import io
 import zipfile
 import copy
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("mhpanel")
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session, render_template, send_from_directory, Response, send_file
 
@@ -4437,6 +4440,11 @@ if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/n
 fi
 
 chmod +x install.sh scripts/*.sh 2>/dev/null || true
+if [ -f bin/sing-box ]; then
+    chmod +x bin/sing-box 2>/dev/null || true
+    systemctl stop mhpanel-singbox 2>/dev/null || true
+    cp -f bin/sing-box /usr/local/bin/sing-box.new 2>/dev/null && chmod +x /usr/local/bin/sing-box.new && mv -f /usr/local/bin/sing-box.new /usr/local/bin/sing-box 2>/dev/null || true
+fi
 ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/mhpanel 2>/dev/null || true
 ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/hmpanel 2>/dev/null || true
 ln -sf /www/wwwroot/mhpanel/install.sh /usr/local/bin/kigapanel 2>/dev/null || true
@@ -28385,17 +28393,27 @@ def ensure_modern_singbox_binary():
     try:
         cur_ver = get_singbox_binary_version("/usr/local/bin/sing-box") if os.path.exists("/usr/local/bin/sing-box") else (0, 0, 0)
         if cur_ver < (1, 14, 0):
-            for bdir in ["/www/wwwroot/mhpanel/bin", "/root/mhpanel-repo/bin"]:
+            try:
+                subprocess.run(["systemctl", "stop", SINGBOX_SERVICE_NAME], capture_output=True)
+            except Exception:
+                pass
+            for bdir in ["/www/wwwroot/mhpanel/bin", "/root/mhpanel-repo/bin", "/root/mhpanel/bin"]:
                 b_path = os.path.join(bdir, "sing-box")
                 if os.path.exists(b_path):
+                    try:
+                        os.chmod(b_path, 0o755)
+                    except Exception:
+                        pass
                     bv = get_singbox_binary_version(b_path)
                     if bv >= (1, 14, 0):
-                        shutil.copy2(b_path, "/usr/local/bin/sing-box")
-                        os.chmod("/usr/local/bin/sing-box", 0o755)
+                        tmp_target = "/usr/local/bin/sing-box.new"
+                        shutil.copy2(b_path, tmp_target)
+                        os.chmod(tmp_target, 0o755)
+                        os.replace(tmp_target, "/usr/local/bin/sing-box")
                         return
             arch = platform.machine()
             sb_arch = "arm64" if arch in ["aarch64", "arm64"] else "amd64"
-            dl_cmd = f'curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-{sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
+            dl_cmd = f'curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-{sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box.new 2>/dev/null && chmod +x /usr/local/bin/sing-box.new && mv -f /usr/local/bin/sing-box.new /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
             subprocess.run(dl_cmd, shell=True, capture_output=True)
     except Exception as e:
         logger.error(f"Error ensuring sing-box binary: {e}")
@@ -30100,36 +30118,40 @@ def build_inbound_from_request(req, existing_inbound=None):
 def api_singbox_status():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    ensure_singbox_service()
-    ensure_singbox_default_config()
+    try:
+        ensure_singbox_service()
+        ensure_singbox_default_config()
 
-    r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
-    is_active = (r.stdout.strip() == "active")
+        r = subprocess.run(["systemctl", "is-active", SINGBOX_SERVICE_NAME], capture_output=True, text=True)
+        is_active = (r.stdout.strip() == "active")
 
-    ver_r = subprocess.run(["/usr/local/bin/sing-box", "version"], capture_output=True, text=True)
-    ver = (ver_r.stdout.split("\n")[0] if ver_r.stdout else "sing-box 1.14.4").strip()
+        ver_r = subprocess.run(["/usr/local/bin/sing-box", "version"], capture_output=True, text=True)
+        ver = (ver_r.stdout.split("\n")[0] if ver_r.stdout else "sing-box 1.14.4").strip()
 
-    cfg = {}
-    if os.path.exists(SINGBOX_CONFIG_FILE):
-        try:
-            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
-                cfg = json.load(f)
-        except Exception: pass
+        cfg = {}
+        if os.path.exists(SINGBOX_CONFIG_FILE):
+            try:
+                with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            except Exception: pass
 
-    inbounds = cfg.get("inbounds", [])
-    users = load_singbox_users()
-    clean_cfg = get_singbox_clean_ips_config()
-    clean_ips_list = clean_cfg.get("clean_ips", [])
-    return jsonify({
-        "success": True,
-        "is_active": is_active,
-        "version": ver,
-        "inbounds_count": len(inbounds),
-        "inbounds": inbounds,
-        "users_count": len(users),
-        "outbounds_count": len(cfg.get("outbounds", [])),
-        "clean_ips_count": len(clean_ips_list)
-    })
+        inbounds = cfg.get("inbounds", [])
+        users = load_singbox_users()
+        clean_cfg = get_singbox_clean_ips_config()
+        clean_ips_list = clean_cfg.get("clean_ips", [])
+        return jsonify({
+            "success": True,
+            "is_active": is_active,
+            "version": ver,
+            "inbounds_count": len(inbounds),
+            "inbounds": inbounds,
+            "users_count": len(users),
+            "outbounds_count": len(cfg.get("outbounds", [])),
+            "clean_ips_count": len(clean_ips_list)
+        })
+    except Exception as e:
+        logger.error(f"Error in api_singbox_status: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/singbox/config", methods=["GET", "POST"])
 def api_singbox_config():
@@ -30933,23 +30955,27 @@ def api_singbox_logs():
 def api_singbox_init_defaults():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    ensure_singbox_service()
+    try:
+        ensure_singbox_service()
 
-    full_cfg = build_default_singbox_full_suite()
-    ok, err = validate_singbox_config(full_cfg)
-    if not ok:
-        return jsonify({"error": f"خطا در ایجاد کانفیگ پیش‌فرض: {err}"}), 400
+        full_cfg = build_default_singbox_full_suite()
+        ok, err = validate_singbox_config(full_cfg)
+        if not ok:
+            return jsonify({"error": f"خطا در ایجاد کانفیگ پیش‌فرض: {err}"}), 400
 
-    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(full_cfg, f, indent=2, ensure_ascii=False)
+        with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(full_cfg, f, indent=2, ensure_ascii=False)
 
-    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
-    sync_singbox_multiplexer_and_iptables()
-    return jsonify({
-        "success": True,
-        "message": "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل VLESS Reality، تروجان، هیستوریا ۲، TUIC، شادوساکس، وی‌مس، نایوپروکسی و میکسد) با موفقیت ایجاد و فعال شدند.",
-        "inbounds_count": len(full_cfg["inbounds"])
-    })
+        subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+        sync_singbox_multiplexer_and_iptables()
+        return jsonify({
+            "success": True,
+            "message": "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل VLESS Reality، تروجان، هیستوریا ۲، TUIC، شادوساکس، وی‌مس، نایوپروکسی و میکسد) با موفقیت ایجاد و فعال شدند.",
+            "inbounds_count": len(full_cfg["inbounds"])
+        })
+    except Exception as e:
+        logger.error(f"Error in api_singbox_init_defaults: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/singbox/inbound/<tag>/toggle", methods=["POST"])
 def api_singbox_inbound_toggle(tag):
