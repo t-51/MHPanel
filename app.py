@@ -3032,7 +3032,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         relay_sni = panel_domain or cf_domain or pub_ip or "127.0.0.1"
 
         fragment_uris = [
-            # Direct VLESS-Reality on standard Cloudflare port 443 (Iranian sites like www.digikala.com - XTLS disabled for broad compatibility)
+            # Direct VLESS-Reality on standard Cloudflare port 443 (Global CDN targets like images.unsplash.com - XTLS disabled for broad compatibility)
             {
                 "name": f"MHPanel - [Fragment] VLESS-Reality ({username})",
                 "uri": f"vless://{uid}@{domain or pub_ip}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
@@ -14406,7 +14406,7 @@ def get_snispoof_reality_and_client_configs():
 
     # Extract Sing-box Reality settings & live user credentials
     r_port = 20443
-    r_sni = "www.digikala.com"
+    r_sni = "images.unsplash.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
     r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
@@ -28552,7 +28552,7 @@ def build_default_singbox_full_suite():
             except Exception: pass
 
     inbounds = [
-        # 1. VLESS Reality Vision (TCP) - Camouflage with Digikala
+        # 1. VLESS Reality Vision (TCP) - Camouflage with Unsplash Global CDN
         {
             "type": "vless",
             "tag": "vless-reality-in",
@@ -28561,16 +28561,16 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "uuid": vless_uuid}],
             "tls": {
                 "enabled": True,
-                "server_name": "www.digikala.com",
+                "server_name": "images.unsplash.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "www.digikala.com", "server_port": 443},
+                    "handshake": {"server": "images.unsplash.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 2. VLESS Reality gRPC - Camouflage with Divar
+        # 2. VLESS Reality gRPC - Camouflage with Docker CloudFront CDN
         {
             "type": "vless",
             "tag": "vless-reality-grpc",
@@ -28583,16 +28583,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "divar.ir",
+                "server_name": "download.docker.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "divar.ir", "server_port": 443},
+                    "handshake": {"server": "download.docker.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 3. VLESS Reality HTTPUpgrade - Camouflage with Digikala
+        # 3. VLESS Reality HTTPUpgrade - Camouflage with jsDelivr Global CDN
         {
             "type": "vless",
             "tag": "vless-reality-upgrade",
@@ -28605,10 +28605,10 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "www.digikala.com",
+                "server_name": "cdn.jsdelivr.net",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "www.digikala.com", "server_port": 443},
+                    "handshake": {"server": "cdn.jsdelivr.net", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
@@ -29132,7 +29132,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "www.digikala.com")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "images.unsplash.com")
 
     users = inbound.get("users", [])
     user0 = users[0] if users else {}
