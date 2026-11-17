@@ -550,7 +550,7 @@ EOF
     # Remove broken third-party repos that can break apt-get update
     rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go; do
+    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go haproxy; do
         if ! dpkg -s "$p" >/dev/null 2>&1; then
             pkgs_needed+=("$p")
         fi

@@ -22065,7 +22065,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast(data.message, "success");
+                if (data.warning) {
+                    showToast(data.message, "warning");
+                    alert(data.message);
+                } else {
+                    showToast(data.message, "success");
+                }
                 loadSingboxData();
                 fetchSingboxLogs();
             } else {
@@ -25881,7 +25886,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const data = await res.json();
             toggleLoading(false);
             if (res.ok && data.success) {
-                showToast(data.message, "success");
+                if (data.warning) {
+                    showToast(data.message, "warning");
+                    alert(data.message);
+                } else {
+                    showToast(data.message, "success");
+                }
                 loadSingboxData();
                 fetchSingboxLogs();
             } else {

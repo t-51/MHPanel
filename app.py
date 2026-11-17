@@ -11956,6 +11956,63 @@ def get_server_domain():
         pass
     return get_server_public_ip()
 
+def get_valid_server_domain():
+    """
+    Returns a valid registered domain (FQDN) for the server if configured.
+    Returns None if the server only runs on an IP address, localhost, or dummy local domain.
+    """
+    # 1. User explicitly set domain
+    if os.path.exists(SERVER_DOMAIN_FILE):
+        try:
+            with open(SERVER_DOMAIN_FILE, "r") as f:
+                d = f.read().strip()
+                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2:
+                    return d
+        except Exception:
+            pass
+
+    # 2. Panel domain file
+    panel_dom_file = "/etc/vpnpanel/panel_domain.txt"
+    if os.path.exists(panel_dom_file):
+        try:
+            with open(panel_dom_file, "r") as f:
+                d = f.read().strip()
+                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2:
+                    return d
+        except Exception:
+            pass
+
+    # 3. Check /etc/letsencrypt/live/
+    le_dir = "/etc/letsencrypt/live"
+    if os.path.isdir(le_dir):
+        try:
+            for entry in os.listdir(le_dir):
+                if entry not in ["clients", "README"] and "." in entry and not is_ip_address(entry) and not entry.endswith(".local"):
+                    cert_file = os.path.join(le_dir, entry, "fullchain.pem")
+                    if os.path.exists(cert_file) and os.path.getsize(cert_file) > 100:
+                        return entry
+        except Exception:
+            pass
+
+    # 4. Extract from active certificates
+    for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
+        if os.path.exists(cert_path):
+            d = extract_cert_domain(cert_path)
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1", "vpnpanel.local", "mhpanel.local"] and "." in d and not is_ip_address(d) and not d.endswith(".local"):
+                return d
+
+    # 5. HTTP request host header (only if real domain, NOT IP)
+    try:
+        from flask import has_request_context, request
+        if has_request_context():
+            host = request.host.split(":")[0].strip()
+            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not is_ip_address(host) and not host.endswith(".local") and len(host.split(".")[-1]) >= 2:
+                return host
+    except Exception:
+        pass
+
+    return None
+
 def get_detected_domains():
     domains = set()
     if os.path.exists(SERVER_DOMAIN_FILE):
@@ -23666,7 +23723,7 @@ def generate_haproxy_cfg(config):
                     sni_match = f"{r_sni} {r_sni[4:]}" if r_sni.startswith("www.") else r_sni
                     exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {sni_match}", f"    use_backend {r_backend} if {acl_name}"))
 
-            # If default protocol, only map public IP and server domain if not claimed by other protocols
+            # If default protocol, map server domain (if valid registered domain)
             if p_id == default_proto_id:
                 other_all_snis = set()
                 for op in protocols:
@@ -23674,15 +23731,19 @@ def generate_haproxy_cfg(config):
                         for osni in op.get("sni", "").replace(";", ",").split(","):
                             if osni.strip():
                                 other_all_snis.add(osni.strip().lower())
-                if server_pub_ip and server_pub_ip not in sni_items and server_pub_ip.lower() not in other_all_snis:
-                    sni_items.append(server_pub_ip)
-                if server_domain and server_domain not in sni_items and server_domain.lower() not in other_all_snis:
-                    sni_items.append(server_domain)
+                valid_srv_dom = get_valid_server_domain()
+                if valid_srv_dom and valid_srv_dom not in sni_items and valid_srv_dom.lower() not in other_all_snis:
+                    sni_items.append(valid_srv_dom)
                     
             for idx_s, s_val in enumerate(sni_items):
+                s_val = s_val.strip()
+                if not s_val or is_ip_address(s_val):
+                    continue
                 acl_name = f"is_{p_id}_{idx_s}"
                 if s_val.startswith("*."):
-                    wildcard_rules.append((f"    acl {acl_name} req_ssl_sni -m end {s_val[1:]}", f"    use_backend {backend_name} if {acl_name}"))
+                    domain_part = s_val[2:]
+                    if not is_ip_address(domain_part):
+                        wildcard_rules.append((f"    acl {acl_name} req_ssl_sni -m end {s_val[1:]}", f"    use_backend {backend_name} if {acl_name}"))
                 else:
                     exact_rules.append((f"    acl {acl_name} req_ssl_sni -i {s_val}", f"    use_backend {backend_name} if {acl_name}"))
 
@@ -23844,15 +23905,46 @@ def api_multiplexer_config_post():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
 
+def ensure_haproxy_installed():
+    """
+    Checks if HAProxy and firewall persistence packages are installed.
+    Installs them automatically if missing without hanging interactive debconf prompts.
+    """
+    if os.path.exists("/usr/sbin/haproxy"):
+        return True, "HAProxy is already installed"
+    try:
+        logger.info("HAProxy not found. Installing haproxy and netfilter-persistent non-interactively...")
+        cmd = (
+            "export DEBIAN_FRONTEND=noninteractive; "
+            "echo 'iptables-persistent iptables-persistent/autosave_v4 boolean true' | debconf-set-selections 2>/dev/null || true; "
+            "echo 'iptables-persistent iptables-persistent/autosave_v6 boolean true' | debconf-set-selections 2>/dev/null || true; "
+            "apt-get update -y && "
+            "apt-get install -y --no-install-recommends haproxy iptables-persistent netfilter-persistent"
+        )
+        res = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=120)
+        os.makedirs("/etc/haproxy", exist_ok=True)
+        subprocess.run(["systemctl", "enable", "--now", "haproxy"], capture_output=True)
+        if os.path.exists("/usr/sbin/haproxy"):
+            return True, "HAProxy installed successfully"
+        else:
+            return False, f"Installation finished but /usr/sbin/haproxy not found. Err: {res.stderr}"
+    except Exception as e:
+        logger.error(f"Error ensuring HAProxy installed: {e}")
+        return False, str(e)
+
 @app.route("/api/multiplexer/install", methods=["POST"])
 def api_multiplexer_install():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
+    ok, msg = ensure_haproxy_installed()
+    if not ok:
+        return jsonify({"success": False, "error": msg}), 500
     try:
-        res = subprocess.run("apt-get update && apt-get install -y haproxy iptables-persistent netfilter-persistent", shell=True, capture_output=True, text=True)
-        subprocess.run("systemctl enable --now haproxy", shell=True)
         cfg = get_multiplexer_config()
+        cfg["enabled"] = True
+        save_multiplexer_config(cfg)
         apply_multiport_iptables(cfg)
+        sync_singbox_multiplexer_and_iptables()
         return jsonify({
             "success": True,
             "message": "سرویس HAProxy و ماژول‌های فایروال با موفقیت نصب و راه‌اندازی شدند."
@@ -28659,22 +28751,9 @@ def build_default_singbox_full_suite():
     tuic_uuid = str(uuid.uuid4())
     vmess_uuid = str(uuid.uuid4())
 
-    cert_path = "/etc/vpnpanel/ssl/panel.crt"
-    key_path = "/etc/vpnpanel/ssl/panel.key"
-    sni_domain = get_server_domain() or "mhpanel.local"
-    le_cert = f"/etc/letsencrypt/live/{sni_domain}/fullchain.pem" if sni_domain else ""
-    le_key = f"/etc/letsencrypt/live/{sni_domain}/privkey.pem" if sni_domain else ""
-    if le_cert and le_key and os.path.exists(le_cert) and os.path.exists(le_key):
-        cert_path = le_cert
-        key_path = le_key
-    elif not os.path.exists(cert_path) or not os.path.exists(key_path):
-        os.makedirs("/etc/vpnpanel/ssl", exist_ok=True)
-        if not os.path.exists(cert_path):
-            try:
-                subprocess.run(["openssl", "req", "-x509", "-nodes", "-days", "3650", "-newkey", "rsa:2048",
-                               "-keyout", key_path, "-out", cert_path, "-subj", "/CN=vpnpanel.local"], capture_output=True)
-            except Exception: pass
+    valid_domain = get_valid_server_domain()
 
+    # Core inbounds that work 100% on bare IP without any domain or SSL certificate
     inbounds = [
         # 1. VLESS Reality Vision (TCP) - Camouflage with Unsplash Global CDN
         {
@@ -28738,75 +28817,7 @@ def build_default_singbox_full_suite():
                 }
             }
         },
-        # 4. VLESS WS TLS
-        {
-            "type": "vless",
-            "tag": "vless-ws-in",
-            "listen": "::",
-            "listen_port": 20451,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
-            "transport": {
-                "type": "ws",
-                "path": "/vless-ws"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 5. VLESS gRPC TLS
-        {
-            "type": "vless",
-            "tag": "vless-grpc-tls",
-            "listen": "::",
-            "listen_port": 20454,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
-            "transport": {
-                "type": "grpc",
-                "service_name": "vless-grpc-tls"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 6. VLESS HTTPUpgrade TLS
-        {
-            "type": "vless",
-            "tag": "vless-upgrade-tls",
-            "listen": "::",
-            "listen_port": 20455,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
-            "transport": {
-                "type": "httpupgrade",
-                "path": "/vless-up-tls"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 7. VLESS TCP TLS
-        {
-            "type": "vless",
-            "tag": "vless-tcp-tls",
-            "listen": "::",
-            "listen_port": 20456,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 8. VMess TCP (Direct / CDN Plain)
+        # 4. VMess TCP (Direct / Plain)
         {
             "type": "vmess",
             "tag": "vmess-in",
@@ -28814,181 +28825,7 @@ def build_default_singbox_full_suite():
             "listen_port": 20448,
             "users": [{"name": "default-user", "uuid": vmess_uuid}]
         },
-        # 9. VMess WS TLS
-        {
-            "type": "vmess",
-            "tag": "vmess-ws-tls",
-            "listen": "::",
-            "listen_port": 20457,
-            "users": [{"name": "default-user", "uuid": vmess_uuid}],
-            "transport": {
-                "type": "ws",
-                "path": "/vmess-ws"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 10. VMess gRPC TLS
-        {
-            "type": "vmess",
-            "tag": "vmess-grpc-tls",
-            "listen": "::",
-            "listen_port": 20458,
-            "users": [{"name": "default-user", "uuid": vmess_uuid}],
-            "transport": {
-                "type": "grpc",
-                "service_name": "vmess-grpc"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 11. VMess HTTPUpgrade TLS
-        {
-            "type": "vmess",
-            "tag": "vmess-upgrade-tls",
-            "listen": "::",
-            "listen_port": 20459,
-            "users": [{"name": "default-user", "uuid": vmess_uuid}],
-            "transport": {
-                "type": "httpupgrade",
-                "path": "/vmess-up"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 12. Trojan TCP TLS
-        {
-            "type": "trojan",
-            "tag": "trojan-in",
-            "listen": "::",
-            "listen_port": 20444,
-            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 13. Trojan WS TLS
-        {
-            "type": "trojan",
-            "tag": "trojan-ws-tls",
-            "listen": "::",
-            "listen_port": 20460,
-            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
-            "transport": {
-                "type": "ws",
-                "path": "/trojan-ws"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 14. Trojan gRPC TLS
-        {
-            "type": "trojan",
-            "tag": "trojan-grpc-tls",
-            "listen": "::",
-            "listen_port": 20461,
-            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
-            "transport": {
-                "type": "grpc",
-                "service_name": "trojan-grpc"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 15. Trojan HTTPUpgrade TLS
-        {
-            "type": "trojan",
-            "tag": "trojan-upgrade-tls",
-            "listen": "::",
-            "listen_port": 20462,
-            "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
-            "transport": {
-                "type": "httpupgrade",
-                "path": "/trojan-up"
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 16. Hysteria 2 Salamander Obfs
-        {
-            "type": "hysteria2",
-            "tag": "hysteria2-in",
-            "listen": "::",
-            "listen_port": 20445,
-            "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
-            "up_mbps": 100,
-            "down_mbps": 100,
-            "obfs": {
-                "type": "salamander",
-                "password": secrets.token_hex(8)
-            },
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 17. Hysteria 2 Standard (No Obfs)
-        {
-            "type": "hysteria2",
-            "tag": "hysteria2-standard",
-            "listen": "::",
-            "listen_port": 20463,
-            "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
-            "up_mbps": 100,
-            "down_mbps": 100,
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 18. TUIC v5 BBR
-        {
-            "type": "tuic",
-            "tag": "tuic-in",
-            "listen": "::",
-            "listen_port": 20446,
-            "users": [{"name": "default-user", "uuid": tuic_uuid, "password": "TuicPass_" + secrets.token_hex(4)}],
-            "congestion_control": "bbr",
-            "zero_rtt_handshake": True,
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 19. Shadowsocks 2022 Blake3
+        # 5. Shadowsocks 2022 Blake3
         {
             "type": "shadowsocks",
             "tag": "shadowsocks-in",
@@ -28997,7 +28834,7 @@ def build_default_singbox_full_suite():
             "method": "2022-blake3-aes-128-gcm",
             "password": psk16
         },
-        # 20. Shadowsocks AEAD AES-256-GCM
+        # 6. Shadowsocks AEAD AES-256-GCM
         {
             "type": "shadowsocks",
             "tag": "shadowsocks-aead",
@@ -29006,7 +28843,7 @@ def build_default_singbox_full_suite():
             "method": "aes-256-gcm",
             "password": secrets.token_urlsafe(16)
         },
-        # 21. ShadowTLS v3
+        # 7. ShadowTLS v3
         {
             "type": "shadowtls",
             "tag": "shadowtls-in",
@@ -29021,21 +28858,7 @@ def build_default_singbox_full_suite():
             },
             "detour": "shadowsocks-in"
         },
-        # 22. NaiveProxy HTTP/2 TLS
-        {
-            "type": "naive",
-            "tag": "naive-in",
-            "listen": "::",
-            "listen_port": 20449,
-            "users": [{"username": "naiveuser", "password": "NaivePass_" + secrets.token_hex(4)}],
-            "tls": {
-                "enabled": True,
-                "server_name": sni_domain,
-                "certificate_path": cert_path,
-                "key_path": key_path
-            }
-        },
-        # 23. Mixed Proxy (SOCKS5 + HTTP)
+        # 8. Mixed Proxy (SOCKS5 + HTTP)
         {
             "type": "mixed",
             "tag": "mixed-in",
@@ -29043,6 +28866,175 @@ def build_default_singbox_full_suite():
             "listen_port": 2080,
         }
     ]
+
+    # Only include TLS and domain-dependent inbounds if a valid registered domain is configured
+    if valid_domain:
+        cert_path = "/etc/vpnpanel/ssl/panel.crt"
+        key_path = "/etc/vpnpanel/ssl/panel.key"
+        le_cert = f"/etc/letsencrypt/live/{valid_domain}/fullchain.pem"
+        le_key = f"/etc/letsencrypt/live/{valid_domain}/privkey.pem"
+        if os.path.exists(le_cert) and os.path.exists(le_key):
+            cert_path = le_cert
+            key_path = le_key
+        elif not os.path.exists(cert_path) or not os.path.exists(key_path):
+            os.makedirs("/etc/vpnpanel/ssl", exist_ok=True)
+            if not os.path.exists(cert_path):
+                try:
+                    subprocess.run(["openssl", "req", "-x509", "-nodes", "-days", "3650", "-newkey", "rsa:2048",
+                                   "-keyout", key_path, "-out", cert_path, f"-subj", f"/CN={valid_domain}"], capture_output=True)
+                except Exception: pass
+
+        domain_inbounds = [
+            # VLESS WS TLS
+            {
+                "type": "vless",
+                "tag": "vless-ws-in",
+                "listen": "::",
+                "listen_port": 20451,
+                "users": [{"name": "default-user", "uuid": vless_uuid}],
+                "transport": {"type": "ws", "path": "/vless-ws"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VLESS gRPC TLS
+            {
+                "type": "vless",
+                "tag": "vless-grpc-tls",
+                "listen": "::",
+                "listen_port": 20454,
+                "users": [{"name": "default-user", "uuid": vless_uuid}],
+                "transport": {"type": "grpc", "service_name": "vless-grpc-tls"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VLESS HTTPUpgrade TLS
+            {
+                "type": "vless",
+                "tag": "vless-upgrade-tls",
+                "listen": "::",
+                "listen_port": 20455,
+                "users": [{"name": "default-user", "uuid": vless_uuid}],
+                "transport": {"type": "httpupgrade", "path": "/vless-up-tls"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VLESS TCP TLS
+            {
+                "type": "vless",
+                "tag": "vless-tcp-tls",
+                "listen": "::",
+                "listen_port": 20456,
+                "users": [{"name": "default-user", "uuid": vless_uuid}],
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VMess WS TLS
+            {
+                "type": "vmess",
+                "tag": "vmess-ws-tls",
+                "listen": "::",
+                "listen_port": 20457,
+                "users": [{"name": "default-user", "uuid": vmess_uuid}],
+                "transport": {"type": "ws", "path": "/vmess-ws"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VMess gRPC TLS
+            {
+                "type": "vmess",
+                "tag": "vmess-grpc-tls",
+                "listen": "::",
+                "listen_port": 20458,
+                "users": [{"name": "default-user", "uuid": vmess_uuid}],
+                "transport": {"type": "grpc", "service_name": "vmess-grpc"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # VMess HTTPUpgrade TLS
+            {
+                "type": "vmess",
+                "tag": "vmess-upgrade-tls",
+                "listen": "::",
+                "listen_port": 20459,
+                "users": [{"name": "default-user", "uuid": vmess_uuid}],
+                "transport": {"type": "httpupgrade", "path": "/vmess-up"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Trojan TCP TLS
+            {
+                "type": "trojan",
+                "tag": "trojan-in",
+                "listen": "::",
+                "listen_port": 20444,
+                "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Trojan WS TLS
+            {
+                "type": "trojan",
+                "tag": "trojan-ws-tls",
+                "listen": "::",
+                "listen_port": 20460,
+                "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+                "transport": {"type": "ws", "path": "/trojan-ws"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Trojan gRPC TLS
+            {
+                "type": "trojan",
+                "tag": "trojan-grpc-tls",
+                "listen": "::",
+                "listen_port": 20461,
+                "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+                "transport": {"type": "grpc", "service_name": "trojan-grpc"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Trojan HTTPUpgrade TLS
+            {
+                "type": "trojan",
+                "tag": "trojan-upgrade-tls",
+                "listen": "::",
+                "listen_port": 20462,
+                "users": [{"name": "default-user", "password": "TrojanPass_" + secrets.token_hex(4)}],
+                "transport": {"type": "httpupgrade", "path": "/trojan-up"},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Hysteria 2 Salamander Obfs
+            {
+                "type": "hysteria2",
+                "tag": "hysteria2-in",
+                "listen": "::",
+                "listen_port": 20445,
+                "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
+                "up_mbps": 100, "down_mbps": 100,
+                "obfs": {"type": "salamander", "password": secrets.token_hex(8)},
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # Hysteria 2 Standard
+            {
+                "type": "hysteria2",
+                "tag": "hysteria2-standard",
+                "listen": "::",
+                "listen_port": 20463,
+                "users": [{"name": "default-user", "password": "Hy2Pass_" + secrets.token_hex(4)}],
+                "up_mbps": 100, "down_mbps": 100,
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # TUIC v5 BBR
+            {
+                "type": "tuic",
+                "tag": "tuic-in",
+                "listen": "::",
+                "listen_port": 20446,
+                "users": [{"name": "default-user", "uuid": tuic_uuid, "password": "TuicPass_" + secrets.token_hex(4)}],
+                "congestion_control": "bbr", "zero_rtt_handshake": True,
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            },
+            # NaiveProxy HTTP/2 TLS
+            {
+                "type": "naive",
+                "tag": "naive-in",
+                "listen": "::",
+                "listen_port": 20449,
+                "users": [{"username": "naiveuser", "password": "NaivePass_" + secrets.token_hex(4)}],
+                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+            }
+        ]
+        inbounds.extend(domain_inbounds)
 
     return sanitize_singbox_config({
         "log": {
@@ -29187,10 +29179,19 @@ def apply_singbox_reality_iptables():
         subprocess.run("iptables -C INPUT -j SINGBOX_MULTIPORT_IN 2>/dev/null || iptables -I INPUT 1 -j SINGBOX_MULTIPORT_IN", shell=True)
         subprocess.run("iptables -F SINGBOX_MULTIPORT_IN", shell=True)
 
+        # Check if HAProxy multiplexer is active/enabled to avoid port conflicts
+        mpx = {}
+        try:
+            mpx = get_multiplexer_config()
+        except Exception:
+            pass
+        haproxy_managing = bool(mpx.get("enabled", False) and os.path.exists("/usr/sbin/haproxy"))
+        haproxy_ports = set(mpx.get("listen_ports", [443])) if haproxy_managing else set()
+
         panel_p = get_panel_port()
         ports_to_redir = []
         for cand_port in [443, 2096]:
-            if cand_port != target_port and cand_port != panel_p:
+            if cand_port != target_port and cand_port != panel_p and cand_port not in haproxy_ports:
                 if not is_tcp_port_locally_bound(cand_port):
                     ports_to_redir.append(cand_port)
 
@@ -29206,18 +29207,36 @@ def apply_singbox_reality_iptables():
 
 def sync_singbox_multiplexer_and_iptables():
     try:
+        mpx = get_multiplexer_config()
+        if mpx.get("enabled", False):
+            if not os.path.exists("/usr/sbin/haproxy"):
+                ensure_haproxy_installed()
+            if os.path.exists("/usr/sbin/haproxy"):
+                cfg_text = generate_haproxy_cfg(mpx)
+                os.makedirs("/etc/haproxy", exist_ok=True)
+                test_path = "/tmp/haproxy_test_sync.cfg"
+                with open(test_path, "w") as tf:
+                    tf.write(cfg_text)
+                chk = subprocess.run(["haproxy", "-c", "-f", test_path], capture_output=True, text=True)
+                if chk.returncode == 0:
+                    with open("/etc/haproxy/haproxy.cfg", "w") as f:
+                        f.write(cfg_text)
+                    if get_service_is_active("haproxy"):
+                        subprocess.run(["systemctl", "reload", "haproxy"], capture_output=True)
+                    else:
+                        subprocess.run(["systemctl", "restart", "haproxy"], capture_output=True)
+                else:
+                    logger.error(f"Invalid HAProxy configuration generated: {chk.stderr}")
+        else:
+            if get_service_is_active("haproxy"):
+                subprocess.run(["systemctl", "stop", "haproxy"], capture_output=True)
+    except Exception as e:
+        logger.error(f"Error syncing haproxy for singbox: {e}")
+
+    try:
         apply_singbox_reality_iptables()
     except Exception as e:
         logger.error(f"Error applying singbox iptables: {e}")
-    try:
-        mpx = get_multiplexer_config()
-        if mpx.get("enabled", True):
-            cfg_text = generate_haproxy_cfg(mpx)
-            with open("/etc/haproxy/haproxy.cfg", "w") as f:
-                f.write(cfg_text)
-            subprocess.run(["systemctl", "reload", "haproxy"], capture_output=True)
-    except Exception as e:
-        logger.error(f"Error syncing haproxy for singbox: {e}")
 
 def save_singbox_config(cfg, restart=True):
     ensure_modern_singbox_binary()
@@ -31103,9 +31122,24 @@ def api_singbox_init_defaults():
 
         subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         sync_singbox_multiplexer_and_iptables()
+
+        valid_domain = get_valid_server_domain()
+        if not valid_domain:
+            msg = (
+                "توجه: دامنه‌ای برای سرور تنظیم نشده است. پروتکل‌های وابسته به دامنه و گواهی SSL "
+                "(شامل Trojan، VLESS-TLS، VMess-TLS، هیستریا، TUIC و NaiveProxy) به دلیل عدم امکان صدور گواهی معتبر روی IP و جلوگیری از خطای TLS Handshake ایجاد نشدند. "
+                "تنها اینباندهای Reality (شامل TCP، gRPC، HTTPUpgrade)، شادوساکس، شدوتلس و وی‌مس که نیازی به دامنه ندارند فعال شدند. "
+                "برای راه‌اندازی تمام پروتکل‌ها، لطفاً ابتدا یک دامنه معتبر در بخش تنظیمات ثبت فرمایید."
+            )
+            has_warning = True
+        else:
+            msg = "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل Reality، تروجان، هیستوریا، TUIC، شادوساکس، وی‌مس و...) با موفقیت ایجاد و فعال شدند."
+            has_warning = False
+
         return jsonify({
             "success": True,
-            "message": "کلیه پروتکل‌های پیش‌فرض هسته Sing-box (شامل VLESS Reality، تروجان، هیستوریا ۲، TUIC، شادوساکس، وی‌مس، نایوپروکسی و میکسد) با موفقیت ایجاد و فعال شدند.",
+            "warning": has_warning,
+            "message": msg,
             "inbounds_count": len(full_cfg["inbounds"])
         })
     except Exception as e:
