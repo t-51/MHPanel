@@ -25153,7 +25153,7 @@ def apply_adv_tunnel(adv):
         if role == "server":
             exec_cmd = f"/usr/local/bin/chisel server -p {listen_port} --auth \"{secret}\" --reverse"
         else:
-            exec_cmd = f"/usr/local/bin/chisel client --auth \"{secret}\" http://{remote_ip}:{remote_port} R:{listen_port}:{target_addr}"
+            exec_cmd = f"/usr/local/bin/chisel client --auth \"{secret}\" http://{remote_ip}:{remote_port} {listen_port}:{target_addr}"
 
     elif tool == "phantun":
         if role == "server":
@@ -25559,7 +25559,7 @@ def generate_adv_tunnel_script(adv):
             ""
         ]
         if remote_role == "client":
-            exec_cmd = f"/usr/local/bin/chisel client --auth \"{secret}\" http://{endpoint_ip}:{endpoint_port} R:{listen_port}:{target_addr}"
+            exec_cmd = f"/usr/local/bin/chisel client --auth \"{secret}\" http://{endpoint_ip}:{endpoint_port} {listen_port}:{target_addr}"
         else:
             exec_cmd = f"/usr/local/bin/chisel server -p {listen_port} --auth \"{secret}\" --reverse"
 
