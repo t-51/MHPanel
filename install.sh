@@ -510,6 +510,35 @@ install_base_prerequisites() {
     export NEEDRESTART_MODE=a
     export NEEDRESTART_SUSPEND=1
 
+    # Setup swap on low-memory servers (<2.5GB RAM) to prevent OOM crashes
+    local mem_total_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+    local swap_total_kb=$(grep SwapTotal /proc/meminfo 2>/dev/null | awk '{print $2}')
+    mem_total_kb=${mem_total_kb:-0}
+    swap_total_kb=${swap_total_kb:-0}
+    if [ "$swap_total_kb" -lt 1048576 ] && [ "$mem_total_kb" -lt 2621440 ]; then
+        if [ ! -f /swapfile ] && [ ! -f /.dockerenv ] && [ ! -f /run/.containerenv ]; then
+            echo -e "    ${YELLOW}[!] Low RAM detected ($(( mem_total_kb / 1024 )) MB). Setting up 2GB swap to prevent OOM...${NC}"
+            fallocate -l 2G /swapfile 2>/dev/null || dd if=/dev/zero of=/swapfile bs=1M count=2048 2>/dev/null || true
+            if [ -f /swapfile ]; then
+                chmod 600 /swapfile
+                mkswap /swapfile >/dev/null 2>&1 || true
+                swapon /swapfile >/dev/null 2>&1 || true
+                grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+                sysctl -w vm.swappiness=10 >/dev/null 2>&1 || true
+                echo 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf 2>/dev/null || true
+                echo -e "    ${GREEN}[✓] 2GB swap configured successfully.${NC}"
+            fi
+        fi
+    fi
+
+    # Disable bloat services on VPS (multipathd, ModemManager, fwupd)
+    for bloat_srv in multipathd ModemManager fwupd; do
+        if systemctl is-active --quiet "$bloat_srv" 2>/dev/null; then
+            systemctl stop "$bloat_srv" 2>/dev/null || true
+            systemctl disable "$bloat_srv" 2>/dev/null || true
+        fi
+    done
+
     # Safeguard current SSH session port early to prevent accidental disconnection
     local ssh_p=$(ss -tlnp 2>/dev/null | grep -E '\b(sshd|systemd-ssh)' | awk '{print $4}' | awk -F: '{print $NF}' | head -n1 || true)
     ssh_p=${ssh_p:-22}
@@ -949,7 +978,7 @@ EOF
         echo '{"tunnels":[],"adv_tunnels":[],"relays":[]}' > "${PANEL_DIR}/tunnels_config.json"
     fi
     if [ ! -f "${PANEL_DIR}/multiplexer_config.json" ]; then
-        echo '{"enabled":false,"listen_ports":[443],"web_server_type":"internal","default_backend":"web","protocols":[],"custom_rules":[],"udp_multiports":[]}' > "${PANEL_DIR}/multiplexer_config.json"
+        echo '{"enabled":true,"listen_ports":[443],"web_server_type":"internal","default_backend":"web","protocols":[],"custom_rules":[],"udp_multiports":[]}' > "${PANEL_DIR}/multiplexer_config.json"
     fi
     if [ ! -f "${PANEL_DIR}/sstp_config.json" ]; then
         cat > "${PANEL_DIR}/sstp_config.json" <<'EOF'
