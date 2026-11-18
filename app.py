@@ -24960,6 +24960,8 @@ def apply_tunnel_interface(tun):
             "persist-key",
             f"status /var/log/openvpn_{name}.log"
         ]
+        if remote_ip:
+            conf_lines.append(f"remote {remote_ip}")
         with open(ovpn_conf, "w") as f:
             f.write("\n".join(conf_lines) + "\n")
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
