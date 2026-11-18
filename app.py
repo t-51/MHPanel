@@ -24718,6 +24718,8 @@ def apply_tunnel_interface(tun):
     mtu = int(tun.get("mtu", 1476))
     
     # Clean up existing iface first
+    if ttype in ["openvpn", "openvpn_tap"]:
+        subprocess.run(["systemctl", "stop", f"openvpn@{name}"], capture_output=True)
     if os.path.exists("/usr/local/bin/eoip"):
         subprocess.run(["/usr/local/bin/eoip", "del", name], capture_output=True)
     subprocess.run(["ip", "link", "set", name, "down"], capture_output=True)
@@ -24962,6 +24964,7 @@ def apply_tunnel_interface(tun):
             f.write("\n".join(conf_lines) + "\n")
         subprocess.run(["systemctl", "daemon-reload"], capture_output=True)
         subprocess.run(["systemctl", "enable", "--now", f"openvpn@{name}"], capture_output=True)
+        subprocess.run(["systemctl", "restart", f"openvpn@{name}"], capture_output=True)
     elif ttype in ["gre_ipsec", "ipip_ipsec"]:
         base_mode = "gre" if "gre" in ttype else "ipip"
         mod_name = "ip_gre" if base_mode == "gre" else "ipip"
