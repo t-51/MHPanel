@@ -12,6 +12,9 @@
                 </p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="openTunnelToolsModalFromProtocols()" style="width: auto; padding: 7px 16px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--color-primary); background: rgba(99,102,241,0.08); font-weight:700;">
+                    <i data-lucide="layers" style="width: 14px; height: 14px; color: var(--color-primary);"></i> <span data-i18n="proto_install_tunnels">نصب و مدیریت هسته‌های تانل</span>
+                </button>
                 <button type="button" class="btn btn-primary btn-sm" onclick="openBatchInstallModal()" style="width: auto; padding: 7px 16px; display: flex; align-items: center; gap: 6px;">
                     <i data-lucide="download-cloud" style="width: 14px; height: 14px;"></i> <span data-i18n="proto_batch_install">نصب گروهی پروتکل‌ها</span>
                 </button>
@@ -34,6 +37,9 @@
             </button>
             <button type="button" class="btn btn-secondary proto-tab-filter-btn" data-proto-filter="proxy" onclick="filterProtocols('proxy', this)" data-i18n="proto_filter_proxy">
                 پروکسی‌ها (MTProto, Shadowsocks, HTTP/SOCKS)
+            </button>
+            <button type="button" class="btn btn-secondary proto-tab-filter-btn" data-proto-filter="tunnels" onclick="filterProtocols('tunnels', this)" data-i18n="proto_filter_tunnels">
+                هسته‌ها و اسکریپت‌های تانل (Tunnel Engines)
             </button>
         </div>
 

@@ -2437,6 +2437,66 @@
         const lang = localStorage.getItem("panel_language") || "fa";
         const currentFilter = window.currentProtocolsTabFilter || 'all';
 
+        if (currentFilter === 'tunnels') {
+            const tunnelToolsList = [
+                { key: "singbox", name: "Sing-box Universal Core", cat: "Universal Proxy", desc: "هسته جامع و قدرتمند پروکسی نسل جدید (Reality, TUIC, Hysteria 2, Shadowsocks)", icon: "box", color: "#6366f1", bg: "rgba(99,102,241,0.12)" },
+                { key: "backhaul", name: "Backhaul Mux (Azumi)", cat: "TCP/WS Multiplexer", desc: "تونل ترانزیت پرسرعت مالتی‌پلکسر بین سرور ایران و خارج با حداقل مصرف رم", icon: "repeat", color: "#10b981", bg: "rgba(16,185,129,0.12)" },
+                { key: "speederv2", name: "UDPspeeder V2", cat: "FEC Anti-Loss", desc: "کاهش و جبران پکت‌لاس با الگوریتم کدگذاری افزونگی بسته FEC برای گیم و تماس", icon: "zap", color: "#f59e0b", bg: "rgba(245,158,11,0.12)" },
+                { key: "gost", name: "GOST Multi-Tunnel", cat: "Anti-DPI / Relay", desc: "ابزار تونل‌سازی چندپروتکله با پشتیبانی از WSS, TLS, KCP, QUIC و استتار CDN", icon: "shield", color: "#0284c7", bg: "rgba(2,132,199,0.12)" },
+                { key: "wstunnel", name: "WSTunnel Stealth", cat: "Anti-DPI WebSocket", desc: "تونل‌سازی مخفی ترافیک TCP/UDP در بستر WebSocket و TLS با استتار کلودفلر", icon: "cloud", color: "#ec4899", bg: "rgba(236,72,153,0.12)" },
+                { key: "rathole", name: "Rathole Rust NAT-T", cat: "Reverse Proxy", desc: "پروکسی معکوس بسیار سریع و سبک بر پایه Rust جهت اتصال سرورهای پشت NAT", icon: "cpu", color: "#a855f7", bg: "rgba(168,85,247,0.12)" },
+                { key: "chisel", name: "Chisel HTTP/WS", cat: "HTTP Tunnel", desc: "تونل سریع TCP/UDP مبتنی بر HTTP/WebSocket با امنیت SSH داخلی", icon: "link", color: "#06b6d4", bg: "rgba(6,182,212,0.12)" },
+                { key: "frp", name: "FRP Reverse Proxy", cat: "Port Forwarding", desc: "سرور و کلاینت پرسرعت پروکسی معکوس FRP جهت هدایت ترافیک پورت‌ها", icon: "share-2", color: "#14b8a6", bg: "rgba(20,184,166,0.12)" },
+                { key: "kcptun", name: "KCPTun UDP/FEC", cat: "KCP Protocol", desc: "تونل پرسرعت UDP بر پایه پروتکل KCP و تصحیح خطای رید-سولومون", icon: "activity", color: "#ef4444", bg: "rgba(239,68,68,0.12)" },
+                { key: "pingtunnel", name: "Pingtunnel ICMP", cat: "ICMP Stealth", desc: "ارسال و دریافت بسته‌های شبکه در قالب پکت‌های ICMP Echo جهت عبور از فیلترینگ شدید", icon: "radio", color: "#eab308", bg: "rgba(234,179,8,0.12)" },
+                { key: "udp2raw", name: "UDP2Raw Fake TCP", cat: "Fake TCP Raw", desc: "تبدیل پکت‌های UDP به فیک TCP با هدرهای معتبر برای دور زدن محدودیت پکت‌لاس UDP", icon: "lock", color: "#8b5cf6", bg: "rgba(139,92,246,0.12)" },
+                { key: "dnstt", name: "DNSTT SlowDNS", cat: "DNS Tunnel", desc: "تونل DNS از طریق DoH, DoT و رکوردهای DNS معمولی برای شرایط قطعی اینترنت", icon: "globe", color: "#059669", bg: "rgba(5,150,105,0.12)" }
+            ];
+
+            tunnelToolsList.forEach(tool => {
+                const card = document.createElement("div");
+                card.className = "glass-card protocol-card";
+                card.style.display = "flex";
+                card.style.flexDirection = "column";
+                card.style.justifyContent = "space-between";
+                card.style.minHeight = "280px";
+                card.style.border = "1px solid var(--border-glow)";
+
+                card.innerHTML = `
+                    <div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <div style="width:40px; height:40px; border-radius:10px; background:${tool.bg}; color:${tool.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <i data-lucide="${tool.icon}" style="width:20px; height:20px;"></i>
+                                </div>
+                                <div>
+                                    <h3 style="margin:0; font-size:15px; font-weight:700; color:var(--text-main);">${tool.name}</h3>
+                                    <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${tool.cat}</div>
+                                </div>
+                            </div>
+                            <span class="proto-status-pill active" style="display:inline-flex; align-items:center; gap:5px; background:rgba(99,102,241,0.12); color:#6366f1; border:1px solid rgba(99,102,241,0.25); padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600;">
+                                هسته تانل
+                            </span>
+                        </div>
+                        <p style="font-size:12px; color:var(--text-muted); line-height:1.6; margin-bottom:16px; min-height:48px;">
+                            ${tool.desc}
+                        </p>
+                    </div>
+                    <div style="display:flex; gap:8px; margin-top:12px;">
+                        <button class="btn btn-primary btn-sm" onclick="installTunnelTool('${tool.key}')" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i data-lucide="download" style="width:14px; height:14px;"></i> نصب / ارتقا
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="openTunnelToolsModalFromProtocols()" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px;">
+                            <i data-lucide="sliders" style="width:14px; height:14px;"></i> مدیریت در تانل‌ها
+                        </button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
         const filtered = (loadedProtocolsData || []).filter(proto => {
             if (currentFilter === 'all') return true;
             const meta = PROTOCOL_META[proto.name] || {};
@@ -21579,6 +21639,26 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             document.getElementById("mesh-dest-user").value = s.user || "root";
             document.getElementById("mesh-dest-pass").value = s.pass || "";
         }
+    }
+
+    function toggleMeshCheckboxes(category, state) {
+        let selector = "input[name='mesh_proto']";
+        if (category === 'l2l3') selector = "input[name='mesh_proto'][data-mesh-cat='l2l3']";
+        else if (category === 'antidpi') selector = "input[name='mesh_proto'][data-mesh-cat='antidpi']";
+        
+        if (category === 'all' && state === false) {
+            document.querySelectorAll("input[name='mesh_proto']").forEach(cb => cb.checked = false);
+            return;
+        }
+        if (category === 'l2l3' || category === 'antidpi') {
+            document.querySelectorAll("input[name='mesh_proto']").forEach(cb => cb.checked = false);
+        }
+        document.querySelectorAll(selector).forEach(cb => cb.checked = state);
+    }
+
+    function openTunnelToolsModalFromProtocols() {
+        switchTab('tunnels');
+        switchTunnelSubTab('tools');
     }
 
     async function submitDeployMesh(e) {

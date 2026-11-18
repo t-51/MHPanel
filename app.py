@@ -25195,6 +25195,7 @@ local_addr = "{target_addr}"
             exec_cmd = f"/usr/local/bin/frps -p {listen_port} -t \"{secret}\""
         else:
             cfg_file = f"/etc/mhpanel/frp_{adv_id}.toml"
+            fwd_remote_p = adv.get("proxy_port") or (listen_port - 10000 if listen_port == remote_port and listen_port > 10000 else (18090 if listen_port == remote_port else listen_port))
             cfg_content = f"""serverAddr = "{remote_ip}"
 serverPort = {remote_port}
 auth.token = "{secret}"
@@ -25204,7 +25205,7 @@ name = "{safe_name}"
 type = "tcp"
 localIP = "{target_host}"
 localPort = {target_p}
-remotePort = {listen_port}
+remotePort = {fwd_remote_p}
 """
             with open(cfg_file, "w", encoding="utf-8") as f:
                 f.write(cfg_content)
@@ -28338,13 +28339,13 @@ def api_deploy_mesh_tunnels():
         return jsonify({"error": "آدرس آی‌پی سرور مقصد الزامی است."}), 400
 
     tunnel_types = req.get("tunnel_types") or [
-        "gre", "ipip", "eoip", "vxlan", "geneve", "sit", "wireguard", "openvpn",
-        "gost_wss", "gost_tls", "wstunnel", "rathole", "chisel"
+        "wireguard", "openvpn", "gre", "ip6gre", "ipip", "ip6tnl", "vxlan", "eoip", "geneve", "sit", "fou", "l2tp",
+        "backhaul", "speederv2", "pingtunnel", "frp", "kcptun", "gost_wss", "gost_tls", "wstunnel", "rathole", "chisel"
     ]
 
     data = load_tunnels_data()
     results = []
-    remote_commands = ["#!/bin/bash", "set -e", "mkdir -p /etc/openvpn /run/openvpn /etc/mhpanel"]
+    remote_commands = ["#!/bin/bash", "set -e", "mkdir -p /etc/openvpn /run/openvpn /etc/mhpanel /etc/ppp"]
     subnet_idx = 1
     port_counter = 45100
 
@@ -28355,8 +28356,9 @@ def api_deploy_mesh_tunnels():
         subnet_idx += 1
         tun_name = f"{mesh_prefix}_{t_type[:6]}"
 
-        if t_type in ["gre", "ipip", "eoip", "vxlan", "geneve", "sit", "wireguard", "openvpn"]:
+        if t_type in ["gre", "ipip", "eoip", "vxlan", "geneve", "sit", "wireguard", "openvpn", "ip6gre", "ip6tnl", "fou", "l2tp", "sstp"]:
             data["tunnels"] = [t for t in data.get("tunnels", []) if t.get("name") != tun_name]
+            mtu_val = 1420 if t_type in ["wireguard", "openvpn"] else (1456 if t_type in ["ip6gre", "ip6tnl"] else (1450 if t_type in ["vxlan", "geneve"] else 1476))
             tun_cfg = {
                 "id": f"tun_{uuid.uuid4().hex[:8]}",
                 "name": tun_name,
@@ -28365,7 +28367,7 @@ def api_deploy_mesh_tunnels():
                 "remote_ip": dest_ip,
                 "tunnel_local_ip": sub_local,
                 "tunnel_remote_ip": sub_remote,
-                "mtu": 1420 if t_type in ["wireguard", "openvpn"] else 1476,
+                "mtu": mtu_val,
                 "enabled": True,
                 "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
@@ -28443,6 +28445,15 @@ ip tunnel add {tun_name} mode gre remote {source_ip} local {dest_ip} ttl 255
 ip addr add {sub_remote}/30 dev {tun_name}
 ip link set {tun_name} up mtu 1476
 """)
+                elif t_type == "ip6gre":
+                    remote_commands.append(f"""
+modprobe ip6_gre 2>/dev/null || true
+ip link del {tun_name} 2>/dev/null || true
+ip -6 tunnel del {tun_name} 2>/dev/null || true
+ip -6 tunnel add {tun_name} mode ip6gre remote {source_ip} local {dest_ip} ttl 255 2>/dev/null || ip link add {tun_name} type ip6gre remote {source_ip} local {dest_ip} ttl 255
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1456
+""")
                 elif t_type == "ipip":
                     remote_commands.append(f"""
 ip link del {tun_name} 2>/dev/null || true
@@ -28450,19 +28461,29 @@ ip tunnel add {tun_name} mode ipip remote {source_ip} local {dest_ip} ttl 255
 ip addr add {sub_remote}/30 dev {tun_name}
 ip link set {tun_name} up mtu 1480
 """)
+                elif t_type == "ip6tnl":
+                    remote_commands.append(f"""
+modprobe ip6_tunnel 2>/dev/null || true
+ip link del {tun_name} 2>/dev/null || true
+ip -6 tunnel del {tun_name} 2>/dev/null || true
+ip -6 tunnel add {tun_name} mode any remote {source_ip} local {dest_ip} 2>/dev/null || ip link add {tun_name} type ip6tnl mode any remote {source_ip} local {dest_ip}
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1460
+""")
                 elif t_type == "eoip":
                     eid = 100 + subnet_idx
                     tun_cfg["eoip_id"] = eid
                     remote_commands.append(f"""
 ip link del {tun_name} 2>/dev/null || true
-ip link add name {tun_name} type eoip remote {source_ip} local {dest_ip} id {eid}
+ip link add name {tun_name} type gretap remote {source_ip} local {dest_ip} key {eid}
 ip addr add {sub_remote}/30 dev {tun_name}
-ip link set {tun_name} up mtu 1500
+ip link set {tun_name} up mtu 1450
 """)
                 elif t_type == "vxlan":
                     vni = 200 + subnet_idx
                     tun_cfg["vni"] = vni
                     remote_commands.append(f"""
+modprobe vxlan 2>/dev/null || true
 ip link del {tun_name} 2>/dev/null || true
 ip link add {tun_name} type vxlan id {vni} remote {source_ip} local {dest_ip} dstport 4789
 ip addr add {sub_remote}/30 dev {tun_name}
@@ -28472,6 +28493,7 @@ ip link set {tun_name} up mtu 1450
                     vni = 300 + subnet_idx
                     tun_cfg["vni"] = vni
                     remote_commands.append(f"""
+modprobe geneve 2>/dev/null || true
 ip link del {tun_name} 2>/dev/null || true
 ip link add {tun_name} type geneve id {vni} remote {source_ip}
 ip addr add {sub_remote}/30 dev {tun_name}
@@ -28479,10 +28501,48 @@ ip link set {tun_name} up mtu 1450
 """)
                 elif t_type == "sit":
                     remote_commands.append(f"""
+modprobe sit 2>/dev/null || true
 ip link del {tun_name} 2>/dev/null || true
 ip tunnel add {tun_name} mode sit remote {source_ip} local {dest_ip} ttl 255
 ip addr add {sub_remote}/30 dev {tun_name}
 ip link set {tun_name} up mtu 1480
+""")
+                elif t_type == "fou":
+                    fou_p = 5550 + subnet_idx
+                    tun_cfg["fou_port"] = fou_p
+                    remote_commands.append(f"""
+modprobe fou 2>/dev/null || true
+ip link del {tun_name} 2>/dev/null || true
+ip tunnel del {tun_name} 2>/dev/null || true
+ip fou add port {fou_p} ipproto 4 2>/dev/null || true
+ip tunnel add {tun_name} mode ipip remote {source_ip} local {dest_ip} encap fou encap-sport {fou_p} encap-dport {fou_p} ttl 255
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1480
+""")
+                elif t_type == "l2tp":
+                    tid = 1000 + subnet_idx
+                    sid = subnet_idx
+                    tun_cfg["l2tp_tunnel_id"] = tid
+                    tun_cfg["l2tp_peer_tunnel_id"] = tid
+                    tun_cfg["l2tp_session_id"] = sid
+                    tun_cfg["l2tp_peer_session_id"] = sid
+                    remote_commands.append(f"""
+modprobe l2tp_netlink l2tp_eth 2>/dev/null || true
+ip l2tp del session tunnel_id {tid} session_id {sid} 2>/dev/null || true
+ip l2tp del tunnel tunnel_id {tid} 2>/dev/null || true
+ip l2tp add tunnel tunnel_id {tid} peer_tunnel_id {tid} encap udp local {dest_ip} remote {source_ip} udp_sport 1701 udp_dport 1701 2>/dev/null || true
+ip l2tp add session tunnel_id {tid} session_id {sid} peer_session_id {sid} name {tun_name} 2>/dev/null || true
+ip addr add {sub_remote}/30 dev {tun_name}
+ip link set {tun_name} up mtu 1460
+""")
+                elif t_type == "sstp":
+                    sstp_user = f"sstp_{mesh_prefix}_{subnet_idx}"
+                    sstp_pass = f"MeshSstp_{uuid.uuid4().hex[:8]}"
+                    tun_cfg["user"] = sstp_user
+                    tun_cfg["pass"] = sstp_pass
+                    remote_commands.append(f"""
+mkdir -p /etc/ppp
+echo '"{sstp_user}" * "{sstp_pass}" {sub_remote}' >> /etc/ppp/chap-secrets
 """)
 
             ok, msg = apply_tunnel_interface(tun_cfg)
@@ -28530,6 +28590,22 @@ ip link set {tun_name} up mtu 1480
                 tool_name = "kcptun"
             elif t_type == "ssh_tun":
                 tool_name = "ssh_tun"
+            elif t_type == "udp2raw":
+                tool_name = "udp2raw"
+            elif t_type == "hysteria":
+                tool_name = "hysteria"
+            elif t_type == "tuic":
+                tool_name = "tuic"
+            elif t_type == "awg":
+                tool_name = "awg"
+            elif t_type == "ss2022":
+                tool_name = "ss2022"
+            elif t_type == "tun2socks":
+                tool_name = "tun2socks"
+            elif t_type == "rtt":
+                tool_name = "rtt"
+            elif t_type == "dnstt":
+                tool_name = "dnstt"
 
             adv_cfg = {
                 "id": f"adv_{uuid.uuid4().hex[:8]}",
