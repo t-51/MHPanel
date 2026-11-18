@@ -141,6 +141,27 @@ class RedirectServer:
                 if path.startswith('/sub/'):
                     return self._proxy_sub()
 
+                # Handle Let's Encrypt ACME HTTP-01 challenge directly on port 80 without 301 redirects
+                if path.startswith('/.well-known/acme-challenge/'):
+                    token = os.path.basename(self.path.split('?')[0])
+                    for wroot in ['/www/wwwroot/mhpanel', '/var/www/html', '/tmp/acme-challenge']:
+                        c_file = os.path.join(wroot, '.well-known', 'acme-challenge', token)
+                        if os.path.exists(c_file):
+                            try:
+                                with open(c_file, 'rb') as cf:
+                                    data = cf.read()
+                                self.send_response(200)
+                                self.send_header('Content-Type', 'text/plain')
+                                self.send_header('Content-Length', str(len(data)))
+                                self.send_header('Connection', 'close')
+                                self.end_headers()
+                                self.wfile.write(data)
+                                return
+                            except Exception:
+                                pass
+                    self.send_error(404, "ACME Challenge File Not Found")
+                    return
+
                 host = self.headers.get('Host', '')
                 if ':' in host:
                     host = host.split(':')[0]
@@ -17028,7 +17049,13 @@ def api_ssl_issue():
     email = data.get("email", "").strip()
     
     if not domain:
-        return jsonify({"success": False, "error": "Domain name is required"}), 400
+        return jsonify({"success": False, "error": "نام دامنه الزامی است."}), 400
+
+    if is_ip_address(domain):
+        return jsonify({
+            "success": False,
+            "error": "مرجع Let's Encrypt برای آدرس IP خام گواهی SSL صادر نمی‌کند. برای دریافت گواهی معتبر Let's Encrypt و رفع خطای امنیتی در مرورگر، حتماً یک نام دامنه معتبر (مانند panel.example.com) ثبت کرده و رکورد A آن را به این سرور متصل نمایید."
+        }), 400
 
     potential_webroots = [
         f"/www/wwwroot/{domain}",
@@ -23773,7 +23800,15 @@ def generate_haproxy_cfg(config):
     if "web" in enabled_protos:
         backend_blocks.append("backend web_http_backend\n    mode tcp\n    server apache_http 127.0.0.1:80")
 
-    # Ensure default backend is always defined
+    # Ensure web and default backends are always defined
+    if not any("backend web_backend" in b for b in backend_blocks):
+        web_p = get_panel_port()
+        if web_p in listen_ports:
+            web_p = 9090
+        backend_blocks.append(f"backend web_backend\n    mode tcp\n    server mhpanel 127.0.0.1:{web_p}")
+    if not any("backend web_http_backend" in b for b in backend_blocks):
+        backend_blocks.append("backend web_http_backend\n    mode tcp\n    server web_http 127.0.0.1:80")
+
     has_default = any(f"backend {default_backend_name}" in b for b in backend_blocks)
     if not has_default:
         fallback_port = get_panel_port()
@@ -23788,11 +23823,12 @@ def generate_haproxy_cfg(config):
     if use_backends:
         lines.append("")
         
-    # Crucial fallback: route direct IP / Non-SNI TLS connections directly to default protocol
-    lines.append(f"    # Direct IP & Non-SNI TLS traffic routing to default VPN")
-    lines.append(f"    use_backend {default_backend_name} if is_ssl_hello !has_sni")
+    # Crucial fallback: route direct IP / Non-SNI TLS connections directly to Web Panel
+    lines.append(f"    # Direct IP & Non-SNI TLS traffic routing directly to Web Panel")
+    lines.append(f"    use_backend web_backend if is_ssl_hello !has_sni")
+    lines.append(f"    use_backend web_http_backend if is_http_raw")
     lines.append("")
-    lines.append(f"    default_backend {default_backend_name}")
+    lines.append(f"    default_backend web_backend")
     lines.append("")
     lines.extend(backend_blocks)
     lines.append("")
@@ -29538,8 +29574,12 @@ def get_user_from_singbox_log(src_port, host=""):
     if not os.path.exists(log_file):
         return None
     try:
-        proc = subprocess.run(["tail", "-n", "300", log_file], capture_output=True, text=True, timeout=1.0)
-        lines = proc.stdout.splitlines()
+        # Read the tail directly in Python without spawning expensive subprocesses
+        with open(log_file, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+            f.seek(max(0, size - 32768))
+            lines = f.read().decode("utf-8", errors="ignore").splitlines()
         found_cid = None
         for line in reversed(lines):
             if f":{src_port}" in line:
@@ -29697,7 +29737,7 @@ def singbox_client_tracker():
                         pass
         except Exception:
             pass
-        time.sleep(2)
+        time.sleep(10)
 
 def start_singbox_tracker_if_needed():
     global _sb_tracker_started
@@ -35381,34 +35421,45 @@ if __name__ == "__main__":
     print(f"=================================================")
     
     # Start background traffic tracker thread
-    t = threading.Thread(target=traffic_tracker, daemon=True)
-    t.start()
+    threading.Thread(target=traffic_tracker, daemon=True).start()
     
-    # Start wireguard client tracker
-    t2 = threading.Thread(target=wg_client_tracker, daemon=True)
-    t2.start()
+    # Start protocol client trackers ONLY if the protocol is actually installed to avoid high CPU/RAM churn
+    if is_installed("wireguard"):
+        threading.Thread(target=wg_client_tracker, daemon=True).start()
     
-    # Start OpenVPN client tracker
-    t3 = threading.Thread(target=ovpn_client_tracker, daemon=True)
-    t3.start()
+    if is_installed("openvpn"):
+        threading.Thread(target=ovpn_client_tracker, daemon=True).start()
     
-    # Start HTTP-to-HTTPS redirect server on port 80
-    t4 = threading.Thread(target=ssh_client_tracker, daemon=True)
-    t4.start()
-    t5 = threading.Thread(target=ocserv_client_tracker, daemon=True)
-    t5.start()
-    t6 = threading.Thread(target=sstp_client_tracker, daemon=True)
-    t6.start()
-    t7 = threading.Thread(target=l2tp_client_tracker, daemon=True)
-    t7.start()
-    t8 = threading.Thread(target=ikev2_client_tracker, daemon=True)
-    t8.start()
-    t9 = threading.Thread(target=awg_client_tracker, daemon=True)
-    t9.start()
-    t_tg = threading.Thread(target=telegram_monitor_worker, daemon=True)
-    t_tg.start()
-    t_sb = threading.Thread(target=singbox_client_tracker, daemon=True)
-    t_sb.start()
+    if is_installed("ssh"):
+        threading.Thread(target=ssh_client_tracker, daemon=True).start()
+
+    if is_installed("ocserv"):
+        threading.Thread(target=ocserv_client_tracker, daemon=True).start()
+
+    if is_installed("sstp"):
+        threading.Thread(target=sstp_client_tracker, daemon=True).start()
+
+    if is_installed("l2tp"):
+        threading.Thread(target=l2tp_client_tracker, daemon=True).start()
+
+    if is_installed("ikev2"):
+        threading.Thread(target=ikev2_client_tracker, daemon=True).start()
+
+    if is_installed("amneziawg"):
+        threading.Thread(target=awg_client_tracker, daemon=True).start()
+
+    # Telegram monitor only if bot token is configured
+    try:
+        tg_cfg = get_telegram_config()
+        if tg_cfg.get("bot_token") and tg_cfg.get("admin_id"):
+            threading.Thread(target=telegram_monitor_worker, daemon=True).start()
+    except Exception:
+        pass
+
+    # Singbox client tracker
+    if is_singbox_installed() or os.path.exists(SINGBOX_CONFIG_FILE):
+        threading.Thread(target=singbox_client_tracker, daemon=True).start()
+
     redirect_server.start()
     
     ssl_context = None
@@ -35481,9 +35532,11 @@ if __name__ == "__main__":
         print(f"Error during dnsmasq route sync at startup: {e}")
 
     try:
-        threading.Thread(target=build_stuntls_client, daemon=True).start()
+        st_cfg = "/etc/vpnpanel/stuntls.json"
+        if os.path.exists(st_cfg) and not os.path.exists("/www/wwwroot/mhpanel/bin/stuntls-client"):
+            threading.Thread(target=build_stuntls_client, daemon=True).start()
     except Exception as e:
-        print(f"Error starting StunTLS client builder thread: {e}")
+        print(f"Error checking StunTLS client builder thread: {e}")
 
     try:
         sync_singbox_multiplexer_and_iptables()

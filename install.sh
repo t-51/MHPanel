@@ -904,7 +904,7 @@ install_panel_web_ui() {
 {
   "default": {
     "id": "default",
-    "name": "پکیج استاندارد (Standard)",
+    "name": "Standard Package",
     "traffic_gb": 0,
     "validity_days": 30,
     "simultaneous_use": 2,
@@ -912,11 +912,11 @@ install_panel_web_ui() {
     "custom_days": [],
     "start_time": "00:00",
     "end_time": "24:00",
-    "description": "پکیج استاندارد با ۲ کاربر همزمان و ترافیک نامحدود"
+    "description": "Standard package with 2 concurrent users and unlimited traffic"
   },
   "vip": {
     "id": "vip",
-    "name": "پکیج ویژه (VIP)",
+    "name": "VIP Package",
     "traffic_gb": 100,
     "validity_days": 30,
     "simultaneous_use": 5,
@@ -924,11 +924,11 @@ install_panel_web_ui() {
     "custom_days": [],
     "start_time": "00:00",
     "end_time": "24:00",
-    "description": "پکیج حرفه‌ای با ۵ اتصال همزمان و ۱۰۰ گیگابایت حجم"
+    "description": "Professional VIP package with 5 concurrent connections and 100GB traffic"
   },
   "night": {
     "id": "night",
-    "name": "بسته شبانه (Nightly)",
+    "name": "Nightly Package",
     "traffic_gb": 50,
     "validity_days": 30,
     "simultaneous_use": 2,
@@ -936,7 +936,7 @@ install_panel_web_ui() {
     "custom_days": [],
     "start_time": "01:00",
     "end_time": "08:00",
-    "description": "فعال فقط از ۱ بامداد تا ۸ صبح"
+    "description": "Active only from 1:00 AM to 8:00 AM"
   }
 }
 EOF
@@ -2322,7 +2322,7 @@ menu_vpn_protocols() {
 menu_tunnel_tools() {
     while true; do
         clear 2>/dev/null || true
-        echo -e "${YELLOW}${BOLD}=== Anti-Censorship Tunnels & Network Bridge Hub (مدیریت تانل‌ها) ===${NC}"
+        echo -e "${YELLOW}${BOLD}=== Anti-Censorship Tunnels & Network Bridge Hub ===${NC}"
         echo -e "${DIM}Tranziting, reverse tunnels, fake-TCP and server-to-server obfuscation${NC}\n"
 
         echo -e "  ${WHITE}${BOLD}Live Tunnel Binaries Status:${NC}"
@@ -2346,22 +2346,22 @@ menu_tunnel_tools() {
             local rest="${item#*:}"
             local label="${rest%%:*}"
             local bpath="${rest#*:}"
-            local st="${RED}Missing (نصب نشده)${NC}"
+            local st="${RED}Missing${NC}"
             if [ -x "$bpath" ]; then
-                st="${GREEN}Installed ✓ (نصب شده)${NC}"
+                st="${GREEN}Installed ✓${NC}"
             fi
             echo -e "    • ${label}: ${st}"
         done
         echo ""
 
-        echo -e "  ${CYAN}[1] Download & Install / Update ALL Tunnel Binaries (نصب همه ابزارهای تانل)${NC}"
-        echo -e "  [2] Install / Reinstall a Specific Missing Binary (نصب تکی ابزار دلخواه)"
+        echo -e "  ${CYAN}[1] Download & Install / Update ALL Tunnel Binaries${NC}"
+        echo -e "  [2] Install / Reinstall a Specific Missing Binary"
         echo -e "  [3] Execute / Start Local Configured Tunnels (/etc/mhpanel/tunnels_boot.sh)"
         echo -e "  [4] List Active Systemd Tunnel Services (mhtun_*) & Live Status"
         echo -e "  [5] View Live Journal Logs of Tunnel Services"
         echo -e "  [6] Enable Kernel Modules for GRE / IPIP / IPv6 Tunnels"
-        echo -e "  ${YELLOW}[7] Generate / View Setup Commands for Iran / Remote Server (دستورات سرور مقابل)${NC}"
-        echo -e "  ${GREEN}[8] Step-by-Step Tunnel Architecture Guide (راهنمای جامع راه‌اندازی تانل‌های اسکریپتی)${NC}"
+        echo -e "  ${YELLOW}[7] Generate / View Setup Commands for Remote / Client Server${NC}"
+        echo -e "  ${GREEN}[8] Step-by-Step Tunnel Architecture Guide${NC}"
         echo -e "  [0] Back to Main Menu"
         echo ""
         read -p "Select option [0-8]: " t_act
@@ -2426,29 +2426,29 @@ menu_tunnel_tools() {
                 read -p "Press Enter to continue..."
                 ;;
             7)
-                echo -e "\n${YELLOW}${BOLD}=== دستورات و اسکریپت نصب روی سرور مقابل (سرور ایران یا کلاینت) ===${NC}"
+                echo -e "\n${YELLOW}${BOLD}=== Remote Server Installation Commands (Iran / Client Server) ===${NC}"
                 local srv_ip=$(get_public_ipv4)
-                echo -e "برای راه‌اندازی تانل در سرور مقابل (ایران)، می‌توانید از اسکریپت‌های هوشمند زیر استفاده کنید:"
-                echo -e "\n${CYAN}1) نصب باینری‌های تانل در سرور ایران با یک دستور:${NC}"
+                echo -e "To configure the tunnel on the remote client server (Iran), use the following automated scripts:"
+                echo -e "\n${CYAN}1) Install all tunnel binaries on client server with one command:${NC}"
                 echo -e "   curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh | bash -s -- --ui"
-                echo -e "\n${CYAN}2) دریافت دستور دقیق سرویس هر تانل ساخت‌شده:${NC}"
-                echo -e "   در پنل وب -> تب «مرکز تونل‌ها» -> جدول تونل‌های ضد فیلتر -> روی دکمه «اسکریپت و دستورات» کلیک کنید."
-                echo -e "   اسکریپت به همراه تمام کلیدها، ساب‌نت‌ها و پورتی که به سرور خارج (${srv_ip}) متصل می‌شود کپی خواهد شد."
+                echo -e "\n${CYAN}2) Get exact systemd service command for each created tunnel:${NC}"
+                echo -e "   In Web Panel -> \"Tunnel Hub\" -> Anti-Filter Tunnels -> Click \"Scripts & Commands\"."
+                echo -e "   The script includes all keys, subnets, and connection port to this server (${srv_ip})."
                 read -p "Press Enter to continue..."
                 ;;
             8)
-                echo -e "\n${GREEN}${BOLD}=== راهنمای جامع راه‌اندازی و معماری تانل‌های اسکریپتی ===${NC}"
-                echo -e "1. ${BOLD}مفهوم تانل اسکریپتی چیست؟${NC}"
-                echo -e "   تانل‌های اسکریپتی (مثل GOST, WSTunnel, Chisel, RTT, Rathole) ترافیک را به شکل"
-                echo -e "   وب‌سوکت امن (WSS) یا TLS استاندارد شبیه وب‌سایت‌های عادی تغییر می‌دهند."
-                echo -e "2. ${BOLD}کجا نصب می‌شوند؟${NC}"
-                echo -e "   یک طرف تانل (معمولاً نقش Server) روی همین سرور خارج با پنل مدیریت ساخته می‌شود."
-                echo -e "   طرف دیگر (نقش Client) روی سرور ایران شما اجرا می‌شود."
-                echo -e "3. ${BOLD}چگونه اجرا کنیم؟${NC}"
-                echo -e "   در تب مرکز تونل‌ها دکمه «اسکریپت سرور مقابل» را بزنید و متن آن را در SSH سرور ایران"
-                echo -e "   Paste کنید. اسکریپت به صورت خودکار سرویس دائمی systemd را در سرور ایران می‌سازد."
-                echo -e "4. ${BOLD}در صورت نبود ابزارها در همین سرور خارج چه کنیم؟${NC}"
-                echo -e "   گزینه [1] را در همین منوی ترمینال بزنید تا تمامی ابزارها با یک کلیک نصب و آماده شوند."
+                echo -e "\n${GREEN}${BOLD}=== Architecture and Tunnel Setup Guide ===${NC}"
+                echo -e "1. ${BOLD}What is a Scripted Tunnel?${NC}"
+                echo -e "   Scripted tunnels (e.g. GOST, WSTunnel, Chisel, RTT, Rathole) disguise traffic"
+                echo -e "   as secure WebSocket (WSS) or standard TLS, mimicking normal web traffic."
+                echo -e "2. ${BOLD}Where are they installed?${NC}"
+                echo -e "   One side (Server role) runs on this foreign server managed by MHPanel."
+                echo -e "   The other side (Client role) runs on your Iran/Client server."
+                echo -e "3. ${BOLD}How to deploy?${NC}"
+                echo -e "   In the Tunnel Hub tab, click \"Remote Script\" and paste the commands into your"
+                echo -e "   Iran server SSH. It will automatically create and start systemd services."
+                echo -e "4. ${BOLD}What if binaries are missing on this server?${NC}"
+                echo -e "   Select option [1] in this CLI menu to install all required tunnel binaries."
                 read -p "Press Enter to continue..."
                 ;;
             0|"")
@@ -2462,7 +2462,7 @@ menu_wordpress_camouflage() {
     while true; do
         clear 2>/dev/null || true
         echo -e "${YELLOW}${BOLD}=== Web Server Integration & WordPress Anti-DPI Camouflage ===${NC}"
-        echo -e "${DIM}هماهنگی خودکار با آپاچی/انجین‌یکس و استتار ترافیک فیلترشکن پشت سایت وردپرس${NC}\n"
+        echo -e "${DIM}Coexistence with Apache/Nginx and traffic obfuscation behind WordPress${NC}\n"
 
         local ws_type="None"
         local ws_active="${RED}Not Running${NC}"
@@ -2511,11 +2511,11 @@ menu_wordpress_camouflage() {
         fi
         echo -e "${BLUE}------------------------------------------------------------------------${NC}"
         echo -e "  ${WHITE}${BOLD}[1] Auto-Match Web Server & Enable Port 443 WordPress Camouflage${NC}"
-        echo -e "      (تنظیم خودکار اتصال ترافیک به وب‌سرور و نمایش وردپرس در صورت ورود عادی)"
+        echo -e "      (Auto-route non-VPN HTTPS traffic directly to web server and WordPress)"
         echo -e "  ${WHITE}${BOLD}[2] Deploy / Update Realistic Decoy WordPress Site (/www/wwwroot/decoy-wp)${NC}"
-        echo -e "      (نصب و فعال‌سازی سایت فریب بلاگ فناوری وردپرس برای آپاچی و انجین‌یکس)"
+        echo -e "      (Deploy decoy tech blog WordPress site for Apache and Nginx)"
         echo -e "  [3] Configure Sing-box Reality Camouflage Target to WordPress Site"
-        echo -e "  [4] Send Live HTTP & HTTPS Camouflage Probe (تست زنده پاسخ وردپرس در پورت ۸۰ و ۴۴۳)"
+        echo -e "  [4] Send Live HTTP & HTTPS Camouflage Probe (Test WordPress response on port 80 & 443)"
         echo -e "  [5] Remove / Unlink Decoy WordPress Virtual Host"
         echo -e "  [0] Back to Main Menu"
         echo -e "${BLUE}========================================================================${NC}"
@@ -2608,7 +2608,7 @@ menu_telegram_bot() {
     while true; do
         clear 2>/dev/null || true
         echo -e "${YELLOW}${BOLD}=== Telegram Bot Notification & Auto-Backup Hub ===${NC}"
-        echo -e "${DIM}مدیریت ربات تلگرام، اعلان‌های مصرف منابع، ورود مدیر و ارسال خودکار بکاپ${NC}\n"
+        echo -e "${DIM}Telegram Bot management, resource alerts, login notifications & auto backups${NC}\n"
 
         local tg_cfg="/etc/mhpanel/telegram_bot.json"
         local b_token="Not Set"
@@ -2653,14 +2653,14 @@ menu_telegram_bot() {
         echo -e "  Auto-Backup to Chat:  ${auto_bk} (Schedule: ${bk_sched})"
         echo -e "  Resource Thresholds:  CPU: ${cpu_th}% | RAM: ${ram_th}% | Disk: ${disk_th}%"
         echo -e "${BLUE}------------------------------------------------------------------------${NC}"
-        echo -e "  ${WHITE}${BOLD}[1] Set / Change Telegram Bot Token (ثبت یا ویرایش توکن ربات)${NC}"
-        echo -e "  ${WHITE}${BOLD}[2] Set / Change Admin Telegram Chat ID (ثبت یا ویرایش شناسه چت ادمین)${NC}"
-        echo -e "  [3] Toggle Notification Service (فعال / غیرفعال‌سازی سراسری اعلان‌ها)"
-        echo -e "  [4] Configure Resource Alert Thresholds (تنظیم سقف مجاز CPU, RAM, Disk)"
-        echo -e "  [5] Configure Automated Backup to Telegram (زمان‌بندی ارسال خودکار بکاپ)"
-        echo -e "  ${GREEN}${BOLD}[6] Send Live Test Message to Telegram (تست ارسال اعلان تلگرام)${NC}"
-        echo -e "  ${YELLOW}${BOLD}[7] Send Instant Full Panel Backup to Telegram Now (ارسال آنی بکاپ)${NC}"
-        echo -e "  [8] Restart Telegram Alert Monitoring Daemon (راه‌اندازی مجدد پایشگر)"
+        echo -e "  ${WHITE}${BOLD}[1] Set / Change Telegram Bot Token${NC}"
+        echo -e "  ${WHITE}${BOLD}[2] Set / Change Admin Telegram Chat ID${NC}"
+        echo -e "  [3] Toggle Notification Service (Enable / Disable Notifications)"
+        echo -e "  [4] Configure Resource Alert Thresholds (CPU, RAM, Disk)"
+        echo -e "  [5] Configure Automated Backup to Telegram (Scheduled Backups)"
+        echo -e "  ${GREEN}${BOLD}[6] Send Live Test Message to Telegram${NC}"
+        echo -e "  ${YELLOW}${BOLD}[7] Send Instant Full Panel Backup to Telegram Now${NC}"
+        echo -e "  [8] Restart Telegram Alert Monitoring Daemon"
         echo -e "  [0] Back to Main Menu"
         echo -e "${BLUE}========================================================================${NC}"
         read -p "Select option [0-8]: " tg_opt
@@ -2779,7 +2779,7 @@ srv_ip = get_server_public_ip()
 cpu = psutil.cpu_percent(0.2)
 ram = psutil.virtual_memory().percent
 disk = psutil.disk_usage('/').percent
-msg = f'''🤖 <b>MHPanel Telegram Notification Bot</b>\n\n✅ <b>ارتباط ربات تلگرام با سرور با موفقیت برقرار شد!</b>\n🌐 آی‌پی سرور: <code>{srv_ip}</code>\n⏰ زمان سرور: <code>{time.strftime('%Y-%m-%d %H:%M:%S')}</code>\n📊 مصرف منابع: CPU: {cpu}% | RAM: {ram}% | Disk: {disk}%\n🛡️ هسته سینگ‌باکس و پروتکل‌های امنیتی: فعال و آماده سرویس‌دهی\n\n<i>ارسال شده از طریق دستورات ترمینال MHPanel CLI</i>'''
+msg = f'''🤖 <b>MHPanel Telegram Notification Bot</b>\n\n✅ <b>Telegram bot connection test successful!</b>\n🌐 Server IP: <code>{srv_ip}</code>\n⏰ Server Time: <code>{time.strftime('%Y-%m-%d %H:%M:%S')}</code>\n📊 Resource Usage: CPU: {cpu}% | RAM: {ram}% | Disk: {disk}%\n🛡️ Sing-box Core & Security Protocols: Active and ready.\n\n<i>Sent via MHPanel CLI</i>'''
 ok, res = send_telegram_msg(msg, cfg)
 if ok:
     print('SUCCESS: Notification delivered successfully to your Telegram!')
@@ -2802,10 +2802,10 @@ cfg = load_telegram_config()
 if not cfg.get('bot_token') or not cfg.get('chat_id'):
     print('ERROR: Please set bot token and chat ID first.')
     sys.exit(1)
-b_res = create_system_backup(backup_type='full', note='ارسال مستقیم از منوی ترمینال')
+b_res = create_system_backup(backup_type='full', note='Triggered from terminal menu')
 fp = b_res['filepath']
 srv_ip = get_server_public_ip()
-caption = f'''📦 <b>پشتیبان خودکار کامل MHPanel (Full Backup)</b>\n\n🌐 سرور: <code>{srv_ip}</code>\n📅 تاریخ: <code>{b_res['created_at']}</code>\n💾 حجم: <code>{b_res['size_formatted']}</code>\n⚡ شامل تمامی کانفیگ‌ها، پروتکل‌ها، کاربران و تنظیمات سیستم.'''
+caption = f'''📦 <b>MHPanel Automated Full Backup</b>\n\n🌐 Server: <code>{srv_ip}</code>\n📅 Date: <code>{b_res['created_at']}</code>\n💾 Size: <code>{b_res['size_formatted']}</code>\n⚡ Includes all configurations, protocols, users, and system settings.'''
 ok, res = send_telegram_doc(fp, caption, cfg)
 if ok:
     cfg['last_backup_sent'] = time.strftime('%Y-%m-%d %H:%M:%S')
@@ -3469,45 +3469,45 @@ show_cli_commands_guide() {
  | |  | | |  | | | |  | (_| | | | |  __/ |
  |_|  |_|_|  |_| |_|   \__,_|_| |_|\___|_|
 EOF
-    echo -e "${WHITE}${BOLD}   راهنمای جامع دستورات ترمینال و میانبرهای خط فرمان MH Panel${NC}"
+    echo -e "${WHITE}${BOLD}   MHPanel Terminal CLI Commands & Shortcuts Reference${NC}"
     echo -e "${DIM}   Quick Terminal Commands & CLI Shortcuts Reference Manual${NC}"
     echo -e "${BLUE}========================================================================${NC}\n"
 
-    echo -e "${GREEN}${BOLD}1. دستورات منو و دسترسی سریع (Quick Navigation):${NC}"
-    echo -e "  ${CYAN}mhpanel${NC}                    باز کردن منوی تعاملی و مدیریت کامل پنل"
-    echo -e "  ${CYAN}mhpanel --help${NC} (یا ${CYAN}help${NC})   نمایش همین راهنمای کامل دستورات"
-    echo -e "  ${CYAN}mhpanel --status${NC}           مشاهده گزارش وضعیت زنده تمام سرویس‌ها، پورت‌ها و تانل‌ها"
-    echo -e "  ${CYAN}mhpanel --info${NC}             نمایش آدرس وب پنل، پورت و مشخصات ورود مدیر"
-    echo -e "  ${CYAN}mhpanel --tg${NC}               ورود مستقیم به مدیریت ربات تلگرام و اعلان‌ها"
-    echo -e "  ${CYAN}mhpanel --wp${NC}               ورود مستقیم به هماهنگی با آپاچی/انجین‌یکس و استتار وردپرس"
-    echo -e "  ${CYAN}mhpanel --tunnels${NC}          ورود مستقیم به مرکز ابزارها و تانل‌های اسکریپتی"
+    echo -e "${GREEN}${BOLD}1. Navigation & Quick Access:${NC}"
+    echo -e "  ${CYAN}mhpanel${NC}                    Open interactive management menu"
+    echo -e "  ${CYAN}mhpanel --help${NC} (or ${CYAN}help${NC})   Display this CLI commands reference"
+    echo -e "  ${CYAN}mhpanel --status${NC}           Show live status report of services, ports, and tunnels"
+    echo -e "  ${CYAN}mhpanel --info${NC}             Display web panel URL, port, and admin credentials"
+    echo -e "  ${CYAN}mhpanel --tg${NC}               Direct access to Telegram bot & alerts configuration"
+    echo -e "  ${CYAN}mhpanel --wp${NC}               Direct access to Apache/Nginx & WordPress camouflage"
+    echo -e "  ${CYAN}mhpanel --tunnels${NC}          Direct access to Tunnel Hub and binary manager"
     echo ""
 
-    echo -e "${YELLOW}${BOLD}2. دستورات مدیریت امنیت و مشخصات دسترسی (Security & Credentials):${NC}"
-    echo -e "  ${CYAN}mhpanel --user <نام_جدید>${NC}       تغییر مستقیم نام کاربری مدیر"
-    echo -e "  ${CYAN}mhpanel --pass <رمز_جدید>${NC}       تغییر مستقیم رمز عبور مدیر"
-    echo -e "  ${CYAN}mhpanel --port <شماره_پورت>${NC}     تغییر پورت پنل مدیریت وب (پیش‌فرض: 9090)"
-    echo -e "  ${CYAN}mhpanel --path <مسیر_امن>${NC}      تغییر مسیر امن دسترسی پنل (مثلاً secret_panel)"
-    echo -e "  ${CYAN}mhpanel --address <ip> <port>${NC}  تغییر آدرس IP و پورت اتصال پنل"
+    echo -e "${YELLOW}${BOLD}2. Security & Credentials Management:${NC}"
+    echo -e "  ${CYAN}mhpanel --user <new_username>${NC}    Update panel admin username"
+    echo -e "  ${CYAN}mhpanel --pass <new_password>${NC}    Update panel admin password"
+    echo -e "  ${CYAN}mhpanel --port <port_number>${NC}     Update web panel listening port (Default: 9090)"
+    echo -e "  ${CYAN}mhpanel --path <secret_path>${NC}     Update secure panel entry path (e.g. secret_panel)"
+    echo -e "  ${CYAN}mhpanel --address <ip> <port>${NC}    Update panel bind IP and port"
     echo ""
 
-    echo -e "${MAGENTA}${BOLD}3. دستورات خط فرمان مدیریت مستقیم پروتکل‌ها (Protocol Control):${NC}"
-    echo -e "  ${CYAN}mhpanel protocol status <نام>${NC}         مشاهده وضعیت پروتکل (active / inactive)"
-    echo -e "  ${CYAN}mhpanel protocol install <نام> [پورت]${NC}  نصب و راه‌اندازی مستقیم پروتکل"
-    echo -e "  ${CYAN}mhpanel protocol uninstall <نام>${NC}       حذف و توقف کامل پروتکل"
-    echo -e "  ${CYAN}mhpanel protocol set-port <نام> <پورت>${NC} تغییر پورت شنود پروتکل"
-    echo -e "  ${CYAN}mhpanel protocol logs <نام>${NC}           مشاهده لاگ‌های زنده با journalctl"
-    echo -e "  ${DIM}نام‌های معتبر: singbox, snispoof, google_script, amneziawg, ssh, openvpn, ocserv, hysteria2, trojan, etc.${NC}"
+    echo -e "${MAGENTA}${BOLD}3. Direct Protocol Management:${NC}"
+    echo -e "  ${CYAN}mhpanel protocol status <name>${NC}         Check protocol service status"
+    echo -e "  ${CYAN}mhpanel protocol install <name> [port]${NC} Install and start protocol"
+    echo -e "  ${CYAN}mhpanel protocol uninstall <name>${NC}       Stop and remove protocol service"
+    echo -e "  ${CYAN}mhpanel protocol set-port <name> <port>${NC} Change protocol listening port"
+    echo -e "  ${CYAN}mhpanel protocol logs <name>${NC}           View live service logs with journalctl"
+    echo -e "  ${DIM}Supported: singbox, snispoof, google_script, amneziawg, ssh, openvpn, ocserv, hysteria2, trojan, etc.${NC}"
     echo ""
 
-    echo -e "${WHITE}${BOLD}4. دستورات مدیریت سرویس و بروزرسانی (Service Control & Maintenance):${NC}"
-    echo -e "  ${CYAN}mhpanel restart${NC}            راه‌اندازی مجدد سرویس پنل"
-    echo -e "  ${CYAN}mhpanel update${NC}             بروزرسانی مستقیم پنل از گیت‌هاب"
-    echo -e "  ${CYAN}mhpanel start / stop${NC}       روشن یا خاموش کردن سرویس پنل"
-    echo -e "  ${CYAN}mhpanel --auto${NC}             نصب خودکار تمام پیش‌نیازها و پروتکل‌های بدون کانفلیکت"
-    echo -e "  ${CYAN}mhpanel --step${NC}             نصب گام‌به‌گام و سفارشی با انتخاب کاربر"
-    echo -e "  ${CYAN}mhpanel --ui${NC}               نصب فوق سبک فقط وب پنل (مناسب سرور کلاینت/ایران)"
-    echo -e "  ${CYAN}mhpanel --uninstall${NC}        حذف کامل پنل، سرویس‌ها و پاکسازی سرور"
+    echo -e "${WHITE}${BOLD}4. Service Control & Maintenance:${NC}"
+    echo -e "  ${CYAN}mhpanel restart${NC}            Restart MHPanel service"
+    echo -e "  ${CYAN}mhpanel update${NC}             Update panel directly from GitHub"
+    echo -e "  ${CYAN}mhpanel start / stop${NC}       Start or stop panel service"
+    echo -e "  ${CYAN}mhpanel --auto${NC}             Non-interactive install of all core protocols"
+    echo -e "  ${CYAN}mhpanel --step${NC}             Interactive step-by-step custom install"
+    echo -e "  ${CYAN}mhpanel --ui${NC}               Ultra-light web panel only (for client/Iran servers)"
+    echo -e "  ${CYAN}mhpanel --uninstall${NC}        Completely uninstall MHPanel and purge services"
     echo ""
     echo -e "${BLUE}========================================================================${NC}"
 }
@@ -3535,18 +3535,18 @@ main_menu() {
         echo -e "  ${WHITE}${BOLD}[3]  Install Lightweight Web UI Only${NC}"
         echo -e "${DIM}  ----------------------------------------------------------------------${NC}"
         echo -e "  ${GREEN}${BOLD}[4]  View Panel Access URL & Login Info${NC}"
-        echo -e "  ${YELLOW}${BOLD}[5]  Change Admin Username & Password (تغییر نام کاربری و رمز عبور)${NC}"
-        echo -e "  ${YELLOW}${BOLD}[6]  Change Panel Address, Port & Path (تغییر پورت و آدرس پنل)${NC}"
+        echo -e "  ${YELLOW}${BOLD}[5]  Change Admin Username & Password${NC}"
+        echo -e "  ${YELLOW}${BOLD}[6]  Change Panel Address, Port & Path${NC}"
         echo -e "  [7]  Live System & Service Diagnostic Report"
         echo -e "  [8]  Manage, Install, Uninstall & Reconfigure VPN Protocols"
-        echo -e "  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub (مدیریت تانل‌ها)"
-        echo -e "  ${CYAN}[10] Web Server Integration & WordPress Camouflage (هماهنگی آپاچی/انجین‌یکس و استتار وردپرس)${NC}"
-        echo -e "  ${YELLOW}[11] Telegram Bot Notifications & Auto-Backup Hub (مدیریت ربات تلگرام و اعلان‌ها)${NC}"
+        echo -e "  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub"
+        echo -e "  ${CYAN}[10] Web Server Integration & WordPress Camouflage${NC}"
+        echo -e "  ${YELLOW}[11] Telegram Bot Notifications & Auto-Backup Hub${NC}"
         echo -e "  [12] Web Dashboard Settings (Logs, Restart, 2FA & API Key)"
         echo -e "  [13] SSL Certificate Management (Let's Encrypt & IP SAN)"
         echo -e "  [14] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)"
         echo -e "  [15] Backup & Restore Panel Configurations"
-        echo -e "  ${GREEN}${BOLD}[16] Quick Terminal Commands Guide & Shortcuts (راهنمای جامع دستورات ترمینال و میانبرها)${NC}"
+        echo -e "  ${GREEN}${BOLD}[16] Quick Terminal Commands Guide & Shortcuts${NC}"
         echo -e "  [17] Update Script & Panel"
         echo -e "  ${RED}${BOLD}[18] Uninstall MH Panel from Server${NC}"
         echo -e "  [0]  Exit"
@@ -3596,7 +3596,7 @@ elif [ "$1" = "--status" ]; then
     menu_diagnostic_status
 elif [ "$1" = "--info" ] || [ "$1" = "info" ] || [ "$1" = "--access" ]; then
     show_panel_access_info
-elif [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] || [ "$1" = "--commands" ] || [ "$1" = "commands" ] || [ "$1" = "دستورات" ]; then
+elif [ "$1" = "--help" ] || [ "$1" = "-h" ] || [ "$1" = "help" ] || [ "$1" = "--commands" ] || [ "$1" = "commands" ]; then
     show_cli_commands_guide
     exit 0
 elif [ "$1" = "protocol" ] || [ "$1" = "--protocol" ] || [ "$1" = "-p" ]; then
