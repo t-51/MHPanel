@@ -26199,6 +26199,11 @@ def restore_all_tunnels():
             apply_dns_tunnel(dns)
         except Exception as e:
             print(f"Error restoring dns tunnel {dns.get('name')}: {e}")
+    for dns in data.get("dns_tunnels", []):
+        try:
+            apply_dns_tunnel(dns)
+        except Exception as e:
+            print(f"Error restoring dns tunnel {dns.get('name')}: {e}")
 
 def generate_mikrotik_scripts(tun):
     ttype = tun.get("type", "gre")
