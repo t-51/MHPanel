@@ -16987,7 +16987,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             singbox: { bg: "#dcfce7", text: "#059669", label: "Sing-box" },
             ss2022: { bg: "#e0e7ff", text: "#4338ca", label: "SS-2022" },
             tun2socks: { bg: "#ede9fe", text: "#6d28d9", label: "Tun2Socks" },
-            dnstt: { bg: "#ccfbf1", text: "#0f766e", label: "DNSTT SlowDNS" }
+            dnstt: { bg: "#ccfbf1", text: "#0f766e", label: "DNSTT SlowDNS" },
+            backhaul: { bg: "#ffedd5", text: "#ea580c", label: "Backhaul Mux" },
+            pingtunnel: { bg: "#cffafe", text: "#0891b2", label: "Pingtunnel ICMP" },
+            speederv2: { bg: "#ecfccb", text: "#65a30d", label: "UDPspeeder FEC" }
         };
 
         let html = "";
@@ -17848,7 +17851,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             singbox: { name: `sb_s2s_${count}`, port: 9000, transport: "tls" },
             ss2022: { name: `ss2022_${count}`, port: 8388, transport: "tcp" },
             tun2socks: { name: `tun2s_${count}`, port: 10808, transport: "tcp" },
-            dnstt: { name: `dnstt_${count}`, port: 53, transport: "dns" }
+            dnstt: { name: `dnstt_${count}`, port: 53, transport: "dns" },
+            backhaul: { name: `bh_tun_${count}`, port: 3080, transport: "tcp" },
+            pingtunnel: { name: `pingtun_${count}`, port: 4455, transport: "tcp" },
+            speederv2: { name: `speederv2_${count}`, port: 8095, transport: "udp" }
         };
 
         const def = toolDefaults[selectedTool] || toolDefaults.gost;

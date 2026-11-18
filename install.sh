@@ -640,7 +640,7 @@ enable_bbr_and_sysctl() {
 
     # Kernel Modules Loading (only on VM / Bare Metal or if modprobe is operational)
     local available_modules=()
-    local tunnel_modules=("ip_gre" "ip6_gre" "ipip" "ip6_tunnel" "sit" "wireguard")
+    local tunnel_modules=("ip_gre" "ip6_gre" "ipip" "ip6_tunnel" "sit" "wireguard" "vxlan" "geneve" "fou" "l2tp_netlink" "l2tp_eth")
 
     if [ "$in_container" -eq 0 ] && command -v modprobe >/dev/null 2>&1; then
         for mod in "${tunnel_modules[@]}"; do
@@ -1751,6 +1751,52 @@ install_tunnel_tools() {
         fi
     fi
 
+    # Backhaul (Musixal/Azumi67 TCP/WS/WSS Mux Reverse Tunnel)
+    if [ ! -x /usr/local/bin/backhaul ]; then
+        echo "    Downloading Backhaul..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ backhaul 2>/dev/null || true
+        chmod +x /usr/local/bin/backhaul 2>/dev/null || true
+        if [ -x /usr/local/bin/backhaul ]; then
+            count_downloaded=$((count_downloaded + 1))
+        fi
+    fi
+
+    # Pingtunnel (ICMP Echo request/reply tunnel)
+    if [ ! -x /usr/local/bin/pingtunnel ]; then
+        echo "    Downloading Pingtunnel..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o /tmp/pingtunnel.zip 2>/dev/null || true
+        if [ -f /tmp/pingtunnel.zip ]; then
+            unzip -o /tmp/pingtunnel.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
+            rm -f /tmp/pingtunnel.zip
+        fi
+        chmod +x /usr/local/bin/pingtunnel 2>/dev/null || true
+        setcap cap_net_raw+ep /usr/local/bin/pingtunnel 2>/dev/null || true
+        if [ -x /usr/local/bin/pingtunnel ]; then
+            count_downloaded=$((count_downloaded + 1))
+        fi
+    fi
+
+    # UDPspeeder V2 (FEC error correction tunnel)
+    if [ ! -x /usr/local/bin/speederv2 ]; then
+        echo "    Downloading UDPspeeder..."
+        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
+        if [ -f /tmp/speederv2_amd64 ]; then
+            mv /tmp/speederv2_amd64 /usr/local/bin/speederv2 2>/dev/null || true
+            rm -rf /tmp/speederv2*
+        fi
+        chmod +x /usr/local/bin/speederv2 2>/dev/null || true
+        if [ -x /usr/local/bin/speederv2 ]; then
+            count_downloaded=$((count_downloaded + 1))
+        fi
+    fi
+
+    # Iodine DNS Tunnel & AutoSSH
+    if ! command -v iodined >/dev/null 2>&1 || ! command -v autossh >/dev/null 2>&1; then
+        echo "    Installing Iodine DNS tunnel & AutoSSH via apt..."
+        export DEBIAN_FRONTEND=noninteractive
+        run_apt install -y --no-install-recommends iodine autossh >/dev/null 2>&1 || true
+    fi
+
     # MHRV Tunnel Node & Google Apps Script Daemon
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
         if [ -f "${bdir}/mhrv-tunnel-node" ] && [ ! -x /usr/local/bin/mhrv-tunnel-node ]; then
@@ -2369,6 +2415,11 @@ menu_tunnel_tools() {
             "kcptun-server:KCPTun Server (KCP/UDP FEC):/usr/local/bin/kcptun-server"
             "tun2socks:Tun2Socks (TUN to SOCKS5):/usr/local/bin/tun2socks"
             "mhrv-tunnel-node:MHRV Tunnel Node (GAS / Rust Relay):/usr/local/bin/mhrv-tunnel-node"
+            "backhaul:Backhaul (TCP/WS/WSS Mux Reverse Tunnel):/usr/local/bin/backhaul"
+            "pingtunnel:Pingtunnel (ICMP Echo request/reply Tunnel):/usr/local/bin/pingtunnel"
+            "speederv2:UDPspeeder V2 (FEC Packet Loss Protection):/usr/local/bin/speederv2"
+            "iodined:Iodine DNS Tunnel (IP-over-DNS):/usr/sbin/iodined"
+            "autossh:AutoSSH Persistent L4 Tunnel:/usr/bin/autossh"
         )
         for item in "${tools[@]}"; do
             local key="${item%%:*}"
@@ -2401,8 +2452,8 @@ menu_tunnel_tools() {
                 ;;
             2)
                 echo -e "\n${WHITE}Select binary to install:${NC}"
-                echo "1) gost  2) wstunnel  3) chisel  4) frp  5) rathole  6) udp2raw  7) phantun  8) rtt  9) kcptun  10) tun2socks  11) mhrv-tunnel-node"
-                read -p "Choice [1-11]: " b_choice
+                echo "1) gost  2) wstunnel  3) chisel  4) frp  5) rathole  6) udp2raw  7) phantun  8) rtt  9) kcptun  10) tun2socks  11) mhrv-tunnel-node  12) backhaul  13) pingtunnel  14) speederv2  15) iodine  16) autossh"
+                read -p "Choice [1-16]: " b_choice
                 case "$b_choice" in
                     1) curl -fsSL https://github.com/go-gost/gost/releases/download/v3.0.0-rc10/gost_3.0.0-rc10_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ gost 2>/dev/null && chmod +x /usr/local/bin/gost ;;
                     2) curl -fsSL https://github.com/erebe/wstunnel/releases/download/v11.0.0/wstunnel_11.0.0_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ wstunnel 2>/dev/null && chmod +x /usr/local/bin/wstunnel ;;
@@ -2419,6 +2470,11 @@ menu_tunnel_tools() {
                             [ -f "${bdir}/mhrv-tunnel-node" ] && cp -f "${bdir}/mhrv-tunnel-node" /usr/local/bin/mhrv-tunnel-node && chmod +x /usr/local/bin/mhrv-tunnel-node && break
                         done
                         ;;
+                    12) curl -fsSL https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ backhaul 2>/dev/null && chmod +x /usr/local/bin/backhaul ;;
+                    13) curl -fsSL https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o /tmp/p.zip 2>/dev/null && unzip -o /tmp/p.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/pingtunnel && setcap cap_net_raw+ep /usr/local/bin/pingtunnel 2>/dev/null && rm -f /tmp/p.zip ;;
+                    14) curl -fsSL https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/speederv2_amd64 /usr/local/bin/speederv2 2>/dev/null && chmod +x /usr/local/bin/speederv2 && rm -rf /tmp/speederv2* ;;
+                    15) run_apt install -y --no-install-recommends iodine ;;
+                    16) run_apt install -y --no-install-recommends autossh ;;
                 esac
                 echo -e "${GREEN}Operation completed.${NC}"
                 read -p "Press Enter to continue..."

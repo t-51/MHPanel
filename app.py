@@ -25417,6 +25417,59 @@ PersistentKeepalive = 25
         else:
             exec_cmd = f"/usr/local/bin/dnstt-client -udp {remote_ip}:{remote_port} -pubkey-file {priv_k} {sni} 127.0.0.1:{listen_port}"
 
+    elif tool == "backhaul":
+        cfg_file = f"/etc/mhpanel/backhaul_{adv_id}.toml"
+        bh_trans = transport if transport in ["tcp", "tcpmux", "ws", "wsmux", "wss", "wssmux"] else "tcp"
+        crt, key = ensure_selfsigned_cert()
+        if role == "server":
+            fwd_port = remote_port if (remote_port and remote_port != listen_port) else (listen_port + 1000)
+            tls_snippet = f'\ntls_cert = "{crt}"\ntls_key = "{key}"' if bh_trans in ["wss", "wssmux"] else ""
+            cfg_content = f"""[server]
+bind_addr = "0.0.0.0:{listen_port}"
+transport = "{bh_trans}"
+token = "{secret}"
+channel_size = 2048
+keepalive_period = 75
+heartbeat = 40
+nodelay = true{tls_snippet}
+ports = ["{fwd_port}={target_addr}"]
+
+[server.web]
+enable = false
+"""
+        else:
+            edge_ip_val = sni if sni and sni != "dl.google.com" else ""
+            cfg_content = f"""[client]
+remote_addr = "{remote_ip}:{remote_port}"
+transport = "{bh_trans}"
+token = "{secret}"
+connection_pool = 8
+nodelay = true
+retry_interval = 3
+dial_timeout = 10
+edge_ip = "{edge_ip_val}"
+
+[client.web]
+enable = false
+"""
+        with open(cfg_file, "w", encoding="utf-8") as f:
+            f.write(cfg_content)
+        exec_cmd = f"/usr/local/bin/backhaul -c {cfg_file}"
+
+    elif tool == "pingtunnel":
+        if role == "server":
+            exec_cmd = f"/usr/local/bin/pingtunnel -type server -password \"{secret}\" -nolog"
+        else:
+            udp_flag = " -udp" if transport == "udp" else ""
+            exec_cmd = f"/usr/local/bin/pingtunnel -type client -l 0.0.0.0:{listen_port} -s {remote_ip} -t {target_addr} -password \"{secret}\"{udp_flag} -nolog"
+
+    elif tool == "speederv2":
+        fec_param = adv.get("fec", "20:10")
+        if role == "server":
+            exec_cmd = f"/usr/local/bin/speederv2 -s -l 0.0.0.0:{listen_port} -r {target_addr} -k \"{secret}\" -f {fec_param} --mode 0"
+        else:
+            exec_cmd = f"/usr/local/bin/speederv2 -c -l 0.0.0.0:{listen_port} -r {remote_ip}:{remote_port} -k \"{secret}\" -f {fec_param} --mode 0"
+
     unit_content = f"""[Unit]
 Description=MH Panel Anti-Censorship Tunnel ({name} - {tool.upper()})
 After=network.target
@@ -25663,6 +25716,83 @@ def generate_adv_tunnel_script(adv):
         else:
             exec_cmd = f"/usr/local/bin/ssserver -s 0.0.0.0:{listen_port} -m 2022-blake3-aes-128-gcm -k \"{secret}\""
 
+    elif tool == "backhaul":
+        script_lines += [
+            "# 1. دانلود و نصب Backhaul",
+            "if ! command -v backhaul &>/dev/null; then",
+            "  echo '--> Installing Backhaul...'",
+            "  curl -fsSL https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_amd64.tar.gz | tar -xz -C /usr/local/bin/ backhaul",
+            "  chmod +x /usr/local/bin/backhaul",
+            "fi",
+            ""
+        ]
+        if remote_role == "client":
+            cfg_content = f"""[client]
+remote_addr = "{endpoint_ip}:{endpoint_port}"
+transport = "{adv.get('transport', 'tcp')}"
+token = "{secret}"
+connection_pool = 8
+nodelay = true
+retry_interval = 3
+dial_timeout = 10
+
+[client.web]
+enable = false
+"""
+        else:
+            fwd_p = remote_port if (remote_port and remote_port != listen_port) else (listen_port + 1000)
+            cfg_content = f"""[server]
+bind_addr = "0.0.0.0:{listen_port}"
+transport = "{adv.get('transport', 'tcp')}"
+token = "{secret}"
+channel_size = 2048
+keepalive_period = 75
+heartbeat = 40
+nodelay = true
+ports = ["{fwd_p}={target_addr}"]
+
+[server.web]
+enable = false
+"""
+        script_lines += [
+            "mkdir -p /etc/mhpanel",
+            f"cat << 'BH_EOF' > /etc/mhpanel/backhaul_{safe_name}.toml",
+            cfg_content.strip(),
+            "BH_EOF",
+            ""
+        ]
+        exec_cmd = f"/usr/local/bin/backhaul -c /etc/mhpanel/backhaul_{safe_name}.toml"
+
+    elif tool == "pingtunnel":
+        script_lines += [
+            "# 1. دانلود و نصب Pingtunnel",
+            "if ! command -v pingtunnel &>/dev/null; then",
+            "  echo '--> Installing Pingtunnel...'",
+            "  curl -fsSL https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o /tmp/p.zip",
+            "  unzip -o /tmp/p.zip -d /usr/local/bin/ && chmod +x /usr/local/bin/pingtunnel && setcap cap_net_raw+ep /usr/local/bin/pingtunnel && rm -f /tmp/p.zip",
+            "fi",
+            ""
+        ]
+        if remote_role == "client":
+            udp_flag = " -udp" if adv.get("transport") == "udp" else ""
+            exec_cmd = f"/usr/local/bin/pingtunnel -type client -l 0.0.0.0:{listen_port} -s {endpoint_ip} -t {target_addr} -password \"{secret}\"{udp_flag} -nolog"
+        else:
+            exec_cmd = f"/usr/local/bin/pingtunnel -type server -password \"{secret}\" -nolog"
+
+    elif tool == "speederv2":
+        script_lines += [
+            "# 1. دانلود و نصب UDPspeeder",
+            "if ! command -v speederv2 &>/dev/null; then",
+            "  echo '--> Installing speederv2...'",
+            "  curl -fsSL https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz | tar -xz -C /tmp/ && mv /tmp/speederv2_amd64 /usr/local/bin/speederv2 && chmod +x /usr/local/bin/speederv2 && rm -rf /tmp/speederv2*",
+            "fi",
+            ""
+        ]
+        if remote_role == "client":
+            exec_cmd = f"/usr/local/bin/speederv2 -c -l 0.0.0.0:{listen_port} -r {endpoint_ip}:{endpoint_port} -k \"{secret}\" -f 20:10 --mode 0"
+        else:
+            exec_cmd = f"/usr/local/bin/speederv2 -s -l 0.0.0.0:{listen_port} -r {target_addr} -k \"{secret}\" -f 20:10 --mode 0"
+
     else:
         exec_cmd = f"# Execute tunnel tool: {tool}"
 
@@ -25724,6 +25854,7 @@ def remove_port_relay(relay):
 def apply_dns_tunnel(dns):
     dns_id = dns["id"]
     name = dns.get("name", "dnstt")
+    tool = (dns.get("tool") or dns.get("type") or "dnstt").lower()
     mode = (dns.get("mode") or dns.get("role") or "server").lower()
     domain = dns.get("domain", "").strip()
     try:
@@ -25763,20 +25894,28 @@ def apply_dns_tunnel(dns):
                     dns["listen_port"] = cand
                     break
 
-        key_file = f"/etc/mhpanel/dnstt_{dns_id}.key"
-        with open(key_file, "w", encoding="utf-8") as f:
-            f.write(privkey + "\n")
-        os.chmod(key_file, 0o600)
-
         # Allow port in iptables
         subprocess.run(["iptables", "-I", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
         subprocess.run(["ip6tables", "-I", "INPUT", "-p", "udp", "--dport", str(listen_port), "-j", "ACCEPT"], capture_output=True)
 
-        exec_cmd = f"/usr/local/bin/dnstt-server -udp 0.0.0.0:{listen_port} -privkey-file {key_file} {domain} {target_addr}"
+        if tool == "iodine":
+            iod_pw = privkey or pubkey or "MHPanelIodineSecret"
+            exec_cmd = f"/usr/sbin/iodined -f -c -l 0.0.0.0 -p {listen_port} -P {iod_pw} 10.240.0.1/24 {domain}"
+        else:
+            key_file = f"/etc/mhpanel/dnstt_{dns_id}.key"
+            with open(key_file, "w", encoding="utf-8") as f:
+                f.write(privkey + "\n")
+            os.chmod(key_file, 0o600)
+            exec_cmd = f"/usr/local/bin/dnstt-server -udp 0.0.0.0:{listen_port} -privkey-file {key_file} {domain} {target_addr}"
     else:
-        res_flag = f"-doh {resolver}" if resolver.startswith("http") else (f"-dot {resolver}" if ":853" in resolver or resolver.endswith("853") else f"-udp {resolver}")
-        pub_flag = f"-pubkey {pubkey}" if pubkey else ""
-        exec_cmd = f"/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{listen_port}"
+        if tool == "iodine":
+            iod_pw = privkey or pubkey or "MHPanelIodineSecret"
+            target_host = resolver if resolver and not resolver.startswith("http") else target_addr.split(":")[0]
+            exec_cmd = f"/usr/sbin/iodine -f -r -P {iod_pw} {target_host} {domain}"
+        else:
+            res_flag = f"-doh {resolver}" if resolver.startswith("http") else (f"-dot {resolver}" if ":853" in resolver or resolver.endswith("853") else f"-udp {resolver}")
+            pub_flag = f"-pubkey {pubkey}" if pubkey else ""
+            exec_cmd = f"/usr/local/bin/dnstt-client {res_flag} {pub_flag} {domain} 127.0.0.1:{listen_port}"
 
     unit_content = f"""[Unit]
 Description=MH Panel DNS Tunnel ({name} - DNSTT {mode.upper()})
@@ -28027,7 +28166,12 @@ TUNNEL_TOOLS_REGISTRY = [
     {"key": "masterdnsvpn-server", "name": "MasterdnsVPN Daemon", "category": "DNS Tunnel", "bin": "masterdnsvpn-server", "desc": "تونل چانک بیس۶۴ با سرعت بالا بر بستر DNS", "cmd_ver": ["/usr/local/bin/masterdnsvpn-server", "-h"]},
     {"key": "badvpn-udpgw", "name": "BadVPN UDP-GW", "category": "UDP Gateway", "bin": "badvpn-udpgw", "desc": "گیت‌وی فوروارد ترافیک UDP برای کلاینت‌های SSH، اوپن‌وی‌پی‌ان و تونل‌ها", "cmd_ver": ["/usr/local/bin/badvpn-udpgw", "--version"]},
     {"key": "openvpn", "name": "OpenVPN Engine", "category": "L3/L2 SSL/TLS", "bin": "openvpn", "desc": "موتور رسمی اوپن‌وی‌پی‌ان ۲.۶ با پشتیبانی از کدهای متقارن و ترانزیت شبکه", "cmd_ver": ["openvpn", "--version"]},
-    {"key": "wireguard", "name": "WireGuard Kernel Tools", "category": "Kernel VPN", "bin": "wg", "desc": "ابزارهای رسمی مدیریت اینترفیس و کلیدهای وایرگارد کرنل لینوکس", "cmd_ver": ["wg", "--version"]}
+    {"key": "wireguard", "name": "WireGuard Kernel Tools", "category": "Kernel VPN", "bin": "wg", "desc": "ابزارهای رسمی مدیریت اینترفیس و کلیدهای وایرگارد کرنل لینوکس", "cmd_ver": ["wg", "--version"]},
+    {"key": "backhaul", "name": "Backhaul Reverse Tunnel", "category": "Anti-DPI / Multiplex", "bin": "backhaul", "desc": "تونل معکوس چندپروتکله با سرعت بسیار بالا بر بستر TCP/WS/WSS Mux (پروژه Musixal/Azumi67)", "cmd_ver": ["/usr/local/bin/backhaul", "-v"]},
+    {"key": "pingtunnel", "name": "Pingtunnel ICMP Tunnel", "category": "Covert ICMP Tunnel", "bin": "pingtunnel", "desc": "تونل فریب پینگ و انتقال ترافیک TCP/UDP درون بسته‌های اکو ICMP (دور زدن کامل فیلترینگ پورت)", "cmd_ver": ["/usr/local/bin/pingtunnel", "-v"]},
+    {"key": "speederv2", "name": "UDPspeeder V2 (FEC)", "category": "UDP Forward Error Correction", "bin": "speederv2", "desc": "شتاب‌بخش و تصحیح خطای بسته‌های UDP در شرایط پکت‌لاس شدید شبکه و کاهش لیتنسی", "cmd_ver": ["/usr/local/bin/speederv2", "-h"]},
+    {"key": "iodined", "name": "Iodine DNS Server", "category": "DNS Tunnel", "bin": "iodined", "desc": "سرور تونل IP-over-DNS برای انتقال داده‌ها روی کوئری‌های DNS استاندارد", "cmd_ver": ["iodined", "-v"]},
+    {"key": "autossh", "name": "AutoSSH Persistent L4 Tunnel", "category": "Encrypted L4 Tunnel", "bin": "autossh", "desc": "تونل لایه ۴ رمزنگاری‌شده و همیشه متصل پایدار SSH بر بستر کلید امنیتی سرور", "cmd_ver": ["autossh", "-V"]}
 ]
 
 def get_installed_tool_info(tool_def):
@@ -28115,7 +28259,12 @@ def install_tunnel_tool_binary(tool_key):
         "udp2raw": 'curl -fsSL https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && chmod +x /usr/local/bin/udp2raw && rm -rf /tmp/udp2raw*',
         "rtt": 'curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null && unzip -o /tmp/rtt.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/rtt && rm -f /tmp/rtt.zip',
         "dnstt": 'curl -fsSL https://raw.githubusercontent.com/t-51/MHPanel/main/bin/dnstt-server -o /usr/local/bin/dnstt-server 2>/dev/null && chmod +x /usr/local/bin/dnstt-server',
-        "singbox": 'curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-amd64.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*'
+        "singbox": 'curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-amd64.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && chmod +x /usr/local/bin/sing-box && rm -rf /tmp/sing-box*',
+        "backhaul": 'curl -fsSL https://github.com/Musixal/Backhaul/releases/download/v0.7.2/backhaul_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /usr/local/bin/ backhaul 2>/dev/null && chmod +x /usr/local/bin/backhaul',
+        "pingtunnel": 'curl -fsSL https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o /tmp/p.zip 2>/dev/null && unzip -o /tmp/p.zip -d /usr/local/bin/ 2>/dev/null && chmod +x /usr/local/bin/pingtunnel && setcap cap_net_raw+ep /usr/local/bin/pingtunnel 2>/dev/null && rm -f /tmp/p.zip',
+        "speederv2": 'curl -fsSL https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/speederv2_amd64 /usr/local/bin/speederv2 2>/dev/null && chmod +x /usr/local/bin/speederv2 && rm -rf /tmp/speederv2*',
+        "iodined": 'apt-get update -y && apt-get install -y --no-install-recommends iodine',
+        "autossh": 'apt-get update -y && apt-get install -y --no-install-recommends autossh'
     }
     if tool_key in dl_scripts:
         try:
@@ -28363,6 +28512,19 @@ ip link set {tun_name} up mtu 1480
                 tool_name = "chisel"
             elif t_type == "singbox":
                 tool_name = "singbox"
+            elif t_type == "backhaul":
+                tool_name = "backhaul"
+                transport = "tcp"
+            elif t_type == "pingtunnel":
+                tool_name = "pingtunnel"
+            elif t_type == "speederv2":
+                tool_name = "speederv2"
+            elif t_type == "frp":
+                tool_name = "frp"
+            elif t_type == "kcptun":
+                tool_name = "kcptun"
+            elif t_type == "ssh_tun":
+                tool_name = "ssh_tun"
 
             adv_cfg = {
                 "id": f"adv_{uuid.uuid4().hex[:8]}",
