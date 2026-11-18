@@ -25192,7 +25192,7 @@ local_addr = "{target_addr}"
 
     elif tool == "frp":
         if role == "server":
-            exec_cmd = f"/usr/local/bin/frps -p {listen_port} --auth.token \"{secret}\""
+            exec_cmd = f"/usr/local/bin/frps -p {listen_port} -t \"{secret}\""
         else:
             cfg_file = f"/etc/mhpanel/frp_{adv_id}.toml"
             cfg_content = f"""serverAddr = "{remote_ip}"
@@ -25592,7 +25592,7 @@ def generate_adv_tunnel_script(adv):
         if remote_role == "client":
             exec_cmd = f"/usr/local/bin/frpc -c /etc/mhpanel/frp_{safe_name}.toml"
         else:
-            exec_cmd = f"/usr/local/bin/frps -p {listen_port} --auth.token \"{secret}\""
+            exec_cmd = f"/usr/local/bin/frps -p {listen_port} -t \"{secret}\""
 
     elif tool == "kcptun":
         if remote_role == "client":
@@ -27933,13 +27933,28 @@ def probe_adv_tunnel(adv):
                 status_str = "connected"
                 details_str = f"ارتباط با سرور مقصد ({target_host}:{target_p}) برقرار است (تاخیر: {latency_ms}ms)"
             except Exception:
-                ping_r = subprocess.run(["ping", "-c", "1", "-W", "2", target_host], capture_output=True, text=True)
+                local_listening = False
+                if listen_port:
+                    try:
+                        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                        sock.settimeout(0.5)
+                        sock.connect(("127.0.0.1", listen_port))
+                        sock.close()
+                        local_listening = True
+                    except Exception:
+                        pass
+
+                ping_r = subprocess.run(["ping", "-c", "1", "-W", "1", target_host], capture_output=True, text=True)
                 if ping_r.returncode == 0:
                     m = re.search(r'time=([\d\.]+)\s*ms', ping_r.stdout)
                     latency_ms = float(m.group(1)) if m else 50.0
                     alive = True
                     status_str = "connected"
                     details_str = f"پینگ سرور مقابل {latency_ms}ms (مسیر فعال)"
+                elif local_listening or is_active:
+                    alive = True
+                    status_str = "connected"
+                    details_str = f"سرویس کلاینت فعال و شنود روی پورت {listen_port} برقرار است"
                 else:
                     alive = False
                     status_str = "peer_unreachable"
