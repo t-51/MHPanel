@@ -21,49 +21,18 @@
             </div>
         </div>
 
-        <!-- Modular Architecture & SSL Quick Link Banner -->
-        <div class="spec-card" style="border-radius: var(--radius-md); padding: 12px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-secondary); border: 1px solid var(--border-subtle);">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i data-lucide="sparkles" style="color: var(--color-primary); width: 18px; height: 18px; flex-shrink: 0;"></i>
-                <div style="font-size: 12.5px; color: var(--text-main);" data-i18n="proto_modular_note">
-                    نصب ماژولار و مستقل: هر پروتکل به همراه پکیج‌ها و تنظیماتش به صورت مجزا با ۱ کلیک قابل نصب است.
-                </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('ssl')" style="width: auto; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="lock" style="width: 13px; height: 13px;"></i> <span data-i18n="proto_ssl_btn">تنظیمات SSL دامنه / IP</span>
-            </button>
-        </div>
-
-        <!-- Unified RADIUS Info Banner -->
-        <div class="spec-card" style="border-radius: var(--radius-md); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; background: var(--surface-secondary); border: 1px solid var(--border-subtle);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.12); color: var(--color-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                    <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
-                </div>
-                <div>
-                    <strong style="font-size: 13px; color: var(--text-main);" data-i18n="proto_radius_banner_title">یکپارچه‌سازی کامل احراز هویت با FreeRADIUS سراسری</strong>
-                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" data-i18n="proto_radius_banner_desc">
-                        تمامی پروتکل‌های اصلی سرور (IKEv2، Cisco AnyConnect، OpenVPN، SSH Tunnel و L2TP) به ردیوس متصل هستند.
-                    </div>
-                </div>
-            </div>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="switchTab('radius')" style="width: auto; padding: 6px 14px; font-size: 12px; display: flex; align-items: center; gap: 6px;">
-                <span data-i18n="proto_radius_btn">مدیریت کاربران ردیوس</span> <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
-            </button>
-        </div>
-
         <!-- Filter tabs for protocols -->
         <div class="proto-filter-scroll-container">
-            <button type="button" class="btn proto-filter-btn active" data-proto-filter="all" onclick="filterProtocols('all', this)" data-i18n="proto_filter_all">
+            <button type="button" class="btn proto-tab-filter-btn active" data-proto-filter="all" onclick="filterProtocols('all', this)" data-i18n="proto_filter_all">
                 همه پروتکل‌ها
             </button>
-            <button type="button" class="btn btn-secondary proto-filter-btn" data-proto-filter="native" onclick="filterProtocols('native', this)" data-i18n="proto_filter_native">
+            <button type="button" class="btn btn-secondary proto-tab-filter-btn" data-proto-filter="native" onclick="filterProtocols('native', this)" data-i18n="proto_filter_native">
                 تانل‌های نیتیو (IKEv2, Cisco, L2TP, SSTP)
             </button>
-            <button type="button" class="btn btn-secondary proto-filter-btn" data-proto-filter="crypto" onclick="filterProtocols('crypto', this)" data-i18n="proto_filter_crypto">
+            <button type="button" class="btn btn-secondary proto-tab-filter-btn" data-proto-filter="crypto" onclick="filterProtocols('crypto', this)" data-i18n="proto_filter_crypto">
                 تانل‌های مدرن (OpenVPN, WireGuard, SSH)
             </button>
-            <button type="button" class="btn btn-secondary proto-filter-btn" data-proto-filter="proxy" onclick="filterProtocols('proxy', this)" data-i18n="proto_filter_proxy">
+            <button type="button" class="btn btn-secondary proto-tab-filter-btn" data-proto-filter="proxy" onclick="filterProtocols('proxy', this)" data-i18n="proto_filter_proxy">
                 پروکسی‌ها (MTProto, Shadowsocks, HTTP/SOCKS)
             </button>
         </div>

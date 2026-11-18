@@ -3,7 +3,7 @@
     var usageChart = null;
     var bandwidthChart = null;
     var loadedProtocolsData = [];
-    var currentProtoFilter = 'all';
+    var currentProtocolsTabFilter = 'all';
     var latestStats = null;
     var prevRecv = 0;
     var prevSent = 0;
@@ -1434,13 +1434,13 @@
 
     // Protocol Bandwidth & Traffic Share State
     window.lastProtoData = null;
-    window.currentProtoFilter = "consuming"; // "consuming", "throughput", "all"
+    window.currentProtoTrafficFilter = "consuming"; // "consuming", "throughput", "all"
     window.currentProtoSort = "bytes_desc";  // "bytes_desc", "speed_desc", "conns_desc", "name_asc"
     window.protoSearchQuery = "";
 
     function setProtoFilter(filterType) {
-        window.currentProtoFilter = filterType;
-        document.querySelectorAll(".proto-filter-btn").forEach(btn => {
+        window.currentProtoTrafficFilter = filterType;
+        document.querySelectorAll(".proto-traffic-filter-btn").forEach(btn => {
             btn.classList.remove("active");
             btn.classList.add("btn-ghost");
         });
@@ -1631,9 +1631,9 @@
 
         // 1. Filter
         let filtered = list;
-        if (window.currentProtoFilter === "consuming") {
+        if (window.currentProtoTrafficFilter === "consuming") {
             filtered = filtered.filter(item => (item.total_bytes > 0 || item.active));
-        } else if (window.currentProtoFilter === "throughput") {
+        } else if (window.currentProtoTrafficFilter === "throughput") {
             filtered = filtered.filter(item => ((item.rx_speed_kbs || 0) > 0 || (item.tx_speed_kbs || 0) > 0));
         }
 
@@ -2383,15 +2383,23 @@
         }
     };
 
+    window.currentProtocolsTabFilter = 'all';
+
     function filterProtocols(filter, btn) {
-        currentProtoFilter = filter;
-        document.querySelectorAll('.proto-filter-btn').forEach(b => {
+        window.currentProtocolsTabFilter = filter || 'all';
+        document.querySelectorAll('.proto-tab-filter-btn').forEach(b => {
             b.classList.remove('active');
             b.classList.add('btn-secondary');
         });
         if (btn) {
             btn.classList.add('active');
             btn.classList.remove('btn-secondary');
+        } else {
+            const defaultBtn = document.querySelector(`.proto-tab-filter-btn[data-proto-filter="${filter}"]`);
+            if (defaultBtn) {
+                defaultBtn.classList.add('active');
+                defaultBtn.classList.remove('btn-secondary');
+            }
         }
         renderProtocolsCards();
     }
@@ -2409,15 +2417,15 @@
             const res = await fetch("/api/protocols");
             if (!res.ok) return;
             const data = await res.json();
-            const protoHash = JSON.stringify(data) + '_' + currentProtoFilter + '_' + (localStorage.getItem("panel_language") || "fa");
+            const protoHash = JSON.stringify(data) + '_' + (window.currentProtocolsTabFilter || 'all') + '_' + (localStorage.getItem("panel_language") || "fa");
             if (protoHash === window._lastProtocolsRenderHash) {
                 return; // Nothing changed, skip DOM destruction
             }
             window._lastProtocolsRenderHash = protoHash;
-            loadedProtocolsData = data;
+            loadedProtocolsData = Array.isArray(data) ? data : [];
             renderProtocolsCards();
         } catch (err) {
-            console.error(err);
+            console.error("fetchProtocols error:", err);
         }
     }
 
@@ -2427,11 +2435,12 @@
         container.innerHTML = "";
 
         const lang = localStorage.getItem("panel_language") || "fa";
+        const currentFilter = window.currentProtocolsTabFilter || 'all';
 
-        const filtered = loadedProtocolsData.filter(proto => {
-            if (currentProtoFilter === 'all') return true;
+        const filtered = (loadedProtocolsData || []).filter(proto => {
+            if (currentFilter === 'all') return true;
             const meta = PROTOCOL_META[proto.name] || {};
-            return meta.category === currentProtoFilter;
+            return meta.category === currentFilter;
         });
 
         const tUninstalled = (lang === 'fa' ? 'نصب نشده' : (lang === 'ru' ? 'Не установлен' : 'Not Installed'));
@@ -21725,6 +21734,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const outboundsPane = document.getElementById("sb-pane-outbounds");
         const logsPane = document.getElementById("sb-pane-logs");
         const cleanIpsPane = document.getElementById("sb-pane-cleanips");
+        const rotationPane = document.getElementById("sb-pane-reality-rotation");
         const banner = document.getElementById("sb-protocol-filter-banner");
 
         if (subTab === "logs") {
@@ -21733,6 +21743,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (usersPane) usersPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (logsPane) logsPane.style.display = "block";
             fetchSingboxLogs();
@@ -21743,6 +21754,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (logsPane) logsPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (usersPane) usersPane.style.display = "block";
             loadSingboxUsers();
@@ -21753,6 +21765,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "block";
             loadSingboxOutbounds();
@@ -21762,15 +21775,27 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "block";
             loadSingboxCleanIps();
+        } else if (subTab === "reality_rotation" || subTab === "reality-rotation") {
+            stopSingboxLogAutoRefresh();
+            if (inboundsPane) inboundsPane.style.display = "none";
+            if (logsPane) logsPane.style.display = "none";
+            if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (banner) banner.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "block";
+            loadRealityRotationConfig();
         } else {
             stopSingboxLogAutoRefresh();
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
             if (inboundsPane) inboundsPane.style.display = "block";
 
             if (subTab === "inbounds") {
@@ -26368,6 +26393,162 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         } catch (e) {
             showToast("خطای شبکه", "error");
         }
+    }
+
+    // --- Reality Camouflage Domain Auto-Rotation Handlers ---
+    async function loadRealityRotationConfig() {
+        try {
+            const res = await fetch("/api/singbox/reality/rotation");
+            if (!res.ok) return;
+            const data = await res.json();
+            if (!data.success) return;
+
+            const cfg = data.config || {};
+            const enabledToggle = document.getElementById("sb-rot-enabled-toggle");
+            const intervalVal = document.getElementById("sb-rot-interval-value");
+            const intervalUnit = document.getElementById("sb-rot-interval-unit");
+            const domainsTextarea = document.getElementById("sb-rot-domains-textarea");
+            const curDomEl = document.getElementById("sb-rot-current-domain");
+            const statusEl = document.getElementById("sb-rot-status-pill");
+            const remTimeEl = document.getElementById("sb-rot-remaining-time");
+            const countEl = document.getElementById("sb-rot-domains-count");
+            const badgeEl = document.getElementById("sb-rotation-status-badge");
+
+            if (enabledToggle) enabledToggle.checked = !!cfg.enabled;
+            if (intervalVal) intervalVal.value = cfg.interval_value || 3;
+            if (intervalUnit) intervalUnit.value = cfg.interval_unit || "days";
+            if (domainsTextarea) domainsTextarea.value = (cfg.domains || []).join("\n");
+
+            const curDom = data.current_domain || cfg.current_domain || "-";
+            if (curDomEl) curDomEl.innerText = curDom;
+
+            if (statusEl) {
+                if (cfg.enabled) {
+                    statusEl.innerHTML = `<span style="color: #10b981; display: inline-flex; align-items: center; gap: 5px;"><span class="status-dot active"></span> فعال و خودکار</span>`;
+                } else {
+                    statusEl.innerHTML = `<span style="color: var(--text-muted); display: inline-flex; align-items: center; gap: 5px;"><span class="status-dot uninstalled"></span> غیرفعال</span>`;
+                }
+            }
+
+            if (badgeEl) {
+                badgeEl.innerText = cfg.enabled ? "Active" : "Off";
+                badgeEl.style.background = cfg.enabled ? "rgba(16, 185, 129, 0.2)" : "rgba(139, 92, 246, 0.2)";
+                badgeEl.style.color = cfg.enabled ? "#10b981" : "#8b5cf6";
+            }
+
+            if (remTimeEl) {
+                remTimeEl.innerText = data.remaining_formatted || (cfg.enabled ? "به‌زودی" : "غیرفعال");
+            }
+
+            const domCount = (cfg.domains || []).length;
+            if (countEl) countEl.innerText = `${domCount} دامنه`;
+
+            // Render History Table
+            const tbody = document.getElementById("sb-rot-history-tbody");
+            if (tbody) {
+                const history = cfg.history || [];
+                if (history.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">هنوز چرخشی ثبت نشده است.</td></tr>`;
+                } else {
+                    tbody.innerHTML = history.map(item => `
+                        <tr>
+                            <td style="font-family: 'JetBrains Mono'; direction: ltr;">${item.time || "-"}</td>
+                            <td><strong style="color: #8b5cf6; font-family: 'JetBrains Mono'; direction: ltr;">${item.domain || "-"}</strong></td>
+                            <td style="color: var(--text-muted); font-family: 'JetBrains Mono'; direction: ltr;">${item.previous || "-"}</td>
+                            <td>${item.inbounds_updated || 1} اینباند</td>
+                            <td><span class="badge-pill" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 10.5px; padding: 2px 8px; border-radius: 4px;">موفق ✓</span></td>
+                        </tr>
+                    `).join("");
+                }
+            }
+
+            if (typeof lucide !== "undefined") lucide.createIcons();
+        } catch (e) {
+            console.error("Error loading reality rotation config:", e);
+        }
+    }
+
+    async function saveRealityRotationConfig() {
+        const enabledToggle = document.getElementById("sb-rot-enabled-toggle");
+        const intervalVal = document.getElementById("sb-rot-interval-value");
+        const intervalUnit = document.getElementById("sb-rot-interval-unit");
+        const domainsTextarea = document.getElementById("sb-rot-domains-textarea");
+
+        const enabled = enabledToggle ? enabledToggle.checked : false;
+        const interval_value = intervalVal ? parseInt(intervalVal.value, 10) || 3 : 3;
+        const interval_unit = intervalUnit ? intervalUnit.value : "days";
+        const domains = domainsTextarea ? domainsTextarea.value.split("\n").map(d => d.trim()).filter(Boolean) : [];
+
+        if (enabled && domains.length < 1) {
+            showToast("لطفاً حداقل ۱ دامنه استتار برای چرخش ریالیتی وارد کنید.", "error");
+            return;
+        }
+
+        toggleLoading(true, "در حال ذخیره تنظیمات چرخش دامنه ریالیتی...");
+        try {
+            const res = await fetch("/api/singbox/reality/rotation", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    enabled,
+                    interval_value,
+                    interval_unit,
+                    domains
+                })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(data.message || "تنظیمات با موفقیت ذخیره شد.", "success");
+                loadRealityRotationConfig();
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
+
+    async function triggerRealityRotationNow() {
+        if (!confirm("آیا مایلید چرخش دامنه استتار ریالیتی فوراً به دامنه بعدی انجام شود؟\nاین عمل اینباندهای Reality در هسته سینگ‌باکس و قوانین HAProxy را سریعاً آپدیت می‌کند.")) return;
+        toggleLoading(true, "در حال چرخش دامنه استتار ریالیتی...");
+        try {
+            const res = await fetch("/api/singbox/reality/rotation/trigger", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({})
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(data.message, "success");
+                loadRealityRotationConfig();
+                loadSingboxData();
+            } else {
+                showToast(data.error || "خطا در چرخش دامنه", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
+    }
+
+    function addRecommendedRealityDomains() {
+        const textarea = document.getElementById("sb-rot-domains-textarea");
+        if (!textarea) return;
+        const recommended = [
+            "images.unsplash.com",
+            "download.docker.com",
+            "cdn.jsdelivr.net",
+            "swisstransfer.com",
+            "speedtest.net",
+            "www.cloudflare.com"
+        ];
+        const existing = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
+        const combined = Array.from(new Set([...existing, ...recommended]));
+        textarea.value = combined.join("\n");
+        showToast("دامنه‌های پیشنهادی استاندارد به لیست اضافه شدند.", "info");
     }
 
     function openSingboxJsonModal() {

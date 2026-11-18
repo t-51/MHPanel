@@ -2515,8 +2515,8 @@ DEFAULT_OPERATOR_CLEAN_IPS = [
 
 def get_singbox_clean_ips_config():
     default_cfg = {
-        "operators": copy.deepcopy(DEFAULT_OPERATOR_CLEAN_IPS),
-        "clean_ips": list(DEFAULT_CLOUDFLARE_CLEAN_IPS),
+        "operators": [],
+        "clean_ips": [],
         "cf_domain": "",
         "updated_at": ""
     }
@@ -29118,75 +29118,111 @@ def ensure_singbox_default_config():
         try:
             with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
                 c = json.load(f)
-            if not c.get("inbounds"):
-                need_init = True
-            else:
-                changed = False
-                # Remove legacy inbound fields for sing-box >= 1.14
-                for ib in c.get("inbounds", []):
-                    for k in ["sniff", "sniff_override_destination", "sniff_timeout", "domain_strategy"]:
-                        if k in ib:
-                            del ib[k]
-                            changed = True
+            
+            # Ensure inbounds and outbounds keys exist without forcing default inbounds
+            if "inbounds" not in c:
+                c["inbounds"] = []
+            if "outbounds" not in c:
+                c["outbounds"] = [{"type": "direct", "tag": "direct"}, {"type": "block", "tag": "block"}]
 
-                # Modernize DNS
-                dns_obj = c.get("dns", {})
-                new_servers = []
-                for s in dns_obj.get("servers", []):
-                    srv = dict(s)
-                    addr = srv.pop("address", None)
-                    srv.pop("strategy", None)
-                    srv.pop("detour", None)
-                    if addr:
-                        srv["type"] = "udp"
-                        srv["server"] = addr
-                    new_servers.append(srv)
-                dns_obj["servers"] = new_servers
-                dns_obj["strategy"] = "ipv4_only"
-                c["dns"] = dns_obj
-
-                # Clean Outbounds
-                for ob in c.get("outbounds", []):
-                    if "domain_strategy" in ob:
-                        del ob["domain_strategy"]
+            changed = False
+            # Remove legacy inbound fields for sing-box >= 1.14
+            for ib in c.get("inbounds", []):
+                for k in ["sniff", "sniff_override_destination", "sniff_timeout", "domain_strategy"]:
+                    if k in ib:
+                        del ib[k]
                         changed = True
 
-                # Modernize Route
-                route_obj = c.get("route", {})
-                route_obj["default_domain_resolver"] = {
-                    "server": "dns-direct",
-                    "strategy": "ipv4_only"
-                }
-                rules = route_obj.get("rules", [])
-                if not any(r.get("action") == "sniff" for r in rules if isinstance(r, dict)):
-                    rules.insert(0, {"action": "sniff"})
-                    changed = True
-                for r in rules:
-                    if isinstance(r, dict) and r.get("geoip") == "private":
-                        del r["geoip"]
-                        r["ip_is_private"] = True
-                        changed = True
+            # Modernize DNS
+            dns_obj = c.get("dns", {})
+            new_servers = []
+            for s in dns_obj.get("servers", []):
+                srv = dict(s)
+                addr = srv.pop("address", None)
+                srv.pop("strategy", None)
+                srv.pop("detour", None)
+                if addr:
+                    srv["type"] = "udp"
+                    srv["server"] = addr
+                new_servers.append(srv)
+            dns_obj["servers"] = new_servers
+            dns_obj["strategy"] = "ipv4_only"
+            c["dns"] = dns_obj
 
-                has_quic_block = any(r.get("port") == [443] and "udp" in r.get("network", []) and r.get("outbound") == "block" for r in rules if isinstance(r, dict))
-                if not has_quic_block:
-                    rules.insert(1, {"port": [443], "network": ["udp"], "outbound": "block"})
+            # Clean Outbounds
+            for ob in c.get("outbounds", []):
+                if "domain_strategy" in ob:
+                    del ob["domain_strategy"]
                     changed = True
-                route_obj["rules"] = rules
-                c["route"] = route_obj
 
-                if changed:
-                    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f_out:
-                        json.dump(c, f_out, indent=2, ensure_ascii=False)
-                    try:
-                        subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
-                    except Exception: pass
+            # Modernize Route
+            route_obj = c.get("route", {})
+            route_obj["default_domain_resolver"] = {
+                "server": "dns-direct",
+                "strategy": "ipv4_only"
+            }
+            rules = route_obj.get("rules", [])
+            if not any(r.get("action") == "sniff" for r in rules if isinstance(r, dict)):
+                rules.insert(0, {"action": "sniff"})
+                changed = True
+            for r in rules:
+                if isinstance(r, dict) and r.get("geoip") == "private":
+                    del r["geoip"]
+                    r["ip_is_private"] = True
+                    changed = True
+
+            has_quic_block = any(r.get("port") == [443] and "udp" in r.get("network", []) and r.get("outbound") == "block" for r in rules if isinstance(r, dict))
+            if not has_quic_block:
+                rules.insert(1, {"port": [443], "network": ["udp"], "outbound": "block"})
+                changed = True
+            route_obj["rules"] = rules
+            c["route"] = route_obj
+
+            if changed:
+                with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f_out:
+                    json.dump(c, f_out, indent=2, ensure_ascii=False)
+                try:
+                    subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+                except Exception: pass
         except Exception:
             need_init = True
 
     if need_init:
-        full_cfg = build_default_singbox_full_suite()
+        raw_cfg = {
+            "log": {
+                "level": "warn",
+                "timestamp": True
+            },
+            "dns": {
+                "servers": [
+                    {
+                        "type": "udp",
+                        "tag": "dns-direct",
+                        "server": "1.1.1.1"
+                    }
+                ],
+                "strategy": "ipv4_only"
+            },
+            "inbounds": [],
+            "outbounds": [
+                {
+                    "type": "direct",
+                    "tag": "direct"
+                },
+                {
+                    "type": "block",
+                    "tag": "block"
+                }
+            ],
+            "route": {
+                "rules": [
+                    {"action": "sniff"},
+                    {"port": [443], "network": ["udp"], "outbound": "block"}
+                ]
+            }
+        }
         with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(full_cfg, f, indent=2, ensure_ascii=False)
+            json.dump(raw_cfg, f, indent=2, ensure_ascii=False)
         try:
             subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
         except Exception: pass
@@ -32104,6 +32140,273 @@ def restore_system_backup(filepath):
         subprocess.run(["systemctl", "restart", "mhpanel-singbox.service"], capture_output=True)
 
     return True, "پشتیبان با موفقیت بازیابی شد و هسته سینگ‌باکس با تنظیمات جدید ری‌استارت گردید."
+
+# =========================================================================
+# --- Reality Camouflage Domain Auto-Rotation Engine ---
+# =========================================================================
+
+REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
+
+DEFAULT_REALITY_DOMAINS = [
+    "images.unsplash.com",
+    "download.docker.com",
+    "cdn.jsdelivr.net",
+    "swisstransfer.com",
+    "speedtest.net",
+    "www.cloudflare.com"
+]
+
+def get_reality_rotation_config():
+    default_cfg = {
+        "enabled": False,
+        "interval_value": 3,
+        "interval_unit": "days",   # "days" or "hours"
+        "domains": list(DEFAULT_REALITY_DOMAINS),
+        "current_domain": "images.unsplash.com",
+        "last_rotated_at": 0,
+        "next_rotation_at": 0,
+        "history": []
+    }
+    if os.path.exists(REALITY_ROTATION_CONFIG_FILE):
+        try:
+            with open(REALITY_ROTATION_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    default_cfg.update(saved)
+        except Exception as e:
+            logger.error(f"Error reading {REALITY_ROTATION_CONFIG_FILE}: {e}")
+    return default_cfg
+
+def save_reality_rotation_config(cfg):
+    try:
+        os.makedirs(os.path.dirname(REALITY_ROTATION_CONFIG_FILE), exist_ok=True)
+        with open(REALITY_ROTATION_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving {REALITY_ROTATION_CONFIG_FILE}: {e}")
+        return False
+
+def get_current_reality_domain():
+    if os.path.exists(SINGBOX_CONFIG_FILE):
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            for ib in c.get("inbounds", []):
+                tls = ib.get("tls", {})
+                if tls.get("reality", {}).get("enabled") or ib.get("tag") == "vless-reality-in":
+                    sname = tls.get("server_name")
+                    if sname:
+                        return sname.strip()
+        except Exception:
+            pass
+    return "images.unsplash.com"
+
+def execute_reality_rotation(force=False, target_domain=None):
+    cfg = get_reality_rotation_config()
+    domains = [d.strip() for d in cfg.get("domains", []) if d.strip()]
+    if not domains:
+        domains = list(DEFAULT_REALITY_DOMAINS)
+
+    current_dom = get_current_reality_domain()
+
+    if target_domain and target_domain.strip():
+        new_dom = target_domain.strip()
+    else:
+        # Choose next domain in round-robin fashion
+        if current_dom in domains:
+            idx = domains.index(current_dom)
+            new_dom = domains[(idx + 1) % len(domains)]
+        else:
+            candidates = [d for d in domains if d != current_dom]
+            new_dom = candidates[0] if candidates else domains[0]
+
+    # Update in Singbox config
+    modified_inbounds = 0
+    if os.path.exists(SINGBOX_CONFIG_FILE):
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                sb_cfg = json.load(f)
+
+            for ib in sb_cfg.get("inbounds", []):
+                tls = ib.get("tls", {})
+                if tls.get("reality", {}).get("enabled") or ib.get("tag") == "vless-reality-in":
+                    tls["server_name"] = new_dom
+                    if "reality" in tls and "handshake" in tls["reality"]:
+                        tls["reality"]["handshake"]["server"] = new_dom
+                    modified_inbounds += 1
+
+            if modified_inbounds > 0:
+                with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+                    json.dump(sb_cfg, f, indent=2, ensure_ascii=False)
+                subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
+                sync_singbox_multiplexer_and_iptables()
+        except Exception as e:
+            logger.error(f"Error updating reality domain in singbox config: {e}")
+            return False, f"خطا در بروزرسانی کانفیگ سینگ‌باکس: {e}"
+
+    # Calculate next rotation time
+    val = int(cfg.get("interval_value") or 3)
+    unit = cfg.get("interval_unit") or "days"
+    interval_sec = val * (86400 if unit == "days" else 3600)
+    now_ts = int(time.time())
+    next_ts = now_ts + interval_sec
+
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    history = cfg.get("history", [])
+    history.insert(0, {
+        "domain": new_dom,
+        "previous": current_dom,
+        "time": now_str,
+        "status": "success",
+        "inbounds_updated": modified_inbounds
+    })
+    cfg["history"] = history[:25]
+    cfg["current_domain"] = new_dom
+    cfg["last_rotated_at"] = now_ts
+    cfg["next_rotation_at"] = next_ts
+    save_reality_rotation_config(cfg)
+
+    # Optional Telegram Notification
+    try:
+        tg_cfg = get_telegram_config()
+        if tg_cfg.get("bot_token") and tg_cfg.get("admin_id"):
+            token = tg_cfg["bot_token"]
+            admin_id = tg_cfg["admin_id"]
+            next_str = (datetime.now() + timedelta(seconds=interval_sec)).strftime("%Y-%m-%d %H:%M:%S")
+            srv_ip = get_server_public_ip() or ""
+            msg = (
+                f"🔄 <b>چرخش خودکار دامنه استتار ریالیتی (Reality SNI Rotation)</b>\n\n"
+                f"🌐 سرور: <code>{srv_ip}</code>\n"
+                f"✨ دامنه استتار جدید: <code>{new_dom}</code>\n"
+                f"⏮️ دامنه قبلی: <code>{current_dom}</code>\n"
+                f"⏰ زمان تغییر: <code>{now_str}</code>\n"
+                f"⏳ چرخش بعدی: <code>{next_str}</code>\n\n"
+                f"<i>هسته سینگ‌باکس و قوانین HAProxy به صورت خودکار بروزرسانی شدند.</i>"
+            )
+            threading.Thread(target=send_telegram_notification, args=(token, admin_id, msg), daemon=True).start()
+    except Exception:
+        pass
+
+    return True, f"دامنه استتار ریالیتی با موفقیت به {new_dom} تغییر یافت."
+
+def reality_rotation_worker():
+    while True:
+        try:
+            time.sleep(60)
+            cfg = get_reality_rotation_config()
+            if not cfg.get("enabled", False):
+                continue
+
+            domains = [d.strip() for d in cfg.get("domains", []) if d.strip()]
+            if len(domains) < 2:
+                continue
+
+            now_ts = int(time.time())
+            next_ts = cfg.get("next_rotation_at", 0)
+            if next_ts == 0:
+                val = int(cfg.get("interval_value") or 3)
+                unit = cfg.get("interval_unit") or "days"
+                interval_sec = val * (86400 if unit == "days" else 3600)
+                cfg["next_rotation_at"] = now_ts + interval_sec
+                save_reality_rotation_config(cfg)
+                continue
+
+            if now_ts >= next_ts:
+                logger.info("Triggering scheduled Reality domain auto-rotation...")
+                execute_reality_rotation()
+        except Exception as e:
+            logger.error(f"Error in reality_rotation_worker: {e}")
+
+@app.route("/api/singbox/reality/rotation", methods=["GET", "POST"])
+def api_singbox_reality_rotation():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if request.method == "GET":
+        cfg = get_reality_rotation_config()
+        current_dom = get_current_reality_domain()
+        cfg["current_domain"] = current_dom
+        now_ts = int(time.time())
+        next_ts = cfg.get("next_rotation_at", 0)
+        remaining_sec = max(0, next_ts - now_ts) if (next_ts > 0 and cfg.get("enabled")) else 0
+        rem_days = remaining_sec // 86400
+        rem_hours = (remaining_sec % 86400) // 3600
+        rem_minutes = (remaining_sec % 3600) // 60
+        remaining_str = f"{rem_days} روز و {rem_hours} ساعت" if rem_days > 0 else (f"{rem_hours} ساعت و {rem_minutes} دقیقه" if rem_hours > 0 else f"{rem_minutes} دقیقه")
+        return jsonify({
+            "success": True,
+            "config": cfg,
+            "current_domain": current_dom,
+            "remaining_seconds": remaining_sec,
+            "remaining_formatted": remaining_str if cfg.get("enabled") else "غیرفعال"
+        })
+
+    req = request.get_json() or {}
+    cfg = get_reality_rotation_config()
+
+    if "enabled" in req:
+        cfg["enabled"] = bool(req.get("enabled"))
+
+    if "interval_value" in req:
+        try:
+            val = max(1, int(req.get("interval_value")))
+            cfg["interval_value"] = val
+        except (ValueError, TypeError):
+            pass
+
+    if "interval_unit" in req:
+        unit = req.get("interval_unit")
+        if unit in ["days", "hours"]:
+            cfg["interval_unit"] = unit
+
+    if "domains" in req:
+        raw_domains = req.get("domains")
+        if isinstance(raw_domains, str):
+            domains_list = [d.strip() for d in raw_domains.replace(",", "\n").splitlines() if d.strip()]
+        elif isinstance(raw_domains, list):
+            domains_list = [str(d).strip() for d in raw_domains if str(d).strip()]
+        else:
+            domains_list = []
+
+        clean_domains = []
+        for d in domains_list:
+            d_clean = re.sub(r"^https?://", "", d).split("/")[0].split(":")[0].strip()
+            if d_clean and "." in d_clean and d_clean not in clean_domains:
+                clean_domains.append(d_clean)
+
+        if clean_domains:
+            cfg["domains"] = clean_domains
+
+    # Recalculate next rotation time
+    if cfg.get("enabled"):
+        val = int(cfg.get("interval_value") or 3)
+        unit = cfg.get("interval_unit") or "days"
+        interval_sec = val * (86400 if unit == "days" else 3600)
+        cfg["next_rotation_at"] = int(time.time()) + interval_sec
+    else:
+        cfg["next_rotation_at"] = 0
+
+    save_reality_rotation_config(cfg)
+    return jsonify({
+        "success": True,
+        "message": "تنظیمات چرخش خودکار دامنه ریالیتی با موفقیت ذخیره شد.",
+        "config": cfg
+    })
+
+@app.route("/api/singbox/reality/rotation/trigger", methods=["POST"])
+def api_singbox_reality_rotation_trigger():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    target_domain = req.get("target_domain")
+    ok, msg = execute_reality_rotation(force=True, target_domain=target_domain)
+    cfg = get_reality_rotation_config()
+    return jsonify({
+        "success": ok,
+        "message": msg,
+        "current_domain": cfg.get("current_domain")
+    })
 
 @app.route("/api/backup/list", methods=["GET"])
 def api_backup_list():
@@ -35459,6 +35762,9 @@ if __name__ == "__main__":
     # Singbox client tracker
     if is_installed("singbox") or os.path.exists(SINGBOX_CONFIG_FILE):
         threading.Thread(target=singbox_client_tracker, daemon=True).start()
+
+    # Reality domain auto-rotation worker
+    threading.Thread(target=reality_rotation_worker, daemon=True).start()
 
     redirect_server.start()
     

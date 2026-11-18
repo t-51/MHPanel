@@ -3147,48 +3147,20 @@ install_singbox() {
         cat > /etc/sing-box/config.json <<EOF
 {
   "log": {
-    "level": "info",
+    "level": "warn",
     "timestamp": true
   },
-  "inbounds": [
-    {
-      "type": "vless",
-      "tag": "vless-reality-in",
-      "listen": "::",
-      "listen_port": ${port},
-      "sniff": true,
-      "users": [
-        {
-          "uuid": "4c2dfa93-5bc2-466a-bca9-566bcba0cbdf",
-          "flow": "xtls-rprx-vision"
-        }
-      ],
-      "tls": {
-        "enabled": true,
-        "server_name": "www.google.com",
-        "reality": {
-          "enabled": true,
-          "handshake": {
-            "server": "www.google.com",
-            "server_port": 443
-          },
-          "private_key": "oJWFNihT4yj8sGXdj978eQjGajPK8N_It7EEPiPXD3s",
-          "short_id": [
-            "0123456789abcdef",
-            ""
-          ]
-        }
+  "dns": {
+    "servers": [
+      {
+        "type": "udp",
+        "tag": "dns-direct",
+        "server": "1.1.1.1"
       }
-    },
-    {
-      "type": "shadowsocks",
-      "tag": "ss-in",
-      "listen": "::",
-      "listen_port": 2080,
-      "method": "2022-blake3-aes-128-gcm",
-      "password": "bXBwYW5lbF9zZWNyZXQxMg=="
-    }
-  ],
+    ],
+    "strategy": "ipv4_only"
+  },
+  "inbounds": [],
   "outbounds": [
     {
       "type": "direct",
@@ -3198,7 +3170,12 @@ install_singbox() {
       "type": "block",
       "tag": "block"
     }
-  ]
+  ],
+  "route": {
+    "rules": [
+      {"action": "sniff"}
+    ]
+  }
 }
 EOF
     fi
