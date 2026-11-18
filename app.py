@@ -35457,7 +35457,7 @@ if __name__ == "__main__":
         pass
 
     # Singbox client tracker
-    if is_singbox_installed() or os.path.exists(SINGBOX_CONFIG_FILE):
+    if is_installed("singbox") or os.path.exists(SINGBOX_CONFIG_FILE):
         threading.Thread(target=singbox_client_tracker, daemon=True).start()
 
     redirect_server.start()
