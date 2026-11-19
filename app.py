@@ -2774,6 +2774,8 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         "server_port": target_port,
                         "uuid": u_uuid
                     }
+                    if reality_enabled and tp_type == "tcp":
+                        ob["flow"] = "xtls-rprx-vision"
                     if reality_enabled:
                         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
                         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
@@ -29105,7 +29107,7 @@ def build_default_singbox_full_suite():
             "tag": "vless-reality-in",
             "listen": "::",
             "listen_port": 20443,
-            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
             "tls": {
                 "enabled": True,
                 "server_name": "images.unsplash.com",
@@ -29156,6 +29158,46 @@ def build_default_singbox_full_suite():
                 "reality": {
                     "enabled": True,
                     "handshake": {"server": "cdn.jsdelivr.net", "server_port": 443},
+                    "private_key": reality_priv,
+                    "short_id": ["86d7ec6343d000b6", ""]
+                }
+            }
+        },
+        # 4. VLESS Reality WebSocket - Camouflage with Apple CDN
+        {
+            "type": "vless",
+            "tag": "vless-reality-ws",
+            "listen": "::",
+            "listen_port": 20466,
+            "users": [{"name": "default-user", "uuid": vless_uuid}],
+            "transport": {
+                "type": "ws",
+                "path": "/vless-reality-ws"
+            },
+            "tls": {
+                "enabled": True,
+                "server_name": "swdist.apple.com",
+                "reality": {
+                    "enabled": True,
+                    "handshake": {"server": "swdist.apple.com", "server_port": 443},
+                    "private_key": reality_priv,
+                    "short_id": ["86d7ec6343d000b6", ""]
+                }
+            }
+        },
+        # 5. Trojan Reality TCP - Camouflage with Digikala
+        {
+            "type": "trojan",
+            "tag": "trojan-reality-in",
+            "listen": "::",
+            "listen_port": 20465,
+            "users": [{"name": "default-user", "password": psk16[:12]}],
+            "tls": {
+                "enabled": True,
+                "server_name": "www.digikala.com",
+                "reality": {
+                    "enabled": True,
+                    "handshake": {"server": "www.digikala.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
@@ -29682,9 +29724,11 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
 
     clean_tag = tag.replace("-in", "")
     friendly_names = {
-        "vless-reality": "VLESS-Reality",
+        "vless-reality": "VLESS-Reality-Vision",
         "vless-reality-grpc": "VLESS-Reality-gRPC",
         "vless-reality-upgrade": "VLESS-Reality-HTTPUpgrade",
+        "vless-reality-ws": "VLESS-Reality-WS",
+        "trojan-reality": "Trojan-Reality",
         "vless-ws": "VLESS-WS-TLS",
         "vless-grpc-tls": "VLESS-gRPC-TLS",
         "vless-upgrade-tls": "VLESS-HTTPUpgrade-TLS",
@@ -29741,7 +29785,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     if itype == "vless":
         tp = (inbound.get("transport") or {}).get("type", "tcp")
         user_flow = target_user.get("flow") if (target_user and "flow" in target_user) else user0.get("flow")
-        flow = "" if reality_enabled else ((user_flow or "") if tp == "tcp" else "")
+        if reality_enabled:
+            flow = user_flow or ("xtls-rprx-vision" if tp == "tcp" else "")
+        else:
+            flow = (user_flow or "") if tp == "tcp" else ""
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
         sids = reality_obj.get("short_id", [""])
@@ -29814,11 +29861,11 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         return f"vmess://{b64_json}"
 
     elif itype == "trojan":
-        sec = "tls" if tls_enabled else "none"
+        sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         tp = inbound.get("transport", {}).get("type", "tcp")
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip if reality_enabled else (sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip)
         is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
-        insec_flag = "&allowInsecure=1" if (tls_enabled and is_self_signed) else ""
+        insec_flag = "&allowInsecure=1" if (tls_enabled and not reality_enabled and is_self_signed) else ""
         link = f"trojan://{u_pass}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}{insec_flag}"
         if tp == "ws":
             ws_path = inbound.get("transport", {}).get("path", "/trojan-ws")
@@ -29829,6 +29876,15 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         elif tp == "httpupgrade":
             hpath = inbound.get("transport", {}).get("path", "/trojan-up")
             link += f"&path={hpath}"
+
+        if reality_enabled:
+            pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
+            sids = reality_obj.get("short_id", [""])
+            sid = sids[0] if (isinstance(sids, list) and sids) else str(sids or "")
+            if pbk: link += f"&pbk={pbk}"
+            if sid: link += f"&sid={sid}"
+            link += "&fp=chrome"
+
         link += f"#{tag_name}"
         return link
 
@@ -30259,23 +30315,26 @@ def sync_singbox_users_to_config():
             tls_obj = ib.get("tls") or {}
             is_reality = bool((tls_obj.get("reality") or {}).get("enabled", False))
             
-            # XTLS Vision is disabled across Reality configs for universal client compatibility
-            existing_flow = next((x.get("flow") for x in (ib.get("users") or []) if x.get("flow")), "") if not is_reality else ""
+            # XTLS Vision Flow for Reality TCP and standard TLS TCP
+            existing_flow = next((x.get("flow") for x in (ib.get("users") or []) if x.get("flow")), "") or ("xtls-rprx-vision" if (is_reality and is_tcp_trans) else "")
 
             for u in assigned:
                 u_entry = {"name": u["username"], "uuid": u.get("uuid") or str(uuid.uuid4())}
                 if itype == "vless":
-                    if not is_reality and is_tcp_trans and (u.get("flow") or existing_flow):
-                        u_entry["flow"] = u.get("flow") or existing_flow
+                    if is_tcp_trans:
+                        if is_reality:
+                            u_entry["flow"] = u.get("flow") or "xtls-rprx-vision"
+                        elif u.get("flow") or existing_flow:
+                            u_entry["flow"] = u.get("flow") or existing_flow
                 elif itype == "vmess":
                     u_entry["alterId"] = 0
                 users_arr.append(u_entry)
             if not users_arr:
                 existing = [x for x in (ib.get("users") or []) if x.get("name") not in local_usernames]
-                if is_reality:
+                if is_reality and is_tcp_trans:
                     for ex in existing:
-                        ex.pop("flow", None)
-                users_arr = existing if existing else [{"name": "default-user", "uuid": str(uuid.uuid4())}]
+                        ex["flow"] = ex.get("flow") or "xtls-rprx-vision"
+                users_arr = existing if existing else [{"name": "default-user", "uuid": str(uuid.uuid4()), **({"flow": "xtls-rprx-vision"} if (is_reality and is_tcp_trans) else {})}]
             ib["users"] = users_arr
 
         elif itype == "trojan":
@@ -31410,13 +31469,18 @@ def api_singbox_inbound_share(tag):
 
     target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     share_link = generate_singbox_share_link(inbound, target_host)
+    is_real = bool(inbound.get("tls", {}).get("reality", {}).get("enabled") or "reality" in inbound.get("tag", ""))
+    pub_port = 443 if is_real else inbound.get("listen_port")
 
     return jsonify({
         "success": True,
         "tag": tag,
         "type": inbound.get("type"),
         "share_link": share_link,
-        "inbound_json": inbound
+        "inbound_json": inbound,
+        "is_reality": is_real,
+        "public_port": pub_port,
+        "internal_port": inbound.get("listen_port")
     })
 
 @app.route("/api/singbox/logs", methods=["GET", "POST"])
@@ -32457,19 +32521,122 @@ def restore_system_backup(filepath):
     return True, "پشتیبان با موفقیت بازیابی شد و هسته سینگ‌باکس با تنظیمات جدید ری‌استارت گردید."
 
 # =========================================================================
-# --- Reality Camouflage Domain Auto-Rotation Engine ---
+# --- Reality Camouflage Domain Auto-Rotation Engine & Domain Tester ---
 # =========================================================================
 
 REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
 
 DEFAULT_REALITY_DOMAINS = [
+    # Top Iranian Camouflage Domains (TLS 1.3 + ALPN h2 verified)
+    "www.digikala.com",
+    "divar.ir",
+    "torob.com",
+    "snapp.ir",
+    "aparat.com",
+    "nobitex.ir",
+    # Top Global CDN & Cloud Camouflage Domains (TLS 1.3 + ALPN h2 verified)
     "images.unsplash.com",
     "download.docker.com",
     "cdn.jsdelivr.net",
-    "swisstransfer.com",
+    "swdist.apple.com",
+    "gateway.icloud.com",
     "speedtest.net",
     "www.cloudflare.com"
 ]
+
+def test_reality_domain(domain, port=443, timeout=3.5):
+    import socket, ssl, time, re
+    domain = re.sub(r"^https?://", "", (domain or "").strip()).split("/")[0].split(":")[0].strip()
+    if not domain or "." not in domain:
+        return {
+            "domain": domain,
+            "success": False,
+            "error": "فرمت دامنه نامعتبر است.",
+            "is_suitable": False,
+            "verdict": "نامعتبر"
+        }
+
+    res = {
+        "domain": domain,
+        "port": port,
+        "resolved_ip": None,
+        "latency_ms": None,
+        "tls_version": None,
+        "alpn": None,
+        "cipher": None,
+        "is_tls13": False,
+        "is_h2": False,
+        "is_suitable": False,
+        "status_code": "unsuitable",
+        "verdict": "نامناسب",
+        "details": "",
+        "success": False,
+        "error": None
+    }
+
+    t0 = time.time()
+    try:
+        ip_addr = socket.gethostbyname(domain)
+        res["resolved_ip"] = ip_addr
+    except Exception as e:
+        res["error"] = f"خطا در تفکیک DNS: {e}"
+        res["verdict"] = "خطای DNS"
+        res["details"] = "دامنه قابل تبدیل به IP نیست."
+        return res
+
+    try:
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        try:
+            ctx.set_alpn_protocols(["h2", "http/1.1"])
+        except Exception:
+            pass
+
+        with socket.create_connection((ip_addr, port), timeout=timeout) as sock:
+            with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
+                lat = int((time.time() - t0) * 1000)
+                res["latency_ms"] = lat
+                ver = ssock.version()
+                alpn = ssock.selected_alpn_protocol()
+                cipher = ssock.cipher()
+
+                res["tls_version"] = ver
+                res["alpn"] = alpn or "ندارد"
+                res["cipher"] = cipher[0] if cipher else "نامشخص"
+                res["is_tls13"] = (ver == "TLSv1.3")
+                res["is_h2"] = (alpn == "h2")
+                res["success"] = True
+
+                if res["is_tls13"] and res["is_h2"]:
+                    res["is_suitable"] = True
+                    res["status_code"] = "excellent"
+                    res["verdict"] = "بسیار عالی (پیشنهادی)"
+                    res["details"] = f"پشتیبانی کامل از TLS 1.3 و ALPN h2 (تاخیر: {lat}ms)"
+                elif res["is_tls13"]:
+                    res["is_suitable"] = True
+                    res["status_code"] = "good"
+                    res["verdict"] = "مناسب"
+                    res["details"] = f"پشتیبانی از TLS 1.3 با ALPN: {alpn} (تاخیر: {lat}ms)"
+                else:
+                    res["is_suitable"] = False
+                    res["status_code"] = "unsuitable"
+                    res["verdict"] = "فاقد TLS 1.3"
+                    res["details"] = f"این دامنه از TLS 1.3 پشتیبانی نمی‌کند ({ver}). پروتکل Reality نیازمند TLS 1.3 است."
+    except socket.timeout:
+        res["error"] = "اتصال به پورت ۴۴۳ با تایم‌اوت مواجه شد."
+        res["verdict"] = "تایم‌اوت (Timeout)"
+        res["details"] = "سرور مقصد در مهلت مقرر پاسخ نداد."
+    except ssl.SSLError as e:
+        res["error"] = f"خطای هندشیک TLS: {e}"
+        res["verdict"] = "خطای هندشیک TLS"
+        res["details"] = "سرور درخواست اتصال TLS با این SNI را رد کرد (Handshake Failure)."
+    except Exception as e:
+        res["error"] = f"خطای شبکه: {e}"
+        res["verdict"] = "خطای ارتباط"
+        res["details"] = str(e)
+
+    return res
 
 def get_reality_rotation_config():
     default_cfg = {
@@ -32543,13 +32710,15 @@ def execute_reality_rotation(force=False, target_domain=None):
             with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
                 sb_cfg = json.load(f)
 
-            for ib in sb_cfg.get("inbounds", []):
+            base_idx = domains.index(new_dom) if new_dom in domains else 0
+            reality_inbounds = [ib for ib in sb_cfg.get("inbounds", []) if ib.get("tls", {}).get("reality", {}).get("enabled") or "reality" in ib.get("tag", "")]
+            for idx_ib, ib in enumerate(reality_inbounds):
+                inbound_dom = domains[(base_idx + idx_ib) % len(domains)] if len(domains) > 1 else new_dom
                 tls = ib.get("tls", {})
-                if tls.get("reality", {}).get("enabled") or ib.get("tag") == "vless-reality-in":
-                    tls["server_name"] = new_dom
-                    if "reality" in tls and "handshake" in tls["reality"]:
-                        tls["reality"]["handshake"]["server"] = new_dom
-                    modified_inbounds += 1
+                tls["server_name"] = inbound_dom
+                if "reality" in tls and "handshake" in tls["reality"]:
+                    tls["reality"]["handshake"]["server"] = inbound_dom
+                modified_inbounds += 1
 
             if modified_inbounds > 0:
                 with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
@@ -32721,6 +32890,45 @@ def api_singbox_reality_rotation_trigger():
         "success": ok,
         "message": msg,
         "current_domain": cfg.get("current_domain")
+    })
+
+@app.route("/api/singbox/reality/test-domain", methods=["POST"])
+def api_singbox_reality_test_domain():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    domain = req.get("domain", "")
+    result = test_reality_domain(domain)
+    return jsonify({"success": True, "result": result})
+
+@app.route("/api/singbox/reality/test-domains", methods=["POST"])
+def api_singbox_reality_test_domains():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.get_json() or {}
+    domains = req.get("domains", [])
+    if isinstance(domains, str):
+        domains = [d.strip() for d in domains.replace(",", "\n").splitlines() if d.strip()]
+    elif not isinstance(domains, list):
+        domains = []
+
+    clean_list = []
+    for d in domains:
+        d_clean = re.sub(r"^https?://", "", d).split("/")[0].split(":")[0].strip()
+        if d_clean and "." in d_clean and d_clean not in clean_list:
+            clean_list.append(d_clean)
+
+    if not clean_list:
+        return jsonify({"success": False, "error": "هیچ دامنه معتبری برای تست مشخص نشده است."}), 400
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=min(10, len(clean_list))) as executor:
+        results = list(executor.map(test_reality_domain, clean_list))
+
+    return jsonify({
+        "success": True,
+        "count": len(results),
+        "results": results
     })
 
 @app.route("/api/backup/list", methods=["GET"])

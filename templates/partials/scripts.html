@@ -22001,6 +22001,31 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 ? `<span class="status-dot" style="background:#94a3b8;" title="غیرفعال"></span>`
                 : `<span class="status-dot active" title="فعال"></span>`;
 
+            const isReal = !!(tls.reality && tls.reality.enabled) || ib.tag.includes("reality");
+            let protoLabel = pb.label;
+            if (isReal) {
+                if (ib.type === "vless") {
+                    protoLabel = (trType === "TCP") ? "VLESS Reality (Vision)" : (trType === "GRPC" ? "VLESS Reality (gRPC)" : (trType === "HTTPUPGRADE" ? "VLESS Reality (Upgrade)" : (trType === "WS" ? "VLESS Reality (WS)" : "VLESS Reality")));
+                } else if (ib.type === "trojan") {
+                    protoLabel = "Trojan Reality";
+                }
+            }
+
+            let portDisplayHtml = "";
+            if (isReal) {
+                portDisplayHtml = `
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-family:'JetBrains Mono'; font-weight:800; color:#10b981; font-size:12px; display:inline-flex; align-items:center; gap:4px;">
+                            <span style="background:rgba(16,185,129,0.12); color:#059669; padding:2px 7px; border-radius:5px; font-size:11px; border:1px solid rgba(16,185,129,0.25);">پورت عمومی: ۴۴۳</span>
+                        </span>
+                        <span style="font-size:10px; color:var(--text-muted); font-family:'JetBrains Mono';">
+                            شنود داخلی: ${ib.listen_port}
+                        </span>
+                    </div>`;
+            } else {
+                portDisplayHtml = `<span style="font-family:'JetBrains Mono'; font-weight:700; color:#4f46e5;">Port ${ib.listen_port}</span>`;
+            }
+
             html += `
             <tr style="border-bottom: 1px solid var(--border-color); ${isDisabled ? 'opacity:0.6;' : ''}">
                 <td style="padding: 12px 16px;">
@@ -22010,10 +22035,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </div>
                 </td>
                 <td style="padding: 12px 16px;">
-                    <span style="font-size:11px; background:${pb.bg}; color:${pb.text}; padding:3px 8px; border-radius:6px; font-weight:700;">${pb.label}</span>
+                    <span style="font-size:11px; background:${pb.bg}; color:${pb.text}; padding:3px 8px; border-radius:6px; font-weight:700;">${protoLabel}</span>
                 </td>
-                <td style="padding: 12px 16px; font-family:'JetBrains Mono'; font-weight:700; color:#4f46e5;">
-                    Port ${ib.listen_port}
+                <td style="padding: 12px 16px;">
+                    ${portDisplayHtml}
                 </td>
                 <td style="padding: 12px 16px;">
                     <span style="font-size:11px; background:${secBg}; color:${secColor}; padding:3px 8px; border-radius:6px; font-weight:600;">${secLabel}</span>
@@ -26620,21 +26645,149 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    function addIranianRealityDomains() {
+        const textarea = document.getElementById("sb-rot-domains-textarea");
+        if (!textarea) return;
+        const iranian = [
+            "www.digikala.com",
+            "divar.ir",
+            "torob.com",
+            "snapp.ir",
+            "aparat.com",
+            "nobitex.ir"
+        ];
+        const existing = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
+        const combined = Array.from(new Set([...existing, ...iranian]));
+        textarea.value = combined.join("\n");
+        showToast("دامنه‌های برتر ایرانی (TLS 1.3) به لیست اضافه شدند.", "success");
+    }
+
     function addRecommendedRealityDomains() {
         const textarea = document.getElementById("sb-rot-domains-textarea");
         if (!textarea) return;
         const recommended = [
+            "www.digikala.com",
+            "divar.ir",
+            "torob.com",
+            "snapp.ir",
+            "aparat.com",
+            "nobitex.ir",
             "images.unsplash.com",
             "download.docker.com",
             "cdn.jsdelivr.net",
-            "swisstransfer.com",
+            "swdist.apple.com",
+            "gateway.icloud.com",
             "speedtest.net",
             "www.cloudflare.com"
         ];
         const existing = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
         const combined = Array.from(new Set([...existing, ...recommended]));
         textarea.value = combined.join("\n");
-        showToast("دامنه‌های پیشنهادی استاندارد به لیست اضافه شدند.", "info");
+        showToast("تمام دامنه‌های پیشنهادی ایرانی و بین‌المللی اضافه شدند.", "info");
+    }
+
+    async function testRealityDomainsNow() {
+        const textarea = document.getElementById("sb-rot-domains-textarea");
+        if (!textarea) return;
+        const domains = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
+        if (domains.length === 0) {
+            showToast("لطفاً حداقل یک دامنه در کادر وارد کنید تا تست شود.", "error");
+            return;
+        }
+
+        const container = document.getElementById("sb-rot-test-results-container");
+        const tbody = document.getElementById("sb-rot-test-results-tbody");
+        const summaryPill = document.getElementById("sb-rot-test-summary-pill");
+        if (!container || !tbody) return;
+
+        container.style.display = "block";
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:18px; color:var(--text-muted);"><i data-lucide="loader-2" class="spin" style="width:18px; height:18px; display:inline-block; vertical-align:middle; margin-left:6px;"></i> در حال تست زنده هندشیک TLS 1.3 و ALPN برای ${domains.length} دامنه...</td></tr>`;
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const res = await fetch("/api/singbox/reality/test-domains", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ domains })
+            });
+            const data = await res.json();
+            if (!data.success) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:14px;">خطا: ${escapeHtml(data.error || 'خطا در اجرای تست')}</td></tr>`;
+                return;
+            }
+
+            const results = data.results || [];
+            let suitableCount = 0;
+            let rowsHtml = "";
+
+            results.forEach(r => {
+                const isGood = !!r.is_suitable;
+                if (isGood) suitableCount++;
+
+                const tlsBadge = r.is_tls13 
+                    ? `<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight:700; padding:2px 7px; border-radius:4px; font-size:10.5px;">TLS 1.3 ✓</span>`
+                    : (r.tls_version ? `<span class="badge" style="background:#fef3c7; color:#b45309; padding:2px 7px; border-radius:4px; font-size:10.5px;">${r.tls_version}</span>` : `<span class="badge" style="background:#fee2e2; color:#991b1b; padding:2px 7px; border-radius:4px; font-size:10.5px;">ناموفق</span>`);
+
+                const alpnBadge = (r.alpn === "h2")
+                    ? `<span class="badge" style="background:#ecfdf5; color:#065f46; font-weight:700; padding:2px 7px; border-radius:4px; font-size:10.5px;">h2 ✓</span>`
+                    : `<span class="badge" style="background:#f1f5f9; color:#475569; padding:2px 7px; border-radius:4px; font-size:10.5px;">${r.alpn || 'ندارد'}</span>`;
+
+                const latStr = (r.latency_ms !== null && r.latency_ms !== undefined) ? `${r.latency_ms} ms` : "-";
+                const verdictBadge = isGood
+                    ? `<span style="color:#059669; font-weight:700; display:inline-flex; align-items:center; gap:4px;">● ${escapeHtml(r.verdict || 'تایید شده')}</span>`
+                    : `<span style="color:#dc2626; font-weight:600; display:inline-flex; align-items:center; gap:4px;" title="${escapeHtml(r.error || r.details || '')}">✖ ${escapeHtml(r.verdict || 'نامناسب')}</span>`;
+
+                const actionBtn = isGood
+                    ? `<button type="button" class="btn btn-secondary btn-sm" onclick="applyTestedDomainAsCurrent('${escapeHtml(r.domain)}')" style="font-size:10.5px; padding:2px 8px; color:#8b5cf6; border-color:rgba(139,92,246,0.35);">
+                           <i data-lucide="check" style="width:11px; height:11px;"></i> فعال‌سازی فوری
+                       </button>`
+                    : `<span style="font-size:10.5px; color:var(--text-muted);">-</span>`;
+
+                rowsHtml += `
+                    <tr>
+                        <td style="font-family:'JetBrains Mono'; font-weight:700; color:var(--text-main);">${escapeHtml(r.domain)}</td>
+                        <td style="font-family:'JetBrains Mono'; font-size:11px; color:var(--text-muted);">${escapeHtml(r.resolved_ip || '-')}</td>
+                        <td>${tlsBadge}</td>
+                        <td>${alpnBadge}</td>
+                        <td style="font-family:'JetBrains Mono'; font-weight:600;">${latStr}</td>
+                        <td>${verdictBadge}</td>
+                        <td>${actionBtn}</td>
+                    </tr>`;
+            });
+
+            tbody.innerHTML = rowsHtml;
+            if (summaryPill) {
+                summaryPill.textContent = `${suitableCount} از ${results.length} دامنه کاملاً مناسب Reality هستند`;
+                summaryPill.style.color = (suitableCount === results.length) ? "#059669" : "#d97706";
+            }
+            if (window.lucide) lucide.createIcons();
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#ef4444; padding:14px;">خطای ارتباط در تست دامنه‌ها: ${e.message}</td></tr>`;
+        }
+    }
+
+    async function applyTestedDomainAsCurrent(domain) {
+        if (!confirm(`آیا مایلید دامنه استتار ریالیتی هم‌اکنون به «${domain}» تغییر یابد؟\nاین دامنه به عنوان Active SNI روی اینباندهای هسته سینگ‌باکس و قوانین HAProxy اعمال خواهد شد.`)) return;
+        toggleLoading(true, `در حال تنظیم دامنه ${domain} روی هسته سینگ‌باکس...`);
+        try {
+            const res = await fetch("/api/singbox/reality/rotation/trigger", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ target_domain: domain })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (data.success) {
+                showToast(`دامنه استتار با موفقیت به ${domain} تغییر یافت.`, "success");
+                loadRealityRotationConfig();
+                loadSingboxData();
+            } else {
+                showToast(data.message || "خطا در تغییر دامنه", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای ارتباط با سرور", "error");
+        }
     }
 
     function openSingboxJsonModal() {
@@ -26760,6 +26913,24 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 renderQrCodeHelper("sb-qr-canvas-container", data.share_link || "");
                 if (jsonPreview && data.inbound_json) {
                     jsonPreview.value = JSON.stringify(data.inbound_json, null, 2);
+                }
+                const portBanner = document.getElementById("sb-inbound-port-banner");
+                if (portBanner) {
+                    if (data.is_reality) {
+                        portBanner.style.display = "block";
+                        portBanner.innerHTML = `
+                            <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 10px 14px; text-align: right; display: flex; flex-direction: column; gap: 4px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                    <span style="color: #059669; font-weight: 700; font-size: 12.5px;">🌐 پورت عمومی اتصال کاربران (Public Port): <strong style="font-family:'JetBrains Mono'; color:#047857;">443</strong></span>
+                                    <span class="badge" style="background: #10b981; color: white; font-size: 10px; padding: 2px 7px; border-radius: 4px; font-weight:700;">HAProxy Multiplexer</span>
+                                </div>
+                                <div style="font-size: 11px; color: var(--text-muted);">
+                                    پورت شنود داخلی سرویس: <code style="font-family:'JetBrains Mono'; font-weight:700; color:#4f46e5;">${data.internal_port || ''}</code> (ترافیک کلاینت‌ها از پورت استاندارد ۴۴۳ به این پورت هدایت می‌گردد).
+                                </div>
+                            </div>`;
+                    } else {
+                        portBanner.style.display = "none";
+                    }
                 }
             }
             if (window.lucide) lucide.createIcons();

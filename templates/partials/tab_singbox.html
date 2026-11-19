@@ -774,18 +774,56 @@
                     </div>
 
                     <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                             <label class="form-label" style="font-weight: 700; color: #8b5cf6; display: flex; align-items: center; gap: 6px; margin: 0;">
                                 <i data-lucide="layers" style="width: 14px; height: 14px;"></i>
                                 <span>استخر دامنه‌های استتار (هر دامنه در ۱ خط):</span>
                             </label>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="addRecommendedRealityDomains()" style="font-size: 11px; padding: 2px 8px;">
-                                <i data-lucide="plus" style="width: 12px; height: 12px;"></i> دامنه‌های پیشنهادی
-                            </button>
+                            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="addIranianRealityDomains()" style="font-size: 11px; padding: 2px 8px; color: #10b981; border-color: rgba(16,185,129,0.35); background: rgba(16,185,129,0.06);" title="افزودن دامنه‌های محبوب ایرانی با TLS 1.3">
+                                    <i data-lucide="flag" style="width: 12px; height: 12px;"></i> دامنه‌های ایرانی
+                                </button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="addRecommendedRealityDomains()" style="font-size: 11px; padding: 2px 8px;" title="افزودن تمام دامنه‌های پیشنهادی">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i> همه پیشنهادی
+                                </button>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="testRealityDomainsNow()" style="font-size: 11px; padding: 2px 9px; background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); display: flex; align-items: center; gap: 5px;" title="ارزیابی زنده وضعیت TLS و ALPN دامنه‌ها">
+                                    <i data-lucide="activity" style="width: 12px; height: 12px;"></i> <span>تست زنده دامنه‌ها</span>
+                                </button>
+                            </div>
                         </div>
-                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="6" placeholder="images.unsplash.com&#10;download.docker.com&#10;cdn.jsdelivr.net&#10;swisstransfer.com" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
+                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="6" placeholder="www.digikala.com&#10;divar.ir&#10;torob.com&#10;images.unsplash.com&#10;download.docker.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
                         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">
-                            سرور در هر دوره، یکی از دامنه‌های فوق را به صورت چرخشی (Round-Robin) روی تمام اینباندهای Reality قرار می‌دهد.
+                            سرور در هر دوره، یکی از دامنه‌های فوق را به صورت چرخشی (Round-Robin) روی تمام اینباندهای Reality قرار می‌دهد و در سابسکریپشن کاربران فوراً اعمال می‌شود.
+                        </div>
+
+                        <!-- Live Domain Tester Results Container -->
+                        <div id="sb-rot-test-results-container" style="display: none; margin-top: 14px; background: var(--surface-primary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px; box-shadow: var(--shadow-sm);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                                <h5 style="margin: 0; font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; color: var(--text-main);">
+                                    <i data-lucide="check-circle-2" style="color: #10b981; width: 16px; height: 16px;"></i>
+                                    <span>نتایج ارزیابی و تست زنده دامنه‌ها برای Reality</span>
+                                </h5>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span id="sb-rot-test-summary-pill" style="font-size: 11px; color: var(--text-muted); font-weight: 600;"></span>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-rot-test-results-container').style.display='none'" style="font-size: 10px; padding: 1px 6px;">بستن نتایج</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                                <table class="table" style="font-size: 11.5px;">
+                                    <thead>
+                                        <tr>
+                                            <th>دامنه استتار</th>
+                                            <th>آی‌پی سرور</th>
+                                            <th>نسخه TLS</th>
+                                            <th>پروتکل ALPN</th>
+                                            <th>تاخیر (پینگ)</th>
+                                            <th>ارزیابی Reality</th>
+                                            <th>عملیات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sb-rot-test-results-tbody"></tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1715,6 +1753,9 @@
                         <span>تنظیمات اینباند (JSON)</span>
                     </button>
                 </div>
+
+                <!-- Port Clarification Banner for Reality -->
+                <div id="sb-inbound-port-banner" style="display: none; margin-bottom: 14px;"></div>
 
                 <!-- View 1: QR & Link -->
                 <div id="sb-inbound-qr-view" style="text-align: center;">
