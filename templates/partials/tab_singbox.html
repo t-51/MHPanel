@@ -721,8 +721,8 @@
                 </div>
             </div>
 
-            <!-- 4 Quick Stats Badges -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 22px;">
+            <!-- Quick Stats Badges -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 22px;">
                 <div class="spec-card" style="padding: 14px 16px; background: var(--surface-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
                     <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px;">دامنه استتار فعال فعلی</div>
                     <div id="sb-rot-current-domain" style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: #8b5cf6; word-break: break-all;">-</div>
@@ -739,6 +739,14 @@
                     <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px;">تعداد دامنه‌ها در استخر چرخش</div>
                     <div id="sb-rot-domains-count" style="font-size: 14px; font-weight: 700; color: var(--text-main);">-</div>
                 </div>
+                <div class="spec-card" style="padding: 14px 16px; background: var(--surface-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px;">فینگرپرینت / ALPN / SpiderX</div>
+                    <div id="sb-rot-fp-alpn-badge" style="font-size: 12px; font-weight: 700; color: #0284c7; font-family: 'JetBrains Mono';">chrome | h2 | /</div>
+                </div>
+                <div class="spec-card" style="padding: 14px 16px; background: var(--surface-primary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md);">
+                    <div style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 4px;">صدور کلید جدید (Keypair)</div>
+                    <div id="sb-rot-keys-badge" style="font-size: 12px; font-weight: 700; color: #10b981;">فعال (Auto Keypair) ✓</div>
+                </div>
             </div>
 
             <!-- Configuration Form -->
@@ -751,7 +759,7 @@
                         </label>
                     </div>
                     <div style="font-size: 12px; color: var(--text-muted);">
-                        در صورت فعال‌سازی، سرویس پس‌زمینه در موعد مقرر دامنه را عوض کرده و به هسته سینگ‌باکس و HAProxy اعمال می‌کند.
+                        در صورت فعال‌سازی، سرویس پس‌زمینه در موعد مقرر دامنه را عوض کرده، <strong>کلید جدید صادر می‌کند</strong> و به هسته سینگ‌باکس و سابسکریپشن اعمال می‌کند.
                     </div>
                 </div>
 
@@ -769,7 +777,48 @@
                             </select>
                         </div>
                         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 6px;">
-                            تعیین فاصله زمانی بین هر تعویض خودکار دامنه (مثلاً هر ۳ روز یکبار).
+                            تعیین فاصله زمانی بین هر تعویض خودکار دامنه و صدور کلید جدید (مثلاً هر ۳ روز یکبار).
+                        </div>
+
+                        <!-- Auto Keypair Issuance Toggle -->
+                        <div style="margin-top: 14px; padding: 10px 12px; background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="sb-rot-auto-keypair" checked style="width: 16px; height: 16px; cursor: pointer;">
+                                <label for="sb-rot-auto-keypair" style="font-weight: 700; font-size: 12px; color: #059669; margin: 0; cursor: pointer;">
+                                    صدور خودکار جفت‌کلید جدید Reality و Short ID در هر چرخش (پیشنهادی)
+                                </label>
+                            </div>
+                            <small style="color: var(--text-muted); font-size: 10px; margin-top: 4px; display: block; line-height: 1.4;">
+                                با هر بار تغییر دامنه، پنل یک Private Key و Public Key بیضوی X25519 و یک Short ID کاملاً تازه تولید کرده و به هسته سینگ‌باکس اعمال می‌کند تا ردیابی سیستم فیلترینگ ناممکن شود.
+                            </small>
+                        </div>
+
+                        <!-- Global Reality Fingerprint, ALPN, SpiderX -->
+                        <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 700; color: #8b5cf6;">فینگرپرینت uTLS:</label>
+                                <select class="form-input" id="sb-rot-fingerprint" style="font-size: 12px;">
+                                    <option value="chrome" selected>Chrome (گوگل کروم)</option>
+                                    <option value="firefox">Firefox (فایرفاکس)</option>
+                                    <option value="safari">Safari (سافاری)</option>
+                                    <option value="ios">iOS (آیفون)</option>
+                                    <option value="android">Android (اندروید)</option>
+                                    <option value="edge">Edge (مایکروسافت اج)</option>
+                                    <option value="randomized">Randomized (تصادفی هوشمند)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 700; color: #8b5cf6;">پروتکل‌های ALPN:</label>
+                                <select class="form-input" id="sb-rot-alpn" style="font-size: 12px;">
+                                    <option value="h2,http/1.1" selected>h2, http/1.1 (پیشنهادی)</option>
+                                    <option value="h2">h2 (تنها HTTP/2)</option>
+                                    <option value="http/1.1">http/1.1 (تنها HTTP/1.1)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <label class="form-label" style="font-size: 11px; font-weight: 700; color: #8b5cf6;">مسیر شبیه‌سازی SpiderX (یا spx):</label>
+                            <input type="text" class="form-input" id="sb-rot-spider-x" value="/" placeholder="/" style="font-size: 12px;">
                         </div>
                     </div>
 
@@ -791,9 +840,9 @@
                                 </button>
                             </div>
                         </div>
-                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="6" placeholder="www.digikala.com&#10;divar.ir&#10;torob.com&#10;images.unsplash.com&#10;download.docker.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
+                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="8" placeholder="www.digikala.com&#10;divar.ir&#10;torob.com&#10;images.unsplash.com&#10;download.docker.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
                         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">
-                            سرور در هر دوره، یکی از دامنه‌های فوق را به صورت چرخشی (Round-Robin) روی تمام اینباندهای Reality قرار می‌دهد و در سابسکریپشن کاربران فوراً اعمال می‌شود.
+                            سرور در هر دوره، یکی از دامنه‌های فوق را به همراه یک جفت‌کلید جدید Reality روی تمام اینباندهای Reality قرار می‌دهد و در لینک اشتراک کاربران اعمال می‌شود.
                         </div>
 
                         <!-- Live Domain Tester Results Container -->
@@ -833,7 +882,7 @@
             <div style="margin-top: 10px;">
                 <h4 style="font-size: 13.5px; font-weight: 700; color: var(--text-main); margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px;">
                     <i data-lucide="history" style="width: 15px; height: 15px; color: #8b5cf6;"></i>
-                    <span>تاریخچه آخرین چرخش‌های دامنه ریالیتی</span>
+                    <span>تاریخچه آخرین چرخش‌های دامنه و کلیدهای ریالیتی</span>
                 </h4>
                 <div class="table-responsive" style="max-height: 220px; overflow-y: auto;">
                     <table class="table" style="font-size: 12px;">
@@ -841,14 +890,15 @@
                             <tr>
                                 <th>زمان چرخش</th>
                                 <th>دامنه جدید (Active SNI)</th>
+                                <th>کلید عمومی جدید (Public Key)</th>
+                                <th>شناسه کوتاه (Short ID)</th>
                                 <th>دامنه قبلی</th>
-                                <th>تعداد اینباندهای بروزشده</th>
                                 <th>وضعیت</th>
                             </tr>
                         </thead>
                         <tbody id="sb-rot-history-tbody">
                             <tr>
-                                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">هنوز چرخشی ثبت نشده است.</td>
+                                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">هنوز چرخشی ثبت نشده است.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -1109,9 +1159,70 @@
                                 <input type="text" class="form-input" id="sb-reality-max-time-diff" value="" placeholder="خالی (غیرفعال - پیشنهادی)">
                                 <small style="color: var(--text-muted); font-size: 10px; margin-top: 3px; display: block; line-height: 1.45;">
                                     <strong>🎯 کاربرد:</strong> بازه مجاز ناهماهنگی ساعت سیستم کلاینت با سرور.<br>
-                                    <strong>💡 توصیه مهم:</strong> این فیلد را **خالی** بگذارید تا اعتبارسنجی ساعت غیرفعال شود. تنظیم روی 1m باعث قطعی کاربرانی می‌شود که ساعت گوشی آن‌ها حتی چند ثانیه اختلاف دارد یا درگیر تغییر ساعت تابستانی هستند.
+                                    <strong>💡 توصیه مهم:</strong> این فیلد را **خالی** بگذارید تا اعتبارسنجی ساعت غیرفعال شود.
                                 </small>
                             </div>
+                        </div>
+
+                        <!-- uTLS Fingerprint, ALPN, SpiderX Settings -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">فینگرپرینت مرورگر (uTLS):</label>
+                                <select class="form-input" id="sb-reality-fingerprint">
+                                    <option value="chrome" selected>Chrome (گوگل کروم - پیشنهادی)</option>
+                                    <option value="firefox">Firefox (موزیلا فایرفاکس)</option>
+                                    <option value="safari">Safari (سافاری مک و iOS)</option>
+                                    <option value="ios">iOS (سیستم‌عامل اپل)</option>
+                                    <option value="android">Android (اندروید رسمی)</option>
+                                    <option value="edge">Edge (مایکروسافت اج)</option>
+                                    <option value="randomized">Randomized (شبیه‌ساز تصادفی)</option>
+                                    <option value="random">Random (تصادفی)</option>
+                                </select>
+                                <small style="color: var(--text-muted); font-size: 9.5px; margin-top: 2px; display: block;">شبیه‌سازی اثرانگشت TLS مرورگر (پارامتر fp در لینک).</small>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">پروتکل‌های ALPN:</label>
+                                <select class="form-input" id="sb-reality-alpn">
+                                    <option value="h2,http/1.1" selected>h2, http/1.1 (پیشنهادی استاندارد)</option>
+                                    <option value="h2">h2 (تنها HTTP/2)</option>
+                                    <option value="http/1.1">http/1.1 (تنها HTTP/1.1)</option>
+                                    <option value="h3">h3 (HTTP/3 / QUIC)</option>
+                                </select>
+                                <small style="color: var(--text-muted); font-size: 9.5px; margin-top: 2px; display: block;">مذاکره لایه کاربرد TLS (تطابق کامل با سرور واقعی).</small>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">مسیر SpiderX (یا spx):</label>
+                                <input type="text" class="form-input" id="sb-reality-spider-x" value="/" placeholder="/">
+                                <small style="color: var(--text-muted); font-size: 9.5px; margin-top: 2px; display: block;">مسیر شبیه‌سازی خزشگر وب در کلاینت (پیش‌فرض: /).</small>
+                            </div>
+                        </div>
+
+                        <!-- Camouflage Domain Pool & Auto-Rotation Box in Modal -->
+                        <div style="background: rgba(139, 92, 246, 0.05); border: 1px dashed rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 12px; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="sb-reality-auto-rotation" style="cursor: pointer; width: 16px; height: 16px;">
+                                    <label for="sb-reality-auto-rotation" style="font-size: 11.5px; font-weight: 700; color: #7c3aed; margin: 0; cursor: pointer;">
+                                        چرخش خودکار دوره‌ای دامنه و صدور کلید جدید (Auto-Rotation & Key Issuance)
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 11px; color: var(--text-muted);">دوره تغییر:</span>
+                                    <input type="number" id="sb-reality-rotation-interval" class="form-input" min="1" max="365" value="3" style="width: 58px; padding: 2px 6px; font-size: 11px; text-align: center; height: 26px;">
+                                    <span style="font-size: 11px; color: var(--text-muted);">روز</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label class="form-label" style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin: 0;">لیست دامنه‌های استتار جهت چرخش خودکار (هر خط ۱ دامنه):</label>
+                                <div style="display: flex; gap: 4px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setIranianDomainsToAddModal()" style="font-size: 9.5px; padding: 1px 6px;">🇮🇷 ایرانی</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setRecommendedDomainsToAddModal()" style="font-size: 9.5px; padding: 1px 6px;">🌍 خارجی</button>
+                                </div>
+                            </div>
+                            <textarea id="sb-reality-domains-pool" class="form-input" rows="3" placeholder="www.digikala.com&#10;divar.ir&#10;images.unsplash.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
+                            <small style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">
+                                با فعال‌سازی چرخش، پنل سر موعد مقرر، دامنه بعدی را نشانده، <strong>جفت‌کلید جدید Reality صادر می‌کند</strong> و لینک اشتراک کاربران به صورت خودکار بروزرسانی خواهد شد.
+                            </small>
                         </div>
                     </div>
 
@@ -1342,6 +1453,64 @@
                                 <label class="form-label" style="font-size: 11px;">حداکثر اختلاف زمان (Max Time Diff):</label>
                                 <input type="text" class="form-input" id="sb-edit-reality-max-time-diff" value="" placeholder="خالی (غیرفعال - پیشنهادی)">
                             </div>
+                        </div>
+
+                        <!-- uTLS Fingerprint, ALPN, SpiderX Settings for Edit Modal -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 10px;">
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">فینگرپرینت مرورگر (uTLS):</label>
+                                <select class="form-input" id="sb-edit-reality-fingerprint">
+                                    <option value="chrome">Chrome (گوگل کروم - پیشنهادی)</option>
+                                    <option value="firefox">Firefox (موزیلا فایرفاکس)</option>
+                                    <option value="safari">Safari (سافاری مک و iOS)</option>
+                                    <option value="ios">iOS (سیستم‌عامل اپل)</option>
+                                    <option value="android">Android (اندروید رسمی)</option>
+                                    <option value="edge">Edge (مایکروسافت اج)</option>
+                                    <option value="randomized">Randomized (شبیه‌ساز تصادفی)</option>
+                                    <option value="random">Random (تصادفی)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">پروتکل‌های ALPN:</label>
+                                <select class="form-input" id="sb-edit-reality-alpn">
+                                    <option value="h2,http/1.1">h2, http/1.1 (پیشنهادی استاندارد)</option>
+                                    <option value="h2">h2 (تنها HTTP/2)</option>
+                                    <option value="http/1.1">http/1.1 (تنها HTTP/1.1)</option>
+                                    <option value="h3">h3 (HTTP/3 / QUIC)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size: 11px; font-weight: 600;">مسیر SpiderX (یا spx):</label>
+                                <input type="text" class="form-input" id="sb-edit-reality-spider-x" value="/" placeholder="/">
+                            </div>
+                        </div>
+
+                        <!-- Camouflage Domain Pool & Auto-Rotation Box in Edit Modal -->
+                        <div style="background: rgba(139, 92, 246, 0.05); border: 1px dashed rgba(139, 92, 246, 0.3); border-radius: 8px; padding: 12px; margin-top: 4px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="sb-edit-reality-auto-rotation" style="cursor: pointer; width: 16px; height: 16px;">
+                                    <label for="sb-edit-reality-auto-rotation" style="font-size: 11.5px; font-weight: 700; color: #7c3aed; margin: 0; cursor: pointer;">
+                                        چرخش خودکار دوره‌ای دامنه و صدور کلید جدید (Auto-Rotation & Key Issuance)
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 11px; color: var(--text-muted);">دوره تغییر:</span>
+                                    <input type="number" id="sb-edit-reality-rotation-interval" class="form-input" min="1" max="365" value="3" style="width: 58px; padding: 2px 6px; font-size: 11px; text-align: center; height: 26px;">
+                                    <span style="font-size: 11px; color: var(--text-muted);">روز</span>
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <label class="form-label" style="font-size: 10.5px; font-weight: 600; color: var(--text-muted); margin: 0;">لیست دامنه‌های استتار جهت چرخش خودکار (هر خط ۱ دامنه):</label>
+                                <div style="display: flex; gap: 4px;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setIranianDomainsToEditModal()" style="font-size: 9.5px; padding: 1px 6px;">🇮🇷 ایرانی</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setRecommendedDomainsToEditModal()" style="font-size: 9.5px; padding: 1px 6px;">🌍 خارجی</button>
+                                </div>
+                            </div>
+                            <textarea id="sb-edit-reality-domains-pool" class="form-input" rows="3" placeholder="www.digikala.com&#10;divar.ir&#10;images.unsplash.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
+                            <small style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">
+                                با فعال‌سازی چرخش، پنل سر موعد مقرر، دامنه بعدی را نشانده، <strong>جفت‌کلید جدید صادر می‌کند</strong> و لینک اشتراک کاربران به صورت خودکار بروز خواهد شد.
+                            </small>
                         </div>
                     </div>
 

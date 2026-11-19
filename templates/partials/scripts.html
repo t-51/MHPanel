@@ -22251,6 +22251,20 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         onSingboxProtocolChange();
+
+        // Populate Reality camouflage defaults if empty
+        const fpEl = document.getElementById("sb-reality-fingerprint");
+        if (fpEl && !fpEl.value) fpEl.value = "chrome";
+        const alpnEl = document.getElementById("sb-reality-alpn");
+        if (alpnEl && !alpnEl.value) alpnEl.value = "h2,http/1.1";
+        const spxEl = document.getElementById("sb-reality-spider-x");
+        if (spxEl && !spxEl.value) spxEl.value = "/";
+        const autoRotEl = document.getElementById("sb-reality-auto-rotation");
+        if (autoRotEl) autoRotEl.checked = true;
+        const poolEl = document.getElementById("sb-reality-domains-pool");
+        if (poolEl && !poolEl.value) {
+            poolEl.value = "www.digikala.com\ndivar.ir\ntorob.com\nimages.unsplash.com\ndownload.docker.com\ncdn.jsdelivr.net";
+        }
     }
 
     function closeSingboxAddModal() {
@@ -23104,6 +23118,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             payload.reality_short_id = document.getElementById("sb-reality-shortid").value.trim();
             const mtdEl = document.getElementById("sb-reality-max-time-diff");
             if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim();
+
+            const fpEl = document.getElementById("sb-reality-fingerprint");
+            if (fpEl) payload.reality_fingerprint = fpEl.value;
+            const alpnEl = document.getElementById("sb-reality-alpn");
+            if (alpnEl) payload.reality_alpn = alpnEl.value;
+            const spxEl = document.getElementById("sb-reality-spider-x");
+            if (spxEl) payload.reality_spider_x = spxEl.value.trim();
+            const poolEl = document.getElementById("sb-reality-domains-pool");
+            if (poolEl && poolEl.value.trim()) payload.reality_domains = poolEl.value.trim();
+            const rotIntEl = document.getElementById("sb-reality-rotation-interval");
+            if (rotIntEl) payload.reality_rotation_interval = rotIntEl.value;
+            const autoRotEl = document.getElementById("sb-reality-auto-rotation");
+            if (autoRotEl) payload.reality_auto_rotation = autoRotEl.checked;
         } else if (tlsMode === "tls") {
             payload.sni = document.getElementById("sb-tls-sni").value.trim();
             payload.certificate_path = document.getElementById("sb-tls-cert").value.trim();
@@ -23345,6 +23372,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? sids.join(", ") : (sids || "");
                 const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
                 if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "";
+
+                const fpEl = document.getElementById("sb-edit-reality-fingerprint");
+                if (fpEl) fpEl.value = d.reality_fingerprint || "chrome";
+                const alpnEl = document.getElementById("sb-edit-reality-alpn");
+                if (alpnEl) alpnEl.value = d.reality_alpn || "h2,http/1.1";
+                const spxEl = document.getElementById("sb-edit-reality-spider-x");
+                if (spxEl) spxEl.value = d.reality_spider_x || "/";
+                const autoRotEl = document.getElementById("sb-edit-reality-auto-rotation");
+                if (autoRotEl) autoRotEl.checked = !!d.reality_rotation_enabled;
+                const rotIntEl = document.getElementById("sb-edit-reality-rotation-interval");
+                if (rotIntEl) rotIntEl.value = d.reality_rotation_interval || 3;
+                const poolEl = document.getElementById("sb-edit-reality-domains-pool");
+                if (poolEl) poolEl.value = d.reality_domains || "";
             } else if (isTls) {
                 document.getElementById("sb-edit-tls-sni").value = rawTls.server_name || d.sni || "";
                 document.getElementById("sb-edit-tls-cert").value = rawTls.certificate_path || d.tls_cert || "/etc/vpnpanel/ssl/panel.crt";
@@ -23516,6 +23556,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             payload.reality_short_id = document.getElementById("sb-edit-reality-shortid").value.trim();
             const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
             if (mtdEl) payload.reality_max_time_diff = mtdEl.value.trim();
+
+            const fpEl = document.getElementById("sb-edit-reality-fingerprint");
+            if (fpEl) payload.reality_fingerprint = fpEl.value;
+            const alpnEl = document.getElementById("sb-edit-reality-alpn");
+            if (alpnEl) payload.reality_alpn = alpnEl.value;
+            const spxEl = document.getElementById("sb-edit-reality-spider-x");
+            if (spxEl) payload.reality_spider_x = spxEl.value.trim();
+            const poolEl = document.getElementById("sb-edit-reality-domains-pool");
+            if (poolEl && poolEl.value.trim()) payload.reality_domains = poolEl.value.trim();
+            const rotIntEl = document.getElementById("sb-edit-reality-rotation-interval");
+            if (rotIntEl) payload.reality_rotation_interval = rotIntEl.value;
+            const autoRotEl = document.getElementById("sb-edit-reality-auto-rotation");
+            if (autoRotEl) payload.reality_auto_rotation = autoRotEl.checked;
         } else if (tlsMode === "tls") {
             payload.sni = document.getElementById("sb-edit-tls-sni").value.trim();
             payload.certificate_path = document.getElementById("sb-edit-tls-cert").value.trim();
@@ -26530,6 +26583,30 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (intervalUnit) intervalUnit.value = cfg.interval_unit || "days";
             if (domainsTextarea) domainsTextarea.value = (cfg.domains || []).join("\n");
 
+            const fpEl = document.getElementById("sb-rot-fingerprint");
+            if (fpEl) fpEl.value = cfg.fingerprint || "chrome";
+
+            const alpnEl = document.getElementById("sb-rot-alpn");
+            if (alpnEl) alpnEl.value = cfg.alpn || "h2,http/1.1";
+
+            const spxEl = document.getElementById("sb-rot-spider-x");
+            if (spxEl) spxEl.value = cfg.spider_x || "/";
+
+            const autoKeyEl = document.getElementById("sb-rot-auto-keypair");
+            if (autoKeyEl) autoKeyEl.checked = (cfg.auto_keypair !== undefined) ? !!cfg.auto_keypair : true;
+
+            const fpAlpnBadge = document.getElementById("sb-rot-fp-alpn-badge");
+            if (fpAlpnBadge) fpAlpnBadge.innerText = `${cfg.fingerprint || 'chrome'} | ${(cfg.alpn || 'h2,http/1.1').split(',')[0]} | ${cfg.spider_x || '/'}`;
+
+            const keysBadge = document.getElementById("sb-rot-keys-badge");
+            if (keysBadge) {
+                if (cfg.auto_keypair !== false) {
+                    keysBadge.innerHTML = `<span style="color:#10b981;">فعال (Auto Keypair) ✓</span>`;
+                } else {
+                    keysBadge.innerHTML = `<span style="color:var(--text-muted);">ثابت / دستی</span>`;
+                }
+            }
+
             const curDom = data.current_domain || cfg.current_domain || "-";
             if (curDomEl) curDomEl.innerText = curDom;
 
@@ -26559,14 +26636,15 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (tbody) {
                 const history = cfg.history || [];
                 if (history.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 18px;">هنوز چرخشی ثبت نشده است.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 18px;">هنوز چرخشی ثبت نشده است.</td></tr>`;
                 } else {
                     tbody.innerHTML = history.map(item => `
                         <tr>
                             <td style="font-family: 'JetBrains Mono'; direction: ltr;">${item.time || "-"}</td>
                             <td><strong style="color: #8b5cf6; font-family: 'JetBrains Mono'; direction: ltr;">${item.domain || "-"}</strong></td>
+                            <td style="font-family: 'JetBrains Mono'; direction: ltr; font-size: 11px;">${item.public_key ? `<span title="${escapeHtml(item.public_key)}" style="background: rgba(99,102,241,0.1); color: #6366f1; padding: 2px 6px; border-radius: 4px;">${escapeHtml(item.public_key.substring(0, 12))}...</span>` : '<span style="color:var(--text-muted);">-</span>'}</td>
+                            <td style="font-family: 'JetBrains Mono'; direction: ltr; font-size: 11px;">${item.short_id ? `<code style="background: var(--surface-secondary); padding: 2px 6px; border-radius: 4px;">${escapeHtml(item.short_id)}</code>` : '<span style="color:var(--text-muted);">-</span>'}</td>
                             <td style="color: var(--text-muted); font-family: 'JetBrains Mono'; direction: ltr;">${item.previous || "-"}</td>
-                            <td>${item.inbounds_updated || 1} اینباند</td>
                             <td><span class="badge-pill" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-size: 10.5px; padding: 2px 8px; border-radius: 4px;">موفق ✓</span></td>
                         </tr>
                     `).join("");
@@ -26584,11 +26662,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const intervalVal = document.getElementById("sb-rot-interval-value");
         const intervalUnit = document.getElementById("sb-rot-interval-unit");
         const domainsTextarea = document.getElementById("sb-rot-domains-textarea");
+        const fpEl = document.getElementById("sb-rot-fingerprint");
+        const alpnEl = document.getElementById("sb-rot-alpn");
+        const spxEl = document.getElementById("sb-rot-spider-x");
+        const autoKeyEl = document.getElementById("sb-rot-auto-keypair");
 
         const enabled = enabledToggle ? enabledToggle.checked : false;
         const interval_value = intervalVal ? parseInt(intervalVal.value, 10) || 3 : 3;
         const interval_unit = intervalUnit ? intervalUnit.value : "days";
         const domains = domainsTextarea ? domainsTextarea.value.split("\n").map(d => d.trim()).filter(Boolean) : [];
+        const fingerprint = fpEl ? fpEl.value : "chrome";
+        const alpn = alpnEl ? alpnEl.value : "h2,http/1.1";
+        const spider_x = spxEl ? spxEl.value.trim() : "/";
+        const auto_keypair = autoKeyEl ? autoKeyEl.checked : true;
 
         if (enabled && domains.length < 1) {
             showToast("لطفاً حداقل ۱ دامنه استتار برای چرخش ریالیتی وارد کنید.", "error");
@@ -26604,7 +26690,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     enabled,
                     interval_value,
                     interval_unit,
-                    domains
+                    domains,
+                    fingerprint,
+                    alpn,
+                    spider_x,
+                    auto_keypair
                 })
             });
             const data = await res.json();
@@ -26684,6 +26774,42 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const combined = Array.from(new Set([...existing, ...recommended]));
         textarea.value = combined.join("\n");
         showToast("تمام دامنه‌های پیشنهادی ایرانی و بین‌المللی اضافه شدند.", "info");
+    }
+
+    function setIranianDomainsToAddModal() {
+        const el = document.getElementById("sb-reality-domains-pool");
+        if (!el) return;
+        const iranian = ["www.digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
+        const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
+        el.value = Array.from(new Set([...existing, ...iranian])).join("\n");
+        showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "success");
+    }
+
+    function setRecommendedDomainsToAddModal() {
+        const el = document.getElementById("sb-reality-domains-pool");
+        if (!el) return;
+        const recommended = ["images.unsplash.com", "download.docker.com", "cdn.jsdelivr.net", "swdist.apple.com", "gateway.icloud.com", "speedtest.net", "www.cloudflare.com"];
+        const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
+        el.value = Array.from(new Set([...existing, ...recommended])).join("\n");
+        showToast("دامنه‌های برتر خارجی به کادر استتار اضافه شدند.", "info");
+    }
+
+    function setIranianDomainsToEditModal() {
+        const el = document.getElementById("sb-edit-reality-domains-pool");
+        if (!el) return;
+        const iranian = ["www.digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
+        const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
+        el.value = Array.from(new Set([...existing, ...iranian])).join("\n");
+        showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "success");
+    }
+
+    function setRecommendedDomainsToEditModal() {
+        const el = document.getElementById("sb-edit-reality-domains-pool");
+        if (!el) return;
+        const recommended = ["images.unsplash.com", "download.docker.com", "cdn.jsdelivr.net", "swdist.apple.com", "gateway.icloud.com", "speedtest.net", "www.cloudflare.com"];
+        const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
+        el.value = Array.from(new Set([...existing, ...recommended])).join("\n");
+        showToast("دامنه‌های برتر خارجی به کادر استتار اضافه شدند.", "info");
     }
 
     async function testRealityDomainsNow() {

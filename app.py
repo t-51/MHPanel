@@ -2777,12 +2777,19 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                     if reality_enabled and tp_type == "tcp":
                         ob["flow"] = "xtls-rprx-vision"
                     if reality_enabled:
+                        meta = get_inbound_reality_metadata(ib.get("tag", ""))
+                        rot_cfg = get_reality_rotation_config()
+                        fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+                        alpn_list = tls_obj.get("alpn") or ["h2", "http/1.1"]
+                        if not isinstance(alpn_list, list):
+                            alpn_list = [x.strip() for x in str(alpn_list).replace("،", ",").split(",") if x.strip()]
                         pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
                         sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
                         ob["tls"] = {
                             "enabled": True,
                             "server_name": sni,
-                            "utls": {"enabled": True, "fingerprint": "chrome"},
+                            "alpn": alpn_list,
+                            "utls": {"enabled": True, "fingerprint": fp},
                             "reality": {
                                 "enabled": True,
                                 "public_key": pbk,
@@ -2841,7 +2848,27 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         "server_port": port,
                         "password": password
                     }
-                    if tls_enabled:
+                    if reality_enabled:
+                        meta = get_inbound_reality_metadata(ib.get("tag", ""))
+                        rot_cfg = get_reality_rotation_config()
+                        fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+                        alpn_list = tls_obj.get("alpn") or ["h2", "http/1.1"]
+                        if not isinstance(alpn_list, list):
+                            alpn_list = [x.strip() for x in str(alpn_list).replace("،", ",").split(",") if x.strip()]
+                        pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
+                        sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
+                        ob["tls"] = {
+                            "enabled": True,
+                            "server_name": sni,
+                            "alpn": alpn_list,
+                            "utls": {"enabled": True, "fingerprint": fp},
+                            "reality": {
+                                "enabled": True,
+                                "public_key": pbk,
+                                "short_id": sid
+                            }
+                        }
+                    elif tls_enabled:
                         ob["tls"] = {"enabled": True, "server_name": sni}
                     if tp_type == "ws":
                         ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/trojan-ws")}
@@ -29079,6 +29106,97 @@ def get_reality_public_key(private_key_b64: str) -> str:
     except Exception:
         return ""
 
+REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
+
+DEFAULT_REALITY_DOMAINS = [
+    # Top Iranian Camouflage Domains (TLS 1.3 + ALPN h2 verified)
+    "www.digikala.com",
+    "divar.ir",
+    "torob.com",
+    "snapp.ir",
+    "aparat.com",
+    "nobitex.ir",
+    # Top Global CDN & Cloud Camouflage Domains (TLS 1.3 + ALPN h2 verified)
+    "images.unsplash.com",
+    "download.docker.com",
+    "cdn.jsdelivr.net",
+    "swdist.apple.com",
+    "gateway.icloud.com",
+    "speedtest.net",
+    "www.cloudflare.com"
+]
+
+def generate_singbox_reality_keypair():
+    priv, pub = "", ""
+    try:
+        r = subprocess.run(["/usr/local/bin/sing-box", "generate", "reality-keypair"], capture_output=True, text=True)
+        for line in (r.stdout or "").splitlines():
+            if "PrivateKey:" in line:
+                priv = line.split("PrivateKey:")[1].strip()
+            elif "PublicKey:" in line:
+                pub = line.split("PublicKey:")[1].strip()
+    except Exception as e:
+        logger.error(f"Error generating reality keypair: {e}")
+    if not pub and priv:
+        pub = get_reality_public_key(priv)
+    return priv, pub
+
+def get_reality_rotation_config():
+    default_cfg = {
+        "enabled": False,
+        "interval_value": 3,
+        "interval_unit": "days",   # "days" or "hours"
+        "domains": list(DEFAULT_REALITY_DOMAINS),
+        "current_domain": "images.unsplash.com",
+        "fingerprint": "chrome",
+        "alpn": "h2,http/1.1",
+        "spider_x": "/",
+        "auto_keypair": True,
+        "current_public_key": "",
+        "current_short_id": "",
+        "inbounds": {},
+        "last_rotated_at": 0,
+        "next_rotation_at": 0,
+        "history": []
+    }
+    if os.path.exists(REALITY_ROTATION_CONFIG_FILE):
+        try:
+            with open(REALITY_ROTATION_CONFIG_FILE, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    default_cfg.update(saved)
+        except Exception as e:
+            logger.error(f"Error reading {REALITY_ROTATION_CONFIG_FILE}: {e}")
+    return default_cfg
+
+def save_reality_rotation_config(cfg):
+    try:
+        os.makedirs(os.path.dirname(REALITY_ROTATION_CONFIG_FILE), exist_ok=True)
+        with open(REALITY_ROTATION_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving {REALITY_ROTATION_CONFIG_FILE}: {e}")
+        return False
+
+def get_inbound_reality_metadata(tag: str) -> dict:
+    if not tag:
+        return {}
+    cfg = get_reality_rotation_config()
+    inbounds = cfg.get("inbounds", {})
+    return inbounds.get(tag, {}) if isinstance(inbounds, dict) else {}
+
+def save_inbound_reality_metadata(tag: str, meta: dict):
+    if not tag:
+        return
+    cfg = get_reality_rotation_config()
+    if "inbounds" not in cfg or not isinstance(cfg["inbounds"], dict):
+        cfg["inbounds"] = {}
+    if tag not in cfg["inbounds"]:
+        cfg["inbounds"][tag] = {}
+    cfg["inbounds"][tag].update(meta)
+    save_reality_rotation_config(cfg)
+
 def build_default_singbox_full_suite():
     reality_priv = ""
     reality_pub = ""
@@ -29817,9 +29935,21 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
                 link += f"&host={sni}"
 
         if reality_enabled:
+            meta = get_inbound_reality_metadata(tag)
+            rot_cfg = get_reality_rotation_config()
+            fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+            alpn_raw = tls_obj.get("alpn")
+            if alpn_raw and isinstance(alpn_raw, list):
+                alpn_str = ",".join(alpn_raw)
+            else:
+                alpn_str = meta.get("alpn") or rot_cfg.get("alpn") or "h2,http/1.1"
+            spx = meta.get("spider_x") or rot_cfg.get("spider_x") or "/"
+
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
-            link += "&fp=chrome"
+            link += f"&fp={fp}"
+            if alpn_str: link += f"&alpn={alpn_str}"
+            if spx: link += f"&spx={spx}&spiderX={spx}"
         elif tls_enabled:
             is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
             if is_self_signed:
@@ -29881,9 +30011,21 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
             sids = reality_obj.get("short_id", [""])
             sid = sids[0] if (isinstance(sids, list) and sids) else str(sids or "")
+            meta = get_inbound_reality_metadata(tag)
+            rot_cfg = get_reality_rotation_config()
+            fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+            alpn_raw = tls_obj.get("alpn")
+            if alpn_raw and isinstance(alpn_raw, list):
+                alpn_str = ",".join(alpn_raw)
+            else:
+                alpn_str = meta.get("alpn") or rot_cfg.get("alpn") or "h2,http/1.1"
+            spx = meta.get("spider_x") or rot_cfg.get("spider_x") or "/"
+
             if pbk: link += f"&pbk={pbk}"
             if sid: link += f"&sid={sid}"
-            link += "&fp=chrome"
+            link += f"&fp={fp}"
+            if alpn_str: link += f"&alpn={alpn_str}"
+            if spx: link += f"&spx={spx}&spiderX={spx}"
 
         link += f"#{tag_name}"
         return link
@@ -30690,6 +30832,51 @@ def build_inbound_from_request(req, existing_inbound=None):
             "reality": reality_block
         }
 
+        # ALPN configuration (Sing-box native inbound TLS support)
+        alpn_raw = req.get("reality_alpn") or req.get("alpn") or existing.get("tls", {}).get("alpn") or ["h2", "http/1.1"]
+        if alpn_raw:
+            if isinstance(alpn_raw, str):
+                inbound["tls"]["alpn"] = [x.strip() for x in alpn_raw.replace("،", ",").split(",") if x.strip()]
+            elif isinstance(alpn_raw, list):
+                inbound["tls"]["alpn"] = [str(x).strip() for x in alpn_raw if str(x).strip()]
+
+        # Metadata for client share links & subscriptions (fingerprint, spider_x, rotation domains)
+        inbound_tag = inbound.get("tag", "")
+        fp_val = (req.get("reality_fingerprint") or "chrome").strip()
+        spx_val = (req.get("reality_spider_x") or "/").strip()
+        domains_raw = req.get("reality_domains") or req.get("reality_domains_pool") or req.get("domains")
+
+        save_inbound_reality_metadata(inbound_tag, {
+            "fingerprint": fp_val,
+            "spider_x": spx_val,
+            "alpn": inbound["tls"].get("alpn", ["h2", "http/1.1"]),
+            "public_key": pub_k
+        })
+
+        # Sync rotation domain pool and schedule if provided
+        if domains_raw:
+            if isinstance(domains_raw, str):
+                d_list = [d.strip() for d in domains_raw.replace(",", "\n").splitlines() if d.strip()]
+            elif isinstance(domains_raw, list):
+                d_list = [str(d).strip() for d in domains_raw if str(d).strip()]
+            else:
+                d_list = []
+            clean_d = []
+            for d in d_list:
+                d_c = re.sub(r"^https?://", "", d).split("/")[0].split(":")[0].strip()
+                if d_c and "." in d_c and d_c not in clean_d:
+                    clean_d.append(d_c)
+            if clean_d:
+                rot_cfg = get_reality_rotation_config()
+                rot_cfg["domains"] = clean_d
+                if req.get("reality_auto_rotation") is not None:
+                    rot_cfg["enabled"] = bool(req.get("reality_auto_rotation"))
+                if req.get("reality_rotation_interval"):
+                    try:
+                        rot_cfg["interval_value"] = max(1, int(req.get("reality_rotation_interval")))
+                    except (ValueError, TypeError): pass
+                save_reality_rotation_config(rot_cfg)
+
     elif tls_mode == "tls":
         cert_p = req.get("certificate_path") or existing.get("tls", {}).get("certificate_path") or "/etc/vpnpanel/ssl/panel.crt"
         key_p = req.get("key_path") or existing.get("tls", {}).get("key_path") or "/etc/vpnpanel/ssl/panel.key"
@@ -30942,6 +31129,9 @@ def api_singbox_inbound_details(tag):
     sids = reality.get("short_id", [])
     short_id_str = ", ".join(sids) if isinstance(sids, list) else str(sids or "")
 
+    meta = get_inbound_reality_metadata(tag)
+    rot_cfg = get_reality_rotation_config()
+
     details = {
         "tag": inbound.get("tag"),
         "type": inbound.get("type"),
@@ -30963,6 +31153,13 @@ def api_singbox_inbound_details(tag):
         "reality_pubkey": pub_k,
         "reality_shortid": short_id_str,
         "reality_max_time_diff": reality.get("max_time_difference", ""),
+        "reality_fingerprint": meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome",
+        "reality_spider_x": meta.get("spider_x") or rot_cfg.get("spider_x") or "/",
+        "reality_alpn": ", ".join(tls.get("alpn", [])) if tls.get("alpn") else (meta.get("alpn") or rot_cfg.get("alpn") or "h2, http/1.1"),
+        "reality_domains": "\n".join(meta.get("domains") or rot_cfg.get("domains") or DEFAULT_REALITY_DOMAINS),
+        "reality_rotation_interval": rot_cfg.get("interval_value", 3),
+        "reality_rotation_unit": rot_cfg.get("interval_unit", "days"),
+        "reality_rotation_enabled": bool(rot_cfg.get("enabled", False)),
         "tls_cert": tls.get("certificate_path", "/etc/vpnpanel/ssl/panel.crt"),
         "tls_key": tls.get("key_path", "/etc/vpnpanel/ssl/panel.key"),
         "tls_alpn": ", ".join(tls.get("alpn", [])) if isinstance(tls.get("alpn"), list) else str(tls.get("alpn", "")),
@@ -32524,26 +32721,6 @@ def restore_system_backup(filepath):
 # --- Reality Camouflage Domain Auto-Rotation Engine & Domain Tester ---
 # =========================================================================
 
-REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
-
-DEFAULT_REALITY_DOMAINS = [
-    # Top Iranian Camouflage Domains (TLS 1.3 + ALPN h2 verified)
-    "www.digikala.com",
-    "divar.ir",
-    "torob.com",
-    "snapp.ir",
-    "aparat.com",
-    "nobitex.ir",
-    # Top Global CDN & Cloud Camouflage Domains (TLS 1.3 + ALPN h2 verified)
-    "images.unsplash.com",
-    "download.docker.com",
-    "cdn.jsdelivr.net",
-    "swdist.apple.com",
-    "gateway.icloud.com",
-    "speedtest.net",
-    "www.cloudflare.com"
-]
-
 def test_reality_domain(domain, port=443, timeout=3.5):
     import socket, ssl, time, re
     domain = re.sub(r"^https?://", "", (domain or "").strip()).split("/")[0].split(":")[0].strip()
@@ -32638,37 +32815,6 @@ def test_reality_domain(domain, port=443, timeout=3.5):
 
     return res
 
-def get_reality_rotation_config():
-    default_cfg = {
-        "enabled": False,
-        "interval_value": 3,
-        "interval_unit": "days",   # "days" or "hours"
-        "domains": list(DEFAULT_REALITY_DOMAINS),
-        "current_domain": "images.unsplash.com",
-        "last_rotated_at": 0,
-        "next_rotation_at": 0,
-        "history": []
-    }
-    if os.path.exists(REALITY_ROTATION_CONFIG_FILE):
-        try:
-            with open(REALITY_ROTATION_CONFIG_FILE, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-                if isinstance(saved, dict):
-                    default_cfg.update(saved)
-        except Exception as e:
-            logger.error(f"Error reading {REALITY_ROTATION_CONFIG_FILE}: {e}")
-    return default_cfg
-
-def save_reality_rotation_config(cfg):
-    try:
-        os.makedirs(os.path.dirname(REALITY_ROTATION_CONFIG_FILE), exist_ok=True)
-        with open(REALITY_ROTATION_CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump(cfg, f, indent=2, ensure_ascii=False)
-        return True
-    except Exception as e:
-        logger.error(f"Error saving {REALITY_ROTATION_CONFIG_FILE}: {e}")
-        return False
-
 def get_current_reality_domain():
     if os.path.exists(SINGBOX_CONFIG_FILE):
         try:
@@ -32703,6 +32849,14 @@ def execute_reality_rotation(force=False, target_domain=None):
             candidates = [d for d in domains if d != current_dom]
             new_dom = candidates[0] if candidates else domains[0]
 
+    # Issue fresh Reality Keypair & Short ID on rotation (if auto_keypair enabled or default)
+    auto_keys = cfg.get("auto_keypair", True)
+    new_priv_key, new_pub_key = ("", "")
+    new_short_id = ""
+    if auto_keys:
+        new_priv_key, new_pub_key = generate_singbox_reality_keypair()
+        new_short_id = secrets.token_hex(8)
+
     # Update in Singbox config
     modified_inbounds = 0
     if os.path.exists(SINGBOX_CONFIG_FILE):
@@ -32718,9 +32872,21 @@ def execute_reality_rotation(force=False, target_domain=None):
                 tls["server_name"] = inbound_dom
                 if "reality" in tls and "handshake" in tls["reality"]:
                     tls["reality"]["handshake"]["server"] = inbound_dom
+                if new_priv_key and "reality" in tls:
+                    tls["reality"]["private_key"] = new_priv_key
+                    tls["reality"]["short_id"] = [new_short_id, ""]
                 modified_inbounds += 1
 
             if modified_inbounds > 0:
+                # Pre-validate candidate config before applying
+                cand_path = "/tmp/singbox_rot_cand.json"
+                with open(cand_path, "w", encoding="utf-8") as f_cand:
+                    json.dump(sb_cfg, f_cand, indent=2, ensure_ascii=False)
+                chk = subprocess.run(["/usr/local/bin/sing-box", "check", "-c", cand_path], capture_output=True, text=True)
+                if chk.returncode != 0:
+                    logger.error(f"Validation failed for rotated config: {chk.stderr}")
+                    return False, f"خطا در اعتبارسنجی کانفیگ سینگ‌باکس: {chk.stderr}"
+
                 with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
                     json.dump(sb_cfg, f, indent=2, ensure_ascii=False)
                 subprocess.run(["systemctl", "restart", SINGBOX_SERVICE_NAME], capture_output=True)
@@ -32743,10 +32909,16 @@ def execute_reality_rotation(force=False, target_domain=None):
         "previous": current_dom,
         "time": now_str,
         "status": "success",
-        "inbounds_updated": modified_inbounds
+        "inbounds_updated": modified_inbounds,
+        "public_key": new_pub_key,
+        "short_id": new_short_id
     })
     cfg["history"] = history[:25]
     cfg["current_domain"] = new_dom
+    if new_pub_key:
+        cfg["current_public_key"] = new_pub_key
+    if new_short_id:
+        cfg["current_short_id"] = new_short_id
     cfg["last_rotated_at"] = now_ts
     cfg["next_rotation_at"] = next_ts
     save_reality_rotation_config(cfg)
@@ -32759,20 +32931,21 @@ def execute_reality_rotation(force=False, target_domain=None):
             admin_id = tg_cfg["admin_id"]
             next_str = (datetime.now() + timedelta(seconds=interval_sec)).strftime("%Y-%m-%d %H:%M:%S")
             srv_ip = get_server_public_ip() or ""
+            key_info = f"\n🔑 کلید عمومی جدید: <code>{new_pub_key}</code>\n🆔 شناسه کوتاه (Short ID): <code>{new_short_id}</code>" if new_pub_key else ""
             msg = (
-                f"🔄 <b>چرخش خودکار دامنه استتار ریالیتی (Reality SNI Rotation)</b>\n\n"
+                f"🔄 <b>چرخش خودکار دامنه استتار و کلید ریالیتی (Reality SNI & Keypair Rotation)</b>\n\n"
                 f"🌐 سرور: <code>{srv_ip}</code>\n"
                 f"✨ دامنه استتار جدید: <code>{new_dom}</code>\n"
-                f"⏮️ دامنه قبلی: <code>{current_dom}</code>\n"
+                f"⏮️ دامنه قبلی: <code>{current_dom}</code>{key_info}\n"
                 f"⏰ زمان تغییر: <code>{now_str}</code>\n"
                 f"⏳ چرخش بعدی: <code>{next_str}</code>\n\n"
-                f"<i>هسته سینگ‌باکس و قوانین HAProxy به صورت خودکار بروزرسانی شدند.</i>"
+                f"<i>هسته سینگ‌باکس با کلید و دامنه جدید بروزرسانی شد و لینک‌های ساب کاربران به صورت خودکار با کلید و دامنه جدید منطبق گردیدند.</i>"
             )
             threading.Thread(target=send_telegram_notification, args=(token, admin_id, msg), daemon=True).start()
     except Exception:
         pass
 
-    return True, f"دامنه استتار ریالیتی با موفقیت به {new_dom} تغییر یافت."
+    return True, f"دامنه استتار ریالیتی با موفقیت به {new_dom} تغییر یافت و جفت‌کلید جدید صادر شد."
 
 def reality_rotation_worker():
     while True:
@@ -32822,6 +32995,12 @@ def api_singbox_reality_rotation():
             "success": True,
             "config": cfg,
             "current_domain": current_dom,
+            "current_public_key": cfg.get("current_public_key", ""),
+            "current_short_id": cfg.get("current_short_id", ""),
+            "fingerprint": cfg.get("fingerprint", "chrome"),
+            "alpn": cfg.get("alpn", "h2,http/1.1"),
+            "spider_x": cfg.get("spider_x", "/"),
+            "auto_keypair": cfg.get("auto_keypair", True),
             "remaining_seconds": remaining_sec,
             "remaining_formatted": remaining_str if cfg.get("enabled") else "غیرفعال"
         })
@@ -32843,6 +33022,18 @@ def api_singbox_reality_rotation():
         unit = req.get("interval_unit")
         if unit in ["days", "hours"]:
             cfg["interval_unit"] = unit
+
+    if "fingerprint" in req:
+        cfg["fingerprint"] = (req.get("fingerprint") or "chrome").strip()
+
+    if "alpn" in req:
+        cfg["alpn"] = (req.get("alpn") or "h2,http/1.1").strip()
+
+    if "spider_x" in req:
+        cfg["spider_x"] = (req.get("spider_x") or "/").strip()
+
+    if "auto_keypair" in req:
+        cfg["auto_keypair"] = bool(req.get("auto_keypair"))
 
     if "domains" in req:
         raw_domains = req.get("domains")
