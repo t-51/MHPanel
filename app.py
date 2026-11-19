@@ -306,6 +306,29 @@ PROTOCOL_SERVICE_MAP = {
     "google_script": "mhpanel-gas-tunnel",
 }
 
+HTTPS_STANDARD_PORTS = [443, 8443, 2053, 2083, 2087, 2096]
+HTTPS_PORTS = [443, 8443, 2053, 2083, 2087, 2096]
+CLOUDFLARE_STANDARD_PORTS = [443, 2096]
+
+def get_reality_candidate_ports():
+    try:
+        if "get_multiplexer_config" in globals():
+            mpx = globals()["get_multiplexer_config"]()
+            if mpx and mpx.get("enabled", False):
+                mpx_ports = mpx.get("listen_ports", [])
+                valid_ports = [int(p) for p in mpx_ports if int(p) in HTTPS_PORTS]
+                if valid_ports:
+                    res = []
+                    if 443 in valid_ports:
+                        res.append(443)
+                    for p in sorted(valid_ports):
+                        if p not in res:
+                            res.append(p)
+                    return res
+    except Exception:
+        pass
+    return [443, 2096]
+
 def get_session_secret():
     if not os.path.exists(SESSION_SECRET_FILE):
         os.makedirs(os.path.dirname(SESSION_SECRET_FILE), exist_ok=True)
@@ -2738,9 +2761,12 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
 
                 if itype == "vless":
                     target_srv = host_ip
-                    target_port = 443 if (reality_enabled and int(port) == 20443) else port
-                    if tls_enabled and not reality_enabled and sni and "." in sni and not sni.startswith("dl.google"):
-                        target_srv = sni
+                    if reality_enabled:
+                        target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
+                    else:
+                        target_port = port
+                        if tls_enabled and sni and "." in sni and not sni.startswith("dl.google"):
+                            target_srv = sni
                     ob = {
                         "type": "vless",
                         "tag": out_tag,
@@ -2772,6 +2798,17 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "vless-grpc")}
                     elif tp_type == "httpupgrade":
                         ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vless-upgrade")}
+
+                    if ob:
+                        outbounds.append(ob)
+                        proxy_tags.append(out_tag)
+                        if reality_enabled and target_port == 443:
+                            ob_2096 = copy.deepcopy(ob)
+                            ob_2096["tag"] = f"{out_tag}-2096"
+                            ob_2096["server_port"] = 2096
+                            outbounds.append(ob_2096)
+                            proxy_tags.append(ob_2096["tag"])
+                        ob = None
 
                 elif itype == "vmess":
                     target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
@@ -3044,14 +3081,16 @@ def generate_ssh_uris(username, password, domain, pub_ip):
             for ib in sb_cfg.get("inbounds", []):
                 itype = ib.get("type")
                 if itype in ["vless", "vmess", "trojan", "shadowsocks", "hysteria2", "tuic", "naive", "shadowtls", "mixed", "socks"]:
-                    slink = generate_singbox_share_link(ib, server_host, target_user=target_u)
-                    if slink:
-                        uris.append(slink)
-                    if ib.get("tls", {}).get("reality", {}).get("enabled"):
-                        for extra_p in CLOUDFLARE_STANDARD_PORTS:
-                            extra_link = generate_singbox_share_link(ib, server_host, target_user=target_u, override_port=extra_p)
+                    is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
+                    if is_real:
+                        for r_port in get_reality_candidate_ports():
+                            extra_link = generate_singbox_share_link(ib, server_host, target_user=target_u, override_port=r_port)
                             if extra_link and extra_link not in uris:
                                 uris.append(extra_link)
+                    else:
+                        slink = generate_singbox_share_link(ib, server_host, target_user=target_u)
+                        if slink and slink not in uris:
+                            uris.append(slink)
     except Exception as e:
         logger.error(f"Error appending singbox links to subscription: {e}")
 
@@ -4269,16 +4308,15 @@ def client_sub_b64(sub_token):
                     if not user_inbounds or tag in user_inbounds:
                         is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
                         target_host = domain or pub_ip
-                        slink = generate_singbox_share_link(ib, target_host, target_user=udata)
-                        if slink:
-                            uris.append(slink)
-                        # Standard Cloudflare ports for Reality:
-                        if is_real and ib.get("tag") == "vless-reality-in":
-                            for extra_p in CLOUDFLARE_STANDARD_PORTS:
-                                if extra_p != ib.get("listen_port"):
-                                    extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=extra_p)
-                                    if extra_link and extra_link not in uris:
-                                        uris.append(extra_link)
+                        if is_real:
+                            for r_port in get_reality_candidate_ports():
+                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=r_port)
+                                if extra_link and extra_link not in uris:
+                                    uris.append(extra_link)
+                        else:
+                            slink = generate_singbox_share_link(ib, target_host, target_user=udata)
+                            if slink and slink not in uris:
+                                uris.append(slink)
         except Exception as e:
             logger.error(f"Error generating singbox sub links: {e}")
 
@@ -14607,7 +14645,7 @@ def get_snispoof_reality_and_client_configs():
     cf_target_port = int(cf_cfg.get("target_port") or 20460)
 
     # Extract Sing-box Reality settings & live user credentials
-    r_port = 20443
+    r_port = 443
     r_sni = "images.unsplash.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
@@ -14630,7 +14668,8 @@ def get_snispoof_reality_and_client_configs():
                         r_trojan_pass = t_users[0]["password"]
 
             if ib_reality:
-                r_port = ib_reality.get("listen_port", 20443)
+                listen_p = ib_reality.get("listen_port", 443)
+                r_port = listen_p if listen_p in HTTPS_PORTS else 443
                 tls = ib_reality.get("tls", {})
                 r_obj = tls.get("reality", {})
                 h_serv = r_obj.get("handshake", {}).get("server") or tls.get("server_name")
@@ -14906,7 +14945,7 @@ def get_snispoof_reality_and_client_configs():
     singbox_fragment_snippet = singbox_fragment["outbounds"][0]
 
     # V2Ray URIs
-    r_port_ext = 443 if (int(r_port) == 20443 or int(r_port) not in [443, 2096]) else r_port
+    r_port_ext = r_port if (int(r_port) in HTTPS_PORTS) else 443
     v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-AntiDPI-Reality"
     v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
     v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
@@ -29680,17 +29719,23 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             return False
 
     server_pub_ip = get_server_public_ip()
-    if override_port:
-        port = int(override_port)
-    else:
-        port = int(inbound.get("listen_port", 443))
-
     if reality_enabled:
+        # Reality configs strictly operate on standard HTTPS ports (443, 2096, 8443, 2053, 2083, 2087)
+        # Any internal listen port (e.g. 20443, 20452, 20453) is replaced with 443
+        if override_port:
+            port = int(override_port) if int(override_port) in HTTPS_PORTS else 443
+        else:
+            inbound_port = int(inbound.get("listen_port", 443))
+            port = inbound_port if inbound_port in HTTPS_PORTS else 443
         target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip
     else:
+        if override_port:
+            port = int(override_port)
+        else:
+            port = int(inbound.get("listen_port", 443))
         target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
 
-    port_label = f" (Port {port})" if (override_port or port not in [443, 20443]) else ""
+    port_label = f" (Port {port})" if (port != 443 and (override_port or port not in [443, 20443])) else ""
     tag_name = f"MHPanel - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}{port_label}"
 
     if itype == "vless":
@@ -31762,27 +31807,29 @@ def api_singbox_user_links(username):
     for ib in cfg.get("inbounds", []):
         tag = ib.get("tag")
         if not user_inbounds or tag in user_inbounds:
-            link = generate_singbox_share_link(ib, target_host, target_user=target)
             proto_type = ib.get("type", "")
             is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
-            eff_port = ib.get("listen_port")
-            configs.append({
-                "tag": tag,
-                "type": proto_type,
-                "port": eff_port,
-                "share_link": link
-            })
-            if is_real and ib.get("tag") == "vless-reality-in":
-                for extra_p in CLOUDFLARE_STANDARD_PORTS:
-                    if extra_p != ib.get("listen_port"):
-                        extra_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=extra_p)
-                        if extra_link:
-                            configs.append({
-                                "tag": f"{tag}-p{extra_p}",
-                                "type": proto_type,
-                                "port": extra_p,
-                                "share_link": extra_link
-                            })
+            if is_real:
+                candidate_ports = get_reality_candidate_ports()
+                for r_port in candidate_ports:
+                    r_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=r_port)
+                    if r_link:
+                        r_tag = f"{tag}-p{r_port}" if r_port != 443 else tag
+                        configs.append({
+                            "tag": r_tag,
+                            "type": proto_type,
+                            "port": r_port,
+                            "share_link": r_link
+                        })
+            else:
+                eff_port = ib.get("listen_port")
+                link = generate_singbox_share_link(ib, target_host, target_user=target)
+                configs.append({
+                    "tag": tag,
+                    "type": proto_type,
+                    "port": eff_port,
+                    "share_link": link
+                })
 
     # Append Cloudflare Clean IP configs (VLESS-WS, Trojan-WS, VMess-WS)
     pwd = target.get("password") or ""
