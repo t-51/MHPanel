@@ -69,7 +69,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="1.6.0"
+VERSION="1.7.0"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -1054,7 +1054,22 @@ EOF
     systemctl daemon-reload
     systemctl enable mhpanel >/dev/null 2>&1
     systemctl restart mhpanel
-    sleep 2
+
+    echo -ne "    Verifying MH Panel service health and HTTP readiness..."
+    local ready=false
+    for i in {1..30}; do
+        if curl -sk -m 2 -o /dev/null "https://127.0.0.1:${panel_port}/" 2>/dev/null || curl -sk -m 2 -o /dev/null "http://127.0.0.1:${panel_port}/" 2>/dev/null; then
+            ready=true
+            break
+        fi
+        sleep 1
+        echo -ne "."
+    done
+    if [ "$ready" = "true" ]; then
+        echo -e " ${GREEN}[Online & Ready ✓]${NC}"
+    else
+        echo -e " ${YELLOW}[Started - Warming up]${NC}"
+    fi
 
     # Setup Google Apps Script (GAS) Full Tunnel Exit Server (mhrv-tunnel-node)
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
@@ -3336,6 +3351,17 @@ update_panel_repo() {
     mkdir -p "${PANEL_DIR}"
     cd "${PANEL_DIR}"
 
+    git config --global --add safe.directory "${PANEL_DIR}" 2>/dev/null || true
+    if [ -d "/root/mhpanel-repo/.git" ]; then
+        git config --global --add safe.directory "/root/mhpanel-repo" 2>/dev/null || true
+        (
+            cd /root/mhpanel-repo
+            git remote set-url origin "${GITHUB_REPO}" 2>/dev/null || true
+            git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null || true
+            git reset --hard origin/main 2>/dev/null || true
+        ) 2>/dev/null || true
+    fi
+
     local pull_ok=false
     if [ ! -d "${PANEL_DIR}/.git" ]; then
         echo -e "${CYAN}    Initializing Git configuration in ${PANEL_DIR}...${NC}"
@@ -3353,6 +3379,11 @@ update_panel_repo() {
         echo -e "${YELLOW}    Git pull encountered a network issue. Falling back to direct GitHub raw sync...${NC}"
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/install.sh" -o "${PANEL_DIR}/install.sh" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/app.py" -o "${PANEL_DIR}/app.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/cloudflare_manager.py" -o "${PANEL_DIR}/cloudflare_manager.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/gas_cf_templates.py" -o "${PANEL_DIR}/gas_cf_templates.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/protocol_accounting.py" -o "${PANEL_DIR}/protocol_accounting.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/whitebox_aes.py" -o "${PANEL_DIR}/whitebox_aes.py" 2>/dev/null || true
+        curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/requirements.txt" -o "${PANEL_DIR}/requirements.txt" 2>/dev/null || true
         mkdir -p "${PANEL_DIR}/scripts/daemons" "${PANEL_DIR}/templates/partials"
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/protocol_helper.sh" -o "${PANEL_DIR}/scripts/protocol_helper.sh" 2>/dev/null || true
         curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/scripts/hmpanel.sh" -o "${PANEL_DIR}/scripts/hmpanel.sh" 2>/dev/null || true
@@ -3448,6 +3479,23 @@ update_panel_repo() {
     systemctl daemon-reload
     systemctl restart mhpanel 2>/dev/null || true
     systemctl restart mhpanel-gas-tunnel 2>/dev/null || true
+
+    echo -ne "    Verifying MH Panel health and web service readiness..."
+    local ready=false
+    local p_port=$(cat "${PANEL_DIR}/panel_port.txt" 2>/dev/null || echo "9090")
+    for i in {1..30}; do
+        if curl -sk -m 2 -o /dev/null "https://127.0.0.1:${p_port}/" 2>/dev/null || curl -sk -m 2 -o /dev/null "http://127.0.0.1:${p_port}/" 2>/dev/null; then
+            ready=true
+            break
+        fi
+        sleep 1
+        echo -ne "."
+    done
+    if [ "$ready" = "true" ]; then
+        echo -e " ${GREEN}[Online & Ready ✓]${NC}"
+    else
+        echo -e " ${YELLOW}[Started - Warming up]${NC}"
+    fi
 
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"

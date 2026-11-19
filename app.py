@@ -4556,6 +4556,7 @@ def api_system_update_panel():
     try:
         sh_script = """#!/usr/bin/env bash
 sleep 1
+git config --global --add safe.directory /www/wwwroot/mhpanel 2>/dev/null || true
 cd /www/wwwroot/mhpanel || exit 1
 if [ ! -d .git ]; then
     git init -b main 2>/dev/null || git init 2>/dev/null || true
@@ -4564,6 +4565,15 @@ fi
 git remote set-url origin https://github.com/t-51/MHPanel.git 2>/dev/null || true
 if git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null; then
     git reset --hard origin/main 2>/dev/null || true
+fi
+
+if [ -d /root/mhpanel-repo/.git ]; then
+    git config --global --add safe.directory /root/mhpanel-repo 2>/dev/null || true
+    (
+        cd /root/mhpanel-repo
+        git fetch origin main --depth=1 2>/dev/null || git fetch origin main 2>/dev/null || true
+        git reset --hard origin/main 2>/dev/null || true
+    ) 2>/dev/null || true
 fi
 
 chmod +x install.sh scripts/*.sh 2>/dev/null || true
@@ -26200,11 +26210,6 @@ def restore_all_tunnels():
             apply_dns_tunnel(dns)
         except Exception as e:
             print(f"Error restoring dns tunnel {dns.get('name')}: {e}")
-    for dns in data.get("dns_tunnels", []):
-        try:
-            apply_dns_tunnel(dns)
-        except Exception as e:
-            print(f"Error restoring dns tunnel {dns.get('name')}: {e}")
 
 def generate_mikrotik_scripts(tun):
     ttype = tun.get("type", "gre")
@@ -36040,77 +36045,81 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"WARNING: HTTPS certificate is not usable, falling back to HTTP: {e}")
 
-    try:
-        restore_all_tunnels()
-    except Exception as e:
-        print(f"Error restoring tunnels: {e}")
+    def _run_startup_background_tasks():
+        time.sleep(0.5)
+        try:
+            restore_all_tunnels()
+        except Exception as e:
+            print(f"Error restoring tunnels: {e}")
 
-    try:
-        optimize_network_and_mss()
-    except Exception as e:
-        print(f"Error optimizing network and MSS: {e}")
+        try:
+            optimize_network_and_mss()
+        except Exception as e:
+            print(f"Error optimizing network and MSS: {e}")
 
-    try:
-        apply_wg_multiport_iptables(get_wg_multiport_config())
-    except Exception as e:
-        print(f"Error applying WireGuard multiport iptables on startup: {e}")
+        try:
+            apply_wg_multiport_iptables(get_wg_multiport_config())
+        except Exception as e:
+            print(f"Error applying WireGuard multiport iptables on startup: {e}")
 
-    try:
-        apply_awg_multiport_iptables(get_awg_multiport_config())
-    except Exception as e:
-        print(f"Error applying AmneziaWG multiport iptables on startup: {e}")
+        try:
+            apply_awg_multiport_iptables(get_awg_multiport_config())
+        except Exception as e:
+            print(f"Error applying AmneziaWG multiport iptables on startup: {e}")
 
-    # One-time normalization migration of stored client configs
-    try:
-        domain = get_server_domain() or get_server_public_ip()
-        wg_file = "/www/wwwroot/mhpanel/wg_users.json"
-        if os.path.exists(wg_file):
-            with open(wg_file, "r") as f:
-                wg_u = json.load(f)
-            wg_dirty = False
-            for pk, udata in wg_u.items():
-                orig_cfg = udata.get("config", "")
-                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=51820, is_awg=False)
-                if norm_cfg != orig_cfg:
-                    udata["config"] = norm_cfg
-                    wg_dirty = True
-            if wg_dirty:
-                with open(wg_file, "w") as f:
-                    json.dump(wg_u, f, indent=2, ensure_ascii=False)
+        # One-time normalization migration of stored client configs
+        try:
+            domain = get_server_domain() or get_server_public_ip()
+            wg_file = "/www/wwwroot/mhpanel/wg_users.json"
+            if os.path.exists(wg_file):
+                with open(wg_file, "r") as f:
+                    wg_u = json.load(f)
+                wg_dirty = False
+                for pk, udata in wg_u.items():
+                    orig_cfg = udata.get("config", "")
+                    norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=51820, is_awg=False)
+                    if norm_cfg != orig_cfg:
+                        udata["config"] = norm_cfg
+                        wg_dirty = True
+                if wg_dirty:
+                    with open(wg_file, "w") as f:
+                        json.dump(wg_u, f, indent=2, ensure_ascii=False)
 
-        awg_file = "/www/wwwroot/mhpanel/awg_users.json"
-        if os.path.exists(awg_file):
-            with open(awg_file, "r") as f:
-                awg_u = json.load(f)
-            awg_dirty = False
-            for pk, udata in awg_u.items():
-                orig_cfg = udata.get("config", "")
-                norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=2053, is_awg=True)
-                if norm_cfg != orig_cfg:
-                    udata["config"] = norm_cfg
-                    awg_dirty = True
-            if awg_dirty:
-                with open(awg_file, "w") as f:
-                    json.dump(awg_u, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        print(f"Error during client config normalization migration: {e}")
+            awg_file = "/www/wwwroot/mhpanel/awg_users.json"
+            if os.path.exists(awg_file):
+                with open(awg_file, "r") as f:
+                    awg_u = json.load(f)
+                awg_dirty = False
+                for pk, udata in awg_u.items():
+                    orig_cfg = udata.get("config", "")
+                    norm_cfg = normalize_client_config(orig_cfg, domain=domain, port=2053, is_awg=True)
+                    if norm_cfg != orig_cfg:
+                        udata["config"] = norm_cfg
+                        awg_dirty = True
+                if awg_dirty:
+                    with open(awg_file, "w") as f:
+                        json.dump(awg_u, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error during client config normalization migration: {e}")
 
-    try:
-        sync_dnsmasq_routes()
-    except Exception as e:
-        print(f"Error during dnsmasq route sync at startup: {e}")
+        try:
+            sync_dnsmasq_routes()
+        except Exception as e:
+            print(f"Error during dnsmasq route sync at startup: {e}")
 
-    try:
-        st_cfg = "/etc/vpnpanel/stuntls.json"
-        if os.path.exists(st_cfg) and not os.path.exists("/www/wwwroot/mhpanel/bin/stuntls-client"):
-            threading.Thread(target=build_stuntls_client, daemon=True).start()
-    except Exception as e:
-        print(f"Error checking StunTLS client builder thread: {e}")
+        try:
+            st_cfg = "/etc/vpnpanel/stuntls.json"
+            if os.path.exists(st_cfg) and not os.path.exists("/www/wwwroot/mhpanel/bin/stuntls-client"):
+                threading.Thread(target=build_stuntls_client, daemon=True).start()
+        except Exception as e:
+            print(f"Error checking StunTLS client builder thread: {e}")
 
-    try:
-        sync_singbox_multiplexer_and_iptables()
-    except Exception as e:
-        print(f"Error syncing singbox HAProxy and iptables on startup: {e}")
+        try:
+            sync_singbox_multiplexer_and_iptables()
+        except Exception as e:
+            print(f"Error syncing singbox HAProxy and iptables on startup: {e}")
+
+    threading.Thread(target=_run_startup_background_tasks, daemon=True).start()
 
     port = get_panel_port()
     app.run(host="0.0.0.0", port=port, ssl_context=ssl_context, debug=False)
