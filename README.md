@@ -1,9 +1,14 @@
 # 🚀 MH Panel - Enterprise Unified VPN, Anti-Censorship Tunnels, Sing-box Universal Suite & MikroTik Management Hub
 
 <p align="center">
-  <a href="README.md"><b>🇬🇧 English Documentation</b></a> |
-  <a href="README_FA.md"><b>🇮🇷 مستندات فارسی (جامع)</b></a> |
-  <a href="README_RU.md"><b>🇷🇺 Документация на русском</b></a>
+  <a href="README.md"><b>🇬🇧 English</b></a> |
+  <a href="README_FA.md"><b>🇮🇷 فارسی</b></a> |
+  <a href="README_RU.md"><b>🇷🇺 Русский</b></a> |
+  <a href="README_AR.md"><b>🇸🇦 العربية</b></a> |
+  <a href="README_IT.md"><b>🇮🇹 Italiano</b></a> |
+  <a href="README_ES.md"><b>🇪🇸 Español</b></a> |
+  <a href="README_ZH.md"><b>🇨🇳 简体中文</b></a> |
+  <a href="README_DE.md"><b>🇩🇪 Deutsch</b></a>
 </p>
 
 <p align="center">
@@ -49,9 +54,33 @@ Upon completion, your terminal displays your unique Web GUI URL, administrator c
 
 ---
 
+## 📡 Universal Smart Subscription Engine (All 23 Configs in 1 Link)
+
+MH Panel features an intelligent subscription engine capable of delivering all 23 Sing-box protocol configurations + SSH tunneling credentials inside a **single unified subscription link**:
+
+### 🎯 Optimized For All Modern VPN Clients:
+- **SlipNet** (Full auto-import, DoH scanner, Bridge QR parsing)
+- **v2rayNG** / **v2rayN** (Base64 standard multi-config import)
+- **Hiddify** / **NekoBox** (Sing-box native protocol support)
+- **Streisand** / **Shadowrocket** / **Clash Meta**
+
+### 🔗 Smart Subscription Formats & Endpoints:
+| Link Type | URL Endpoint | Description |
+|---|---|---|
+| **Universal Base64** | `https://<DOMAIN>:<PORT>/sub/<TOKEN>/b64` | Standard Base64 delivering all 23 protocol inbounds + SSH configs for SlipNet, v2rayNG, and Hiddify. |
+| **Sing-box Profile JSON** | `https://<DOMAIN>:<PORT>/sub/<TOKEN>/singbox.json` | Native JSON configuration profile with complete routing rules for official Sing-box clients. |
+| **Fragment / Cloud IP** | `https://<DOMAIN>:<PORT>/sub/<TOKEN>/singbox-fragment.json` | Optimized configs with TLS SNI fragmentation to bypass aggressive SNI filtering. |
+| **Client Web Portal** | `https://<DOMAIN>:<PORT>/sub/<TOKEN>` | Interactive web portal showing live traffic consumption, expiry date, raw URIs, and universal All-in-One QR code. |
+
+> [!NOTE]
+> In the panel's user table, simply click **`[📡 لینک ساب / Copy Sub]`** to copy the client's universal subscription link directly to your clipboard with 1 click.
+
+---
+
 ## 📑 Table of Contents
 
 - [⚡ Instant 1-Line Installation](#-instant-1-line-installation-quick-start)
+- [📡 Universal Smart Subscription Engine](#-universal-smart-subscription-engine-all-23-configs-in-1-link)
 - [🌟 What's New in Version 1.7.0](#-whats-new-in-version-170)
 - [📸 Panel Visual Tour (Light Theme Gallery)](#-panel-visual-tour-light-theme-gallery)
 - [📐 Visual Architecture & Traffic Flow Pipelines](#-visual-architecture--traffic-flow-pipelines)
@@ -86,7 +115,6 @@ Version **1.7.0** delivers superior anti-censorship resilience, Sing-box univers
 
 2. 📡 **Universal Smart Subscription Engine (SlipNet, V2Ray, Sing-box & Hiddify):**
    - 1-click **Base64 Smart Subscription** delivering all 23 active Sing-box configurations + SSH configs in a single unified link.
-   - Fully optimized for **SlipNet**, **v2rayNG**, **NekoBox**, **Hiddify**, **v2rayN**, and **Streisand**.
    - Automatic TLS SNI routing prioritizing active and valid server SSL domains to eliminate certificate mismatch and handshake errors.
    - 1-click direct clipboard copy button in the users table with immediate visual toast notification.
 
@@ -156,8 +184,6 @@ User-facing portal showing traffic quota consumption, remaining validity days, r
 
 ### 1. Universal Multi-Protocol Port 443 Sharing Architecture
 
-Allows running every modern protocol simultaneously over a single public HTTPS port (443) behind an intelligent Layer-4/Layer-7 SNI dispatcher with authentic decoy fallback:
-
 ```text
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                      📱 Global Clients & Operating Systems                             │
@@ -192,8 +218,6 @@ Allows running every modern protocol simultaneously over a single public HTTPS p
 ---
 
 ### 2. Google Apps Script Full-Tunnel Proxy Pipeline
-
-Bypasses aggressive DPI filters by relaying traffic via official Google Cloud Edge workers (`script.google.com`):
 
 ```text
 ┌──────────────┐       AES-256-GCM Encrypted + HMAC Auth       ┌───────────────────────────────────┐
@@ -345,33 +369,65 @@ Bypasses aggressive DPI filters by relaying traffic via official Google Cloud Ed
 
 ## 🧭 Interactive Master CLI (`mhpanel`)
 
-Access the complete server management console anytime directly from your terminal:
+MH Panel provides an enterprise-grade interactive command-line interface directly on your server terminal:
 
 ```bash
 mhpanel
 ```
 
 ```text
-  ======================================================================
+  ========================================================================
      🚀 MH PANEL Enterprise Master CLI Console (Version 1.7.0)
-  ======================================================================
-  [1]  Execute Automated Full Suite Installation (All Protocols & Tools)
-  [2]  Step-by-Step Custom Installation Wizard
-  [3]  Lightweight Web Panel Only Installation
-  ----------------------------------------------------------------------
-  [4]  Live System Diagnostic Report & Service Status
-  [5]  Manage, Install, Remove & Reconfigure VPN Protocols
-  [6]  Anti-Censorship Tunnels Hub & MikroTik RouterOS Bridge
-  [7]  Web Panel Settings (Credentials, Port, SSL, Restart)
-  [8]  SSL Certificate Management (Let's Encrypt & 10-Year IP SAN)
-  [9]  Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)
-  [10] Full Backup & Restore Suite (Create / Restore Archive)
-  [11] Anti-DPI WordPress Decoy Site Studio
-  [12] Telegram Bot Settings & Alert Testing
-  [13] Check & Apply Official Updates from GitHub
+  ========================================================================
+  Web Panel Status: Online (IP:PORT/PATH) | Quick Command: mhpanel
+  ------------------------------------------------------------------------
+  [1]  Run Full Automated Installation (Setup All Missing Components)
+  [2]  Run Step-by-Step Custom Installation Wizard
+  [3]  Install Lightweight Web UI Only
+  ------------------------------------------------------------------------
+  [4]  View Panel Access URL & Login Info
+  [5]  Change Admin Username & Password
+  [6]  Change Panel Address, Port & Path
+  [7]  Live System & Service Diagnostic Report
+  [8]  Manage, Install, Uninstall & Reconfigure VPN Protocols
+  [9]  Anti-Censorship Tunnels & MikroTik RouterOS Bridge Hub
+  [10] Web Server Integration & WordPress Camouflage
+  [11] Telegram Bot Notifications & Auto-Backup Hub
+  [12] Web Dashboard Settings (Logs, Restart, 2FA & API Key)
+  [13] SSL Certificate Management (Let's Encrypt & IP SAN)
+  [14] Network & Kernel Optimization (BBR, IPv4/IPv6 Forwarding)
+  [15] Backup & Restore Panel Configurations
+  [16] Quick Terminal Commands Guide & Shortcuts
+  [17] Update Script & Panel
+  [18] Uninstall MH Panel from Server
   [0]  Exit
-  ======================================================================
+  ========================================================================
 ```
+
+### ⚡ Quick Non-Interactive CLI Shortcuts:
+
+Administrators can execute actions directly from bash without opening the interactive menu:
+
+| Command | Action Description |
+|---|---|
+| `mhpanel` | Open the interactive master menu. |
+| `mhpanel --status` | Run live diagnostic audit on all services, ports, and hardware. |
+| `mhpanel --info` | Print the current Web GUI access URL, login credentials, and API key. |
+| `mhpanel --user <new_username>` | Change the administrator username. |
+| `mhpanel --pass <new_password>` | Change the administrator password. |
+| `mhpanel --credentials <user> <pass>` | Change both username and password in a single command. |
+| `mhpanel --port <port>` | Change the Web Panel listening port (e.g. `mhpanel --port 9443`). |
+| `mhpanel --path <secret_path>` | Set a secret URL prefix for stealth access (e.g. `mhpanel --path /admin77`). |
+| `mhpanel --address <port> <path>` | Change both port and custom secret path simultaneously. |
+| `mhpanel --wp` | Open WordPress Decoy Camouflage setup wizard. |
+| `mhpanel --tg` | Open Telegram Bot alert and automatic backup dispatcher. |
+| `mhpanel --tunnels` | Open Anti-Censorship Tunnels & MikroTik Bridge Hub. |
+| `mhpanel protocol <name> <cmd>` | Manage specific protocols (e.g. `mhpanel protocol singbox restart`). |
+| `mhpanel restart` | Instantly hot-reload and restart the MH Panel systemd service. |
+| `mhpanel start` / `mhpanel stop` | Start or stop the MH Panel background service. |
+| `mhpanel update` | Fetch and apply the latest updates directly from GitHub. |
+| `mhpanel --uninstall` | Completely purge MH Panel and auxiliary services from the server. |
+| `mhpanel --help` | Display the built-in terminal CLI help guide. |
 
 ---
 
