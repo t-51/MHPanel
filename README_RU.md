@@ -234,6 +234,51 @@ MH Panel предоставляет полный набор инструмент
 
 ---
 
+## 📸 Галерея интерфейса в светлой теме (Light Theme Visual Tour)
+
+### 1. 🖥️ Главный дашборд (Master Dashboard)
+![Master Dashboard](docs/screenshots/01_dashboard.png)
+
+### 2. ⚡ Студия Sing-box (23 протокола)
+![Sing-box Studio](docs/screenshots/02_singbox_inbounds.png)
+
+### 3. 👥 Управление пользователями и умные подписки
+![User Management](docs/screenshots/03_singbox_users.png)
+
+### 4. 🎛️ Интерактивное модальное окно управления инбаундами
+![Inbound Management Modal](docs/screenshots/04_manage_inbounds_modal.png)
+
+### 5. 🛡️ Студия DNS-туннелей и Noise DNS
+![DNS Tunnels Studio](docs/screenshots/05_dns_tunnels.png)
+
+### 6. 🧅 Мосты Tor и Snowflake
+![Tor Bridges](docs/screenshots/06_tor_bridges.png)
+
+### 7. 🌐 Системные L2/L3 туннели ядра
+![Core Tunnels](docs/screenshots/07_core_tunnels.png)
+
+### 8. 🚀 Мультипорт AmneziaWG и WireGuard
+![AmneziaWG Multiport](docs/screenshots/08_amneziawg.png)
+
+### 9. 📱 Клиентский веб-портал подписки
+![Subscription Portal](docs/screenshots/09_subscription_portal.png)
+
+---
+
+## 🤝 Благодарности и используемые открытые проекты (Upstream Projects)
+
+Проект **MH Panel** создан благодаря сообществу разработчиков свободного ПО. Выражаем искреннюю благодарность проектам:
+- **[Sing-box (SagerNet)](https://github.com/SagerNet/sing-box)**: Универсальное ядро проксирования.
+- **[Hysteria 2 (AperNet)](https://github.com/apernet/hysteria)**: Высокоскоростной протокол на базе QUIC с Brutal CC.
+- **[TUIC (EAimTY)](https://github.com/EAimTY/tuic)**: 0-RTT прокси-протокол на базе QUIC.
+- **[Shadowsocks-rust](https://github.com/shadowsocks/shadowsocks-rust)**: Высокопроизводительная реализация Shadowsocks 2022 на Rust.
+- **[AmneziaWG](https://github.com/amnezia-vpn/amnezia-wg)** & **[wiresock/amneziawg-install](https://github.com/wiresock/amneziawg-install)**: Обфусцированный WireGuard с мусорными заголовками.
+- **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**: SSL VPN сервер для клиентов Cisco AnyConnect.
+- **[Backhaul (Musixal)](https://github.com/Musixal/Backhaul)**, **[Rathole (rapiz1)](https://github.com/rapiz1/rathole)**, **[Chisel (jpillora)](https://github.com/jpillora/chisel)**: Обратные туннели и проброс портов.
+- **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**, **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**, **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: Архитектурные идеи веб-панелей и универсальных подписок.
+
+---
+
 ## 📄 Лицензия
 
 Проект распространяется на условиях открытой лицензии [MIT License](LICENSE).
