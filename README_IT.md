@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/Tema-Luminoso%20e%20Scuro-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Tema">
   <img src="https://img.shields.io/badge/Lingue-8%20Lingue%20Native-purple.svg?style=for-the-badge" alt="Lingue">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20Donazioni-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Donazioni Donito"></a>
   <img src="https://img.shields.io/badge/Licenza-MIT-teal.svg?style=for-the-badge" alt="Licenza">
 </p>
 
@@ -259,6 +260,22 @@ MH Panel è stato sviluppato grazie a progetti pionieristici open-source:
 - **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**: Server SSL VPN per Cisco AnyConnect.
 - **[Backhaul](https://github.com/Musixal/Backhaul)**, **[Rathole](https://github.com/rapiz1/rathole)**, **[Chisel](https://github.com/jpillora/chisel)**: Reverse tunnel leggeri e sicuri.
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**, **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**, **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: Idee architetturali, subscription engine e design UX.
+
+---
+
+## 💖 Supporto e Donazioni (Donate & Support)
+
+Lo sviluppo continuo di **MH Panel** e il testing sui server internazionali richiede tempo e risorse. Se questo progetto ti è stato utile, puoi supportarci con una donazione su Donito:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20Donazione%20su%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="Supporta il progetto" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>Link per Donare:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 

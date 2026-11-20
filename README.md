@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Linux%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/Theme-Light%20%26%20Dark%20Elegance-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Theme">
   <img src="https://img.shields.io/badge/Languages-8%20Native%20Locales-purple.svg?style=for-the-badge" alt="Languages">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20Donate-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Donate with Donito"></a>
   <img src="https://img.shields.io/badge/License-MIT-teal.svg?style=for-the-badge" alt="License">
 </p>
 
@@ -92,6 +93,7 @@ MH Panel features an intelligent subscription engine capable of delivering all 2
 - [📚 Supported Protocols & Engines Matrix](#-supported-protocols--engines-matrix)
 - [🧭 Interactive Master CLI (`mhpanel`)](#-interactive-master-cli-mhpanel)
 - [🤝 Special Thanks, Acknowledgments & Upstream Projects](#-special-thanks-acknowledgments--upstream-projects)
+- [💖 Support the Project & Donations](#-support-the-project--donations)
 - [📢 Official Community & Channel](#-official-community--channel)
 - [📄 License & Disclaimer](#-license)
 
@@ -469,6 +471,25 @@ MH Panel is built on the shoulders of giants. We express our deepest respect and
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**: Pioneer in Python-based modern subscription systems, user lifecycle accounting, and ergonomic multi-protocol proxy administration.
 - **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)** & **[X-UI (vaxilu)](https://github.com/vaxilu/x-ui)**: Groundbreaking Web GUI paradigms for inbound configuration, traffic visualizers, and node management.
 - **[Hiddify Manager (hiddify)](https://github.com/hiddify/hiddify-manager)**: Universal multi-protocol routing and smart client subscription ecosystem ideas.
+
+---
+
+## 💖 Support the Project & Donations
+
+Continuous maintenance of **MH Panel**, research into cutting-edge DPI circumvention mechanisms, anti-censorship mesh testing, and testing across diverse global cloud infrastructures requires substantial time and resources. If MH Panel has helped you or your community maintain internet freedom, consider supporting our ongoing development:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20Donate%20via%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="Donate & Support" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>Official Donation Link:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
+
+> [!NOTE]
+> All financial contributions directly fund international testing servers, continuous anti-DPI research, client compatibility testing, and keeping this project 100% free and open-source for everyone. Thank you for your support! ❤️
 
 ---
 

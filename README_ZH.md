@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/核心-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/主题-浅色与深色双主题-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Theme">
   <img src="https://img.shields.io/badge/语言-8种本地化语言-purple.svg?style=for-the-badge" alt="Languages">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20赞助项目-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Donito 赞助"></a>
   <img src="https://img.shields.io/badge/许可证-MIT-teal.svg?style=for-the-badge" alt="License">
 </p>
 
@@ -261,6 +262,22 @@ MH Panel 基于全球开源社区的卓越创新而铸就，我们向以下项�
 - **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**：专为 Cisco AnyConnect 客户端设计的企业级 SSL VPN 服务端。
 - **[Backhaul](https://github.com/Musixal/Backhaul)**、**[Rathole](https://github.com/rapiz1/rathole)**、**[Chisel](https://github.com/jpillora/chisel)**：轻量级反向隧道与内网穿透工具。
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**、**[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**、**[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**：在现代化订阅架构、交互 UI 与多协议路由方面提供的灵感。
+
+---
+
+## 💖 赞助项目与捐赠 (Donate & Support)
+
+持续维护 **MH Panel**、跟进前沿抗 DPI 封锁技术研究并在全球各大数据中心部署测试服务器需要大量的时间与资金投入。如果本项目为您提供了帮助，欢迎赞助支持：
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20通过%20Donito%20赞助-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="赞助项目" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>官方赞助通道：</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 

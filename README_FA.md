@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/هسته-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/تم-سفید%20(روشن)%20و%20تاریک-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Theme">
   <img src="https://img.shields.io/badge/زبان‌ها-۸%20زبان%20استاندارد-purple.svg?style=for-the-badge" alt="Languages">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20حمایت%20مالی-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="حمایت مالی Donito"></a>
   <img src="https://img.shields.io/badge/لایسنس-MIT-teal.svg?style=for-the-badge" alt="License">
 </p>
 
@@ -95,6 +96,7 @@ sudo bash install.sh
 - [🎛️ ۵. معماری اتصال تانل‌ها و اسکریپت‌ساز روتر میکروتیک (MikroTik RouterOS Hub)](#-۵-معماری-اتصال-تانلها-و-اسکریپتساز-روتر-میکروتیک-mikrotik-routeros-hub)
 - [🔒 ۶. احراز هویت متمرکز و اکانتینگ FreeRADIUS + SQLite](#-۶-احراز-هویت-متمرکز-و-اکانتینگ-freeradius--sqlite)
 - [🛡️ ۷. امنیت و ضد فیلترینگ هوشمند](#-۷-امنیت-و-ضد-فیلترینگ-هوشمند-anti-censorship--dpi-shield)
+- [💖 ۸. حمایت مالی و پشتیبانی از پروژه](#-۸-حمایت-مالی-و-پشتیبانی-از-پروژه-donate--support)
 - [📢 کانال مرجع و اطلاع‌رسانی](#-کانال-مرجع-و-اطلاعرسانی)
 - [📄 لایسنس و حقوق نشر](#-لایسنس-و-حقوق-نشر)
 
@@ -503,6 +505,25 @@ mhpanel
 - **استتار وردپرسی:** سایت فریب مستقل برای جلوگیری از لو رفتن هویت سرور در اسکن‌های دوره‌ای اپراتورها.
 - **رمزنگاری انتها به انتها با توکن HMAC:** تونل گوگل اسکریپت با کلیدهای چرخشی ۲۵۶ بیتی مانع از شناسایی الگوی ترافیک توسط سیستم‌های بازرسی عمیق بسته می‌شود.
 - **مسدودسازی ترافیک مخرب و اسکنرهای وب:** مجهز به سیستم دفاعی ضد حملات بروت‌فورس روی درگاه‌های مدیریت و ورودی پروتکل‌ها.
+
+---
+
+## 💖 ۸. حمایت مالی و پشتیبانی از پروژه (Donate & Support)
+
+توسعه، نگهداری مستمر و به‌روزرسانی پروتکل‌های ضد فیلترینگ در **MH Panel**، نیازمند زمان و هزینه مداوم برای اجاره سرورهای تست در دیتاسنترهای مختلف جهان است. اگر این پروژه برای شما مفید بوده و به حفظ دسترسی به اینترنت آزاد کمک کرده، با دونیت خود می‌توانید در ادامه مسیر و پیشرفت پروژه سهیم باشید:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20حمایت%20مالی%20در%20دونیتو-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="حمایت مالی از پروژه" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>لینک اختصاصی درگاه دونیتو:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
+
+> [!NOTE]
+> تمامی مبالغ اهدایی مستقیماً صرف تمدید سرورهای تست آزمایشگاهی، تحقیق روی روش‌های نوین دور زدن DPI و ارتقای مداوم پنل خواهد شد. از همراهی و حمایت صمیمانه شما بی‌نهایت سپاسگزاریم! ❤️
 
 ---
 

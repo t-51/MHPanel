@@ -17,7 +17,8 @@
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Ядро-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Ядро">
   <img src="https://img.shields.io/badge/Тема-Светлая%20и%20Темная-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Тема">
-  <img src="https://img.shields.io/badge/Языки-8%20языков-purple.svg?style=for-the-badge" alt="Языки">
+  <img src="https://img.shields.io/badge/Языки-8%20языков-purple.svg?style=for-the-badge&logo=python&logoColor=white" alt="Языки">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20Донат-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Поддержать проект"></a>
   <img src="https://img.shields.io/badge/Лицензия-MIT-teal.svg?style=for-the-badge" alt="Лицензия">
 </p>
 
@@ -266,6 +267,22 @@ mhpanel
 - **[BadVPN (ambrop72)](https://github.com/ambrop72/badvpn)**: UDPGW проброс для SSH-туннелей и игр.
 - **[Backhaul](https://github.com/Musixal/Backhaul)**, **[Rathole](https://github.com/rapiz1/rathole)**, **[Chisel](https://github.com/jpillora/chisel)**, **[GOST](https://github.com/go-gost/gost)**: Обратные туннели и мультиплексирование.
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**, **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**, **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: Архитектурные идеи веб-панелей и универсальных подписок.
+
+---
+
+## 💖 Поддержка проекта и донаты (Donate & Support)
+
+Непрерывная разработка **MH Panel**, исследование новых алгоритмов обхода DPI и аренда тестовых серверов в различных странах требуют ресурсов. Если проект помог вам, вы можете поддержать нас:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20Поддержать%20через%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="Донат проекту" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>Ссылка для доната:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 

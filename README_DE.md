@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/Design-Helles%20und%20Dunkles%20Theme-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Theme">
   <img src="https://img.shields.io/badge/Sprachen-8%20Lokalisierungen-purple.svg?style=for-the-badge" alt="Languages">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20Spenden-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Spenden via Donito"></a>
   <img src="https://img.shields.io/badge/Lizenz-MIT-teal.svg?style=for-the-badge" alt="License">
 </p>
 
@@ -259,6 +260,22 @@ MH Panel basiert auf den hervorragenden Innovationen der weltweiten Open-Source-
 - **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**: SSL-VPN-Server für Cisco-Clients.
 - **[Backhaul](https://github.com/Musixal/Backhaul)**, **[Rathole](https://github.com/rapiz1/rathole)**, **[Chisel](https://github.com/jpillora/chisel)**: Hochperformante Reverse-Tunnel.
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**, **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**, **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: Architektonische Ideen und universelle Abonnement-Paradigmen.
+
+---
+
+## 💖 Projektunterstützung & Spenden (Donate & Support)
+
+Die kontinuierliche Wartung von **MH Panel**, Erforschung neuester DPI-Umgehungsverfahren und die Miete internationaler Testserver erfordert erhebliche Ressourcen. Wenn Ihnen dieses Projekt geholfen hat, freuen wir uns über Ihre Spende:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20Spenden%20via%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="Spenden" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>Offizieller Spendenlink:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 

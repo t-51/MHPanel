@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/النواة-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/السمة-فاتحة%20وداكنة-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Theme">
   <img src="https://img.shields.io/badge/اللغات-8%20لغات%20رسمية-purple.svg?style=for-the-badge" alt="Languages">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20دعم%20المشروع-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="دعم المشروع Donito"></a>
   <img src="https://img.shields.io/badge/الترخيص-MIT-teal.svg?style=for-the-badge" alt="License">
 </p>
 
@@ -259,6 +260,22 @@ mhpanel
 - **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**: خادم SSL VPN لعملاء سيسكو.
 - **[Backhaul](https://github.com/Musixal/Backhaul)** و **[Rathole](https://github.com/rapiz1/rathole)** و **[Chisel](https://github.com/jpillora/chisel)**: أنفاق معكوسة لتخطي قيود جدران الحماية.
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)** و **[3X-UI](https://github.com/MHSanaei/3x-ui)** و **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: أفكار إدارية وواجهات واشتراكات موحدة رائدة.
+
+---
+
+## 💖 دعم المشروع والتبرعات (Donate & Support)
+
+يتطلب التطوير المستمر لـ **MH Panel** واستئجار خوادم الاختبار في مختلف مراكز البيانات حول العالم دعماً مستمراً. إذا كان هذا المشروع مفيداً لك وساعدك في الحفاظ على حرية الإنترنت، يمكنك دعمنا عبر منصة Donito:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20دعم%20المشروع%20عبر%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="دعم المشروع" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>رابط الدعم المباشر:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 

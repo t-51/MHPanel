@@ -18,6 +18,7 @@
   <img src="https://img.shields.io/badge/Núcleo-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
   <img src="https://img.shields.io/badge/Tema-Claro%20y%20Oscuro-amber.svg?style=for-the-badge&logo=sparkles&logoColor=white" alt="Tema">
   <img src="https://img.shields.io/badge/Idiomas-8%20Idiomas%20Nativos-purple.svg?style=for-the-badge" alt="Idiomas">
+  <a href="https://donito.me/ME_Script" target="_blank"><img src="https://img.shields.io/badge/💖%20Donar-Donito.me-ff4757.svg?style=for-the-badge&logo=heart&logoColor=white" alt="Donaciones Donito"></a>
   <img src="https://img.shields.io/badge/Licencia-MIT-teal.svg?style=for-the-badge" alt="Licencia">
 </p>
 
@@ -259,6 +260,22 @@ MH Panel se construyó gracias a los esfuerzos de la comunidad de software libre
 - **[OpenConnect (ocserv)](https://gitlab.com/openconnect/ocserv)**: Servidor SSL VPN para clientes Cisco.
 - **[Backhaul](https://github.com/Musixal/Backhaul)**, **[Rathole](https://github.com/rapiz1/rathole)**, **[Chisel](https://github.com/jpillora/chisel)**: Túneles inversos y reenvío de puertos.
 - **[Marzban (Gozargah)](https://github.com/Gozargah/Marzban)**, **[3X-UI (MHSanaei)](https://github.com/MHSanaei/3x-ui)**, **[Hiddify Manager](https://github.com/hiddify/hiddify-manager)**: Ideas pioneras de paneles web y suscripción universal.
+
+---
+
+## 💖 Apoyo y Donaciones (Donate & Support)
+
+El mantenimiento continuo de **MH Panel** y la prueba de servidores internacionales requiere tiempo y recursos. Si este proyecto le ha sido de utilidad para mantener el acceso libre a internet, considere apoyarnos con una donación:
+
+<p align="center">
+  <a href="https://donito.me/ME_Script" target="_blank">
+    <img src="https://img.shields.io/badge/💖%20Donar%20mediante%20Donito-Donito.me%2FME__Script-ff4757?style=for-the-badge&logo=heart&logoColor=white" alt="Apoyar el proyecto" height="45">
+  </a>
+</p>
+
+<p align="center">
+  ☕ <b>Enlace Oficial para Donaciones:</b> <a href="https://donito.me/ME_Script" target="_blank"><b>https://donito.me/ME_Script</b></a>
+</p>
 
 ---
 
