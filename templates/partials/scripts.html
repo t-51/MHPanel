@@ -26124,11 +26124,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const cfgs = data.configs || [];
 
             // Set subscription URL input and download link
+            const sbUrlInp = document.getElementById("sb-user-singbox-url-input");
+            if (sbUrlInp) sbUrlInp.value = data.sub_json_url || "";
+            const oneClickA = document.getElementById("sb-user-oneclick-singbox");
+            if (oneClickA && data.sub_json_url) {
+                const encoded = encodeURIComponent(data.sub_json_url);
+                oneClickA.href = `sing-box://import-remote-profile?url=${encoded}#MHPanel-${encodeURIComponent(username)}`;
+            }
+
             const subInp = document.getElementById("sb-user-sub-url-input");
             if (subInp) subInp.value = data.sub_b64_url || data.sub_url || "";
             const dlJsonA = document.getElementById("sb-user-dl-singbox-json");
             if (dlJsonA) {
-                dlJsonA.href = data.sub_json_url || "#";
+                dlJsonA.href = data.sub_json_url ? `${data.sub_json_url}?download=1` : "#";
                 dlJsonA.download = `MHPanel-${username}-SingBox.json`;
             }
 
@@ -26139,8 +26147,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
 
             let optsHtml = "";
+            if (data.sub_json_url) {
+                optsHtml += `<option value="__SINGBOX_JSON_SUB__" selected>📦 پروفایل اختصاصی نرم‌افزار Sing-box (لینک، بارکد و JSON)</option>`;
+            }
             if (data.sub_b64_url || data.sub_url) {
-                optsHtml += `<option value="__SUB_LINK__">🌐 لینک سابسکرایب جامع (همه ۲۳ کانفیگ هوشمند)</option>`;
+                optsHtml += `<option value="__SUB_LINK__">🌐 لینک سابسکرایب همگانی (SlipNet / V2Ray / Base64)</option>`;
             }
             cfgs.forEach(c => {
                 const portVal = c.port || c.listen_port || "";
@@ -26160,6 +26171,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (!sel) return;
 
         const selectedTag = sel.value;
+        if (selectedTag === "__SINGBOX_JSON_SUB__") {
+            const subJsonUrl = currentSingboxUserLinksData.sub_json_url || "";
+            const uname = currentSingboxUserLinksData.username || "User";
+            const singboxScheme = `sing-box://import-remote-profile?url=${encodeURIComponent(subJsonUrl)}#${encodeURIComponent("MHPanel-" + uname)}`;
+            const uriInp = document.getElementById("sb-user-link-uri-input");
+            if (uriInp) uriInp.value = subJsonUrl;
+            renderQrCodeHelper("sb-user-qr-canvas-container", singboxScheme);
+            return;
+        }
+
         if (selectedTag === "__SUB_LINK__") {
             const subUrl = currentSingboxUserLinksData.sub_b64_url || currentSingboxUserLinksData.sub_url || "";
             const uriInp = document.getElementById("sb-user-link-uri-input");
@@ -26175,6 +26196,51 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (uriInp) uriInp.value = cfg.share_link || "";
 
         renderQrCodeHelper("sb-user-qr-canvas-container", cfg.share_link || "");
+    }
+
+    async function copySingboxUserJsonConfig() {
+        if (!currentSingboxUserLinksData || !currentSingboxUserLinksData.sub_json_url) {
+            showToast("لینک فایل کانفیگ Sing-box موجود نیست.", "warning");
+            return;
+        }
+        try {
+            toggleLoading(true, "در حال دریافت کانفیگ JSON...");
+            const res = await fetch(currentSingboxUserLinksData.sub_json_url);
+            const data = await res.json();
+            toggleLoading(false);
+            const str = JSON.stringify(data, null, 2);
+            navigator.clipboard.writeText(str).then(() => {
+                showToast("کانفیگ کامل JSON سینگ‌باکس با موفقیت در کلیپ‌بورد کپی شد (آماده Paste در نرم‌افزار Sing-box).", "success");
+            }).catch(() => {
+                showToast("خطا در دسترسی به کلیپ‌بورد", "error");
+            });
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطا در بارگذاری کانفیگ JSON", "error");
+        }
+    }
+
+    function copySingboxAppSubUrl() {
+        const inp = document.getElementById("sb-user-singbox-url-input");
+        if (!inp || !inp.value) {
+            showToast("لینک ساب Sing-box در دسترس نیست.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(inp.value).then(() => {
+            showToast("لینک اختصاصی سابسکرایب Sing-box کپی شد (آماده وارد کردن در نرم‌افزار Sing-box به عنوان Remote Profile).", "success");
+        }).catch(() => {
+            inp.select();
+            document.execCommand("copy");
+            showToast("لینک کپی شد.", "success");
+        });
+    }
+
+    function showSingboxAppSubQr() {
+        const sel = document.getElementById("sb-user-links-proto-select");
+        if (sel) {
+            sel.value = "__SINGBOX_JSON_SUB__";
+            onSingboxUserProtoSelectChange();
+        }
     }
 
     function copySingboxUserSubUrl() {
@@ -26983,21 +27049,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
     function switchSingboxInboundDetailView(view) {
         const qrView = document.getElementById("sb-inbound-qr-view");
+        const sbclientView = document.getElementById("sb-inbound-sbclient-view");
         const jsonView = document.getElementById("sb-inbound-json-view");
         const btnQr = document.getElementById("sb-inbound-view-btn-qr");
+        const btnSbClient = document.getElementById("sb-inbound-view-btn-sbclient");
         const btnJson = document.getElementById("sb-inbound-view-btn-json");
 
-        if (view === "json") {
-            if (qrView) qrView.style.display = "none";
-            if (jsonView) jsonView.style.display = "block";
-            if (btnQr) { btnQr.className = "btn btn-sm btn-secondary"; }
-            if (btnJson) { btnJson.className = "btn btn-sm btn-primary"; }
-        } else {
-            if (qrView) qrView.style.display = "block";
-            if (jsonView) jsonView.style.display = "none";
-            if (btnQr) { btnQr.className = "btn btn-sm btn-primary"; }
-            if (btnJson) { btnJson.className = "btn btn-sm btn-secondary"; }
-        }
+        if (qrView) qrView.style.display = (view === "qr") ? "block" : "none";
+        if (sbclientView) sbclientView.style.display = (view === "sbclient") ? "block" : "none";
+        if (jsonView) jsonView.style.display = (view === "json") ? "block" : "none";
+
+        if (btnQr) btnQr.className = (view === "qr") ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary";
+        if (btnSbClient) btnSbClient.className = (view === "sbclient") ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary";
+        if (btnJson) btnJson.className = (view === "json") ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary";
     }
 
     function copySingboxInboundJson() {
@@ -27007,11 +27071,26 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             return;
         }
         navigator.clipboard.writeText(preview.value).then(() => {
-            showToast("تنظیمات کامل JSON اینباند در کلیپ‌بورد کپی شد.", "success");
+            showToast("تنظیمات سرور JSON اینباند در کلیپ‌بورد کپی شد.", "success");
         }).catch(() => {
             preview.select();
             document.execCommand("copy");
             showToast("تنظیمات کپی شد.", "success");
+        });
+    }
+
+    function copySingboxClientJson() {
+        const preview = document.getElementById("sb-inbound-sbclient-preview");
+        if (!preview || !preview.value) {
+            showToast("کانفیگ کلاینت برای کپی وجود ندارد.", "warning");
+            return;
+        }
+        navigator.clipboard.writeText(preview.value).then(() => {
+            showToast("کانفیگ کامل کلاینت Sing-box در کلیپ‌بورد کپی شد (آماده Paste در نرم‌افزار).", "success");
+        }).catch(() => {
+            preview.select();
+            document.execCommand("copy");
+            showToast("کانفیگ کپی شد.", "success");
         });
     }
 
@@ -27028,7 +27107,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (uriInput) uriInput.value = "در حال دریافت لینک...";
 
         const jsonPreview = document.getElementById("sb-inbound-json-preview");
-        if (jsonPreview) jsonPreview.value = "در حال بارگذاری تنظیمات اینباند...";
+        if (jsonPreview) jsonPreview.value = "در حال بارگذاری تنظیمات سرور...";
+        const sbClientPreview = document.getElementById("sb-inbound-sbclient-preview");
+        if (sbClientPreview) sbClientPreview.value = "در حال آماده‌سازی کانفیگ اختصاصی کلاینت Sing-box...";
 
         try {
             const res = await fetch(`/api/singbox/inbound/${encodeURIComponent(tag)}/share`);
@@ -27039,6 +27120,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 renderQrCodeHelper("sb-qr-canvas-container", data.share_link || "");
                 if (jsonPreview && data.inbound_json) {
                     jsonPreview.value = JSON.stringify(data.inbound_json, null, 2);
+                }
+                if (sbClientPreview && data.client_singbox_json) {
+                    sbClientPreview.value = JSON.stringify(data.client_singbox_json, null, 2);
                 }
                 const portBanner = document.getElementById("sb-inbound-port-banner");
                 if (portBanner) {

@@ -2840,12 +2840,17 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vmess-up")}
 
                 elif itype == "trojan":
-                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    if reality_enabled:
+                        target_srv = host_ip
+                        target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
+                    else:
+                        target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                        target_port = port
                     ob = {
                         "type": "trojan",
                         "tag": out_tag,
                         "server": target_srv,
-                        "server_port": port,
+                        "server_port": target_port,
                         "password": password
                     }
                     if reality_enabled:
@@ -3029,23 +3034,24 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     except Exception as e:
         logger.error(f"Error adding snispoof outbounds to singbox: {e}")
 
+    valid_proxy_tags = [t for t in proxy_tags if t]
     selector_outbound = {
         "type": "selector",
         "tag": "🚀 انتخاب سرور (PROXY)",
-        "outbounds": proxy_tags + ["direct"]
+        "outbounds": (["⚡ خودکار سریع‌ترین (AUTO)"] if valid_proxy_tags else []) + valid_proxy_tags + ["direct"]
     }
     urltest_outbound = {
         "type": "urltest",
         "tag": "⚡ خودکار سریع‌ترین (AUTO)",
-        "outbounds": list(proxy_tags),
+        "outbounds": list(valid_proxy_tags) if valid_proxy_tags else ["direct"],
         "url": "http://cp.cloudflare.com/generate_204",
         "interval": "3m",
         "tolerance": 50
     }
     direct_outbound = {"type": "direct", "tag": "direct"}
-    dns_outbound = {"type": "dns", "tag": "dns-out"}
+    block_outbound = {"type": "block", "tag": "block"}
 
-    all_outbounds = [selector_outbound, urltest_outbound] + outbounds + [direct_outbound, dns_outbound]
+    all_outbounds = [selector_outbound, urltest_outbound] + outbounds + [direct_outbound, block_outbound]
 
     return {
         "log": {
@@ -3054,36 +3060,69 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
         },
         "dns": {
             "servers": [
-                {"tag": "dns-remote", "address": "tcp://1.1.1.1", "detour": "🚀 انتخاب سرور (PROXY)"},
-                {"tag": "dns-direct", "address": "8.8.8.8", "detour": "direct"}
+                {
+                    "tag": "dns-remote",
+                    "type": "tcp",
+                    "server": "1.1.1.1",
+                    "detour": "🚀 انتخاب سرور (PROXY)"
+                },
+                {
+                    "tag": "dns-direct",
+                    "type": "udp",
+                    "server": "8.8.8.8"
+                }
             ],
-            "strategy": "ipv4_only"
+            "strategy": "prefer_ipv4"
         },
         "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "address": ["172.19.0.1/30"],
+                "auto_route": True,
+                "strict_route": False,
+                "stack": "system",
+                "platform": {
+                    "http_proxy": {
+                        "enabled": True,
+                        "server": "127.0.0.1",
+                        "server_port": 2080
+                    }
+                }
+            },
             {
                 "type": "mixed",
                 "tag": "mixed-in",
                 "listen": "127.0.0.1",
                 "listen_port": 2080
-            },
-            {
-                "type": "tun",
-                "tag": "tun-in",
-                "interface_name": "tun0",
-                "inet4_address": "172.19.0.1/30",
-                "auto_route": True,
-                "strict_route": False,
-                "sniff": True
             }
         ],
         "outbounds": all_outbounds,
         "route": {
+            "default_domain_resolver": "dns-direct",
             "rules": [
-                {"protocol": "dns", "outbound": "dns-out"},
-                {"ip_is_private": True, "outbound": "direct"}
+                {
+                    "action": "sniff"
+                },
+                {
+                    "protocol": "dns",
+                    "action": "hijack-dns"
+                },
+                {
+                    "ip_is_private": True,
+                    "outbound": "direct"
+                },
+                {
+                    "clash_mode": "Direct",
+                    "outbound": "direct"
+                },
+                {
+                    "clash_mode": "Global",
+                    "outbound": "🚀 انتخاب سرور (PROXY)"
+                }
             ],
-            "final": "🚀 انتخاب سرور (PROXY)",
-            "auto_detect_interface": True
+            "auto_detect_interface": True,
+            "final": "🚀 انتخاب سرور (PROXY)"
         }
     }
 
@@ -3604,7 +3643,12 @@ def client_subscription_view(sub_token):
     
     fmt = str(request.args.get("format", "")).lower()
     ua = (request.headers.get("User-Agent") or "").lower()
-    is_client_app = any(app in ua for app in ["napsternet", "npv", "v2ray", "nekoray", "streisand", "clash", "sing-box", "singbox", "slipnet", "v2rayng", "nekobox", "clashmeta", "shadowrocket", "curl", "wget"])
+
+    # Sing-box client application detection: Deliver native, valid Sing-box JSON profile
+    if fmt in ["singbox", "sing-box"] or (any(app in ua for app in ["sing-box", "singbox"]) and fmt not in ["b64", "base64", "html"]):
+        return client_sub_singbox_download(sub_token)
+
+    is_client_app = any(app in ua for app in ["napsternet", "npv", "v2ray", "nekoray", "streisand", "clash", "slipnet", "v2rayng", "nekobox", "clashmeta", "shadowrocket", "curl", "wget"])
     if fmt in ["b64", "base64"] or request.args.get("b64") or (is_client_app and fmt != "html"):
         return client_sub_b64(sub_token)
     
@@ -4268,7 +4312,16 @@ def client_sub_singbox_download(sub_token):
     pub_ip = get_server_public_ip()
     cfg = generate_singbox_ssh_config(uname, pwd, domain, pub_ip)
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
-    resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox.json"'
+    resp.headers["Access-Control-Allow-Origin"] = "*"
+    resp.headers["profile-update-interval"] = "24"
+    resp.headers["profile-title"] = f"MHPanel-{uname}"
+    if request.args.get("download"):
+        resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox.json"'
+    if isinstance(udata, dict):
+        upload = int(udata.get("upload_bytes", 0))
+        download = int(udata.get("download_bytes", 0))
+        total_limit = int((float(udata.get("traffic_limit_gb", 0) or 0)) * (1024**3))
+        resp.headers["subscription-userinfo"] = f"upload={upload}; download={download}; total={total_limit}; expire=0"
     return resp
 
 @app.route("/sub/<sub_token>/singbox-cloud.json")
@@ -4315,6 +4368,11 @@ def client_sub_singbox_fragment_download(sub_token):
 
 @app.route("/sub/<sub_token>/b64")
 def client_sub_b64(sub_token):
+    ua = (request.headers.get("User-Agent") or "").lower()
+    # If a Sing-box app or JSON client accidentally calls /b64, serve the Singbox JSON profile so it never errors
+    if any(app in ua for app in ["sing-box", "singbox"]) and not request.args.get("force_b64"):
+        return client_sub_singbox_download(sub_token)
+
     uname, udata, proto_type = find_user_by_sub_token(sub_token)
     if not uname:
         return "Not Found", 404
@@ -14720,7 +14778,7 @@ def get_snispoof_reality_and_client_configs():
     sample_sni = r_sni  # Reality TLS handshake must strictly match the inbound server_name
     spoof_sni = pool[0] if (pool and pool[0] != r_sni) else "sanjesh.org"
 
-    # 1. Full Sing-box Client Configuration JSON (Production-ready with TUN mode & Mixed Proxy, Iran direct routing, and Anti-DPI Fragment)
+    # 1. Full Sing-box Client Configuration JSON (Production-ready with TUN mode & Mixed Proxy, modern Sing-box 1.10 - 1.14+ schema)
     singbox_full = {
         "log": {
             "disabled": False,
@@ -14731,56 +14789,39 @@ def get_snispoof_reality_and_client_configs():
             "servers": [
                 {
                     "tag": "dns-remote",
-                    "address": "https://8.8.8.8/dns-query",
-                    "address_resolver": "dns-direct",
-                    "strategy": "ipv4_only",
+                    "type": "tcp",
+                    "server": "1.1.1.1",
                     "detour": "MHPanel-AntiDPI-Reality"
                 },
                 {
                     "tag": "dns-direct",
-                    "address": "223.5.5.5",
-                    "address_resolver": "dns-local",
-                    "strategy": "ipv4_only",
-                    "detour": "direct"
-                },
-                {
-                    "tag": "dns-local",
-                    "address": "local",
-                    "detour": "direct"
-                },
-                {
-                    "tag": "dns-block",
-                    "address": "rcode://refused"
+                    "type": "udp",
+                    "server": "8.8.8.8"
                 }
             ],
-            "rules": [
-                {"outbound": "any", "server": "dns-direct"},
-                {"clash_mode": "Direct", "server": "dns-direct"},
-                {"clash_mode": "Global", "server": "dns-remote"},
-                {"rule_set": "geosite-ir", "server": "dns-direct"}
-            ],
-            "final": "dns-remote",
-            "strategy": "ipv4_only"
+            "strategy": "prefer_ipv4"
         },
         "inbounds": [
             {
                 "type": "tun",
                 "tag": "tun-in",
-                "interface_name": "tun0",
-                "inet4_address": "172.19.0.1/30",
+                "address": ["172.19.0.1/30"],
                 "auto_route": True,
-                "strict_route": True,
+                "strict_route": False,
                 "stack": "system",
-                "sniff": True,
-                "sniff_override_destination": True
+                "platform": {
+                    "http_proxy": {
+                        "enabled": True,
+                        "server": "127.0.0.1",
+                        "server_port": 2080
+                    }
+                }
             },
             {
                 "type": "mixed",
                 "tag": "mixed-in",
                 "listen": "127.0.0.1",
-                "listen_port": 2080,
-                "sniff": True,
-                "sniff_override_destination": True
+                "listen_port": 2080
             }
         ],
         "outbounds": [
@@ -14806,31 +14847,15 @@ def get_snispoof_reality_and_client_configs():
                 "packet_encoding": "xudp"
             },
             {"type": "direct", "tag": "direct"},
-            {"type": "block", "tag": "block"},
-            {"type": "dns", "tag": "dns-out"}
+            {"type": "block", "tag": "block"}
         ],
         "route": {
+            "default_domain_resolver": "dns-direct",
             "auto_detect_interface": True,
             "rules": [
-                {"protocol": "dns", "outbound": "dns-out"},
-                {"ip_is_private": True, "outbound": "direct"},
-                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
-            ],
-            "rule_set": [
-                {
-                    "tag": "geoip-ir",
-                    "type": "remote",
-                    "format": "binary",
-                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs",
-                    "download_detour": "direct"
-                },
-                {
-                    "tag": "geosite-ir",
-                    "type": "remote",
-                    "format": "binary",
-                    "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs",
-                    "download_detour": "direct"
-                }
+                {"action": "sniff"},
+                {"protocol": "dns", "action": "hijack-dns"},
+                {"ip_is_private": True, "outbound": "direct"}
             ],
             "final": "MHPanel-AntiDPI-Reality"
         }
@@ -14841,20 +14866,14 @@ def get_snispoof_reality_and_client_configs():
         "log": {"disabled": False, "level": "info", "timestamp": True},
         "dns": {
             "servers": [
-                {"tag": "dns-remote", "address": "https://1.1.1.1/dns-query", "address_resolver": "dns-direct", "strategy": "ipv4_only", "detour": "MHPanel - [Cloud Clean IP] Trojan-WS"},
-                {"tag": "dns-direct", "address": "223.5.5.5", "address_resolver": "dns-local", "strategy": "ipv4_only", "detour": "direct"},
-                {"tag": "dns-local", "address": "local", "detour": "direct"}
+                {"tag": "dns-remote", "type": "tcp", "server": "1.1.1.1", "detour": "MHPanel - [Cloud Clean IP] Trojan-WS"},
+                {"tag": "dns-direct", "type": "udp", "server": "8.8.8.8"}
             ],
-            "rules": [
-                {"outbound": "any", "server": "dns-direct"},
-                {"rule_set": "geosite-ir", "server": "dns-direct"}
-            ],
-            "final": "dns-remote",
-            "strategy": "ipv4_only"
+            "strategy": "prefer_ipv4"
         },
         "inbounds": [
-            {"type": "tun", "tag": "tun-in", "interface_name": "tun0", "inet4_address": "172.19.0.1/30", "auto_route": True, "strict_route": True, "sniff": True},
-            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080, "sniff": True}
+            {"type": "tun", "tag": "tun-in", "address": ["172.19.0.1/30"], "auto_route": True, "strict_route": False, "stack": "system"},
+            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080}
         ],
         "outbounds": [
             {
@@ -14892,18 +14911,15 @@ def get_snispoof_reality_and_client_configs():
                 }
             },
             {"type": "direct", "tag": "direct"},
-            {"type": "dns", "tag": "dns-out"}
+            {"type": "block", "tag": "block"}
         ],
         "route": {
+            "default_domain_resolver": "dns-direct",
             "auto_detect_interface": True,
             "rules": [
-                {"protocol": "dns", "outbound": "dns-out"},
-                {"ip_is_private": True, "outbound": "direct"},
-                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
-            ],
-            "rule_set": [
-                {"tag": "geoip-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs", "download_detour": "direct"},
-                {"tag": "geosite-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs", "download_detour": "direct"}
+                {"action": "sniff"},
+                {"protocol": "dns", "action": "hijack-dns"},
+                {"ip_is_private": True, "outbound": "direct"}
             ],
             "final": "MHPanel - [Cloud Clean IP] Trojan-WS"
         }
@@ -14914,20 +14930,14 @@ def get_snispoof_reality_and_client_configs():
         "log": {"disabled": False, "level": "info", "timestamp": True},
         "dns": {
             "servers": [
-                {"tag": "dns-remote", "address": "https://8.8.8.8/dns-query", "address_resolver": "dns-direct", "strategy": "ipv4_only", "detour": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)"},
-                {"tag": "dns-direct", "address": "223.5.5.5", "address_resolver": "dns-local", "strategy": "ipv4_only", "detour": "direct"},
-                {"tag": "dns-local", "address": "local", "detour": "direct"}
+                {"tag": "dns-remote", "type": "tcp", "server": "1.1.1.1", "detour": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)"},
+                {"tag": "dns-direct", "type": "udp", "server": "8.8.8.8"}
             ],
-            "rules": [
-                {"outbound": "any", "server": "dns-direct"},
-                {"rule_set": "geosite-ir", "server": "dns-direct"}
-            ],
-            "final": "dns-remote",
-            "strategy": "ipv4_only"
+            "strategy": "prefer_ipv4"
         },
         "inbounds": [
-            {"type": "tun", "tag": "tun-in", "interface_name": "tun0", "inet4_address": "172.19.0.1/30", "auto_route": True, "strict_route": True, "sniff": True},
-            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080, "sniff": True}
+            {"type": "tun", "tag": "tun-in", "address": ["172.19.0.1/30"], "auto_route": True, "strict_route": False, "stack": "system"},
+            {"type": "mixed", "tag": "mixed-in", "listen": "127.0.0.1", "listen_port": 2080}
         ],
         "outbounds": [
             {
@@ -14951,18 +14961,15 @@ def get_snispoof_reality_and_client_configs():
                 "packet_encoding": "xudp"
             },
             {"type": "direct", "tag": "direct"},
-            {"type": "dns", "tag": "dns-out"}
+            {"type": "block", "tag": "block"}
         ],
         "route": {
+            "default_domain_resolver": "dns-direct",
             "auto_detect_interface": True,
             "rules": [
-                {"protocol": "dns", "outbound": "dns-out"},
-                {"ip_is_private": True, "outbound": "direct"},
-                {"rule_set": ["geoip-ir", "geosite-ir"], "outbound": "direct"}
-            ],
-            "rule_set": [
-                {"tag": "geoip-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-ir.srs", "download_detour": "direct"},
-                {"tag": "geosite-ir", "type": "remote", "format": "binary", "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-ir.srs", "download_detour": "direct"}
+                {"action": "sniff"},
+                {"protocol": "dns", "action": "hijack-dns"},
+                {"ip_is_private": True, "outbound": "direct"}
             ],
             "final": "MHPanel - [Fragment] Anti-DPI Relay (127.0.0.1:40443)"
         }
@@ -31650,6 +31657,213 @@ def api_singbox_generate_keys():
         "wg_public_key": wg_pub
     })
 
+def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=None):
+    itype = inbound.get("type", "vless")
+    port = inbound.get("listen_port", 443)
+    tag = inbound.get("tag", itype)
+    tls_obj = inbound.get("tls", {})
+    tls_enabled = tls_obj.get("enabled", False)
+    reality_obj = tls_obj.get("reality", {})
+    reality_enabled = reality_obj.get("enabled", False)
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "divar.ir")
+    tp_obj = inbound.get("transport", {})
+    tp_type = tp_obj.get("type", "tcp")
+    
+    users = inbound.get("users", [])
+    user0 = users[0] if users else {}
+    u_uuid = (target_user.get("uuid") if target_user else None) or user0.get("uuid", "41d78d54-624a-4644-8c75-66794e2e63fa")
+    u_pass = (target_user.get("password") if target_user else None) or user0.get("password", "Sb_pass123")
+    
+    ob = None
+    out_tag = f"MHPanel-{tag}"
+    if itype == "vless":
+        target_srv = host_ip
+        target_port = 443 if reality_enabled else port
+        ob = {
+            "type": "vless",
+            "tag": out_tag,
+            "server": target_srv,
+            "server_port": target_port,
+            "uuid": u_uuid
+        }
+        if reality_enabled and tp_type == "tcp":
+            ob["flow"] = "xtls-rprx-vision"
+        if reality_enabled:
+            meta = get_inbound_reality_metadata(tag)
+            rot_cfg = get_reality_rotation_config()
+            fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+            alpn_list = tls_obj.get("alpn") or ["h2", "http/1.1"]
+            if not isinstance(alpn_list, list):
+                alpn_list = [x.strip() for x in str(alpn_list).replace("،", ",").split(",") if x.strip()]
+            pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
+            sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
+            ob["tls"] = {
+                "enabled": True,
+                "server_name": sni,
+                "alpn": alpn_list,
+                "utls": {"enabled": True, "fingerprint": fp},
+                "reality": {
+                    "enabled": True,
+                    "public_key": pbk,
+                    "short_id": sid
+                }
+            }
+        elif tls_enabled:
+            ob["tls"] = {"enabled": True, "server_name": sni, "insecure": True}
+        if tp_type == "ws":
+            ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/vless-ws")}
+        elif tp_type == "grpc":
+            ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "vless-grpc")}
+        elif tp_type == "httpupgrade":
+            ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vless-upgrade")}
+    elif itype == "trojan":
+        target_srv = host_ip if reality_enabled else (sni if tls_enabled and sni and "." in sni and not sni.startswith("dl.google") else host_ip)
+        target_port = 443 if reality_enabled else port
+        ob = {
+            "type": "trojan",
+            "tag": out_tag,
+            "server": target_srv,
+            "server_port": target_port,
+            "password": u_pass
+        }
+        if reality_enabled:
+            meta = get_inbound_reality_metadata(tag)
+            rot_cfg = get_reality_rotation_config()
+            fp = meta.get("fingerprint") or rot_cfg.get("fingerprint") or "chrome"
+            alpn_list = tls_obj.get("alpn") or ["h2", "http/1.1"]
+            if not isinstance(alpn_list, list):
+                alpn_list = [x.strip() for x in str(alpn_list).replace("،", ",").split(",") if x.strip()]
+            pbk = reality_obj.get("public_key") or get_reality_public_key(reality_obj.get("private_key", ""))
+            sid = reality_obj.get("short_id", [""])[0] if reality_obj.get("short_id") else ""
+            ob["tls"] = {
+                "enabled": True,
+                "server_name": sni,
+                "alpn": alpn_list,
+                "utls": {"enabled": True, "fingerprint": fp},
+                "reality": {
+                    "enabled": True,
+                    "public_key": pbk,
+                    "short_id": sid
+                }
+            }
+        elif tls_enabled:
+            ob["tls"] = {"enabled": True, "server_name": sni, "insecure": True}
+        if tp_type == "ws":
+            ob["transport"] = {"type": "ws", "path": tp_obj.get("path", "/trojan-ws")}
+        elif tp_type == "grpc":
+            ob["transport"] = {"type": "grpc", "service_name": tp_obj.get("service_name", "trojan-grpc")}
+        elif tp_type == "httpupgrade":
+            ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/trojan-up")}
+    elif itype == "hysteria2":
+        target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        ob = {
+            "type": "hysteria2",
+            "tag": out_tag,
+            "server": target_srv,
+            "server_port": port,
+            "password": u_pass,
+            "tls": {"enabled": True, "server_name": sni, "insecure": True}
+        }
+        obfs_obj = inbound.get("obfs", {})
+        if obfs_obj.get("type") and obfs_obj.get("password"):
+            ob["obfs"] = {"type": obfs_obj["type"], "password": obfs_obj["password"]}
+    elif itype == "tuic":
+        target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+        ob = {
+            "type": "tuic",
+            "tag": out_tag,
+            "server": target_srv,
+            "server_port": port,
+            "uuid": u_uuid,
+            "password": u_pass,
+            "congestion_control": inbound.get("congestion_control", "bbr"),
+            "tls": {"enabled": True, "server_name": sni, "alpn": ["h3"], "insecure": True}
+        }
+    elif itype == "shadowsocks":
+        ob = {
+            "type": "shadowsocks",
+            "tag": out_tag,
+            "server": host_ip,
+            "server_port": port,
+            "method": inbound.get("method", "2022-blake3-aes-128-gcm"),
+            "password": inbound.get("password", "")
+        }
+    elif itype in ["mixed", "socks", "http"]:
+        ob = {
+            "type": "socks",
+            "tag": out_tag,
+            "server": host_ip,
+            "server_port": port
+        }
+        if u_pass:
+            ob["username"] = (target_user.get("username") if target_user else None) or user0.get("name") or "user"
+            ob["password"] = u_pass
+
+    if not ob:
+        ob = {
+            "type": "vless",
+            "tag": out_tag,
+            "server": host_ip,
+            "server_port": port,
+            "uuid": u_uuid
+        }
+
+    return {
+        "log": {"level": "warn", "timestamp": True},
+        "dns": {
+            "servers": [
+                {"tag": "dns-remote", "type": "tcp", "server": "1.1.1.1", "detour": "🚀 انتخاب سرور (PROXY)"},
+                {"tag": "dns-direct", "type": "udp", "server": "8.8.8.8"}
+            ],
+            "strategy": "prefer_ipv4"
+        },
+        "inbounds": [
+            {
+                "type": "tun",
+                "tag": "tun-in",
+                "address": ["172.19.0.1/30"],
+                "auto_route": True,
+                "strict_route": False,
+                "stack": "system",
+                "platform": {
+                    "http_proxy": {
+                        "enabled": True,
+                        "server": "127.0.0.1",
+                        "server_port": 2080
+                    }
+                }
+            },
+            {
+                "type": "mixed",
+                "tag": "mixed-in",
+                "listen": "127.0.0.1",
+                "listen_port": 2080
+            }
+        ],
+        "outbounds": [
+            {
+                "type": "selector",
+                "tag": "🚀 انتخاب سرور (PROXY)",
+                "outbounds": [out_tag, "direct"]
+            },
+            ob,
+            {"type": "direct", "tag": "direct"},
+            {"type": "block", "tag": "block"}
+        ],
+        "route": {
+            "default_domain_resolver": "dns-direct",
+            "rules": [
+                {"action": "sniff"},
+                {"protocol": "dns", "action": "hijack-dns"},
+                {"ip_is_private": True, "outbound": "direct"},
+                {"clash_mode": "Direct", "outbound": "direct"},
+                {"clash_mode": "Global", "outbound": "🚀 انتخاب سرور (PROXY)"}
+            ],
+            "auto_detect_interface": True,
+            "final": "🚀 انتخاب سرور (PROXY)"
+        }
+    }
+
 @app.route("/api/singbox/inbound/<tag>/share", methods=["GET"])
 def api_singbox_inbound_share(tag):
     if not check_login():
@@ -31666,6 +31880,7 @@ def api_singbox_inbound_share(tag):
 
     target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     share_link = generate_singbox_share_link(inbound, target_host)
+    client_singbox_cfg = generate_single_inbound_client_singbox_json(inbound, target_host)
     is_real = bool(inbound.get("tls", {}).get("reality", {}).get("enabled") or "reality" in inbound.get("tag", ""))
     pub_port = 443 if is_real else inbound.get("listen_port")
 
@@ -31675,6 +31890,7 @@ def api_singbox_inbound_share(tag):
         "type": inbound.get("type"),
         "share_link": share_link,
         "inbound_json": inbound,
+        "client_singbox_json": client_singbox_cfg,
         "is_reality": is_real,
         "public_port": pub_port,
         "internal_port": inbound.get("listen_port")

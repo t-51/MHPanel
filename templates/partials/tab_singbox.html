@@ -1815,27 +1815,54 @@
             </header>
 
             <div style="padding: 24px;">
-                <!-- Comprehensive Smart Subscription Box -->
-                <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.25); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; text-align: right;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-weight:700; font-size:12.5px; color:var(--color-primary); display:flex; align-items:center; gap:5px;">
-                            <i data-lucide="link" style="width:14px; height:14px;"></i>
-                            <span>لینک سابسکرایب جامع کاربر (همه ۲۳ کانفیگ در یک لینک برای SlipNet / V2Ray / Sing-box):</span>
+                <!-- 1. Dedicated Sing-box App Profile Box -->
+                <div style="background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; text-align: right;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                        <span style="font-weight:800; font-size:12.5px; color:#4f46e5; display:flex; align-items:center; gap:6px;">
+                            <i data-lucide="box" style="width:16px; height:16px; color:#6366f1;"></i>
+                            <span>لینک سابسکرایب اختصاصی نرم‌افزار Sing-box (Remote Profile URL):</span>
                         </span>
+                        <span class="badge" style="background: #6366f1; color: white; font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight:700;">مخصوص Sing-box App</span>
                     </div>
                     <div style="display: flex; gap: 6px;">
-                        <input type="text" class="form-input" id="sb-user-sub-url-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: rgba(0,0,0,0.15);">
-                        <button class="btn btn-primary" onclick="copySingboxUserSubUrl()" type="button" title="کپی لینک ساب (Base64)">
+                        <input type="text" class="form-input" id="sb-user-singbox-url-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: rgba(0,0,0,0.12); color:#4f46e5; font-weight:700;">
+                        <button class="btn btn-primary" onclick="copySingboxAppSubUrl()" type="button" title="کپی لینک اختصاصی Sing-box" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
                             <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                         </button>
-                        <button class="btn btn-secondary" onclick="showSingboxUserSubQr()" type="button" title="اسکن QR Code ساب">
+                        <button class="btn btn-secondary" onclick="showSingboxAppSubQr()" type="button" title="بارکد QR مخصوص Sing-box">
                             <i data-lucide="qr-code" style="width: 14px; height: 14px;"></i>
                         </button>
                     </div>
-                    <div style="display: flex; gap: 8px; margin-top: 8px;">
-                        <a id="sb-user-dl-singbox-json" href="#" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
-                            <i data-lucide="download" style="width: 12px; height: 12px;"></i> دانلود فایل کانفیگ کامل singbox.json
+                    <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                        <a id="sb-user-oneclick-singbox" href="#" class="btn btn-primary btn-sm" style="font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; background:#4f46e5;">
+                            <i data-lucide="external-link" style="width: 12px; height: 12px;"></i> اتصال با ۱ کلیک در اپ Sing-box
                         </a>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="copySingboxUserJsonConfig()" style="font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                            <i data-lucide="clipboard-copy" style="width: 12px; height: 12px;"></i> کپی مستقیم JSON کانفیگ
+                        </button>
+                        <a id="sb-user-dl-singbox-json" href="#" target="_blank" class="btn btn-secondary btn-sm" style="font-size: 11px; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                            <i data-lucide="download" style="width: 12px; height: 12px;"></i> دانلود singbox.json
+                        </a>
+                    </div>
+                </div>
+
+                <!-- 2. Universal Base64 Subscription Box (for V2RayNG, SlipNet, NekoBox) -->
+                <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; text-align: right;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+                        <span style="font-weight:700; font-size:12px; color:#059669; display:flex; align-items:center; gap:5px;">
+                            <i data-lucide="link" style="width:14px; height:14px;"></i>
+                            <span>لینک سابسکرایب همگانی (کلاینت‌های SlipNet / V2Ray / v2rayNG / NekoBox):</span>
+                        </span>
+                        <span class="badge" style="background: #10b981; color: white; font-size: 10px; padding: 2px 7px; border-radius: 4px;">Base64 Universal</span>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        <input type="text" class="form-input" id="sb-user-sub-url-input" readonly style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: rgba(0,0,0,0.12);">
+                        <button class="btn btn-secondary" onclick="copySingboxUserSubUrl()" type="button" title="کپی لینک ساب (Base64)">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSingboxUserSubQr()" type="button" title="اسکن QR Code ساب Base64">
+                            <i data-lucide="qr-code" style="width: 14px; height: 14px;"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -1912,14 +1939,18 @@
             </header>
             <div style="padding: 20px 24px;">
                 <!-- View Toggle Buttons -->
-                <div style="display: flex; gap: 6px; background: var(--bg-muted); padding: 4px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border-color);">
-                    <button type="button" id="sb-inbound-view-btn-qr" class="btn btn-sm btn-primary" onclick="switchSingboxInboundDetailView('qr')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                <div style="display: flex; gap: 6px; background: var(--bg-muted); padding: 4px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                    <button type="button" id="sb-inbound-view-btn-qr" class="btn btn-sm btn-primary" onclick="switchSingboxInboundDetailView('qr')" style="flex: 1; font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
                         <i data-lucide="qr-code" style="width: 13px; height: 13px;"></i>
                         <span>لینک و بارکد اتصال</span>
                     </button>
-                    <button type="button" id="sb-inbound-view-btn-json" class="btn btn-sm btn-secondary" onclick="switchSingboxInboundDetailView('json')" style="flex: 1; font-size: 11.5px; border-radius: 6px;">
+                    <button type="button" id="sb-inbound-view-btn-sbclient" class="btn btn-sm btn-secondary" onclick="switchSingboxInboundDetailView('sbclient')" style="flex: 1; font-size: 11.5px; border-radius: 6px; white-space: nowrap; color: #6366f1;">
+                        <i data-lucide="box" style="width: 13px; height: 13px;"></i>
+                        <span>کانفیگ کلاینت Sing-box</span>
+                    </button>
+                    <button type="button" id="sb-inbound-view-btn-json" class="btn btn-sm btn-secondary" onclick="switchSingboxInboundDetailView('json')" style="flex: 1; font-size: 11.5px; border-radius: 6px; white-space: nowrap;">
                         <i data-lucide="code" style="width: 13px; height: 13px;"></i>
-                        <span>تنظیمات اینباند (JSON)</span>
+                        <span>تنظیمات اینباند (سرور)</span>
                     </button>
                 </div>
 
@@ -1941,16 +1972,28 @@
                     </div>
                 </div>
 
-                <!-- View 2: JSON Settings Preview -->
+                <!-- View 2: Client Sing-box Config Preview (Ready to paste in Sing-box App) -->
+                <div id="sb-inbound-sbclient-view" style="display: none; text-align: right;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <label class="form-label" style="font-size: 11.5px; margin: 0; color: #6366f1; font-weight: 700;">کانفیگ کامل اختصاصی جهت استفاده در نرم‌افزار Sing-box (Tun + DNS):</label>
+                        <button class="btn btn-primary btn-sm" onclick="copySingboxClientJson()" type="button" style="font-size: 11px; padding: 3px 8px; background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">
+                            <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
+                            <span>کپی کانفیگ JSON</span>
+                        </button>
+                    </div>
+                    <textarea id="sb-inbound-sbclient-preview" readonly style="width: 100%; height: 230px; background: #0f172a; color: #4ade80; font-family: 'JetBrains Mono', monospace; font-size: 11px; border-radius: 8px; border: 1px solid #334155; padding: 10px; direction: ltr; resize: vertical;"></textarea>
+                </div>
+
+                <!-- View 3: Inbound Server JSON Settings Preview -->
                 <div id="sb-inbound-json-view" style="display: none; text-align: right;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label class="form-label" style="font-size: 11.5px; margin: 0;">ساختار کامل تنظیمات اینباند (JSON):</label>
+                        <label class="form-label" style="font-size: 11.5px; margin: 0;">ساختار کامل تنظیمات اینباند (سرور):</label>
                         <button class="btn btn-secondary btn-sm" onclick="copySingboxInboundJson()" type="button" style="font-size: 11px; padding: 3px 8px;">
                             <i data-lucide="copy" style="width: 12px; height: 12px;"></i>
                             <span>کپی تنظیمات JSON</span>
                         </button>
                     </div>
-                    <textarea id="sb-inbound-json-preview" readonly style="width: 100%; height: 220px; background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; border-radius: 8px; border: 1px solid #334155; padding: 10px; direction: ltr; resize: none;"></textarea>
+                    <textarea id="sb-inbound-json-preview" readonly style="width: 100%; height: 230px; background: #0f172a; color: #38bdf8; font-family: 'JetBrains Mono', monospace; font-size: 11.5px; border-radius: 8px; border: 1px solid #334155; padding: 10px; direction: ltr; resize: vertical;"></textarea>
                 </div>
 
                 <div style="margin-top: 14px; font-size: 11px; color: var(--text-muted); text-align: center;">
