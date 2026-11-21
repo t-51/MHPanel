@@ -22632,6 +22632,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </td>
                 </tr>`;
             if (window.lucide) lucide.createIcons();
+            try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
             return;
         }
 
@@ -22748,6 +22754,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
     }
 
     // --- Live Logs Stream Engine ---
@@ -24098,6 +24110,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (modal) {
                 modal.classList.add("active");
                 modal.style.display = "flex";
+                try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
             }
             if (window.lucide) lucide.createIcons();
         } catch (e) {
@@ -24433,6 +24451,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 <div>هیچ اوت‌باندی یافت نشد.</div>
             </td></tr>`;
             if (window.lucide) lucide.createIcons();
+            try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
             return;
         }
 
@@ -24513,6 +24537,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
     }
 
     function openSingboxAddOutboundModal() {
@@ -25413,6 +25443,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         });
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
     }
 
     function renderSingboxCleanIpsSamples(domain) {
@@ -25449,6 +25485,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         });
         box.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(box, _curLang);
+            }
+        } catch (_) {}
     }
 
     window.loadSingboxCleanIps = loadSingboxCleanIps;
@@ -25513,6 +25555,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </td>
                 </tr>`;
             if (window.lucide) lucide.createIcons();
+            try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
             updateSingboxBulkBar();
             return;
         }
@@ -25536,6 +25584,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     </td>
                 </tr>`;
             if (window.lucide) lucide.createIcons();
+            try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
             updateSingboxBulkBar();
             return;
         }
@@ -25728,6 +25782,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(tbody, _curLang);
+            }
+        } catch (_) {}
         updateSingboxBulkBar();
     }
 
@@ -25849,6 +25909,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
     }
 
     function openSingboxEditUserModal(username) {
@@ -25929,6 +25995,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
     }
 
     function renderSingboxUserInboundsChecklist(selectedInbounds) {
@@ -26087,6 +26159,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
     }
 
     function closeSingboxBulkUserModal() {
@@ -26789,6 +26867,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
 
         try {
             const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/links`);
@@ -27030,6 +27114,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
     }
 
     function closeSingboxSubSettingsModal() {
@@ -27146,6 +27236,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         modal.classList.add("active");
         modal.style.display = "flex";
         if (window.lucide) lucide.createIcons();
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
 
         try {
             const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/inbounds`);
@@ -27878,6 +27974,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (!modal) return;
         modal.classList.add("active");
         modal.style.display = "flex";
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
         switchSingboxInboundDetailView("qr");
 
         const titleEl = document.getElementById("sb-qr-title");
@@ -28369,6 +28471,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 ${topic.content}
             </div>
         `;
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(contentBox, _curLang);
+            }
+        } catch (_) {}
         card.style.display = "block";
         card.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
@@ -28388,6 +28496,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         } else {
             modal.style.display = "flex";
             modal.classList.add("active");
+            try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(modal, _curLang);
+            }
+        } catch (_) {}
             
             // Map topicKey to tab
             let tabId = "protocols_matrix";
@@ -28983,6 +29097,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 </div>
             `;
         }
+        try {
+            const _curLang = localStorage.getItem("panel_language") || "fa";
+            if (_curLang !== "fa" && typeof translateDom === "function") {
+                translateDom(body, _curLang);
+            }
+        } catch (_) {}
     }
 
     // =========================================================================
