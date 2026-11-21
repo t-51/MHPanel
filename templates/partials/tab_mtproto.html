@@ -62,12 +62,25 @@
 <i data-lucide="external-link" style="width:14px; height:14px; margin-left:6px;"></i> <span data-i18n="mtproto_unlocking_official_mtproxybot_bot">باز کردن ربات رسمی @MTProxybot</span>
 </a>
 </div>
+
+<!-- Tips Box: Protocols and Iran Network Guide -->
+<div style="background: rgba(14, 165, 233, 0.06); border: 1px solid rgba(14, 165, 233, 0.25); border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.8; color: var(--text-secondary);">
+    <div style="display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:6px; color:#0284c7;">
+        <i data-lucide="help-circle" style="width:16px; height:16px;"></i> راهنمای انتخاب بهترین حالت اتصال در ایران:
+    </div>
+    <ul style="margin: 0; padding-right: 18px;">
+        <li><strong>لینک امن dd (پیشنهادی):</strong> بهترین و پایدارترین حالت اتصال در اپراتورهای ایران (همراه‌اول، ایرانسل و مخابرات). با ایجاد پدینگ تصادفی بسته‌ها، شناسایی الگوی ترافیک تلگرام را دور می‌زند.</li>
+        <li><strong>لینک Fake TLS (ee):</strong> استاندارد رسمی تلگرام برای پنهان‌سازی ترافیک در قالب بسته‌های HTTPS/TLS است. کاراکترهای طولانی انتهای سکرت (مثلاً <code>646c2e...</code>) در واقع کد هگزادسیمال نام دامنه پوششی (مانند <code>dl.google.com</code>) هستند تا تلگرام بداند چه SNI ارسال کند.</li>
+        <li><strong>چرا اتصال با آی‌پی بهتر از دامنه است؟</strong> در دامنه‌هایی که کلمه <code>vpn</code> دارند (مانند <code>vpn.kigaping.com</code>)، سیستم فیلترینگ ایران دامنه را از طریق DNS Poisoning مسدود می‌کند. بنابراین همواره اتصال مستقیم با آی‌پی سرور (<code>212.227.143.16</code>) بالاترین موفقیت را دارد.</li>
+    </ul>
+</div>
+
 <!-- Visual Process Guide for @MTProxybot -->
 <div style="background: var(--surface-secondary); border: 1px dashed var(--border-strong); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; font-size: 12.5px; line-height: 1.7; color: var(--text-secondary);">
     <div style="display:flex; align-items:center; gap:8px; font-weight:700; margin-bottom:4px; color:var(--accent-info);">
-        <i data-lucide="info" style="width:16px; height:16px;"></i> راهنمای اتصال مستقیم سریع یا تنظیم کانال اسپانسر:
+        <i data-lucide="info" style="width:16px; height:16px;"></i> راهنمای ثبت کانال اسپانسر:
     </div>
-    اگر نیازی به پین شدن کانال تلگرام ندارید، <strong>اصلاً نیازی به تگ اسپانسر یا ربات تلگرام نیست!</strong> پروکسی شما بدون تگ اسپانسر در حالت مستقیم (Direct Core DC) با بالاترین پایداری و سرعت فعال است و بلافاصله با دکمه <strong>«لینک Fake TLS»</strong> کار می‌کند. تنظیمات ۴ مرحله‌ای زیر تنها در صورتی نیاز است که می‌خواهید کانال تلگرام‌تان بالای چت‌های کاربران متصل پین شود (نکته: تگ هگز حتماً باید از خود بات تلگرام دریافت شود و تگ رندوم کار نمی‌کند).
+    اگر نیازی به پین شدن کانال تلگرام ندارید، <strong>اصلاً نیازی به تگ اسپانسر یا ربات تلگرام نیست!</strong> پروکسی شما بدون تگ اسپانسر در حالت مستقیم (Direct Core DC) با بالاترین پایداری و سرعت فعال است. تنظیمات ۴ مرحله‌ای زیر تنها در صورتی نیاز است که می‌خواهید کانال تلگرام‌تان بالای چت‌های کاربران متصل پین شود (نکته: تگ هگز حتماً باید از خود بات تلگرام دریافت شود و تگ رندوم کار نمی‌کند).
 </div>
 
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap:12px; margin-bottom:18px;">

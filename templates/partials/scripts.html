@@ -7681,7 +7681,8 @@
                 const fakeTlsIpLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
                 const fakeTlsDomainLink = `tg://proxy?server=${serverHost}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
                 const webTlsLink = `https://t.me/proxy?server=${serverIp}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
-                const classicLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.standard_secret || ('dd' + inst.secret)}`;
+                const secureLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.standard_secret || ('dd' + inst.secret)}`;
+                const rawLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.secret}`;
                 
                 const hasSponsor = inst.has_sponsor || (inst.ad_tag && inst.ad_tag.length === 32);
 
@@ -7779,17 +7780,20 @@
 
                     <!-- Fast Action Buttons -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک ضدفیلتر Fake TLS با آی‌پی کپی شد!', 'success');" style="flex:1.4; min-width:160px; padding:6px 12px; font-size:12px; background:#0284c7; border-color:#0284c7;">
-                            <i data-lucide="shield" style="width:14px; height:14px; margin-left:4px;"></i> لینک Fake TLS (ضد فیلتر)
+                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${secureLink}'); showToast('لینک مستقیم امن (dd) با آی‌پی کپی شد! (بهترین پایداری در ایران)', 'success');" style="flex:1.4; min-width:165px; padding:6px 12px; font-size:12px; background:#0284c7; border-color:#0284c7;" title="اتصال امن dd با پدینگ ضد فیلتر">
+                            <i data-lucide="zap" style="width:14px; height:14px; margin-left:4px;"></i> لینک امن dd (پیشنهادی)
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک مستقیم ضد فیلتر dd در کلیپ‌بورد کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم dd">
-                            <i data-lucide="zap" style="width:13px; height:13px; margin-left:4px;"></i> لینک مستقیم dd
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${rawLink}'); showToast('لینک معمولی (کلاسیک) با آی‌پی کپی شد', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک معمولی کلاسیک">
+                            <i data-lucide="key" style="width:13px; height:13px; margin-left:4px;"></i> لینک کلاسیک
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک Fake TLS با دامنه کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
-                            <i data-lucide="link-2" style="width:13px; height:13px; margin-left:4px;"></i> با دامنه
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک Fake TLS کپی شد. (کاراکترهای انتهای سکرت، کد هگز دامنه است)', 'info');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک استتار در قالب TLS (ee)">
+                            <i data-lucide="shield" style="width:13px; height:13px; margin-left:4px;"></i> Fake TLS (ee)
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${webTlsLink}'); showToast('لینک تلگرام تحت وب کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم t.me">
                             <i data-lucide="globe" style="width:13px; height:13px; margin-left:4px;"></i> لینک t.me
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک با نام دامنه کپی شد (نکته: در صورت فیلتر بودن دامنه در ایران، از لینک آی‌پی استفاده کنید)', 'info');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
+                            <i data-lucide="link-2" style="width:13px; height:13px; margin-left:4px;"></i> با دامنه
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="changeInstanceMode(${inst.port}, '${inst.mode || 'all'}')" style="width:auto; padding:6px 8px; font-size:12px;" title="تغییر حالت کاری پروکسی">
                             <i data-lucide="sliders" style="width:13px; height:13px;"></i>
