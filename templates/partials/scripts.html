@@ -31393,7 +31393,13 @@ async function verifyCloudflareToken() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ cf_token: token })
         });
-        const data = await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch (parseErr) {
+            showToast("پاسخ نامعتبر از سرور دریافت شد. لطفاً صفحه را بازنشانی نمایید.", "error");
+            return;
+        }
         if (data.success) {
             showToast("توکن با موفقیت تایید شد و دامنه‌ها بارگذاری شدند!", "success");
             if (data.audit && data.audit.has_dns_permission === false) {
@@ -31443,7 +31449,13 @@ async function loadCloudflareDnsRecords() {
 
     try {
         const res = await fetch("/api/cloudflare/dns");
-        const data = await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch (_) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#ef4444;">پاسخ نامعتبر از سرور دریافت شد.</td></tr>`;
+            return;
+        }
         if (!data.success) {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:18px; color:#ef4444;">${data.error || 'خطا در بارگذاری رکوردهای DNS'}</td></tr>`;
             return;
