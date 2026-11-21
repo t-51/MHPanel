@@ -24766,6 +24766,8 @@ def run_full_radar_scan(mode="full", country="auto", lang="fa"):
 
     final_score = max(10, min(100, final_score))
 
+    services_radar = probe_gaming_and_external_services(lang=lang, force_refresh=(mode == "full"))
+
     return {
         "success": True,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -24786,8 +24788,144 @@ def run_full_radar_scan(mode="full", country="auto", lang="fa"):
         "iran_operators": country_results,
         "global_destinations": global_results,
         "ports_matrix": ports_matrix,
-        "dpi_analysis": dpi_analysis
+        "dpi_analysis": dpi_analysis,
+        "gaming_services": (services_radar.get("gaming_services", []) if 'services_radar' in locals() else []),
+        "external_services": (services_radar.get("external_services", []) if 'services_radar' in locals() else []),
+        "avg_gaming_latency": (services_radar.get("avg_gaming_latency") if 'services_radar' in locals() else None),
+        "avg_external_latency": (services_radar.get("avg_external_latency") if 'services_radar' in locals() else None),
+        "services_healthy_count": (services_radar.get("healthy_count") if 'services_radar' in locals() else 0),
+        "services_total_count": (services_radar.get("total_count") if 'services_radar' in locals() else 0),
+        "services_timestamp": (services_radar.get("timestamp") if 'services_radar' in locals() else None),
+        "services_interval_minutes": (services_radar.get("interval_minutes", 5) if 'services_radar' in locals() else 5)
     }
+
+RADAR_PING_SETTINGS_FILE = "/etc/vpnpanel/radar_ping_settings.json"
+
+GAMING_TARGETS = [
+    {"id": "playstation", "name": "PlayStation Network (PSN)", "fa_name": "شبکه پلی‌استیشن (PSN)", "target": "auth.api.sonyentertainmentnetwork.com", "category": "gaming", "icon": "gamepad-2", "ports": [443, 80], "desc": "سرویس‌های آنلاین، فروشگاه و اتصال کنسول‌های PS4 و PS5"},
+    {"id": "xbox", "name": "Xbox Live / Microsoft Gaming", "fa_name": "ایکس‌باکس لایو (Xbox Live)", "target": "xsts.auth.xboxlive.com", "category": "gaming", "icon": "gamepad", "ports": [443, 80], "desc": "شبکه آنلاین ایکس‌باکس و احراز هویت گیمینگ"},
+    {"id": "steam", "name": "Steam (Valve CM EU)", "fa_name": "استیم (Steam Valve)", "target": "steampowered.com", "category": "gaming", "icon": "play", "ports": [443, 80], "desc": "سرورهای بازی، مارکت و دانلود والو اروپا"},
+    {"id": "epicgames", "name": "Epic Games (Fortnite / Unreal)", "fa_name": "اپیک گیمز (Fortnite / Epic)", "target": "launcher-public-service-prod06.ol.epicgames.com", "category": "gaming", "icon": "flame", "ports": [443, 80], "desc": "سرورهای آنلاین فورتنایت و لانچر اپیک"},
+    {"id": "riotgames", "name": "Riot Games (Valorant / LoL)", "fa_name": "رایوت گیمز (Valorant / LoL)", "target": "auth.riotgames.com", "category": "gaming", "icon": "swords", "ports": [443, 80], "desc": "سرورهای مچ‌میکینگ ولورانت و لیگ آف لجندز"},
+    {"id": "ea", "name": "Electronic Arts (EA FC / Apex)", "fa_name": "الکترونیک آرتز (EA Sports / Apex)", "target": "accounts.ea.com", "category": "gaming", "icon": "trophy", "ports": [443, 80], "desc": "سرورهای آنلاین EA FC، ایپکس و بتلفیلد"},
+    {"id": "battlenet", "name": "Blizzard Battle.net", "fa_name": "بلیزارد بتل‌نت (Battle.net)", "target": "eu.actual.battle.net", "category": "gaming", "icon": "shield", "ports": [443, 80], "desc": "سرورهای آنلاین وارکرافت و کالاف دیوتی"},
+    {"id": "discord", "name": "Discord Voice & Gateway", "fa_name": "دیسکورد (Voice & Gateway)", "target": "gateway.discord.gg", "category": "gaming", "icon": "message-square", "ports": [443, 80], "desc": "سرورهای وب‌سوکت صوتی و گیت‌وی دیسکورد"}
+]
+
+EXTERNAL_SERVICES_TARGETS = [
+    {"id": "github", "name": "GitHub (Transit & API)", "fa_name": "گیت‌هاب (GitHub Git & API)", "target": "github.com", "category": "external", "icon": "git-branch", "ports": [443, 80, 22], "desc": "مخازن گیت، وب‌هوک‌ها و ترافیک ترانزیت"},
+    {"id": "gitlab", "name": "GitLab Cloud", "fa_name": "گیت‌لب (GitLab CI/CD)", "target": "gitlab.com", "category": "external", "icon": "code", "ports": [443, 80], "desc": "سیستم کنترل پروژه و پایپ‌لاین‌های CI/CD"},
+    {"id": "google", "name": "Google & YouTube Edge", "fa_name": "گوگل و یوتوب (Google Edge)", "target": "google.com", "category": "external", "icon": "globe", "ports": [443, 80], "desc": "مراکز لبه گوگل، موتور جستجو و استریم یوتیوب"},
+    {"id": "cloudflare", "name": "Cloudflare Anycast Backbone", "fa_name": "شبکه کلودفلر (1.1.1.1 / Edge)", "target": "1.1.1.1", "category": "external", "icon": "cloud", "ports": [53, 443, 80], "desc": "شبکه جهانی Anycast کلودفلر و DNS امن"},
+    {"id": "telegram", "name": "Telegram DC4 Europe", "fa_name": "دیتاسنتر ۴ تلگرام (Telegram DC4)", "target": "149.154.167.50", "category": "external", "icon": "send", "ports": [443, 80], "desc": "مرکز داده اصلی تلگرام در اروپا برای پیام‌رسانی و مدیا"},
+    {"id": "openai", "name": "OpenAI API & CDN", "fa_name": "زیرساخت اوپن‌ای‌آی (OpenAI API)", "target": "api.openai.com", "category": "external", "icon": "cpu", "ports": [443, 80], "desc": "سرویس‌های هوش مصنوعی ChatGPT و API"},
+    {"id": "docker", "name": "Docker Hub Registry", "fa_name": "داکر هاب (Docker Registry)", "target": "registry-1.docker.io", "category": "external", "icon": "box", "ports": [443, 80], "desc": "مخازن رسمی ایمیج‌های داکر و استقرار کانتینرها"}
+]
+
+_radar_services_cache = {"timestamp": 0, "data": None}
+
+def get_radar_ping_settings():
+    default_settings = {
+        "interval_minutes": 5,
+        "auto_ping_enabled": True,
+        "last_ping_time": None
+    }
+    if os.path.exists(RADAR_PING_SETTINGS_FILE):
+        try:
+            with open(RADAR_PING_SETTINGS_FILE, "r") as f:
+                data = json.load(f)
+                default_settings.update(data)
+        except Exception:
+            pass
+    return default_settings
+
+def save_radar_ping_settings(settings):
+    try:
+        os.makedirs(os.path.dirname(RADAR_PING_SETTINGS_FILE), exist_ok=True)
+        with open(RADAR_PING_SETTINGS_FILE, "w") as f:
+            json.dump(settings, f, indent=2)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save radar ping settings: {e}")
+        return False
+
+def probe_gaming_and_external_services(lang="fa", force_refresh=False):
+    global _radar_services_cache
+    now = time.time()
+    if not force_refresh and _radar_services_cache["data"] is not None and (now - _radar_services_cache["timestamp"] < 15.0):
+        return _radar_services_cache["data"]
+
+    all_targets = GAMING_TARGETS + EXTERNAL_SERVICES_TARGETS
+    results = {}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+        futures = {executor.submit(probe_endpoint_latency, t["name"], t["target"], ports=t.get("ports", [443, 80])): t for t in all_targets}
+        for f in concurrent.futures.as_completed(futures):
+            t = futures[f]
+            try:
+                res = f.result()
+                res["id"] = t["id"]
+                res["fa_name"] = t["fa_name"]
+                res["category"] = t["category"]
+                res["icon"] = t["icon"]
+                res["desc"] = t["desc"]
+                
+                lat = res["latency_ms"]
+                if res["status"] == "clean":
+                    if lat is not None and lat < 35:
+                        res["verdict_badge"] = ("فوق‌العاده برای گیم" if t["category"] == "gaming" else "پینگ فوق‌العاده و سریع") if lang == "fa" else "Ultra Low Latency"
+                        res["badge_color"] = "green"
+                    elif lat is not None and lat < 90:
+                        res["verdict_badge"] = "عالی و پایدار" if lang == "fa" else "Excellent"
+                        res["badge_color"] = "green"
+                    else:
+                        res["verdict_badge"] = "مناسب" if lang == "fa" else "Normal"
+                        res["badge_color"] = "green"
+                elif res["status"] == "degraded":
+                    res["verdict_badge"] = "تاخیر بالا" if lang == "fa" else "High Latency"
+                    res["badge_color"] = "yellow"
+                else:
+                    res["verdict_badge"] = "عدم پاسخ / مسدود" if lang == "fa" else "Timeout"
+                    res["badge_color"] = "red"
+                results[t["id"]] = res
+            except Exception:
+                results[t["id"]] = {
+                    "id": t["id"], "name": t["name"], "fa_name": t["fa_name"], "target": t["target"],
+                    "latency_ms": None, "packet_loss": 100, "status": "blocked",
+                    "category": t["category"], "icon": t["icon"], "desc": t["desc"],
+                    "verdict_badge": "خطا در ارزیابی", "badge_color": "red"
+                }
+
+    gaming_results = [results[t["id"]] for t in GAMING_TARGETS if t["id"] in results]
+    external_results = [results[t["id"]] for t in EXTERNAL_SERVICES_TARGETS if t["id"] in results]
+
+    valid_gaming_lats = [r["latency_ms"] for r in gaming_results if r["latency_ms"] is not None]
+    valid_ext_lats = [r["latency_ms"] for r in external_results if r["latency_ms"] is not None]
+
+    avg_gaming = round(sum(valid_gaming_lats) / len(valid_gaming_lats), 1) if valid_gaming_lats else None
+    avg_external = round(sum(valid_ext_lats) / len(valid_ext_lats), 1) if valid_ext_lats else None
+
+    healthy_count = sum(1 for r in list(results.values()) if r.get("status") in ("clean", "degraded"))
+
+    settings = get_radar_ping_settings()
+    settings["last_ping_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    save_radar_ping_settings(settings)
+
+    payload = {
+        "success": True,
+        "timestamp": settings["last_ping_time"],
+        "interval_minutes": settings.get("interval_minutes", 5),
+        "auto_ping_enabled": settings.get("auto_ping_enabled", True),
+        "gaming_services": gaming_results,
+        "external_services": external_results,
+        "avg_gaming_latency": avg_gaming,
+        "avg_external_latency": avg_external,
+        "healthy_count": healthy_count,
+        "total_count": len(all_targets)
+    }
+
+    _radar_services_cache = {"timestamp": now, "data": payload}
+    return payload
 
 @app.route("/api/network/radar", methods=["GET", "POST"])
 def api_network_radar():
@@ -24801,6 +24939,34 @@ def api_network_radar():
 
     results = run_full_radar_scan(mode=mode, country=country, lang=lang)
     return jsonify(results)
+
+@app.route("/api/network/radar/services", methods=["GET", "POST"])
+def api_network_radar_services():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    force = (request.args.get("force") == "1") or (request.method == "POST")
+    lang = request.args.get("lang") or "fa"
+    data = probe_gaming_and_external_services(lang=lang, force_refresh=force)
+    return jsonify(data)
+
+@app.route("/api/network/radar/services/settings", methods=["GET", "POST"])
+def api_network_radar_services_settings():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if request.method == "POST":
+        req = request.json or {}
+        settings = get_radar_ping_settings()
+        if "interval_minutes" in req:
+            try:
+                im = int(req["interval_minutes"])
+                settings["interval_minutes"] = max(0, min(1440, im))
+                settings["auto_ping_enabled"] = (im > 0)
+            except Exception:
+                pass
+        save_radar_ping_settings(settings)
+        return jsonify({"success": True, "settings": settings})
+    else:
+        return jsonify(get_radar_ping_settings())
 
 
 # =========================================================================

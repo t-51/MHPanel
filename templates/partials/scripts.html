@@ -8899,6 +8899,9 @@
             if (!lastRadarData) {
                 runRadarScan('quick');
             }
+            if (typeof initRadarServicesMonitoring === "function") {
+                initRadarServicesMonitoring();
+            }
         } else if (tabId === "singbox") {
             loadSingboxData();
         } else if (tabId === "tunnels") {
@@ -10415,6 +10418,258 @@
                 </div>`;
             });
             detailsList.innerHTML = html;
+        }
+
+        if (data.gaming_services || data.external_services) {
+            renderGamingAndExternalRadar(data);
+        }
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // --- Gaming & External Services Latency Radar & Timer Management ---
+    let radarServicesIntervalMinutes = 5;
+    let radarServicesNextRunTimestamp = 0;
+    let radarServicesCountdownTimerId = null;
+    let radarServicesInitialized = false;
+
+    async function initRadarServicesMonitoring() {
+        if (radarServicesInitialized) return;
+        radarServicesInitialized = true;
+
+        try {
+            const res = await fetch("/api/network/radar/services/settings");
+            if (res.ok) {
+                const cfg = await res.json();
+                radarServicesIntervalMinutes = parseInt(cfg.interval_minutes !== undefined ? cfg.interval_minutes : 5, 10);
+                const selectEl = document.getElementById("radar-services-interval-select");
+                if (selectEl) {
+                    selectEl.value = String(radarServicesIntervalMinutes);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch radar services settings:", e);
+        }
+
+        runServicesPingScan(false);
+    }
+
+    async function changeRadarServicesInterval(minutes) {
+        const val = parseInt(minutes, 10);
+        radarServicesIntervalMinutes = isNaN(val) ? 5 : val;
+
+        try {
+            await fetch("/api/network/radar/services/settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ interval_minutes: radarServicesIntervalMinutes })
+            });
+            if (radarServicesIntervalMinutes > 0) {
+                showToast(`دوره پایش خودکار پینگ به هر ${radarServicesIntervalMinutes} دقیقه تغییر یافت.`, "success");
+            } else {
+                showToast("پایش خودکار پینگ غیرفعال شد (فقط دستی).", "info");
+            }
+        } catch (e) {
+            showToast("خطا در ذخیره تنظیمات دوره پینگ: " + e.message, "error");
+        }
+
+        resetRadarCountdown();
+    }
+
+    function resetRadarCountdown() {
+        if (radarServicesCountdownTimerId) {
+            clearInterval(radarServicesCountdownTimerId);
+            radarServicesCountdownTimerId = null;
+        }
+
+        const cdEl = document.getElementById("radar-services-countdown");
+        const cdBox = document.getElementById("radar-services-countdown-box");
+
+        if (radarServicesIntervalMinutes <= 0) {
+            if (cdEl) cdEl.innerText = "دستی";
+            if (cdBox) cdBox.style.opacity = "0.7";
+            return;
+        }
+
+        if (cdBox) cdBox.style.opacity = "1";
+        radarServicesNextRunTimestamp = Date.now() + (radarServicesIntervalMinutes * 60 * 1000);
+
+        updateCountdownDisplay();
+        radarServicesCountdownTimerId = setInterval(updateCountdownDisplay, 1000);
+    }
+
+    function updateCountdownDisplay() {
+        if (radarServicesIntervalMinutes <= 0) return;
+        const now = Date.now();
+        const diffMs = radarServicesNextRunTimestamp - now;
+        const cdEl = document.getElementById("radar-services-countdown");
+
+        if (diffMs <= 0) {
+            if (cdEl) cdEl.innerText = "00:00";
+            runServicesPingScan(false);
+            return;
+        }
+
+        const totalSec = Math.floor(diffMs / 1000);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        const formatted = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        if (cdEl) cdEl.innerText = formatted;
+    }
+
+    async function runServicesPingScan(isManual = false) {
+        const btn = document.getElementById("radar-services-ping-btn");
+        const icon = document.getElementById("radar-services-ping-icon");
+        if (isManual) {
+            if (btn) btn.disabled = true;
+            if (icon) icon.classList.add("spin");
+        }
+
+        try {
+            const url = isManual ? "/api/network/radar/services?force=1" : "/api/network/radar/services";
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                renderGamingAndExternalRadar(data);
+                if (isManual) {
+                    showToast("سنجش پینگ سرویس‌های گیمینگ و آنلاین بروز شد.", "success");
+                }
+            }
+        } catch (e) {
+            if (isManual) showToast("خطا در سنجش پینگ سرویس‌ها: " + e.message, "error");
+        } finally {
+            if (isManual) {
+                if (btn) btn.disabled = false;
+                if (icon) icon.classList.remove("spin");
+            }
+            resetRadarCountdown();
+        }
+    }
+
+    function renderGamingAndExternalRadar(data) {
+        if (!data) return;
+
+        // KPI Badges
+        const avgGamingEl = document.getElementById("radar-avg-gaming-ping");
+        if (avgGamingEl) {
+            avgGamingEl.innerText = (data.avg_gaming_latency !== null && data.avg_gaming_latency !== undefined) ? data.avg_gaming_latency : "--";
+        }
+
+        const avgServicesEl = document.getElementById("radar-avg-services-ping");
+        if (avgServicesEl) {
+            avgServicesEl.innerText = (data.avg_external_latency !== null && data.avg_external_latency !== undefined) ? data.avg_external_latency : "--";
+        }
+
+        const healthyEl = document.getElementById("radar-healthy-services-count");
+        if (healthyEl) {
+            healthyEl.innerText = `${data.healthy_count || 0} / ${data.total_count || 15}`;
+        }
+
+        const lastTimeEl = document.getElementById("radar-services-last-time");
+        if (lastTimeEl) {
+            lastTimeEl.innerText = data.timestamp || "هم‌اکنون";
+        }
+
+        // Helper to build cards
+        const buildCardsHtml = (items) => {
+            if (!items || items.length === 0) {
+                return `<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px;">اطلاعاتی یافت نشد.</div>`;
+            }
+
+            let html = "";
+            items.forEach(item => {
+                let badgeClass = "badge-emerald";
+                let statusText = item.verdict_badge || "سالم و متصل";
+                let iconName = "check";
+                if (item.status === "degraded") {
+                    badgeClass = "badge-amber";
+                    iconName = "alert-triangle";
+                } else if (item.status === "blocked") {
+                    badgeClass = "badge-rose";
+                    iconName = "x";
+                }
+
+                let pingDisplay = item.latency_ms !== null
+                    ? `<strong class="radar-text-main" style="font-family:'JetBrains Mono'; font-size:13.5px; font-weight:800;">${item.latency_ms}</strong> <span class="radar-text-muted" style="font-size:11px;">ms</span>`
+                    : `<span style="color:#ef4444; font-size:12px; font-weight:800; font-family:'JetBrains Mono';">Timeout</span>`;
+
+                let barWidth = 0;
+                let barColor = "#10b981";
+                if (item.latency_ms !== null) {
+                    barWidth = Math.min(100, Math.max(8, Math.round((item.latency_ms / 200) * 100)));
+                    if (item.latency_ms > 150) barColor = "#ef4444";
+                    else if (item.latency_ms > 60) barColor = "#f59e0b";
+                } else {
+                    barWidth = 100;
+                    barColor = "#ef4444";
+                }
+
+                const brandIcons = {
+                    "playstation": { color: "#0070d1", bg: "rgba(0,112,209,0.12)", icon: "gamepad-2" },
+                    "xbox": { color: "#107c41", bg: "rgba(16,124,65,0.12)", icon: "gamepad" },
+                    "steam": { color: "#38bdf8", bg: "rgba(56,189,248,0.12)", icon: "play" },
+                    "epicgames": { color: "#ef4444", bg: "rgba(239,68,68,0.12)", icon: "flame" },
+                    "riotgames": { color: "#e11d48", bg: "rgba(225,29,72,0.12)", icon: "swords" },
+                    "ea": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "trophy" },
+                    "battlenet": { color: "#00aeef", bg: "rgba(0,174,239,0.12)", icon: "shield" },
+                    "discord": { color: "#6366f1", bg: "rgba(99,102,241,0.12)", icon: "message-square" },
+                    "github": { color: "#a855f7", bg: "rgba(168,85,247,0.12)", icon: "git-branch" },
+                    "gitlab": { color: "#f97316", bg: "rgba(249,115,22,0.12)", icon: "code-2" },
+                    "google": { color: "#ea4335", bg: "rgba(234,67,53,0.12)", icon: "globe" },
+                    "cloudflare": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "cloud" },
+                    "telegram": { color: "#0284c7", bg: "rgba(2,132,199,0.12)", icon: "send" },
+                    "openai": { color: "#10b981", bg: "rgba(16,185,129,0.12)", icon: "cpu" },
+                    "docker": { color: "#0ea5e9", bg: "rgba(14,165,233,0.12)", icon: "box" }
+                };
+
+                const meta = brandIcons[item.id] || { color: "var(--brand-primary)", bg: "var(--brand-primary-soft)", icon: item.icon || "network" };
+
+                html += `
+                <div class="radar-dest-card">
+                    <div class="radar-dest-head">
+                        <div class="radar-dest-identity">
+                            <div style="width:34px; height:34px; border-radius:8px; background:${meta.bg}; color:${meta.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <i data-lucide="${meta.icon}" style="width:17px; height:17px;"></i>
+                            </div>
+                            <div class="radar-dest-name-box">
+                                <span class="radar-dest-name" title="${escapeHtml(item.name)}">${escapeHtml(item.fa_name || item.name)}</span>
+                                <span class="radar-dest-region" style="font-family:'JetBrains Mono'; font-size:10.5px; opacity:0.8;">${escapeHtml(item.target)}</span>
+                            </div>
+                        </div>
+                        <span class="radar-status-badge ${badgeClass}" style="flex-shrink:0;">
+                            <i data-lucide="${iconName}" style="width:11px; height:11px;"></i>
+                            ${statusText}
+                        </span>
+                    </div>
+                    <div class="radar-dest-metrics" style="margin-top:6px;">
+                        <div style="display:flex; align-items:baseline; gap:4px;">
+                            <span class="radar-text-muted" style="font-size:11px;">تاخیر:</span>
+                            ${pingDisplay}
+                        </div>
+                        <div style="display:flex; align-items:baseline; gap:4px;">
+                            <span class="radar-text-muted" style="font-size:11px;">پکت‌لوس:</span>
+                            <span style="font-family:'JetBrains Mono'; font-weight:700; font-size:12px; color:${item.packet_loss === 0 ? '#10b981' : '#ef4444'};">${item.packet_loss}%</span>
+                        </div>
+                        <div style="display:flex; align-items:baseline; gap:4px; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                            <span class="radar-text-muted" style="font-size:10.5px;" title="${escapeHtml(item.desc || '')}">${escapeHtml(item.desc || '')}</span>
+                        </div>
+                    </div>
+                    <div class="radar-dest-ping-bar">
+                        <div class="radar-dest-ping-fill" style="width:${barWidth}%; background:${barColor};"></div>
+                    </div>
+                </div>`;
+            });
+            return html;
+        };
+
+        const gamingGrid = document.getElementById("radar-gaming-grid");
+        if (gamingGrid && data.gaming_services) {
+            gamingGrid.innerHTML = buildCardsHtml(data.gaming_services);
+        }
+
+        const extGrid = document.getElementById("radar-external-grid");
+        if (extGrid && data.external_services) {
+            extGrid.innerHTML = buildCardsHtml(data.external_services);
         }
 
         if (window.lucide) lucide.createIcons();

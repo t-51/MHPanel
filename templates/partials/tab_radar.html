@@ -187,6 +187,88 @@
             </div>
         </div>
 
+        <!-- Section 2.5: Gaming Networks & External Cloud Services Latency Radar -->
+        <div class="spec-card" style="padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(99, 102, 241, 0.12); color: var(--brand-primary); display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="gamepad-2" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">
+                            <span>رادار تاخیر سرور با شبکه‌های گیمینگ و سرویس‌های آنلاین (Gaming & Cloud Services)</span>
+                        </h3>
+                        <p style="font-size: 12px; color: var(--text-muted); margin: 3px 0 0 0;">
+                            پایش بلادرنگ پینگ و پکت‌لوس سرور با شبکه پلی‌استیشن، استیم، ایکس‌باکس، اپیک‌گیمز، گیت‌هاب، گوگل، کلودفلر و تلگرام
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Admin Configurable Auto-Refresh Interval & Controls -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 6px; background: var(--surface-secondary); padding: 3px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <i data-lucide="clock" style="width: 13px; height: 13px; color: var(--text-muted);"></i>
+                        <label for="radar-services-interval-select" style="font-size: 11.5px; color: var(--text-muted); font-weight: 500; margin: 0;">پایش خودکار:</label>
+                        <select id="radar-services-interval-select" onchange="changeRadarServicesInterval(this.value)" class="form-control" style="font-size: 11.5px; padding: 2px 6px; height: 26px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); background: var(--surface-primary); color: var(--text-primary); width: auto;">
+                            <option value="1">هر ۱ دقیقه</option>
+                            <option value="2">هر ۲ دقیقه</option>
+                            <option value="3">هر ۳ دقیقه</option>
+                            <option value="5" selected>هر ۵ دقیقه (پیش‌فرض)</option>
+                            <option value="10">هر ۱۰ دقیقه</option>
+                            <option value="15">هر ۱۵ دقیقه</option>
+                            <option value="30">هر ۳۰ دقیقه</option>
+                            <option value="0">دستی (غیرفعال)</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-primary" id="radar-services-ping-btn" onclick="runServicesPingScan(true)" style="padding: 4px 12px; font-size: 11.5px; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="refresh-cw" id="radar-services-ping-icon" style="width: 13px; height: 13px;"></i>
+                        <span>سنجش فوری پینگ</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Status KPI Banner -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 10px 14px; background: var(--surface-secondary); border-radius: var(--radius-md); border: 1px solid var(--border-subtle); margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                        میانگین پینگ گیمینگ: <strong id="radar-avg-gaming-ping" style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; color: var(--color-emerald);">--</strong> <span style="font-size: 11px;">ms</span>
+                    </span>
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                        میانگین پینگ سرویس‌های ابری: <strong id="radar-avg-services-ping" style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; color: var(--brand-primary);">--</strong> <span style="font-size: 11px;">ms</span>
+                    </span>
+                    <span style="font-size: 12px; color: var(--text-muted);">
+                        سرویس‌های آنلاین و پایدار: <strong id="radar-healthy-services-count" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-main);">--</strong>
+                    </span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-muted);">
+                    <span>آخرین سنجش: <strong id="radar-services-last-time" style="font-family: 'JetBrains Mono', monospace;">--</strong></span>
+                    <span id="radar-services-countdown-box" style="display: inline-flex; align-items: center; gap: 4px; background: var(--brand-primary-soft); color: var(--brand-primary); padding: 2px 8px; border-radius: var(--radius-pill); font-weight: 600;">
+                        <i data-lucide="timer" style="width: 11px; height: 11px;"></i>
+                        <span>سنجش بعدی:</span>
+                        <strong id="radar-services-countdown" style="font-family: 'JetBrains Mono', monospace;">--:--</strong>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Subheading: Gaming Services -->
+            <div style="margin-top: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="gamepad" style="width: 15px; height: 15px; color: #8b5cf6;"></i>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin: 0;">سرورهای بازی و شبکه‌های کنسول (PlayStation, Xbox, Steam, Epic Games, Riot, EA...)</h4>
+            </div>
+            <div id="radar-gaming-grid" class="radar-dest-grid" style="margin-bottom: 20px;">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted); font-size: 12.5px;">در حال آماده‌سازی سنجش تاخیر شبکه‌های گیمینگ...</div>
+            </div>
+
+            <!-- Subheading: Developer & Cloud Services -->
+            <div style="margin-top: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="cloud" style="width: 15px; height: 15px; color: #0284c7;"></i>
+                <h4 style="font-size: 13px; font-weight: 700; color: var(--text-main); margin: 0;">سرویس‌های ابری، گیت‌هاب و زیرساخت (GitHub, GitLab, Google, Cloudflare, Telegram...)</h4>
+            </div>
+            <div id="radar-external-grid" class="radar-dest-grid">
+                <div style="grid-column: 1 / -1; text-align: center; padding: 24px; color: var(--text-muted); font-size: 12.5px;">در حال آماده‌سازی سنجش تاخیر سرویس‌های ابری...</div>
+            </div>
+        </div>
+
         <!-- Section 3: Server Protocol Ports Matrix -->
         <div class="spec-card" style="padding: 22px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
