@@ -288,11 +288,38 @@ def toggle_dns_proxy(zone_id, token, record_id):
 # 1-CLICK PROTOCOL SUBDOMAINS PROVISIONING
 # ============================================================================
 
+SENSITIVE_PREFIXES_MAP = {
+    "vpn": "connect",
+    "proxy": "hub",
+    "vless": "stream",
+    "vmess": "data",
+    "reality": "edge",
+    "shadowsocks": "sec",
+    "openvpn": "link",
+    "ovpn": "link",
+    "wireguard": "net",
+    "mtproto": "tg",
+    "telegram": "tg"
+}
+
+def sanitize_stealth_prefix(prefix, fallback="node"):
+    """
+    Sanitizes subdomain prefixes to prevent using sensitive keywords 
+    (vpn, proxy, vless, etc.) that are flagged by DPI / censorship firewalls.
+    """
+    p = (prefix or "").strip().lower()
+    for sens, replacement in SENSITIVE_PREFIXES_MAP.items():
+        if sens in p:
+            logger.warning(f"Sensitive keyword '{sens}' detected in prefix '{p}'. Auto-replacing with '{replacement}'.")
+            p = p.replace(sens, replacement)
+    return p or fallback
+
 def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protocols_to_provision=None, custom_prefixes=None):
     """
     Automates creating subdomains for different protocols.
-    Protocols like Reality / Hy2 / TUIC / SSH are direct (Proxied: False).
+    Protocols like Reality / Hy2 / TUIC / MTProto / SSH are direct (Proxied: False).
     Protocols like VLESS-WS / VMess-WS / Trojan-WS / GAS can be CDN Proxied (Proxied: True).
+    All default prefixes use stealth, innocuous names to avoid DPI surveillance.
     """
     root_domain = root_domain.strip().lower()
     custom_prefixes = custom_prefixes or {}
@@ -300,73 +327,80 @@ def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protoc
     default_specs = {
         "reality": {
             "title": "Sing-box Reality / Direct",
-            "prefix": custom_prefixes.get("reality", "reality"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("reality", "edge")),
             "proxied": False,
             "type": "A",
-            "desc": "اتصال مستقیم بدون پروکسی کلودفلر برای پروتکل Reality"
+            "desc": "اتصال مستقیم بدون پروکسی کلودفلر با نام استتار شده (edge)"
         },
         "vless_ws": {
             "title": "VLESS WebSocket CDN",
-            "prefix": custom_prefixes.get("vless_ws", "vless"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("vless_ws", "stream")),
             "proxied": True,
             "type": "A",
-            "desc": "عبور از شبکه CDN کلودفلر (ابر نارنجی روشن)"
+            "desc": "عبور از شبکه CDN کلودفلر با نام استتار شده (stream)"
         },
         "vmess_ws": {
             "title": "VMess / Trojan WS",
-            "prefix": custom_prefixes.get("vmess_ws", "ws"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("vmess_ws", "ws")),
             "proxied": True,
             "type": "A",
-            "desc": "ساب‌دامین وب‌سوکت برای تروجان و وی‌مس"
+            "desc": "ساب‌دامین وب‌سوکت برای تروجان و وی‌مس (ws)"
         },
         "hysteria2": {
             "title": "Hysteria 2 (QUIC/UDP)",
-            "prefix": custom_prefixes.get("hysteria2", "hy2"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("hysteria2", "quic")),
             "proxied": False,
             "type": "A",
-            "desc": "اتصال پرسرعت پروتکل هیستریا ۲ (UDP مستقیم)"
+            "desc": "اتصال پرسرعت پروتکل هیستریا ۲ (UDP مستقیم - quic)"
         },
         "tuic": {
             "title": "TUIC v5 (QUIC/UDP)",
-            "prefix": custom_prefixes.get("tuic", "tuic"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("tuic", "tc")),
             "proxied": False,
             "type": "A",
-            "desc": "اتصال مستقیم پروتکل TUIC"
+            "desc": "اتصال مستقیم پروتکل TUIC (tc)"
+        },
+        "mtproto": {
+            "title": "MTProto Telegram Proxy",
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("mtproto", "tg")),
+            "proxied": False,
+            "type": "A",
+            "desc": "اتصال مستقیم پروکسی تلگرام ضد فیلتر (DNS Only - بدون کلمات حساس)"
         },
         "shadowsocks": {
             "title": "Shadowsocks TCP/UDP",
-            "prefix": custom_prefixes.get("shadowsocks", "ss"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("shadowsocks", "sec")),
             "proxied": False,
             "type": "A",
-            "desc": "اتصال شادوساکس مستقیم"
+            "desc": "اتصال شادوساکس مستقیم (sec)"
         },
         "ssh": {
             "title": "SSH / Direct TLS",
-            "prefix": custom_prefixes.get("ssh", "ssh"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("ssh", "srv")),
             "proxied": False,
             "type": "A",
-            "desc": "دامنه مستقیم سرور برای تونل‌های SSH"
+            "desc": "دامنه مستقیم سرور برای تونل‌های SSH (srv)"
         },
         "gas_relay": {
             "title": "Google Apps Script Relay",
-            "prefix": custom_prefixes.get("gas_relay", "gas"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("gas_relay", "gas")),
             "proxied": True,
             "type": "A",
-            "desc": "ساب‌دامین متصل به گوگل اسکریپت و ریورس پروکسی"
+            "desc": "ساب‌دامین متصل به گوگل اسکریپت و ریورس پروکسی (gas)"
         },
         "naiveproxy": {
             "title": "NaiveProxy (Chromium TLS)",
-            "prefix": custom_prefixes.get("naiveproxy", "naive"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("naiveproxy", "app")),
             "proxied": False,
             "type": "A",
-            "desc": "استتار شبکه کرومیوم برای نایوپروکسی"
+            "desc": "استتار شبکه کرومیوم برای نایوپروکسی (app)"
         },
         "wireguard": {
             "title": "WireGuard / WSTunnel",
-            "prefix": custom_prefixes.get("wireguard", "wg"),
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("wireguard", "net")),
             "proxied": False,
             "type": "A",
-            "desc": "اتصال وایرگارد مستقیم یا WSTunnel"
+            "desc": "اتصال وایرگارد مستقیم یا WSTunnel (net)"
         }
     }
 

@@ -196,13 +196,20 @@
                 </div>
             </div>
 
+            <div style="background:rgba(14, 165, 233, 0.06); border:1px solid rgba(14, 165, 233, 0.25); border-radius:10px; padding:12px 16px; margin-bottom:18px; font-size:12.5px; line-height:1.7; color:var(--text-secondary);">
+                <div style="display:flex; align-items:center; gap:8px; font-weight:700; color:#0284c7; margin-bottom:4px;">
+                    <i data-lucide="shield-check" style="width:16px; height:16px;"></i> استاندارد استتار نام دامنه (Stealth Anti-DPI Naming):
+                </div>
+                تمامی پیشوندهای زیر به طور کامل از کلمات حساس و تحت دید فیلترینگ (نظیر <code>vpn</code>، <code>proxy</code> و <code>vless</code>) پاکسازی شده‌اند و از اسامی عمومی وب استفاده می‌کنند تا از بلاک شدن دامنه‌ها توسط فیلترینگ کلمات کلیدی جلوگیری شود.
+            </div>
+
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 20px;">
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Reality / Direct</span>
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Sing-box Reality (Direct)</span>
                         <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">reality.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">edge.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
@@ -210,7 +217,7 @@
                         <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">VLESS WebSocket</span>
                         <span class="badge" style="background:rgba(249,115,22,0.15); color:#f97316; font-size:10px; border-radius:6px; padding:2px 6px;">Proxied 🟠</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#f97316;">vless.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#f97316;">stream.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
@@ -223,10 +230,18 @@
 
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">MTProto Telegram</span>
+                        <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
+                    </div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">tg.<span class="cf-current-zone-name">domain.com</span></div>
+                </div>
+
+                <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                         <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">Hysteria 2 (UDP)</span>
                         <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">hy2.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">quic.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">
@@ -234,7 +249,7 @@
                         <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);">TUIC v5 (QUIC)</span>
                         <span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:10px; border-radius:6px; padding:2px 6px;">DNS Only</span>
                     </div>
-                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">tuic.<span class="cf-current-zone-name">domain.com</span></div>
+                    <div style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#0284c7;">tc.<span class="cf-current-zone-name">domain.com</span></div>
                 </div>
 
                 <div style="background:var(--surface-elevated); border:1px solid var(--border-subtle); border-radius:12px; padding:14px;">

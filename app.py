@@ -23547,9 +23547,9 @@ def get_default_multiplexer_config():
     srv_domain = get_server_domain() or ""
     
     web_sni = f"panel.{srv_domain}, {srv_domain}, *.{srv_domain}" if srv_domain else "panel.example.com, example.com, *.example.com"
-    ocserv_sni = f"vpn.{srv_domain}" if srv_domain else "vpn.example.com"
+    ocserv_sni = f"connect.{srv_domain}" if srv_domain else "connect.example.com"
     ssh_sni = f"ssh.{srv_domain}" if srv_domain else "ssh.example.com"
-    ovpn_sni = f"ovpn.{srv_domain}" if srv_domain else "ovpn.example.com"
+    ovpn_sni = f"link.{srv_domain}" if srv_domain else "link.example.com"
     sstp_sni = f"sstp.{srv_domain}" if srv_domain else "sstp.example.com"
     sb_snis = get_singbox_snis()
     sb_sni_str = ", ".join(sb_snis) if sb_snis else (f"sb.{srv_domain}, vless.{srv_domain}" if srv_domain else "sb.example.com, vless.example.com")
@@ -23732,6 +23732,8 @@ def get_singbox_snis():
         excluded.add(srv_domain)
         excluded.add(f"mhpanel.{srv_domain}")
         excluded.add(f"panel.{srv_domain}")
+        excluded.add(f"connect.{srv_domain}")
+        excluded.add(f"link.{srv_domain}")
         excluded.add(f"vpn.{srv_domain}")
         excluded.add(f"ssh.{srv_domain}")
         excluded.add(f"ws.{srv_domain}")

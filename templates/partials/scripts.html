@@ -9453,7 +9453,7 @@
                     id: "ocserv",
                     name: "سیسکو AnyConnect (Cisco OCServ)",
                     enabled: document.getElementById("mpx-proto-ocserv-enabled")?.checked ?? true,
-                    sni: document.getElementById("mpx-proto-ocserv-sni")?.value.trim() || "vpn.example.com",
+                    sni: document.getElementById("mpx-proto-ocserv-sni")?.value.trim() || "connect.example.com",
                     backend_ip: ocservTarget.host,
                     backend_port: ocservTarget.port,
                     is_default: (chosenDefaultBackend === "ocserv"),
@@ -9473,7 +9473,7 @@
                     id: "openvpn",
                     name: "اوپن‌وی‌پی‌ان (OpenVPN TCP)",
                     enabled: document.getElementById("mpx-proto-openvpn-enabled")?.checked ?? false,
-                    sni: document.getElementById("mpx-proto-openvpn-sni")?.value.trim() || "ovpn.example.com",
+                    sni: document.getElementById("mpx-proto-openvpn-sni")?.value.trim() || "link.example.com",
                     backend_ip: openvpnTarget.host,
                     backend_port: openvpnTarget.port,
                     is_default: (chosenDefaultBackend === "openvpn"),
@@ -13589,7 +13589,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function updateOcservUrlPreview() {
-        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'vpn.example.com';
+        const domain = document.getElementById('ocserv-domain')?.value.trim() || 'connect.example.com';
         const port = document.getElementById('ocserv-tcp-port')?.value.trim() || '10443';
         const camoCheck = document.getElementById('ocserv-camo-enable')?.checked;
         const secret = document.getElementById('ocserv-camo-secret')?.value.trim() || 'secure_npu_bypass';
@@ -13661,7 +13661,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (document.getElementById('ocserv-camo-secret')) document.getElementById('ocserv-camo-secret').value = data.camouflage_secret || 'secure_npu_bypass';
             if (document.getElementById('ocserv-camo-realm')) document.getElementById('ocserv-camo-realm').value = data.camouflage_realm || 'Restricted Area';
 
-            if (document.getElementById('ocserv-domain')) document.getElementById('ocserv-domain').value = data.default_domain || 'vpn.example.com';
+            if (document.getElementById('ocserv-domain')) document.getElementById('ocserv-domain').value = data.default_domain || 'connect.example.com';
 
             // Cert radios
             if (data.cert_type === 'letsencrypt') {
