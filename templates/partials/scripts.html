@@ -25818,7 +25818,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                                 <span class="badge-pill" style="font-size:10px; background:rgba(99,102,241,0.12); color:#4338ca; border:1px solid rgba(99,102,241,0.2); padding:1px 6px; border-radius:4px; font-weight:600;" title="دسته‌بندی">
                                     📁 ${escapeHtml(userCategory)}
                                 </span>
-                                ${maxConnBadge}
                             </div>
                             <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
                                 <a href="${escapeHtml(u.sub_url || '')}" target="_blank" style="font-size:11px; color:#6366f1; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="مشاهده صفحه وب سابسکرایب کاربر">
@@ -25837,9 +25836,14 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     ${expireHtml}
                 </td>
                 <td style="padding: 12px 16px;">
-                    <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
-                        ${statusBadge}
-                        ${onlineBadge}
+                    <div style="display:flex; flex-direction:column; gap:5px; align-items:flex-start;">
+                        <div style="display:flex; align-items:center; gap:5px; flex-wrap:wrap;">
+                            ${statusBadge}
+                            ${onlineBadge}
+                        </div>
+                        <div>
+                            ${maxConnBadge}
+                        </div>
                     </div>
                 </td>
                 <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
@@ -25895,6 +25899,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const firstPanel = document.getElementById("sb-user-first-use-panel");
         if (fixedPanel) fixedPanel.style.display = (mode === "on_first_use") ? "none" : "block";
         if (firstPanel) firstPanel.style.display = (mode === "on_first_use") ? "block" : "none";
+        const fixedLbl = document.getElementById("sb-user-mode-fixed-label");
+        const firstLbl = document.getElementById("sb-user-mode-first-label");
+        if (fixedLbl) fixedLbl.classList.toggle("active", mode !== "on_first_use");
+        if (firstLbl) firstLbl.classList.toggle("active", mode === "on_first_use");
     }
 
     function onSingboxBulkExpiryModeChange(mode) {
@@ -25902,6 +25910,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const firstPanel = document.getElementById("sb-bulk-first-use-panel");
         if (fixedPanel) fixedPanel.style.display = (mode === "on_first_use") ? "none" : "block";
         if (firstPanel) firstPanel.style.display = (mode === "on_first_use") ? "block" : "none";
+        const fixedLbl = document.getElementById("sb-bulk-mode-fixed-label");
+        const firstLbl = document.getElementById("sb-bulk-mode-first-label");
+        if (fixedLbl) fixedLbl.classList.toggle("active", mode !== "on_first_use");
+        if (firstLbl) firstLbl.classList.toggle("active", mode === "on_first_use");
     }
 
     function setSingboxUserValidityPreset(days) {
