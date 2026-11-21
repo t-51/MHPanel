@@ -459,8 +459,20 @@ def get_connection_count(protocol):
             res = subprocess.run(f"ss -u -a | grep -E ':{port}\\s' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = max(0, int(res.stdout.strip()) - 1)
         elif protocol == "singbox":
-            res = subprocess.run("ss -tan | grep -E ':(20443|20444|20445|20446|20447|20448|20449|2080|20523|8443|443|1080)\\s' | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
+            res = subprocess.run("ss -tan | grep -E ':(204[4-6][0-9]|2080|20523|8443|443|1080)\\s' | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = int(res.stdout.strip())
+            # Augment with Sing-box Clash API connection count if available
+            try:
+                import urllib.request
+                req = urllib.request.Request("http://127.0.0.1:9095/connections", headers={"User-Agent": "MHPanel"})
+                with urllib.request.urlopen(req, timeout=0.8) as resp:
+                    if resp.status == 200:
+                        c_data = json.loads(resp.read().decode())
+                        api_conns = len(c_data.get("connections", []))
+                        if api_conns > count:
+                            count = api_conns
+            except Exception:
+                pass
         elif protocol == "tunnels":
             res = subprocess.run("ip -br link | grep -E '(gre|ipip|vxlan|mhtun|sit|tap|tun)' | grep -i UP | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = int(res.stdout.strip())
@@ -5318,6 +5330,18 @@ def get_protocol_bandwidth_stats():
     traffic_map = get_batch_service_traffic_bytes(daemon_services)
 
     sb_rx, sb_tx = traffic_map.get("mhpanel-singbox.service", (0, 0))
+    # Fallback to Sing-box Clash API if systemd IPAccounting is zero or not available
+    if sb_rx == 0 and sb_tx == 0:
+        try:
+            import urllib.request
+            req = urllib.request.Request("http://127.0.0.1:9095/connections", headers={"User-Agent": "MHPanel"})
+            with urllib.request.urlopen(req, timeout=0.8) as resp:
+                if resp.status == 200:
+                    clash_data = json.loads(resp.read().decode())
+                    sb_rx = int(clash_data.get("downloadTotal", 0))
+                    sb_tx = int(clash_data.get("uploadTotal", 0))
+        except Exception:
+            pass
     dnstt_rx, dnstt_tx = traffic_map.get("mhpanel-dnstt.service", (0, 0))
     if dnstt_rx == 0 and dnstt_tx == 0:
         dnstt_rx = sum(dev_stats.get(iface, {}).get("rx", 0) for iface in dev_stats if "dnstt" in iface)
@@ -5392,7 +5416,7 @@ def get_protocol_bandwidth_stats():
     delta_t = now - prev_time if prev_time > 0 else 0
 
     proto_meta = [
-        {"id": "singbox", "name": "Sing-box Universal Suite", "fa_name": "هسته سینگ‌باکس (Reality/H3/QUIC)", "icon": "box", "color": "#6366f1", "tab": "singbox"},
+        {"id": "singbox", "name": "Sing-box Suite (VLESS / Reality / Trojan / VMess)", "fa_name": "هسته سینگ‌باکس (Reality / VLESS / Trojan / VMess)", "icon": "box", "color": "#6366f1", "tab": "singbox"},
         {"id": "wireguard", "name": "WireGuard", "fa_name": "وایرگارد", "icon": "zap", "color": "#9333ea", "tab": "wireguard"},
         {"id": "amneziawg", "name": "AmneziaWG", "fa_name": "آمنزیا وایرگارد", "icon": "shield", "color": "#d97706", "tab": "amneziawg"},
         {"id": "hysteria2", "name": "Hysteria 2", "fa_name": "هیستوریا ۲ (UDP BBR)", "icon": "flame", "color": "#ef4444", "tab": "hysteria2"},

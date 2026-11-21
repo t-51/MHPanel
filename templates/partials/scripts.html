@@ -1637,15 +1637,24 @@
             filtered = filtered.filter(item => ((item.rx_speed_kbs || 0) > 0 || (item.tx_speed_kbs || 0) > 0));
         }
 
-        // Search query filter
+        // Search query filter (Normalized for Persian ZWNJ, spaces and protocol aliases)
         if (window.protoSearchQuery) {
-            const q = window.protoSearchQuery;
+            const rawQ = window.protoSearchQuery.trim().toLowerCase();
+            const cleanQ = rawQ.replace(/\u200c/g, " ").replace(/\s+/g, " ");
             filtered = filtered.filter(item => {
                 const n = (item.name || "").toLowerCase();
                 const fn = (item.fa_name || "").toLowerCase();
+                const cleanFn = fn.replace(/\u200c/g, " ").replace(/\s+/g, " ");
                 const id = (item.id || "").toLowerCase();
                 const port = item.port ? String(item.port) : "";
-                return n.includes(q) || fn.includes(q) || id.includes(q) || port.includes(q);
+
+                let extraMatch = false;
+                if (item.id === "singbox") {
+                    const sbAliases = ["singbox", "sing-box", "سینگ باکس", "سینگ‌باکس", "vless", "reality", "vmess", "trojan", "تروجان", "ریالیتی", "ولس", "ویمس"];
+                    extraMatch = sbAliases.some(a => a.includes(rawQ) || rawQ.includes(a) || cleanQ.includes(a.replace(/\u200c/g, " ")));
+                }
+
+                return n.includes(rawQ) || fn.includes(rawQ) || cleanFn.includes(cleanQ) || id.includes(rawQ) || port.includes(rawQ) || extraMatch;
             });
         }
 
@@ -1721,7 +1730,12 @@
 
                 let extraTag = "";
                 if (item.id === "singbox") {
-                    extraTag = `<span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Universal</span>`;
+                    extraTag = `
+                        <span class="badge-gold" style="font-size:10px; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:3px;"><i data-lucide="crown" style="width:10px; height:10px;"></i> Universal Core</span>
+                        <span class="badge-pill" style="font-size:10px; padding:2px 6px; border-radius:6px; background:var(--brand-primary-soft); color:var(--brand-primary); font-weight:700;">VLESS Reality</span>
+                        <span class="badge-pill" style="font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(14,165,233,0.12); color:#0ea5e9; font-weight:700;">Trojan</span>
+                        <span class="badge-pill" style="font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(139,92,246,0.12); color:#8b5cf6; font-weight:700;">VMess</span>
+                    `;
                 } else if (["dnstt", "vaydns", "slipstream", "noizdns", "masterdnsvpn"].includes(item.id)) {
                     extraTag = `<span style="font-size:10px; padding:2px 6px; border-radius:6px; background:rgba(6,182,212,0.12); color:#06b6d4; border:1px solid rgba(6,182,212,0.25); font-weight:700;">Anti-Filter DNS</span>`;
                 }
