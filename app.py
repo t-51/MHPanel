@@ -421,9 +421,12 @@ def get_connection_count(protocol):
             res = subprocess.run("occtl show users | grep -v 'Unique ID' | grep -v '^$' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = max(0, int(res.stdout.strip()) - 1)
         elif protocol == "ikev2":
-            # Count active SAs from swanctl
-            res = subprocess.run("swanctl --list-sas | grep 'established' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
+            # Count active SAs from ipsec status
+            res = subprocess.run("ipsec status 2>/dev/null | grep -o '[0-9]\\+ up' | awk '{print $1}'", shell=True, capture_output=True, text=True, timeout=2.0)
+            try:
+                count = int(res.stdout.strip())
+            except Exception:
+                count = 0
         elif protocol == "sstp":
             res = subprocess.run(f"ss -t -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = int(res.stdout.strip())
@@ -5237,6 +5240,30 @@ def get_service_traffic_bytes(service_name):
     return m.get(service_name, (0, 0))
 
 _proto_bandwidth_cache = {"data": None, "timestamp": 0}
+_last_vpn_rules_check = 0
+
+def ensure_vpn_forward_accounting_rules(force=False):
+    global _last_vpn_rules_check
+    now = time.time()
+    if not force and (now - _last_vpn_rules_check < 60.0):
+        return
+    _last_vpn_rules_check = now
+    subnets = [
+        "10.10.10.0/24",   # IKEv2
+        "10.20.20.0/24",   # SSTP
+        "192.168.42.0/24",  # L2TP
+        "10.8.0.0/24",     # OpenVPN UDP
+        "10.9.0.0/24",     # OpenVPN TCP / ocserv
+        "192.168.30.0/24",  # SSTP SecureNAT
+        "10.30.30.0/24",   # IKEv2 secondary
+    ]
+    for sn in subnets:
+        subprocess.run(
+            f"iptables -C FORWARD -s {sn} -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -s {sn} -j ACCEPT ; "
+            f"iptables -C FORWARD -d {sn} -j ACCEPT 2>/dev/null || iptables -I FORWARD 1 -d {sn} -j ACCEPT",
+            shell=True,
+            capture_output=True
+        )
 
 def get_protocol_bandwidth_stats():
     global _proto_traffic_prev, _proto_bandwidth_cache
@@ -5244,6 +5271,9 @@ def get_protocol_bandwidth_stats():
     if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 2.5):
         return _proto_bandwidth_cache["data"]
     
+    # 0. Ensure VPN forward accounting rules exist
+    ensure_vpn_forward_accounting_rules()
+
     # 1. Dev interfaces (/proc/net/dev)
     dev_stats = {}
     try:
@@ -5264,30 +5294,30 @@ def get_protocol_bandwidth_stats():
             parts = line.split()
             if len(parts) >= 9 and parts[1].isdigit():
                 b = int(parts[1])
-                # Cisco AnyConnect (ocserv: 10.10.10.0/24)
-                if "10.10.10.0/24" in line:
+                # IKEv2 / IPsec (10.10.10.0/24 or 10.30.30.0/24)
+                if "10.10.10.0/24" in line or "10.30.30.0/24" in line:
+                    ip_stats.setdefault("ikev2", {"rx": 0, "tx": 0})
+                    if parts[8] in ("10.10.10.0/24", "10.30.30.0/24"): ip_stats["ikev2"]["tx"] += b
+                    else: ip_stats["ikev2"]["rx"] += b
+                # Cisco AnyConnect (ocserv: vpns+ or 10.9.0.0/24)
+                elif "vpns" in line or "10.9.0.0/24" in line:
                     ip_stats.setdefault("ocserv", {"rx": 0, "tx": 0})
-                    if parts[8] == "10.10.10.0/24": ip_stats["ocserv"]["tx"] += b
+                    if parts[8] == "10.9.0.0/24" or (len(parts) > 6 and parts[6].startswith("vpns")): ip_stats["ocserv"]["tx"] += b
                     else: ip_stats["ocserv"]["rx"] += b
                 # SoftEther / SSTP (10.20.20.0/24 or SecureNAT 192.168.30.0/24)
                 elif "10.20.20.0/24" in line or "192.168.30.0/24" in line:
                     ip_stats.setdefault("sstp", {"rx": 0, "tx": 0})
                     if parts[8] in ("10.20.20.0/24", "192.168.30.0/24"): ip_stats["sstp"]["tx"] += b
                     else: ip_stats["sstp"]["rx"] += b
-                # IKEv2 / IPsec (10.30.30.0/24)
-                elif "10.30.30.0/24" in line:
-                    ip_stats.setdefault("ikev2", {"rx": 0, "tx": 0})
-                    if parts[8] == "10.30.30.0/24": ip_stats["ikev2"]["tx"] += b
-                    else: ip_stats["ikev2"]["rx"] += b
                 # L2TP / IPsec (192.168.42.0/24 or ppp interface)
                 elif "192.168.42.0/24" in line or parts[5].startswith("ppp") or parts[6].startswith("ppp"):
                     ip_stats.setdefault("l2tp", {"rx": 0, "tx": 0})
                     if parts[8] == "192.168.42.0/24" or parts[6].startswith("ppp"): ip_stats["l2tp"]["tx"] += b
                     else: ip_stats["l2tp"]["rx"] += b
-                # OpenVPN (10.8.0.0/24 UDP or 10.9.0.0/24 TCP)
-                elif "10.8.0.0/24" in line or "10.9.0.0/24" in line:
+                # OpenVPN (10.8.0.0/24 UDP or tun interfaces)
+                elif "10.8.0.0/24" in line:
                     ip_stats.setdefault("openvpn", {"rx": 0, "tx": 0})
-                    if parts[8] in ("10.8.0.0/24", "10.9.0.0/24"): ip_stats["openvpn"]["tx"] += b
+                    if parts[8] == "10.8.0.0/24": ip_stats["openvpn"]["tx"] += b
                     else: ip_stats["openvpn"]["rx"] += b
                 # WireGuard interface in iptables
                 elif parts[5] == "wg0" or parts[6] == "wg0":
@@ -5330,11 +5360,31 @@ def get_protocol_bandwidth_stats():
     l2tp_rx = max(dev_stats.get("ppp0", {}).get("rx", 0), ip_stats.get("l2tp", {}).get("rx", 0))
     l2tp_tx = max(dev_stats.get("ppp0", {}).get("tx", 0), ip_stats.get("l2tp", {}).get("tx", 0))
 
-    ocserv_rx = ip_stats.get("ocserv", {}).get("rx", 0)
-    ocserv_tx = ip_stats.get("ocserv", {}).get("tx", 0)
+    ocserv_dev_rx = sum(dev_stats.get(i, {}).get("rx", 0) for i in dev_stats if i.startswith("vpns"))
+    ocserv_dev_tx = sum(dev_stats.get(i, {}).get("tx", 0) for i in dev_stats if i.startswith("vpns"))
+    ocserv_rx = max(ocserv_dev_rx, ip_stats.get("ocserv", {}).get("rx", 0))
+    ocserv_tx = max(ocserv_dev_tx, ip_stats.get("ocserv", {}).get("tx", 0))
 
-    ikev2_rx = ip_stats.get("ikev2", {}).get("rx", 0)
-    ikev2_tx = ip_stats.get("ikev2", {}).get("tx", 0)
+    # User file traffic and live SAs for IKEv2
+    ikev2_users_rx, ikev2_users_tx = 0, 0
+    for ik_file in ("/www/wwwroot/mhpanel/ikev2_users.json", "/www/wwwroot/mhpanel/radius_users.json"):
+        if os.path.exists(ik_file):
+            try:
+                with open(ik_file, "r") as f:
+                    for ud in json.load(f).values():
+                        ikev2_users_rx += ud.get("rx", 0)
+                        ikev2_users_tx += ud.get("tx", 0)
+            except Exception:
+                pass
+    try:
+        for sa_data in get_ikev2_traffic().values():
+            ikev2_users_rx += sa_data.get("rx", 0)
+            ikev2_users_tx += sa_data.get("tx", 0)
+    except Exception:
+        pass
+
+    ikev2_rx = max(ip_stats.get("ikev2", {}).get("rx", 0), ikev2_users_rx)
+    ikev2_tx = max(ip_stats.get("ikev2", {}).get("tx", 0), ikev2_users_tx)
 
     # 4. Modern Core & Proxy daemons (systemd IPAccounting queried in 1 fast batch call)
     daemon_services = [
@@ -5389,10 +5439,20 @@ def get_protocol_bandwidth_stats():
     mtp_rx = sum(v[0] for k, v in traffic_map.items() if "mtproto" in k or "teleproxy" in k or "mtg" in k)
     mtp_tx = sum(v[1] for k, v in traffic_map.items() if "mtproto" in k or "teleproxy" in k or "mtg" in k)
 
-    # SoftEther / SSTP: max of iptables and vpnserver systemd IPAccounting
-    vpnserver_rx, vpnserver_tx = traffic_map.get("vpnserver.service", (0, 0))
-    sstp_rx = max(ip_stats.get("sstp", {}).get("rx", 0), vpnserver_rx)
-    sstp_tx = max(ip_stats.get("sstp", {}).get("tx", 0), vpnserver_tx)
+    # SoftEther / SSTP: only track actual SSTP tunnel traffic and user bandwidth, NOT raw socket background traffic!
+    sstp_tun_rx = sum(dev_stats.get(i, {}).get("rx", 0) for i in dev_stats if i.startswith("tap_") or i.startswith("vpn_"))
+    sstp_tun_tx = sum(dev_stats.get(i, {}).get("tx", 0) for i in dev_stats if i.startswith("tap_") or i.startswith("vpn_"))
+    sstp_users_rx, sstp_users_tx = 0, 0
+    if os.path.exists("/www/wwwroot/mhpanel/sstp_users.json"):
+        try:
+            with open("/www/wwwroot/mhpanel/sstp_users.json", "r") as f:
+                for ud in json.load(f).values():
+                    sstp_users_rx += ud.get("rx", 0)
+                    sstp_users_tx += ud.get("tx", 0)
+        except Exception:
+            pass
+    sstp_rx = max(ip_stats.get("sstp", {}).get("rx", 0), sstp_tun_rx, sstp_users_rx)
+    sstp_tx = max(ip_stats.get("sstp", {}).get("tx", 0), sstp_tun_tx, sstp_users_tx)
 
     # MikroTik / Linux Tunnels (gre, ipip, eoip, vxlan, geneve, sit, mhtun, wg_tun)
     tun_prefixes = ("gre", "ipip", "sit", "vxlan", "mhtun", "eoip", "geneve", "wg_tun")
@@ -22737,62 +22797,179 @@ add name="l2tp-out-mh" connect-to="{server_ip}" user="YOUR_USERNAME" password="Y
 
 
 def get_ikev2_traffic():
+    """
+    Parses active IKEv2 child SAs and IP leases from strongSwan to calculate
+    per-user rx (upload) and tx (download) byte counts.
+    """
     traffic = {}
+    try:
+        # Step 1: Map virtual IPs to usernames from leases
+        ip_to_user = {}
+        leases_res = subprocess.run(["ipsec", "leases"], capture_output=True, text=True, timeout=2)
+        if leases_res.returncode == 0:
+            for line in leases_res.stdout.splitlines():
+                m = re.search(r"(\d+\.\d+\.\d+\.\d+)\s+\w+\s+'([^']+)'", line)
+                if m:
+                    ip_to_user[m.group(1)] = m.group(2)
+
+        # Step 2: Parse active SAs and traffic counters from ipsec statusall
+        status_res = subprocess.run(["ipsec", "statusall"], capture_output=True, text=True, timeout=3)
+        if status_res.returncode == 0:
+            current_user = None
+            current_ip = None
+            for line in status_res.stdout.splitlines():
+                # ESTABLISHED connection line e.g.:
+                # ikev2-vpn[1]: ESTABLISHED 2 minutes ago, 212.227.143.16[...]...x.x.x.x[NPU]
+                if "ESTABLISHED" in line and "..." in line:
+                    m_user = re.search(r"\.\.\.[^\[]*\[([^\]]+)\]", line)
+                    if m_user:
+                        cand = m_user.group(1).strip()
+                        current_user = ip_to_user.get(cand, cand)
+                    else:
+                        current_user = None
+                    current_ip = None
+
+                # Virtual IP in child SA: e.g. === 10.10.10.10/32
+                m_ip = re.search(r"===\s*(\d+\.\d+\.\d+\.\d+)(?:/\d+)?", line)
+                if m_ip:
+                    current_ip = m_ip.group(1)
+                    if not current_user or current_user in ip_to_user:
+                        current_user = ip_to_user.get(current_ip, current_user)
+
+                # Bytes counters in child SA: e.g. "1048576 bytes_i (123 pkts...), 2097152 bytes_o (456 pkts...)"
+                if "bytes_i" in line or "bytes_o" in line:
+                    rx, tx = 0, 0
+                    m_rx = re.search(r"(\d+)\s+bytes_i", line)
+                    m_tx = re.search(r"(\d+)\s+bytes_o", line)
+                    if m_rx:
+                        rx = int(m_rx.group(1))
+                    if m_tx:
+                        tx = int(m_tx.group(1))
+
+                    target_user = current_user or ip_to_user.get(current_ip)
+                    if target_user:
+                        if target_user not in traffic:
+                            traffic[target_user] = {"rx": 0, "tx": 0}
+                        traffic[target_user]["rx"] += rx
+                        traffic[target_user]["tx"] += tx
+    except Exception:
+        pass
     return traffic
 
 def ikev2_client_tracker():
     while True:
         try:
-            users_file = "/www/wwwroot/mhpanel/ikev2_users.json"
-            if os.path.exists(users_file):
-                with open(users_file, "r") as f:
-                    try:
-                        users = json.load(f)
-                    except:
-                        users = {}
-                
-                traffic = get_ikev2_traffic()
-                changed = False
-                now_str = datetime.now().strftime("%Y-%m-%d")
-                
-                for username, user_data in users.items():
-                    tdata = traffic.get(username, {"rx": 0, "tx": 0})
-                    if "rx" not in user_data: user_data["rx"] = 0
-                    if "tx" not in user_data: user_data["tx"] = 0
-                    if tdata["rx"] > user_data.get("last_rx", 0):
-                        user_data["rx"] += (tdata["rx"] - user_data.get("last_rx", 0))
-                    user_data["last_rx"] = tdata["rx"]
-                    
-                    if tdata["tx"] > user_data.get("last_tx", 0):
-                        user_data["tx"] += (tdata["tx"] - user_data.get("last_tx", 0))
-                    user_data["last_tx"] = tdata["tx"]
+            ensure_vpn_forward_accounting_rules()
 
-                    limit_gb = user_data.get("limit_gb")
-                    expire_date = user_data.get("expire_date")
-                    disabled = False
-                    
-                    total_usage = user_data["rx"] + user_data["tx"]
-                    
-                    if expire_date:
-                        if now_str > expire_date:
+            users_file = "/www/wwwroot/mhpanel/ikev2_users.json"
+            users = {}
+            if os.path.exists(users_file):
+                try:
+                    with open(users_file, "r") as f:
+                        users = json.load(f)
+                except Exception:
+                    users = {}
+
+            rad_users = {}
+            if os.path.exists(RADIUS_USERS_FILE):
+                try:
+                    with open(RADIUS_USERS_FILE, "r") as f:
+                        rad_users = json.load(f)
+                    for ru, rd in rad_users.items():
+                        if ru not in users:
+                            users[ru] = {
+                                "active": rd.get("active", True),
+                                "password": rd.get("password", ""),
+                                "limit_gb": rd.get("limit_gb"),
+                                "expire_date": rd.get("expire_date"),
+                                "rx": rd.get("rx", 0),
+                                "tx": rd.get("tx", 0),
+                                "last_rx": 0,
+                                "last_tx": 0
+                            }
+                except Exception:
+                    pass
+
+            traffic = get_ikev2_traffic()
+            changed = False
+            rad_changed = False
+            now_str = datetime.now().strftime("%Y-%m-%d")
+
+            for username, user_data in users.items():
+                tdata = traffic.get(username, {"rx": 0, "tx": 0})
+                if "rx" not in user_data: user_data["rx"] = 0
+                if "tx" not in user_data: user_data["tx"] = 0
+
+                cur_live_rx = tdata["rx"]
+                last_rx = user_data.get("last_rx", 0)
+                if cur_live_rx > last_rx:
+                    added_rx = cur_live_rx - last_rx
+                    user_data["rx"] += added_rx
+                    if username in rad_users:
+                        rad_users[username]["rx"] = rad_users[username].get("rx", 0) + added_rx
+                        rad_changed = True
+                    changed = True
+                elif cur_live_rx < last_rx and cur_live_rx > 0:
+                    user_data["rx"] += cur_live_rx
+                    if username in rad_users:
+                        rad_users[username]["rx"] = rad_users[username].get("rx", 0) + cur_live_rx
+                        rad_changed = True
+                    changed = True
+                user_data["last_rx"] = cur_live_rx
+
+                cur_live_tx = tdata["tx"]
+                last_tx = user_data.get("last_tx", 0)
+                if cur_live_tx > last_tx:
+                    added_tx = cur_live_tx - last_tx
+                    user_data["tx"] += added_tx
+                    if username in rad_users:
+                        rad_users[username]["tx"] = rad_users[username].get("tx", 0) + added_tx
+                        rad_changed = True
+                    changed = True
+                elif cur_live_tx < last_tx and cur_live_tx > 0:
+                    user_data["tx"] += cur_live_tx
+                    if username in rad_users:
+                        rad_users[username]["tx"] = rad_users[username].get("tx", 0) + cur_live_tx
+                        rad_changed = True
+                    changed = True
+                user_data["last_tx"] = cur_live_tx
+
+                limit_gb = user_data.get("limit_gb")
+                expire_date = user_data.get("expire_date")
+                disabled = False
+
+                total_usage = user_data["rx"] + user_data["tx"]
+
+                if expire_date and now_str > str(expire_date):
+                    disabled = True
+
+                if limit_gb and not disabled:
+                    try:
+                        if total_usage >= float(limit_gb) * (1024**3):
                             disabled = True
-                            
-                    if limit_gb and not disabled:
-                        if total_usage >= limit_gb * (1024**3):
-                            disabled = True
-                            
-                    if disabled:
-                        if user_data.get("active", True):
-                            user_data["active"] = False
-                            changed = True
-                            subprocess.run(["sed", "-i", f's/^ *{username} : /#{username} : /', "/etc/swanctl/conf.d/users.conf"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                
-                if changed or len(traffic) > 0:
-                    with open(users_file, "w") as f:
-                        json.dump(users, f)
+                    except Exception:
+                        pass
+
+                if disabled:
+                    if user_data.get("active", True):
+                        user_data["active"] = False
+                        changed = True
+                        if username in rad_users:
+                            rad_users[username]["active"] = False
+                            rad_changed = True
+                        subprocess.run(["ipsec", "down", username], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        subprocess.run(["sed", "-i", f's/^ *{username} : /#{username} : /', "/etc/swanctl/conf.d/users.conf"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+            if changed:
+                with open(users_file, "w") as f:
+                    json.dump(users, f, indent=2)
+
+            if rad_changed and os.path.exists(RADIUS_USERS_FILE):
+                with open(RADIUS_USERS_FILE, "w") as f:
+                    json.dump(rad_users, f, indent=2)
         except Exception:
             pass
-        time.sleep(60)
+        time.sleep(30)
 
 @app.route("/api/ikev2/users", methods=["GET"])
 def api_get_ikev2_users():
@@ -37425,6 +37602,8 @@ if __name__ == "__main__":
     if is_installed("wireguard"):
         threading.Thread(target=wg_client_tracker, daemon=True).start()
     
+    ensure_vpn_forward_accounting_rules(force=True)
+
     if is_installed("openvpn"):
         threading.Thread(target=ovpn_client_tracker, daemon=True).start()
     
