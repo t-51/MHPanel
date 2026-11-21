@@ -2243,7 +2243,7 @@
         },
         tuic: {
             title: "TUIC Protocol",
-            faTitle: "پروتکل TUIC (کوییک)",
+            faTitle: "پروتکل TUIC (QUIC)",
             ruTitle: "Протокол TUIC (QUIC)",
             desc_en: "Next-generation QUIC / UDP protocol with BBR congestion control and 0-RTT instant handshake.",
             desc_fa: "پروتکل نسل جدید بر پایه QUIC / UDP، مجهز به BBR و اتصال صفر ثانیه 0-RTT",
@@ -27176,7 +27176,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const auto_keypair = autoKeyEl ? autoKeyEl.checked : true;
 
         if (enabled && domains.length < 1) {
-            showToast("لطفاً حداقل ۱ دامنه استتار برای چرخش ریالیتی وارد کنید.", "error");
+            showToast("لطفاً حداقل ۱ دامنه استتار برای چرخش Reality وارد کنید.", "error");
             return;
         }
 
@@ -27211,8 +27211,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function triggerRealityRotationNow() {
-        if (!confirm("آیا مایلید چرخش دامنه استتار ریالیتی فوراً به دامنه بعدی انجام شود؟\nاین عمل اینباندهای Reality در هسته سینگ‌باکس و قوانین HAProxy را سریعاً آپدیت می‌کند.")) return;
-        toggleLoading(true, "در حال چرخش دامنه استتار ریالیتی...");
+        if (!confirm("آیا مایلید چرخش دامنه استتار Reality فوراً به دامنه بعدی انجام شود؟\nاین عمل اینباندهای Reality در هسته سینگ‌باکس و قوانین HAProxy را سریعاً آپدیت می‌کند.")) return;
+        toggleLoading(true, "در حال چرخش دامنه استتار Reality...");
         try {
             const res = await fetch("/api/singbox/reality/rotation/trigger", {
                 method: "POST",
@@ -27392,7 +27392,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function applyTestedDomainAsCurrent(domain) {
-        if (!confirm(`آیا مایلید دامنه استتار ریالیتی هم‌اکنون به «${domain}» تغییر یابد؟\nاین دامنه به عنوان Active SNI روی اینباندهای هسته سینگ‌باکس و قوانین HAProxy اعمال خواهد شد.`)) return;
+        if (!confirm(`آیا مایلید دامنه استتار Reality هم‌اکنون به «${domain}» تغییر یابد؟\nاین دامنه به عنوان Active SNI روی اینباندهای هسته سینگ‌باکس و قوانین HAProxy اعمال خواهد شد.`)) return;
         toggleLoading(true, `در حال تنظیم دامنه ${domain} روی هسته سینگ‌باکس...`);
         try {
             const res = await fetch("/api/singbox/reality/rotation/trigger", {

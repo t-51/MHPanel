@@ -72,14 +72,14 @@
                     <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
                 </button>
                 <div class="sidebar-group-content">
-                    <button class="sidebar-nav-item" onclick="switchTab('singbox')" title="پروتکل Trojan (تروجان)" data-i18n-title="nav_trojan">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox')" title="استودیوی جامع هسته" data-i18n-title="nav_singbox_core_studio">
                         <i data-lucide="layout" style="color: #8b5cf6;"></i>
-                        <span>استودیوی جامع هسته</span>
+                        <span data-i18n="nav_singbox_core_studio">استودیوی جامع هسته</span>
                         <span class="sidebar-badge sidebar-badge-purple" style="margin-inline-start: auto;">Core</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('trojan')" title="ریالیتی (VLESS Reality)">
+                    <button class="sidebar-nav-item" onclick="switchTab('trojan')" title="پروتکل Trojan" data-i18n-title="nav_trojan">
                         <i data-lucide="shield" style="color: #0ea5e9;"></i>
-                        <span data-i18n="nav_trojan">پروتکل Trojan (تروجان)</span>
+                        <span data-i18n="nav_trojan">پروتکل Trojan</span>
                         <span class="sidebar-badge sidebar-badge-blue">TLS</span>
                     </button>
                     <button class="sidebar-nav-item" onclick="switchTab('hysteria2')" title="هیستوریا ۲ (Hysteria 2)" data-i18n-title="nav_hysteria2">
@@ -87,9 +87,9 @@
                         <span data-i18n="nav_hysteria2">هیستوریا ۲ (Hysteria 2)</span>
                         <span class="sidebar-badge sidebar-badge-purple">Brutal</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('tuic')" title="پروتکل TUIC (کوییک)" data-i18n-title="nav_tuic">
+                    <button class="sidebar-nav-item" onclick="switchTab('tuic')" title="پروتکل TUIC" data-i18n-title="nav_tuic">
                         <i data-lucide="zap" style="color: #6366f1;"></i>
-                        <span data-i18n="nav_tuic">پروتکل TUIC (کوییک)</span>
+                        <span data-i18n="nav_tuic">پروتکل TUIC</span>
                         <span class="sidebar-badge sidebar-badge-purple">QUIC</span>
                     </button>
                     <button class="sidebar-nav-item" onclick="switchTab('shadowsocks')" title="شادوساکس (Shadowsocks 2022)" data-i18n-title="nav_shadowsocks">
@@ -97,14 +97,14 @@
                         <span data-i18n="nav_shadowsocks">شادوساکس (Shadowsocks 2022)</span>
                         <span class="sidebar-badge sidebar-badge-blue">2022</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');" title="ریالیتی (VLESS Reality)" data-i18n-title="nav_singbox_vless">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vless');" title="پروتکل VLESS Reality" data-i18n-title="nav_singbox_vless">
                         <i data-lucide="sparkles" style="color: #059669;"></i>
-                        <span>ریالیتی (VLESS Reality)</span>
+                        <span data-i18n="nav_singbox_vless">پروتکل VLESS Reality</span>
                         <span class="sidebar-badge sidebar-badge-green">Reality</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');" title="پروتکل VMess (ویمیس)" data-i18n-title="nav_singbox_vmess">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('vmess');" title="پروتکل VMess" data-i18n-title="nav_singbox_vmess">
                         <i data-lucide="network" style="color: #3b82f6;"></i>
-                        <span>پروتکل VMess (ویمیس)</span>
+                        <span data-i18n="nav_singbox_vmess">پروتکل VMess</span>
                         <span class="sidebar-badge sidebar-badge-blue">VMess</span>
                     </button>
                     <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('users');" title="کاربران هسته (Singbox Users)" data-i18n-title="nav_singbox_users">
@@ -125,20 +125,20 @@
 
             <!-- ۳. ابزارها و روش‌های ضد فیلترینگ (Anti-DPI & Bypass Tools) -->
             <div class="sidebar-accordion-group" data-group="anti-dpi">
-                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="جعل SNI و ضد انسداد" data-i18n-title="nav_snispoof">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="ابزارهای ضد فیلترینگ" data-i18n-title="nav_sec_anti_dpi">
                     <div class="sidebar-group-title">
                         <i data-lucide="shield-alert" class="sidebar-group-icon" style="color: #f59e0b;"></i>
-                        <span>ابزارهای ضد فیلترینگ</span>
+                        <span data-i18n="nav_sec_anti_dpi">ابزارهای ضد فیلترینگ</span>
                     </div>
                     <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
                 </button>
                 <div class="sidebar-group-content">
-                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');" title="جعل SNI و ضد انسداد" data-i18n-title="nav_snispoof">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('shadowtls');" title="پروتکل ShadowTLS v3" data-i18n-title="nav_singbox_shadowtls">
                         <i data-lucide="shield-check" style="color: #6366f1;"></i>
-                        <span>شادو تی‌ال‌اس (ShadowTLS v3)</span>
+                        <span data-i18n="nav_singbox_shadowtls">پروتکل ShadowTLS v3</span>
                         <span class="sidebar-badge sidebar-badge-purple">v3</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('snispoof')" title="نویز دی‌ان‌اس (NoizDNS)">
+                    <button class="sidebar-nav-item" onclick="switchTab('snispoof')" title="جعل SNI و ضد انسداد" data-i18n-title="nav_snispoof">
                         <i data-lucide="split" style="color: #14b8a6;"></i>
                         <span data-i18n="nav_snispoof">جعل SNI و ضد انسداد</span>
                         <span class="sidebar-badge sidebar-badge-green">Anti-DPI</span>
@@ -157,15 +157,15 @@
                         <i data-lucide="radio" style="color: #10b981;"></i>
                         <span data-i18n="nav_dns_tunnels">تونل‌های DNS ضد فیلتر</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('noizdns')" title="گوگل اسکریپت (Google Script)" data-i18n-title="nav_google_script">
+                    <button class="sidebar-nav-item" onclick="switchTab('noizdns')" title="نویز دی‌ان‌اس (NoizDNS)" data-i18n-title="nav_noizdns">
                         <i data-lucide="shield-alert" style="color: #f59e0b;"></i>
-                        <span>نویز دی‌ان‌اس (NoizDNS)</span>
+                        <span data-i18n="nav_noizdns">نویز دی‌ان‌اس (NoizDNS)</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('masterdnsvpn')" title="مستر دی‌ان‌اس (MasterDNS VPN)">
+                    <button class="sidebar-nav-item" onclick="switchTab('masterdnsvpn')" title="مستر دی‌ان‌اس (MasterDNS VPN)" data-i18n-title="nav_masterdnsvpn">
                         <i data-lucide="zap" style="color: #ec4899;"></i>
-                        <span>مستر دی‌ان‌اس (MasterDNS VPN)</span>
+                        <span data-i18n="nav_masterdnsvpn">مستر دی‌ان‌اس (MasterDNS VPN)</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('google-script')" title="آی‌پی‌های تمیز کلودفلر (Clean IPs)">
+                    <button class="sidebar-nav-item" onclick="switchTab('google-script')" title="گوگل اسکریپت (Google Script)" data-i18n-title="nav_google_script">
                         <i data-lucide="cpu" style="color: #f97316;"></i>
                         <span data-i18n="nav_google_script">گوگل اسکریپت (Google Script)</span>
                     </button>
@@ -174,37 +174,37 @@
                         <span data-i18n="nav_mtproto">پروکسی تلگرام (MTProto)</span>
                         <span class="sidebar-badge sidebar-badge-blue">TG</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('cleanips');" title="تونل و دسترسی SSH" data-i18n-title="nav_ssh">
+                    <button class="sidebar-nav-item" onclick="switchTab('singbox'); switchSingboxSubTab('cleanips');" title="آی‌پی‌های تمیز کلودفلر" data-i18n-title="nav_singbox_cleanips">
                         <i data-lucide="cloud-lightning" style="color: #0284c7;"></i>
-                        <span>آی‌پی‌های تمیز کلودفلر (Clean IPs)</span>
+                        <span data-i18n="nav_singbox_cleanips">آی‌پی‌های تمیز کلودفلر</span>
                     </button>
                 </div>
             </div>
 
             <!-- ۴. پروتکل‌های استاندارد VPN و SSH (Standard VPN & SSH Protocols) -->
             <div class="sidebar-accordion-group" data-group="standard-vpn">
-                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="تونل و دسترسی SSH" data-i18n-title="nav_ssh">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="پروتکل‌های استاندارد VPN و SSH" data-i18n-title="nav_sec_standard_vpn">
                     <div class="sidebar-group-title">
                         <i data-lucide="lock" class="sidebar-group-icon" style="color: #10b981;"></i>
-                        <span>پروتکل‌های استاندارد VPN و SSH</span>
+                        <span data-i18n="nav_sec_standard_vpn">پروتکل‌های استاندارد VPN و SSH</span>
                     </div>
                     <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
                 </button>
                 <div class="sidebar-group-content">
-                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('overview');" title="کاربران SSH">
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('overview');" title="تونل و دسترسی SSH" data-i18n-title="nav_ssh_overview">
                         <i data-lucide="terminal" style="color: #059669;"></i>
-                        <span data-i18n="nav_ssh">تونل و دسترسی SSH</span>
+                        <span data-i18n="nav_ssh_overview">تونل و دسترسی SSH</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('users');" title="امنزیا وایرگارد (AmneziaWG)" data-i18n-title="nav_amneziawg">
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('users');" title="کاربران SSH" data-i18n-title="nav_ssh_users">
                         <i data-lucide="users" style="color: #3b82f6;"></i>
-                        <span>کاربران SSH</span>
+                        <span data-i18n="nav_ssh_users">کاربران SSH</span>
                         <span class="badge-pill" id="sidebar-ssh-users-count" style="font-size:10px; padding:1px 6px; margin-inline-start:auto;">۰</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('domains');" title="دامنه‌ها و تفکیک SNI">
+                    <button class="sidebar-nav-item" onclick="switchTab('ssh'); switchSshSubTab('domains');" title="دامنه‌ها و تفکیک SNI" data-i18n-title="nav_ssh_domains">
                         <i data-lucide="globe" style="color: #10b981;"></i>
-                        <span>دامنه‌ها و تفکیک SNI</span>
+                        <span data-i18n="nav_ssh_domains">دامنه‌ها و تفکیک SNI</span>
                     </button>
-                    <button class="sidebar-nav-item" onclick="switchTab('amneziawg')" title="کاربران، سرورها و رادیوس">
+                    <button class="sidebar-nav-item" onclick="switchTab('amneziawg')" title="امنزیا وایرگارد (AmneziaWG)" data-i18n-title="nav_amneziawg">
                         <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
                         <span data-i18n="nav_amneziawg">امنزیا وایرگارد (AmneziaWG)</span>
                         <span class="sidebar-badge sidebar-badge-purple">AWG</span>
@@ -275,10 +275,10 @@
 
             <!-- ۶. کاربران، سرورها و احراز هویت (Users, Servers & RADIUS) -->
             <div class="sidebar-accordion-group" data-group="users-radius">
-                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="تنظیمات ردیوس (RADIUS)" data-i18n-title="nav_radius">
+                <button type="button" class="sidebar-group-header" onclick="toggleSidebarGroup(this)" title="کاربران، سرورها و رادیوس" data-i18n-title="nav_sec_users_radius">
                     <div class="sidebar-group-title">
                         <i data-lucide="users" class="sidebar-group-icon"></i>
-                        <span>کاربران، سرورها و رادیوس</span>
+                        <span data-i18n="nav_sec_users_radius">کاربران، سرورها و رادیوس</span>
                     </div>
                     <i data-lucide="chevron-down" class="sidebar-group-chevron"></i>
                 </button>
