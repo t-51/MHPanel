@@ -10517,6 +10517,12 @@
         if (cdEl) cdEl.innerText = formatted;
     }
 
+    let chabokanRadarRawData = null;
+    let currentRadarCategory = 'all';
+    let currentRadarSearchQuery = '';
+    let currentRadarStatusFilter = 'all';
+    let radarSearchDebounceTimer = null;
+
     async function runServicesPingScan(isManual = false) {
         const btn = document.getElementById("radar-services-ping-btn");
         const icon = document.getElementById("radar-services-ping-icon");
@@ -10532,7 +10538,7 @@
                 const data = await res.json();
                 renderGamingAndExternalRadar(data);
                 if (isManual) {
-                    showToast("سنجش پینگ سرویس‌های گیمینگ و آنلاین بروز شد.", "success");
+                    showToast("سنجش پینگ بیش از ۱۰۰ سرویس و بازی آنلاین با موفقیت انجام شد.", "success");
                 }
             }
         } catch (e) {
@@ -10548,131 +10554,326 @@
 
     function renderGamingAndExternalRadar(data) {
         if (!data) return;
+        chabokanRadarRawData = data;
 
-        // KPI Badges
-        const avgGamingEl = document.getElementById("radar-avg-gaming-ping");
+        // KPI Badges & Header
+        const totalEl = document.getElementById("chabokan-stat-total");
+        if (totalEl) totalEl.innerText = data.total_count || (data.services ? data.services.length : "--");
+
+        const uptimeEl = document.getElementById("chabokan-stat-uptime");
+        if (uptimeEl) {
+            const pct = data.uptime_percent !== undefined ? data.uptime_percent : ((data.healthy_count / (data.total_count || 1)) * 100).toFixed(1);
+            uptimeEl.innerText = `${pct}%`;
+        }
+
+        const avgGamingEl = document.getElementById("chabokan-stat-gaming-ping");
         if (avgGamingEl) {
-            avgGamingEl.innerText = (data.avg_gaming_latency !== null && data.avg_gaming_latency !== undefined) ? data.avg_gaming_latency : "--";
+            avgGamingEl.innerHTML = (data.avg_gaming_latency !== null && data.avg_gaming_latency !== undefined)
+                ? `${data.avg_gaming_latency} <span style="font-size: 12px; font-weight: 500;">ms</span>` : `--`;
         }
 
-        const avgServicesEl = document.getElementById("radar-avg-services-ping");
-        if (avgServicesEl) {
-            avgServicesEl.innerText = (data.avg_external_latency !== null && data.avg_external_latency !== undefined) ? data.avg_external_latency : "--";
-        }
-
-        const healthyEl = document.getElementById("radar-healthy-services-count");
-        if (healthyEl) {
-            healthyEl.innerText = `${data.healthy_count || 0} / ${data.total_count || 15}`;
+        const avgOverallEl = document.getElementById("chabokan-stat-overall-ping");
+        if (avgOverallEl) {
+            const avgVal = (data.avg_overall_latency !== null && data.avg_overall_latency !== undefined) ? data.avg_overall_latency : (data.avg_external_latency || "--");
+            avgOverallEl.innerHTML = `${avgVal} <span style="font-size: 12px; font-weight: 500;">ms</span>`;
         }
 
         const lastTimeEl = document.getElementById("radar-services-last-time");
         if (lastTimeEl) {
-            lastTimeEl.innerText = data.timestamp || "هم‌اکنون";
+            lastTimeEl.innerText = data.timestamp ? data.timestamp.split(" ")[1] || data.timestamp : "هم‌اکنون";
         }
 
-        // Helper to build cards
-        const buildCardsHtml = (items) => {
-            if (!items || items.length === 0) {
-                return `<div style="grid-column: 1 / -1; text-align: center; padding: 20px; color: var(--text-muted); font-size: 12px;">اطلاعاتی یافت نشد.</div>`;
+        // Category counts update
+        if (data.category_stats) {
+            Object.keys(data.category_stats).forEach(catKey => {
+                const badge = document.getElementById(`cat-count-${catKey}`);
+                if (badge) {
+                    badge.innerText = data.category_stats[catKey].count;
+                }
+            });
+        }
+
+        renderChabokanServicesList();
+    }
+
+    function renderChabokanServicesList() {
+        const container = document.getElementById("chabokan-services-container");
+        const counterEl = document.getElementById("chabokan-services-counter");
+        if (!container || !chabokanRadarRawData || !chabokanRadarRawData.services) return;
+
+        let services = chabokanRadarRawData.services;
+
+        // 1. Filter by Category
+        if (currentRadarCategory && currentRadarCategory !== 'all') {
+            services = services.filter(s => s.category === currentRadarCategory);
+        }
+
+        // 2. Filter by Status Tier
+        if (currentRadarStatusFilter && currentRadarStatusFilter !== 'all') {
+            services = services.filter(s => s.tier === currentRadarStatusFilter);
+        }
+
+        // 3. Filter by Search Query
+        const q = (currentRadarSearchQuery || '').trim().toLowerCase();
+        if (q) {
+            services = services.filter(s => {
+                const name = (s.name || '').toLowerCase();
+                const faName = (s.fa_name || '').toLowerCase();
+                const target = (s.target || '').toLowerCase();
+                const desc = (s.desc || '').toLowerCase();
+                return name.includes(q) || faName.includes(q) || target.includes(q) || desc.includes(q);
+            });
+        }
+
+        if (counterEl) {
+            counterEl.innerText = `نمایش ${services.length} از ${chabokanRadarRawData.services.length} سرویس و بازی آنلاین`;
+        }
+
+        if (services.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 36px 16px; color: var(--text-muted); background: var(--surface-primary); border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+                    <i data-lucide="search-x" style="width: 32px; height: 32px; margin: 0 auto 8px auto; opacity: 0.6; display: block;"></i>
+                    <span style="font-size: 13px; font-weight: 600;">هیچ سرویسی با این مشخصات یافت نشد.</span>
+                    <p style="font-size: 11.5px; margin-top: 4px; color: var(--text-dim);">عبارت جستجو یا فیلتر دسته‌بندی را تغییر دهید.</p>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        let html = "";
+        services.forEach(s => {
+            html += buildChabokanServiceRowHtml(s);
+        });
+
+        container.innerHTML = html;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function buildChabokanServiceRowHtml(s) {
+        const isUp = (s.latency_ms !== null && s.latency_ms !== undefined);
+        const latVal = isUp ? Math.round(s.latency_ms) : "--";
+
+        let tierColor = "#10b981";
+        let tierClass = "bar-excellent";
+        if (!isUp) {
+            tierColor = "#ef4444";
+            tierClass = "bar-down";
+        } else if (s.latency_ms < 80) {
+            tierColor = "#10b981";
+            tierClass = "bar-excellent";
+        } else if (s.latency_ms < 150) {
+            tierColor = "#06b6d4";
+            tierClass = "bar-good";
+        } else if (s.latency_ms < 250) {
+            tierColor = "#3b82f6";
+            tierClass = "bar-fair";
+        } else if (s.latency_ms < 400) {
+            tierColor = "#f59e0b";
+            tierClass = "bar-slow";
+        } else {
+            tierColor = "#f97316";
+            tierClass = "bar-very-slow";
+        }
+
+        // Build 20-24 timeline bars
+        const history = s.history || [];
+        let timelineBarsHtml = "";
+        history.forEach(check => {
+            let barTierClass = "bar-excellent";
+            let cLat = check.latency;
+            let cUp = check.is_up;
+            if (!cUp || cLat >= 9000) {
+                barTierClass = "bar-down";
+            } else if (cLat < 80) {
+                barTierClass = "bar-excellent";
+            } else if (cLat < 150) {
+                barTierClass = "bar-good";
+            } else if (cLat < 250) {
+                barTierClass = "bar-fair";
+            } else if (cLat < 400) {
+                barTierClass = "bar-slow";
+            } else {
+                barTierClass = "bar-very-slow";
             }
 
-            let html = "";
-            items.forEach(item => {
-                let badgeClass = "badge-emerald";
-                let statusText = item.verdict_badge || "سالم و متصل";
-                let iconName = "check";
-                if (item.status === "degraded") {
-                    badgeClass = "badge-amber";
-                    iconName = "alert-triangle";
-                } else if (item.status === "blocked") {
-                    badgeClass = "badge-rose";
-                    iconName = "x";
-                }
+            const timeStr = escapeHtml(check.timestamp || "");
+            const latStr = cUp ? `${Math.round(cLat)}ms` : 'Timeout';
+            const sNameStr = escapeHtml(s.fa_name || s.name);
 
-                let pingDisplay = item.latency_ms !== null
-                    ? `<strong class="radar-text-main" style="font-family:'JetBrains Mono'; font-size:13.5px; font-weight:800;">${item.latency_ms}</strong> <span class="radar-text-muted" style="font-size:11px;">ms</span>`
-                    : `<span style="color:#ef4444; font-size:12px; font-weight:800; font-family:'JetBrains Mono';">Timeout</span>`;
+            timelineBarsHtml += `<div class="chabokan-bar ${barTierClass}" onmouseenter="showChabokanTooltip(event, '${timeStr}', '${latStr}', '${barTierClass}', '${sNameStr}')" onmouseleave="hideChabokanTooltip()"></div>`;
+        });
 
-                let barWidth = 0;
-                let barColor = "#10b981";
-                if (item.latency_ms !== null) {
-                    barWidth = Math.min(100, Math.max(8, Math.round((item.latency_ms / 200) * 100)));
-                    if (item.latency_ms > 150) barColor = "#ef4444";
-                    else if (item.latency_ms > 60) barColor = "#f59e0b";
-                } else {
-                    barWidth = 100;
-                    barColor = "#ef4444";
-                }
+        const brandBg = s.brand_color ? `${s.brand_color}18` : "var(--brand-primary-soft)";
+        const brandBorder = s.brand_color ? `${s.brand_color}40` : "var(--border-subtle)";
+        const brandColor = s.brand_color || "var(--brand-primary)";
+        const initialTwo = escapeHtml((s.name || "SV").substring(0, 2).toUpperCase());
 
-                const brandIcons = {
-                    "playstation": { color: "#0070d1", bg: "rgba(0,112,209,0.12)", icon: "gamepad-2" },
-                    "xbox": { color: "#107c41", bg: "rgba(16,124,65,0.12)", icon: "gamepad" },
-                    "steam": { color: "#38bdf8", bg: "rgba(56,189,248,0.12)", icon: "play" },
-                    "epicgames": { color: "#ef4444", bg: "rgba(239,68,68,0.12)", icon: "flame" },
-                    "riotgames": { color: "#e11d48", bg: "rgba(225,29,72,0.12)", icon: "swords" },
-                    "ea": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "trophy" },
-                    "battlenet": { color: "#00aeef", bg: "rgba(0,174,239,0.12)", icon: "shield" },
-                    "discord": { color: "#6366f1", bg: "rgba(99,102,241,0.12)", icon: "message-square" },
-                    "github": { color: "#a855f7", bg: "rgba(168,85,247,0.12)", icon: "git-branch" },
-                    "gitlab": { color: "#f97316", bg: "rgba(249,115,22,0.12)", icon: "code-2" },
-                    "google": { color: "#ea4335", bg: "rgba(234,67,53,0.12)", icon: "globe" },
-                    "cloudflare": { color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "cloud" },
-                    "telegram": { color: "#0284c7", bg: "rgba(2,132,199,0.12)", icon: "send" },
-                    "openai": { color: "#10b981", bg: "rgba(16,185,129,0.12)", icon: "cpu" },
-                    "docker": { color: "#0ea5e9", bg: "rgba(14,165,233,0.12)", icon: "box" }
-                };
-
-                const meta = brandIcons[item.id] || { color: "var(--brand-primary)", bg: "var(--brand-primary-soft)", icon: item.icon || "network" };
-
-                html += `
-                <div class="radar-dest-card">
-                    <div class="radar-dest-head">
-                        <div class="radar-dest-identity">
-                            <div style="width:34px; height:34px; border-radius:8px; background:${meta.bg}; color:${meta.color}; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-                                <i data-lucide="${meta.icon}" style="width:17px; height:17px;"></i>
-                            </div>
-                            <div class="radar-dest-name-box">
-                                <span class="radar-dest-name" title="${escapeHtml(item.name)}">${escapeHtml(item.fa_name || item.name)}</span>
-                                <span class="radar-dest-region" style="font-family:'JetBrains Mono'; font-size:10.5px; opacity:0.8;">${escapeHtml(item.target)}</span>
-                            </div>
-                        </div>
-                        <span class="radar-status-badge ${badgeClass}" style="flex-shrink:0;">
-                            <i data-lucide="${iconName}" style="width:11px; height:11px;"></i>
-                            ${statusText}
-                        </span>
+        return `
+        <div class="chabokan-service-row" id="chabokan-row-${escapeHtml(s.id)}">
+            <!-- Brand & Names -->
+            <div class="chabokan-service-brand">
+                <div class="chabokan-service-icon" style="background: ${brandBg}; border: 1px solid ${brandBorder}; color: ${brandColor};" title="${escapeHtml(s.name)}">
+                    <i data-lucide="${escapeHtml(s.icon || 'activity')}" style="width: 17px; height: 17px;"></i>
+                </div>
+                <div class="chabokan-service-names">
+                    <span class="chabokan-service-fa" title="${escapeHtml(s.desc || s.name)}">${escapeHtml(s.fa_name || s.name)}</span>
+                    <div class="chabokan-service-sub">
+                        <span class="chabokan-check-type">${escapeHtml(s.check_type || 'PING')}</span>
+                        <span style="opacity: 0.85;" title="${escapeHtml(s.target)}">${escapeHtml(s.target)}</span>
                     </div>
-                    <div class="radar-dest-metrics" style="margin-top:6px;">
-                        <div style="display:flex; align-items:baseline; gap:4px;">
-                            <span class="radar-text-muted" style="font-size:11px;">تاخیر:</span>
-                            ${pingDisplay}
-                        </div>
-                        <div style="display:flex; align-items:baseline; gap:4px;">
-                            <span class="radar-text-muted" style="font-size:11px;">پکت‌لوس:</span>
-                            <span style="font-family:'JetBrains Mono'; font-weight:700; font-size:12px; color:${item.packet_loss === 0 ? '#10b981' : '#ef4444'};">${item.packet_loss}%</span>
-                        </div>
-                        <div style="display:flex; align-items:baseline; gap:4px; max-width:40%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                            <span class="radar-text-muted" style="font-size:10.5px;" title="${escapeHtml(item.desc || '')}">${escapeHtml(item.desc || '')}</span>
-                        </div>
-                    </div>
-                    <div class="radar-dest-ping-bar">
-                        <div class="radar-dest-ping-fill" style="width:${barWidth}%; background:${barColor};"></div>
-                    </div>
-                </div>`;
+                </div>
+            </div>
+
+            <!-- Chabokan Timeline Bars -->
+            <div class="chabokan-timeline" title="تاریخچه پینگ‌های اخیر">
+                ${timelineBarsHtml}
+            </div>
+
+            <!-- Ping Metric & Badge -->
+            <div class="chabokan-metric-box">
+                <div class="chabokan-ping-num" style="color: ${tierColor};">
+                    ${latVal} <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); font-family: inherit;">ms</span>
+                </div>
+                <div class="chabokan-status-badge" style="color: ${tierColor};">
+                    <span class="pulse-dot" style="background: ${tierColor};"></span>
+                    <span>${escapeHtml(s.verdict_badge || 'متصل')}</span>
+                </div>
+            </div>
+
+            <!-- Packet Loss & Category Pill -->
+            <div class="chabokan-col-loss" style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+                <span style="font-size: 10px; padding: 1px 6px; border-radius: var(--radius-pill); background: var(--surface-secondary); color: var(--text-dim); border: 1px solid var(--border-subtle);">
+                    ${escapeHtml(s.category_fa || 'بازی')}
+                </span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: ${s.packet_loss === 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+                    Loss: ${s.packet_loss}%
+                </span>
+            </div>
+
+            <!-- Instant Single Ping Button -->
+            <div style="display: flex; justify-content: flex-end;">
+                <button type="button" class="chabokan-reping-btn" id="reping-btn-${escapeHtml(s.id)}" onclick="pingSingleService('${escapeHtml(s.id)}', event)" title="سنجش مجدد پینگ این سرویس">
+                    <i data-lucide="refresh-cw" id="reping-icon-${escapeHtml(s.id)}" style="width: 13px; height: 13px;"></i>
+                </button>
+            </div>
+        </div>
+        `;
+    }
+
+    async function pingSingleService(serviceId, event) {
+        if (event) event.stopPropagation();
+        const btn = document.getElementById(`reping-btn-${serviceId}`);
+        const icon = document.getElementById(`reping-icon-${serviceId}`);
+        if (btn) btn.disabled = true;
+        if (icon) icon.classList.add("spin");
+
+        try {
+            const res = await fetch("/api/network/radar/services/ping_single", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id: serviceId })
             });
-            return html;
-        };
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.service && chabokanRadarRawData && chabokanRadarRawData.services) {
+                    const idx = chabokanRadarRawData.services.findIndex(s => s.id === serviceId);
+                    if (idx !== -1) {
+                        chabokanRadarRawData.services[idx] = data.service;
+                    }
+                    const row = document.getElementById(`chabokan-row-${serviceId}`);
+                    if (row) {
+                        row.outerHTML = buildChabokanServiceRowHtml(data.service);
+                        if (window.lucide) lucide.createIcons();
+                    }
+                    showToast(`پینگ ${data.service.fa_name || data.service.name}: ${data.service.latency_ms !== null ? data.service.latency_ms + 'ms' : 'Timeout'}`, "success");
+                }
+            }
+        } catch (e) {
+            showToast("خطا در سنجش پینگ سرویس: " + e.message, "error");
+        } finally {
+            if (btn) btn.disabled = false;
+            if (icon) icon.classList.remove("spin");
+        }
+    }
 
-        const gamingGrid = document.getElementById("radar-gaming-grid");
-        if (gamingGrid && data.gaming_services) {
-            gamingGrid.innerHTML = buildCardsHtml(data.gaming_services);
+    function onRadarSearchInput(val) {
+        currentRadarSearchQuery = val;
+        if (radarSearchDebounceTimer) clearTimeout(radarSearchDebounceTimer);
+        radarSearchDebounceTimer = setTimeout(() => {
+            renderChabokanServicesList();
+        }, 120);
+    }
+
+    function selectRadarCategory(cat) {
+        currentRadarCategory = cat;
+        document.querySelectorAll(".chabokan-cat-chip").forEach(chip => {
+            if (chip.getAttribute("data-category") === cat) {
+                chip.classList.add("active");
+            } else {
+                chip.classList.remove("active");
+            }
+        });
+        renderChabokanServicesList();
+    }
+
+    function onRadarStatusChange(val) {
+        currentRadarStatusFilter = val;
+        renderChabokanServicesList();
+    }
+
+    function toggleRadarColorLegend() {
+        const legend = document.getElementById("chabokan-color-legend");
+        if (!legend) return;
+        legend.style.display = (legend.style.display === "none" || !legend.style.display) ? "flex" : "none";
+    }
+
+    function showChabokanTooltip(event, time, latency, tierClass, name) {
+        const tooltip = document.getElementById("chabokan-tooltip");
+        if (!tooltip) return;
+
+        let statusText = "عالی (<80ms)";
+        let statusColor = "#10b981";
+        if (tierClass === "bar-down") {
+            statusText = "قطع / Timeout";
+            statusColor = "#ef4444";
+        } else if (tierClass === "bar-good") {
+            statusText = "خوب (80-150ms)";
+            statusColor = "#06b6d4";
+        } else if (tierClass === "bar-fair") {
+            statusText = "متوسط (150-250ms)";
+            statusColor = "#3b82f6";
+        } else if (tierClass === "bar-slow") {
+            statusText = "کند (250-400ms)";
+            statusColor = "#f59e0b";
+        } else if (tierClass === "bar-very-slow") {
+            statusText = "خیلی کند (>400ms)";
+            statusColor = "#f97316";
         }
 
-        const extGrid = document.getElementById("radar-external-grid");
-        if (extGrid && data.external_services) {
-            extGrid.innerHTML = buildCardsHtml(data.external_services);
-        }
+        tooltip.innerHTML = `
+            <div style="font-weight: 700; margin-bottom: 2px; color: #ffffff;">${name}</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 3px;">
+                <span style="display: inline-flex; align-items: center; gap: 4px; color: ${statusColor}; font-weight: 600;">
+                    <span style="width: 6px; height: 6px; border-radius: 50%; background: ${statusColor};"></span>
+                    ${statusText}
+                </span>
+                <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #ffffff;">${latency}</span>
+            </div>
+            <div style="font-size: 9.5px; color: #94a3b8; margin-top: 2px; direction: ltr; text-align: left;">زمان: ${time}</div>
+        `;
 
-        if (window.lucide) lucide.createIcons();
+        const rect = event.target.getBoundingClientRect();
+        tooltip.style.left = `${rect.left + (rect.width / 2)}px`;
+        tooltip.style.top = `${rect.top}px`;
+        tooltip.classList.add("active");
+    }
+
+    function hideChabokanTooltip() {
+        const tooltip = document.getElementById("chabokan-tooltip");
+        if (tooltip) {
+            tooltip.classList.remove("active");
+        }
     }
 
     function copyRadarReport() {
@@ -22106,7 +22307,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
                 const svcTextEl = document.getElementById("singbox-stat-service-text");
                 if (svcTextEl) {
-                    svcTextEl.textContent = data.is_active ? "فعال و در حال اجرا" : "متوقف شده";
+                    const statusText = data.is_active ? (window.t ? window.t("فعال و در حال اجرا") : "فعال و در حال اجرا") : (window.t ? window.t("متوقف شده") : "متوقف شده");
+                    svcTextEl.textContent = statusText;
                     svcTextEl.style.color = data.is_active ? "#059669" : "#dc2626";
                 }
 
