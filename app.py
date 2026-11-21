@@ -12280,6 +12280,18 @@ AD_TAG = "{ad_tag}"
                         tls_hex = tls_domain.encode("utf-8").hex()
                         tls_secret = f"ee{secret}{tls_hex}" if secret else ""
                         standard_secret = f"dd{secret}" if secret else ""
+
+                        tls_only_flag = bool(re.search(r"TLS_ONLY\s*=\s*True", content))
+                        secure_only_flag = bool(re.search(r"SECURE_ONLY\s*=\s*True", content))
+                        mode_m = re.search(r"PROXY_MODE\s*=\s*[\"']([^\"']*)[\"']", content)
+                        if mode_m:
+                            inst_mode = mode_m.group(1).strip().lower()
+                        elif tls_only_flag:
+                            inst_mode = "tls_only"
+                        elif secure_only_flag:
+                            inst_mode = "secure_only"
+                        else:
+                            inst_mode = "all"
                         
                         status_res = subprocess.run(["systemctl", "is-active", f"mhpanel-mtproto@{port}"], capture_output=True, text=True)
                         active = (status_res.stdout.strip() == "active")
@@ -12302,6 +12314,7 @@ AD_TAG = "{ad_tag}"
                             "tls_domain": tls_domain,
                             "ad_tag": ad_tag,
                             "has_sponsor": bool(ad_tag and len(ad_tag) == 32),
+                            "mode": inst_mode,
                             "active": active,
                             "connections": connections,
                             "server_domain": server_domain,
@@ -12412,6 +12425,55 @@ def api_mtproto_instance_tls_domain_set(port):
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@app.route("/api/mtproto/instances/<int:port>/mode", methods=["POST"])
+def api_mtproto_instance_set_mode(port):
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    data = request.json or {}
+    mode = str(data.get("mode", "all")).strip().lower()
+    if mode not in ["all", "tls_only", "secure_only"]:
+        mode = "all"
+    config_file = f"/etc/vpnpanel/mtproto_config_{port}.py"
+    if not os.path.exists(config_file):
+        return jsonify({"success": False, "error": "اینستنس پروکسی یافت نشد."}), 404
+    try:
+        with open(config_file, "r") as f:
+            content = f.read()
+
+        tls_only = (mode == "tls_only")
+        secure_only = (mode in ["tls_only", "secure_only"])
+        classic_allowed = (mode == "all")
+        modes_dict_str = f'{{"classic": {classic_allowed}, "secure": {secure_only or mode == "all"}, "tls": True}}'
+
+        if re.search(r"^PROXY_MODE\s*=", content, re.MULTILINE):
+            content = re.sub(r"^PROXY_MODE\s*=.*", f'PROXY_MODE = "{mode}"', content, flags=re.MULTILINE)
+        else:
+            content += f'\nPROXY_MODE = "{mode}"\n'
+
+        if re.search(r"^MODES\s*=", content, re.MULTILINE):
+            content = re.sub(r"^MODES\s*=.*", f'MODES = {modes_dict_str}', content, flags=re.MULTILINE)
+        else:
+            content += f'MODES = {modes_dict_str}\n'
+
+        if re.search(r"^TLS_ONLY\s*=", content, re.MULTILINE):
+            content = re.sub(r"^TLS_ONLY\s*=.*", f'TLS_ONLY = {tls_only}', content, flags=re.MULTILINE)
+        else:
+            content += f'TLS_ONLY = {tls_only}\n'
+
+        if re.search(r"^SECURE_ONLY\s*=", content, re.MULTILINE):
+            content = re.sub(r"^SECURE_ONLY\s*=.*", f'SECURE_ONLY = {secure_only}', content, flags=re.MULTILINE)
+        else:
+            content += f'SECURE_ONLY = {secure_only}\n'
+
+        with open(config_file, "w") as f:
+            f.write(content)
+
+        subprocess.run(["systemctl", "restart", f"mhpanel-mtproto@{port}"], check=False)
+        return jsonify({"success": True, "port": port, "mode": mode})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/api/mtproto/instances", methods=["POST"])
 def api_mtproto_instances_create():
     if not check_login():
@@ -12447,7 +12509,14 @@ def api_mtproto_instances_create():
         if len(ad_tag) != 32:
             return jsonify({"success": False, "error": "تگ اسپانسر تلگرام (Ad Tag) باید ۳۲ کاراکتر هگزادسیمال باشد."}), 400
 
-    tls_domain = str(data.get("tls_domain", "")).strip() or "www.cloudflare.com"
+    tls_domain = str(data.get("tls_domain", "")).strip() or "dl.google.com"
+    mode = str(data.get("mode", "all")).strip().lower()
+    if mode not in ["all", "tls_only", "secure_only"]:
+        mode = "all"
+    tls_only = (mode == "tls_only")
+    secure_only = (mode in ["tls_only", "secure_only"])
+    classic_allowed = (mode == "all")
+    modes_dict_str = f'{{"classic": {classic_allowed}, "secure": {secure_only or mode == "all"}, "tls": True}}'
 
     try:
         os.makedirs("/etc/vpnpanel", exist_ok=True)
@@ -12456,7 +12525,10 @@ def api_mtproto_instances_create():
 USERS = {{
     "mhpanel": "{secret}",
 }}
-MODES = {{"classic": True, "secure": True, "tls": True}}
+PROXY_MODE = "{mode}"
+MODES = {modes_dict_str}
+TLS_ONLY = {tls_only}
+SECURE_ONLY = {secure_only}
 TLS_DOMAIN = "{tls_domain}"
 AD_TAG = "{ad_tag}"
 """)
@@ -29905,7 +29977,9 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
 
     port_label = f" (Port {port})" if (port != 443 and (override_port or port not in [443, 20443])) else ""
-    tag_name = f"MHPanel - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"MHPanel - {display_title}{port_label}"
+    _sub_s = get_sub_settings()
+    _bp = (_sub_s.get("brand_name") or _sub_s.get("title") or "MHPanel").strip()
+    tag_name = f"{_bp} - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"{_bp} - {display_title}{port_label}"
 
     if itype == "vless":
         tp = (inbound.get("transport") or {}).get("type", "tcp")

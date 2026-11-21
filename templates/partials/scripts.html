@@ -7676,7 +7676,7 @@
                 const ipPort = `${serverIp}:${inst.port}`;
                 const card = document.createElement("div");
                 card.className = "wg-client-item";
-                card.style.cssText = "display:flex; flex-direction:column; gap:12px; padding:16px; background:#ffffff; border:1px solid rgba(0,0,0,0.08); border-radius:12px; box-shadow:0 1px 3px rgba(0,0,0,0.02);";
+                card.style.cssText = "display:flex; flex-direction:column; gap:12px; padding:16px; background:var(--surface-primary); border:1px solid var(--border-subtle); border-radius:12px; box-shadow:var(--shadow-sm);";
                 
                 const fakeTlsIpLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
                 const fakeTlsDomainLink = `tg://proxy?server=${serverHost}&port=${inst.port}&secret=${inst.tls_secret || ('ee' + inst.secret + '7777772e636c6f7564666c6172652e636f6d')}`;
@@ -7684,29 +7684,39 @@
                 const classicLink = `tg://proxy?server=${serverIp}&port=${inst.port}&secret=${inst.standard_secret || ('dd' + inst.secret)}`;
                 
                 const hasSponsor = inst.has_sponsor || (inst.ad_tag && inst.ad_tag.length === 32);
+
+                let modeBadge = '';
+                if (inst.mode === 'tls_only') {
+                    modeBadge = `<span style="font-size:11px; background:rgba(16, 185, 129, 0.12); color:#10b981; border:1px solid rgba(16, 185, 129, 0.25); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="shield-check" style="width:12px; height:12px;"></i> فقط Fake TLS (ضد فیلتر شدید)</span>`;
+                } else if (inst.mode === 'secure_only') {
+                    modeBadge = `<span style="font-size:11px; background:rgba(245, 158, 11, 0.12); color:#f59e0b; border:1px solid rgba(245, 158, 11, 0.25); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="lock" style="width:12px; height:12px;"></i> فقط سکرت امن (dd)</span>`;
+                } else {
+                    modeBadge = `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; border:1px solid rgba(14, 165, 233, 0.25); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="globe" style="width:12px; height:12px;"></i> همه حالت‌ها (All Modes)</span>`;
+                }
                 
                 card.innerHTML = `
                     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                        <div style="display:flex; align-items:center; gap:10px;">
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                             <span style="font-weight:700; font-size:15px; font-family:'JetBrains Mono', monospace; color:#0284c7;">
                                 Port :${inst.port}
                             </span>
                             ${inst.active 
                                 ? `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot active" style="width:6px; height:6px;"></span> ${window.t ? window.t("فعال") : "فعال"}</span>` 
                                 : `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><span class="status-dot inactive" style="width:6px; height:6px;"></span> ${window.t ? window.t("متوقف") : "متوقف"}</span>`}
+                            ${modeBadge}
                             ${hasSponsor
                                 ? `<span style="font-size:11px; background:rgba(14, 165, 233, 0.12); color:#0284c7; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="megaphone" style="width:12px; height:12px;"></i> تگ اسپانسر هکس فعال</span>`
-                                : `<span style="font-size:11px; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i> بدون اسپانسر (اتصال مستقیم Core DC)</span>`}
+                                : `<span style="font-size:11px; background:var(--surface-secondary); color:var(--text-muted); border:1px solid var(--border-subtle); padding:2px 8px; border-radius:10px; font-weight:600; display:inline-flex; align-items:center; gap:4px;"><i data-lucide="zap" style="width:12px; height:12px; color:#10b981;"></i> بدون اسپانسر (اتصال مستقیم Core DC)</span>`}
                         </div>
-                        <div style="font-size:12px; color:#64748b; display:flex; align-items:center; gap:6px;">
+                        <div style="font-size:12px; color:var(--text-muted); display:flex; align-items:center; gap:6px;">
                             <i data-lucide="users" style="width:14px; height:14px; color:#0284c7;"></i>
-                            اتصالات فعال: <strong style="color:#0f172a;">${inst.active ? inst.connections : 0}</strong>
+                            اتصالات فعال: <strong style="color:var(--text-primary);">${inst.active ? inst.connections : 0}</strong>
                         </div>
                     </div>
 
-                    <div style="background:#f8fafc; border:1px solid rgba(0,0,0,0.05); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
+                    <div style="background:var(--surface-secondary); border:1px solid var(--border-subtle); border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px; font-size:12px;">
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="color:#64748b; font-weight:600;">آدرس آی‌پی (پیشنهادی اتصال):</span>
+                            <span style="color:var(--text-muted); font-weight:600;">آدرس آی‌پی (پیشنهادی اتصال):</span>
                             <div style="display:flex; align-items:center; gap:6px;">
                                 <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#0369a1; font-weight:700;">${ipPort}</span>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${ipPort}'); showToast('آدرس آی‌پی و پورت کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی آی‌پی:پورت">
@@ -7715,18 +7725,18 @@
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="color:#64748b; font-weight:600;">آدرس دامنه:</span>
+                            <span style="color:var(--text-muted); font-weight:600;">آدرس دامنه:</span>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:#475569;">${hostPort}</span>
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-secondary);">${hostPort}</span>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${hostPort}'); showToast('آدرس دامنه و پورت کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی دامنه:پورت">
                                     <i data-lucide="copy" style="width:11px; height:11px;"></i>
                                 </button>
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="color:#64748b; font-weight:600;">سکرت هگز (Secret):</span>
+                            <span style="color:var(--text-muted); font-weight:600;">سکرت هگز (Secret):</span>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#334155; word-break:break-all;">${inst.secret}</span>
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-primary); word-break:break-all;">${inst.secret}</span>
                                 <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inst.secret}'); showToast('سکرت هگز جهت ارسال به ربات کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی سکرت هگز جهت ارسال به ربات">
                                     <i data-lucide="copy" style="width:11px; height:11px;"></i>
                                 </button>
@@ -7736,9 +7746,18 @@
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="color:#64748b; font-weight:600;">تگ اسپانسر تلگرام (Ad Tag):</span>
+                            <span style="color:var(--text-muted); font-weight:600;">حالت فیلترینگ و استتار:</span>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:${hasSponsor ? '#0284c7' : '#94a3b8'}; word-break:break-all;">
+                                <span style="font-size:11.5px; font-weight:600; color:var(--text-primary);">${inst.mode === 'tls_only' ? '🛡️ فقط Fake TLS (ضد DPI)' : (inst.mode === 'secure_only' ? '🔒 فقط امن (dd)' : '🌐 همه حالت‌ها')}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="changeInstanceMode(${inst.port}, '${inst.mode || 'all'}')" style="padding:2px 7px; font-size:11px;" title="تغییر حالت کاری پروکسی">
+                                    <i data-lucide="sliders" style="width:11px; height:11px; margin-left:3px;"></i> تغییر حالت
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span style="color:var(--text-muted); font-weight:600;">تگ اسپانسر تلگرام (Ad Tag):</span>
+                            <div style="display:flex; align-items:center; gap:6px;">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:${hasSponsor ? '#0284c7' : 'var(--text-muted)'}; word-break:break-all;">
                                     ${inst.ad_tag ? inst.ad_tag : 'تنظیم نشده (بدون کانال - اتصال مستقیم فعال)'}
                                 </span>
                                 ${inst.ad_tag ? `<button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${inst.ad_tag}'); showToast('تگ هکس اسپانسر کپی شد', 'success');" style="padding:2px 7px; font-size:11px;" title="کپی تگ"><i data-lucide="copy" style="width:11px; height:11px;"></i></button>` : ''}
@@ -7748,10 +7767,10 @@
                             </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span style="color:#64748b;">پوشش Fake TLS:</span>
+                            <span style="color:var(--text-muted); font-weight:600;">پوشش Fake TLS:</span>
                             <div style="display:flex; align-items:center; gap:6px;">
-                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#0284c7;">${inst.tls_domain || 'www.cloudflare.com'}</span>
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="editInstanceTlsDomain(${inst.port}, '${inst.tls_domain || 'www.cloudflare.com'}')" style="padding:2px 7px; font-size:11px;" title="تغییر دامنه پوششی Fake TLS">
+                                <span style="font-family:'JetBrains Mono', monospace; font-size:11px; color:#0284c7;">${inst.tls_domain || 'dl.google.com'}</span>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="editInstanceTlsDomain(${inst.port}, '${inst.tls_domain || 'dl.google.com'}')" style="padding:2px 7px; font-size:11px;" title="تغییر دامنه پوششی Fake TLS">
                                     <i data-lucide="globe" style="width:11px; height:11px;"></i>
                                 </button>
                             </div>
@@ -7760,17 +7779,20 @@
 
                     <!-- Fast Action Buttons -->
                     <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک مستقیم ضد فیلتر dd در کلیپ‌بورد کپی شد!', 'success');" style="flex:1.4; min-width:170px; padding:6px 12px; font-size:12px; background:#059669; border-color:#059669;">
-                            <i data-lucide="shield-check" style="width:14px; height:14px; margin-left:4px;"></i> کپی لینک مستقیم dd (سکرت تست‌شده)
+                        <button type="button" class="btn btn-primary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک ضدفیلتر Fake TLS با آی‌پی کپی شد!', 'success');" style="flex:1.4; min-width:160px; padding:6px 12px; font-size:12px; background:#0284c7; border-color:#0284c7;">
+                            <i data-lucide="shield" style="width:14px; height:14px; margin-left:4px;"></i> لینک Fake TLS (ضد فیلتر)
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsIpLink}'); showToast('لینک Fake TLS با آی‌پی کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک پوششی Fake TLS با آی‌پی">
-                            <i data-lucide="copy" style="width:13px; height:13px; margin-left:4px;"></i> لینک Fake TLS
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${classicLink}'); showToast('لینک مستقیم ضد فیلتر dd در کلیپ‌بورد کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم dd">
+                            <i data-lucide="zap" style="width:13px; height:13px; margin-left:4px;"></i> لینک مستقیم dd
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک با دامنه کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${fakeTlsDomainLink}'); showToast('لینک Fake TLS با دامنه کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک تلگرام با نام دامنه">
                             <i data-lucide="link-2" style="width:13px; height:13px; margin-left:4px;"></i> با دامنه
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="navigator.clipboard.writeText('${webTlsLink}'); showToast('لینک تلگرام تحت وب کپی شد!', 'success');" style="width:auto; padding:6px 10px; font-size:12px;" title="کپی لینک مستقیم t.me">
                             <i data-lucide="globe" style="width:13px; height:13px; margin-left:4px;"></i> لینک t.me
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="changeInstanceMode(${inst.port}, '${inst.mode || 'all'}')" style="width:auto; padding:6px 8px; font-size:12px;" title="تغییر حالت کاری پروکسی">
+                            <i data-lucide="sliders" style="width:13px; height:13px;"></i>
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="toggleMtprotoInstance(${inst.port}, '${inst.active ? 'stop' : 'start'}')" style="width:auto; padding:6px 10px; font-size:12px;">
                             <i data-lucide="${inst.active ? 'power-off' : 'play'}" style="width:13px; height:13px; margin-left:4px;"></i> ${inst.active ? 'توقف' : 'شروع'}
@@ -7792,6 +7814,41 @@
         } catch (err) {
             console.error("fetchMtprotoInstances error:", err);
         }
+    }
+
+    async function changeInstanceMode(port, currentMode) {
+        const promptMsg = 
+            `انتخاب حالت ضد فیلترینگ برای پورت ${port}:\n\n` +
+            `1 = all : همه حالت‌ها (Classic + Secure dd + Fake TLS) [پیش‌فرض سازگار]\n` +
+            `2 = tls_only : فقط Fake TLS (استتار کامل نشست در پوشش TLS - بالاترین ضد DPI)\n` +
+            `3 = secure_only : فقط سکرت امن با پدینگ (Secure dd Only)\n\n` +
+            `حالت فعلی: ${currentMode}\nعدد ۱ یا ۲ یا ۳ را وارد کنید:`;
+        const chosen = prompt(promptMsg, currentMode === 'tls_only' ? '2' : (currentMode === 'secure_only' ? '3' : '1'));
+        if (chosen === null) return;
+        let mode = 'all';
+        const val = chosen.trim().toLowerCase();
+        if (val === '2' || val === 'tls_only' || val === 'tls') mode = 'tls_only';
+        else if (val === '3' || val === 'secure_only' || val === 'secure') mode = 'secure_only';
+        else mode = 'all';
+
+        toggleLoading(true, `در حال تغییر حالت پروکسی پورت ${port} به ${mode}...`);
+        try {
+            const res = await fetch(`/api/mtproto/instances/${port}/mode`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mode: mode })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast(`حالت پروکسی پورت ${port} با موفقیت به «${mode}» تغییر یافت`, "success");
+                fetchMtprotoInstances();
+            } else {
+                showToast(data.error || "خطا در تغییر حالت پروکسی", "error");
+            }
+        } catch (e) {
+            showToast("خطای ارتباط با سرور", "error");
+        }
+        toggleLoading(false);
     }
 
     async function editInstanceSecret(port, currentSecret) {
@@ -8011,6 +8068,7 @@
 
     document.getElementById("mtproto-add-btn")?.addEventListener("click", async () => {
         const portVal = parseInt(document.getElementById("mtproto-port").value);
+        const modeVal = document.getElementById("mtproto-mode")?.value || "all";
         const secretVal = (document.getElementById("mtproto-secret")?.value || "").trim();
         const adTagVal = (document.getElementById("mtproto-ad-tag")?.value || "").trim();
         const tlsDomainVal = (document.getElementById("mtproto-tls-domain")?.value || "").trim();
@@ -8026,6 +8084,7 @@
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     port: portVal, 
+                    mode: modeVal,
                     secret: secretVal, 
                     ad_tag: adTagVal, 
                     tls_domain: tlsDomainVal 
