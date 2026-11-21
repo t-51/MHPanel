@@ -148,6 +148,31 @@
                 </div>
             </div>
 
+            <div class="spec-card" id="sb-card-online-stats" style="padding: 16px 18px; border: 1px solid rgba(16, 185, 129, 0.35); background: rgba(16, 185, 129, 0.05); cursor: pointer;" onclick="toggleSingboxOnlineUsersFilter()" title="جهت فیلتر کردن و نمایش کاربران آنلاین کلیک کنید">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <span style="font-size: 11.5px; color: #10b981; font-weight: 700; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                            <span class="pulse-dot" style="width: 7px; height: 7px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                            <span>کاربران و اتصالات زنده:</span>
+                        </span>
+                        <div style="display:flex; align-items:baseline; gap:8px;">
+                            <span id="singbox-stat-online-users-count" style="font-size: 26px; font-weight: 800; color: #10b981; font-family: var(--font-mono);">۰</span>
+                            <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">آنلاین</span>
+                            <span style="font-size: 13px; color: var(--text-muted); margin: 0 1px;">/</span>
+                            <span id="singbox-stat-online-conns-count" style="font-size: 18px; font-weight: 700; color: #059669; font-family: var(--font-mono);">۰</span>
+                            <span style="font-size: 11px; color: var(--text-muted);">اتصال</span>
+                        </div>
+                    </div>
+                    <div style="width: 38px; height: 38px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="radio" style="width: 18px; height: 18px;"></i>
+                    </div>
+                </div>
+                <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted); display:flex; justify-content:space-between; align-items:center;">
+                    <span>سقف همزمان هوشمند فعال</span>
+                    <span id="sb-online-filter-indicator" style="font-size: 10px; color: #10b981; font-weight: 700; display: none;">فیلتر فعال ✕</span>
+                </div>
+            </div>
+
             <div class="spec-card" style="padding: 16px 18px; border: 1px solid var(--border-subtle); background: var(--surface-primary);">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                     <div>
@@ -353,6 +378,12 @@
                         <span data-i18n="singbox_btn_add_user">افزودن کاربر محلی</span>
                     </button>
 
+                    <button class="btn btn-secondary btn-sm" id="sb-btn-filter-online-only" onclick="toggleSingboxOnlineUsersFilter()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600; border: 1px solid rgba(16, 185, 129, 0.4); color: #10b981; background: rgba(16, 185, 129, 0.08);" title="فیلتر فقط کاربران آنلاین">
+                        <span class="pulse-dot" style="width: 6px; height: 6px; background: #10b981; border-radius: 50%; display: inline-block;"></span>
+                        <span>فقط کاربران آنلاین</span>
+                        <span class="badge-pill" id="sb-badge-online-filter-count" style="font-size: 10px; padding: 1px 6px; background: rgba(16, 185, 129, 0.2); color: #10b981;">۰</span>
+                    </button>
+
                     <button class="btn btn-secondary btn-sm" onclick="loadSingboxUsers(); loadSingboxCategories();" type="button" style="display: flex; align-items: center; gap: 6px;" title="بروزرسانی کاربران">
                         <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
                     </button>
@@ -419,6 +450,12 @@
                     <button type="button" class="btn btn-secondary btn-sm" onclick="openBulkSetTrafficLimitModal()" style="display: flex; align-items: center; gap: 4px;" title="تنظیم سقف حجم">
                         <i data-lucide="hard-drive" style="width: 13px; height: 13px;"></i>
                         <span>تنظیم حجم (GB)</span>
+                    </button>
+
+                    <!-- Bulk Set Max Connections -->
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxBulkMaxConnModal()" style="display: flex; align-items: center; gap: 4px; color: #6366f1; border-color: rgba(99,102,241,0.35); background: rgba(99,102,241,0.06);" title="تنظیم سقف اتصال همزمان دستگاه‌ها (دستگاه/IP)">
+                        <i data-lucide="smartphone" style="width: 13px; height: 13px;"></i>
+                        <span>سقف دستگاه</span>
                     </button>
 
                     <!-- Bulk Delete -->
@@ -1753,6 +1790,31 @@
                         </small>
                     </div>
 
+                    <!-- Max Simultaneous Connections / Devices -->
+                    <div class="form-group" style="background: rgba(99, 102, 241, 0.05); padding: 14px; border-radius: 10px; border: 1px solid rgba(99, 102, 241, 0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="form-label" style="font-weight: 700; color: #4338ca; margin: 0; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i>
+                                <span>سقف اتصال همزمان دستگاه‌ها (Concurrent Devices / IPs):</span>
+                            </label>
+                            <span style="font-size: 11px; color: var(--text-muted);">۰ = بدون محدودیت</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" class="form-input" id="sb-user-input-max-connections" value="0" min="0" max="100" placeholder="0 (نامحدود)" style="font-family:'JetBrains Mono'; font-weight:700;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">دستگاه / IP همزمان</span>
+                        </div>
+                        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxUserConnPreset(0)" style="font-size: 11px; padding: 2px 8px;">نامحدود (∞)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxUserConnPreset(1)" style="font-size: 11px; padding: 2px 8px;">تک کاربره (۱ دستگاه)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxUserConnPreset(2)" style="font-size: 11px; padding: 2px 8px;">دو کاربره (۲ دستگاه)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxUserConnPreset(3)" style="font-size: 11px; padding: 2px 8px;">۳ دستگاه</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxUserConnPreset(5)" style="font-size: 11px; padding: 2px 8px;">۵ دستگاه</button>
+                        </div>
+                        <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 6px; display: block;">
+                            💡 اتصالات مازاد بر سقف تعیین‌شده به صورت آنی و خودکار مسدود می‌شوند؛ بدون اعمال بار پردازشی به سیستم.
+                        </small>
+                    </div>
+
                     <!-- Compact Credentials (Password & UUID) -->
                     <details style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px;">
                         <summary style="font-size: 11.5px; font-weight: 600; color: var(--text-muted); cursor: pointer;">مشخصات فنی و امنیتی (Password & UUID - اختیاری)</summary>
@@ -2201,7 +2263,27 @@
                         </div>
                     </div>
 
-                    <!-- Row 5: Inbounds Selection -->
+                    <!-- Row 4.5: Max Simultaneous Connections / Devices -->
+                    <div class="form-group" style="background: rgba(99, 102, 241, 0.05); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(99, 102, 241, 0.25);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                            <label class="form-label" style="font-weight: 700; color: #4338ca; margin: 0; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i>
+                                <span>سقف اتصال همزمان هر کاربر (Concurrent Devices / IPs):</span>
+                            </label>
+                            <span style="font-size: 11px; color: var(--text-muted);">۰ = نامحدود</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <input type="number" class="form-input" id="sb-bulk-max-connections" value="0" min="0" max="100" placeholder="0 (نامحدود)" style="font-family:'JetBrains Mono'; font-weight:700;">
+                            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">دستگاه / IP</span>
+                        </div>
+                        <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxBulkConnPreset(0)" style="font-size: 11px; padding: 2px 8px;">نامحدود (∞)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxBulkConnPreset(1)" style="font-size: 11px; padding: 2px 8px;">تک کاربره (۱ دستگاه)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxBulkConnPreset(2)" style="font-size: 11px; padding: 2px 8px;">دو کاربره (۲ دستگاه)</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxBulkConnPreset(3)" style="font-size: 11px; padding: 2px 8px;">۳ دستگاه</button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxBulkConnPreset(5)" style="font-size: 11px; padding: 2px 8px;">۵ دستگاه</button>
+                        </div>
+                    </div>
                     <div class="form-group" style="background: rgba(59, 130, 246, 0.05); padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
                             <label class="form-label" style="font-weight: 700; color: #1d4ed8; margin: 0;">
@@ -2848,5 +2930,43 @@
                 </button>
             </footer>
         </form>
+    </div>
+</div>
+
+<!-- Modal: Bulk Set Max Connections -->
+<div class="modal" id="modal-singbox-bulk-max-connections">
+    <div class="modal-card" style="max-width: 480px; width: 95%;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="smartphone" style="color: #6366f1;"></i>
+                <span>تنظیم سقف اتصال همزمان دستگاه‌ها</span>
+            </h3>
+            <button type="button" class="modal-close" onclick="closeSingboxBulkMaxConnModal()">
+                <i data-lucide="x"></i>
+            </button>
+        </header>
+        <div style="padding: 20px;">
+            <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                سقف تعداد دستگاه‌های متصل همزمان (IP همزمان) را برای کاربران انتخاب شده مشخص کنید. اتصالات مازاد به صورت آنی و خودکار قطع خواهند شد.
+            </p>
+            <div class="form-group">
+                <label class="form-label" style="font-weight: 600;">سقف دستگاه‌های همزمان (۰ = نامحدود):</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="number" class="form-input" id="sb-bulk-action-max-conn" value="1" min="0" max="100" style="font-family:'JetBrains Mono'; font-weight:700;">
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); white-space: nowrap;">دستگاه</span>
+                </div>
+                <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-action-max-conn').value='0'" style="font-size: 11px; padding: 2px 8px;">نامحدود (۰)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-action-max-conn').value='1'" style="font-size: 11px; padding: 2px 8px;">تک کاربره (۱)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-action-max-conn').value='2'" style="font-size: 11px; padding: 2px 8px;">دو کاربره (۲)</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-action-max-conn').value='3'" style="font-size: 11px; padding: 2px 8px;">۳ دستگاه</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-bulk-action-max-conn').value='5'" style="font-size: 11px; padding: 2px 8px;">۵ دستگاه</button>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button class="btn btn-secondary" type="button" onclick="closeSingboxBulkMaxConnModal()">انصراف</button>
+                <button class="btn btn-primary" type="button" onclick="submitSingboxBulkMaxConn()" style="background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);">اعمال به کاربران انتخاب شده</button>
+            </div>
+        </div>
     </div>
 </div>

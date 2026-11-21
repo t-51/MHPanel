@@ -30639,6 +30639,13 @@ def format_bytes_human(b):
 _sb_conn_cache = {}
 _sb_user_traffic_lock = threading.Lock()
 _sb_tracker_started = False
+_sb_user_online_stats = {}      # username -> { "online": bool, "connections": int, "ips_count": int, "ips": list, "last_seen": float }
+_sb_user_ip_sessions = {}       # username -> { ip: { "first_seen": float, "last_seen": float } }
+_sb_last_tracker_stats = {
+    "total_online_users": 0,
+    "total_online_connections": 0,
+    "updated_at": 0
+}
 
 def get_user_from_singbox_log(src_port, host=""):
     log_file = "/var/log/sing-box.log"
@@ -30669,7 +30676,7 @@ def get_user_from_singbox_log(src_port, host=""):
     return None
 
 def singbox_client_tracker():
-    global _sb_conn_cache
+    global _sb_conn_cache, _sb_user_online_stats, _sb_user_ip_sessions, _sb_last_tracker_stats
     while True:
         try:
             req = urllib.request.Request("http://127.0.0.1:9095/connections")
@@ -30679,6 +30686,8 @@ def singbox_client_tracker():
             connections = data.get("connections") or []
             active_conn_ids = set()
             user_deltas = {}
+            current_tick_user_conns = {}  # username -> list of (cid, src_ip, conn)
+            now_ts = time.time()
 
             for conn in connections:
                 cid = conn.get("id")
@@ -30704,8 +30713,10 @@ def singbox_client_tracker():
                 if not username and cid in _sb_conn_cache:
                     username = _sb_conn_cache[cid].get("user")
 
+                meta = conn.get("metadata") or {}
+                src_ip = str(meta.get("sourceIP") or "").strip()
+
                 if not username:
-                    meta = conn.get("metadata") or {}
                     src_port = str(meta.get("sourcePort") or "")
                     if src_port:
                         username = get_user_from_singbox_log(src_port, meta.get("host") or "")
@@ -30720,18 +30731,24 @@ def singbox_client_tracker():
                     delta_up = max(0, curr_up)
                     delta_down = max(0, curr_down)
 
-                _sb_conn_cache[cid] = {"up": curr_up, "down": curr_down, "user": username}
+                _sb_conn_cache[cid] = {"up": curr_up, "down": curr_down, "user": username, "ip": src_ip}
 
-                if username and (delta_up > 0 or delta_down > 0):
-                    if username not in user_deltas:
-                        user_deltas[username] = {"up": 0, "down": 0}
-                    user_deltas[username]["up"] += delta_up
-                    user_deltas[username]["down"] += delta_down
+                if username:
+                    if username not in current_tick_user_conns:
+                        current_tick_user_conns[username] = []
+                    current_tick_user_conns[username].append((cid, src_ip, conn))
+
+                    if delta_up > 0 or delta_down > 0:
+                        if username not in user_deltas:
+                            user_deltas[username] = {"up": 0, "down": 0}
+                        user_deltas[username]["up"] += delta_up
+                        user_deltas[username]["down"] += delta_down
 
             stale_cids = [c for c in _sb_conn_cache if c not in active_conn_ids]
             for c in stale_cids:
                 _sb_conn_cache.pop(c, None)
 
+            # --- Update Traffic Quota & Expiry in DB ---
             if user_deltas and os.path.exists(SINGBOX_USERS_FILE):
                 with _sb_user_traffic_lock:
                     try:
@@ -30806,9 +30823,115 @@ def singbox_client_tracker():
                                             pass
                     except Exception:
                         pass
+
+            # --- Connection / Device Limiter Enforcement & Live Online Tracking ---
+            users_list = []
+            if os.path.exists(SINGBOX_USERS_FILE):
+                try:
+                    with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        users_list = data if isinstance(data, list) else []
+                except Exception:
+                    users_list = []
+            user_limits_map = {u.get("username"): u for u in users_list if u.get("username")}
+
+            total_online_users = 0
+            total_online_conns = 0
+
+            for uname, u_conns in current_tick_user_conns.items():
+                u_record = user_limits_map.get(uname, {})
+                max_connections = int(u_record.get("max_connections") or 0)
+                is_enabled = u_record.get("enabled", True)
+                is_expired = u_record.get("is_expired", False)
+                is_quota_exceeded = u_record.get("is_quota_exceeded", False)
+
+                # If user is disabled, expired, or exceeded quota, drop all active connections immediately
+                if not is_enabled or is_expired or is_quota_exceeded:
+                    for cid, _, _ in u_conns:
+                        try:
+                            del_req = urllib.request.Request(f"http://127.0.0.1:9095/connections/{cid}", method="DELETE")
+                            urllib.request.urlopen(del_req, timeout=0.5)
+                        except Exception:
+                            pass
+                    continue
+
+                # Extract distinct client IPs (filter loopback if external IPs are present)
+                raw_ips = [s_ip for _, s_ip, _ in u_conns if s_ip]
+                ext_ips = [ip for ip in raw_ips if ip not in ("127.0.0.1", "::1", "localhost")]
+                distinct_ips = list(dict.fromkeys(ext_ips if ext_ips else raw_ips))
+
+                # Update IP session tracking (FIFO priority for devices)
+                if uname not in _sb_user_ip_sessions:
+                    _sb_user_ip_sessions[uname] = {}
+
+                ip_sessions = _sb_user_ip_sessions[uname]
+                for ip in distinct_ips:
+                    if ip not in ip_sessions:
+                        ip_sessions[ip] = {"first_seen": now_ts, "last_seen": now_ts}
+                    else:
+                        ip_sessions[ip]["last_seen"] = now_ts
+
+                # Purge IPs inactive for >= 20 seconds
+                stale_ips = [ip for ip, s_data in ip_sessions.items() if now_ts - s_data.get("last_seen", 0) > 20]
+                for s_ip in stale_ips:
+                    ip_sessions.pop(s_ip, None)
+
+                # Sort distinct IPs by first_seen ascending (first connected device keeps priority)
+                sorted_ips = sorted(
+                    [ip for ip in distinct_ips if ip in ip_sessions],
+                    key=lambda ip: ip_sessions[ip].get("first_seen", now_ts)
+                )
+
+                allowed_ips = set(sorted_ips)
+                disallowed_ips = set()
+
+                # Enforce max simultaneous devices limit (if max_connections > 0)
+                if max_connections > 0 and len(sorted_ips) > max_connections:
+                    allowed_ips = set(sorted_ips[:max_connections])
+                    disallowed_ips = set(sorted_ips[max_connections:])
+
+                    # Drop unauthorized connections from excess devices/IPs immediately
+                    for cid, s_ip, _ in u_conns:
+                        if s_ip in disallowed_ips:
+                            try:
+                                del_req = urllib.request.Request(f"http://127.0.0.1:9095/connections/{cid}", method="DELETE")
+                                urllib.request.urlopen(del_req, timeout=0.5)
+                            except Exception:
+                                pass
+
+                allowed_conns_count = sum(1 for _, s_ip, _ in u_conns if s_ip not in disallowed_ips)
+                active_ips_count = len(allowed_ips)
+
+                if allowed_conns_count > 0:
+                    total_online_users += 1
+                    total_online_conns += allowed_conns_count
+
+                _sb_user_online_stats[uname] = {
+                    "online": (allowed_conns_count > 0),
+                    "connections": allowed_conns_count,
+                    "ips_count": active_ips_count,
+                    "ips": list(allowed_ips),
+                    "last_seen": now_ts
+                }
+
+            # Mark inactive users as offline
+            for uname in list(_sb_user_online_stats.keys()):
+                if uname not in current_tick_user_conns:
+                    last_seen = _sb_user_online_stats[uname].get("last_seen", 0)
+                    if now_ts - last_seen > 6:
+                        _sb_user_online_stats[uname]["online"] = False
+                        _sb_user_online_stats[uname]["connections"] = 0
+                        _sb_user_online_stats[uname]["ips_count"] = 0
+                        _sb_user_online_stats[uname]["ips"] = []
+                        _sb_user_ip_sessions.pop(uname, None)
+
+            _sb_last_tracker_stats["total_online_users"] = total_online_users
+            _sb_last_tracker_stats["total_online_connections"] = total_online_conns
+            _sb_last_tracker_stats["updated_at"] = now_ts
+
         except Exception:
             pass
-        time.sleep(10)
+        time.sleep(3.0)
 
 def start_singbox_tracker_if_needed():
     global _sb_tracker_started
@@ -30858,6 +30981,7 @@ def load_singbox_users():
     for u in users:
         u.setdefault("category", "عمومی (Default)")
         u.setdefault("traffic_limit_gb", 0.0)
+        u.setdefault("max_connections", 0)
         u.setdefault("used_traffic_bytes", 0)
         u.setdefault("upload_bytes", 0)
         u.setdefault("download_bytes", 0)
@@ -30928,6 +31052,20 @@ def load_singbox_users():
         u["upload_formatted"] = format_bytes_human(u.get("upload_bytes", 0))
         u["download_formatted"] = format_bytes_human(u.get("download_bytes", 0))
         u["traffic_limit_formatted"] = f"{limit_gb:g} GB" if limit_gb > 0 else "نامحدود"
+
+        try:
+            max_conn = int(u.get("max_connections") or 0)
+        except (ValueError, TypeError):
+            max_conn = 0
+        u["max_connections"] = max_conn
+        u["max_connections_formatted"] = "نامحدود" if max_conn <= 0 else f"{max_conn} دستگاه"
+
+        u_stats = _sb_user_online_stats.get(u.get("username"), {})
+        is_online = bool(u_stats.get("online") and u_stats.get("connections", 0) > 0)
+        u["is_online"] = is_online
+        u["online_connections"] = u_stats.get("connections", 0) if is_online else 0
+        u["online_ips_count"] = u_stats.get("ips_count", 0) if is_online else 0
+        u["online_ips"] = u_stats.get("ips", []) if is_online else []
 
         if not u.get("sub_token"):
             u["sub_token"] = secrets.token_urlsafe(16)
@@ -31464,6 +31602,8 @@ def api_singbox_status():
             "inbounds_count": len(inbounds),
             "inbounds": inbounds,
             "users_count": len(users),
+            "total_online_users": _sb_last_tracker_stats.get("total_online_users", 0),
+            "total_online_connections": _sb_last_tracker_stats.get("total_online_connections", 0),
             "outbounds_count": len(cfg.get("outbounds", [])),
             "clean_ips_count": len(clean_ips_list)
         })
@@ -32626,6 +32766,11 @@ def api_singbox_user_add():
     except (ValueError, TypeError):
         traffic_limit = 0.0
 
+    try:
+        max_connections = max(0, int(req.get("max_connections") or 0))
+    except (ValueError, TypeError):
+        max_connections = 0
+
     expire_date = (req.get("expire_date") or "").strip()
     expiry_type = req.get("expiry_type", "fixed_date")
     try:
@@ -32652,6 +32797,7 @@ def api_singbox_user_add():
         "inbounds": inbounds,
         "flow": req.get("flow", ""),
         "traffic_limit_gb": traffic_limit,
+        "max_connections": max_connections,
         "used_traffic_bytes": 0,
         "upload_bytes": 0,
         "download_bytes": 0,
@@ -32708,6 +32854,11 @@ def api_singbox_user_edit(username):
             target["traffic_limit_gb"] = float(req["traffic_limit_gb"] or 0.0)
         except (ValueError, TypeError):
             target["traffic_limit_gb"] = 0.0
+    if "max_connections" in req:
+        try:
+            target["max_connections"] = max(0, int(req["max_connections"] or 0))
+        except (ValueError, TypeError):
+            target["max_connections"] = 0
     if "expire_date" in req:
         target["expire_date"] = (req["expire_date"] or "").strip()
     if "expiry_type" in req:
@@ -33068,6 +33219,11 @@ def api_singbox_users_bulk_add():
     except (ValueError, TypeError):
         traffic_limit = 0.0
 
+    try:
+        max_connections = max(0, int(req.get("max_connections") or 0))
+    except (ValueError, TypeError):
+        max_connections = 0
+
     expire_date = (req.get("expire_date") or "").strip()
     expiry_type = req.get("expiry_type", "fixed_date")
     try:
@@ -33115,6 +33271,7 @@ def api_singbox_users_bulk_add():
             "inbounds": inbounds,
             "flow": "",
             "traffic_limit_gb": traffic_limit,
+            "max_connections": max_connections,
             "used_traffic_bytes": 0,
             "upload_bytes": 0,
             "download_bytes": 0,
@@ -33398,6 +33555,16 @@ def api_singbox_users_bulk_action():
             u["traffic_limit_gb"] = limit_gb
         lbl = f"{limit_gb:g} GB" if limit_gb > 0 else "نامحدود"
         msg = f"سقف حجم ترافیک {count} کاربر روی {lbl} تنظیم شد."
+
+    elif action == "set_max_connections":
+        try:
+            max_conn = max(0, int(data.get("max_connections") or 0))
+        except Exception:
+            max_conn = 0
+        for u in matched_users:
+            u["max_connections"] = max_conn
+        lbl = f"{max_conn} دستگاه" if max_conn > 0 else "نامحدود"
+        msg = f"سقف اتصال همزمان {count} کاربر روی {lbl} تنظیم شد."
 
     elif action == "assign_inbounds":
         inbounds = data.get("inbounds")

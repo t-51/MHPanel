@@ -22444,6 +22444,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     statusPill.className = data.is_active ? "sidebar-badge sidebar-badge-green" : "sidebar-badge sidebar-badge-red";
                 }
 
+                if (data.total_online_users !== undefined) {
+                    const onlineUsersEl = document.getElementById("singbox-stat-online-users-count");
+                    if (onlineUsersEl) onlineUsersEl.textContent = data.total_online_users;
+                    const onlineBadge = document.getElementById("sb-badge-online-filter-count");
+                    if (onlineBadge) onlineBadge.textContent = data.total_online_users;
+                }
+                if (data.total_online_connections !== undefined) {
+                    const onlineConnsEl = document.getElementById("singbox-stat-online-conns-count");
+                    if (onlineConnsEl) onlineConnsEl.textContent = data.total_online_connections;
+                }
+
                 renderSingboxInboundsFiltered();
                 loadSingboxUsers();
                 loadSingboxCategories();
@@ -25513,7 +25524,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     window.deleteSingboxCleanIp = deleteSingboxCleanIp;
     window.copyCleanIpToClipboard = copyCleanIpToClipboard;
 
-    async function loadSingboxUsers() {
+    let singboxFilterOnlineOnly = false;
+    let singboxOnlineRefreshTimer = null;
+
+    async function loadSingboxUsers(silent = false) {
         try {
             const res = await fetch("/api/singbox/users");
             const data = await res.json();
@@ -25524,10 +25538,51 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 if (countPill) countPill.textContent = activeSingboxUsers.length;
                 const statUsersEl = document.getElementById("singbox-stat-users-count");
                 if (statUsersEl) statUsersEl.textContent = activeSingboxUsers.length;
+                updateSingboxOnlineHeaderStats();
             }
         } catch (e) {
-            console.error("loadSingboxUsers error:", e);
+            if (!silent) console.error("loadSingboxUsers error:", e);
         }
+    }
+
+    function updateSingboxOnlineHeaderStats() {
+        if (!activeSingboxUsers) return;
+        let onlineUsers = 0;
+        let onlineConns = 0;
+        activeSingboxUsers.forEach(u => {
+            if (u.is_online) {
+                onlineUsers++;
+                onlineConns += (u.online_connections || 0);
+            }
+        });
+        const onlineUsersEl = document.getElementById("singbox-stat-online-users-count");
+        if (onlineUsersEl) onlineUsersEl.textContent = onlineUsers;
+        const onlineConnsEl = document.getElementById("singbox-stat-online-conns-count");
+        if (onlineConnsEl) onlineConnsEl.textContent = onlineConns;
+
+        const onlineBadge = document.getElementById("sb-badge-online-filter-count");
+        if (onlineBadge) onlineBadge.textContent = onlineUsers;
+    }
+
+    function toggleSingboxOnlineUsersFilter() {
+        singboxFilterOnlineOnly = !singboxFilterOnlineOnly;
+        const btn = document.getElementById("sb-btn-filter-online-only");
+        const ind = document.getElementById("sb-online-filter-indicator");
+        if (btn) {
+            if (singboxFilterOnlineOnly) {
+                btn.style.background = "rgba(16, 185, 129, 0.25)";
+                btn.style.borderColor = "#10b981";
+                btn.style.boxShadow = "0 0 8px rgba(16, 185, 129, 0.35)";
+            } else {
+                btn.style.background = "rgba(16, 185, 129, 0.08)";
+                btn.style.borderColor = "rgba(16, 185, 129, 0.4)";
+                btn.style.boxShadow = "none";
+            }
+        }
+        if (ind) {
+            ind.style.display = singboxFilterOnlineOnly ? "inline" : "none";
+        }
+        renderSingboxUsersTable();
     }
 
     function renderSingboxUsersTable() {
@@ -25569,17 +25624,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (currentSingboxCategoryFilter && currentSingboxCategoryFilter !== "ALL") {
             filteredUsers = activeSingboxUsers.filter(u => (u.category || "عمومی (Default)") === currentSingboxCategoryFilter);
         }
+        if (singboxFilterOnlineOnly) {
+            filteredUsers = filteredUsers.filter(u => u.is_online);
+        }
 
         if (filteredUsers.length === 0) {
+            const noMatchMsg = singboxFilterOnlineOnly
+                ? "در حال حاضر هیچ کاربری با اتصال فعال آنلاین وجود ندارد."
+                : `هیچ کاربری در دسته‌بندی «<strong>${escapeHtml(currentSingboxCategoryFilter)}</strong>» یافت نشد.`;
             tbody.innerHTML = `
                 <tr>
                     <td colspan="6" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                         <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                            <i data-lucide="filter" style="width:32px; height:32px; opacity:0.35;"></i>
-                            <span>هیچ کاربری در دسته‌بندی «<strong>${escapeHtml(currentSingboxCategoryFilter)}</strong>» یافت نشد.</span>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="onSingboxCategoryFilterChange('ALL'); document.getElementById('sb-users-category-filter').value='ALL';" style="margin-top:6px;">
-                                نمایش همه کاربران
-                            </button>
+                            <i data-lucide="${singboxFilterOnlineOnly ? 'radio' : 'filter'}" style="width:32px; height:32px; opacity:0.35;"></i>
+                            <span>${noMatchMsg}</span>
+                            <div style="display:flex; gap:8px; margin-top:6px;">
+                                ${singboxFilterOnlineOnly ? `<button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxOnlineUsersFilter()">نمایش همه کاربران</button>` : `<button type="button" class="btn btn-secondary btn-sm" onclick="onSingboxCategoryFilterChange('ALL'); document.getElementById('sb-users-category-filter').value='ALL';">نمایش همه کاربران</button>`}
+                            </div>
                         </div>
                     </td>
                 </tr>`;
@@ -25710,7 +25771,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 `;
             }
 
-            // 3. Status Badge
+            // 3. Status Badge & Live Online Connection Info
             let statusBadge = "";
             if (!isEnabled) {
                 statusBadge = `<span style="font-size:11px; background:#fee2e2; color:#b91c1c; padding:2px 8px; border-radius:6px; font-weight:700;">غیرفعال دستی</span>`;
@@ -25723,6 +25784,25 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             } else {
                 statusBadge = `<span style="font-size:11px; background:#dcfce7; color:#15803d; padding:2px 8px; border-radius:6px; font-weight:700;">فعال ✔</span>`;
             }
+
+            let onlineBadge = "";
+            if (u.is_online) {
+                const ipsTitle = (u.online_ips && u.online_ips.length > 0) ? `آی‌پی‌های متصل: ${escapeHtml(u.online_ips.join(', '))}` : 'کاربر آنلاین است';
+                onlineBadge = `
+                    <div style="display:inline-flex; align-items:center; gap:5px; padding:2px 8px; border-radius:6px; background:rgba(16,185,129,0.12); color:#10b981; font-size:11px; font-weight:700; border:1px solid rgba(16,185,129,0.3);" title="${ipsTitle}">
+                        <span class="pulse-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block;"></span>
+                        <span style="font-family:'JetBrains Mono';">${u.online_connections || 1} اتصال</span>
+                        <span style="font-size:10px; opacity:0.85;">(${u.online_ips_count || 1} دستگاه)</span>
+                    </div>
+                `;
+            } else {
+                onlineBadge = `<span style="font-size:10px; color:var(--text-muted); opacity:0.7;">⚪ آفلاین</span>`;
+            }
+
+            const maxConn = parseInt(u.max_connections || 0, 10);
+            const maxConnBadge = (maxConn > 0)
+                ? `<span class="badge-pill" style="font-size:10px; background:rgba(99,102,241,0.12); color:#4338ca; border:1px solid rgba(99,102,241,0.3); padding:1px 6px; border-radius:4px; font-weight:700;" title="سقف دستگاه‌های همزمان مجاز: ${maxConn} دستگاه">📱 سقف: ${maxConn} دستگاه</span>`
+                : `<span class="badge-pill" style="font-size:10px; background:rgba(100,116,139,0.08); color:var(--text-muted); padding:1px 6px; border-radius:4px;" title="بدون محدودیت دستگاه‌های همزمان">📱 سقف: نامحدود</span>`;
 
             html += `
             <tr style="border-bottom: 1px solid var(--border-color); ${isChecked ? 'background: rgba(99, 102, 241, 0.08);' : ''} ${(!isEnabled || u.is_expired || u.is_quota_exceeded) ? 'opacity:0.75;' : ''}" id="sb-user-row-${escapeHtml(u.username)}">
@@ -25738,6 +25818,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                                 <span class="badge-pill" style="font-size:10px; background:rgba(99,102,241,0.12); color:#4338ca; border:1px solid rgba(99,102,241,0.2); padding:1px 6px; border-radius:4px; font-weight:600;" title="دسته‌بندی">
                                     📁 ${escapeHtml(userCategory)}
                                 </span>
+                                ${maxConnBadge}
                             </div>
                             <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
                                 <a href="${escapeHtml(u.sub_url || '')}" target="_blank" style="font-size:11px; color:#6366f1; text-decoration:none; display:inline-flex; align-items:center; gap:3px;" title="مشاهده صفحه وب سابسکرایب کاربر">
@@ -25756,7 +25837,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     ${expireHtml}
                 </td>
                 <td style="padding: 12px 16px;">
-                    ${statusBadge}
+                    <div style="display:flex; flex-direction:column; gap:4px; align-items:flex-start;">
+                        ${statusBadge}
+                        ${onlineBadge}
+                    </div>
                 </td>
                 <td style="padding: 12px 16px; text-align: center; white-space: nowrap;">
                     <div style="display:flex; gap:5px; justify-content:center; align-items:center; flex-wrap:nowrap;">
@@ -25794,6 +25878,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function setSingboxUserQuotaPreset(gb) {
         const inp = document.getElementById("sb-user-input-traffic-limit");
         if (inp) inp.value = gb;
+    }
+
+    function setSingboxUserConnPreset(n) {
+        const inp = document.getElementById("sb-user-input-max-connections");
+        if (inp) inp.value = n;
+    }
+
+    function setSingboxBulkConnPreset(n) {
+        const inp = document.getElementById("sb-bulk-max-connections");
+        if (inp) inp.value = n;
     }
 
     function onSingboxUserExpiryModeChange(mode) {
@@ -25887,6 +25981,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const quotaInput = document.getElementById("sb-user-input-traffic-limit");
         if (quotaInput) quotaInput.value = "50";
 
+        const connInput = document.getElementById("sb-user-input-max-connections");
+        if (connInput) connInput.value = "0";
+
         setSingboxUserExpiryPreset(30);
         const rFixed = document.querySelector("input[name='sb_user_expiry_mode'][value='fixed_date']");
         if (rFixed) rFixed.checked = true;
@@ -25949,6 +26046,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const quotaInput = document.getElementById("sb-user-input-traffic-limit");
         if (quotaInput) quotaInput.value = user.traffic_limit_gb !== undefined ? user.traffic_limit_gb : 0;
+
+        const connInput = document.getElementById("sb-user-input-max-connections");
+        if (connInput) connInput.value = user.max_connections !== undefined ? user.max_connections : 0;
 
         const expInput = document.getElementById("sb-user-input-expire-date");
         if (expInput) expInput.value = user.expire_date || "";
@@ -26076,6 +26176,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const inbounds = Array.from(checkedBoxes).map(cb => cb.value);
 
         const trafficLimit = parseFloat(document.getElementById("sb-user-input-traffic-limit").value) || 0;
+        const maxConnections = parseInt(document.getElementById("sb-user-input-max-connections")?.value || "0", 10) || 0;
         const expireDate = (document.getElementById("sb-user-input-expire-date").value || "").trim();
         const expiryType = document.querySelector("input[name='sb_user_expiry_mode']:checked")?.value || "fixed_date";
         const validityDays = parseInt(document.getElementById("sb-user-input-validity-days")?.value, 10) || 30;
@@ -26092,6 +26193,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             note: note,
             category: category,
             traffic_limit_gb: trafficLimit,
+            max_connections: maxConnections,
             expiry_type: expiryType,
             validity_days: validityDays,
             expire_date: (expiryType === "on_first_use") ? "" : expireDate,
@@ -26139,6 +26241,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (startIdxInput) startIdxInput.value = "1";
         const trafficInput = document.getElementById("sb-bulk-traffic-limit");
         if (trafficInput) trafficInput.value = "50";
+        const connInput = document.getElementById("sb-bulk-max-connections");
+        if (connInput) connInput.value = "0";
         setSingboxBulkExpiryPreset(30);
         const rBulkFixed = document.querySelector("input[name='sb_bulk_expiry_mode'][value='fixed_date']");
         if (rBulkFixed) rBulkFixed.checked = true;
@@ -26226,6 +26330,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const count = parseInt(document.getElementById("sb-bulk-count").value || "10", 10);
         const startIndex = parseInt(document.getElementById("sb-bulk-start-index").value || "1", 10);
         const trafficLimit = parseFloat(document.getElementById("sb-bulk-traffic-limit").value) || 0;
+        const maxConnections = parseInt(document.getElementById("sb-bulk-max-connections")?.value || "0", 10) || 0;
         const expireDate = (document.getElementById("sb-bulk-expire-date").value || "").trim();
         const expiryType = document.querySelector("input[name='sb_bulk_expiry_mode']:checked")?.value || "fixed_date";
         const validityDays = parseInt(document.getElementById("sb-bulk-validity-days")?.value, 10) || 30;
@@ -26256,6 +26361,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     start_index: startIndex,
                     category: category,
                     traffic_limit_gb: trafficLimit,
+                    max_connections: maxConnections,
                     expiry_type: expiryType,
                     validity_days: validityDays,
                     expire_date: (expiryType === "on_first_use") ? "" : expireDate,
@@ -26568,6 +26674,57 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (modal) {
             modal.classList.remove("active");
             modal.style.display = "none";
+        }
+    }
+
+    function openSingboxBulkMaxConnModal() {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) {
+            showToast("لطفاً ابتدا حداقل یک کاربر را انتخاب کنید.", "warning");
+            return;
+        }
+        const modal = document.getElementById("modal-singbox-bulk-max-connections");
+        if (modal) {
+            modal.style.display = "flex";
+            modal.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function closeSingboxBulkMaxConnModal() {
+        const modal = document.getElementById("modal-singbox-bulk-max-connections");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    async function submitSingboxBulkMaxConn() {
+        const count = selectedSingboxUsers.size;
+        if (count === 0) return;
+        const maxConn = parseInt(document.getElementById("sb-bulk-action-max-conn")?.value || "0", 10) || 0;
+        const usernames = Array.from(selectedSingboxUsers);
+        closeSingboxBulkMaxConnModal();
+
+        toggleLoading(true, `در حال تنظیم سقف ${maxConn === 0 ? 'نامحدود' : maxConn + ' دستگاه'} برای ${count} کاربر...`);
+        try {
+            const res = await fetch("/api/singbox/users/bulk-action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "set_max_connections", max_connections: maxConn, usernames })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "سقف اتصال همزمان با موفقیت بروزرسانی شد.", "success");
+                deselectAllSingboxUsers();
+                await loadSingboxUsers();
+            } else {
+                showToast(data.error || "خطا در تنظیم سقف همزمان", "error");
+            }
+        } catch (e) {
+            toggleLoading(false);
+            showToast("خطای شبکه", "error");
         }
     }
 
@@ -28058,6 +28215,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             loadSingboxData();
             if (currentSingboxSubTab === "logs") {
                 fetchSingboxLogs();
+            }
+            if (!singboxOnlineRefreshTimer) {
+                singboxOnlineRefreshTimer = setInterval(() => {
+                    const singboxPane = document.getElementById("tab-singbox");
+                    if (singboxPane && singboxPane.classList.contains("active")) {
+                        loadSingboxUsers(true);
+                    } else {
+                        clearInterval(singboxOnlineRefreshTimer);
+                        singboxOnlineRefreshTimer = null;
+                    }
+                }, 4000);
             }
         }
     };
