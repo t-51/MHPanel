@@ -22232,17 +22232,41 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         banner.style.display = "flex";
 
         const titles = {
-            vless: { title: "پروتکل VLESS Reality (XTLS-Vision)", desc: "شبیه‌سازی کامل TLS هندشیک با گوگل و مایکروسافت بدون نیاز به ثبت دامنه، مقاوم در برابر فیلترینگ شدید" },
-            trojan: { title: "پروتکل Trojan TLS", desc: "استتار وبسایت با استاندارد امنیتی TLS و مالتی‌پلکسینگ ترافیک" },
-            hysteria2: { title: "پروتکل Hysteria 2 (Brutal QUIC)", desc: "پروتکل UDP فوق سریع با کنترل ازدحام Brutal مناسب شبکه‌های با پکت لاس بالا" },
-            tuic: { title: "پروتکل TUIC v5 (QUIC 0-RTT)", desc: "پروتکل مدرن QUIC مبتنی بر Rust با حداقل تاخیر هندشیک و کنترل BBR" },
-            shadowsocks: { title: "پروتکل Shadowsocks 2022", desc: "نسخه مدرن رمزنگاری با AEAD 2022 و BLAKE3" },
-            vmess: { title: "پروتکل VMess WebSocket", desc: "پروتکل استاندارد سازگار با کلاینت‌های قدیمی و جدید" },
-            naive: { title: "پروتکل NaiveProxy", desc: "شبیه‌سازی پشته شبکه مرورگر گوگل کروم بر بستر وب‌سرور رمزنگاری‌شده" },
-            shadowtls: { title: "پروتکل ShadowTLS v3", desc: "استتار پیشرفته لایه TLS برای عبور از فیلترینگ سختگیرانه" }
+            vless: { 
+                title: (window.t ? window.t("پروتکل VLESS Reality (XTLS-Vision)") : "پروتکل VLESS Reality (XTLS-Vision)"), 
+                desc: (window.t ? window.t("شبیه‌سازی کامل TLS هندشیک با گوگل و مایکروسافت بدون نیاز به ثبت دامنه، مقاوم در برابر فیلترینگ شدید") : "شبیه‌سازی کامل TLS هندشیک با گوگل و مایکروسافت بدون نیاز به ثبت دامنه، مقاوم در برابر فیلترینگ شدید") 
+            },
+            trojan: { 
+                title: (window.t ? window.t("پروتکل Trojan TLS") : "پروتکل Trojan TLS"), 
+                desc: (window.t ? window.t("استتار وبسایت با استاندارد امنیتی TLS و مالتی‌پلکسینگ ترافیک") : "استتار وبسایت با استاندارد امنیتی TLS و مالتی‌پلکسینگ ترافیک") 
+            },
+            hysteria2: { 
+                title: (window.t ? window.t("پروتکل Hysteria 2 (Brutal QUIC)") : "پروتکل Hysteria 2 (Brutal QUIC)"), 
+                desc: (window.t ? window.t("پروتکل UDP فوق سریع با کنترل ازدحام Brutal مناسب شبکه‌های با پکت لاس بالا") : "پروتکل UDP فوق سریع با کنترل ازدحام Brutal مناسب شبکه‌های با پکت لاس بالا") 
+            },
+            tuic: { 
+                title: (window.t ? window.t("پروتکل TUIC v5 (QUIC 0-RTT)") : "پروتکل TUIC v5 (QUIC 0-RTT)"), 
+                desc: (window.t ? window.t("پروتکل مدرن QUIC مبتنی بر Rust با حداقل تاخیر هندشیک و کنترل BBR") : "پروتکل مدرن QUIC مبتنی بر Rust با حداقل تاخیر هندشیک و کنترل BBR") 
+            },
+            shadowsocks: { 
+                title: (window.t ? window.t("پروتکل Shadowsocks 2022") : "پروتکل Shadowsocks 2022"), 
+                desc: (window.t ? window.t("نسخه مدرن رمزنگاری با AEAD 2022 و BLAKE3") : "نسخه مدرن رمزنگاری با AEAD 2022 و BLAKE3") 
+            },
+            vmess: { 
+                title: (window.t ? window.t("پروتکل VMess WebSocket") : "پروتکل VMess WebSocket"), 
+                desc: (window.t ? window.t("پروتکل استاندارد سازگار با کلاینت‌های قدیمی و جدید") : "پروتکل استاندارد سازگار با کلاینت‌های قدیمی و جدید") 
+            },
+            naive: { 
+                title: (window.t ? window.t("پروتکل NaiveProxy") : "پروتکل NaiveProxy"), 
+                desc: (window.t ? window.t("شبیه‌سازی پشته شبکه مرورگر گوگل کروم بر بستر وب‌سرور رمزنگاری‌شده") : "شبیه‌سازی پشته شبکه مرورگر گوگل کروم بر بستر وب‌سرور رمزنگاری‌شده") 
+            },
+            shadowtls: { 
+                title: (window.t ? window.t("پروتکل ShadowTLS v3") : "پروتکل ShadowTLS v3"), 
+                desc: (window.t ? window.t("استتار پیشرفته لایه TLS برای عبور از فیلترینگ سختگیرانه") : "استتار پیشرفته لایه TLS برای عبور از فیلترینگ سختگیرانه") 
+            }
         };
 
-        const info = titles[proto] || { title: `پروتکل ${proto}`, desc: "مدیریت اینباندهای اختصاصی هسته" };
+        const info = titles[proto] || { title: (window.t ? window.t(`پروتکل ${proto}`) : `پروتکل ${proto}`), desc: (window.t ? window.t("مدیریت اینباندهای اختصاصی هسته") : "مدیریت اینباندهای اختصاصی هسته") };
         const titleEl = document.getElementById("sb-filter-banner-title");
         if (titleEl) titleEl.textContent = info.title;
         const descEl = document.getElementById("sb-filter-banner-desc");
