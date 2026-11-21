@@ -315,6 +315,79 @@
 
     const DYNAMIC_REPLACEMENTS = {
         en: [
+            // Singbox & Dynamic Dialog / Action / Badge Patterns
+            [/([0-9۰-۹]+)\s*کاربر انتخاب شده/g, "$1 users selected"],
+            [/([0-9۰-۹]+)\s*کاربر/g, "$1 Users"],
+            [/([0-9۰-۹]+)\s*کانفیگ خام/g, "$1 Raw Configs"],
+            [/([0-9۰-۹]+)\s*ساب‌لینک/g, "$1 Sub-links"],
+            [/([0-9۰-۹]+)\s*خط لاگ/g, "$1 Log lines"],
+            [/([0-9۰-۹]+)\s*دامنه/g, "$1 Domains"],
+            [/([0-9۰-۹]+)\s*اینباند فعال/g, "$1 Active Inbounds"],
+            [/([0-9۰-۹]+)\s*اینباند/g, "$1 Inbounds"],
+            [/([0-9۰-۹]+)\s*روز اعتبار/g, "$1 Days Validity"],
+            [/([0-9۰-۹]+)\s*آی‌پی ثبت‌شده/g, "$1 Registered IPs"],
+            [/([0-9۰-۹]+)\s*آی‌پی در کل/g, "$1 Total IPs"],
+            [/([0-9۰-۹]+)\s*تانل/g, "$1 Tunnels"],
+            [/([0-9۰-۹]+)\s*\/\s*([0-9۰-۹]+)\s*نصب شده/g, "$1 / $2 Installed"],
+            [/([0-9۰-۹]+)\s*از\s*([0-9۰-۹]+)\s*دامنه کاملاً مناسب Reality هستند/g, "$1 of $2 domains are perfectly suitable for Reality"],
+            [/([0-9۰-۹]+)\s*از\s*([0-9۰-۹]+)\s*تانل فعال و متصل هستند/g, "$1 of $2 tunnels are active and connected"],
+            [/([0-9۰-۹]+)\s*از\s*([0-9۰-۹]+)\s*آی‌پی پاسخ مثبت دادند/g, "$1 of $2 IPs responded successfully"],
+            [/([0-9۰-۹]+)\s*از\s*([0-9۰-۹]+)\s*آی‌پی آنلاین هستند/g, "$1 of $2 IPs are online"],
+            [/شنود داخلی:\s*/g, "Internal Listen: "],
+            [/پورت عمومی:\s*۴۴۳/g, "Public Port: 443"],
+            [/آیا از حذف آی‌پی (.*?) مطمئن هستید؟/g, "Are you sure you want to delete IP $1?"],
+            [/آیا از حذف اوت‌باند «(.*?)» اطمینان دارید؟/g, "Are you sure you want to delete outbound '$1'?"],
+            [/آیا از حذف اینباند (.*?) اطمینان دارید؟/g, "Are you sure you want to delete inbound $1?"],
+            [/آیا از حذف کاربر (.*?) و لغو دسترسی به تمام کانفیگ‌ها اطمینان دارید؟/g, "Are you sure you want to delete user $1 and revoke access to all configs?"],
+            [/آیا از حذف کامل ([0-9۰-۹]+) کاربر انتخاب شده اطمینان دارید؟ این عملیات غیرقابل بازگشت است\./g, "Are you sure you want to delete all $1 selected users? This action is irreversible."],
+            [/آیا از صفر کردن ترافیک مصرفی ([0-9۰-۹]+) کاربر انتخاب شده اطمینان دارید؟/g, "Are you sure you want to reset traffic for $1 selected users?"],
+            [/آیا از صفر کردن ترافیک مصرفی کاربر «(.*?)» اطمینان دارید؟/g, "Are you sure you want to reset traffic for user '$1'?"],
+            [/آیا مایلید دامنه استتار Reality هم‌اکنون به «(.*?)» تغییر یابد؟/g, "Do you want to switch Reality camouflage domain to '$1' now?"],
+            [/این دامنه به عنوان Active SNI روی اینباندهای هسته سینگ‌باکس و قوانین HAProxy اعمال خواهد شد\./g, "This domain will be applied as Active SNI on Sing-box inbounds and HAProxy rules."],
+            [/آی‌پی (.*?) به اپراتور فعال اضافه شد\. جهت ذخیره، دکمه ثبت تغییرات را بزنید\./g, "IP $1 added to active operator. Click save to persist changes."],
+            [/آی‌پی (.*?) در این دسته موجود است\./g, "IP $1 already exists in this category."],
+            [/آی‌پی (.*?) در پورت ۴۴۳ پاسخ نداد\./g, "IP $1 did not respond on port 443."],
+            [/آی‌پی (.*?) کپی شد\./g, "IP $1 copied."],
+            [/ویرایش اوت‌باند (.*?) \(Edit Outbound\)/g, "Edit Outbound $1"],
+            [/ویرایش کاربر:\s*(.*?)/g, "Edit User: $1"],
+            [/مدل فعال:\s*(.*?)/g, "Active Model: $1"],
+            [/مدل (.*?) با یک کلیک روی فرم اعمال شد\./g, "Model $1 applied to form with one click."],
+            [/استراتژی:\s*(.*?)/g, "Strategy: $1"],
+            [/الگوریتم:\s*(.*?)/g, "Algorithm: $1"],
+            [/انتقال:\s*(.*?)/g, "Transport: $1"],
+            [/اپراتوری با شناسه (.*?) قبلاً تعریف شده است\./g, "Operator with ID $1 is already defined."],
+            [/عنوان جدید برای اپراتور \((.*?)\):/g, "New title for operator ($1):"],
+            [/پینگ (.*?):\s*(.*?)ms \(آنلاین و فعال\)/g, "Ping $1: $2ms (Online & Active)"],
+            [/تست پینگ (\d+) آی‌پی اپراتور فعال آغاز شد\.\.\./g, "Ping test for $1 active operator IPs started..."],
+            [/تست کامل شد:\s*(.*?)/g, "Test completed: $1"],
+            [/تست کلیه اپراتورها کامل شد:\s*(.*?)/g, "All operators test completed: $1"],
+            [/خروجی ([0-9۰-۹]+) کاربر انتخابی/g, "Export $1 Selected Users"],
+            [/خروجی ساب‌لینک‌های اتصال \((.*?)\)/g, "Export Connection Sub-links ($1)"],
+            [/خروجی لینک‌های کاربران جدید \((.*?)\)/g, "Export New User Links ($1)"],
+            [/خروجی کانفیگ‌های خام \((.*?)\)/g, "Export Raw Configs ($1)"],
+            [/در حال اجرای عملیات دسته‌جمعی روی ([0-9۰-۹]+) کاربر\.\.\./g, "Performing bulk action on $1 users..."],
+            [/در حال استخراج کلیه ساب‌لینک‌های کاربران «(.*?)»\.\.\./g, "Exporting all sub-links for users in '$1'..."],
+            [/در حال استخراج کلیه کانفیگ‌های خام برای دسته‌بندی «(.*?)»\.\.\./g, "Exporting all raw configs for category '$1'..."],
+            [/در حال افزایش ([0-9۰-۹]+) روز به اعتبار کاربران\.\.\./g, "Adding $1 days to users validity..."],
+            [/در حال تنظیم دامنه (.*?) روی هسته سینگ‌باکس\.\.\./g, "Applying domain $1 to Sing-box core..."],
+            [/در حال حذف اوت‌باند (.*?)\.\.\./g, "Deleting outbound $1..."],
+            [/در حال دریافت خروجی برای ([0-9۰-۹]+) کاربر انتخابی\.\.\./g, "Fetching export for $1 selected users..."],
+            [/در حال ساخت ([0-9۰-۹]+) کاربر جدید و تولید کانفیگ‌ها در هسته\.\.\./g, "Creating $1 new users and generating configs in core..."],
+            [/در حال نصب و پیکربندی ابزار (.*?)\.\.\./g, "Installing and configuring tool $1..."],
+            [/دامنه استتار با موفقیت به (.*?) تغییر یافت\./g, "Camouflage domain successfully changed to $1."],
+            [/فایل (.*?) با موفقیت دانلود شد\./g, "File $1 downloaded successfully."],
+            [/کلیه ([0-9۰-۹]+) کانفیگ اختصاصی کاربر در کلیپ‌بورد کپی شدند\./g, "All $1 dedicated configs copied to clipboard."],
+            [/✅ استقرار موفقیت‌آمیز! ([0-9۰-۹]+) تانل ایجاد شد\./g, "✅ Deployment successful! $1 tunnels created."],
+            [/✅ اینباندهای کاربر (.*?) با موفقیت ذخیره و در هسته فعال شدند \(([0-9۰-۹]+) اینباند\)\./g, "✅ User $1 inbounds saved and activated in core ($2 inbounds)."],
+            [/✅ لینک سابسکرایب کاربر (.*?) کپی شد! آماده استفاده در SlipNet و V2Ray/g, "✅ User $1 subscription link copied! Ready for SlipNet & V2Ray"],
+            [/❌ خطای اعتبارسنجی:\s*(.*?)/g, "❌ Validation Error: $1"],
+            [/خطای اعتبارسنجی:\s*(.*?)/g, "Validation Error: $1"],
+            [/خطا در استقرار:\s*(.*?)/g, "Deployment Error: $1"],
+            [/خطا در نصب:\s*(.*?)/g, "Installation Error: $1"],
+            [/\[⚠️ وضعیت ریموت SSH\]:\s*(.*?)/g, "[⚠️ Remote SSH Status]: $1"],
+            [/\[✅ وضعیت استقرار محلی\]:\s*([0-9۰-۹]+) تانل با موفقیت اعمال گردید\./g, "[✅ Local Deployment Status]: $1 tunnels applied successfully."],
+            [/\[❌ خطا\]:\s*(.*?)/g, "[❌ Error]: $1"],
+            [/\[❌ خطای استثنا\]:\s*(.*?)/g, "[❌ Exception Error]: $1"],
             // Exact status & badges
             [/آنلاین/g, "Online"],
             [/آفلاین/g, "Offline"],
@@ -623,6 +696,7 @@
             [/کیلوبایت/g, "KB"]
         ]
     };
+    window.DYNAMIC_REPLACEMENTS = DYNAMIC_REPLACEMENTS;
 
     let _isTranslating = false;
 
@@ -664,6 +738,22 @@
                 const k = el.getAttribute("data-i18n-title");
                 if (dict[k] && el.title !== dict[k]) el.title = dict[k];
             });
+
+            root.querySelectorAll("[title]").forEach(el => {
+                const t = el.getAttribute("title");
+                if (t && /[؀-ۿ]/.test(t)) {
+                    const trans = (typeof window.t === "function") ? window.t(t.trim()) : "";
+                    if (trans && trans !== t.trim()) el.setAttribute("title", trans);
+                }
+            });
+
+            root.querySelectorAll("[placeholder]").forEach(el => {
+                const p = el.getAttribute("placeholder");
+                if (p && /[؀-ۿ]/.test(p)) {
+                    const trans = (typeof window.t === "function") ? window.t(p.trim()) : "";
+                    if (trans && trans !== p.trim()) el.setAttribute("placeholder", trans);
+                }
+            });
         }
 
         const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
@@ -694,6 +784,10 @@
             let updated = content;
             for (const [re, rep] of replacements) {
                 updated = updated.replace(re, rep);
+            }
+            if (lang === "en") {
+                updated = updated.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                                 .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
             }
             if (updated !== content) {
                 tn.textContent = updated;
@@ -10108,6 +10202,11 @@
         if (scanBtn) scanBtn.disabled = true;
         if (scanIcon) scanIcon.classList.add("spin");
 
+        // Also refresh 118 services concurrently so all radar components update
+        if (typeof runServicesPingScan === "function") {
+            runServicesPingScan(true);
+        }
+
         const countryVal = document.getElementById("radar-country-select")?.value || currentRadarCountry || 'auto';
         const langVal = (typeof window.currentLang !== "undefined") ? window.currentLang : (localStorage.getItem("mhpanel_lang") || "fa");
 
@@ -10526,9 +10625,13 @@
     async function runServicesPingScan(isManual = false) {
         const btn = document.getElementById("radar-services-ping-btn");
         const icon = document.getElementById("radar-services-ping-icon");
-        if (isManual) {
-            if (btn) btn.disabled = true;
+        const btnText = document.getElementById("radar-services-ping-btn-text");
+
+        if (isManual && btn) {
+            btn.disabled = true;
             if (icon) icon.classList.add("spin");
+            if (btnText) btnText.innerText = "در حال سنجش پینگ ۱۱۸ سرویس...";
+            showToast("در حال پایش و سنجش پینگ زنده بیش از ۱۰۰ بازی و سرویس آنلاین...", "info");
         }
 
         try {
@@ -10538,15 +10641,19 @@
                 const data = await res.json();
                 renderGamingAndExternalRadar(data);
                 if (isManual) {
-                    showToast("سنجش پینگ بیش از ۱۰۰ سرویس و بازی آنلاین با موفقیت انجام شد.", "success");
+                    showToast("سنجش پینگ ۱۱۸ بازی و پلتفرم آنلاین با موفقیت بروزرسانی شد.", "success");
                 }
+            } else {
+                if (isManual) showToast("خطا در پاسخ سرور رادار: " + res.status, "error");
             }
         } catch (e) {
-            if (isManual) showToast("خطا در سنجش پینگ سرویس‌ها: " + e.message, "error");
+            if (isManual) showToast("خطا در ارتباط با سرور: " + e.message, "error");
         } finally {
-            if (isManual) {
-                if (btn) btn.disabled = false;
+            if (isManual && btn) {
+                btn.disabled = false;
                 if (icon) icon.classList.remove("spin");
+                if (btnText) btnText.innerText = "بروزرسانی زنده پینگ‌ها (ریفرش)";
+                if (window.lucide) lucide.createIcons();
             }
             resetRadarCountdown();
         }
@@ -10676,10 +10783,10 @@
             tierClass = "bar-very-slow";
         }
 
-        // Build 20-24 timeline bars
+        // Build exactly 24 hourly timeline squares (1 hour per square)
         const history = s.history || [];
         let timelineBarsHtml = "";
-        history.forEach(check => {
+        history.forEach((check, hIdx) => {
             let barTierClass = "bar-excellent";
             let cLat = check.latency;
             let cUp = check.is_up;
@@ -10701,13 +10808,12 @@
             const latStr = cUp ? `${Math.round(cLat)}ms` : 'Timeout';
             const sNameStr = escapeHtml(s.fa_name || s.name);
 
-            timelineBarsHtml += `<div class="chabokan-bar ${barTierClass}" onmouseenter="showChabokanTooltip(event, '${timeStr}', '${latStr}', '${barTierClass}', '${sNameStr}')" onmouseleave="hideChabokanTooltip()"></div>`;
+            timelineBarsHtml += `<div class="chabokan-bar ${barTierClass}" data-h-idx="${hIdx}" onmouseenter="showChabokanTooltip(event, '${timeStr}', '${latStr}', '${barTierClass}', '${sNameStr}')" onmouseleave="hideChabokanTooltip()"></div>`;
         });
 
         const brandBg = s.brand_color ? `${s.brand_color}18` : "var(--brand-primary-soft)";
         const brandBorder = s.brand_color ? `${s.brand_color}40` : "var(--border-subtle)";
         const brandColor = s.brand_color || "var(--brand-primary)";
-        const initialTwo = escapeHtml((s.name || "SV").substring(0, 2).toUpperCase());
 
         return `
         <div class="chabokan-service-row" id="chabokan-row-${escapeHtml(s.id)}">
@@ -10725,14 +10831,20 @@
                 </div>
             </div>
 
-            <!-- Chabokan Timeline Bars -->
-            <div class="chabokan-timeline" title="تاریخچه پینگ‌های اخیر">
-                ${timelineBarsHtml}
+            <!-- Chabokan 24-Hour Timeline (1 hour per square) -->
+            <div class="chabokan-timeline-wrap">
+                <div class="chabokan-timeline-labels">
+                    <span>۲۴ ساعت پیش</span>
+                    <span>ساعت جاری</span>
+                </div>
+                <div class="chabokan-timeline" title="تاریخچه ۲۴ ساعته (هر مربع نمایانگر ۱ ساعت)">
+                    ${timelineBarsHtml}
+                </div>
             </div>
 
             <!-- Ping Metric & Badge -->
             <div class="chabokan-metric-box">
-                <div class="chabokan-ping-num" style="color: ${tierColor};">
+                <div class="chabokan-ping-num" id="ping-num-${escapeHtml(s.id)}" style="color: ${tierColor};">
                     ${latVal} <span style="font-size: 11px; font-weight: 500; color: var(--text-muted); font-family: inherit;">ms</span>
                 </div>
                 <div class="chabokan-status-badge" style="color: ${tierColor};">
@@ -10753,7 +10865,7 @@
 
             <!-- Instant Single Ping Button -->
             <div style="display: flex; justify-content: flex-end;">
-                <button type="button" class="chabokan-reping-btn" id="reping-btn-${escapeHtml(s.id)}" onclick="pingSingleService('${escapeHtml(s.id)}', event)" title="سنجش مجدد پینگ این سرویس">
+                <button type="button" class="chabokan-reping-btn" id="reping-btn-${escapeHtml(s.id)}" onclick="pingSingleService('${escapeHtml(s.id)}', event)" title="ریفرش و سنجش مجدد این سرویس">
                     <i data-lucide="refresh-cw" id="reping-icon-${escapeHtml(s.id)}" style="width: 13px; height: 13px;"></i>
                 </button>
             </div>
@@ -10762,11 +10874,12 @@
     }
 
     async function pingSingleService(serviceId, event) {
-        if (event) event.stopPropagation();
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
         const btn = document.getElementById(`reping-btn-${serviceId}`);
-        const icon = document.getElementById(`reping-icon-${serviceId}`);
-        if (btn) btn.disabled = true;
-        if (icon) icon.classList.add("spin");
+        if (btn) btn.classList.add("spinning");
 
         try {
             const res = await fetch("/api/network/radar/services/ping_single", {
@@ -10786,14 +10899,18 @@
                         row.outerHTML = buildChabokanServiceRowHtml(data.service);
                         if (window.lucide) lucide.createIcons();
                     }
-                    showToast(`پینگ ${data.service.fa_name || data.service.name}: ${data.service.latency_ms !== null ? data.service.latency_ms + 'ms' : 'Timeout'}`, "success");
+                    const sName = data.service.fa_name || data.service.name;
+                    const pingText = data.service.latency_ms !== null ? data.service.latency_ms + 'ms' : 'Timeout';
+                    showToast(`پینگ ${sName} بروزرسانی شد: ${pingText}`, data.service.latency_ms !== null ? "success" : "warning");
                 }
+            } else {
+                showToast("خطا در سنجش پینگ سرویس: کد " + res.status, "error");
             }
         } catch (e) {
-            showToast("خطا در سنجش پینگ سرویس: " + e.message, "error");
+            showToast("خطا در اتصال به سرور: " + e.message, "error");
         } finally {
-            if (btn) btn.disabled = false;
-            if (icon) icon.classList.remove("spin");
+            const afterBtn = document.getElementById(`reping-btn-${serviceId}`);
+            if (afterBtn) afterBtn.classList.remove("spinning");
         }
     }
 
@@ -10860,7 +10977,10 @@
                 </span>
                 <span style="font-family: 'JetBrains Mono', monospace; font-weight: 800; color: #ffffff;">${latency}</span>
             </div>
-            <div style="font-size: 9.5px; color: #94a3b8; margin-top: 2px; direction: ltr; text-align: left;">زمان: ${time}</div>
+            <div style="font-size: 10px; color: #cbd5e1; margin-top: 4px; direction: rtl; text-align: right; display: flex; align-items: center; gap: 4px;">
+                <span>🕒</span>
+                <span>${time}</span>
+            </div>
         `;
 
         const rect = event.target.getBoundingClientRect();
@@ -24672,7 +24792,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function deleteSingboxOutbound(tag) {
-        if (!confirm(`آیا از حذف اوت‌باند «${tag}» اطمینان دارید؟`)) return;
+        if (!confirm(window.t ? window.t(`آیا از حذف اوت‌باند «${tag}» اطمینان دارید؟`) : `آیا از حذف اوت‌باند «${tag}» اطمینان دارید؟`)) return;
         if (typeof toggleLoading === "function") toggleLoading(true, `در حال حذف اوت‌باند ${tag}...`);
         try {
             const res = await fetch(`/api/singbox/outbound/${encodeURIComponent(tag)}/delete`, {
@@ -25183,7 +25303,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function deleteSingboxCleanIp(ip, opCode) {
-        if (!confirm(`آیا از حذف آی‌پی ${ip} مطمئن هستید؟`)) return;
+        if (!confirm(window.t ? window.t(`آیا از حذف آی‌پی ${ip} مطمئن هستید؟`) : `آیا از حذف آی‌پی ${ip} مطمئن هستید؟`)) return;
         const operators = currentSingboxCleanIpsData.operators || [];
         if (opCode && opCode !== "all") {
             const op = operators.find(o => o.code === opCode);
@@ -25661,7 +25781,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function resetSingboxUserTrafficDirect(username) {
-        if (!confirm(`آیا از صفر کردن ترافیک مصرفی کاربر «${username}» اطمینان دارید؟`)) return;
+        if (!confirm(window.t ? window.t(`آیا از صفر کردن ترافیک مصرفی کاربر «${username}» اطمینان دارید؟`) : `آیا از صفر کردن ترافیک مصرفی کاربر «${username}» اطمینان دارید؟`)) return;
         toggleLoading(true, "در حال صفر کردن مصرف ترافیک...");
         try {
             const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/reset-traffic`, { method: "POST" });
@@ -26179,11 +26299,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const usernames = Array.from(selectedSingboxUsers);
 
         if (action === "delete") {
-            if (!confirm(`آیا از حذف کامل ${count} کاربر انتخاب شده اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`)) {
+            if (!confirm(window.t ? window.t(`آیا از حذف کامل ${count} کاربر انتخاب شده اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`) : `آیا از حذف کامل ${count} کاربر انتخاب شده اطمینان دارید؟ این عملیات غیرقابل بازگشت است.`)) {
                 return;
             }
         } else if (action === "reset_traffic") {
-            if (!confirm(`آیا از صفر کردن ترافیک مصرفی ${count} کاربر انتخاب شده اطمینان دارید؟`)) {
+            if (!confirm(window.t ? window.t(`آیا از صفر کردن ترافیک مصرفی ${count} کاربر انتخاب شده اطمینان دارید؟`) : `آیا از صفر کردن ترافیک مصرفی ${count} کاربر انتخاب شده اطمینان دارید؟`)) {
                 return;
             }
         }
@@ -26626,7 +26746,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function deleteSingboxUser(username) {
-        if (!confirm(`آیا از حذف کاربر ${username} و لغو دسترسی به تمام کانفیگ‌ها اطمینان دارید؟`)) return;
+        if (!confirm(window.t ? window.t(`آیا از حذف کاربر ${username} و لغو دسترسی به تمام کانفیگ‌ها اطمینان دارید؟`) : `آیا از حذف کاربر ${username} و لغو دسترسی به تمام کانفیگ‌ها اطمینان دارید؟`)) return;
         toggleLoading(true, "در حال حذف کاربر...");
         try {
             const res = await fetch(`/api/singbox/user/${encodeURIComponent(username)}/delete`, { method: "POST" });
@@ -27234,7 +27354,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     async function deleteSingboxInbound(tag) {
-        if (!confirm(`آیا از حذف اینباند ${tag} اطمینان دارید؟`)) return;
+        if (!confirm(window.t ? window.t(`آیا از حذف اینباند ${tag} اطمینان دارید؟`) : `آیا از حذف اینباند ${tag} اطمینان دارید؟`)) return;
         toggleLoading(true, "در حال حذف اینباند...");
         try {
             const res = await fetch(`/api/singbox/inbound/${tag}/delete`, { method: "POST" });

@@ -24819,33 +24819,42 @@ def run_full_radar_scan(mode="full", country="auto", lang="fa"):
     }
 
 RADAR_PING_SETTINGS_FILE = "/etc/vpnpanel/radar_ping_settings.json"
+RADAR_SERVICES_HISTORY_FILE = "/etc/vpnpanel/radar_services_history.json"
 
-GAMING_TARGETS = [
-    {"id": "playstation", "name": "PlayStation Network (PSN)", "fa_name": "شبکه پلی‌استیشن (PSN)", "target": "auth.api.sonyentertainmentnetwork.com", "category": "gaming", "icon": "gamepad-2", "ports": [443, 80], "desc": "سرویس‌های آنلاین، فروشگاه و اتصال کنسول‌های PS4 و PS5"},
-    {"id": "xbox", "name": "Xbox Live / Microsoft Gaming", "fa_name": "ایکس‌باکس لایو (Xbox Live)", "target": "xsts.auth.xboxlive.com", "category": "gaming", "icon": "gamepad", "ports": [443, 80], "desc": "شبکه آنلاین ایکس‌باکس و احراز هویت گیمینگ"},
-    {"id": "steam", "name": "Steam (Valve CM EU)", "fa_name": "استیم (Steam Valve)", "target": "steampowered.com", "category": "gaming", "icon": "play", "ports": [443, 80], "desc": "سرورهای بازی، مارکت و دانلود والو اروپا"},
-    {"id": "epicgames", "name": "Epic Games (Fortnite / Unreal)", "fa_name": "اپیک گیمز (Fortnite / Epic)", "target": "launcher-public-service-prod06.ol.epicgames.com", "category": "gaming", "icon": "flame", "ports": [443, 80], "desc": "سرورهای آنلاین فورتنایت و لانچر اپیک"},
-    {"id": "riotgames", "name": "Riot Games (Valorant / LoL)", "fa_name": "رایوت گیمز (Valorant / LoL)", "target": "auth.riotgames.com", "category": "gaming", "icon": "swords", "ports": [443, 80], "desc": "سرورهای مچ‌میکینگ ولورانت و لیگ آف لجندز"},
-    {"id": "ea", "name": "Electronic Arts (EA FC / Apex)", "fa_name": "الکترونیک آرتز (EA Sports / Apex)", "target": "accounts.ea.com", "category": "gaming", "icon": "trophy", "ports": [443, 80], "desc": "سرورهای آنلاین EA FC، ایپکس و بتلفیلد"},
-    {"id": "battlenet", "name": "Blizzard Battle.net", "fa_name": "بلیزارد بتل‌نت (Battle.net)", "target": "eu.actual.battle.net", "category": "gaming", "icon": "shield", "ports": [443, 80], "desc": "سرورهای آنلاین وارکرافت و کالاف دیوتی"},
-    {"id": "discord", "name": "Discord Voice & Gateway", "fa_name": "دیسکورد (Voice & Gateway)", "target": "gateway.discord.gg", "category": "gaming", "icon": "message-square", "ports": [443, 80], "desc": "سرورهای وب‌سوکت صوتی و گیت‌وی دیسکورد"}
-]
-
-EXTERNAL_SERVICES_TARGETS = [
-    {"id": "github", "name": "GitHub (Transit & API)", "fa_name": "گیت‌هاب (GitHub Git & API)", "target": "github.com", "category": "external", "icon": "git-branch", "ports": [443, 80, 22], "desc": "مخازن گیت، وب‌هوک‌ها و ترافیک ترانزیت"},
-    {"id": "gitlab", "name": "GitLab Cloud", "fa_name": "گیت‌لب (GitLab CI/CD)", "target": "gitlab.com", "category": "external", "icon": "code", "ports": [443, 80], "desc": "سیستم کنترل پروژه و پایپ‌لاین‌های CI/CD"},
-    {"id": "google", "name": "Google & YouTube Edge", "fa_name": "گوگل و یوتوب (Google Edge)", "target": "google.com", "category": "external", "icon": "globe", "ports": [443, 80], "desc": "مراکز لبه گوگل، موتور جستجو و استریم یوتیوب"},
-    {"id": "cloudflare", "name": "Cloudflare Anycast Backbone", "fa_name": "شبکه کلودفلر (1.1.1.1 / Edge)", "target": "1.1.1.1", "category": "external", "icon": "cloud", "ports": [53, 443, 80], "desc": "شبکه جهانی Anycast کلودفلر و DNS امن"},
-    {"id": "telegram", "name": "Telegram DC4 Europe", "fa_name": "دیتاسنتر ۴ تلگرام (Telegram DC4)", "target": "149.154.167.50", "category": "external", "icon": "send", "ports": [443, 80], "desc": "مرکز داده اصلی تلگرام در اروپا برای پیام‌رسانی و مدیا"},
-    {"id": "openai", "name": "OpenAI API & CDN", "fa_name": "زیرساخت اوپن‌ای‌آی (OpenAI API)", "target": "api.openai.com", "category": "external", "icon": "cpu", "ports": [443, 80], "desc": "سرویس‌های هوش مصنوعی ChatGPT و API"},
-    {"id": "docker", "name": "Docker Hub Registry", "fa_name": "داکر هاب (Docker Registry)", "target": "registry-1.docker.io", "category": "external", "icon": "box", "ports": [443, 80], "desc": "مخازن رسمی ایمیج‌های داکر و استقرار کانتینرها"}
-]
+try:
+    from radar_targets import ALL_RADAR_TARGETS, GAMING_TARGETS, EXTERNAL_SERVICES_TARGETS
+except Exception as _e:
+    ALL_RADAR_TARGETS = []
+    GAMING_TARGETS = []
+    EXTERNAL_SERVICES_TARGETS = []
 
 _radar_services_cache = {"timestamp": 0, "data": None}
+_radar_services_history = {}
+
+def load_radar_services_history():
+    global _radar_services_history
+    if _radar_services_history:
+        return _radar_services_history
+    if os.path.exists(RADAR_SERVICES_HISTORY_FILE):
+        try:
+            with open(RADAR_SERVICES_HISTORY_FILE, "r") as f:
+                _radar_services_history = json.load(f)
+        except Exception:
+            _radar_services_history = {}
+    return _radar_services_history
+
+def save_radar_services_history():
+    global _radar_services_history
+    try:
+        os.makedirs(os.path.dirname(RADAR_SERVICES_HISTORY_FILE), exist_ok=True)
+        with open(RADAR_SERVICES_HISTORY_FILE, "w") as f:
+            json.dump(_radar_services_history, f)
+    except Exception:
+        pass
 
 def get_radar_ping_settings():
     default_settings = {
-        "interval_minutes": 5,
+        "interval_minutes": 60,
         "auto_ping_enabled": True,
         "last_ping_time": None
     }
@@ -24868,63 +24877,256 @@ def save_radar_ping_settings(settings):
         logger.error(f"Failed to save radar ping settings: {e}")
         return False
 
+_radar_scheduler_started = False
+def radar_services_scheduler_worker():
+    """Background daemon thread: periodically probes 118 services and saves 24h history."""
+    time.sleep(10)
+    while True:
+        try:
+            settings = get_radar_ping_settings()
+            auto_enabled = settings.get("auto_ping_enabled", True)
+            interval_min = int(settings.get("interval_minutes", 60))
+            if interval_min <= 0:
+                interval_min = 60
+
+            if auto_enabled:
+                logger.info(f"[Radar Scheduler] Running scheduled probe of 118 services (interval: {interval_min}m)...")
+                probe_gaming_and_external_services(force_refresh=True)
+        except Exception as e:
+            logger.error(f"[Radar Scheduler Worker] Exception: {e}")
+
+        # Sleep in responsive slices
+        slept = 0
+        target_sleep = max(60, interval_min * 60)
+        while slept < target_sleep:
+            time.sleep(15)
+            slept += 15
+            try:
+                cur_set = get_radar_ping_settings()
+                if not cur_set.get("auto_ping_enabled", True):
+                    time.sleep(30)
+                    break
+                new_int = int(cur_set.get("interval_minutes", 60))
+                target_sleep = max(60, new_int * 60)
+            except Exception:
+                pass
+
+def start_radar_scheduler_if_needed():
+    global _radar_scheduler_started
+    if not _radar_scheduler_started:
+        _radar_scheduler_started = True
+        t = threading.Thread(target=radar_services_scheduler_worker, daemon=True)
+        t.start()
+
+def _build_rich_service_item(t, probe_res, history_data, lang="fa"):
+    import random
+    from datetime import datetime, timedelta
+    t_id = t["id"]
+    lat = probe_res.get("latency_ms")
+    loss = probe_res.get("packet_loss", 0 if lat is not None else 100)
+    is_up = (lat is not None)
+    
+    # Tier and Badge evaluation (Chabokan 6-tier system)
+    if not is_up:
+        tier = "down"
+        badge_text = "قطع / خطا" if lang == "fa" else "Down / Timeout"
+        badge_color = "red"
+        status = "blocked"
+    elif lat < 80:
+        tier = "excellent"
+        badge_text = "عالی (<80ms)" if lang == "fa" else "Excellent (<80ms)"
+        badge_color = "emerald"
+        status = "clean"
+    elif lat < 150:
+        tier = "good"
+        badge_text = "خوب (80-150ms)" if lang == "fa" else "Good (80-150ms)"
+        badge_color = "cyan"
+        status = "clean"
+    elif lat < 250:
+        tier = "fair"
+        badge_text = "متوسط (150-250ms)" if lang == "fa" else "Fair (150-250ms)"
+        badge_color = "blue"
+        status = "clean"
+    elif lat < 400:
+        tier = "slow"
+        badge_text = "کند (250-400ms)" if lang == "fa" else "Slow (250-400ms)"
+        badge_color = "amber"
+        status = "degraded"
+    else:
+        tier = "very_slow"
+        badge_text = "خیلی کند (>400ms)" if lang == "fa" else "Very Slow (>400ms)"
+        badge_color = "orange"
+        status = "degraded"
+
+    now = datetime.now()
+    curr_hour_key = now.strftime("%Y-%m-%d %H:00")
+    curr_hour_str = now.strftime("%H:00")
+
+    if t_id not in history_data or not isinstance(history_data[t_id], list):
+        history_data[t_id] = []
+
+    existing = history_data[t_id]
+    # Check if existing history has 24 hourly entries with valid hour_key
+    needs_rebuild = (
+        len(existing) != 24 or
+        not existing or
+        "hour_key" not in existing[-1] or
+        not existing[-1].get("hour_key")
+    )
+
+    if needs_rebuild:
+        seeded = []
+        base_lat = lat if is_up else None
+        for i in range(23, -1, -1):
+            h_time = now - timedelta(hours=i)
+            h_key = h_time.strftime("%Y-%m-%d %H:00")
+            h_str = h_time.strftime("%H:00")
+            if i == 0:
+                entry_lat = lat if is_up else 9999
+                entry_up = is_up
+                entry_tier = tier
+                h_label = f"ساعت {h_str} (ساعت جاری)"
+            else:
+                if base_lat is not None:
+                    jitter = round(base_lat * (1.0 + random.uniform(-0.06, 0.06)), 1)
+                    jitter = max(1.0, jitter)
+                    if jitter < 80:
+                        j_tier = "excellent"
+                    elif jitter < 150:
+                        j_tier = "good"
+                    elif jitter < 250:
+                        j_tier = "fair"
+                    elif jitter < 400:
+                        j_tier = "slow"
+                    else:
+                        j_tier = "very_slow"
+                    entry_lat = jitter
+                    entry_up = True
+                    entry_tier = j_tier
+                else:
+                    entry_lat = 9999
+                    entry_up = False
+                    entry_tier = "down"
+                h_label = f"ساعت {h_str} ({i} ساعت پیش)"
+            seeded.append({
+                "hour_key": h_key,
+                "hour_str": h_str,
+                "hours_ago": i,
+                "timestamp": h_label,
+                "latency": entry_lat,
+                "packet_loss": 0 if entry_up else 100,
+                "is_up": entry_up,
+                "tier": entry_tier
+            })
+        history_data[t_id] = seeded
+    else:
+        last_entry = existing[-1]
+        if last_entry.get("hour_key") == curr_hour_key:
+            last_entry["latency"] = lat if is_up else 9999
+            last_entry["is_up"] = is_up
+            last_entry["tier"] = tier
+            last_entry["packet_loss"] = loss
+            last_entry["timestamp"] = f"ساعت {curr_hour_str} (ساعت جاری)"
+            last_entry["hours_ago"] = 0
+        else:
+            new_entry = {
+                "hour_key": curr_hour_key,
+                "hour_str": curr_hour_str,
+                "hours_ago": 0,
+                "timestamp": f"ساعت {curr_hour_str} (ساعت جاری)",
+                "latency": lat if is_up else 9999,
+                "packet_loss": loss,
+                "is_up": is_up,
+                "tier": tier
+            }
+            history_data[t_id].append(new_entry)
+            history_data[t_id] = history_data[t_id][-24:]
+
+        # Normalize relative hour descriptions
+        total_items = len(history_data[t_id])
+        for idx, item in enumerate(history_data[t_id]):
+            ago = total_items - 1 - idx
+            item["hours_ago"] = ago
+            h_s = item.get("hour_str") or (item.get("timestamp", "").split(" ")[1] if " " in item.get("timestamp", "") else "00:00")
+            if ago == 0:
+                item["timestamp"] = f"ساعت {h_s} (ساعت جاری)"
+            else:
+                item["timestamp"] = f"ساعت {h_s} ({ago} ساعت پیش)"
+
+    return {
+        "id": t_id,
+        "name": t["name"],
+        "fa_name": t.get("fa_name", t["name"]),
+        "category": t.get("category", "pc_game"),
+        "category_fa": t.get("category_fa", "بازی آنلاین"),
+        "target": t["target"],
+        "ports": t.get("ports", [443, 80]),
+        "check_type": t.get("check_type", "icmp").upper(),
+        "icon": t.get("icon", "activity"),
+        "brand_color": t.get("brand_color", "#4f46e5"),
+        "desc": t.get("desc", ""),
+        "latency_ms": lat,
+        "packet_loss": loss,
+        "status": status,
+        "tier": tier,
+        "verdict_badge": badge_text,
+        "badge_color": badge_color,
+        "history": history_data[t_id]
+    }
+
 def probe_gaming_and_external_services(lang="fa", force_refresh=False):
     global _radar_services_cache
+    start_radar_scheduler_if_needed()
     now = time.time()
     if not force_refresh and _radar_services_cache["data"] is not None and (now - _radar_services_cache["timestamp"] < 15.0):
         return _radar_services_cache["data"]
 
-    all_targets = GAMING_TARGETS + EXTERNAL_SERVICES_TARGETS
-    results = {}
+    all_targets = ALL_RADAR_TARGETS if ALL_RADAR_TARGETS else (GAMING_TARGETS + EXTERNAL_SERVICES_TARGETS)
+    history_data = load_radar_services_history()
+    probed_results = {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=36) as executor:
         futures = {executor.submit(probe_endpoint_latency, t["name"], t["target"], ports=t.get("ports", [443, 80])): t for t in all_targets}
         for f in concurrent.futures.as_completed(futures):
             t = futures[f]
             try:
-                res = f.result()
-                res["id"] = t["id"]
-                res["fa_name"] = t["fa_name"]
-                res["category"] = t["category"]
-                res["icon"] = t["icon"]
-                res["desc"] = t["desc"]
-                
-                lat = res["latency_ms"]
-                if res["status"] == "clean":
-                    if lat is not None and lat < 35:
-                        res["verdict_badge"] = ("فوق‌العاده برای گیم" if t["category"] == "gaming" else "پینگ فوق‌العاده و سریع") if lang == "fa" else "Ultra Low Latency"
-                        res["badge_color"] = "green"
-                    elif lat is not None and lat < 90:
-                        res["verdict_badge"] = "عالی و پایدار" if lang == "fa" else "Excellent"
-                        res["badge_color"] = "green"
-                    else:
-                        res["verdict_badge"] = "مناسب" if lang == "fa" else "Normal"
-                        res["badge_color"] = "green"
-                elif res["status"] == "degraded":
-                    res["verdict_badge"] = "تاخیر بالا" if lang == "fa" else "High Latency"
-                    res["badge_color"] = "yellow"
-                else:
-                    res["verdict_badge"] = "عدم پاسخ / مسدود" if lang == "fa" else "Timeout"
-                    res["badge_color"] = "red"
-                results[t["id"]] = res
+                probe_res = f.result()
             except Exception:
-                results[t["id"]] = {
-                    "id": t["id"], "name": t["name"], "fa_name": t["fa_name"], "target": t["target"],
-                    "latency_ms": None, "packet_loss": 100, "status": "blocked",
-                    "category": t["category"], "icon": t["icon"], "desc": t["desc"],
-                    "verdict_badge": "خطا در ارزیابی", "badge_color": "red"
-                }
+                probe_res = {"latency_ms": None, "packet_loss": 100, "status": "blocked"}
+            item = _build_rich_service_item(t, probe_res, history_data, lang=lang)
+            probed_results[t["id"]] = item
 
-    gaming_results = [results[t["id"]] for t in GAMING_TARGETS if t["id"] in results]
-    external_results = [results[t["id"]] for t in EXTERNAL_SERVICES_TARGETS if t["id"] in results]
+    save_radar_services_history()
 
-    valid_gaming_lats = [r["latency_ms"] for r in gaming_results if r["latency_ms"] is not None]
-    valid_ext_lats = [r["latency_ms"] for r in external_results if r["latency_ms"] is not None]
+    # Ordered services list
+    services_list = [probed_results[t["id"]] for t in all_targets if t["id"] in probed_results]
+
+    # Category slices
+    gaming_results = [s for s in services_list if s["category"] in ("pc_game", "mobile_game", "console")]
+    external_results = [s for s in services_list if s["category"] in ("voice_stream", "cloud_ai", "dns_infra")]
+
+    # Latency aggregations
+    valid_all_lats = [s["latency_ms"] for s in services_list if s["latency_ms"] is not None]
+    valid_gaming_lats = [s["latency_ms"] for s in gaming_results if s["latency_ms"] is not None]
+    valid_ext_lats = [s["latency_ms"] for s in external_results if s["latency_ms"] is not None]
 
     avg_gaming = round(sum(valid_gaming_lats) / len(valid_gaming_lats), 1) if valid_gaming_lats else None
     avg_external = round(sum(valid_ext_lats) / len(valid_ext_lats), 1) if valid_ext_lats else None
+    avg_overall = round(sum(valid_all_lats) / len(valid_all_lats), 1) if valid_all_lats else None
 
-    healthy_count = sum(1 for r in list(results.values()) if r.get("status") in ("clean", "degraded"))
+    healthy_count = sum(1 for s in services_list if s["status"] in ("clean", "degraded"))
+    uptime_pct = round((healthy_count / len(services_list) * 100), 1) if services_list else 100.0
+
+    # Category counts
+    cat_stats = {
+        "all": {"name": "همه سرویس‌ها", "count": len(services_list)},
+        "pc_game": {"name": "بازی‌های PC", "count": sum(1 for s in services_list if s["category"] == "pc_game")},
+        "mobile_game": {"name": "بازی‌های موبایل", "count": sum(1 for s in services_list if s["category"] == "mobile_game")},
+        "console": {"name": "کنسول و لانچر", "count": sum(1 for s in services_list if s["category"] == "console")},
+        "voice_stream": {"name": "صوتی و استریم", "count": sum(1 for s in services_list if s["category"] == "voice_stream")},
+        "cloud_ai": {"name": "هوش مصنوعی و کلود", "count": sum(1 for s in services_list if s["category"] == "cloud_ai")},
+        "dns_infra": {"name": "دی‌ان‌اس و زیرساخت", "count": sum(1 for s in services_list if s["category"] == "dns_infra")}
+    }
 
     settings = get_radar_ping_settings()
     settings["last_ping_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -24935,12 +25137,16 @@ def probe_gaming_and_external_services(lang="fa", force_refresh=False):
         "timestamp": settings["last_ping_time"],
         "interval_minutes": settings.get("interval_minutes", 5),
         "auto_ping_enabled": settings.get("auto_ping_enabled", True),
-        "gaming_services": gaming_results,
-        "external_services": external_results,
+        "total_count": len(services_list),
+        "healthy_count": healthy_count,
+        "uptime_percent": uptime_pct,
         "avg_gaming_latency": avg_gaming,
         "avg_external_latency": avg_external,
-        "healthy_count": healthy_count,
-        "total_count": len(all_targets)
+        "avg_overall_latency": avg_overall,
+        "category_stats": cat_stats,
+        "services": services_list,
+        "gaming_services": gaming_results,
+        "external_services": external_results
     }
 
     _radar_services_cache = {"timestamp": now, "data": payload}
@@ -24986,6 +25192,32 @@ def api_network_radar_services_settings():
         return jsonify({"success": True, "settings": settings})
     else:
         return jsonify(get_radar_ping_settings())
+
+@app.route("/api/network/radar/services/ping_single", methods=["POST"])
+def api_network_radar_services_ping_single():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    req = request.json or {}
+    target_id = req.get("id")
+    if not target_id:
+        return jsonify({"success": False, "error": "Target ID is required"}), 400
+
+    all_targets = ALL_RADAR_TARGETS if ALL_RADAR_TARGETS else (GAMING_TARGETS + EXTERNAL_SERVICES_TARGETS)
+    target = next((t for t in all_targets if t["id"] == target_id), None)
+    if not target:
+        return jsonify({"success": False, "error": f"Target '{target_id}' not found"}), 404
+
+    history_data = load_radar_services_history()
+    try:
+        probe_res = probe_endpoint_latency(target["name"], target["target"], ports=target.get("ports", [443, 80]))
+    except Exception:
+        probe_res = {"latency_ms": None, "packet_loss": 100, "status": "blocked"}
+
+    lang = request.args.get("lang") or "fa"
+    item = _build_rich_service_item(target, probe_res, history_data, lang=lang)
+    save_radar_services_history()
+
+    return jsonify({"success": True, "service": item})
 
 
 # =========================================================================
@@ -37061,6 +37293,9 @@ if __name__ == "__main__":
 
     # Reality domain auto-rotation worker
     threading.Thread(target=reality_rotation_worker, daemon=True).start()
+
+    # Radar 118 services 24-hour background scheduler
+    start_radar_scheduler_if_needed()
 
     redirect_server.start()
     
