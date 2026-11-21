@@ -4322,6 +4322,10 @@ def client_sub_singbox_download(sub_token):
     pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
     domain = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     pub_ip = get_server_public_ip()
+    sb_settings = get_singbox_sub_settings()
+    if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
+        domain = sb_settings["disguise_server"].strip()
+        pub_ip = sb_settings["disguise_server"].strip()
     cfg = generate_singbox_ssh_config(uname, pwd, domain, pub_ip)
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
     resp.headers["Access-Control-Allow-Origin"] = "*"
@@ -4432,6 +4436,21 @@ def client_sub_b64(sub_token):
         uris.extend([x["uri"] if isinstance(x, dict) else x for x in cloud_links])
     if frag_links:
         uris.extend([x["uri"] if isinstance(x, dict) else x for x in frag_links if not str(x.get("server", "")).startswith("127.")])
+
+    # Apply Sing-box Origin Disguise & Relay Server if enabled
+    sb_settings = get_singbox_sub_settings()
+    if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
+        disguise_srv = sb_settings["disguise_server"].strip()
+        disguise_port = str(sb_settings.get("disguise_port", "")).strip()
+        mod_uris = []
+        for u in uris:
+            if "@" in u:
+                if disguise_port:
+                    u = re.sub(r'@[^:?#]+:\d+', f'@{disguise_srv}:{disguise_port}', u)
+                else:
+                    u = re.sub(r'@([^:?#]+)', f'@{disguise_srv}', u)
+            mod_uris.append(u)
+        uris = mod_uris
 
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
@@ -30682,7 +30701,17 @@ def load_singbox_users():
             u["sub_token"] = secrets.token_urlsafe(16)
             needs_save = True
 
-        base_url = get_panel_sub_base_url()
+        sb_settings = get_singbox_sub_settings()
+        if sb_settings.get("relay_worker_url"):
+            base_url = sb_settings["relay_worker_url"].strip().rstrip("/")
+        elif sb_settings.get("custom_domain"):
+            cd = sb_settings["custom_domain"].strip()
+            cp = str(sb_settings.get("custom_port", "")).strip()
+            proto = sb_settings.get("protocol", "https")
+            port_suffix = f":{cp}" if cp and cp not in ["80", "443"] else ""
+            base_url = f"{proto}://{cd}{port_suffix}"
+        else:
+            base_url = get_panel_sub_base_url()
         u["sub_url"] = f"{base_url}/sub/{u['sub_token']}"
         u["sub_b64_url"] = f"{base_url}/sub/{u['sub_token']}/b64"
         u["sub_json_url"] = f"{base_url}/sub/{u['sub_token']}/singbox.json"
@@ -32528,6 +32557,51 @@ def api_singbox_user_delete(username):
 
     return jsonify({"success": True, "message": f"کاربر {username} با موفقیت از کلیه کانفیگ‌های هسته حذف گردید."})
 
+SINGBOX_SUB_SETTINGS_FILE = "/etc/vpnpanel/singbox_sub_settings.json"
+
+def get_singbox_sub_settings():
+    defaults = {
+        "custom_domain": "",
+        "custom_port": "",
+        "protocol": "https",
+        "disguise_enabled": False,
+        "disguise_server": "",
+        "disguise_port": "",
+        "relay_worker_url": ""
+    }
+    if os.path.exists(SINGBOX_SUB_SETTINGS_FILE):
+        try:
+            with open(SINGBOX_SUB_SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                defaults.update(data)
+        except Exception:
+            pass
+    return defaults
+
+def save_singbox_sub_settings(settings):
+    try:
+        os.makedirs(os.path.dirname(SINGBOX_SUB_SETTINGS_FILE), exist_ok=True)
+        with open(SINGBOX_SUB_SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(settings, f, indent=2, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving singbox sub settings: {e}")
+        return False
+
+@app.route("/api/singbox/sub-settings", methods=["GET", "POST"])
+def api_singbox_sub_settings():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if request.method == "POST":
+        req = request.json or {}
+        settings = get_singbox_sub_settings()
+        for k in ["custom_domain", "custom_port", "protocol", "disguise_enabled", "disguise_server", "disguise_port", "relay_worker_url"]:
+            if k in req:
+                settings[k] = req[k]
+        save_singbox_sub_settings(settings)
+        return jsonify({"success": True, "settings": settings})
+    return jsonify({"success": True, "settings": get_singbox_sub_settings()})
+
 @app.route("/api/singbox/user/<username>/links", methods=["GET"])
 def api_singbox_user_links(username):
     if not check_login():
@@ -32589,8 +32663,33 @@ def api_singbox_user_links(username):
     except Exception as e:
         logger.error(f"Error adding clean ip configs to user links: {e}")
 
+    # Sing-box Sub Settings & Origin Disguise
+    sb_settings = get_singbox_sub_settings()
+    if sb_settings.get("relay_worker_url"):
+        base_url = sb_settings["relay_worker_url"].strip().rstrip("/")
+    elif sb_settings.get("custom_domain"):
+        cd = sb_settings["custom_domain"].strip()
+        cp = str(sb_settings.get("custom_port", "")).strip()
+        proto = sb_settings.get("protocol", "https")
+        port_suffix = f":{cp}" if cp and cp not in ["80", "443"] else ""
+        base_url = f"{proto}://{cd}{port_suffix}"
+    else:
+        base_url = get_panel_sub_base_url()
+
+    # Disguise / relay address replacement in share links to hide the origin server IP
+    if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
+        disguise_srv = sb_settings["disguise_server"].strip()
+        disguise_port = str(sb_settings.get("disguise_port", "")).strip()
+        for c in configs:
+            if "share_link" in c and c["share_link"]:
+                orig_link = c["share_link"]
+                if disguise_port:
+                    c["share_link"] = re.sub(r'@[^:?#]+:\d+', f'@{disguise_srv}:{disguise_port}', orig_link)
+                    c["port"] = int(disguise_port)
+                else:
+                    c["share_link"] = re.sub(r'@([^:?#]+)', f'@{disguise_srv}', orig_link)
+
     sub_token = target.get("sub_token", "")
-    base_url = get_panel_sub_base_url()
     sub_url = f"{base_url}/sub/{sub_token}" if sub_token else ""
     sub_b64_url = f"{base_url}/sub/{sub_token}/b64" if sub_token else ""
     sub_json_url = f"{base_url}/sub/{sub_token}/singbox.json" if sub_token else ""
@@ -32604,7 +32703,8 @@ def api_singbox_user_links(username):
         "sub_token": sub_token,
         "sub_url": sub_url,
         "sub_b64_url": sub_b64_url,
-        "sub_json_url": sub_json_url
+        "sub_json_url": sub_json_url,
+        "sub_settings": sb_settings
     })
 
 

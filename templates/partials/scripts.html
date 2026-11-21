@@ -26455,6 +26455,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             currentSingboxUserLinksData = data;
             const cfgs = data.configs || [];
 
+            // Display disguise / relay badge if active
+            const disguiseBadge = document.getElementById("sb-user-links-disguise-badge");
+            if (disguiseBadge) {
+                if (data.disguise && data.disguise.enabled) {
+                    disguiseBadge.style.display = "flex";
+                } else {
+                    disguiseBadge.style.display = "none";
+                }
+            }
+
             // Set subscription URL input and download link
             const sbUrlInp = document.getElementById("sb-user-singbox-url-input");
             if (sbUrlInp) sbUrlInp.value = data.sub_json_url || "";
@@ -26631,6 +26641,97 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (modal) {
             modal.classList.remove("active");
             modal.style.display = "none";
+        }
+    }
+
+    // --- Sing-box Subscription & Disguise Settings Functions ---
+    async function openSingboxSubSettingsModal() {
+        const modal = document.getElementById("modal-singbox-sub-settings");
+        if (!modal) return;
+
+        try {
+            const res = await fetch("/api/singbox/sub-settings");
+            const data = await res.json();
+            if (data && data.success && data.settings) {
+                const s = data.settings;
+                const dInp = document.getElementById("sb-sub-custom-domain");
+                if (dInp) dInp.value = s.custom_domain || "";
+
+                const pInp = document.getElementById("sb-sub-custom-port");
+                if (pInp) pInp.value = s.custom_port || "";
+
+                const protoSel = document.getElementById("sb-sub-protocol");
+                if (protoSel) protoSel.value = s.protocol || "";
+
+                const rInp = document.getElementById("sb-sub-relay-worker-url");
+                if (rInp) rInp.value = s.relay_worker_url || "";
+
+                const disCheck = document.getElementById("sb-sub-disguise-enabled");
+                if (disCheck) disCheck.checked = !!s.disguise_enabled;
+
+                const disSrv = document.getElementById("sb-sub-disguise-server");
+                if (disSrv) disSrv.value = s.disguise_server || "";
+
+                const disPort = document.getElementById("sb-sub-disguise-port");
+                if (disPort) disPort.value = s.disguise_port || "";
+
+                toggleSingboxDisguiseInputs();
+            }
+        } catch (e) {
+            console.error("Error loading singbox sub settings:", e);
+        }
+
+        modal.classList.add("active");
+        modal.style.display = "flex";
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeSingboxSubSettingsModal() {
+        const modal = document.getElementById("modal-singbox-sub-settings");
+        if (modal) {
+            modal.classList.remove("active");
+            modal.style.display = "none";
+        }
+    }
+
+    function toggleSingboxDisguiseInputs() {
+        const disCheck = document.getElementById("sb-sub-disguise-enabled");
+        const panel = document.getElementById("sb-sub-disguise-panel");
+        if (panel && disCheck) {
+            panel.style.display = disCheck.checked ? "block" : "none";
+        }
+    }
+
+    async function handleSingboxSubSettingsSubmit(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const payload = {
+            custom_domain: (document.getElementById("sb-sub-custom-domain")?.value || "").trim(),
+            custom_port: (document.getElementById("sb-sub-custom-port")?.value || "").trim(),
+            protocol: (document.getElementById("sb-sub-protocol")?.value || "").trim(),
+            relay_worker_url: (document.getElementById("sb-sub-relay-worker-url")?.value || "").trim(),
+            disguise_enabled: !!document.getElementById("sb-sub-disguise-enabled")?.checked,
+            disguise_server: (document.getElementById("sb-sub-disguise-server")?.value || "").trim(),
+            disguise_port: (document.getElementById("sb-sub-disguise-port")?.value || "").trim()
+        };
+
+        try {
+            const res = await fetch("/api/singbox/sub-settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("تنظیمات لینک ساب و استتار سرور با موفقیت ذخیره شد.", "success");
+                closeSingboxSubSettingsModal();
+                if (typeof loadSingboxUsers === "function") {
+                    loadSingboxUsers();
+                }
+            } else {
+                showToast(`خطا در ذخیره تنظیمات: ${data.error || "خطای ناشناخته"}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای شبکه در ذخیره تنظیمات سابسکرایب", "error");
         }
     }
 

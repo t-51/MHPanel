@@ -343,6 +343,11 @@
                         <span>ساخت انبوه کاربران</span>
                     </button>
 
+                    <button class="btn btn-secondary btn-sm" onclick="openSingboxSubSettingsModal()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600; border: 1.5px solid rgba(139, 92, 246, 0.45); color: #8b5cf6; background: rgba(139, 92, 246, 0.08);" title="تنظیمات اختصاصی لینک ساب و استتار سرور اصلی">
+                        <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #8b5cf6;"></i>
+                        <span>تنظیمات ساب و استتار سرور</span>
+                    </button>
+
                     <button class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
                         <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
                         <span data-i18n="singbox_btn_add_user">افزودن کاربر محلی</span>
@@ -1815,6 +1820,17 @@
             </header>
 
             <div style="padding: 24px;">
+                <!-- Disguise / Relay Status Banner -->
+                <div id="sb-user-links-disguise-badge" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 8px; padding: 8px 12px; margin-bottom: 14px; text-align: right; font-size: 11.5px; color: #059669; font-weight: 600; align-items: center; justify-content: space-between;">
+                    <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                        <span>حالت استتار سرور فعال است: آدرس سرور اصلی پنهان و هدایت شده است.</span>
+                    </span>
+                    <button type="button" class="btn btn-sm" onclick="openSingboxSubSettingsModal()" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #059669;">
+                        ویرایش تنظیمات
+                    </button>
+                </div>
+
                 <!-- 1. Dedicated Sing-box App Profile Box -->
                 <div style="background: rgba(99, 102, 241, 0.08); border: 1.5px solid rgba(99, 102, 241, 0.4); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; text-align: right;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
@@ -2725,5 +2741,112 @@
                 </footer>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Modal: Sing-box Subscription & Server Disguise Settings -->
+<div class="modal" id="modal-singbox-sub-settings">
+    <div class="modal-card" style="max-width: 600px; width: 95%;">
+        <header class="modal-header">
+            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
+                <span>تنظیمات لینک ساب و استتار سرور اصلی (Sing-box)</span>
+            </h3>
+            <button type="button" class="modal-close" onclick="closeSingboxSubSettingsModal()">
+                <i data-lucide="x"></i>
+            </button>
+        </header>
+
+        <form id="form-singbox-sub-settings" onsubmit="handleSingboxSubSettingsSubmit(event)" style="padding: 24px;">
+            <div style="background: rgba(139, 92, 246, 0.06); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6; color: var(--text-color);">
+                <i data-lucide="info" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; color: #8b5cf6; margin-left: 6px;"></i>
+                با این بخش می‌توانید دامنه و پورت لینک‌های سابسکرایب کاربران را سفارشی‌سازی کنید و با قابلیت <strong>استتار سرور (Relay / Disguise)</strong>، آدرس سرور اصلی را در کانفیگ‌ها و ساب‌ها با سرور میانی (فلای، کلاودفلر وورکر یا رله) جایگزین نمایید تا اثر سرور اصلی برای فیلترینگ گم شود.
+            </div>
+
+            <!-- Custom Subscription URL Section -->
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="link-2" style="width: 16px; height: 16px;"></i>
+                <span>تنظیمات دامنه و لینک سابسکرایب</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px;">
+                <div>
+                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                        دامنه اختصاصی سابسکرایب (Custom Domain)
+                    </label>
+                    <input type="text" id="sb-sub-custom-domain" class="form-control" placeholder="مثال: sub.mydomain.com" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                    <small style="color: var(--text-muted); font-size: 11px;">در صورت خالی بودن، از دامنه یا آی‌پی پنل استفاده می‌شود.</small>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                        پورت اختصاصی ساب
+                    </label>
+                    <input type="number" id="sb-sub-custom-port" class="form-control" placeholder="پیش‌فرض: پورت پنل" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <div>
+                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                        پروتکل لینک ساب
+                    </label>
+                    <select id="sb-sub-protocol" class="form-control" style="font-size: 12.5px;">
+                        <option value="">پیش‌فرض سیستم (خودکار)</option>
+                        <option value="https">HTTPS (SSL فعال)</option>
+                        <option value="http">HTTP معمولی</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                        آدرس رله ورکر (اختیاری)
+                    </label>
+                    <input type="text" id="sb-sub-relay-worker-url" class="form-control" placeholder="https://sub-worker.workers.dev" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0;">
+
+            <!-- Origin Disguise & Relay Forwarding Section -->
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="shield" style="width: 16px; height: 16px; color: #10b981;"></i>
+                    <span>استتار سرور اصلی و هدایت به سرور میانی (Relay / Disguise)</span>
+                </span>
+                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: normal;">
+                    <input type="checkbox" id="sb-sub-disguise-enabled" onchange="toggleSingboxDisguiseInputs()">
+                    <span>فعال‌سازی استتار</span>
+                </label>
+            </div>
+
+            <div id="sb-sub-disguise-panel" style="display: none; background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
+                    با فعال‌سازی این قابلیت، در تمامی کانفیگ‌های خروجی و فایل <code>singbox.json</code>، آدرس سرور اصلی شما با آدرس سرور واسط یا دامنه‌ای که مشخص می‌کنید جایگزین می‌شود تا رد و اثر سرور اصلی پنهان بماند.
+                </p>
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                            سرور میانی / آی‌پی استتار (Disguise Server / CDN Domain)
+                        </label>
+                        <input type="text" id="sb-sub-disguise-server" class="form-control" placeholder="مثال: edge.relay-node.com یا آی‌پی تمیز" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
+                            پورت سرور میانی (اختیاری)
+                        </label>
+                        <input type="number" id="sb-sub-disguise-port" class="form-control" placeholder="پورت یکسان" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                    </div>
+                </div>
+            </div>
+
+            <footer class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 14px;">
+                <button type="button" class="btn btn-secondary" onclick="closeSingboxSubSettingsModal()">
+                    انصراف
+                </button>
+                <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i>
+                    <span>ذخیره و اعمال تنظیمات</span>
+                </button>
+            </footer>
+        </form>
     </div>
 </div>
