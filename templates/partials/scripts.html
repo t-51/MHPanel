@@ -17105,6 +17105,28 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    async function triggerTunnelShieldAction(actionName, params = {}) {
+        toggleLoading(true, "در حال اعمال اقدام اصلاحی و دفاعی بر روی پکت‌های تونل...");
+        try {
+            const res = await fetch("/api/tunnels/alerts/action", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: actionName, params })
+            });
+            const data = await res.json();
+            toggleLoading(false);
+            if (res.ok && data.success) {
+                showToast(data.message || "اقدام اصلاحی با موفقیت اعمال گردید.", "success");
+                runTunnelIntegrityAudit();
+            } else {
+                showToast(data.message || data.error || "خطا در اجرای اقدام", "error");
+            }
+        } catch (err) {
+            toggleLoading(false);
+            showToast("خطای سرور: " + err.message, "error");
+        }
+    }
+
     function renderTunnelShieldData(data) {
         // 1. Update Header Alert Badge
         const headerBadge = document.getElementById("header-tunnel-alert-badge");
@@ -17129,18 +17151,32 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const headerIconBox = document.getElementById("shield-header-icon-box");
         const mainLucide = document.getElementById("shield-main-lucide");
 
+        const threatLevel = data.threat_level || (activeCount > 0 ? "WARNING" : "NORMAL");
+        const healthScore = data.health_score !== undefined ? data.health_score : (activeCount > 0 ? 65 : 100);
+
         if (globalStatusBadge && globalStatusText) {
-            if (activeCount > 0) {
+            if (threatLevel === "CRITICAL") {
                 globalStatusBadge.style.background = "rgba(239,68,68,0.15)";
                 globalStatusBadge.style.color = "#ef4444";
                 globalStatusBadge.style.border = "1px solid rgba(239,68,68,0.3)";
-                globalStatusText.innerText = `هشدار: ${activeCount} مورد اختلال یا دراپ پکت`;
+                globalStatusText.innerText = `فیلترینگ و دستکاری فعال (${activeCount} هشدار)`;
                 if (headerIconBox) {
                     headerIconBox.style.background = "rgba(239, 68, 68, 0.12)";
                     headerIconBox.style.color = "#ef4444";
                     headerIconBox.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.2)";
                 }
                 if (mainLucide) mainLucide.setAttribute("data-lucide", "shield-alert");
+            } else if (threatLevel === "WARNING" || activeCount > 0) {
+                globalStatusBadge.style.background = "rgba(245,158,11,0.15)";
+                globalStatusBadge.style.color = "#f59e0b";
+                globalStatusBadge.style.border = "1px solid rgba(245,158,11,0.3)";
+                globalStatusText.innerText = `اختلال و افت پکت (${activeCount} هشدار)`;
+                if (headerIconBox) {
+                    headerIconBox.style.background = "rgba(245, 158, 11, 0.12)";
+                    headerIconBox.style.color = "#f59e0b";
+                    headerIconBox.style.boxShadow = "0 0 15px rgba(245, 158, 11, 0.2)";
+                }
+                if (mainLucide) mainLucide.setAttribute("data-lucide", "alert-triangle");
             } else {
                 globalStatusBadge.style.background = "rgba(16,185,129,0.15)";
                 globalStatusBadge.style.color = "#10b981";
@@ -17155,126 +17191,269 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
         }
 
-        // 2. Compute Interface Statistics, Total Drops & Network Health Score
-        let totalDroppedAll = 0;
-        let totalPacketsAll = 0;
-        let healthyIfacesCount = 0;
-        const ifaceEntries = Object.entries(data.interface_stats || {});
-        const totalIfaces = ifaceEntries.length;
+        // 2. Health Score & Threat Banner
+        const scoreValEl = document.getElementById("shield-score-val");
+        const scoreCircleEl = document.getElementById("shield-score-circle");
+        const threatBadgeEl = document.getElementById("shield-threat-level-badge");
+        const threatTitleEl = document.getElementById("shield-threat-title");
+        const threatDescEl = document.getElementById("shield-threat-desc");
 
-        ifaceEntries.forEach(([_, st]) => {
-            const rxP = st.rx_packets || 0;
-            const txP = st.tx_packets || 0;
-            const drop = st.total_dropped || 0;
-            totalPacketsAll += (rxP + txP);
-            totalDroppedAll += drop;
-            if (st.status === "healthy" || (st.drop_rate_pct || 0) < 5) {
-                healthyIfacesCount++;
-            }
-        });
+        const colorMap = { "NORMAL": "#10b981", "WARNING": "#f59e0b", "CRITICAL": "#ef4444" };
+        const scoreColor = colorMap[threatLevel] || "#10b981";
 
-        const overallDropRate = (totalPacketsAll + totalDroppedAll) > 0 
-            ? ((totalDroppedAll / (totalPacketsAll + totalDroppedAll)) * 100).toFixed(2) 
-            : "0.00";
-        const healthScore = totalIfaces > 0 ? Math.round((healthyIfacesCount / totalIfaces) * 100) : 100;
+        if (scoreValEl) scoreValEl.innerText = healthScore;
+        if (scoreCircleEl) {
+            scoreCircleEl.style.borderColor = scoreColor;
+            scoreCircleEl.style.background = threatLevel === "CRITICAL" ? "rgba(239,68,68,0.15)" : (threatLevel === "WARNING" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)");
+        }
+        if (threatBadgeEl) {
+            threatBadgeEl.innerText = data.threat_label || (healthScore >= 80 ? "شبکه پایدار و امن" : "نیاز به بررسی و اقدام");
+            threatBadgeEl.style.color = scoreColor;
+            threatBadgeEl.style.background = threatLevel === "CRITICAL" ? "rgba(239,68,68,0.15)" : (threatLevel === "WARNING" ? "rgba(245,158,11,0.15)" : "rgba(16,185,129,0.15)");
+        }
+        if (threatTitleEl) {
+            threatTitleEl.innerText = threatLevel === "CRITICAL" 
+                ? "دستکاری فعال فیلترینگ DPI یا افت شدید بسته‌های تونل" 
+                : (threatLevel === "WARNING" ? "اختلال متوسط یا عدم تطابق MTU در تونل‌ها شناسایی شد" : "ارتباط تونل‌ها و پکت‌های ورودی کاملاً سالم و پایدار است");
+        }
+        if (threatDescEl) {
+            threatDescEl.innerText = `نرخ تزریق RST: ${data.summary?.rst_rate_sec || 0}/ثانیه | نرخ تایم‌اوت: ${data.summary?.timeout_rate_sec || 0}/ثانیه | خطای UDP: ${data.summary?.udp_err_rate_sec || 0}/ثانیه`;
+        }
 
-        // Widget 1: Active Alerts
+        // 3. 4 Top KPI Stat Widgets
         const activeAlertsEl = document.getElementById("shield-active-alerts-count");
         if (activeAlertsEl) activeAlertsEl.innerText = activeCount;
         const activeStatusBadge = document.getElementById("shield-active-status-badge");
         if (activeStatusBadge) {
-            if (activeCount > 0) {
-                activeStatusBadge.style.background = "rgba(239,68,68,0.15)";
-                activeStatusBadge.style.color = "#ef4444";
-                activeStatusBadge.innerText = `${activeCount} مورد فعال`;
-            } else {
-                activeStatusBadge.style.background = "rgba(16,185,129,0.15)";
-                activeStatusBadge.style.color = "#10b981";
-                activeStatusBadge.innerText = "بدون هشدار";
-            }
-        }
-        const activeSubtext = document.getElementById("shield-active-alerts-subtext");
-        if (activeSubtext) {
-            activeSubtext.innerText = activeCount > 0 
-                ? `${activeCount} رخداد پایش نیازمند بررسی` 
-                : "تمامی مسیرها بدون رخداد بحرانی";
+            activeStatusBadge.style.background = activeCount > 0 ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)";
+            activeStatusBadge.style.color = activeCount > 0 ? "#ef4444" : "#10b981";
+            activeStatusBadge.innerText = activeCount > 0 ? `${activeCount} مورد فعال` : "بدون هشدار";
         }
 
-        // Widget 2: Packet Drops
         const totalDropsEl = document.getElementById("shield-total-drops-count");
+        const totalDropped = data.summary?.total_dropped || 0;
         if (totalDropsEl) {
-            totalDropsEl.innerText = totalDroppedAll.toLocaleString();
-            totalDropsEl.style.color = totalDroppedAll > 500 ? "#ef4444" : (totalDroppedAll > 0 ? "#f59e0b" : "#10b981");
+            totalDropsEl.innerText = totalDropped.toLocaleString();
+            totalDropsEl.style.color = totalDropped > 200 ? "#ef4444" : (totalDropped > 0 ? "#f59e0b" : "#10b981");
         }
         const avgDropRateEl = document.getElementById("shield-avg-drop-rate");
         if (avgDropRateEl) {
-            avgDropRateEl.innerText = `${overallDropRate}% Drop`;
-            avgDropRateEl.style.background = Number(overallDropRate) > 5 ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
-            avgDropRateEl.style.color = Number(overallDropRate) > 5 ? "#ef4444" : "#f59e0b";
+            const dropRate = data.summary?.overall_drop_rate_pct || 0;
+            avgDropRateEl.innerText = `${dropRate}% Drop`;
+            avgDropRateEl.style.background = dropRate > 5 ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
+            avgDropRateEl.style.color = dropRate > 5 ? "#ef4444" : "#f59e0b";
         }
 
-        // Widget 3: DPI TCP RST Injections
         const rstAbortsEl = document.getElementById("shield-rst-aborts-count");
         if (rstAbortsEl) {
-            const aborts = data.tcp_anomalies?.TCPAbortOnData || data.tcp_anomalies?.EstabResets || 0;
-            rstAbortsEl.innerText = Number(aborts).toLocaleString();
+            const rstRate = data.summary?.rst_rate_sec || 0;
+            rstAbortsEl.innerHTML = `${rstRate} <span style="font-size:12px; font-weight:normal; color:var(--text-muted);">/ثانیه</span>`;
         }
 
-        // Widget 4: Monitored Interfaces & Health Score
         const ifacesCountEl = document.getElementById("shield-monitored-ifaces-count");
-        if (ifacesCountEl) ifacesCountEl.innerText = totalIfaces;
+        const ifaceEntries = Object.entries(data.interface_stats || {});
+        if (ifacesCountEl) ifacesCountEl.innerText = ifaceEntries.length;
         const healthScoreBadge = document.getElementById("shield-health-score-badge");
         if (healthScoreBadge) {
             healthScoreBadge.innerText = `${healthScore}% سلامت`;
             healthScoreBadge.style.background = healthScore >= 80 ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
             healthScoreBadge.style.color = healthScore >= 80 ? "#10b981" : "#ef4444";
         }
-        const ifacesSummaryEl = document.getElementById("shield-ifaces-summary");
-        if (ifacesSummaryEl) {
-            ifacesSummaryEl.innerText = `${healthyIfacesCount} از ${totalIfaces} اینترفیس در وضعیت سبز`;
-        }
 
         const lastAuditEl = document.getElementById("shield-last-audit-time");
         if (lastAuditEl) lastAuditEl.innerText = "آخرین پایش: " + (data.timestamp || "لحظاتی پیش");
 
-        // 3. Render Per-Interface Telemetry Matrix
+        // 4. Render Smart Mitigations Panel
+        const recListEl = document.getElementById("shield-recommendations-list");
+        if (recListEl) {
+            const recs = data.recommendations || [];
+            if (recs.length === 0) {
+                recListEl.innerHTML = `
+                    <div style="background:var(--surface-secondary); padding:16px 20px; border-radius:12px; border:1px solid rgba(16,185,129,0.25); display:flex; align-items:center; gap:12px;">
+                        <i data-lucide="check-circle" style="color:#10b981; width:22px; height:22px; flex-shrink:0;"></i>
+                        <div>
+                            <strong style="color:var(--text-primary); font-size:13px;">تمامی مسیرهای تونل و بسته‌ها در وضعیت مطلوب قرار دارند.</strong>
+                            <p style="margin:2px 0 0 0; font-size:11.5px; color:var(--text-muted);">هیچ اختلال فعال، نشت DNS یا خطای تکه‌تکه شدن بسته‌ها گزارش نشده است.</p>
+                        </div>
+                    </div>`;
+            } else {
+                let recHtml = "";
+                recs.forEach(r => {
+                    const isHigh = r.priority === "CRITICAL" || r.priority === "HIGH";
+                    const pBg = isHigh ? "rgba(239,68,68,0.12)" : "rgba(245,158,11,0.12)";
+                    const pColor = isHigh ? "#ef4444" : "#f59e0b";
+                    const pBorder = isHigh ? "rgba(239,68,68,0.28)" : "rgba(245,158,11,0.28)";
+                    const pText = r.priority === "CRITICAL" ? "فوری / بحرانی" : (r.priority === "HIGH" ? "اولویت بالا" : "پیشنهادی");
+
+                    recHtml += `
+                        <div style="background:var(--bg-card); border:1px solid ${pBorder}; border-radius:12px; padding:16px 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+                            <div style="flex:1; min-width:260px;">
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                    <span class="badge-pill" style="font-size:10.5px; padding:2px 8px; border-radius:6px; background:${pBg}; color:${pColor}; font-weight:700;">
+                                        ${pText}
+                                    </span>
+                                    <strong style="font-size:13.5px; color:var(--text-primary);">${escapeHtml(r.title)}</strong>
+                                </div>
+                                <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">${escapeHtml(r.issue)}</div>
+                                <div style="font-size:11.5px; color:${scoreColor}; line-height:1.5;">${escapeHtml(r.action_text)}</div>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-sm" onclick="triggerTunnelShieldAction('${r.quick_action}')" style="background:${pBg}; color:${pColor}; border:1px solid ${pBorder}; font-weight:700; padding:8px 16px; border-radius:8px; display:inline-flex; align-items:center; gap:6px;">
+                                    <span>${escapeHtml(r.btn_label)}</span>
+                                </button>
+                            </div>
+                        </div>`;
+                });
+                recListEl.innerHTML = recHtml;
+            }
+        }
+
+        // 5. Render Tunnel DNS Security & Poisoning Sensor Widget
+        const dnsAudit = data.dns_security || {};
+        const dnsPoisonEl = document.getElementById("shield-dns-poison-status");
+        if (dnsPoisonEl) {
+            if (dnsAudit.poisoned_detected) {
+                dnsPoisonEl.innerHTML = `<span style="color:#ef4444;">⚠️ مسموم شده با 10.10.34.34</span>`;
+            } else {
+                dnsPoisonEl.innerHTML = `<span style="color:#10b981;">سالم و بدون جعل (دامنه‌های تستی)</span>`;
+            }
+        }
+        const dnsDohEl = document.getElementById("shield-dns-doh-status");
+        if (dnsDohEl) {
+            if (dnsAudit.doh_reachable) {
+                dnsDohEl.innerHTML = `<span style="color:#10b981;">متصل به Cloudflare DoH</span>`;
+            } else {
+                dnsDohEl.innerHTML = `<span style="color:#ef4444;">غیرقابل دسترس / اختلال</span>`;
+            }
+        }
+        const dnsFwEl = document.getElementById("shield-dns-firewall-status");
+        if (dnsFwEl) {
+            if (dnsAudit.dns_shield_active) {
+                dnsFwEl.innerHTML = `<span style="color:#10b981;">فعال (Port 53 هدایت شده)</span>`;
+            } else {
+                dnsFwEl.innerHTML = `<span style="color:#f59e0b;">غیرفعال (ریسک نشت DNS)</span>`;
+            }
+        }
+        const dnsMssEl = document.getElementById("shield-dns-mss-status");
+        if (dnsMssEl) {
+            if (dnsAudit.mss_clamped) {
+                dnsMssEl.innerHTML = `<span style="color:#10b981;">فعال (Clamp to PMTU)</span>`;
+            } else {
+                dnsMssEl.innerHTML = `<span style="color:#f59e0b;">غیرفعال (ریسک MTU Blackhole)</span>`;
+            }
+        }
+        const dnsToggleBox = document.getElementById("shield-dns-toggle-btn-box");
+        if (dnsToggleBox) {
+            if (dnsAudit.dns_shield_active) {
+                dnsToggleBox.innerHTML = `
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerTunnelShieldAction('disable_tunnel_dns_shield')" style="font-size:12px;">
+                        <span>غیرفعال‌سازی سپر فایروال</span>
+                    </button>`;
+            } else {
+                dnsToggleBox.innerHTML = `
+                    <button type="button" class="btn btn-sm" onclick="triggerTunnelShieldAction('enable_tunnel_dns_shield')" style="background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); font-weight:700; font-size:12px; display:inline-flex; align-items:center; gap:5px;">
+                        <i data-lucide="shield" style="width:13px; height:13px;"></i>
+                        <span>🛡️ فعال‌سازی قفل ضد نشت DNS</span>
+                    </button>`;
+            }
+        }
+
+        // 6. Render Active Tunnel Peers & Ingress Clients Table
+        const peersTbody = document.getElementById("shield-peers-tbody");
+        const peersCountBadge = document.getElementById("shield-peers-count-badge");
+        const peersList = data.tunnel_peers || [];
+        if (peersCountBadge) peersCountBadge.innerText = `${peersList.length} کلاینت / ریموت متصل`;
+
+        if (peersTbody) {
+            if (peersList.length === 0) {
+                peersTbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
+                            در حال حاضر هیچ کلاینت یا پیری متصل به تونل‌ها نیست.
+                        </td>
+                    </tr>`;
+            } else {
+                let pHtml = "";
+                peersList.forEach(p => {
+                    const isStalled = p.status === "STALLED";
+                    const sBg = isStalled ? "rgba(239,68,68,0.15)" : "rgba(16,185,129,0.15)";
+                    const sColor = isStalled ? "#ef4444" : "#10b981";
+                    const sText = isStalled ? "دراپ Handshake" : (p.status === "ACTIVE" ? "پایدار و متصل" : "منتظر اتصال");
+
+                    const opBg = p.operator_code === "mtn" ? "rgba(245,158,11,0.15)" : (p.operator_code === "mci" ? "rgba(59,130,246,0.15)" : "rgba(99,102,241,0.15)");
+                    const opColor = p.operator_code === "mtn" ? "#f59e0b" : (p.operator_code === "mci" ? "#3b82f6" : "#6366f1");
+
+                    pHtml += `
+                        <tr style="border-bottom:1px solid var(--border-glow);">
+                            <td style="padding:10px 14px;">
+                                <strong style="font-family:'JetBrains Mono', monospace; font-size:12.5px; color:var(--text-main);">${escapeHtml(p.interface)}</strong>
+                                <span style="display:block; font-size:10.5px; color:var(--text-dim);">${escapeHtml(p.tunnel_type)}</span>
+                            </td>
+                            <td style="padding:10px 14px; font-family:'JetBrains Mono', monospace; font-size:12px;">
+                                ${escapeHtml(p.endpoint || "بدون Endpoint")}
+                            </td>
+                            <td style="padding:10px 14px;">
+                                <span class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:6px; background:${opBg}; color:${opColor}; font-weight:700;">
+                                    ${escapeHtml(p.operator)}
+                                </span>
+                            </td>
+                            <td style="padding:10px 14px; font-size:11.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">
+                                ${escapeHtml(p.latest_handshake)}
+                            </td>
+                            <td style="padding:10px 14px; text-align:center; font-family:'JetBrains Mono', monospace; font-size:11.5px;">
+                                ↓ ${escapeHtml(p.transfer_rx)} / ↑ ${escapeHtml(p.transfer_tx)}
+                            </td>
+                            <td style="padding:10px 14px; text-align:center;">
+                                <span class="badge-pill" style="font-size:10.5px; padding:2px 7px; border-radius:6px; background:${sBg}; color:${sColor}; font-weight:700;">
+                                    ${sText}
+                                </span>
+                                ${p.anomaly ? `<div style="font-size:10.5px; color:#ef4444; margin-top:3px;">${escapeHtml(p.anomaly)}</div>` : ''}
+                            </td>
+                            <td style="padding:10px 14px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="triggerTunnelShieldAction('clamp_mss')" style="padding:3px 8px; font-size:11px;" title="تنظیم Clamp MSS برای این مسیر">
+                                    <span>Clamp MSS</span>
+                                </button>
+                            </td>
+                        </tr>`;
+                });
+                peersTbody.innerHTML = pHtml;
+            }
+        }
+
+        // 7. Render Per-Interface Telemetry Matrix
         const ifacesGrid = document.getElementById("shield-ifaces-grid");
         if (ifacesGrid && ifaceEntries.length > 0) {
-            // Sort interfaces: Active & Dropping first, then others
             const sortedIfaces = [...ifaceEntries].sort((a, b) => {
                 const dropA = a[1].total_dropped || 0;
                 const dropB = b[1].total_dropped || 0;
-                const pktsA = (a[1].rx_packets || 0) + (a[1].tx_packets || 0);
-                const pktsB = (b[1].rx_packets || 0) + (b[1].tx_packets || 0);
+                const pktsA = (a[1].total_packets || 0);
+                const pktsB = (b[1].total_packets || 0);
                 if (dropB !== dropA) return dropB - dropA;
                 return pktsB - pktsA;
             });
 
             let gridHtml = "";
             sortedIfaces.forEach(([name, st]) => {
-                const rx = (st.rx_packets || 0);
-                const tx = (st.tx_packets || 0);
-                const totPkts = rx + tx;
-                const drop = (st.total_dropped || 0);
+                const totPkts = st.total_packets || 0;
+                const drop = st.total_dropped || 0;
                 const dropRate = st.drop_rate_pct || 0;
                 const isCrit = st.status === "critical" || dropRate >= 15;
-                const isWarn = st.status === "warning" || (dropRate >= 5 && dropRate < 15);
+                const isWarn = st.status === "warning" || (dropRate >= 4 && dropRate < 15);
 
                 let icon = "network";
-                let typeLabel = "Interface";
-                if (name.startsWith("awg")) { icon = "shield"; typeLabel = "AmneziaWG"; }
-                else if (name.startsWith("wg")) { icon = "shield"; typeLabel = "WireGuard"; }
-                else if (name.startsWith("tun") || name.startsWith("tap")) { icon = "workflow"; typeLabel = "VPN Tunnel"; }
-                else if (name.startsWith("eth") || name.startsWith("en")) { icon = "server"; typeLabel = "Physical NIC"; }
-                else if (name.includes("tun")) { icon = "git-commit"; typeLabel = "Advanced Tunnel"; }
+                let typeLabel = st.type || "Interface";
+                if (name.startsWith("awg")) { icon = "shield"; }
+                else if (name.startsWith("wg")) { icon = "shield"; }
+                else if (name.startsWith("tun") || name.startsWith("tap")) { icon = "workflow"; }
+                else if (name.startsWith("eth") || name.startsWith("en")) { icon = "server"; }
 
                 const statusColor = isCrit ? "#ef4444" : (isWarn ? "#f59e0b" : "#10b981");
                 const statusBg = isCrit ? "rgba(239,68,68,0.12)" : (isWarn ? "rgba(245,158,11,0.12)" : "rgba(16,185,129,0.12)");
                 const statusBorder = isCrit ? "rgba(239,68,68,0.3)" : (isWarn ? "rgba(245,158,11,0.3)" : "rgba(16,185,129,0.3)");
-                const statusText = isCrit ? "دراپ بحرانی" : (isWarn ? "نیاز به بررسی" : "سالم و پایدار");
+                const statusText = st.status_text || (isCrit ? "دراپ بحرانی" : (isWarn ? "نیاز به بررسی" : "سالم و پایدار"));
 
                 gridHtml += `
-                    <div style="background:var(--bg-card); border:1px solid ${statusBorder}; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px; transition:transform 0.15s ease;">
+                    <div style="background:var(--bg-card); border:1px solid ${statusBorder}; border-radius:12px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <div style="width:28px; height:28px; border-radius:8px; background:${statusBg}; color:${statusColor}; display:flex; align-items:center; justify-content:center;">
@@ -17285,9 +17464,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                                     <span style="font-size:10px; color:var(--text-dim); display:block;">${typeLabel}</span>
                                 </div>
                             </div>
-                            <span class="badge-pill" style="font-size:10.5px; padding:2px 7px; border-radius:6px; background:${statusBg}; color:${statusColor}; font-weight:700;">
-                                ${statusText}
-                            </span>
+                            <div style="text-align:left;">
+                                <span class="badge-pill" style="font-size:10.5px; padding:2px 7px; border-radius:6px; background:${statusBg}; color:${statusColor}; font-weight:700;">
+                                    ${statusText}
+                                </span>
+                                <span style="display:block; font-size:10px; font-family:'JetBrains Mono', monospace; color:${st.mtu_warning ? '#f59e0b' : 'var(--text-dim)'}; margin-top:2px;">MTU: ${st.mtu}</span>
+                            </div>
                         </div>
                         <div style="display:flex; justify-content:space-between; align-items:baseline; font-size:11.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace;">
                             <span>پکت‌ها: ${(totPkts).toLocaleString()}</span>
@@ -17296,72 +17478,70 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                         <div style="width:100%; height:4px; border-radius:2px; background:var(--border-glow); overflow:hidden;">
                             <div style="width:${Math.min(100, Math.max(dropRate > 0 ? 5 : 0, dropRate))}%; height:100%; background:${statusColor}; border-radius:2px;"></div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
             ifacesGrid.innerHTML = gridHtml;
         }
 
-        // 4. Render Incident Log Table
+        // 8. Render Incident Log Table
         const tbody = document.getElementById("tun-shield-tbody");
-        if (!tbody) return;
+        if (tbody) {
+            const alertsList = data.all_alerts || [];
+            if (alertsList.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:36px; color:#10b981; font-weight:600;">
+                            <div style="width:48px; height:48px; border-radius:50%; background:rgba(16,185,129,0.12); color:#10b981; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">
+                                <i data-lucide="shield-check" style="width:26px; height:26px;"></i>
+                            </div>
+                            <p style="margin:0; font-size:13.5px; color:var(--text-main);">هیچ رخداد مشکوک به دستکاری یا دراپ پکت در شبکه ثبت نشده است.</p>
+                            <span style="font-size:11.5px; color:var(--text-dim); display:block; margin-top:4px;">مسیر تمام تونل‌ها و اینترفیس‌های فعال کاملاً تمیز و پایدار است.</span>
+                        </td>
+                    </tr>`;
+            } else {
+                let html = "";
+                alertsList.slice().reverse().forEach(a => {
+                    const isCrit = a.severity === "CRITICAL";
+                    const badgeBg = isCrit ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
+                    const badgeColor = isCrit ? "#ef4444" : "#f59e0b";
+                    const severityText = isCrit ? "بحرانی" : "هشدار";
 
-        const alertsList = data.all_alerts || [];
-        if (alertsList.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="6" style="text-align:center; padding:36px; color:#10b981; font-weight:600;">
-                        <div style="width:48px; height:48px; border-radius:50%; background:rgba(16,185,129,0.12); color:#10b981; display:flex; align-items:center; justify-content:center; margin:0 auto 10px auto;">
-                            <i data-lucide="shield-check" style="width:26px; height:26px;"></i>
-                        </div>
-                        <p style="margin:0; font-size:13.5px; color:var(--text-main);">هیچ رخداد مشکوک به دستکاری یا دراپ پکت در شبکه ثبت نشده است.</p>
-                        <span style="font-size:11.5px; color:var(--text-dim); display:block; margin-top:4px;">مسیر تمام تونل‌ها و اینترفیس‌های فعال کاملاً تمیز و پایدار است.</span>
-                    </td>
-                </tr>
-            `;
-            if (window.lucide) lucide.createIcons();
-            return;
+                    html += `
+                        <tr style="border-bottom:1px solid var(--border-glow); ${a.dismissed ? 'opacity:0.6;' : ''}">
+                            <td style="padding:12px 14px; text-align:center;">
+                                <span style="background:${badgeBg}; color:${badgeColor}; font-weight:800; font-size:11px; padding:3px 8px; border-radius:6px; display:inline-block;">
+                                    ${severityText}
+                                </span>
+                            </td>
+                            <td style="padding:12px 14px; font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-dim);">
+                                ${escapeHtml(a.timestamp)}
+                            </td>
+                            <td style="padding:12px 14px;">
+                                <span style="display:inline-block; padding:2px 8px; border-radius:6px; background:var(--bg-base); border:1px solid var(--border-glow); font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-main); font-weight:700;">
+                                    ${escapeHtml(a.interface)}
+                                </span>
+                            </td>
+                            <td style="padding:12px 14px;">
+                                <strong style="color:${badgeColor}; font-size:12.5px;">${escapeHtml(a.title)}</strong>
+                            </td>
+                            <td style="padding:12px 14px; font-size:12px; color:var(--text-muted); line-height:1.6;">
+                                ${escapeHtml(a.details)}
+                            </td>
+                            <td style="padding:12px 14px; font-size:11.5px; line-height:1.6;">
+                                <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                                    <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; background:rgba(14,165,233,0.12); color:#0284c7; border:1px solid rgba(14,165,233,0.25); font-weight:600;">
+                                        <i data-lucide="lightbulb" style="width:12px; height:12px;"></i>
+                                        ${escapeHtml(a.recommendation || "-")}
+                                    </span>
+                                    ${a.action_key ? `<button type="button" class="btn btn-sm btn-secondary" onclick="triggerTunnelShieldAction('${a.action_key}')" style="padding:2px 8px; font-size:11px;">اقدام فوری</button>` : ''}
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                tbody.innerHTML = html;
+            }
         }
 
-        let html = "";
-        alertsList.slice().reverse().forEach(a => {
-            const isCrit = a.severity === "CRITICAL";
-            const badgeBg = isCrit ? "rgba(239,68,68,0.15)" : "rgba(245,158,11,0.15)";
-            const badgeColor = isCrit ? "#ef4444" : "#f59e0b";
-            const severityText = isCrit ? "بحرانی" : "هشدار";
-
-            html += `
-                <tr style="border-bottom:1px solid var(--border-glow); ${a.dismissed ? 'opacity:0.6;' : ''}">
-                    <td style="padding:12px 14px; text-align:center;">
-                        <span style="background:${badgeBg}; color:${badgeColor}; font-weight:800; font-size:11px; padding:3px 8px; border-radius:6px; display:inline-block;">
-                            ${severityText}
-                        </span>
-                    </td>
-                    <td style="padding:12px 14px; font-family:'JetBrains Mono', monospace; font-size:11.5px; color:var(--text-dim);">
-                        ${escapeHtml(a.timestamp)}
-                    </td>
-                    <td style="padding:12px 14px;">
-                        <span style="display:inline-block; padding:2px 8px; border-radius:6px; background:var(--bg-base); border:1px solid var(--border-glow); font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-main); font-weight:700;">
-                            ${escapeHtml(a.interface)}
-                        </span>
-                    </td>
-                    <td style="padding:12px 14px;">
-                        <strong style="color:${badgeColor}; font-size:12.5px;">${escapeHtml(a.title)}</strong>
-                    </td>
-                    <td style="padding:12px 14px; font-size:12px; color:var(--text-muted); line-height:1.6;">
-                        ${escapeHtml(a.details)}
-                    </td>
-                    <td style="padding:12px 14px; font-size:11.5px; line-height:1.6;">
-                        <span style="display:inline-flex; align-items:center; gap:4px; padding:3px 8px; border-radius:6px; background:rgba(14,165,233,0.12); color:#0284c7; border:1px solid rgba(14,165,233,0.25); font-weight:600;">
-                            <i data-lucide="lightbulb" style="width:12px; height:12px;"></i>
-                            ${escapeHtml(a.recommendation || "-")}
-                        </span>
-                    </td>
-                </tr>
-            `;
-        });
-
-        tbody.innerHTML = html;
         if (window.lucide) lucide.createIcons();
     }
 

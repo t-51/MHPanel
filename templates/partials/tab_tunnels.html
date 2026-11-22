@@ -604,6 +604,37 @@
                 </div>
             </div>
 
+            <!-- Health Score & Threat Level Banner -->
+            <div id="shield-health-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(16, 185, 129, 0.02) 100%); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 14px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div id="shield-score-circle" style="width: 56px; height: 56px; border-radius: 50%; background: rgba(16, 185, 129, 0.16); border: 2.5px solid #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <span id="shield-score-val" style="font-size: 19px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono', monospace; line-height: 1;">100</span>
+                        <span style="font-size: 9px; color: var(--text-muted); font-weight: 600;">سلامت</span>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span id="shield-threat-level-badge" class="badge-pill" style="font-size: 11px; padding: 2px 10px; border-radius: 999px; background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">
+                                شبکه پایدار و بدون اختلال
+                            </span>
+                            <span id="shield-threat-title" style="font-size: 14px; font-weight: 700; color: var(--text-primary);">وضعیت بسته‌ها و تونل‌های سرور نرمال است</span>
+                        </div>
+                        <div id="shield-threat-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            تحلیل زنده پکت‌های ورودی، نرخ دراپ، تزریق پکت‌های RST و نشت DNS در وضعیت پایدار قرار دارند.
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerTunnelShieldAction('clamp_mss')" style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="zap" style="width: 13px; height: 13px; color: #f59e0b;"></i>
+                        <span>Clamp MSS</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="triggerTunnelShieldAction('flush_stuck_sockets')" style="font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px;">
+                        <i data-lucide="refresh-cw" style="width: 13px; height: 13px; color: #0284c7;"></i>
+                        <span>پاکسازی سوکت‌ها</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- 4 Premium KPI Stat Widgets -->
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:22px;">
                 <!-- Widget 1: Active Alerts -->
@@ -664,6 +695,89 @@
                         <span id="shield-health-score-badge" class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(16,185,129,0.15); color:#10b981; font-weight:600;">100% سلامت</span>
                     </div>
                     <div id="shield-ifaces-summary" style="font-size:11.5px; color:var(--text-muted); margin-top:6px;">اینترفیس‌های فعال کارت و تونل</div>
+                </div>
+            </div>
+
+            <!-- Actionable Mitigations Panel -->
+            <div style="margin-bottom: 24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="sparkles" style="width:16px; height:16px; color:#f59e0b;"></i>
+                        <strong style="font-size:13.5px; color:var(--text-primary);">پیشنهادهای هوشمند اقدام فوری مدیر (Actionable Mitigations):</strong>
+                    </div>
+                    <span style="font-size:11.5px; color:var(--text-muted);">تحلیل خودکار گلوگاه‌های شبکه، سایز پکت‌ها و فیلترینگ</span>
+                </div>
+                <div id="shield-recommendations-list" style="display:flex; flex-direction:column; gap:10px;">
+                    <div style="text-align:center; color:var(--text-muted); padding:16px; background:var(--surface-secondary); border-radius:12px; font-size:12px;">
+                        در حال بارگذاری تحلیل هوشمند...
+                    </div>
+                </div>
+            </div>
+
+            <!-- DNS Security & Poisoning Sensor -->
+            <div style="background:var(--surface-secondary); border:1px solid var(--border-subtle); border-radius:14px; padding:18px; margin-bottom:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                    <div>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <i data-lucide="shield-check" style="width:16px; height:16px; color:#10b981;"></i>
+                            <strong style="font-size:13.5px; color:var(--text-primary);">سنسور پایش مسموم‌سازی DNS و سپر فایروال تونل‌ها (DNS Poisoning & Shield):</strong>
+                        </div>
+                        <span style="font-size:11.5px; color:var(--text-muted); display:block; margin-top:2px;">بررسی جعل دامنه‌ها با آی‌پی فیلترینگ پیوندها (10.10.34.34) و نشت درخواست‌های DNS پورت ۵۳</span>
+                    </div>
+                    <div id="shield-dns-toggle-btn-box">
+                        <!-- Rendered via JS -->
+                    </div>
+                </div>
+                <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap:12px;">
+                    <div style="background:var(--bg-card); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+                        <div style="font-size:11px; color:var(--text-muted);">سنسور جعل DNS با 10.10.34.34:</div>
+                        <div id="shield-dns-poison-status" style="font-size:13px; font-weight:700; color:#10b981; margin-top:4px;">در حال بررسی...</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+                        <div style="font-size:11px; color:var(--text-muted);">اتصال مستقیم به DoH کلودفلر:</div>
+                        <div id="shield-dns-doh-status" style="font-size:13px; font-weight:700; color:#10b981; margin-top:4px;">در حال بررسی...</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+                        <div style="font-size:11px; color:var(--text-muted);">سپر ضد نشت فایروال (Port 53 Redirect):</div>
+                        <div id="shield-dns-firewall-status" style="font-size:13px; font-weight:700; color:#f59e0b; margin-top:4px;">در حال بررسی...</div>
+                    </div>
+                    <div style="background:var(--bg-card); padding:12px 14px; border-radius:10px; border:1px solid var(--border-subtle);">
+                        <div style="font-size:11px; color:var(--text-muted);">وضعیت TCP MSS Clamping:</div>
+                        <div id="shield-dns-mss-status" style="font-size:13px; font-weight:700; color:#10b981; margin-top:4px;">در حال بررسی...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Tunnel Peers & Ingress Clients -->
+            <div style="margin-bottom:24px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <i data-lucide="radio" style="width:16px; height:16px; color:#6366f1;"></i>
+                        <strong style="font-size:13.5px; color:var(--text-primary);">پایش کلاینت‌ها و کاندیداهای متصل به تونل‌ها (Active Ingress Peers):</strong>
+                    </div>
+                    <span id="shield-peers-count-badge" class="badge-pill" style="font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(99,102,241,0.15); color:#6366f1; font-weight:700;">۰ کلاینت متصل</span>
+                </div>
+                <div class="table-container" style="overflow-x:auto; border:1px solid var(--border-subtle); border-radius:14px;">
+                    <table class="table" style="width:100%; border-collapse:collapse; font-size:12.5px; text-align:start;">
+                        <thead>
+                            <tr style="background:var(--surface-elevated); border-bottom:1px solid var(--border-subtle); color:var(--text-muted); font-size:12px; font-weight:600;">
+                                <th style="padding:10px 14px;">اینترفیس و پروتکل</th>
+                                <th style="padding:10px 14px;">آدرس کلاینت / ریموت (Endpoint)</th>
+                                <th style="padding:10px 14px;">اپراتور ایرانی</th>
+                                <th style="padding:10px 14px;">آخرین Handshake</th>
+                                <th style="padding:10px 14px; text-align:center;">تبادل (Rx / Tx)</th>
+                                <th style="padding:10px 14px; text-align:center;">وضعیت و تحلیل DPI</th>
+                                <th style="padding:10px 14px; text-align:left;">اقدام</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shield-peers-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">
+                                    در حال بارگذاری کلاینت‌ها و تانل‌های فعال...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

@@ -84,6 +84,10 @@
                 <i data-lucide="refresh-cw" style="color: #8b5cf6; width: 14px; height: 14px;"></i> <span>چرخش خودکار دامنه Reality</span>
                 <span class="badge-pill" id="sb-rotation-status-badge" style="font-size: 10px; padding: 1px 6px; background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border-radius: 4px;">SNI</span>
             </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-antidpi-diagnostics" onclick="switchSingboxSubTab('antidpi_diagnostics')" style="font-weight: 700; display: flex; align-items: center; gap: 6px; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35);">
+                <i data-lucide="activity" style="color: #ef4444; width: 14px; height: 14px;"></i> <span>رادار فیلترینگ و بازرسی پکت‌ها</span>
+                <span class="badge-pill" id="sb-antidpi-status-badge" style="font-size: 10px; padding: 1px 6px; background: rgba(239, 68, 68, 0.2); color: #ef4444; border-radius: 4px;">Anti-DPI</span>
+            </button>
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-vless" onclick="switchSingboxSubTab('vless')" style="display: flex; align-items: center; gap: 6px;">
                 <i data-lucide="shield-check" style="color: #8b5cf6; width: 14px; height: 14px;"></i> <span>VLESS Reality</span>
             </button>
@@ -950,6 +954,220 @@
                 </div>
             </div>
         </div>
+
+        <!-- Anti-DPI & Ingress Diagnostics Pane -->
+        <div class="spec-card" id="sb-pane-antidpi-diagnostics" style="display: none; padding: 22px;">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--text-main);">
+                        <i data-lucide="activity" style="color: #ef4444; width: 20px; height: 20px;"></i>
+                        <span>رادار بلادرنگ فیلترینگ، بازرسی پکت‌ها و نشت DNS (Anti-DPI & Ingress Radar)</span>
+                    </h3>
+                    <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-muted);">
+                        رهگیری عمیق اختلالات DPI در سطح هسته لینوکس، سایلنت‌دراپ پکت ClientHello، حملات تزریق TCP RST جعلی و مسموم‌سازی DNS اپراتورهای ایران
+                    </p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <span id="antidpi-last-updated" style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono';">آخرین بررسی: --:--:--</span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadAntiDpiDiagnostics(true)" style="display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="refresh-cw" style="width: 13px; height: 13px;"></i> <span>بروزرسانی زنده</span>
+                    </button>
+                    <button type="button" class="btn btn-sm" onclick="triggerAntiDpiQuickAction('kill_stuck_connections')" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                        <i data-lucide="zap" style="width: 13px; height: 13px;"></i> <span>🧹 قطع فوری اتصالات بلاتکلیف</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Threat Health Score Banner -->
+            <div id="antidpi-health-banner" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.03) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div id="antidpi-score-circle" style="width: 58px; height: 58px; border-radius: 50%; background: rgba(16, 185, 129, 0.18); border: 2.5px solid #10b981; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                        <span id="antidpi-score-val" style="font-size: 18px; font-weight: 800; color: #10b981; font-family: 'JetBrains Mono'; line-height: 1;">100</span>
+                        <span style="font-size: 9px; color: var(--text-muted); font-weight: 600;">امتیاز</span>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="antidpi-threat-level-badge" class="badge-pill" style="font-size: 11px; padding: 2px 10px; background: rgba(16, 185, 129, 0.2); color: #10b981; font-weight: 700; border-radius: 20px;">
+                                عادی و پایدار
+                            </span>
+                            <span id="antidpi-threat-title" style="font-size: 14px; font-weight: 700; color: var(--text-main);">وضعیت ارتباطات ورودی سرور عادی است</span>
+                        </div>
+                        <div id="antidpi-threat-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                            هیچگونه مسدودسازی تهاجمی DPI یا تزریق غیرعادی پکت RST شناسایی نشده است.
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="openSingboxAntiDpiSettingsModal()" style="font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="sliders" style="width: 14px; height: 14px;"></i> <span>تنظیمات پیشرفته Anti-DPI / ECH</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 4 Telemetry KPI Cards -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 22px;">
+                <!-- KPI 1: RST Injections -->
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">تزریق TCP RST میانه‌راه (DPI)</span>
+                        <i data-lucide="shield-alert" style="width: 16px; height: 16px; color: #ef4444;"></i>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';" id="antidpi-kpi-rst">0 <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">/ثانیه</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; justify-content: space-between;">
+                        <span>مجموع پکت‌های قطع لینوکس:</span>
+                        <span id="antidpi-kpi-rst-total" style="font-family: 'JetBrains Mono'; font-weight: 600;">-</span>
+                    </div>
+                </div>
+
+                <!-- KPI 2: Silent Handshake Drops -->
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">بسته‌های مسدود در ClientHello</span>
+                        <i data-lucide="alert-octagon" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: #f59e0b; font-family: 'JetBrains Mono';" id="antidpi-kpi-drops">0</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                        کانکشن‌هایی که بعد از ارسال پکت اول بی‌پاسخ ماندند
+                    </div>
+                </div>
+
+                <!-- KPI 3: DNS Leaks -->
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">نشت پکت‌های DNS (Port 53)</span>
+                        <i data-lucide="lock" style="width: 16px; height: 16px; color: #3b82f6;"></i>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';" id="antidpi-kpi-dnsleaks">0</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                        درخواست‌های غیررمزنگاری در معرض جعل 10.10.34.34
+                    </div>
+                </div>
+
+                <!-- KPI 4: UDP Throttling -->
+                <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 12px; font-weight: 600; color: var(--text-muted);">اختلال و سرریز بافر UDP</span>
+                        <i data-lucide="wifi-off" style="width: 16px; height: 16px; color: #8b5cf6;"></i>
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; color: var(--text-main); font-family: 'JetBrains Mono';" id="antidpi-kpi-udp">0 <span style="font-size: 12px; font-weight: normal; color: var(--text-muted);">/ثانیه</span></div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; justify-content: space-between;">
+                        <span>تایم‌اوت‌های TCP هسته:</span>
+                        <span id="antidpi-kpi-timeouts" style="font-family: 'JetBrains Mono'; font-weight: 600;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Smart Recommendations Panel -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="margin: 0 0 10px 0; font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px;">
+                    <i data-lucide="sparkles" style="color: #f59e0b; width: 16px; height: 16px;"></i>
+                    <span>پیشنهادهای هوشمند اقدام فوری مدیر (Actionable Mitigations)</span>
+                </h4>
+                <div id="antidpi-recommendations-list" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div style="text-align: center; color: var(--text-muted); padding: 14px; background: var(--surface-secondary); border-radius: var(--radius-sm); font-size: 12px;">
+                        در حال بارگذاری تحلیل هوشمند...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Iranian Operator Threat Matrix -->
+            <div style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px;">
+                        <i data-lucide="network" style="color: #3b82f6; width: 16px; height: 16px;"></i>
+                        <span>ماتریس وضعیت و اختلال اپراتورهای ایران (Operator Threat Matrix)</span>
+                    </h4>
+                    <span style="font-size: 11px; color: var(--text-muted);">تفکیک خودکار بر اساس رنج آی‌پی‌های مبدأ کلاینت‌ها</span>
+                </div>
+                <div class="table-responsive" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+                    <table class="table" style="margin: 0; width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead style="background: var(--surface-secondary);">
+                            <tr>
+                                <th style="padding: 10px 14px; text-align: right;">اپراتور</th>
+                                <th style="padding: 10px 14px; text-align: center;">اتصالات همزمان</th>
+                                <th style="padding: 10px 14px; text-align: center;">بسته‌های مسدود (Silent Drops)</th>
+                                <th style="padding: 10px 14px; text-align: center;">نشت DNS</th>
+                                <th style="padding: 10px 14px; text-align: center;">پروتکل‌های متصل</th>
+                                <th style="padding: 10px 14px; text-align: center;">وضعیت فیلترینگ</th>
+                                <th style="padding: 10px 14px; text-align: left;">اقدام پیشنهادی</th>
+                            </tr>
+                        </thead>
+                        <tbody id="antidpi-operator-tbody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 18px;">در حال بارگذاری اطلاعات اپراتورها...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- DNS Security & Poisoning Sensor -->
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px;">
+                            <i data-lucide="shield-check" style="color: #10b981; width: 16px; height: 16px;"></i>
+                            <span>سنسور پایش مسموم‌سازی DNS و سپر دفاعی فایروال (DNS Poisoning & Shield)</span>
+                        </h4>
+                        <span style="font-size: 11px; color: var(--text-muted);">بررسی جعل دامنه‌ها با آی‌پی جعلی پیوندها (10.10.34.34) و مانیتورینگ اتصال DoH</span>
+                    </div>
+                    <div style="display: flex; gap: 8px;" id="antidpi-dns-shield-controls">
+                        <!-- Shield toggle dynamically inserted -->
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;" id="antidpi-dns-audit-grid">
+                    <div style="background: var(--surface-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="font-size: 11px; color: var(--text-muted);">سنسور مسموم‌سازی DNS سرور:</div>
+                        <div id="antidpi-dns-poison-status" style="font-size: 13px; font-weight: 700; color: #10b981; margin-top: 4px;">در حال تست...</div>
+                    </div>
+                    <div style="background: var(--surface-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="font-size: 11px; color: var(--text-muted);">اتصال مستقیم به DoH کلودفلر:</div>
+                        <div id="antidpi-dns-doh-status" style="font-size: 13px; font-weight: 700; color: #10b981; margin-top: 4px;">در حال تست...</div>
+                    </div>
+                    <div style="background: var(--surface-card); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+                        <div style="font-size: 11px; color: var(--text-muted);">سپر ضد نشت فایروال (Port 53 Redirect):</div>
+                        <div id="antidpi-dns-shield-status" style="font-size: 13px; font-weight: 700; color: #f59e0b; margin-top: 4px;">در حال ارزیابی...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Problematic Ingress Connections Table -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 7px;">
+                            <i data-lucide="radio" style="color: #ef4444; width: 16px; height: 16px;"></i>
+                            <span>اتصالات زنده مشکوک یا فیلترشده (Live Filtered / Leaked Connections)</span>
+                        </h4>
+                        <span style="font-size: 11px; color: var(--text-muted);">اتصالاتی که توسط DPI مسدود شده‌اند یا ترافیک نامطمئن ارسال می‌کنند</span>
+                    </div>
+                    <span id="antidpi-prob-count" class="badge-pill" style="font-size: 11px; padding: 2px 8px; background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 700;">0 مورد</span>
+                </div>
+                <div class="table-responsive" style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); overflow: hidden;">
+                    <table class="table" style="margin: 0; width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead style="background: var(--surface-secondary);">
+                            <tr>
+                                <th style="padding: 10px 14px; text-align: right;">آی‌پی کلاینت</th>
+                                <th style="padding: 10px 14px; text-align: right;">اپراتور</th>
+                                <th style="padding: 10px 14px; text-align: center;">پروتکل</th>
+                                <th style="padding: 10px 14px; text-align: right;">مقصد درخواستی</th>
+                                <th style="padding: 10px 14px; text-align: center;">مدت اتصال</th>
+                                <th style="padding: 10px 14px; text-align: center;">ارسال / دریافت</th>
+                                <th style="padding: 10px 14px; text-align: right;">علت آنومالی</th>
+                                <th style="padding: 10px 14px; text-align: left;">اقدام</th>
+                            </tr>
+                        </thead>
+                        <tbody id="antidpi-conns-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 18px;">در حال حاضر اتصال مسدود یا مشکوکی ثبت نشده است.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
         <div class="spec-card" id="sb-pane-logs" style="display: none; padding: 22px;">
             <!-- Live Log Header -->
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 14px;">

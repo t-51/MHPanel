@@ -48,6 +48,11 @@ try:
 except ImportError:
     pass
 
+try:
+    from anti_dpi_inspector import generate_anti_dpi_report, execute_anti_dpi_action
+except ImportError:
+    pass
+
 app = Flask(__name__)
 
 # Performance: Enable automatic Brotli / Zstandard / Gzip response compression
@@ -28719,121 +28724,23 @@ def save_stored_tunnel_alerts(alerts):
     except Exception:
         pass
 
-def audit_tunnel_packet_integrity():
+def audit_tunnel_packet_integrity(force_fresh=False):
     """
-    Scans network interfaces and kernel TCP statistics for:
+    Scans network interfaces, kernel TCP/UDP statistics, and live tunnel peers for:
     1. Abnormal packet drop rate & transmission errors (rx_dropped, tx_dropped).
     2. TCP RST injection & connection abort anomalies (TCPAbortOnData, OutRsts).
     3. DPI corruption & checksum error spikes.
-    Generates real-time alerts if tampering or drops exceed safe thresholds.
+    4. Tunnel DNS leaks & poisoning audits.
+    5. Ingress client & peer session diagnostics.
     """
+    try:
+        from tunnel_tamper_shield import generate_tunnel_shield_report
+        return generate_tunnel_shield_report(force_fresh=force_fresh)
+    except Exception as e:
+        logger.error(f"Error in tunnel shield report: {e}")
+
     alerts = get_stored_tunnel_alerts()
-    new_alerts = []
-    iface_stats = {}
-
-    base = "/sys/class/net"
-    if os.path.exists(base):
-        for iface in os.listdir(base):
-            if iface == "lo": continue
-            s_dir = os.path.join(base, iface, "statistics")
-            if os.path.isdir(s_dir):
-                def read_stat(name):
-                    try:
-                        with open(os.path.join(s_dir, name), "r") as f:
-                            return int(f.read().strip())
-                    except: return 0
-                rx_p = read_stat("rx_packets")
-                tx_p = read_stat("tx_packets")
-                rx_d = read_stat("rx_dropped")
-                tx_d = read_stat("tx_dropped")
-                rx_e = read_stat("rx_errors")
-                tx_e = read_stat("tx_errors")
-                tot_p = rx_p + tx_p
-                tot_d = rx_d + tx_d + rx_e + tx_e
-                drop_rate = round((tot_d / (tot_p + tot_d)) * 100, 2) if (tot_p + tot_d) > 0 else 0.0
-
-                iface_stats[iface] = {
-                    "rx_packets": rx_p, "tx_packets": tx_p,
-                    "rx_dropped": rx_d, "tx_dropped": tx_d,
-                    "rx_errors": rx_e, "tx_errors": tx_e,
-                    "total_dropped": tot_d,
-                    "drop_rate_pct": drop_rate,
-                    "status": "critical" if drop_rate >= 15 else ("warning" if drop_rate >= 5 else "healthy")
-                }
-
-                # Trigger alert if interface has significant drops
-                if drop_rate >= 8.0 and tot_d > 10:
-                    alert_item = {
-                        "id": f"drop_{iface}_{int(time.time())}",
-                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "severity": "CRITICAL" if drop_rate >= 20 else "WARNING",
-                        "type": "packet_drop",
-                        "interface": iface,
-                        "title": f"افت شدید و دراپ پکت‌ها روی اینترفیس {iface}",
-                        "details": f"تعداد {tot_d:,} پکت با نرخ دراپ {drop_rate}% در ارتباط تونل {iface} از دست رفتند.",
-                        "drop_rate_pct": drop_rate,
-                        "total_dropped": tot_d,
-                        "recommendation": "بررسی MTU تونل و تنظیم به ۱۲۸۰ یا فعال‌سازی مبهم‌ساز جعلی FakeTCP با UDP2Raw.",
-                        "dismissed": False
-                    }
-                    # Prevent duplicates in last 5 minutes
-                    if not any(a.get("interface") == iface and not a.get("dismissed") for a in alerts[-10:]):
-                        new_alerts.append(alert_item)
-
-    # 2. Kernel TCP anomalies (DPI RST Injections)
-    tcp_anomalies = {}
-    try:
-        with open("/proc/net/snmp", "r") as f:
-            lines = f.readlines()
-            for i in range(0, len(lines)-1, 2):
-                if lines[i].startswith("Tcp:"):
-                    h = lines[i].split()[1:]
-                    v = lines[i+1].split()[1:]
-                    d = dict(zip(h, [int(x) for x in v]))
-                    tcp_anomalies["EstabResets"] = d.get("EstabResets", 0)
-                    tcp_anomalies["InErrs"] = d.get("InErrs", 0)
-    except Exception:
-        pass
-
-    try:
-        with open("/proc/net/netstat", "r") as f:
-            lines = f.readlines()
-            for i in range(0, len(lines)-1, 2):
-                if lines[i].startswith("TcpExt:"):
-                    h = lines[i].split()[1:]
-                    v = lines[i+1].split()[1:]
-                    d = dict(zip(h, [int(x) for x in v]))
-                    tcp_anomalies["TCPAbortOnData"] = d.get("TCPAbortOnData", 0)
-                    tcp_anomalies["TCPTimeouts"] = d.get("TCPTimeouts", 0)
-    except Exception:
-        pass
-
-    # Detect high DPI reset rate
-    estab_resets = tcp_anomalies.get("EstabResets", 0)
-    aborts = tcp_anomalies.get("TCPAbortOnData", 0)
-    if estab_resets > 1000 or aborts > 1000:
-        rst_alert = {
-            "id": f"rst_dpi_{int(time.time())}",
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "severity": "CRITICAL",
-            "type": "dpi_rst_tampering",
-            "interface": "Kernel / TCP Stack",
-            "title": "تشخیص تزریق پکت‌های جعلی RST و دستکاری فایروال DPI",
-            "details": f"تعداد {aborts:,} نشست فعال هنگام تبادل داده با تزریق پکت جعلی RST به طور ناگهانی قطع شده‌اند.",
-            "drop_rate_pct": 0,
-            "total_dropped": aborts,
-            "recommendation": "استفاده از تونل‌های رمزنگاری لایه ۷ مانند GOST WSS یا فعال‌سازی پروتکل ضد فیلتر TUIC v5 / AmneziaWG.",
-            "dismissed": False
-        }
-        if not any(a.get("type") == "dpi_rst_tampering" and not a.get("dismissed") for a in alerts[-10:]):
-            new_alerts.append(rst_alert)
-
-    if new_alerts:
-        alerts.extend(new_alerts)
-        save_stored_tunnel_alerts(alerts)
-
     active_alerts = [a for a in alerts if not a.get("dismissed")]
-
     return {
         "success": True,
         "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -28841,23 +28748,41 @@ def audit_tunnel_packet_integrity():
         "active_alerts_count": len(active_alerts),
         "active_alerts": active_alerts,
         "all_alerts": alerts[-30:],
-        "interface_stats": iface_stats,
-        "tcp_anomalies": tcp_anomalies
+        "interface_stats": {},
+        "tcp_anomalies": {},
+        "tunnel_peers": [],
+        "recommendations": []
     }
 
 @app.route("/api/tunnels/alerts", methods=["GET"])
 def api_get_tunnel_alerts():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    results = audit_tunnel_packet_integrity()
+    force = request.args.get("refresh") in ["1", "true"]
+    results = audit_tunnel_packet_integrity(force_fresh=force)
     return jsonify(results)
 
 @app.route("/api/tunnels/alerts/audit", methods=["POST"])
 def api_run_tunnel_audit():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
-    results = audit_tunnel_packet_integrity()
+    results = audit_tunnel_packet_integrity(force_fresh=True)
     return jsonify(results)
+
+@app.route("/api/tunnels/alerts/action", methods=["POST"])
+def api_execute_tunnel_alert_action():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        from tunnel_tamper_shield import execute_tunnel_shield_action
+        req = request.get_json() or {}
+        action = req.get("action", "")
+        params = req.get("params", {})
+        ok, msg = execute_tunnel_shield_action(action, params)
+        return jsonify({"success": ok, "message": msg})
+    except Exception as e:
+        logger.error(f"Error in api_execute_tunnel_alert_action: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/tunnels/alerts/clear", methods=["POST"])
 def api_clear_tunnel_alerts():
@@ -33406,6 +33331,34 @@ def api_singbox_anti_dpi_settings():
         "resolvers": ECH_RESOLVERS if "ECH_RESOLVERS" in globals() else [],
         "camouflage_domains": DOMESTIC_CAMOUFLAGE_DOMAINS if "DOMESTIC_CAMOUFLAGE_DOMAINS" in globals() else []
     })
+
+@app.route("/api/antidpi/diagnostics", methods=["GET"])
+def api_antidpi_diagnostics():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        from anti_dpi_inspector import generate_anti_dpi_report
+        force = request.args.get("refresh") in ["1", "true"]
+        data = generate_anti_dpi_report(force_fresh=force)
+        return jsonify({"success": True, "data": data})
+    except Exception as e:
+        logger.error(f"Error in api_antidpi_diagnostics: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/api/antidpi/action", methods=["POST"])
+def api_antidpi_action():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        from anti_dpi_inspector import execute_anti_dpi_action
+        req = request.get_json() or {}
+        action = req.get("action", "")
+        params = req.get("params", {})
+        ok, msg = execute_anti_dpi_action(action, params)
+        return jsonify({"success": ok, "message": msg})
+    except Exception as e:
+        logger.error(f"Error in api_antidpi_action: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route("/api/singbox/user/<username>/links", methods=["GET"])
 def api_singbox_user_links(username):
