@@ -29,6 +29,25 @@ logger = logging.getLogger("mhpanel")
 from datetime import datetime, timedelta
 from flask import Flask, jsonify, request, session, render_template, send_from_directory, Response, send_file
 
+# Anti-DPI, Operator Fragmentation & Encrypted Client Hello (ECH) Engine
+try:
+    from anti_dpi_presets import (
+        DEFAULT_OPERATOR_PRESETS,
+        PATTERNIHA_ADVANCED_FRAG,
+        PATTERNIHA_CIPHER_SUITES,
+        ECH_OUTER_DOMAINS,
+        ECH_RESOLVERS,
+        ECH_DEFAULT_PRESETS,
+        DOMESTIC_CAMOUFLAGE_DOMAINS,
+        get_anti_dpi_settings,
+        save_anti_dpi_settings,
+        build_v2ray_anti_dpi_query,
+        apply_singbox_tls_anti_dpi,
+        inject_singbox_client_anti_dpi
+    )
+except ImportError:
+    pass
+
 app = Flask(__name__)
 
 # Performance: Enable automatic Brotli / Zstandard / Gzip response compression
@@ -2760,7 +2779,7 @@ def test_clean_ip_latency(ip, port=443, timeout=1.5):
     except Exception as e:
         return False, str(e)
 
-def generate_singbox_ssh_config(username, password, domain, pub_ip):
+def generate_singbox_ssh_config(username, password, domain, pub_ip, operator_code=None, enable_ech=None, enable_fragment=None):
     clean_proxy_srv = get_valid_server_domain() or "vpn.kigaping.com"
     if is_sensitive_domain(clean_proxy_srv):
         clean_proxy_srv = "vpn.kigaping.com"
@@ -3104,7 +3123,7 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
 
     all_outbounds = [selector_outbound, urltest_outbound] + outbounds + [direct_outbound, block_outbound]
 
-    return {
+    res_singbox_cfg = {
         "log": {
             "level": "warn",
             "timestamp": True
@@ -3177,6 +3196,13 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
         }
     }
 
+    try:
+        if "inject_singbox_client_anti_dpi" in globals():
+            return inject_singbox_client_anti_dpi(res_singbox_cfg, operator_code=operator_code, enable_ech=enable_ech, enable_fragment=enable_fragment)
+    except Exception as e:
+        logger.error(f"Error injecting anti-dpi into singbox config: {e}")
+    return res_singbox_cfg
+
 def generate_ssh_uris(username, password, domain, pub_ip):
     modes = generate_npv_all_modes(username, password, domain, pub_ip)
     uris = []
@@ -3240,13 +3266,19 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
                 op_code = str(op.get("code") or "OP").upper()
                 op_name = op.get("name") or op_code
                 op_ips = op.get("ips") or []
+                anti_query = ""
+                try:
+                    if "build_v2ray_anti_dpi_query" in globals():
+                        anti_query = build_v2ray_anti_dpi_query(operator_code=op_code.lower(), enable_ech=True, enable_fragment=True)
+                except Exception:
+                    pass
                 for idx, cip in enumerate(op_ips, 1):
                     tag_prefix = f"[{op_name}]" if len(op_ips) == 1 else f"[{op_name}-{idx}]"
                     # VLESS-WS
                     vless_title = f"MHPanel - {tag_prefix} VLESS-WS ({username})"
                     cloud_uris.append({
                         "name": vless_title,
-                        "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#{vless_title}",
+                        "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws{anti_query}#{vless_title}",
                         "type": f"VLESS-WS ({op_name})",
                         "operator": op_code,
                         "server": cip,
@@ -3257,7 +3289,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
                     trojan_title = f"MHPanel - {tag_prefix} Trojan-WS ({username})"
                     cloud_uris.append({
                         "name": trojan_title,
-                        "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#{trojan_title}",
+                        "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws{anti_query}#{trojan_title}",
                         "type": f"Trojan-WS ({op_name})",
                         "operator": op_code,
                         "server": cip,
@@ -3292,11 +3324,17 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
                     })
         elif has_real_cf_domain:
             raw_clean_ips = sb_clean_cfg.get("clean_ips") or ["104.18.119.142"]
+            raw_anti_query = ""
+            try:
+                if "build_v2ray_anti_dpi_query" in globals():
+                    raw_anti_query = build_v2ray_anti_dpi_query(operator_code="all", enable_ech=True, enable_fragment=True)
+            except Exception:
+                pass
             for cip in raw_clean_ips:
                 vless_title = f"MHPanel - [Clean IP {cip}] VLESS-WS ({username})"
                 cloud_uris.append({
                     "name": vless_title,
-                    "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws#{vless_title}",
+                    "uri": f"vless://{uid}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Fvless-ws{raw_anti_query}#{vless_title}",
                     "type": "VLESS-WS",
                     "server": cip,
                     "port": 443,
@@ -3305,7 +3343,7 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
                 trojan_title = f"MHPanel - [Clean IP {cip}] Trojan-WS ({username})"
                 cloud_uris.append({
                     "name": trojan_title,
-                    "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws#{trojan_title}",
+                    "uri": f"trojan://{pwd}@{cip}:443?security=tls&sni={cf_domain}&type=ws&host={cf_domain}&path=%2Ftrojan-ws{raw_anti_query}#{trojan_title}",
                     "type": "Trojan-WS",
                     "server": cip,
                     "port": 443,
@@ -4365,7 +4403,17 @@ def client_sub_singbox_download(sub_token):
     if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
         domain = sb_settings["disguise_server"].strip()
         pub_ip = sb_settings["disguise_server"].strip()
-    cfg = generate_singbox_ssh_config(uname, pwd, domain, pub_ip)
+
+    op_param = request.args.get("operator") or request.args.get("op")
+    ech_param = request.args.get("ech")
+    frag_param = request.args.get("frag") or request.args.get("fragment")
+
+    cfg = generate_singbox_ssh_config(
+        uname, pwd, domain, pub_ip,
+        operator_code=op_param,
+        enable_ech=(True if ech_param in ["1", "true"] else (False if ech_param in ["0", "false"] else None)),
+        enable_fragment=(True if frag_param in ["1", "true"] else (False if frag_param in ["0", "false"] else None))
+    )
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
     resp.headers["Access-Control-Allow-Origin"] = "*"
     resp.headers["profile-update-interval"] = "24"
@@ -4410,6 +4458,9 @@ def client_sub_singbox_fragment_download(sub_token):
     pwd = (udata.get("password") if isinstance(udata, dict) else "") or uinfo.get("password", "")
     u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or uinfo.get("uuid", "")
 
+    op_param = request.args.get("operator") or request.args.get("op")
+    ech_param = request.args.get("ech")
+
     d_sni = get_snispoof_reality_and_client_configs()
     cfg = copy.deepcopy(d_sni.get("singbox_fragment", {}))
     for ob in cfg.get("outbounds", []):
@@ -4417,6 +4468,16 @@ def client_sub_singbox_fragment_download(sub_token):
             ob["uuid"] = u_uuid
         elif ob.get("type") == "trojan" and pwd:
             ob["password"] = pwd
+    try:
+        if "inject_singbox_client_anti_dpi" in globals():
+            cfg = inject_singbox_client_anti_dpi(
+                cfg,
+                operator_code=op_param,
+                enable_ech=(True if ech_param in ["1", "true"] else (False if ech_param in ["0", "false"] else None)),
+                enable_fragment=True
+            )
+    except Exception as e:
+        logger.error(f"Error injecting anti-dpi into singbox-fragment: {e}")
     resp = Response(json.dumps(cfg, indent=2, ensure_ascii=False), mimetype="application/json; charset=utf-8")
     resp.headers["Content-Disposition"] = f'attachment; filename="MHPanel-{uname}-SingBox-Fragment.json"'
     return resp
@@ -4436,6 +4497,24 @@ def client_sub_b64(sub_token):
     domain = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
     pub_ip = get_server_public_ip()
 
+    op_filter = (request.args.get("operator") or request.args.get("op") or "").lower()
+    ech_req = request.args.get("ech")
+    frag_req = request.args.get("frag") or request.args.get("fragment")
+    patterniha_req = request.args.get("patterniha") or request.args.get("fm")
+
+    ad_settings = get_anti_dpi_settings() if "get_anti_dpi_settings" in globals() else {}
+    do_ech = (ech_req in ["1", "true"]) or (ech_req is None and ad_settings.get("default_ech_enabled", True))
+    do_frag = (frag_req in ["1", "true"]) or (frag_req is None and ad_settings.get("default_fragment_enabled", True))
+    do_pat = (patterniha_req in ["1", "true"]) or (patterniha_req is None and ad_settings.get("patterniha_enabled", False))
+    eff_op = op_filter or ad_settings.get("default_operator", "all")
+
+    anti_opts = {
+        "operator": eff_op if eff_op != "all" else "mci",
+        "ech": do_ech,
+        "fragment": do_frag,
+        "patterniha": do_pat
+    }
+
     uris = []
     if proto_type == "singbox":
         # Singbox local user: generate configs for all their assigned inbounds
@@ -4452,13 +4531,22 @@ def client_sub_b64(sub_token):
                         target_host = get_valid_server_domain() or pub_ip
                         if is_real:
                             for r_port in get_reality_candidate_ports():
-                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=r_port)
+                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=r_port, anti_dpi_opts=anti_opts)
                                 if extra_link and extra_link not in uris:
                                     uris.append(extra_link)
                         else:
-                            slink = generate_singbox_share_link(ib, target_host, target_user=udata)
+                            slink = generate_singbox_share_link(ib, target_host, target_user=udata, anti_dpi_opts=anti_opts)
                             if slink and slink not in uris:
                                 uris.append(slink)
+                            # If operator is 'all', also add operator-specific presets for key Iranian ISPs
+                            if eff_op == "all" and not op_filter:
+                                for op_key in ["mci", "mtn", "rtl", "mkh"]:
+                                    op_link = generate_singbox_share_link(
+                                        ib, target_host, target_user=udata,
+                                        anti_dpi_opts={"operator": op_key, "ech": do_ech, "fragment": True, "patterniha": False}
+                                    )
+                                    if op_link and op_link not in uris:
+                                        uris.append(op_link)
         except Exception as e:
             logger.error(f"Error generating singbox sub links: {e}")
 
@@ -30567,7 +30655,7 @@ def validate_singbox_config(cfg_obj):
             os.remove(tmp_path)
         return False, str(e)
 
-def generate_singbox_share_link(inbound, host_ip, target_user=None, override_port=None):
+def generate_singbox_share_link(inbound, host_ip, target_user=None, override_port=None, anti_dpi_opts=None):
     itype = inbound.get("type", "vless")
     port = inbound.get("listen_port", 443)
     tag = inbound.get("tag", itype)
@@ -30660,6 +30748,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     _sub_s = get_sub_settings()
     _bp = (_sub_s.get("brand_name") or _sub_s.get("title") or "MHPanel").strip()
     tag_name = f"{_bp} - {display_title}{port_label} ({u_name})" if (target_user and u_name) else f"{_bp} - {display_title}{port_label}"
+    if anti_dpi_opts and isinstance(anti_dpi_opts, dict) and anti_dpi_opts.get("operator"):
+        _op_label = str(anti_dpi_opts["operator"]).upper()
+        if _op_label != "ALL":
+            tag_name += f" [{_op_label}]"
 
     if itype == "vless":
         tp = (inbound.get("transport") or {}).get("type", "tcp")
@@ -30715,6 +30807,23 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
             if is_self_signed:
                 link += "&allowInsecure=1"
+
+        if anti_dpi_opts and isinstance(anti_dpi_opts, dict):
+            try:
+                if "build_v2ray_anti_dpi_query" in globals():
+                    _extra_anti = build_v2ray_anti_dpi_query(
+                        operator_code=anti_dpi_opts.get("operator"),
+                        enable_ech=anti_dpi_opts.get("ech"),
+                        custom_ech=anti_dpi_opts.get("custom_ech"),
+                        enable_fragment=anti_dpi_opts.get("fragment"),
+                        enable_patterniha=anti_dpi_opts.get("patterniha"),
+                        custom_mask=anti_dpi_opts.get("mask"),
+                        is_tls_port=(tls_enabled or reality_enabled)
+                    )
+                    if _extra_anti:
+                        link += _extra_anti
+            except Exception:
+                pass
 
         link += f"#{tag_name}"
         return link
@@ -30785,6 +30894,23 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             link += f"&fp={fp}"
             if alpn_str: link += f"&alpn={alpn_str}"
             if spx: link += f"&spx={spx}&spiderX={spx}"
+
+        if anti_dpi_opts and isinstance(anti_dpi_opts, dict):
+            try:
+                if "build_v2ray_anti_dpi_query" in globals():
+                    _extra_anti = build_v2ray_anti_dpi_query(
+                        operator_code=anti_dpi_opts.get("operator"),
+                        enable_ech=anti_dpi_opts.get("ech"),
+                        custom_ech=anti_dpi_opts.get("custom_ech"),
+                        enable_fragment=anti_dpi_opts.get("fragment"),
+                        enable_patterniha=anti_dpi_opts.get("patterniha"),
+                        custom_mask=anti_dpi_opts.get("mask"),
+                        is_tls_port=(tls_enabled or reality_enabled)
+                    )
+                    if _extra_anti:
+                        link += _extra_anti
+            except Exception:
+                pass
 
         link += f"#{tag_name}"
         return link
@@ -33255,6 +33381,32 @@ def api_singbox_sub_settings():
         return jsonify({"success": True, "settings": settings})
     return jsonify({"success": True, "settings": get_singbox_sub_settings()})
 
+@app.route("/api/singbox/anti-dpi-settings", methods=["GET", "POST"])
+def api_singbox_anti_dpi_settings():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if request.method == "POST":
+        req = request.json or {}
+        curr = get_anti_dpi_settings() if "get_anti_dpi_settings" in globals() else {}
+        for k in ["enabled", "default_ech_enabled", "default_ech", "default_fragment_enabled",
+                  "default_operator", "patterniha_enabled", "custom_camouflage_sni"]:
+            if k in req:
+                curr[k] = req[k]
+        if "save_anti_dpi_settings" in globals():
+            save_anti_dpi_settings(curr)
+        return jsonify({"success": True, "settings": curr})
+
+    cur_settings = get_anti_dpi_settings() if "get_anti_dpi_settings" in globals() else {}
+    return jsonify({
+        "success": True,
+        "settings": cur_settings,
+        "operators": DEFAULT_OPERATOR_PRESETS if "DEFAULT_OPERATOR_PRESETS" in globals() else {},
+        "ech_presets": ECH_DEFAULT_PRESETS if "ECH_DEFAULT_PRESETS" in globals() else [],
+        "outer_domains": ECH_OUTER_DOMAINS if "ECH_OUTER_DOMAINS" in globals() else [],
+        "resolvers": ECH_RESOLVERS if "ECH_RESOLVERS" in globals() else [],
+        "camouflage_domains": DOMESTIC_CAMOUFLAGE_DOMAINS if "DOMESTIC_CAMOUFLAGE_DOMAINS" in globals() else []
+    })
+
 @app.route("/api/singbox/user/<username>/links", methods=["GET"])
 def api_singbox_user_links(username):
     if not check_login():
@@ -33316,6 +33468,37 @@ def api_singbox_user_links(username):
     except Exception as e:
         logger.error(f"Error adding clean ip configs to user links: {e}")
 
+    # Build Operator & Anti-DPI Specific Presets
+    anti_dpi_configs = []
+    try:
+        for op_key, op_data in (DEFAULT_OPERATOR_PRESETS.items() if "DEFAULT_OPERATOR_PRESETS" in globals() else []):
+            for ib in cfg.get("inbounds", []):
+                tag = ib.get("tag")
+                if not user_inbounds or tag in user_inbounds:
+                    proto_type = ib.get("type", "")
+                    is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
+                    tls_en = ib.get("tls", {}).get("enabled", False)
+                    if is_real or tls_en:
+                        op_opts = {
+                            "operator": op_key,
+                            "fragment": True,
+                            "ech": (op_key != "gaming"),
+                            "patterniha": (op_key == "patterniha")
+                        }
+                        r_port = 443 if is_real else ib.get("listen_port")
+                        link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=r_port, anti_dpi_opts=op_opts)
+                        if link:
+                            anti_dpi_configs.append({
+                                "tag": f"{tag}-{op_key}",
+                                "operator": op_key,
+                                "operator_name": op_data.get("name", op_key),
+                                "type": f"{proto_type.upper()} ({op_data.get('name', op_key)})",
+                                "port": r_port,
+                                "share_link": link
+                            })
+    except Exception as e:
+        logger.error(f"Error building anti-dpi user links: {e}")
+
     # Sing-box Sub Settings & Origin Disguise
     sb_settings = get_singbox_sub_settings()
     if sb_settings.get("relay_worker_url"):
@@ -33333,7 +33516,7 @@ def api_singbox_user_links(username):
     if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
         disguise_srv = sb_settings["disguise_server"].strip()
         disguise_port = str(sb_settings.get("disguise_port", "")).strip()
-        for c in configs:
+        for c in configs + anti_dpi_configs:
             if "share_link" in c and c["share_link"]:
                 orig_link = c["share_link"]
                 if disguise_port:
@@ -33352,12 +33535,15 @@ def api_singbox_user_links(username):
         "username": username,
         "user": target,
         "configs": configs,
+        "anti_dpi_configs": anti_dpi_configs,
         "configs_count": len(configs),
         "sub_token": sub_token,
         "sub_url": sub_url,
         "sub_b64_url": sub_b64_url,
         "sub_json_url": sub_json_url,
-        "sub_settings": sb_settings
+        "sub_settings": sb_settings,
+        "anti_dpi_settings": get_anti_dpi_settings() if "get_anti_dpi_settings" in globals() else {},
+        "operators": DEFAULT_OPERATOR_PRESETS if "DEFAULT_OPERATOR_PRESETS" in globals() else {}
     })
 
 

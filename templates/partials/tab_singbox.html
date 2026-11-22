@@ -1963,6 +1963,26 @@
                     </div>
                 </div>
 
+                <!-- Operator & Anti-DPI Quick Preset Filter Bar -->
+                <div style="background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 11.5px; font-weight: 700; color: #0284c7; display: flex; align-items: center; gap: 5px;">
+                            <i data-lucide="filter" style="width: 14px; height: 14px;"></i>
+                            <span>فیلتر هوشمند اپراتور کاربر (Anti-DPI / ECH Presets):</span>
+                        </span>
+                        <span id="sb-user-active-filter-badge" class="badge" style="background: #0284c7; color: white; font-size: 10px; padding: 2px 7px; border-radius: 4px;">همه کانفیگ‌ها</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="sb-user-op-pills">
+                        <button type="button" class="btn btn-sm btn-primary sb-op-pill active" data-op="all" onclick="filterUserLinksByOperator('all')" style="font-size: 11px; padding: 3px 9px;">🌐 همه</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="mci" onclick="filterUserLinksByOperator('mci')" style="font-size: 11px; padding: 3px 9px;">📱 همراه اول (MCI)</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="mtn" onclick="filterUserLinksByOperator('mtn')" style="font-size: 11px; padding: 3px 9px;">🟡 ایرانسل (MTN)</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="rtl" onclick="filterUserLinksByOperator('rtl')" style="font-size: 11px; padding: 3px 9px;">🟣 رایتل (Rightel)</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="mkh" onclick="filterUserLinksByOperator('mkh')" style="font-size: 11px; padding: 3px 9px;">☎️ مخابرات (TCI)</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="gaming" onclick="filterUserLinksByOperator('gaming')" style="font-size: 11px; padding: 3px 9px;">🎮 گیمینگ / FTTH</button>
+                        <button type="button" class="btn btn-sm btn-secondary sb-op-pill" data-op="ech" onclick="filterUserLinksByOperator('ech')" style="font-size: 11px; padding: 3px 9px; color: #0d9488; border-color: rgba(13,148,136,0.4);">🔒 با ECH فعال</button>
+                    </div>
+                </div>
+
                 <div style="margin-bottom: 14px;">
                     <label class="form-label" style="text-align: right; font-weight: 600;">انتخاب پروتکل فعال کاربر جهت استخراج کانفیگ تکی یا QR Code:</label>
                     <select id="sb-user-links-proto-select" class="form-input" onchange="onSingboxUserProtoSelectChange()" style="font-weight: 600;">
@@ -2963,6 +2983,73 @@
                         </label>
                         <input type="number" id="sb-sub-disguise-port" class="form-control" placeholder="پورت یکسان" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
                     </div>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0;">
+
+            <!-- Anti-DPI, TLS Fragmentation & ECH Engine Section -->
+            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: #0284c7; display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="zap" style="width: 16px; height: 16px; color: #0284c7;"></i>
+                    <span>موتور ضد بازرسی عمیق پکت (Anti-DPI / TLS Fragment / ECH)</span>
+                </span>
+                <span class="badge" style="background: rgba(2, 132, 199, 0.15); color: #0284c7; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">الگوبرداری هوشمند ZEUS</span>
+            </div>
+
+            <div style="background: rgba(2, 132, 199, 0.04); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-color);">
+                        <input type="checkbox" id="sb-antidpi-ech-enabled">
+                        <span>فعال‌سازی سراسری Encrypted Client Hello (ECH) در لینک‌ها و سینگ‌باکس</span>
+                    </label>
+                    <span style="font-size: 11px; color: var(--text-muted);">پنهان‌سازی کامل SNI داخلی از دید سامانه‌های فیلترینگ</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block;">
+                            پیکربندی ریزالور و دامنه بیرونی ECH
+                        </label>
+                        <select id="sb-antidpi-default-ech" class="form-control" style="font-size: 11.5px; font-family: 'JetBrains Mono', monospace; direction: ltr;">
+                            <option value="aef.ir+https://1.1.1.1/dns-query">aef.ir + Cloudflare DoH (1.1.1.1)</option>
+                            <option value="aef.ir+https://8.8.8.8/dns-query">aef.ir + Google DoH (8.8.8.8)</option>
+                            <option value="cloudflare-ech.com+https://1.1.1.1/dns-query">cloudflare-ech.com + Cloudflare DoH</option>
+                            <option value="tgju.org+https://1.1.1.1/dns-query">tgju.org + Cloudflare DoH</option>
+                            <option value="iranva.ir+https://1.1.1.1/dns-query">iranva.ir + Cloudflare DoH</option>
+                            <option value="voorivex.ir+https://1.1.1.1/dns-query">voorivex.ir + Cloudflare DoH</option>
+                            <option value="aef.ir+tcp://1.1.1.1">aef.ir + TCP 1.1.1.1</option>
+                            <option value="cloudflare-ech.com+udp://1.1.1.1">cloudflare-ech.com + UDP 1.1.1.1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block;">
+                            پروفایل پیش‌فرض شکستن بسته TLS (Fragment Preset)
+                        </label>
+                        <select id="sb-antidpi-default-operator" class="form-control" style="font-size: 12px;">
+                            <option value="all">همه اپراتورها (ترکیبی و هوشمند)</option>
+                            <option value="mci">همراه اول - MCI (بسته‌های 10-30 بایت)</option>
+                            <option value="mtn">ایرانسل - MTN (بسته‌های 100-200 بایت)</option>
+                            <option value="rtl">رایتل - Rightel (بسته‌های 50-100 بایت)</option>
+                            <option value="mkh">مخابرات - TCI (بسته‌های 50-200 بایت)</option>
+                            <option value="gaming">گیمینگ و فیبر نوری (پینگ پایین / 200-3000 بایت)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.35); border-radius: 8px; padding: 10px 14px; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #7c3aed;">
+                            <input type="checkbox" id="sb-antidpi-patterniha-enabled">
+                            <span>تزریق ماژول و سایفرسوئیت‌های بهینه‌ساز پیشرفته Patterniha (&amp;fm= &amp;cs=)</span>
+                        </label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="applyPatternihaQuickPreset()" style="font-size: 10.5px; padding: 3px 8px; color: #7c3aed; border-color: rgba(139,92,246,0.5);">
+                            ⚡ اعمال مقادیر بهینه‌ساز پیش‌فرض
+                        </button>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 10.5px; display: block; margin-top: 4px;">
+                        سایفرسوئیت‌های اختصاصی AES/ChaCha و تکه‌تکه کردن پیشرفته Handshake به طول 104 و 1 بایت جهت خنثی‌سازی کامل فیلترینگ بازرسی بسته‌ها.
+                    </small>
                 </div>
             </div>
 

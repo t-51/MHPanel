@@ -27675,23 +27675,85 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 return;
             }
 
-            let optsHtml = "";
-            if (data.sub_json_url) {
-                optsHtml += `<option value="__SINGBOX_JSON_SUB__" selected>📦 پروفایل اختصاصی نرم‌افزار Sing-box (لینک، بارکد و JSON)</option>`;
-            }
-            if (data.sub_b64_url || data.sub_url) {
-                optsHtml += `<option value="__SUB_LINK__">🌐 لینک سابسکرایب همگانی (SlipNet / V2Ray / Base64)</option>`;
-            }
-            cfgs.forEach(c => {
-                const portVal = c.port || c.listen_port || "";
-                optsHtml += `<option value="${escapeHtml(c.tag)}">${c.type.toUpperCase()} - پورت ${portVal} (${escapeHtml(c.tag)})</option>`;
-            });
-            if (sel) sel.innerHTML = optsHtml;
-
-            onSingboxUserProtoSelectChange();
+            filterUserLinksByOperator('all');
         } catch (e) {
             showToast("خطای شبکه در دریافت لینک‌ها", "error");
         }
+    }
+
+    let currentSingboxSelectedOperator = 'all';
+
+    function filterUserLinksByOperator(op) {
+        currentSingboxSelectedOperator = op;
+        document.querySelectorAll("#sb-user-op-pills .sb-op-pill").forEach(btn => {
+            if (btn.getAttribute("data-op") === op) {
+                btn.classList.add("active", "btn-primary");
+                btn.classList.remove("btn-secondary");
+            } else {
+                btn.classList.remove("active", "btn-primary");
+                btn.classList.add("btn-secondary");
+            }
+        });
+
+        const badge = document.getElementById("sb-user-active-filter-badge");
+        const opNames = {
+            all: "همه کانفیگ‌ها",
+            mci: "همراه اول (MCI)",
+            mtn: "ایرانسل (MTN)",
+            rtl: "رایتل (Rightel)",
+            mkh: "مخابرات (TCI)",
+            gaming: "گیمینگ / FTTH",
+            ech: "دارای ECH فعال"
+        };
+        if (badge) badge.textContent = opNames[op] || op;
+
+        if (!currentSingboxUserLinksData) return;
+
+        const baseSubUrl = currentSingboxUserLinksData.sub_url || "";
+        const baseB64Url = currentSingboxUserLinksData.sub_b64_url || "";
+        const baseJsonUrl = currentSingboxUserLinksData.sub_json_url || "";
+        const paramStr = (op === "all") ? "" : (op === "ech" ? "?ech=1" : `?operator=${op}`);
+
+        const sbUrlInp = document.getElementById("sb-user-singbox-url-input");
+        if (sbUrlInp) sbUrlInp.value = baseJsonUrl ? (baseJsonUrl + paramStr) : "";
+        const subInp = document.getElementById("sb-user-sub-url-input");
+        if (subInp) subInp.value = baseB64Url ? (baseB64Url + paramStr) : "";
+
+        const sel = document.getElementById("sb-user-links-proto-select");
+        if (!sel) return;
+
+        let filteredConfigs = [];
+        const baseCfgs = currentSingboxUserLinksData.configs || [];
+        const antiCfgs = currentSingboxUserLinksData.anti_dpi_configs || [];
+
+        if (op === "all") {
+            filteredConfigs = [...baseCfgs, ...antiCfgs];
+        } else if (op === "ech") {
+            filteredConfigs = [...baseCfgs, ...antiCfgs].filter(c => (c.share_link && c.share_link.includes("ech=")));
+        } else {
+            filteredConfigs = antiCfgs.filter(c => c.operator === op);
+            if (filteredConfigs.length === 0) {
+                filteredConfigs = baseCfgs.filter(c => (c.share_link && c.share_link.toLowerCase().includes(op)));
+            }
+            if (filteredConfigs.length === 0) {
+                filteredConfigs = baseCfgs;
+            }
+        }
+
+        let optsHtml = "";
+        if (baseJsonUrl) {
+            optsHtml += `<option value="__SINGBOX_JSON_SUB__" selected>📦 پروفایل اختصاصی نرم‌افزار Sing-box (${opNames[op] || op})</option>`;
+        }
+        if (baseB64Url) {
+            optsHtml += `<option value="__SUB_LINK__">🌐 لینک سابسکرایب همگانی (${opNames[op] || op})</option>`;
+        }
+        filteredConfigs.forEach(c => {
+            const portVal = c.port || c.listen_port || "";
+            optsHtml += `<option value="${escapeHtml(c.tag)}">${c.type} - پورت ${portVal} (${escapeHtml(c.tag)})</option>`;
+        });
+        sel.innerHTML = optsHtml || `<option value="">هیچ کانفیگی برای این فیلتر یافت نشد</option>`;
+
+        onSingboxUserProtoSelectChange();
     }
 
     function onSingboxUserProtoSelectChange() {
@@ -27701,7 +27763,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
         const selectedTag = sel.value;
         if (selectedTag === "__SINGBOX_JSON_SUB__") {
-            const subJsonUrl = currentSingboxUserLinksData.sub_json_url || "";
+            const paramStr = (currentSingboxSelectedOperator === "all") ? "" : (currentSingboxSelectedOperator === "ech" ? "?ech=1" : `?operator=${currentSingboxSelectedOperator}`);
+            const subJsonUrl = currentSingboxUserLinksData.sub_json_url ? (currentSingboxUserLinksData.sub_json_url + paramStr) : "";
             const uname = currentSingboxUserLinksData.username || "User";
             const singboxScheme = `sing-box://import-remote-profile?url=${encodeURIComponent(subJsonUrl)}#${encodeURIComponent("MHPanel-" + uname)}`;
             const uriInp = document.getElementById("sb-user-link-uri-input");
@@ -27711,14 +27774,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (selectedTag === "__SUB_LINK__") {
-            const subUrl = currentSingboxUserLinksData.sub_b64_url || currentSingboxUserLinksData.sub_url || "";
+            const paramStr = (currentSingboxSelectedOperator === "all") ? "" : (currentSingboxSelectedOperator === "ech" ? "?ech=1" : `?operator=${currentSingboxSelectedOperator}`);
+            const subUrl = (currentSingboxUserLinksData.sub_b64_url || currentSingboxUserLinksData.sub_url) ? ((currentSingboxUserLinksData.sub_b64_url || currentSingboxUserLinksData.sub_url) + paramStr) : "";
             const uriInp = document.getElementById("sb-user-link-uri-input");
             if (uriInp) uriInp.value = subUrl;
             renderQrCodeHelper("sb-user-qr-canvas-container", subUrl);
             return;
         }
 
-        const cfg = (currentSingboxUserLinksData.configs || []).find(c => c.tag === selectedTag);
+        const allCfgs = [...(currentSingboxUserLinksData.configs || []), ...(currentSingboxUserLinksData.anti_dpi_configs || [])];
+        const cfg = allCfgs.find(c => c.tag === selectedTag);
         if (!cfg) return;
 
         const uriInp = document.getElementById("sb-user-link-uri-input");
@@ -27864,6 +27929,25 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
                 toggleSingboxDisguiseInputs();
             }
+
+            // Load Anti-DPI & ECH settings
+            try {
+                const adRes = await fetch("/api/singbox/anti-dpi-settings");
+                const adData = await adRes.json();
+                if (adData && adData.success && adData.settings) {
+                    const ads = adData.settings;
+                    const echChk = document.getElementById("sb-antidpi-ech-enabled");
+                    if (echChk) echChk.checked = (ads.default_ech_enabled !== false);
+                    const echSel = document.getElementById("sb-antidpi-default-ech");
+                    if (echSel && ads.default_ech) echSel.value = ads.default_ech;
+                    const opSel = document.getElementById("sb-antidpi-default-operator");
+                    if (opSel && ads.default_operator) opSel.value = ads.default_operator;
+                    const patChk = document.getElementById("sb-antidpi-patterniha-enabled");
+                    if (patChk) patChk.checked = !!ads.patterniha_enabled;
+                }
+            } catch (err) {
+                console.error("Error loading anti-dpi settings:", err);
+            }
         } catch (e) {
             console.error("Error loading singbox sub settings:", e);
         }
@@ -27877,6 +27961,18 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 translateDom(modal, _curLang);
             }
         } catch (_) {}
+    }
+
+    function applyPatternihaQuickPreset() {
+        const patChk = document.getElementById("sb-antidpi-patterniha-enabled");
+        if (patChk) patChk.checked = true;
+        const echChk = document.getElementById("sb-antidpi-ech-enabled");
+        if (echChk) echChk.checked = true;
+        const echSel = document.getElementById("sb-antidpi-default-ech");
+        if (echSel) echSel.value = "aef.ir+https://1.1.1.1/dns-query";
+        const opSel = document.getElementById("sb-antidpi-default-operator");
+        if (opSel) opSel.value = "all";
+        showToast("تنظیمات پیشنهادی بهینه‌ساز Patterniha بارگذاری شد.", "info");
     }
 
     function closeSingboxSubSettingsModal() {
@@ -27907,6 +28003,13 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             disguise_port: (document.getElementById("sb-sub-disguise-port")?.value || "").trim()
         };
 
+        const antiDpiPayload = {
+            default_ech_enabled: !!document.getElementById("sb-antidpi-ech-enabled")?.checked,
+            default_ech: (document.getElementById("sb-antidpi-default-ech")?.value || "").trim(),
+            default_operator: (document.getElementById("sb-antidpi-default-operator")?.value || "all").trim(),
+            patterniha_enabled: !!document.getElementById("sb-antidpi-patterniha-enabled")?.checked
+        };
+
         try {
             const res = await fetch("/api/singbox/sub-settings", {
                 method: "POST",
@@ -27914,8 +28017,20 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
+
+            // Save Anti-DPI & ECH settings
+            try {
+                await fetch("/api/singbox/anti-dpi-settings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(antiDpiPayload)
+                });
+            } catch (err) {
+                console.error("Error saving anti-dpi settings:", err);
+            }
+
             if (res.ok && data.success) {
-                showToast("تنظیمات لینک ساب و استتار سرور با موفقیت ذخیره شد.", "success");
+                showToast("تنظیمات لینک ساب، استتار سرور و موتور ضد DPI با موفقیت ذخیره شد.", "success");
                 closeSingboxSubSettingsModal();
                 if (typeof loadSingboxUsers === "function") {
                     loadSingboxUsers();
