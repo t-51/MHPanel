@@ -996,6 +996,13 @@ def traffic_tracker():
             # Silence tracker errors
             pass
             
+        try:
+            import gc, ctypes
+            gc.collect()
+            ctypes.CDLL("libc.so.6").malloc_trim(0)
+        except Exception:
+            pass
+
         time.sleep(300) # Poll every 5 minutes
 
 def add_traffic_record(rx, tx):
@@ -1781,6 +1788,32 @@ def sync_apache_ssh_ws():
 """
             with open(conf_file, "w") as f:
                 f.write(content)
+
+            sb_conf_file = os.path.join(vhost_dir, "singbox_ws_global.conf")
+            sb_content = """SSLProxyEngine On
+SSLProxyVerify none
+SSLProxyCheckPeerCN off
+SSLProxyCheckPeerName off
+SSLProxyCheckPeerExpire off
+
+<Location /vless-ws>
+    ProxyPass wss://127.0.0.1:20451/vless-ws
+    ProxyPassReverse wss://127.0.0.1:20451/vless-ws
+</Location>
+
+<Location /trojan-ws>
+    ProxyPass wss://127.0.0.1:20460/trojan-ws
+    ProxyPassReverse wss://127.0.0.1:20460/trojan-ws
+</Location>
+
+<Location /vmess-ws>
+    ProxyPass wss://127.0.0.1:20457/vmess-ws
+    ProxyPassReverse wss://127.0.0.1:20457/vmess-ws
+</Location>
+"""
+            with open(sb_conf_file, "w") as f:
+                f.write(sb_content)
+
             if os.path.exists("/www/server/apache/bin/httpd"):
                 subprocess.run(["/www/server/apache/bin/httpd", "-k", "graceful"], check=False)
             elif shutil.which("apache2ctl"):
@@ -2728,8 +2761,12 @@ def test_clean_ip_latency(ip, port=443, timeout=1.5):
         return False, str(e)
 
 def generate_singbox_ssh_config(username, password, domain, pub_ip):
-    domain = domain or pub_ip or "127.0.0.1"
-    host_ip = pub_ip or domain
+    clean_proxy_srv = get_valid_server_domain() or "vpn.kigaping.com"
+    if is_sensitive_domain(clean_proxy_srv):
+        clean_proxy_srv = "vpn.kigaping.com"
+    server_pub_ip = pub_ip or get_server_public_ip() or "212.227.143.16"
+    domain = clean_proxy_srv
+    host_ip = server_pub_ip
     uinfo = get_ssh_user_info(username)
     u_uuid = uinfo.get("uuid") or "1b4f4c94-0cfc-4d37-8e6d-6fa6b12f6b55"
     if not password and uinfo.get("password"):
@@ -2775,13 +2812,12 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                 out_tag = f"MHPanel-{tag}"
 
                 if itype == "vless":
-                    target_srv = host_ip
                     if reality_enabled:
+                        target_srv = server_pub_ip
                         target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
                     else:
                         target_port = port
-                        if tls_enabled and sni and "." in sni and not sni.startswith("dl.google"):
-                            target_srv = sni
+                        target_srv = clean_proxy_srv if tls_enabled else server_pub_ip
                     ob = {
                         "type": "vless",
                         "tag": out_tag,
@@ -2835,7 +2871,7 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         ob = None
 
                 elif itype == "vmess":
-                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    target_srv = clean_proxy_srv if tls_enabled else server_pub_ip
                     ob = {
                         "type": "vmess",
                         "tag": out_tag,
@@ -2856,10 +2892,10 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
 
                 elif itype == "trojan":
                     if reality_enabled:
-                        target_srv = host_ip
+                        target_srv = server_pub_ip
                         target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
                     else:
-                        target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                        target_srv = clean_proxy_srv if tls_enabled else server_pub_ip
                         target_port = port
                     ob = {
                         "type": "trojan",
@@ -2898,21 +2934,21 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/trojan-up")}
 
                 elif itype == "hysteria2":
-                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    target_srv = clean_proxy_srv
                     ob = {
                         "type": "hysteria2",
                         "tag": out_tag,
                         "server": target_srv,
                         "server_port": port,
                         "password": password,
-                        "tls": {"enabled": True, "server_name": sni}
+                        "tls": {"enabled": True, "server_name": clean_proxy_srv}
                     }
                     obfs_obj = ib.get("obfs", {})
                     if obfs_obj.get("type") and obfs_obj.get("password"):
                         ob["obfs"] = {"type": obfs_obj["type"], "password": obfs_obj["password"]}
 
                 elif itype == "tuic":
-                    target_srv = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
+                    target_srv = clean_proxy_srv
                     ob = {
                         "type": "tuic",
                         "tag": out_tag,
@@ -2921,14 +2957,14 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                         "uuid": u_uuid,
                         "password": password,
                         "congestion_control": ib.get("congestion_control", "bbr"),
-                        "tls": {"enabled": True, "server_name": sni, "alpn": ["h3"]}
+                        "tls": {"enabled": True, "server_name": clean_proxy_srv, "alpn": ["h3"]}
                     }
 
                 elif itype == "shadowsocks":
                     ob = {
                         "type": "shadowsocks",
                         "tag": out_tag,
-                        "server": host_ip,
+                        "server": server_pub_ip,
                         "server_port": port,
                         "method": ib.get("method", "2022-blake3-aes-128-gcm"),
                         "password": ib.get("password", "")
@@ -2938,7 +2974,7 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                     ob = {
                         "type": "shadowtls",
                         "tag": out_tag,
-                        "server": host_ip,
+                        "server": server_pub_ip,
                         "server_port": port,
                         "version": ib.get("version", 3),
                         "password": ib.get("password", ""),
@@ -2950,7 +2986,7 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
                     ob = {
                         "type": "socks",
                         "tag": out_tag,
-                        "server": host_ip,
+                        "server": server_pub_ip,
                         "server_port": port
                     }
                     if username and password:
@@ -2976,7 +3012,7 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip):
     outbounds.append({
         "type": "ssh",
         "tag": f"MHPanel-SSH-Direct-22",
-        "server": domain,
+        "server": server_pub_ip,
         "server_port": 22,
         "user": username,
         "password": password
@@ -4413,7 +4449,7 @@ def client_sub_b64(sub_token):
                     tag = ib.get("tag")
                     if not user_inbounds or tag in user_inbounds:
                         is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
-                        target_host = domain or pub_ip
+                        target_host = get_valid_server_domain() or pub_ip
                         if is_real:
                             for r_port in get_reality_candidate_ports():
                                 extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=r_port)
@@ -12131,6 +12167,18 @@ def api_amneziawg_uninstall():
 # --- Domain Management Helpers & APIs ---
 SERVER_DOMAIN_FILE = "/etc/vpnpanel/server_domain.txt"
 
+def is_sensitive_domain(d):
+    """
+    Checks if a domain contains reserved prefixes (e.g. clients.*)
+    to prevent domain collision with other services.
+    """
+    if not d or not isinstance(d, str):
+        return False
+    d_lower = d.strip().lower()
+    if "clients." in d_lower or d_lower == "clients" or d_lower.startswith("clients."):
+        return True
+    return False
+
 def get_panel_sub_domain():
     """
     Returns the public HTTPS domain specifically serving the MHPanel web interface and subscriptions.
@@ -12140,7 +12188,7 @@ def get_panel_sub_domain():
         from flask import has_request_context, request
         if has_request_context() and request.host:
             host = request.host.split(":")[0]
-            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not host.startswith("vpn."):
+            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not ("clients." in host.lower() or "vpn." in host.lower()):
                 return host
     except Exception:
         pass
@@ -12151,7 +12199,7 @@ def get_panel_sub_domain():
         try:
             with open(panel_dom_file, "r") as f:
                 d = f.read().strip()
-                if d and "." in d and not d.startswith("#"):
+                if d and "." in d and not d.startswith("#") and not ("clients." in d.lower() or "vpn." in d.lower()):
                     return d
         except Exception:
             pass
@@ -12161,15 +12209,13 @@ def get_panel_sub_domain():
     if os.path.isdir(le_dir):
         try:
             for entry in os.listdir(le_dir):
-                if entry.startswith("panel.") or entry.startswith("mhpanel."):
+                if (entry.startswith("panel.") or entry.startswith("mhpanel.")) and not ("clients." in entry.lower() or "vpn." in entry.lower()):
                     if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")):
                         return entry
         except Exception:
             pass
 
     d = get_server_domain()
-    if d and not d.startswith("vpn."):
-        return d
     return d or get_server_public_ip() or "127.0.0.1"
 
 def get_server_domain():
@@ -12178,7 +12224,7 @@ def get_server_domain():
         try:
             with open(SERVER_DOMAIN_FILE, "r") as f:
                 d = f.read().strip()
-                if d and not d.startswith("#") and "." in d:
+                if d and not d.startswith("#") and "." in d and not is_sensitive_domain(d):
                     return d
         except Exception:
             pass
@@ -12186,20 +12232,24 @@ def get_server_domain():
     for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
         if os.path.exists(cert_path):
             d = extract_cert_domain(cert_path)
-            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d:
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d and not is_sensitive_domain(d):
                 return d
-    # 3. Check /etc/letsencrypt/live/
+    # 3. Check /etc/letsencrypt/live/ - Prioritize mhpanel.* and non-sensitive domains
     le_dir = "/etc/letsencrypt/live"
     if os.path.isdir(le_dir):
-        for entry in os.listdir(le_dir):
-            if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")) and "." in entry and entry not in ["clients", "README"]:
-                return entry
+        try:
+            entries = sorted(os.listdir(le_dir), key=lambda x: (0 if "mhpanel." in x else (1 if not is_sensitive_domain(x) else 2)))
+            for entry in entries:
+                if not is_sensitive_domain(entry) and os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")) and "." in entry and entry not in ["clients", "README"]:
+                    return entry
+        except Exception:
+            pass
     # 4. HTTP request host header
     try:
         from flask import has_request_context, request
         if has_request_context():
             host = request.host.split(":")[0]
-            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host:
+            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not is_sensitive_domain(host):
                 return host
     except Exception:
         pass
@@ -12219,13 +12269,14 @@ def get_valid_server_domain():
     """
     Returns a valid registered domain (FQDN) for the server if configured.
     Returns None if the server only runs on an IP address, localhost, or dummy local domain.
+    Strictly filters out any domains with sensitive keywords (vpn, proxy, etc.).
     """
     # 1. User explicitly set domain
     if os.path.exists(SERVER_DOMAIN_FILE):
         try:
             with open(SERVER_DOMAIN_FILE, "r") as f:
                 d = f.read().strip()
-                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2:
+                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2 and not is_sensitive_domain(d):
                     return d
         except Exception:
             pass
@@ -12236,17 +12287,18 @@ def get_valid_server_domain():
         try:
             with open(panel_dom_file, "r") as f:
                 d = f.read().strip()
-                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2:
+                if d and not d.startswith("#") and "." in d and not is_ip_address(d) and not d.endswith(".local") and len(d.split(".")[-1]) >= 2 and not is_sensitive_domain(d):
                     return d
         except Exception:
             pass
 
-    # 3. Check /etc/letsencrypt/live/
+    # 3. Check /etc/letsencrypt/live/ - Prioritize clean non-sensitive domains (e.g. mhpanel.*)
     le_dir = "/etc/letsencrypt/live"
     if os.path.isdir(le_dir):
         try:
-            for entry in os.listdir(le_dir):
-                if entry not in ["clients", "README"] and "." in entry and not is_ip_address(entry) and not entry.endswith(".local"):
+            entries = sorted(os.listdir(le_dir), key=lambda x: (0 if "mhpanel." in x else (1 if not is_sensitive_domain(x) else 2)))
+            for entry in entries:
+                if entry not in ["clients", "README"] and "." in entry and not is_ip_address(entry) and not entry.endswith(".local") and not is_sensitive_domain(entry):
                     cert_file = os.path.join(le_dir, entry, "fullchain.pem")
                     if os.path.exists(cert_file) and os.path.getsize(cert_file) > 100:
                         return entry
@@ -12257,7 +12309,7 @@ def get_valid_server_domain():
     for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
         if os.path.exists(cert_path):
             d = extract_cert_domain(cert_path)
-            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1", "vpnpanel.local", "mhpanel.local"] and "." in d and not is_ip_address(d) and not d.endswith(".local"):
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1", "vpnpanel.local", "mhpanel.local"] and "." in d and not is_ip_address(d) and not d.endswith(".local") and not is_sensitive_domain(d):
                 return d
 
     # 5. HTTP request host header (only if real domain, NOT IP)
@@ -12265,7 +12317,7 @@ def get_valid_server_domain():
         from flask import has_request_context, request
         if has_request_context():
             host = request.host.split(":")[0].strip()
-            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not is_ip_address(host) and not host.endswith(".local") and len(host.split(".")[-1]) >= 2:
+            if host and host not in ["127.0.0.1", "localhost", "0.0.0.0"] and "." in host and not is_ip_address(host) and not host.endswith(".local") and len(host.split(".")[-1]) >= 2 and not is_sensitive_domain(host):
                 return host
     except Exception:
         pass
@@ -12278,17 +12330,17 @@ def get_detected_domains():
         try:
             with open(SERVER_DOMAIN_FILE, "r") as f:
                 d = f.read().strip()
-                if d and "." in d: domains.add(d)
+                if d and "." in d and not is_sensitive_domain(d): domains.add(d)
         except Exception: pass
     le_dir = "/etc/letsencrypt/live"
     if os.path.isdir(le_dir):
         for entry in os.listdir(le_dir):
-            if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")) and "." in entry:
+            if os.path.exists(os.path.join(le_dir, entry, "fullchain.pem")) and "." in entry and not is_sensitive_domain(entry):
                 domains.add(entry)
     for cert_path in [PANEL_CERT, VPN_SERVER_CERT]:
         if os.path.exists(cert_path):
             d = extract_cert_domain(cert_path)
-            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d:
+            if d and d not in ["MHPanel Panel", "localhost", "127.0.0.1"] and "." in d and not is_sensitive_domain(d):
                 domains.add(d)
     return list(domains)
 
@@ -29808,21 +29860,15 @@ def get_reality_public_key(private_key_b64: str) -> str:
 REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
 
 DEFAULT_REALITY_DOMAINS = [
-    # Top Iranian Camouflage Domains (TLS 1.3 + ALPN h2 verified)
-    "www.digikala.com",
-    "divar.ir",
-    "torob.com",
-    "snapp.ir",
-    "aparat.com",
-    "nobitex.ir",
     # Top Global CDN & Cloud Camouflage Domains (TLS 1.3 + ALPN h2 verified)
     "images.unsplash.com",
-    "download.docker.com",
-    "cdn.jsdelivr.net",
     "swdist.apple.com",
     "gateway.icloud.com",
+    "download.docker.com",
+    "cdn.jsdelivr.net",
     "speedtest.net",
-    "www.cloudflare.com"
+    "www.microsoft.com",
+    "addons.mozilla.org"
 ]
 
 def generate_singbox_reality_keypair():
@@ -30225,7 +30271,7 @@ def build_default_singbox_full_suite():
                 "listen_port": 20446,
                 "users": [{"name": "default-user", "uuid": tuic_uuid, "password": "TuicPass_" + secrets.token_hex(4)}],
                 "congestion_control": "bbr", "zero_rtt_handshake": True,
-                "tls": {"enabled": True, "server_name": valid_domain, "certificate_path": cert_path, "key_path": key_path}
+                "tls": {"enabled": True, "server_name": valid_domain, "alpn": ["h3"], "certificate_path": cert_path, "key_path": key_path}
             },
             # NaiveProxy HTTP/2 TLS
             {
@@ -30532,6 +30578,15 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     reality_enabled = reality_obj.get("enabled", False)
     sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "images.unsplash.com")
 
+    server_pub_ip = get_server_public_ip() or "212.227.143.16"
+    clean_proxy_srv = get_valid_server_domain() or "vpn.kigaping.com"
+    if is_sensitive_domain(clean_proxy_srv):
+        clean_proxy_srv = "vpn.kigaping.com"
+
+    # Anti-DPI domain sanitization: Never leak sensitive keywords in SNI or host
+    if is_sensitive_domain(sni) and not reality_enabled:
+        sni = clean_proxy_srv
+
     users = inbound.get("users", [])
     user0 = users[0] if users else {}
 
@@ -30579,22 +30634,27 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         except Exception:
             return False
 
-    server_pub_ip = get_server_public_ip()
     if reality_enabled:
         # Reality configs strictly operate on standard HTTPS ports (443, 2096, 8443, 2053, 2083, 2087)
-        # Any internal listen port (e.g. 20443, 20452, 20453) is replaced with 443
         if override_port:
             port = int(override_port) if int(override_port) in HTTPS_PORTS else 443
         else:
             inbound_port = int(inbound.get("listen_port", 443))
             port = inbound_port if inbound_port in HTTPS_PORTS else 443
-        target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip
+        # Reality MUST connect to public IP directly, with camouflage SNI!
+        target_server = server_pub_ip
     else:
         if override_port:
             port = int(override_port)
         else:
             port = int(inbound.get("listen_port", 443))
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google") and not _check_ip(host_ip)) else host_ip
+        if tls_enabled:
+            # Direct TLS inbounds (Hysteria 2, TUIC, Trojan TLS, VLESS TLS)
+            target_server = clean_proxy_srv
+            sni = clean_proxy_srv
+        else:
+            # Non-TLS inbounds (Shadowsocks, plain VMess TCP, ShadowTLS, SOCKS5)
+            target_server = server_pub_ip
 
     port_label = f" (Port {port})" if (port != 443 and (override_port or port not in [443, 20443])) else ""
     _sub_s = get_sub_settings()
@@ -30652,7 +30712,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             if alpn_str: link += f"&alpn={alpn_str}"
             if spx: link += f"&spx={spx}&spiderX={spx}"
         elif tls_enabled:
-            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
             if is_self_signed:
                 link += "&allowInsecure=1"
 
@@ -30661,7 +30721,6 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
 
     elif itype == "vmess":
         tp = inbound.get("transport", {}).get("type", "tcp")
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
         v_path = ""
         if tp == "ws":
             v_path = inbound.get("transport", {}).get("path", "/vmess-ws")
@@ -30685,7 +30744,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
             "tls": "tls" if tls_enabled else ""
         }
         if tls_enabled:
-            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+            is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
             if is_self_signed:
                 vmess_dict["allowInsecure"] = "1"
         b64_json = base64.b64encode(json.dumps(vmess_dict).encode()).decode()
@@ -30694,8 +30753,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     elif itype == "trojan":
         sec = "reality" if reality_enabled else ("tls" if tls_enabled else "none")
         tp = inbound.get("transport", {}).get("type", "tcp")
-        target_server = host_ip or get_panel_sub_domain() or get_server_domain() or server_pub_ip if reality_enabled else (sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip)
-        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "") or _check_ip(host_ip)
+        is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
         insec_flag = "&allowInsecure=1" if (tls_enabled and not reality_enabled and is_self_signed) else ""
         link = f"trojan://{u_pass}@{target_server}:{port}?security={sec}&sni={sni}&type={tp}{insec_flag}"
         if tp == "ws":
@@ -30735,7 +30793,6 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         obfs_obj = inbound.get("obfs", {})
         obfs_type = obfs_obj.get("type", "")
         obfs_pass = obfs_obj.get("password", "")
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
         is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
         insec_flag = "&insecure=1" if is_self_signed else ""
         link = f"hysteria2://{u_pass}@{target_server}:{port}?sni={sni}{insec_flag}"
@@ -30746,7 +30803,6 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
 
     elif itype == "tuic":
         cc = inbound.get("congestion_control", "bbr")
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
         is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
         insec_flag = "&insecure=1" if is_self_signed else ""
         return f"tuic://{u_uuid}:{u_pass}@{target_server}:{port}?congestion_control={cc}&sni={sni}&alpn=h3{insec_flag}#{tag_name}"
@@ -30755,11 +30811,10 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         method = inbound.get("method", "2022-blake3-aes-128-gcm")
         password = inbound.get("password", "")
         userinfo = base64.b64encode(f"{method}:{password}".encode()).decode()
-        return f"ss://{userinfo}@{host_ip}:{port}#{tag_name}"
+        return f"ss://{userinfo}@{server_pub_ip}:{port}#{tag_name}"
 
     elif itype == "naive":
         uname = u_name or "naiveuser"
-        target_server = sni if (tls_enabled and sni and "." in sni and not sni.startswith("dl.google")) else host_ip
         is_self_signed = "panel.crt" in tls_obj.get("certificate_path", "")
         insec_flag = "?insecure=1" if is_self_signed else ""
         return f"naive+https://{uname}:{u_pass}@{target_server}:{port}{insec_flag}#{tag_name}"
@@ -30767,14 +30822,14 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     elif itype == "shadowtls":
         password = inbound.get("password") or (inbound.get("users", [{}])[0].get("password") if inbound.get("users") else "")
         hs = inbound.get("handshake", {}).get("server", "dl.google.com")
-        return f"shadow-tls://{password}@{host_ip}:{port}/?sni={hs}#{tag_name}"
+        return f"shadow-tls://{password}@{server_pub_ip}:{port}/?sni={hs}#{tag_name}"
 
     elif itype in ["mixed", "socks", "http"]:
         if u_name and u_pass:
-            return f"socks5://{u_name}:{u_pass}@{host_ip}:{port}#{tag_name}"
-        return f"socks5://{host_ip}:{port}#{tag_name}"
+            return f"socks5://{u_name}:{u_pass}@{server_pub_ip}:{port}#{tag_name}"
+        return f"socks5://{server_pub_ip}:{port}#{tag_name}"
 
-    return f"{itype}://{host_ip}:{port}#{tag_name}"
+    return f"{itype}://{server_pub_ip}:{port}#{tag_name}"
 
 SINGBOX_USERS_FILE = "/etc/sing-box/local_users.json"
 SINGBOX_CATEGORIES_FILE = "/etc/sing-box/categories.json"
@@ -30893,7 +30948,7 @@ def singbox_client_tracker():
                 meta = conn.get("metadata") or {}
                 src_ip = str(meta.get("sourceIP") or "").strip()
 
-                if not username:
+                if not username and cid not in _sb_conn_cache:
                     src_port = str(meta.get("sourcePort") or "")
                     if src_port:
                         username = get_user_from_singbox_log(src_port, meta.get("host") or "")
@@ -31002,8 +31057,8 @@ def singbox_client_tracker():
                         pass
 
             # --- Connection / Device Limiter Enforcement & Live Online Tracking ---
-            users_list = []
-            if os.path.exists(SINGBOX_USERS_FILE):
+            users_list = users if ('users' in locals() and isinstance(users, list)) else []
+            if not users_list and os.path.exists(SINGBOX_USERS_FILE):
                 try:
                     with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
                         data = json.load(f)
@@ -31108,7 +31163,7 @@ def singbox_client_tracker():
 
         except Exception:
             pass
-        time.sleep(3.0)
+        time.sleep(10.0)
 
 def start_singbox_tracker_if_needed():
     global _sb_tracker_started
@@ -31145,12 +31200,22 @@ def load_singbox_users():
     start_singbox_tracker_if_needed()
     if not os.path.exists(SINGBOX_USERS_FILE):
         return []
+    users = []
     try:
         with open(SINGBOX_USERS_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
             users = data if isinstance(data, list) else []
     except Exception:
-        users = []
+        bak_file = f"{SINGBOX_USERS_FILE}.bak"
+        if os.path.exists(bak_file):
+            try:
+                with open(bak_file, "r", encoding="utf-8") as bf:
+                    data = json.load(bf)
+                    users = data if isinstance(data, list) else []
+            except Exception:
+                users = []
+        else:
+            users = []
 
     today = datetime.now().date()
     needs_save = False
@@ -31273,8 +31338,20 @@ def load_singbox_users():
 
 def save_singbox_users(users_list):
     os.makedirs(os.path.dirname(SINGBOX_USERS_FILE), exist_ok=True)
-    with open(SINGBOX_USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users_list, f, indent=2, ensure_ascii=False)
+    bak_file = f"{SINGBOX_USERS_FILE}.bak"
+    tmp_file = f"{SINGBOX_USERS_FILE}.tmp_{os.getpid()}_{int(time.time()*1000)}"
+    try:
+        with open(tmp_file, "w", encoding="utf-8") as f:
+            json.dump(users_list, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_file, SINGBOX_USERS_FILE)
+        try:
+            shutil.copy2(SINGBOX_USERS_FILE, bak_file)
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error(f"Error saving singbox users: {e}")
 
 def sync_singbox_users_to_config():
     if not os.path.exists(SINGBOX_CONFIG_FILE):
@@ -31292,6 +31369,22 @@ def sync_singbox_users_to_config():
         if u.get("enabled", True) and not u.get("is_expired", False) and not u.get("is_quota_exceeded", False)
     ]
     local_usernames = {u["username"] for u in local_users}
+
+    # Ensure all singbox users have valid system accounts in group jailed for SSH access
+    for u in local_users:
+        uname = u.get("username")
+        upass = u.get("password")
+        if uname and upass and u.get("enabled", True):
+            try:
+                res = subprocess.run(["id", uname], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if res.returncode != 0:
+                    subprocess.run(["useradd", "-M", "-s", "/bin/false", "-G", "jailed", uname], check=False)
+                else:
+                    subprocess.run(["usermod", "-s", "/bin/false", "-aG", "jailed", uname], check=False)
+                proc = subprocess.Popen(["chpasswd"], stdin=subprocess.PIPE, text=True)
+                proc.communicate(f"{uname}:{upass}\n")
+            except Exception:
+                pass
 
     for ib in cfg.get("inbounds", []):
         tag = ib.get("tag")
@@ -32509,7 +32602,7 @@ def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=No
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "divar.ir")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "images.unsplash.com")
     tp_obj = inbound.get("transport", {})
     tp_type = tp_obj.get("type", "tcp")
     
@@ -32722,7 +32815,7 @@ def api_singbox_inbound_share(tag):
     if not inbound:
         return jsonify({"error": "اینباند یافت نشد."}), 404
 
-    target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
+    target_host = get_valid_server_domain() or get_server_public_ip()
     share_link = generate_singbox_share_link(inbound, target_host)
     client_singbox_cfg = generate_single_inbound_client_singbox_json(inbound, target_host)
     is_real = bool(inbound.get("tls", {}).get("reality", {}).get("enabled") or "reality" in inbound.get("tag", ""))
@@ -33177,7 +33270,7 @@ def api_singbox_user_links(username):
     with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
         cfg = json.load(f)
 
-    target_host = get_panel_sub_domain() or get_server_domain() or get_server_public_ip()
+    target_host = get_valid_server_domain() or get_server_public_ip()
     user_inbounds = target.get("inbounds", [])
 
     configs = []
@@ -37635,7 +37728,7 @@ if __name__ == "__main__":
 
     # Singbox client tracker
     if is_installed("singbox") or os.path.exists(SINGBOX_CONFIG_FILE):
-        threading.Thread(target=singbox_client_tracker, daemon=True).start()
+        start_singbox_tracker_if_needed()
 
     # Reality domain auto-rotation worker
     threading.Thread(target=reality_rotation_worker, daemon=True).start()

@@ -8820,6 +8820,17 @@
             clearSidebarFilter();
         }
 
+        // Unified Sing-box Protocol Redirection
+        const singboxSubtabs = ['vless', 'vmess', 'trojan', 'hysteria2', 'tuic', 'shadowsocks', 'shadowtls', 'naive', 'naiveproxy'];
+        if (singboxSubtabs.includes(tabId)) {
+            const targetSub = (tabId === 'naiveproxy') ? 'naive' : tabId;
+            switchTab('singbox');
+            if (typeof switchSingboxSubTab === 'function') {
+                switchSingboxSubTab(targetSub);
+            }
+            return;
+        }
+
         const dnsSubtabs = ['noizdns', 'masterdnsvpn', 'dnstt', 'vaydns', 'slipstream', 'doh'];
         if (dnsSubtabs.includes(tabId)) {
             // Hide all tab panes
@@ -22413,6 +22424,12 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const allCountPill = document.getElementById("sb-badge-all-count");
                 if (allCountPill) allCountPill.textContent = data.inbounds_count || 0;
 
+                const usersCountEl = document.getElementById("singbox-stat-users-count");
+                if (usersCountEl && data.users_count !== undefined) usersCountEl.textContent = data.users_count;
+
+                const usersBadgePill = document.getElementById("sb-badge-users-count");
+                if (usersBadgePill && data.users_count !== undefined) usersBadgePill.textContent = data.users_count;
+
                 const obCountPill = document.getElementById("sb-badge-outbounds-count");
                 if (obCountPill) obCountPill.textContent = data.outbounds_count || 0;
 
@@ -22455,6 +22472,9 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (onlineConnsEl) onlineConnsEl.textContent = data.total_online_connections;
                 }
 
+                if (currentSingboxSubTab && !["inbounds", "users", "logs", "outbounds", "cleanips", "reality_rotation", "reality-rotation"].includes(currentSingboxSubTab)) {
+                    renderSingboxProtocolDedicatedCard(currentSingboxSubTab);
+                }
                 renderSingboxInboundsFiltered();
                 loadSingboxUsers();
                 loadSingboxCategories();
@@ -22464,10 +22484,358 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
+    // --- Sing-box Protocol Metadata & Dedicated Suite Handlers ---
+    const singboxProtoMeta = {
+        vless: {
+            name: "VLESS Reality",
+            enName: "VLESS XTLS-Vision",
+            icon: "shield-check",
+            color: "#10b981",
+            bg: "rgba(16, 185, 129, 0.1)",
+            border: "rgba(16, 185, 129, 0.3)",
+            badge: "Ultra Stealth",
+            defaultPort: 20443,
+            publicPort: 443,
+            desc: "پروتکل پرچمدار ضدفیلتر با استتار کامل هندشیک TLS روی سرورهای معتبر بدون نیاز به دامنه (XTLS-Vision)."
+        },
+        vmess: {
+            name: "VMess",
+            enName: "VMess WebSocket / gRPC",
+            icon: "layers",
+            color: "#3b82f6",
+            bg: "rgba(59, 130, 246, 0.1)",
+            border: "rgba(59, 130, 246, 0.3)",
+            badge: "CDN Friendly",
+            defaultPort: 2083,
+            publicPort: null,
+            desc: "پروتکل استاندارد جهانی سازگار با تمامی پلتفرم‌ها، مناسب برای عبور از پشت شبکه توزیع محتوای کلادفلر (CDN)."
+        },
+        trojan: {
+            name: "Trojan TLS",
+            enName: "Trojan HTTPS Camouflage",
+            icon: "lock",
+            color: "#8b5cf6",
+            bg: "rgba(139, 92, 246, 0.1)",
+            border: "rgba(139, 92, 246, 0.3)",
+            badge: "HTTPS Mimic",
+            defaultPort: 20444,
+            publicPort: 443,
+            desc: "استتار دقیق و بدون نقص ترافیک پشت ترافیک وب‌سایت‌های عادی HTTPS همراه با رمزنگاری معتبر TLS یا Reality."
+        },
+        hysteria2: {
+            name: "Hysteria 2",
+            enName: "Brutal QUIC / UDP",
+            icon: "zap",
+            color: "#f59e0b",
+            bg: "rgba(245, 158, 11, 0.1)",
+            border: "rgba(245, 158, 11, 0.3)",
+            badge: "Brutal Speed",
+            defaultPort: 20888,
+            publicPort: null,
+            desc: "پروتکل فوق‌العاده سریع UDP مبتنی بر پروتکل QUIC و کنترل ازدحام Brutal، مخصوص اینترنت‌های دارای افت سرعت و پکت‌لاس بالا."
+        },
+        tuic: {
+            name: "TUIC v5",
+            enName: "QUIC 0-RTT Stream",
+            icon: "activity",
+            color: "#06b6d4",
+            bg: "rgba(6, 182, 212, 0.1)",
+            border: "rgba(6, 182, 212, 0.3)",
+            badge: "0-RTT Latency",
+            defaultPort: 20999,
+            publicPort: null,
+            desc: "پروتکل مدرن QUIC مبتنی بر زبان Rust با هندشیک بلادرنگ 0-RTT و کنترل ازدحام BBR، مناسب گیمینگ و ارتباط بدون تاخیر."
+        },
+        shadowsocks: {
+            name: "Shadowsocks 2022",
+            enName: "AEAD 2022 Protocol",
+            icon: "key",
+            color: "#64748b",
+            bg: "rgba(100, 116, 139, 0.1)",
+            border: "rgba(100, 116, 139, 0.3)",
+            badge: "Lightweight",
+            defaultPort: 20111,
+            publicPort: null,
+            desc: "پروتکل مینیمال، سبک و با بهره‌وری رم فوق‌العاده پایین، مجهز به متدهای رمزنگاری جدید 2022-blake3."
+        },
+        shadowtls: {
+            name: "ShadowTLS v3",
+            enName: "Dual-Layer TLS",
+            icon: "shield",
+            color: "#f43f5e",
+            bg: "rgba(244, 63, 94, 0.1)",
+            border: "rgba(244, 63, 94, 0.3)",
+            badge: "Dual Stealth",
+            defaultPort: 20445,
+            publicPort: 443,
+            desc: "لایه محافظتی پیشرفته برای هدایت هندشیک‌های TLS به سرورهای اپل و گوگل جهت پنهان‌سازی کامل منشأ اتصال."
+        },
+        naive: {
+            name: "NaiveProxy",
+            enName: "Chromium Network Stack",
+            icon: "globe",
+            color: "#84cc16",
+            bg: "rgba(132, 204, 22, 0.1)",
+            border: "rgba(132, 204, 22, 0.3)",
+            badge: "Chrome Stack",
+            defaultPort: 20446,
+            publicPort: 443,
+            desc: "شبیه‌سازی کامل رفتار و اثرانگشت مرورگر گوگل کروم روی ترافیک HTTPS به طوری که تفکیک آن از وبگردی غیرممکن است."
+        }
+    };
+
+    function generateSingboxSsKey(methodSelectId, passInputId) {
+        const mEl = document.getElementById(methodSelectId);
+        const m = mEl ? mEl.value : "2022-blake3-aes-128-gcm";
+        const len = m.includes("256") ? 32 : 16;
+        const array = new Uint8Array(len);
+        crypto.getRandomValues(array);
+        let binary = "";
+        for (let i = 0; i < array.byteLength; i++) {
+            binary += String.fromCharCode(array[i]);
+        }
+        const b64 = btoa(binary);
+        const pInput = document.getElementById(passInputId);
+        if (pInput) pInput.value = b64;
+        showToast(`کلید Base64 معتبر (${len} بایت) برای ${m} تولید شد.`, "success");
+    }
+
+    function generateSingboxRandomPassword(inputId) {
+        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let pass = "";
+        const arr = new Uint8Array(20);
+        crypto.getRandomValues(arr);
+        for (let i = 0; i < arr.length; i++) {
+            pass += chars[arr[i] % chars.length];
+        }
+        const el = document.getElementById(inputId);
+        if (el) el.value = pass;
+        showToast("رمز عبور تصادفی و امن ایجاد شد.", "success");
+    }
+
+    async function quickCopyInboundLink(tag) {
+        try {
+            const res = await fetch(`/api/singbox/inbound/${encodeURIComponent(tag)}/share`);
+            const data = await res.json();
+            if (data.success && data.share_link) {
+                await navigator.clipboard.writeText(data.share_link);
+                showToast(`لینک اتصال اینباند ${tag} با موفقیت در کلیپ‌بورد کپی شد.`, "success");
+            } else {
+                showToast("لینک اتصال برای این اینباند یافت نشد یا در دسترس نیست.", "warning");
+            }
+        } catch (e) {
+            showToast("خطا در دریافت و کپی لینک اتصال", "error");
+        }
+    }
+
+    function openSingboxAddInboundModalFor(proto) {
+        openSingboxAddInboundModal();
+        const pSelect = document.getElementById("sb-inbound-type");
+        if (pSelect && proto) {
+            pSelect.value = proto;
+            if (typeof onSingboxProtocolChange === 'function') {
+                onSingboxProtocolChange();
+            }
+        }
+    }
+
+    function renderSingboxProtocolDedicatedCard(proto) {
+        const container = document.getElementById("sb-protocol-dedicated-card");
+        if (!container) return;
+
+        const meta = singboxProtoMeta[proto] || {
+            name: proto.toUpperCase(),
+            enName: proto,
+            icon: "box",
+            color: "#6366f1",
+            bg: "rgba(99, 102, 241, 0.1)",
+            border: "rgba(99, 102, 241, 0.3)",
+            badge: "Protocol",
+            desc: "مدیریت و پیکربندی اختصاصی پروتکل در هسته Sing-box"
+        };
+
+        const matchingInbounds = (activeSingboxInbounds || []).filter(ib => {
+            const t = (ib.type || "").toLowerCase();
+            if (proto === "naive") return t === "naive" || t === "naiveproxy";
+            return t === proto;
+        });
+
+        if (matchingInbounds.length === 0) {
+            // Unconfigured view with 1-click setup
+            container.innerHTML = `
+                <div class="spec-card" style="padding: 24px; border: 1.5px dashed ${meta.border}; background: ${meta.bg}; border-radius: var(--radius-lg); margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 56px; height: 56px; border-radius: 14px; background: ${meta.color}; color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px ${meta.color}40;">
+                                <i data-lucide="${meta.icon}" style="width: 28px; height: 28px;"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h3 style="margin: 0; font-size: 18px; font-weight: 800; color: var(--text-main);">${meta.name}</h3>
+                                    <span style="font-size: 11px; font-family: 'JetBrains Mono'; background: var(--surface-secondary); padding: 2px 8px; border-radius: 6px; color: var(--text-muted);">${meta.enName}</span>
+                                    <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">غیرفعال / پیکربندی‌نشده</span>
+                                </div>
+                                <p style="margin: 6px 0 0 0; font-size: 13px; color: var(--text-muted); max-width: 650px; line-height: 1.6;">${meta.desc}</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button type="button" class="btn btn-primary" onclick="openSingboxAddInboundModalFor('${proto}')" style="display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; font-weight: 700; background: ${meta.color}; border-color: ${meta.color}; box-shadow: 0 4px 14px ${meta.color}50;">
+                                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                                <span>راه‌اندازی و افزودن اینباند ${meta.name}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        } else {
+            // Dedicated Hero Management Card for the protocol
+            const primary = matchingInbounds[0];
+            const isMulti = matchingInbounds.length > 1;
+            const isDisabled = !!primary.disabled;
+            const tls = primary.tls || {};
+            const isReality = (primary.tls_mode === "reality") || !!(tls.reality && tls.reality.enabled) || primary.tag.includes("reality");
+            const isTls = !isReality && ((primary.tls_mode === "tls") || !!tls.enabled);
+            const trType = (primary.transport ? primary.transport.type : (primary.transport_type || "tcp")).toUpperCase();
+
+            let securityDisplay = "بدون رمزنگاری (Plain)";
+            let securitySub = "ترافیک مستقیم بدون TLS";
+            if (isReality) {
+                const dest = (tls.reality && tls.reality.handshake && tls.reality.handshake.server) || primary.reality_dest || primary.sni || "swdist.apple.com";
+                securityDisplay = `REALITY (${dest})`;
+                securitySub = `استتار هندشیک • SpiderX: ${primary.reality_spider_x || '/'}`;
+            } else if (isTls) {
+                securityDisplay = `TLS معتبر (${tls.server_name || primary.sni || 'پنل'})`;
+                securitySub = `گواهی امنیتی SSL/TLS استاندارد`;
+            } else if (proto === "shadowsocks") {
+                securityDisplay = primary.method || "2022-blake3-aes-128-gcm";
+                securitySub = `رمزنگاری بومی لایه انتقال AEAD`;
+            } else if (proto === "shadowtls") {
+                securityDisplay = `ShadowTLS ${primary.version || 'v3'}`;
+                securitySub = `هندشیک مقصد: ${primary.handshake_server || 'dl.google.com'}`;
+            }
+
+            let publicPortBadge = "";
+            if (isReality || meta.publicPort === 443) {
+                publicPortBadge = `<span style="background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700;">پورت عمومی: ۴۴۳</span>`;
+            }
+
+            container.innerHTML = `
+                <div class="spec-card" style="padding: 24px; border: 1px solid ${meta.border}; background: var(--surface-card, var(--card-bg)); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 22px;">
+                    <!-- Card Header -->
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 16px;">
+                            <div style="width: 58px; height: 58px; border-radius: 16px; background: ${meta.bg}; color: ${meta.color}; border: 1.5px solid ${meta.border}; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px ${meta.color}20;">
+                                <i data-lucide="${meta.icon}" style="width: 28px; height: 28px;"></i>
+                            </div>
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h3 style="margin: 0; font-size: 19px; font-weight: 800; color: var(--text-main);">${meta.name}</h3>
+                                    <span style="font-size: 11.5px; font-family: 'JetBrains Mono'; background: var(--surface-secondary); padding: 3px 9px; border-radius: 6px; color: var(--text-muted);">${meta.enName}</span>
+                                    <span class="badge" style="background: ${meta.bg}; color: ${meta.color}; border: 1px solid ${meta.border}; font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">${meta.badge}</span>
+                                    ${isDisabled 
+                                        ? `<span class="badge" style="background: rgba(148, 163, 184, 0.15); color: #64748b; border: 1px solid rgba(148, 163, 184, 0.3); font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">غیرفعال</span>` 
+                                        : `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px;"><span class="status-dot active" style="margin:0;"></span> فعال و آنلاین</span>`
+                                    }
+                                    ${isMulti ? `<span class="badge" style="background: rgba(99, 102, 241, 0.12); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.25); font-size: 11px; padding: 2px 8px; border-radius: 6px; font-weight: 700;">${matchingInbounds.length} درگاه ورودی</span>` : ''}
+                                </div>
+                                <p style="margin: 6px 0 0 0; font-size: 12.5px; color: var(--text-muted); line-height: 1.6; max-width: 680px;">${meta.desc}</p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Action Toolbar -->
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-primary btn-sm" onclick="openSingboxEditInboundModal('${escapeHtml(primary.tag)}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-weight: 700;">
+                                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                                <span>ویرایش تنظیمات اختصاصی</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxShareModal('${escapeHtml(primary.tag)}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px;" title="بارکد و تنظیمات اشتراک">
+                                <i data-lucide="qr-code" style="width: 14px; height: 14px;"></i>
+                                <span>بارکد و کانفیگ</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="quickCopyInboundLink('${escapeHtml(primary.tag)}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px;" title="کپی مستقیم لینک اتصال">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                                <span>کپی لینک</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="toggleSingboxInbound('${escapeHtml(primary.tag)}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px;" title="${isDisabled ? 'فعال‌سازی' : 'غیرفعال‌سازی'}">
+                                <i data-lucide="${isDisabled ? 'play' : 'pause'}" style="width: 14px; height: 14px;"></i>
+                                <span>${isDisabled ? 'فعال‌سازی' : 'توقف'}</span>
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openSingboxAddInboundModalFor('${proto}')" style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px;" title="افزودن درگاه ورودی دیگر برای این پروتکل">
+                                <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                                <span>درگاه جدید</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Parameters Specs Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-top: 20px;">
+                        <!-- Spec 1: Tag & Status -->
+                        <div style="background: var(--surface-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="tag" style="width: 13px; height: 13px; color: ${meta.color};"></i>
+                                <span>تگ اینباند فعال:</span>
+                            </div>
+                            <div style="margin-top: 6px; font-family: 'JetBrains Mono'; font-weight: 700; font-size: 13px; color: var(--text-main);">
+                                ${escapeHtml(primary.tag)}
+                            </div>
+                            <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                شنود داخلی: <code style="font-family:'JetBrains Mono';">${primary.listen || '::'}</code>
+                            </div>
+                        </div>
+
+                        <!-- Spec 2: Ports -->
+                        <div style="background: var(--surface-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="radio" style="width: 13px; height: 13px; color: ${meta.color};"></i>
+                                <span>درگاه‌های اتصال (Port):</span>
+                            </div>
+                            <div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                                <span style="font-family: 'JetBrains Mono'; font-weight: 800; font-size: 14px; color: var(--color-primary);">${primary.listen_port}</span>
+                                ${publicPortBadge}
+                            </div>
+                            <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                ${isReality ? 'ترافیک کلاینت‌ها روی پورت ۴۴۳ شنود می‌شود' : 'پورت مستقیم سرور'}
+                            </div>
+                        </div>
+
+                        <!-- Spec 3: Security & Camouflage -->
+                        <div style="background: var(--surface-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="shield" style="width: 13px; height: 13px; color: ${meta.color};"></i>
+                                <span>امنیت و استتار:</span>
+                            </div>
+                            <div style="margin-top: 6px; font-weight: 700; font-size: 12.5px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${securityDisplay}">
+                                ${securityDisplay}
+                            </div>
+                            <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${securitySub}
+                            </div>
+                        </div>
+
+                        <!-- Spec 4: Transport & Core Feat -->
+                        <div style="background: var(--surface-secondary); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+                            <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="cpu" style="width: 13px; height: 13px; color: ${meta.color};"></i>
+                                <span>ترانسپورت و معماری:</span>
+                            </div>
+                            <div style="margin-top: 6px; font-family: 'JetBrains Mono'; font-weight: 700; font-size: 13px; color: var(--text-main);">
+                                ${(proto === 'hysteria2' || proto === 'tuic') ? 'QUIC (UDP)' : trType}
+                            </div>
+                            <div style="margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                                ${proto === 'vless' ? 'الگوریتم Flow: xtls-rprx-vision' : (proto === 'hysteria2' ? 'Brutal Congestion Control' : (proto === 'tuic' ? '0-RTT BBR Multiplex' : 'استاندارد هسته Sing-box'))}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        container.style.display = "block";
+        if (window.lucide) lucide.createIcons();
+    }
+
     function switchSingboxSubTab(subTab) {
         currentSingboxSubTab = subTab;
 
-        // Update button states
+        // Update button states in Sing-box subtab bar
         document.querySelectorAll("[id^='sb-subtab-btn-']").forEach(btn => {
             btn.classList.remove("active");
             btn.style.background = "";
@@ -22480,6 +22848,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             activeBtn.style.fontWeight = "700";
         }
 
+        // Synchronize active item in Sidebar
+        try {
+            const sideItem = document.querySelector(`.sidebar-nav-item[onclick*="switchSingboxSubTab('${subTab}')"]`);
+            if (sideItem) {
+                document.querySelectorAll(".sidebar-nav-item").forEach(item => item.classList.remove("active"));
+                sideItem.classList.add("active");
+                const parentGroup = sideItem.closest('.sidebar-accordion-group');
+                if (parentGroup && typeof expandSidebarGroup === 'function') {
+                    expandSidebarGroup(parentGroup);
+                }
+            }
+        } catch (_) {}
+
         const inboundsPane = document.getElementById("sb-pane-inbounds");
         const usersPane = document.getElementById("sb-pane-users");
         const outboundsPane = document.getElementById("sb-pane-outbounds");
@@ -22487,6 +22868,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const cleanIpsPane = document.getElementById("sb-pane-cleanips");
         const rotationPane = document.getElementById("sb-pane-reality-rotation");
         const banner = document.getElementById("sb-protocol-filter-banner");
+        const dedicatedCard = document.getElementById("sb-protocol-dedicated-card");
 
         if (subTab === "logs") {
             stopSingboxLogAutoRefresh();
@@ -22496,6 +22878,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
             if (logsPane) logsPane.style.display = "block";
             fetchSingboxLogs();
             startSingboxLogAutoRefresh();
@@ -22507,6 +22890,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
             if (usersPane) usersPane.style.display = "block";
             loadSingboxUsers();
             loadSingboxCategories();
@@ -22518,6 +22902,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
             if (outboundsPane) outboundsPane.style.display = "block";
             loadSingboxOutbounds();
         } else if (subTab === "cleanips") {
@@ -22528,6 +22913,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (outboundsPane) outboundsPane.style.display = "none";
             if (rotationPane) rotationPane.style.display = "none";
             if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "block";
             loadSingboxCleanIps();
         } else if (subTab === "reality_rotation" || subTab === "reality-rotation") {
@@ -22538,9 +22924,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (outboundsPane) outboundsPane.style.display = "none";
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
             if (rotationPane) rotationPane.style.display = "block";
             loadRealityRotationConfig();
         } else {
+            // Inbounds Pane (Generic Studio or Protocol-Dedicated View)
             stopSingboxLogAutoRefresh();
             if (logsPane) logsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
@@ -22548,12 +22936,25 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (cleanIpsPane) cleanIpsPane.style.display = "none";
             if (rotationPane) rotationPane.style.display = "none";
             if (inboundsPane) inboundsPane.style.display = "block";
+            if (banner) banner.style.display = "none";
+
+            const inboundsTitle = document.querySelector("#sb-pane-inbounds h3 span[data-i18n='singbox_inbounds_table_title']");
+            const inboundsDesc = document.querySelector("#sb-pane-inbounds p[data-i18n='singbox_inbounds_table_desc']");
 
             if (subTab === "inbounds") {
-                if (banner) banner.style.display = "none";
+                if (dedicatedCard) dedicatedCard.style.display = "none";
+                if (inboundsTitle) inboundsTitle.textContent = "لیست اینباندهای فعال در هسته Sing-box";
+                if (inboundsDesc) inboundsDesc.textContent = "هر اینباند یک درگاه ورودی اختصاصی پروکسی روی پورت دلخواه با رمزنگاری مستقل است.";
                 renderSingboxInboundsTable(activeSingboxInbounds);
             } else {
-                showSingboxProtocolBanner(subTab);
+                // Protocol-Specific Management View
+                if (!activeSingboxInbounds || activeSingboxInbounds.length === 0) {
+                    loadSingboxData();
+                }
+                renderSingboxProtocolDedicatedCard(subTab);
+                const meta = singboxProtoMeta[subTab] || { name: subTab.toUpperCase() };
+                if (inboundsTitle) inboundsTitle.textContent = `درگاه‌های ورودی فعال این پروتکل (${meta.name})`;
+                if (inboundsDesc) inboundsDesc.textContent = `کلیه اینباندهای ثبت‌شده برای پروتکل ${meta.name} در کانفیگ هسته سینگ‌باکس.`;
                 renderSingboxInboundsFiltered();
             }
         }
@@ -23901,12 +24302,23 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const raw = data.raw || {};
             const rawTls = raw.tls || {};
             const rawReality = rawTls.reality || {};
+            const p = (d.type || "").toLowerCase();
 
             document.getElementById("sb-edit-orig-tag").value = tag;
             document.getElementById("sb-edit-inbound-type").value = d.type;
 
+            const meta = singboxProtoMeta[p] || { name: (d.type || "").toUpperCase(), desc: "", color: "#6366f1" };
+
             const protoBadge = document.getElementById("sb-edit-proto-badge");
-            if (protoBadge) protoBadge.textContent = (d.type || "").toUpperCase();
+            if (protoBadge) {
+                protoBadge.textContent = meta.name || (d.type || "").toUpperCase();
+                if (meta.color) protoBadge.style.background = meta.color;
+            }
+
+            const protoDescEl = document.getElementById("sb-edit-proto-desc");
+            if (protoDescEl) {
+                protoDescEl.textContent = meta.desc || "پیکربندی اختصاصی و بهینه‌سازی پارامترهای پروتکل در هسته Sing-box.";
+            }
 
             const statusHint = document.getElementById("sb-edit-status-hint");
             if (statusHint) statusHint.textContent = d.disabled ? "(اینباند در حالت غیرفعال)" : "(اینباند فعال)";
@@ -23921,7 +24333,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const rawTr = raw.transport || {};
             const trSelect = document.getElementById("sb-edit-transport-type");
             const trType = rawTr.type || d.transport_type || "tcp";
-            trSelect.value = trType;
+            if (trSelect) trSelect.value = trType;
 
             const wsPathInput = document.getElementById("sb-edit-ws-path");
             if (wsPathInput) wsPathInput.value = rawTr.path || d.ws_path || "/vless-ws";
@@ -23932,14 +24344,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const httpupPathInput = document.getElementById("sb-edit-httpupgrade-path");
             if (httpupPathInput) httpupPathInput.value = rawTr.path || d.httpupgrade_path || "/vless-upgrade";
 
-            onSingboxEditTransportChange();
-
-            // Render Dynamic Fields
+            // Render Protocol-Specific Fields
             const dynContainer = document.getElementById("sb-edit-dynamic-protocol-fields");
             let html = "";
-            const p = d.type;
 
-            if (p === "vless" || p === "vmess") {
+            if (p === "vless") {
                 const u = (d.users && d.users[0]) ? d.users[0] : {};
                 const uuidVal = u.uuid || d.uuid || (crypto.randomUUID ? crypto.randomUUID() : "");
                 const isTcp = trType === "tcp";
@@ -23947,19 +24356,36 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 html = `
                     <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">شناسه کاربری پیش‌فرض (UUID)</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">شناسه کاربری پیش‌فرض (UUID)</label>
                             <div style="display:flex; gap:6px;">
                                 <input type="text" class="form-input" id="sb-edit-user-uuid" value="${escapeHtml(uuidVal)}" style="font-family:'JetBrains Mono'; font-size:12px;">
-                                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-edit-user-uuid').value = crypto.randomUUID()" title="UUID تصادفی">⚡</button>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-edit-user-uuid').value = crypto.randomUUID()" title="تولید UUID تصادفی">⚡</button>
                             </div>
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">الگوریتم Flow</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">الگوریتم Flow</label>
                             <select class="form-input" id="sb-edit-user-flow" ${!isTcp ? 'disabled' : ''}>
                                 <option value="xtls-rprx-vision" ${flowVal === 'xtls-rprx-vision' ? 'selected' : ''}>xtls-rprx-vision (ضد فیلتر - پدینگ پکت)</option>
                                 <option value="" ${flowVal !== 'xtls-rprx-vision' ? 'selected' : ''}>None (عادی - بدون فلو)</option>
                             </select>
                             ${!isTcp ? '<small style="color:var(--text-muted);font-size:10px;display:block;margin-top:2px;">(فلو Vision مختص ترانسپورت TCP است)</small>' : ''}
+                        </div>
+                    </div>`;
+            } else if (p === "vmess") {
+                const u = (d.users && d.users[0]) ? d.users[0] : {};
+                const uuidVal = u.uuid || d.uuid || (crypto.randomUUID ? crypto.randomUUID() : "");
+                html = `
+                    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px;">
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">شناسه کاربری (UUID)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-user-uuid" value="${escapeHtml(uuidVal)}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-edit-user-uuid').value = crypto.randomUUID()" title="تولید UUID تصادفی">⚡</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">AlterID</label>
+                            <input type="number" class="form-input" id="sb-edit-vmess-alterid" value="0" readonly title="AlterID در نسخه‌های مدرن هسته 0 است">
                         </div>
                     </div>`;
             } else if (p === "hysteria2") {
@@ -23970,21 +24396,27 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال کلاینت</label>
-                            <input type="text" class="form-input" id="sb-edit-hy2-pass" value="${escapeHtml(passVal)}">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال کلاینت</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-hy2-pass" value="${escapeHtml(passVal)}">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-hy2-pass')" title="رمز تصادفی">⚡</button>
+                            </div>
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">رمز مبهم‌سازی Salamander (اختیاری)</label>
-                            <input type="text" class="form-input" id="sb-edit-hy2-obfs" value="${escapeHtml(obfsVal)}" placeholder="Salamander Password">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز مبهم‌سازی Salamander (اختیاری)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-hy2-obfs" value="${escapeHtml(obfsVal)}" placeholder="Salamander Password">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-hy2-obfs')" title="تولید رمز">⚡</button>
+                            </div>
                         </div>
                     </div>
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">سقف سرعت آپلود (Mbps)</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">سقف سرعت آپلود (Mbps)</label>
                             <input type="number" class="form-input" id="sb-edit-hy2-up" value="${upVal}">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">سقف سرعت دانلود (Mbps)</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">سقف سرعت دانلود (Mbps)</label>
                             <input type="number" class="form-input" id="sb-edit-hy2-down" value="${downVal}">
                         </div>
                     </div>`;
@@ -23992,31 +24424,49 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 const uuidVal = (d.users && d.users[0] && d.users[0].uuid) ? d.users[0].uuid : (d.uuid || "");
                 const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
                 const ccVal = d.congestion_control || "bbr";
+                const zeroRtt = d.zero_rtt_handshake !== undefined ? !!d.zero_rtt_handshake : true;
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">شناسه کاربری (UUID)</label>
-                            <input type="text" class="form-input" id="sb-edit-tuic-uuid" value="${escapeHtml(uuidVal)}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">شناسه کاربری (UUID)</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-tuic-uuid" value="${escapeHtml(uuidVal)}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('sb-edit-tuic-uuid').value = crypto.randomUUID()" title="UUID تصادفی">⚡</button>
+                            </div>
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال</label>
-                            <input type="text" class="form-input" id="sb-edit-tuic-pass" value="${escapeHtml(passVal)}">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-tuic-pass" value="${escapeHtml(passVal)}">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-tuic-pass')" title="رمز تصادفی">⚡</button>
+                            </div>
                         </div>
                     </div>
-                    <div>
-                        <label class="form-label" style="font-size:11.5px;">الگوریتم کنترل ازدحام (Congestion Control)</label>
-                        <select class="form-input" id="sb-edit-tuic-cc">
-                            <option value="bbr" ${ccVal === 'bbr' ? 'selected' : ''}>BBR (حداکثر بازدهی شبکه فیلترشده)</option>
-                            <option value="cubic" ${ccVal === 'cubic' ? 'selected' : ''}>CUBIC</option>
-                            <option value="new_reno" ${ccVal === 'new_reno' ? 'selected' : ''}>New Reno</option>
-                        </select>
+                    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:12px; align-items:center;">
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">الگوریتم کنترل ازدحام (Congestion Control)</label>
+                            <select class="form-input" id="sb-edit-tuic-cc">
+                                <option value="bbr" ${ccVal === 'bbr' ? 'selected' : ''}>BBR (حداکثر بازدهی در پکت لاس)</option>
+                                <option value="cubic" ${ccVal === 'cubic' ? 'selected' : ''}>CUBIC</option>
+                                <option value="new_reno" ${ccVal === 'new_reno' ? 'selected' : ''}>New Reno</option>
+                            </select>
+                        </div>
+                        <div style="margin-top:16px;">
+                            <label style="display:flex; align-items:center; gap:8px; font-size:11.5px; cursor:pointer;">
+                                <input type="checkbox" id="sb-edit-tuic-zerortt" ${zeroRtt ? 'checked' : ''}>
+                                <span>Zero-RTT Handshake</span>
+                            </label>
+                        </div>
                     </div>`;
             } else if (p === "trojan") {
                 const passVal = (d.users && d.users[0] && d.users[0].password) ? d.users[0].password : (d.password || "");
                 html = `
                     <div>
-                        <label class="form-label" style="font-size:11.5px;">رمز عبور Trojan (Password)</label>
-                        <input type="text" class="form-input" id="sb-edit-trojan-pass" value="${escapeHtml(passVal)}">
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور Trojan (Password)</label>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" class="form-input" id="sb-edit-trojan-pass" value="${escapeHtml(passVal)}">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-trojan-pass')" title="رمز تصادفی">⚡</button>
+                        </div>
                     </div>`;
             } else if (p === "shadowsocks") {
                 const mVal = d.method || "2022-blake3-aes-128-gcm";
@@ -24024,7 +24474,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">الگوریتم رمزنگاری Method</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">الگوریتم رمزنگاری Method</label>
                             <select class="form-input" id="sb-edit-ss-method">
                                 <option value="2022-blake3-aes-128-gcm" ${mVal === '2022-blake3-aes-128-gcm' ? 'selected' : ''}>2022-blake3-aes-128-gcm (16-byte key)</option>
                                 <option value="2022-blake3-aes-256-gcm" ${mVal === '2022-blake3-aes-256-gcm' ? 'selected' : ''}>2022-blake3-aes-256-gcm (32-byte key)</option>
@@ -24033,9 +24483,38 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                             </select>
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">رمز عبور یا کلید Base64</label>
-                            <input type="text" class="form-input" id="sb-edit-ss-pass" value="${escapeHtml(passVal)}">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور یا کلید Base64</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-ss-pass" value="${escapeHtml(passVal)}" style="font-family:'JetBrains Mono'; font-size:12px;">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxSsKey('sb-edit-ss-method', 'sb-edit-ss-pass')" title="تولید خودکار کلید Base64 معتبر">⚡ کلید</button>
+                            </div>
                         </div>
+                    </div>`;
+            } else if (p === "shadowtls") {
+                const passVal = d.password || "";
+                const verVal = d.version || 3;
+                const hsServer = (raw.handshake && raw.handshake.server) || d.handshake_server || "dl.google.com";
+                const hsPort = (raw.handshake && raw.handshake.server_port) || d.handshake_port || 443;
+                html = `
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور ShadowTLS</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-st-pass" value="${escapeHtml(passVal)}">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-st-pass')" title="رمز تصادفی">⚡</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">نسخه پروتکل (Version)</label>
+                            <select class="form-input" id="sb-edit-st-ver">
+                                <option value="3" ${verVal == 3 ? 'selected' : ''}>Version 3 (پیشنهادی - بالاترین مقاومت)</option>
+                                <option value="2" ${verVal == 2 ? 'selected' : ''}>Version 2</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size:11.5px; font-weight:600;">سرور مقصد هندشیک واقعی (Handshake Dest:Port)</label>
+                        <input type="text" class="form-input" id="sb-edit-st-dest" value="${escapeHtml(hsServer)}:${hsPort}" placeholder="dl.google.com:443">
                     </div>`;
             } else if (p === "naive") {
                 const uVal = (d.users && d.users[0] && d.users[0].username) ? d.users[0].username : (d.user_name || "naiveuser");
@@ -24043,57 +24522,108 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 html = `
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">نام کاربری Naive</label>
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">نام کاربری Naive</label>
                             <input type="text" class="form-input" id="sb-edit-naive-user" value="${escapeHtml(uVal)}">
                         </div>
                         <div>
-                            <label class="form-label" style="font-size:11.5px;">رمز عبور اتصال</label>
-                            <input type="text" class="form-input" id="sb-edit-naive-pass" value="${escapeHtml(passVal)}">
+                            <label class="form-label" style="font-size:11.5px; font-weight:600;">رمز عبور اتصال</label>
+                            <div style="display:flex; gap:6px;">
+                                <input type="text" class="form-input" id="sb-edit-naive-pass" value="${escapeHtml(passVal)}">
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="generateSingboxRandomPassword('sb-edit-naive-pass')" title="رمز تصادفی">⚡</button>
+                            </div>
                         </div>
                     </div>`;
             }
             dynContainer.innerHTML = html;
 
-            // TLS / Reality Fields Detection & Population
+            // Security & TLS Mode Visibility Configuration
+            const secSection = document.getElementById("sb-edit-security-section");
             const tlsModeSelect = document.getElementById("sb-edit-tls-mode");
+            const realityBox = document.getElementById("sb-edit-reality-fields");
+            const tlsBox = document.getElementById("sb-edit-tls-fields");
+
             let isReality = (d.tls_mode === "reality") || !!(rawReality && rawReality.enabled);
             let isTls = !isReality && ((d.tls_mode === "tls") || !!(rawTls && rawTls.enabled));
-            let tlsMode = isReality ? "reality" : (isTls ? "tls" : "none");
 
-            tlsModeSelect.value = tlsMode;
-
-            if (isReality) {
-                const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "swdist.apple.com";
-                const hsPort = (rawReality.handshake && rawReality.handshake.server_port) || d.reality_dest_port || 443;
-                document.getElementById("sb-edit-reality-dest").value = hsServer;
-                document.getElementById("sb-edit-reality-dest-port").value = hsPort;
-                document.getElementById("sb-edit-reality-privkey").value = rawReality.private_key || d.reality_privkey || "";
-                document.getElementById("sb-edit-reality-pubkey").value = rawReality.public_key || d.reality_pubkey || "";
-                const sids = rawReality.short_id || d.reality_shortid || [];
-                document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? sids.join(", ") : (sids || "");
-                const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
-                if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "";
-
-                const fpEl = document.getElementById("sb-edit-reality-fingerprint");
-                if (fpEl) fpEl.value = d.reality_fingerprint || "chrome";
-                const alpnEl = document.getElementById("sb-edit-reality-alpn");
-                if (alpnEl) alpnEl.value = d.reality_alpn || "h2,http/1.1";
-                const spxEl = document.getElementById("sb-edit-reality-spider-x");
-                if (spxEl) spxEl.value = d.reality_spider_x || "/";
-                const autoRotEl = document.getElementById("sb-edit-reality-auto-rotation");
-                if (autoRotEl) autoRotEl.checked = !!d.reality_rotation_enabled;
-                const rotIntEl = document.getElementById("sb-edit-reality-rotation-interval");
-                if (rotIntEl) rotIntEl.value = d.reality_rotation_interval || 3;
-                const poolEl = document.getElementById("sb-edit-reality-domains-pool");
-                if (poolEl) poolEl.value = d.reality_domains || "";
-            } else if (isTls) {
-                document.getElementById("sb-edit-tls-sni").value = rawTls.server_name || d.sni || "";
-                document.getElementById("sb-edit-tls-cert").value = rawTls.certificate_path || d.tls_cert || "/etc/vpnpanel/ssl/panel.crt";
-                document.getElementById("sb-edit-tls-key").value = rawTls.key_path || d.tls_key || "/etc/vpnpanel/ssl/panel.key";
-                const alpnEl = document.getElementById("sb-edit-tls-alpn");
-                if (alpnEl) alpnEl.value = Array.isArray(rawTls.alpn) ? rawTls.alpn.join(", ") : (d.tls_alpn || "");
+            if (p === "shadowsocks" || p === "shadowtls") {
+                // Shadowsocks and ShadowTLS DO NOT have standard Sing-box TLS / Reality wrappers
+                if (secSection) secSection.style.display = "none";
+                if (realityBox) realityBox.style.display = "none";
+                if (tlsBox) tlsBox.style.display = "none";
+                if (tlsModeSelect) {
+                    tlsModeSelect.innerHTML = `<option value="none">بدون لایه TLS (مستقل)</option>`;
+                    tlsModeSelect.value = "none";
+                }
+            } else if (p === "hysteria2" || p === "tuic" || p === "naive") {
+                // Mandatory TLS Only
+                if (secSection) secSection.style.display = "block";
+                if (tlsModeSelect) {
+                    tlsModeSelect.innerHTML = `<option value="tls">TLS گواهی امنیتی (الزامی برای این پروتکل)</option>`;
+                    tlsModeSelect.value = "tls";
+                }
+                if (realityBox) realityBox.style.display = "none";
+                if (tlsBox) tlsBox.style.display = "flex";
+                populateSingboxEditTlsFields(rawTls, d);
+            } else if (p === "vmess") {
+                // VMess: TLS or None (No Reality)
+                if (secSection) secSection.style.display = "block";
+                if (tlsModeSelect) {
+                    tlsModeSelect.innerHTML = `
+                        <option value="tls">TLS استاندارد (با گواهی SSL پنل)</option>
+                        <option value="none">بدون رمزنگاری TLS (Plain)</option>`;
+                    tlsModeSelect.value = isTls ? "tls" : "none";
+                }
+                onSingboxEditTlsModeChange();
+                if (isTls) populateSingboxEditTlsFields(rawTls, d);
+            } else if (p === "trojan") {
+                // Trojan: REALITY or TLS (No Plain None)
+                if (secSection) secSection.style.display = "block";
+                if (tlsModeSelect) {
+                    tlsModeSelect.innerHTML = `
+                        <option value="reality">REALITY (استتار هوشمند بدون نیاز به دامنه)</option>
+                        <option value="tls">TLS استاندارد (با گواهی SSL پنل)</option>`;
+                    tlsModeSelect.value = isReality ? "reality" : "tls";
+                }
+                onSingboxEditTlsModeChange();
+                if (isReality) populateSingboxEditRealityFields(rawReality, d);
+                else populateSingboxEditTlsFields(rawTls, d);
+            } else {
+                // VLESS and Others: REALITY, TLS, or None
+                if (secSection) secSection.style.display = "block";
+                if (tlsModeSelect) {
+                    tlsModeSelect.innerHTML = `
+                        <option value="reality">REALITY (استتار هوشمند بدون نیاز به دامنه)</option>
+                        <option value="tls">TLS استاندارد (با گواهی SSL پنل)</option>
+                        <option value="none">بدون رمزنگاری TLS (Plain)</option>`;
+                    tlsModeSelect.value = isReality ? "reality" : (isTls ? "tls" : "none");
+                }
+                onSingboxEditTlsModeChange();
+                if (isReality) populateSingboxEditRealityFields(rawReality, d);
+                else if (isTls) populateSingboxEditTlsFields(rawTls, d);
             }
-            onSingboxEditTlsModeChange();
+
+            // Transport Section Visibility Configuration
+            const trSection = document.getElementById("sb-edit-transport-section");
+            if (p === "hysteria2" || p === "tuic" || p === "shadowsocks" || p === "shadowtls" || p === "naive") {
+                if (trSection) trSection.style.display = "none";
+                const wsBox = document.getElementById("sb-edit-ws-fields");
+                const grpcBox = document.getElementById("sb-edit-grpc-fields");
+                const httpupBox = document.getElementById("sb-edit-httpupgrade-fields");
+                if (wsBox) wsBox.style.display = "none";
+                if (grpcBox) grpcBox.style.display = "none";
+                if (httpupBox) httpupBox.style.display = "none";
+            } else {
+                if (trSection) trSection.style.display = "block";
+                onSingboxEditTransportChange();
+            }
+
+            // Advanced TCP Group Visibility Configuration
+            const tcpAdvGroup = document.getElementById("sb-edit-tcp-advanced-group");
+            if (p === "hysteria2" || p === "tuic" || p === "shadowsocks" || p === "shadowtls") {
+                if (tcpAdvGroup) tcpAdvGroup.style.display = "none";
+            } else {
+                if (tcpAdvGroup) tcpAdvGroup.style.display = "grid";
+            }
 
             // Advanced Inbound Engine Options
             const sniffEl = document.getElementById("sb-edit-sniff");
@@ -24122,11 +24652,11 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                 modal.classList.add("active");
                 modal.style.display = "flex";
                 try {
-            const _curLang = localStorage.getItem("panel_language") || "fa";
-            if (_curLang !== "fa" && typeof translateDom === "function") {
-                translateDom(modal, _curLang);
-            }
-        } catch (_) {}
+                    const _curLang = localStorage.getItem("panel_language") || "fa";
+                    if (_curLang !== "fa" && typeof translateDom === "function") {
+                        translateDom(modal, _curLang);
+                    }
+                } catch (_) {}
             }
             if (window.lucide) lucide.createIcons();
         } catch (e) {
@@ -24134,6 +24664,40 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             console.error("openSingboxEditInboundModal error:", e);
             showToast("خطای شبکه در دریافت اطلاعات اینباند", "error");
         }
+    }
+
+    function populateSingboxEditRealityFields(rawReality, d) {
+        const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "swdist.apple.com";
+        const hsPort = (rawReality.handshake && rawReality.handshake.server_port) || d.reality_dest_port || 443;
+        document.getElementById("sb-edit-reality-dest").value = hsServer;
+        document.getElementById("sb-edit-reality-dest-port").value = hsPort;
+        document.getElementById("sb-edit-reality-privkey").value = rawReality.private_key || d.reality_privkey || "";
+        document.getElementById("sb-edit-reality-pubkey").value = rawReality.public_key || d.reality_pubkey || "";
+        const sids = rawReality.short_id || d.reality_shortid || [];
+        document.getElementById("sb-edit-reality-shortid").value = Array.isArray(sids) ? sids.join(", ") : (sids || "");
+        const mtdEl = document.getElementById("sb-edit-reality-max-time-diff");
+        if (mtdEl) mtdEl.value = rawReality.max_time_difference || d.reality_max_time_diff || "";
+
+        const fpEl = document.getElementById("sb-edit-reality-fingerprint");
+        if (fpEl) fpEl.value = d.reality_fingerprint || "chrome";
+        const alpnEl = document.getElementById("sb-edit-reality-alpn");
+        if (alpnEl) alpnEl.value = d.reality_alpn || "h2,http/1.1";
+        const spxEl = document.getElementById("sb-edit-reality-spider-x");
+        if (spxEl) spxEl.value = d.reality_spider_x || "/";
+        const autoRotEl = document.getElementById("sb-edit-reality-auto-rotation");
+        if (autoRotEl) autoRotEl.checked = !!d.reality_rotation_enabled;
+        const rotIntEl = document.getElementById("sb-edit-reality-rotation-interval");
+        if (rotIntEl) rotIntEl.value = d.reality_rotation_interval || 3;
+        const poolEl = document.getElementById("sb-edit-reality-domains-pool");
+        if (poolEl) poolEl.value = d.reality_domains || "";
+    }
+
+    function populateSingboxEditTlsFields(rawTls, d) {
+        document.getElementById("sb-edit-tls-sni").value = rawTls.server_name || d.sni || "";
+        document.getElementById("sb-edit-tls-cert").value = rawTls.certificate_path || d.tls_cert || "/etc/vpnpanel/ssl/panel.crt";
+        document.getElementById("sb-edit-tls-key").value = rawTls.key_path || d.tls_key || "/etc/vpnpanel/ssl/panel.key";
+        const alpnEl = document.getElementById("sb-edit-tls-alpn");
+        if (alpnEl) alpnEl.value = Array.isArray(rawTls.alpn) ? rawTls.alpn.join(", ") : (d.tls_alpn || "");
     }
 
     function closeSingboxEditModal() {
@@ -24150,17 +24714,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const tlsBox = document.getElementById("sb-edit-tls-fields");
 
         if (mode === "reality") {
-            realityBox.style.display = "flex";
-            tlsBox.style.display = "none";
+            if (realityBox) realityBox.style.display = "flex";
+            if (tlsBox) tlsBox.style.display = "none";
             if (!document.getElementById("sb-edit-reality-privkey").value) {
                 generateSingboxEditRealityKeys();
             }
         } else if (mode === "tls") {
-            realityBox.style.display = "none";
-            tlsBox.style.display = "flex";
+            if (realityBox) realityBox.style.display = "none";
+            if (tlsBox) tlsBox.style.display = "flex";
         } else {
-            realityBox.style.display = "none";
-            tlsBox.style.display = "none";
+            if (realityBox) realityBox.style.display = "none";
+            if (tlsBox) tlsBox.style.display = "none";
         }
     }
 
@@ -24207,8 +24771,19 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const itype = document.getElementById("sb-edit-inbound-type").value;
         const tag = document.getElementById("sb-edit-inbound-tag").value.trim();
         const port = document.getElementById("sb-edit-inbound-port").value;
-        const tlsMode = document.getElementById("sb-edit-tls-mode").value;
-        const transportType = document.getElementById("sb-edit-transport-type").value;
+        let tlsMode = document.getElementById("sb-edit-tls-mode") ? document.getElementById("sb-edit-tls-mode").value : "none";
+        let transportType = document.getElementById("sb-edit-transport-type") ? document.getElementById("sb-edit-transport-type").value : "tcp";
+
+        if (itype === "shadowsocks" || itype === "shadowtls") {
+            tlsMode = "none";
+            transportType = "tcp";
+        } else if (itype === "hysteria2" || itype === "tuic") {
+            tlsMode = "tls";
+            transportType = "udp";
+        } else if (itype === "naive") {
+            tlsMode = "tls";
+            transportType = "tcp";
+        }
 
         const payload = {
             type: itype,
@@ -24239,6 +24814,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (passEl) payload.password = passEl.value.trim();
             const ccEl = document.getElementById("sb-edit-tuic-cc");
             if (ccEl) payload.congestion_control = ccEl.value;
+            const zRttEl = document.getElementById("sb-edit-tuic-zerortt");
+            if (zRttEl) payload.zero_rtt = zRttEl.checked;
         } else if (itype === "trojan") {
             const passEl = document.getElementById("sb-edit-trojan-pass");
             if (passEl) payload.password = passEl.value.trim();
@@ -24247,6 +24824,17 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (mEl) payload.method = mEl.value;
             const passEl = document.getElementById("sb-edit-ss-pass");
             if (passEl) payload.password = passEl.value.trim();
+        } else if (itype === "shadowtls") {
+            const passEl = document.getElementById("sb-edit-st-pass");
+            if (passEl) payload.password = passEl.value.trim();
+            const verEl = document.getElementById("sb-edit-st-ver");
+            if (verEl) payload.version = parseInt(verEl.value || "3");
+            const destEl = document.getElementById("sb-edit-st-dest");
+            if (destEl) {
+                const parts = destEl.value.trim().split(":");
+                payload.handshake_server = parts[0] || "dl.google.com";
+                payload.handshake_port = parseInt(parts[1] || "443");
+            }
         } else if (itype === "naive") {
             const uEl = document.getElementById("sb-edit-naive-user");
             if (uEl) payload.user_name = uEl.value.trim();
@@ -25534,7 +26122,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             if (data.success) {
                 activeSingboxUsers = data.users || [];
                 renderSingboxUsersTable();
-                const countPill = document.getElementById("sb-subtab-pill-users");
+                const countPill = document.getElementById("sb-badge-users-count") || document.getElementById("sb-subtab-pill-users");
                 if (countPill) countPill.textContent = activeSingboxUsers.length;
                 const statUsersEl = document.getElementById("singbox-stat-users-count");
                 if (statUsersEl) statUsersEl.textContent = activeSingboxUsers.length;

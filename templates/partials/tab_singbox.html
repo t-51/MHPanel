@@ -283,6 +283,9 @@
             </div>
         </div>
 
+        <!-- Dedicated Protocol Management & Configuration Hero View -->
+        <div id="sb-protocol-dedicated-card" style="display: none; margin-bottom: 22px;"></div>
+
         <!-- PANE 1: Inbounds Table Card -->
         <div class="spec-card" id="sb-pane-inbounds" style="padding: 22px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
@@ -1418,12 +1421,15 @@
                     <input type="hidden" id="sb-edit-orig-tag">
                     <input type="hidden" id="sb-edit-inbound-type">
 
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: rgba(99, 102, 241, 0.08); border-radius: 8px;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 12px; font-weight: 600;">پروتکل اینباند:</span>
-                            <span id="sb-edit-proto-badge" class="badge-pill" style="font-weight: 700; background: #6366f1; color: white; padding: 2px 10px; border-radius: 6px;">-</span>
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; background: rgba(99, 102, 241, 0.08); border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.15);">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 12px; font-weight: 600;">پروتکل اینباند:</span>
+                                <span id="sb-edit-proto-badge" class="badge-pill" style="font-weight: 700; background: #6366f1; color: white; padding: 2px 10px; border-radius: 6px;">-</span>
+                            </div>
+                            <span id="sb-edit-status-hint" style="font-size: 11px; color: var(--text-muted);"></span>
                         </div>
-                        <span id="sb-edit-status-hint" style="font-size: 11px; color: var(--text-muted);"></span>
+                        <p id="sb-edit-proto-desc" style="margin: 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.5;"></p>
                     </div>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
@@ -1581,7 +1587,7 @@
                     </div>
 
                     <!-- Transport Settings -->
-                    <div class="form-group" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
+                    <div class="form-group" id="sb-edit-transport-section" style="border-top: 1px dashed var(--border-color); padding-top: 14px;">
                         <label class="form-label" style="font-weight: 600;" data-i18n="singbox_transport_mode">ترانسپورت شبکه (Transport)</label>
                         <select class="form-input" id="sb-edit-transport-type" onchange="onSingboxEditTransportChange()">
                             <option value="tcp">TCP مستقیم (حداکثر سرعت و پایداری)</option>
@@ -1607,7 +1613,7 @@
                     </div>
 
                     <!-- Advanced Sing-box Inbound Engine Options for Edit -->
-                    <details style="border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: rgba(99, 102, 241, 0.03); margin-top: 6px;">
+                    <details id="sb-edit-advanced-details" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 14px; background: rgba(99, 102, 241, 0.03); margin-top: 6px;">
                         <summary style="cursor: pointer; font-weight: 600; font-size: 12px; color: #6366f1; display: flex; align-items: center; justify-content: space-between;">
                             <span>⚙️ تنظیمات تخصصی هسته سینگ‌باکس (Sniffing، TFO، مالتی‌پلکس، استراتژی IP)</span>
                             <span style="font-size: 10.5px; opacity: 0.7;">(کلیک برای باز کردن)</span>
@@ -1641,7 +1647,7 @@
                                 </label>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+                            <div id="sb-edit-tcp-advanced-group" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
                                 <label style="display: flex; align-items: center; gap: 8px; font-size: 11.5px; cursor: pointer;">
                                     <input type="checkbox" id="sb-edit-tfo">
                                     <span>TCP Fast Open (TFO)</span>
