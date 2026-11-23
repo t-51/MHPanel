@@ -2154,20 +2154,34 @@
             
             const currentRecv = data.network.bytes_recv;
             const currentSent = data.network.bytes_sent;
+            const nowTs = Date.now();
             
             let rxSpeed = 0;
             let txSpeed = 0;
-            if (prevRecv > 0) {
-                rxSpeed = Math.max(0, (currentRecv - prevRecv) / 2048);
-                txSpeed = Math.max(0, (currentSent - prevSent) / 2048);
+            if (prevRecv > 0 && window._lastNetTime > 0) {
+                const dt = Math.max(0.5, (nowTs - window._lastNetTime) / 1000); // actual elapsed seconds
+                rxSpeed = Math.max(0, (currentRecv - prevRecv) / (dt * 1024)); // in KB/s
+                txSpeed = Math.max(0, (currentSent - prevSent) / (dt * 1024)); // in KB/s
             }
             prevRecv = currentRecv;
             prevSent = currentSent;
+            window._lastNetTime = nowTs;
             
-            const totalSpeed = rxSpeed + txSpeed;
-            const totalSpeedStr = totalSpeed >= 1024 ? `${(totalSpeed / 1024).toFixed(1)} MB/s` : `${totalSpeed.toFixed(1)} KB/s`;
-            const rxSpeedStr = rxSpeed >= 1024 ? `${(rxSpeed / 1024).toFixed(1)} MB/s` : `${rxSpeed.toFixed(1)} KB/s`;
-            const txSpeedStr = txSpeed >= 1024 ? `${(txSpeed / 1024).toFixed(1)} MB/s` : `${txSpeed.toFixed(1)} KB/s`;
+            const totalSpeedKB = rxSpeed + txSpeed;
+            const totalSpeedMbps = (totalSpeedKB * 8) / 1000;
+            const totalSpeedStr = totalSpeedKB >= 1024 
+                ? `${(totalSpeedKB / 1024).toFixed(1)} MB/s (${totalSpeedMbps.toFixed(1)} Mbps)` 
+                : `${totalSpeedKB.toFixed(1)} KB/s (${totalSpeedMbps.toFixed(2)} Mbps)`;
+                
+            const rxMbps = (rxSpeed * 8) / 1000;
+            const rxSpeedStr = rxSpeed >= 1024 
+                ? `${(rxSpeed / 1024).toFixed(1)} MB/s` 
+                : `${rxSpeed.toFixed(1)} KB/s`;
+
+            const txMbps = (txSpeed * 8) / 1000;
+            const txSpeedStr = txSpeed >= 1024 
+                ? `${(txSpeed / 1024).toFixed(1)} MB/s` 
+                : `${txSpeed.toFixed(1)} KB/s`;
 
             const netSpeedEl = document.getElementById("net-speed-val");
             if (netSpeedEl) netSpeedEl.innerText = totalSpeedStr;

@@ -5814,7 +5814,9 @@ def api_stats():
     mem = psutil.virtual_memory()
     swap = psutil.swap_memory()
     disk = psutil.disk_usage('/')
-    net_io = psutil.net_io_counters()
+    net_nics = psutil.net_io_counters(pernic=True)
+    real_rx = sum(v.bytes_recv for k, v in net_nics.items() if k != 'lo')
+    real_tx = sum(v.bytes_sent for k, v in net_nics.items() if k != 'lo')
     
     sys_info = get_live_system_metrics()
     proto_traffic = get_protocol_bandwidth_stats()
@@ -5839,8 +5841,8 @@ def api_stats():
             "total": disk.total
         },
         "network": {
-            "bytes_recv": net_io.bytes_recv,
-            "bytes_sent": net_io.bytes_sent
+            "bytes_recv": real_rx,
+            "bytes_sent": real_tx
         },
         "system_info": sys_info,
         "protocol_traffic": proto_traffic,
