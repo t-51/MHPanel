@@ -270,8 +270,10 @@
             usageChart.update();
         }
         if (bandwidthChart && bandwidthChart.data && bandwidthChart.data.datasets) {
-            if (bandwidthChart.data.datasets[0]) bandwidthChart.data.datasets[0].label = tRx;
-            if (bandwidthChart.data.datasets[1]) bandwidthChart.data.datasets[1].label = tTx;
+            const cleanRx = (dict.chart_rx || "دانلود (Rx)").replace(/(\s*KB\/s|\s*کیلوبایت\/ثانیه|\s*كيلو بايت\/ثانية|\s*KB\/秒)/i, "").trim();
+            const cleanTx = (dict.chart_tx || "آپلود (Tx)").replace(/(\s*KB\/s|\s*کیلوبایت\/ثانیه|\s*كيلو بايت\/ثانية|\s*KB\/秒)/i, "").trim();
+            if (bandwidthChart.data.datasets[0]) bandwidthChart.data.datasets[0].label = cleanRx;
+            if (bandwidthChart.data.datasets[1]) bandwidthChart.data.datasets[1].label = cleanTx;
             bandwidthChart.update();
         }
     }
@@ -1296,7 +1298,7 @@
                     labels: Array(20).fill(''),
                     datasets: [
                         {
-                            label: 'دانلود (Rx) KB/s',
+                            label: 'دانلود (Rx)',
                             data: Array(20).fill(0),
                             borderColor: '#059669',
                             backgroundColor: 'rgba(5, 150, 105, 0.1)',
@@ -1307,7 +1309,7 @@
                             pointHoverRadius: 4
                         },
                         {
-                            label: 'آپلود (Tx) KB/s',
+                            label: 'آپلود (Tx)',
                             data: Array(20).fill(0),
                             borderColor: '#e11d48',
                             backgroundColor: 'rgba(225, 29, 72, 0.1)',
@@ -1322,13 +1324,25 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    animation: {
+                        duration: 250
+                    },
                     scales: {
                         y: {
+                            beginAtZero: true,
                             grid: { color: gridColor },
                             ticks: {
                                 color: tickColor,
                                 font: { family: "'JetBrains Mono', 'Vazirmatn', sans-serif", weight: '700', size: 12 },
-                                callback: function(val) { return val + ' KB/s'; }
+                                callback: function(val) {
+                                    if (val >= 1048576) {
+                                        return (val / 1048576).toFixed(1) + ' GB/s';
+                                    } else if (val >= 1024) {
+                                        return (val / 1024).toFixed(1) + ' MB/s';
+                                    } else {
+                                        return Math.round(val) + ' KB/s';
+                                    }
+                                }
                             }
                         },
                         x: {
@@ -1359,7 +1373,23 @@
                             titleFont: { family: "'Vazirmatn', sans-serif" },
                             bodyFont: { family: "'JetBrains Mono', 'Vazirmatn', sans-serif" },
                             padding: 10,
-                            cornerRadius: 8
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const valKB = context.parsed.y || 0;
+                                    const valMbps = (valKB * 8) / 1000;
+                                    let formattedSpeed = '';
+                                    if (valKB >= 1048576) {
+                                        formattedSpeed = (valKB / 1048576).toFixed(2) + ' GB/s';
+                                    } else if (valKB >= 1024) {
+                                        formattedSpeed = (valKB / 1024).toFixed(2) + ' MB/s';
+                                    } else {
+                                        formattedSpeed = valKB.toFixed(1) + ' KB/s';
+                                    }
+                                    const labelName = context.dataset.label || '';
+                                    return `${labelName}: ${formattedSpeed} (${valMbps.toFixed(2)} Mbps)`;
+                                }
+                            }
                         }
                     }
                 }
@@ -2158,30 +2188,47 @@
             
             let rxSpeed = 0;
             let txSpeed = 0;
-            if (prevRecv > 0 && window._lastNetTime > 0) {
+            if (data.network.rx_speed_kbps !== undefined && data.network.tx_speed_kbps !== undefined) {
+                // Highly accurate backend-calculated server rate
+                rxSpeed = data.network.rx_speed_kbps;
+                txSpeed = data.network.tx_speed_kbps;
+            } else if (prevRecv > 0 && window._lastNetTime > 0) {
                 const dt = Math.max(0.5, (nowTs - window._lastNetTime) / 1000); // actual elapsed seconds
-                rxSpeed = Math.max(0, (currentRecv - prevRecv) / (dt * 1024)); // in KB/s
-                txSpeed = Math.max(0, (currentSent - prevSent) / (dt * 1024)); // in KB/s
+                if (currentRecv !== prevRecv || currentSent !== prevSent) {
+                    rxSpeed = Math.max(0, (currentRecv - prevRecv) / (dt * 1024)); // in KB/s
+                    txSpeed = Math.max(0, (currentSent - prevSent) / (dt * 1024)); // in KB/s
+                } else if (window._lastValidRxSpeed !== undefined) {
+                    rxSpeed = window._lastValidRxSpeed;
+                    txSpeed = window._lastValidTxSpeed;
+                }
             }
+            window._lastValidRxSpeed = rxSpeed;
+            window._lastValidTxSpeed = txSpeed;
             prevRecv = currentRecv;
             prevSent = currentSent;
             window._lastNetTime = nowTs;
             
             const totalSpeedKB = rxSpeed + txSpeed;
             const totalSpeedMbps = (totalSpeedKB * 8) / 1000;
-            const totalSpeedStr = totalSpeedKB >= 1024 
-                ? `${(totalSpeedKB / 1024).toFixed(1)} MB/s (${totalSpeedMbps.toFixed(1)} Mbps)` 
-                : `${totalSpeedKB.toFixed(1)} KB/s (${totalSpeedMbps.toFixed(2)} Mbps)`;
+            const totalSpeedStr = totalSpeedKB >= 1048576 
+                ? `${(totalSpeedKB / 1048576).toFixed(2)} GB/s (${(totalSpeedMbps / 1000).toFixed(2)} Gbps)` 
+                : (totalSpeedKB >= 1024 
+                    ? `${(totalSpeedKB / 1024).toFixed(1)} MB/s (${totalSpeedMbps.toFixed(1)} Mbps)` 
+                    : `${totalSpeedKB.toFixed(1)} KB/s (${totalSpeedMbps.toFixed(2)} Mbps)`);
                 
             const rxMbps = (rxSpeed * 8) / 1000;
-            const rxSpeedStr = rxSpeed >= 1024 
-                ? `${(rxSpeed / 1024).toFixed(1)} MB/s` 
-                : `${rxSpeed.toFixed(1)} KB/s`;
+            const rxSpeedStr = rxSpeed >= 1048576 
+                ? `${(rxSpeed / 1048576).toFixed(2)} GB/s` 
+                : (rxSpeed >= 1024 
+                    ? `${(rxSpeed / 1024).toFixed(1)} MB/s (${rxMbps.toFixed(1)} Mbps)` 
+                    : `${rxSpeed.toFixed(1)} KB/s (${rxMbps.toFixed(2)} Mbps)`);
 
             const txMbps = (txSpeed * 8) / 1000;
-            const txSpeedStr = txSpeed >= 1024 
-                ? `${(txSpeed / 1024).toFixed(1)} MB/s` 
-                : `${txSpeed.toFixed(1)} KB/s`;
+            const txSpeedStr = txSpeed >= 1048576 
+                ? `${(txSpeed / 1048576).toFixed(2)} GB/s` 
+                : (txSpeed >= 1024 
+                    ? `${(txSpeed / 1024).toFixed(1)} MB/s (${txMbps.toFixed(1)} Mbps)` 
+                    : `${txSpeed.toFixed(1)} KB/s (${txMbps.toFixed(2)} Mbps)`);
 
             const netSpeedEl = document.getElementById("net-speed-val");
             if (netSpeedEl) netSpeedEl.innerText = totalSpeedStr;
@@ -11443,10 +11490,10 @@
         if (!urlParams.get("no_poll")) {
             setInterval(() => {
                 if (!document.hidden) fetchStats();
-            }, 5000);
+            }, 2000);
             setInterval(() => {
                 if (!document.hidden) fetchProtocols();
-            }, 12000);
+            }, 10000);
 
             document.addEventListener("visibilitychange", () => {
                 if (document.hidden) {

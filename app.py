@@ -5798,16 +5798,23 @@ def get_security_alerts_data(force_refresh=False):
     _security_alerts_cache = {"timestamp": now, "data": data}
     return data
 
-_api_stats_cache = {"timestamp": 0, "data": None}
+_api_stats_cache = {"timestamp": 0.0, "data": None}
+_last_net_sample = {
+    "timestamp": 0.0,
+    "rx": 0,
+    "tx": 0,
+    "rx_speed": 0.0,
+    "tx_speed": 0.0
+}
 
 @app.route("/api/stats", methods=["GET"])
 def api_stats():
     if not check_login():
         return jsonify({"error": "Unauthorized"}), 401
     
-    global _api_stats_cache
+    global _api_stats_cache, _last_net_sample
     now = time.time()
-    if _api_stats_cache["data"] is not None and (now - _api_stats_cache["timestamp"] < 5.0):
+    if _api_stats_cache["data"] is not None and (now - _api_stats_cache["timestamp"] < 1.0):
         return jsonify(_api_stats_cache["data"])
     
     cpu_percent = psutil.cpu_percent(interval=None)
@@ -5817,6 +5824,30 @@ def api_stats():
     net_nics = psutil.net_io_counters(pernic=True)
     real_rx = sum(v.bytes_recv for k, v in net_nics.items() if k != 'lo')
     real_tx = sum(v.bytes_sent for k, v in net_nics.items() if k != 'lo')
+
+    last_ts = _last_net_sample["timestamp"]
+    last_rx = _last_net_sample["rx"]
+    last_tx = _last_net_sample["tx"]
+
+    if last_ts > 0 and (now - last_ts) >= 0.5:
+        dt = now - last_ts
+        rx_speed = max(0.0, (real_rx - last_rx) / dt)
+        tx_speed = max(0.0, (real_tx - last_tx) / dt)
+        _last_net_sample["timestamp"] = now
+        _last_net_sample["rx"] = real_rx
+        _last_net_sample["tx"] = real_tx
+        _last_net_sample["rx_speed"] = rx_speed
+        _last_net_sample["tx_speed"] = tx_speed
+    elif last_ts == 0:
+        _last_net_sample["timestamp"] = now
+        _last_net_sample["rx"] = real_rx
+        _last_net_sample["tx"] = real_tx
+        rx_speed = 0.0
+        tx_speed = 0.0
+    else:
+        # Re-use latest sampled speed rate if polled within 0.5s to prevent zero-delta drop
+        rx_speed = _last_net_sample["rx_speed"]
+        tx_speed = _last_net_sample["tx_speed"]
     
     sys_info = get_live_system_metrics()
     proto_traffic = get_protocol_bandwidth_stats()
@@ -5842,7 +5873,11 @@ def api_stats():
         },
         "network": {
             "bytes_recv": real_rx,
-            "bytes_sent": real_tx
+            "bytes_sent": real_tx,
+            "rx_speed_bps": rx_speed,
+            "tx_speed_bps": tx_speed,
+            "rx_speed_kbps": round(rx_speed / 1024.0, 2),
+            "tx_speed_kbps": round(tx_speed / 1024.0, 2)
         },
         "system_info": sys_info,
         "protocol_traffic": proto_traffic,
