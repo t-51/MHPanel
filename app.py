@@ -55,13 +55,8 @@ except ImportError:
 
 app = Flask(__name__)
 
-# Performance: Enable automatic Brotli / Zstandard / Gzip response compression
-try:
-    from flask_compress import Compress
-    compress = Compress()
-    compress.init_app(app)
-except Exception:
-    pass
+# Performance: Disable in-Python Brotli compression (Apache/Nginx already handles gzip at reverse-proxy layer without burning CPU)
+# flask_compress with brotli on 1MB HTML was locking Python threads and burning 100% CPU.
 
 class RedirectServer:
     def __init__(self):
