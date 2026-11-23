@@ -1288,7 +1288,7 @@ def wg_client_tracker():
             sync_wireguard_traffic_and_quota("wireguard")
         except Exception:
             pass
-        time.sleep(15)
+        time.sleep(60)  # Optimized: was 15s → 60s to reduce CPU overhead
 
 def awg_client_tracker():
     while True:
@@ -1296,7 +1296,7 @@ def awg_client_tracker():
             sync_wireguard_traffic_and_quota("amneziawg")
         except Exception:
             pass
-        time.sleep(15)
+        time.sleep(60)  # Optimized: was 15s → 60s to reduce CPU overhead
 
 # --- Panel Path & Routes ---
 PANEL_PATH_FILE = "/etc/vpnpanel/panel_path.txt"
@@ -19499,11 +19499,17 @@ def get_ssh_active_sessions():
     return sessions
 
 def ssh_client_tracker():
+    # One-time iptables chain setup (not in loop)
+    try:
+        subprocess.run("iptables -N MHPANEL_SSH_OUT 2>/dev/null || true", shell=True, stderr=subprocess.DEVNULL)
+        subprocess.run("iptables -C OUTPUT -j MHPANEL_SSH_OUT 2>/dev/null || iptables -I OUTPUT 1 -j MHPANEL_SSH_OUT", shell=True, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
+    _iptables_users_set = set()  # track which users already have iptables rules
+
     while True:
         try:
-            subprocess.run("iptables -N MHPANEL_SSH_OUT 2>/dev/null || true", shell=True)
-            subprocess.run("iptables -C OUTPUT -j MHPANEL_SSH_OUT 2>/dev/null || iptables -I OUTPUT 1 -j MHPANEL_SSH_OUT", shell=True)
-
             users_file = "/www/wwwroot/mhpanel/ssh_users.json"
             users = {}
             if os.path.exists(users_file):
@@ -19529,13 +19535,20 @@ def ssh_client_tracker():
                 except Exception:
                     pass
 
+            # Only add new users to iptables (avoid running subprocess per user every 30s)
+            new_users = set(users.keys()) - _iptables_users_set
+            for username in new_users:
+                try:
+                    subprocess.run(f"iptables -C MHPANEL_SSH_OUT -m owner --uid-owner {username} 2>/dev/null || iptables -A MHPANEL_SSH_OUT -m owner --uid-owner {username} 2>/dev/null", shell=True, stderr=subprocess.DEVNULL)
+                    _iptables_users_set.add(username)
+                except Exception:
+                    pass
+
             traffic = get_ssh_traffic()
             changed = False
             now_str = datetime.now().strftime("%Y-%m-%d")
 
             for username, user_data in users.items():
-                subprocess.run(f"iptables -C MHPANEL_SSH_OUT -m owner --uid-owner {username} 2>/dev/null || iptables -A MHPANEL_SSH_OUT -m owner --uid-owner {username} 2>/dev/null", shell=True)
-
                 tdata = traffic.get(username, {"rx": 0, "tx": 0})
                 if "rx" not in user_data: user_data["rx"] = 0
                 if "tx" not in user_data: user_data["tx"] = 0
@@ -19581,7 +19594,7 @@ def ssh_client_tracker():
                     json.dump(users, f, indent=2)
         except Exception:
             pass
-        time.sleep(30)
+        time.sleep(120)  # Optimized: iptables setup moved out of loop, 30s→120s
 
 @app.route("/api/ssh/users", methods=["GET"])
 def api_get_ssh_users():
@@ -23114,7 +23127,7 @@ def ikev2_client_tracker():
                     json.dump(rad_users, f, indent=2)
         except Exception:
             pass
-        time.sleep(30)
+        time.sleep(120)  # Optimized: iptables setup moved out of loop, 30s→120s
 
 @app.route("/api/ikev2/users", methods=["GET"])
 def api_get_ikev2_users():
@@ -25226,7 +25239,7 @@ def radar_services_scheduler_worker():
             try:
                 cur_set = get_radar_ping_settings()
                 if not cur_set.get("auto_ping_enabled", True):
-                    time.sleep(30)
+                    time.sleep(120)  # Optimized: iptables setup moved out of loop, 30s→120s
                     break
                 new_int = int(cur_set.get("interval_minutes", 60))
                 target_sleep = max(60, new_int * 60)
@@ -31189,12 +31202,17 @@ def singbox_client_tracker():
                     total_online_users += 1
                     total_online_conns += allowed_conns_count
 
+                # Accumulate up/down traffic for this user from cache
+                u_up = sum(int(_sb_conn_cache.get(cid, {}).get("up", 0)) for cid, _, _ in u_conns)
+                u_down = sum(int(_sb_conn_cache.get(cid, {}).get("down", 0)) for cid, _, _ in u_conns)
                 _sb_user_online_stats[uname] = {
                     "online": (allowed_conns_count > 0),
                     "connections": allowed_conns_count,
                     "ips_count": active_ips_count,
                     "ips": list(allowed_ips),
-                    "last_seen": now_ts
+                    "last_seen": now_ts,
+                    "up": u_up,
+                    "down": u_down,
                 }
 
             # Mark inactive users as offline
@@ -31214,7 +31232,7 @@ def singbox_client_tracker():
 
         except Exception:
             pass
-        time.sleep(10.0)
+        time.sleep(20.0)  # Optimized: was 10s, reduced CPU from repeated 2MB JSON parsing
 
 def start_singbox_tracker_if_needed():
     global _sb_tracker_started
@@ -31224,25 +31242,17 @@ def start_singbox_tracker_if_needed():
         t.start()
 
 def get_singbox_clash_traffic():
-    # Return user map with active connection counts
+    # Return user map from tracker cache (no live API call - avoids per-request 2MB+ JSON fetch)
     traffic_map = {}
     try:
-        req = urllib.request.Request("http://127.0.0.1:9095/connections")
-        with urllib.request.urlopen(req, timeout=1.0) as resp:
-            data = json.loads(resp.read().decode())
-            for conn in (data.get("connections") or []):
-                rule = str(conn.get("rule") or "")
-                m = re.search(r'auth_user=([^ =]+)', rule)
-                uname = m.group(1).strip() if m else None
-                if not uname:
-                    cid = conn.get("id")
-                    uname = _sb_conn_cache.get(cid, {}).get("user")
-                if uname:
-                    if uname not in traffic_map:
-                        traffic_map[uname] = {"connections": 0, "up": 0, "down": 0}
-                    traffic_map[uname]["connections"] += 1
-                    traffic_map[uname]["up"] += int(conn.get("upload") or 0)
-                    traffic_map[uname]["down"] += int(conn.get("download") or 0)
+        with _sb_user_traffic_lock:
+            for uname, stats in _sb_user_online_stats.items():
+                if stats.get("online"):
+                    traffic_map[uname] = {
+                        "connections": stats.get("connections", 0),
+                        "up": stats.get("up", 0),
+                        "down": stats.get("down", 0),
+                    }
     except Exception:
         pass
     return traffic_map
