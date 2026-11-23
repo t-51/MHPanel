@@ -417,49 +417,45 @@ def get_api_key():
         return f.read().strip()
 
 # --- Connection Counters ---
-_conn_counts_cache = {"timestamp": 0, "counts": {}}
+_batch_port_conns_cache = {"timestamp": 0, "ports": {}}
+_proto_conns_cache = {}  # protocol -> {"count": int, "timestamp": float}
+
+def get_batch_port_connections():
+    global _batch_port_conns_cache
+    now = time.time()
+    if now - _batch_port_conns_cache["timestamp"] < 8.0:
+        return _batch_port_conns_cache["ports"]
+    
+    port_counts = {}
+    try:
+        ss_res = subprocess.run(["ss", "-tuanH"], capture_output=True, text=True, timeout=1.5)
+        for sline in ss_res.stdout.splitlines():
+            sparts = sline.split()
+            if len(sparts) >= 5 and sparts[1].lower().startswith("estab"):
+                loc = sparts[4]
+                if ":" in loc:
+                    try:
+                        p = int(loc.rsplit(":", 1)[1])
+                        port_counts[p] = port_counts.get(p, 0) + 1
+                    except ValueError:
+                        pass
+    except Exception:
+        pass
+    _batch_port_conns_cache = {"timestamp": now, "ports": port_counts}
+    return port_counts
 
 def get_connection_count(protocol):
-    global _conn_counts_cache
+    global _proto_conns_cache
     now = time.time()
-    if protocol in _conn_counts_cache["counts"] and (now - _conn_counts_cache["timestamp"] < 12.0):
-        return _conn_counts_cache["counts"][protocol]
+    cached = _proto_conns_cache.get(protocol)
+    if cached and (now - cached.get("timestamp", 0) < 8.0):
+        return cached.get("count", 0)
 
     count = 0
     try:
-        port = get_active_port(protocol)
-        if not port and protocol not in ["ikev2", "l2tp"]:
-            _conn_counts_cache["counts"][protocol] = 0
-            return 0
-            
-        if protocol == "ssh":
-            # Count established SSH connections
-            res = subprocess.run("ss -t -a | grep -i ssh | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-        elif protocol == "openvpn":
-            # Check openvpn port connections
-            res = subprocess.run(f"ss -u -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-        elif protocol == "ocserv":
-            # Use occtl command
-            res = subprocess.run("occtl show users | grep -v 'Unique ID' | grep -v '^$' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = max(0, int(res.stdout.strip()) - 1)
-        elif protocol == "ikev2":
-            # Count active SAs from ipsec status
-            res = subprocess.run("ipsec status 2>/dev/null | grep -o '[0-9]\\+ up' | awk '{print $1}'", shell=True, capture_output=True, text=True, timeout=2.0)
-            try:
-                count = int(res.stdout.strip())
-            except Exception:
-                count = 0
-        elif protocol == "sstp":
-            res = subprocess.run(f"ss -t -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-        elif protocol == "pptp":
-            res = subprocess.run(f"ss -t -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-        elif protocol == "l2tp":
-            res = subprocess.run("ss -u -a | grep :1701 | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
+        if protocol == "singbox":
+            # Return live online connections tracked in memory from singbox_client_tracker (0ms, no API call)
+            count = _sb_last_tracker_stats.get("total_online_connections", 0)
         elif protocol == "wireguard":
             # Count peers with handshakes in the last 2 minutes (120s)
             res = subprocess.run("wg show wg0 latest-handshakes", shell=True, capture_output=True, text=True, timeout=2.0)
@@ -479,34 +475,32 @@ def get_connection_count(protocol):
                     ts = int(parts[1])
                     if ts > 0 and (curr_time - ts) < 120:
                         count += 1
-        elif protocol in ["http", "socks", "shadowsocks", "mtproto", "trojan", "naiveproxy", "stuntls", "tor"]:
-            res = subprocess.run(f"ss -t -a | grep :{port} | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-        elif protocol in ["tuic", "dnstt", "vaydns", "slipstream", "hysteria2", "noizdns", "masterdnsvpn"]:
-            res = subprocess.run(f"ss -u -a | grep -E ':{port}\\s' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
+        elif protocol == "ocserv":
+            res = subprocess.run("occtl show users | grep -v 'Unique ID' | grep -v '^$' | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = max(0, int(res.stdout.strip()) - 1)
-        elif protocol == "singbox":
-            res = subprocess.run("ss -tan | grep -E ':(204[4-6][0-9]|2080|20523|8443|443|1080)\\s' | grep -i estab | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
-            count = int(res.stdout.strip())
-            # Augment with Sing-box Clash API connection count if available
+        elif protocol == "ikev2":
+            res = subprocess.run("ipsec status 2>/dev/null | grep -o '[0-9]\\+ up' | awk '{print $1}'", shell=True, capture_output=True, text=True, timeout=2.0)
             try:
-                import urllib.request
-                req = urllib.request.Request("http://127.0.0.1:9095/connections", headers={"User-Agent": "MHPanel"})
-                with urllib.request.urlopen(req, timeout=0.8) as resp:
-                    if resp.status == 200:
-                        c_data = json.loads(resp.read().decode())
-                        api_conns = len(c_data.get("connections", []))
-                        if api_conns > count:
-                            count = api_conns
+                count = int(res.stdout.strip())
             except Exception:
-                pass
+                count = 0
         elif protocol == "tunnels":
             res = subprocess.run("ip -br link | grep -E '(gre|ipip|vxlan|mhtun|sit|tap|tun)' | grep -i UP | wc -l", shell=True, capture_output=True, text=True, timeout=2.0)
             count = int(res.stdout.strip())
+        else:
+            # All port-based protocols: instant lookup from batch socket cache! Zero extra subprocess!
+            port = get_active_port(protocol)
+            if port:
+                try:
+                    p_num = int(port)
+                    batch_conns = get_batch_port_connections()
+                    count = batch_conns.get(p_num, 0)
+                except ValueError:
+                    count = 0
     except Exception:
         pass
-    _conn_counts_cache["counts"][protocol] = count
-    _conn_counts_cache["timestamp"] = now
+
+    _proto_conns_cache[protocol] = {"count": count, "timestamp": now}
     return count
 
 # --- Helpers ---
@@ -1314,22 +1308,32 @@ def get_panel_path():
         pass
     return ""
 
+_rendered_dashboard_cache = {}  # bool(logged_in) -> (html_str, timestamp)
+
 def render_dashboard_response(logged_in):
     from flask import make_response
-    user, _ = get_credentials()
-    custom_path = get_panel_path()
-    gas_tpls_data = get_unified_code_templates() if logged_in else {}
-    resp = make_response(render_template(
-        "dashboard.html",
-        logged_in=logged_in,
-        error=None,
-        saved_username=user,
-        api_key=get_api_key(),
-        panel_path=custom_path,
-        panel_port=get_panel_port(),
-        panel_version=PANEL_VERSION,
-        gas_templates_data=gas_tpls_data
-    ))
+    now = time.time()
+    cached = _rendered_dashboard_cache.get(bool(logged_in))
+    if cached and (now - cached[1] < 3.0):
+        html_str = cached[0]
+    else:
+        user, _ = get_credentials()
+        custom_path = get_panel_path()
+        gas_tpls_data = get_unified_code_templates() if logged_in else {}
+        html_str = render_template(
+            "dashboard.html",
+            logged_in=logged_in,
+            error=None,
+            saved_username=user,
+            api_key=get_api_key(),
+            panel_path=custom_path,
+            panel_port=get_panel_port(),
+            panel_version=PANEL_VERSION,
+            gas_templates_data=gas_tpls_data
+        )
+        _rendered_dashboard_cache[bool(logged_in)] = (html_str, now)
+
+    resp = make_response(html_str)
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     resp.headers["Pragma"] = "no-cache"
     resp.headers["Expires"] = "0"
@@ -5397,7 +5401,7 @@ def ensure_vpn_forward_accounting_rules(force=False):
 def get_protocol_bandwidth_stats():
     global _proto_traffic_prev, _proto_bandwidth_cache
     now = time.time()
-    if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 2.5):
+    if _proto_bandwidth_cache["data"] is not None and (now - _proto_bandwidth_cache["timestamp"] < 8.0):
         return _proto_bandwidth_cache["data"]
     
     # 0. Ensure VPN forward accounting rules exist
@@ -5528,18 +5532,6 @@ def get_protocol_bandwidth_stats():
     traffic_map = get_batch_service_traffic_bytes(daemon_services)
 
     sb_rx, sb_tx = traffic_map.get("mhpanel-singbox.service", (0, 0))
-    # Fallback to Sing-box Clash API if systemd IPAccounting is zero or not available
-    if sb_rx == 0 and sb_tx == 0:
-        try:
-            import urllib.request
-            req = urllib.request.Request("http://127.0.0.1:9095/connections", headers={"User-Agent": "MHPanel"})
-            with urllib.request.urlopen(req, timeout=0.8) as resp:
-                if resp.status == 200:
-                    clash_data = json.loads(resp.read().decode())
-                    sb_rx = int(clash_data.get("downloadTotal", 0))
-                    sb_tx = int(clash_data.get("uploadTotal", 0))
-        except Exception:
-            pass
     dnstt_rx, dnstt_tx = traffic_map.get("mhpanel-dnstt.service", (0, 0))
     if dnstt_rx == 0 and dnstt_tx == 0:
         dnstt_rx = sum(dev_stats.get(iface, {}).get("rx", 0) for iface in dev_stats if "dnstt" in iface)
@@ -6080,22 +6072,8 @@ def api_protocols():
     
     protocols_list = PROTOCOLS_LIST
     
-    # 1. Batch gather established socket connections across all ports in 1 call (6ms)
-    port_counts = {}
-    try:
-        ss_res = subprocess.run(["ss", "-tuanH"], capture_output=True, text=True, timeout=1.5)
-        for sline in ss_res.stdout.splitlines():
-            sparts = sline.split()
-            if len(sparts) >= 5 and sparts[0].lower().startswith("estab"):
-                loc = sparts[4]
-                if ":" in loc:
-                    try:
-                        p = int(loc.rsplit(":", 1)[1])
-                        port_counts[p] = port_counts.get(p, 0) + 1
-                    except ValueError:
-                        pass
-    except Exception:
-        pass
+    # 1. Batch gather established socket connections across all ports (re-uses shared cache)
+    port_counts = get_batch_port_connections()
 
     # 2. Batch gather systemd service states in 1 call (10ms)
     all_services = []
@@ -12547,8 +12525,7 @@ AD_TAG = "{ad_tag}"
                         connections = 0
                         if active:
                             try:
-                                res_conn = subprocess.run(f"ss -t -a | grep -E ':{port}\\s' | grep -i estab | wc -l", shell=True, capture_output=True, text=True)
-                                connections = int(res_conn.stdout.strip())
+                                connections = get_batch_port_connections().get(int(port), 0)
                             except Exception:
                                 pass
                                 
@@ -12880,8 +12857,7 @@ def api_tuic_config_get():
     connections = 0
     if active:
         try:
-            res_c = subprocess.run(f"ss -u -a | grep -E ':{port}\\s' | wc -l", shell=True, capture_output=True, text=True)
-            connections = max(0, int(res_c.stdout.strip()) - 1)
+            connections = get_batch_port_connections().get(int(port), 0)
         except: pass
 
     share_links = []
@@ -13017,8 +12993,7 @@ def api_shadowsocks_config_get():
     connections = 0
     if active:
         try:
-            res_c = subprocess.run(f"ss -t -a | grep -E ':{port}\\s' | grep -i estab | wc -l", shell=True, capture_output=True, text=True)
-            connections = int(res_c.stdout.strip())
+            connections = get_batch_port_connections().get(int(port), 0)
         except: pass
 
     userinfo = base64.b64encode(f"{method}:{password}".encode()).decode()
