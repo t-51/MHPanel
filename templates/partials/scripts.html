@@ -277,9 +277,13 @@
     }
 
     function changeLanguage(lang) {
-        if (!I18N_TRANSLATIONS[lang]) lang = "fa";
+        if (!lang) lang = "fa";
         localStorage.setItem("panel_language", lang);
-        applyLanguage(lang);
+        if (typeof window.loadLanguage === "function" && (!window.I18N_TRANSLATIONS || !window.I18N_TRANSLATIONS[lang])) {
+            window.loadLanguage(lang, () => applyLanguage(lang));
+        } else {
+            applyLanguage(lang);
+        }
     }
 
     function toggleLangDropdown(e) {
@@ -842,7 +846,13 @@
     }
 
     function applyLanguage(lang) {
-        if (!I18N_TRANSLATIONS[lang]) lang = "fa";
+        if (!lang) lang = "fa";
+        if (lang !== "fa" && (!window.I18N_TRANSLATIONS || !window.I18N_TRANSLATIONS[lang])) {
+            if (typeof window.loadLanguage === "function") {
+                window.loadLanguage(lang, () => applyLanguage(lang));
+                return;
+            }
+        }
         _isTranslating = true;
         try {
             document.documentElement.dir = (lang === "fa" || lang === "ar" ? "rtl" : "ltr");
