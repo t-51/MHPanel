@@ -58,7 +58,43 @@ get_server_ip() {
     get_public_ipv4 "$@"
 }
 
+# Multi-OS Detection & Package Manager Abstraction
+OS_FAMILY="debian"
+OS_ID="ubuntu"
+PKG_UPDATED=0
+
+detect_os_family() {
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release 2>/dev/null || true
+        OS_ID="${ID:-linux}"
+        local id_like="${ID_LIKE:-}"
+        case "${OS_ID} ${id_like}" in
+            *ubuntu*|*debian*|*kali*|*raspbian*|*mint*|*pop*) OS_FAMILY="debian" ;;
+            *fedora*|*rhel*|*centos*|*rocky*|*almalinux*|*ol*) OS_FAMILY="rhel" ;;
+            *arch*|*manjaro*|*endeavouros*|*cachyos*) OS_FAMILY="arch" ;;
+            *suse*|*opensuse*|*sles*) OS_FAMILY="suse" ;;
+            *alpine*) OS_FAMILY="alpine" ;;
+            *)
+                if command -v apt-get >/dev/null 2>&1; then OS_FAMILY="debian"
+                elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then OS_FAMILY="rhel"
+                elif command -v pacman >/dev/null 2>&1; then OS_FAMILY="arch"
+                elif command -v zypper >/dev/null 2>&1; then OS_FAMILY="suse"
+                elif command -v apk >/dev/null 2>&1; then OS_FAMILY="alpine"
+                fi
+                ;;
+        esac
+    elif command -v apt-get >/dev/null 2>&1; then OS_FAMILY="debian"
+    elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then OS_FAMILY="rhel"
+    elif command -v pacman >/dev/null 2>&1; then OS_FAMILY="arch"
+    elif command -v zypper >/dev/null 2>&1; then OS_FAMILY="suse"
+    elif command -v apk >/dev/null 2>&1; then OS_FAMILY="alpine"
+    fi
+}
+detect_os_family
+
 ensure_apt_noninteractive() {
+    [ "$OS_FAMILY" = "debian" ] || return 0
     export DEBIAN_FRONTEND=noninteractive
     export NEEDRESTART_MODE=a
     export NEEDRESTART_SUSPEND=1
@@ -76,42 +112,198 @@ EOF
 }
 ensure_apt_noninteractive 2>/dev/null || true
 
-run_apt() {
-    ensure_apt_noninteractive 2>/dev/null || true
-    local count=0
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
-        sleep 2
-        count=$((count + 1))
-        if [ "$count" -ge 15 ]; then
-            fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
-            rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
-            dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
-            break
-        fi
-    done
-    apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+map_pkg_name() {
+    local name="$1"
+    case "$OS_FAMILY" in
+        debian) echo "$name" ;;
+        rhel)
+            case "$name" in
+                python3-venv) echo "" ;;
+                cron) echo "cronie" ;;
+                build-essential) echo "gcc gcc-c++ make" ;;
+                golang-go) echo "golang" ;;
+                iproute2) echo "iproute" ;;
+                procps) echo "procps-ng" ;;
+                iptables-persistent|ufw) echo "iptables-services" ;;
+                freeradius-config) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                libradcli4) echo "radcli" ;;
+                openssh-server) echo "openssh-server" ;;
+                strongswan-pki|libcharon-extra-plugins|libstrongswan-extra-plugins|strongswan-swanctl) echo "" ;;
+                wireguard) echo "wireguard-tools" ;;
+                tor-geoipdb) echo "" ;;
+                lyrebird) echo "obfs4proxy" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        arch)
+            case "$name" in
+                python3) echo "python" ;;
+                python3-pip) echo "python-pip" ;;
+                python3-venv) echo "" ;;
+                cron) echo "cronie" ;;
+                build-essential) echo "base-devel" ;;
+                golang-go) echo "go" ;;
+                iptables|iptables-persistent) echo "iptables-nft" ;;
+                procps) echo "procps-ng" ;;
+                freeradius-utils|freeradius-config) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                libradcli4) echo "" ;;
+                openssh-server) echo "openssh" ;;
+                strongswan-pki|libcharon-extra-plugins|libstrongswan-extra-plugins|strongswan-swanctl) echo "" ;;
+                wireguard) echo "wireguard-tools" ;;
+                tor-geoipdb|lyrebird) echo "" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        suse)
+            case "$name" in
+                python3-venv) echo "" ;;
+                build-essential) echo "gcc gcc-c++ make" ;;
+                golang-go) echo "go" ;;
+                freeradius) echo "freeradius-server" ;;
+                freeradius-utils|freeradius-config|libradcli4) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                openssh-server) echo "openssh" ;;
+                strongswan-pki|libcharon-extra-plugins|libstrongswan-extra-plugins|strongswan-swanctl) echo "" ;;
+                wireguard) echo "wireguard-tools" ;;
+                tor-geoipdb|obfs4proxy|lyrebird) echo "" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        alpine)
+            case "$name" in
+                python3-pip) echo "py3-pip" ;;
+                python3-venv) echo "" ;;
+                cron) echo "dcron" ;;
+                build-essential) echo "build-base" ;;
+                golang-go) echo "go" ;;
+                freeradius-utils|freeradius-config|libpam-radius-auth|libradcli4) echo "" ;;
+                openssh-server) echo "openssh" ;;
+                strongswan-pki|libcharon-extra-plugins|libstrongswan-extra-plugins|strongswan-swanctl) echo "" ;;
+                wireguard) echo "wireguard-tools" ;;
+                qrencode) echo "libqrencode" ;;
+                tor-geoipdb|obfs4proxy|lyrebird) echo "" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+    esac
 }
 
-# Helper: UFW Port Management
+run_apt() {
+    local subcmd="$1"
+    if [ "$subcmd" = "update" ]; then
+        if [ "${PKG_UPDATED}" -eq 1 ]; then
+            return 0
+        fi
+        case "$OS_FAMILY" in
+            debian)
+                ensure_apt_noninteractive 2>/dev/null || true
+                # Skip apt-get update if lists were updated in the last 10 minutes
+                if [ -d /var/lib/apt/lists ] && [ -n "$(find /var/lib/apt/lists -maxdepth 1 -mmin -10 2>/dev/null | head -n1)" ]; then
+                    PKG_UPDATED=1
+                    return 0
+                fi
+                local count=0
+                while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+                    sleep 2
+                    count=$((count + 1))
+                    if [ "$count" -ge 15 ]; then
+                        fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+                        rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+                        dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+                        break
+                    fi
+                done
+                apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update
+                ;;
+            rhel)
+                if command -v dnf >/dev/null 2>&1; then dnf -y makecache >/dev/null 2>&1 || true
+                elif command -v yum >/dev/null 2>&1; then yum -y makecache >/dev/null 2>&1 || true; fi
+                ;;
+            arch) pacman -Sy --noconfirm >/dev/null 2>&1 || true ;;
+            suse) zypper --non-interactive refresh >/dev/null 2>&1 || true ;;
+            alpine) apk update >/dev/null 2>&1 || true ;;
+        esac
+        PKG_UPDATED=1
+        return $?
+    fi
+
+    if [ "$OS_FAMILY" = "debian" ]; then
+        ensure_apt_noninteractive 2>/dev/null || true
+        local count=0
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+            sleep 2
+            count=$((count + 1))
+            if [ "$count" -ge 15 ]; then
+                fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+                rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+                dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+                break
+            fi
+        done
+        apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+        return $?
+    fi
+
+    if [ "$subcmd" = "install" ]; then
+        shift
+        local mapped_pkgs=()
+        for arg in "$@"; do
+            case "$arg" in
+                -y|--no-install-recommends|--reinstall|-*) continue ;;
+                *)
+                    local mp
+                    mp=$(map_pkg_name "$arg")
+                    for m in $mp; do
+                        [ -n "$m" ] && mapped_pkgs+=("$m")
+                    done
+                    ;;
+            esac
+        done
+        [ ${#mapped_pkgs[@]} -eq 0 ] && return 0
+        run_apt update >/dev/null 2>&1 || true
+        case "$OS_FAMILY" in
+            rhel)
+                if command -v dnf >/dev/null 2>&1; then dnf install -y "${mapped_pkgs[@]}"
+                else yum install -y "${mapped_pkgs[@]}"; fi
+                ;;
+            arch) pacman -S --noconfirm --needed "${mapped_pkgs[@]}" ;;
+            suse) zypper --non-interactive install -y "${mapped_pkgs[@]}" ;;
+            alpine) apk add --no-cache "${mapped_pkgs[@]}" ;;
+        esac
+        return $?
+    fi
+    return 0
+}
+
+# Helper: Unified Firewall Port Management (UFW / firewalld / iptables)
 allow_port() {
     local port=$1
     local proto=$2
-    if command -v ufw >/dev/null; then
-        ufw allow "${port}/${proto}" || true
-    else
-        iptables -I INPUT -p "${proto}" -m "${proto}" --dport "${port}" -j ACCEPT || true
-        if [ -d /etc/iptables ]; then iptables-save > /etc/iptables/rules.v4; fi
+    if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
+        ufw allow "${port}/${proto}" >/dev/null 2>&1 || true
+    elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
+        firewall-cmd --permanent --add-port="${port}/${proto}" >/dev/null 2>&1 || true
+        firewall-cmd --reload >/dev/null 2>&1 || true
+    elif command -v iptables >/dev/null 2>&1; then
+        iptables -C INPUT -p "${proto}" -m "${proto}" --dport "${port}" -j ACCEPT 2>/dev/null || \
+        iptables -I INPUT -p "${proto}" -m "${proto}" --dport "${port}" -j ACCEPT 2>/dev/null || true
+        if [ -d /etc/iptables ]; then iptables-save > /etc/iptables/rules.v4 2>/dev/null || true; fi
     fi
 }
 
 deny_port() {
     local port=$1
     local proto=$2
-    if command -v ufw >/dev/null; then
-        ufw delete allow "${port}/${proto}" || true
-    else
-        iptables -D INPUT -p "${proto}" -m "${proto}" --dport "${port}" -j ACCEPT || true
-        if [ -d /etc/iptables ]; then iptables-save > /etc/iptables/rules.v4; fi
+    if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
+        ufw delete allow "${port}/${proto}" >/dev/null 2>&1 || true
+    elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
+        firewall-cmd --permanent --remove-port="${port}/${proto}" >/dev/null 2>&1 || true
+        firewall-cmd --reload >/dev/null 2>&1 || true
+    elif command -v iptables >/dev/null 2>&1; then
+        iptables -D INPUT -p "${proto}" -m "${proto}" --dport "${port}" -j ACCEPT 2>/dev/null || true
+        if [ -d /etc/iptables ]; then iptables-save > /etc/iptables/rules.v4 2>/dev/null || true; fi
     fi
 }
 

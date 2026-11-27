@@ -4,7 +4,7 @@
 #       Comprehensive, Intelligent & Modular VPN, Tunnel & Bridge Manager
 # ------------------------------------------------------------------------------
 # GitHub: https://github.com/t-51/MHPanel
-# OS Support: Ubuntu 20.04+, 22.04+, 24.04+ | Debian 11+, 12+
+# OS Support: Ubuntu 20.04+, 22.04+, 24.04+, 26.04+ | Debian 11+, 12+ | Fedora / RHEL / CentOS / Alma / Rocky | Arch Linux | openSUSE | Alpine
 # Architecture: x86_64 / amd64 / aarch64
 # ==============================================================================
 
@@ -14,7 +14,43 @@ export NEEDRESTART_MODE=a
 export NEEDRESTART_SUSPEND=1
 export UCF_FORCE_CONFFOLD=1
 
+# Multi-OS Detection & Unified Package / Firewall Abstraction
+OS_FAMILY="debian"
+OS_ID="ubuntu"
+PKG_UPDATED=0
+
+detect_os_family() {
+    if [ -f /etc/os-release ]; then
+        # shellcheck disable=SC1091
+        . /etc/os-release 2>/dev/null || true
+        OS_ID="${ID:-linux}"
+        local id_like="${ID_LIKE:-}"
+        case "${OS_ID} ${id_like}" in
+            *ubuntu*|*debian*|*kali*|*raspbian*|*mint*|*pop*) OS_FAMILY="debian" ;;
+            *fedora*|*rhel*|*centos*|*rocky*|*almalinux*|*ol*) OS_FAMILY="rhel" ;;
+            *arch*|*manjaro*|*endeavouros*|*cachyos*) OS_FAMILY="arch" ;;
+            *suse*|*opensuse*|*sles*) OS_FAMILY="suse" ;;
+            *alpine*) OS_FAMILY="alpine" ;;
+            *)
+                if command -v apt-get >/dev/null 2>&1; then OS_FAMILY="debian"
+                elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then OS_FAMILY="rhel"
+                elif command -v pacman >/dev/null 2>&1; then OS_FAMILY="arch"
+                elif command -v zypper >/dev/null 2>&1; then OS_FAMILY="suse"
+                elif command -v apk >/dev/null 2>&1; then OS_FAMILY="alpine"
+                fi
+                ;;
+        esac
+    elif command -v apt-get >/dev/null 2>&1; then OS_FAMILY="debian"
+    elif command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then OS_FAMILY="rhel"
+    elif command -v pacman >/dev/null 2>&1; then OS_FAMILY="arch"
+    elif command -v zypper >/dev/null 2>&1; then OS_FAMILY="suse"
+    elif command -v apk >/dev/null 2>&1; then OS_FAMILY="alpine"
+    fi
+}
+detect_os_family
+
 ensure_apt_noninteractive() {
+    [ "$OS_FAMILY" = "debian" ] || return 0
     export DEBIAN_FRONTEND=noninteractive
     export NEEDRESTART_MODE=a
     export NEEDRESTART_SUSPEND=1
@@ -32,20 +68,218 @@ EOF
 }
 ensure_apt_noninteractive 2>/dev/null || true
 
+pkg_update() {
+    if [ "${PKG_UPDATED}" -eq 1 ]; then
+        return 0
+    fi
+    case "$OS_FAMILY" in
+        debian)
+            ensure_apt_noninteractive 2>/dev/null || true
+            local count=0
+            while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+                sleep 2
+                count=$((count + 1))
+                if [ "$count" -ge 15 ]; then
+                    fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+                    rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+                    dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+                    break
+                fi
+            done
+            apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" update
+            ;;
+        rhel)
+            if command -v dnf >/dev/null 2>&1; then
+                dnf -y makecache --refresh >/dev/null 2>&1 || dnf -y makecache >/dev/null 2>&1 || true
+            elif command -v yum >/dev/null 2>&1; then
+                yum -y makecache >/dev/null 2>&1 || true
+            fi
+            ;;
+        arch)
+            pacman -Sy --noconfirm >/dev/null 2>&1 || true
+            ;;
+        suse)
+            zypper --non-interactive refresh >/dev/null 2>&1 || true
+            ;;
+        alpine)
+            apk update >/dev/null 2>&1 || true
+            ;;
+    esac
+    PKG_UPDATED=1
+}
+
+pkg_is_installed() {
+    local pkg="$1"
+    case "$OS_FAMILY" in
+        debian) dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed" ;;
+        rhel|suse) rpm -q "$pkg" >/dev/null 2>&1 ;;
+        arch) pacman -Qi "$pkg" >/dev/null 2>&1 ;;
+        alpine) apk info -e "$pkg" >/dev/null 2>&1 ;;
+        *) return 1 ;;
+    esac
+}
+
+map_pkg_name() {
+    local name="$1"
+    case "$OS_FAMILY" in
+        debian)
+            echo "$name"
+            ;;
+        rhel)
+            case "$name" in
+                python3-venv) echo "" ;;
+                cron) echo "cronie" ;;
+                build-essential) echo "gcc gcc-c++ make" ;;
+                golang-go) echo "golang" ;;
+                iproute2) echo "iproute" ;;
+                procps) echo "procps-ng" ;;
+                iptables-persistent|ufw) echo "iptables-services" ;;
+                freeradius-config) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                libradcli4) echo "radcli" ;;
+                obfs4proxy|lyrebird) echo "obfs4proxy" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        arch)
+            case "$name" in
+                python3) echo "python" ;;
+                python3-pip) echo "python-pip" ;;
+                python3-venv) echo "" ;;
+                cron) echo "cronie" ;;
+                build-essential) echo "base-devel" ;;
+                golang-go) echo "go" ;;
+                iptables|iptables-persistent) echo "iptables-nft" ;;
+                procps) echo "procps-ng" ;;
+                freeradius-utils|freeradius-config) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                libradcli4) echo "" ;;
+                lyrebird) echo "obfs4proxy" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        suse)
+            case "$name" in
+                python3-venv) echo "" ;;
+                build-essential) echo "gcc gcc-c++ make" ;;
+                golang-go) echo "go" ;;
+                freeradius) echo "freeradius-server" ;;
+                freeradius-utils|freeradius-config) echo "" ;;
+                libpam-radius-auth) echo "pam_radius" ;;
+                libradcli4) echo "" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+        alpine)
+            case "$name" in
+                python3-pip) echo "py3-pip" ;;
+                python3-venv) echo "" ;;
+                cron) echo "dcron" ;;
+                build-essential) echo "build-base" ;;
+                golang-go) echo "go" ;;
+                freeradius-utils|freeradius-config|libpam-radius-auth|libradcli4) echo "" ;;
+                *) echo "$name" ;;
+            esac
+            ;;
+    esac
+}
+
 run_apt() {
-    ensure_apt_noninteractive 2>/dev/null || true
-    local count=0
-    while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
-        sleep 2
-        count=$((count + 1))
-        if [ "$count" -ge 15 ]; then
-            fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
-            rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
-            dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
-            break
-        fi
-    done
-    apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+    local subcmd="$1"
+    if [ "$subcmd" = "update" ]; then
+        pkg_update
+        return $?
+    fi
+    if [ "$OS_FAMILY" = "debian" ]; then
+        ensure_apt_noninteractive 2>/dev/null || true
+        local count=0
+        while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 || fuser /var/lib/dpkg/lock >/dev/null 2>&1 || fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+            sleep 2
+            count=$((count + 1))
+            if [ "$count" -ge 15 ]; then
+                fuser -k -9 /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock 2>/dev/null || true
+                rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/apt/lists/lock /var/cache/apt/archives/lock
+                dpkg --configure -a --force-confdef --force-confold 2>/dev/null || true
+                break
+            fi
+        done
+        apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" "$@"
+        return $?
+    fi
+
+    # Non-Debian translation for run_apt install ...
+    if [ "$subcmd" = "install" ]; then
+        shift
+        local raw_pkgs=()
+        local mapped_pkgs=()
+        for arg in "$@"; do
+            case "$arg" in
+                -y|--no-install-recommends|--reinstall|-*) continue ;;
+                *) raw_pkgs+=("$arg") ;;
+            esac
+        done
+        for p in "${raw_pkgs[@]}"; do
+            local mp
+            mp=$(map_pkg_name "$p")
+            for m in $mp; do
+                [ -n "$m" ] && mapped_pkgs+=("$m")
+            done
+        done
+        [ ${#mapped_pkgs[@]} -eq 0 ] && return 0
+        pkg_update
+        case "$OS_FAMILY" in
+            rhel)
+                if command -v dnf >/dev/null 2>&1; then
+                    dnf install -y "${mapped_pkgs[@]}"
+                else
+                    yum install -y "${mapped_pkgs[@]}"
+                fi
+                ;;
+            arch)
+                pacman -S --noconfirm --needed "${mapped_pkgs[@]}"
+                ;;
+            suse)
+                zypper --non-interactive install -y "${mapped_pkgs[@]}"
+                ;;
+            alpine)
+                apk add --no-cache "${mapped_pkgs[@]}"
+                ;;
+        esac
+        return $?
+    fi
+    return 0
+}
+
+# Unified Firewall Port Helpers (UFW / firewalld / iptables)
+fw_allow_port() {
+    local port="$1"
+    local proto="${2:-tcp}"
+    if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
+        ufw allow "${port}/${proto}" >/dev/null 2>&1 || true
+    elif command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
+        firewall-cmd --permanent --add-port="${port}/${proto}" >/dev/null 2>&1 || true
+        firewall-cmd --reload >/dev/null 2>&1 || true
+    elif command -v iptables >/dev/null 2>&1; then
+        iptables -C INPUT -p "$proto" --dport "$port" -j ACCEPT 2>/dev/null || \
+        iptables -I INPUT -p "$proto" --dport "$port" -j ACCEPT 2>/dev/null || true
+    fi
+}
+
+# Disk-backed staging directory helper (avoids tmpfs /tmp OOM/ENOSPC on low-RAM VPS)
+get_disk_stage_dir() {
+    local base="/var/cache"
+    [ -d "$base" ] && [ -w "$base" ] || base="/var/tmp"
+    local fstype
+    fstype=$(df -T "$base" 2>/dev/null | awk 'NR==2{print $2}')
+    local avail_mb
+    avail_mb=$(df -Pm "$base" 2>/dev/null | awk 'NR==2{print $4}')
+    avail_mb=${avail_mb:-0}
+    if [ "$fstype" = "tmpfs" ] || [ "$avail_mb" -lt 600 ]; then
+        mkdir -p "${PANEL_DIR}" 2>/dev/null || true
+        echo "${PANEL_DIR}/.stage"
+    else
+        echo "${base}/mhpanel_stage"
+    fi
 }
 
 GITHUB_REPO="https://github.com/t-51/MHPanel.git"
@@ -69,7 +303,7 @@ PANEL_DIR="/www/wwwroot/mhpanel"
 HELPER="${PANEL_DIR}/scripts/protocol_helper.sh"
 SSL_DIR="/etc/vpnpanel/ssl"
 CONFIG_DIR="/etc/vpnpanel"
-VERSION="1.8.0"
+VERSION="1.8.1"
 
 # Root Permission Check
 if [ "$(id -u)" -ne 0 ]; then
@@ -542,21 +776,19 @@ install_base_prerequisites() {
     # Safeguard current SSH session port early to prevent accidental disconnection
     local ssh_p=$(ss -tlnp 2>/dev/null | grep -E '\b(sshd|systemd-ssh)' | awk '{print $4}' | awk -F: '{print $NF}' | head -n1 || true)
     ssh_p=${ssh_p:-22}
-    if command -v ufw >/dev/null 2>&1 && systemctl is-active --quiet ufw 2>/dev/null; then
-        ufw allow "${ssh_p}/tcp" >/dev/null 2>&1 || true
-        ufw allow 22/tcp >/dev/null 2>&1 || true
-    fi
+    fw_allow_port "${ssh_p}" tcp
+    fw_allow_port 22 tcp
     iptables -I INPUT -p tcp --dport "${ssh_p}" -j ACCEPT 2>/dev/null || true
     iptables -I INPUT -p tcp --dport 22 -j ACCEPT 2>/dev/null || true
 
     # Preseed debconf selections for iptables-persistent to avoid interactive dialog prompts
-    if command -v debconf-set-selections >/dev/null 2>&1; then
+    if [ "$OS_FAMILY" = "debian" ] && command -v debconf-set-selections >/dev/null 2>&1; then
         echo "iptables-persistent iptables-persistent/autosave_v4 boolean true" | debconf-set-selections 2>/dev/null || true
         echo "iptables-persistent iptables-persistent/autosave_v6 boolean true" | debconf-set-selections 2>/dev/null || true
     fi
 
     # Configure needrestart to avoid restarting sshd or prompting during upgrades
-    if [ -d /etc/needrestart/conf.d ]; then
+    if [ "$OS_FAMILY" = "debian" ] && [ -d /etc/needrestart/conf.d ]; then
         cat > /etc/needrestart/conf.d/99mhpanel.conf 2>/dev/null <<'EOF' || true
 $nrconf{restart} = 'a';
 $nrconf{override_rc} = {
@@ -570,30 +802,45 @@ EOF
     # Safeguard Apache / Nginx / Web server coexistence early
     detect_and_configure_webserver_compatibility
 
-    local pkgs_needed=()
-    local firewall_pkg="ufw"
-    if dpkg -s iptables-persistent >/dev/null 2>&1; then
-        firewall_pkg="iptables-persistent"
+    # Remove broken third-party repos that can break apt-get update
+    [ "$OS_FAMILY" = "debian" ] && rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
+
+    # Enable EPEL on RHEL/CentOS/Alma/Rocky derivatives (skip Fedora)
+    if [ "$OS_FAMILY" = "rhel" ] && [ "$OS_ID" != "fedora" ]; then
+        if ! pkg_is_installed epel-release; then
+            run_apt install epel-release >/dev/null 2>&1 || true
+        fi
     fi
 
-    # Remove broken third-party repos that can break apt-get update
-    rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
+    local firewall_pkg="ufw"
+    if [ "$OS_FAMILY" = "debian" ] && pkg_is_installed iptables-persistent; then
+        firewall_pkg="iptables-persistent"
+    elif [ "$OS_FAMILY" != "debian" ]; then
+        firewall_pkg="iptables"
+    fi
 
-    for p in python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo cmake build-essential jq socat unzip kmod procps freeradius freeradius-utils libpam-radius-auth golang-go haproxy; do
-        if ! dpkg -s "$p" >/dev/null 2>&1; then
-            pkgs_needed+=("$p")
-        fi
+    local base_pkgs=(python3 python3-pip python3-venv curl wget git openssl certbot iptables "$firewall_pkg" cron net-tools sudo jq socat unzip kmod procps haproxy)
+    local pkgs_needed=()
+    for raw_p in "${base_pkgs[@]}"; do
+        local mapped
+        mapped=$(map_pkg_name "$raw_p")
+        for mp in $mapped; do
+            [ -z "$mp" ] && continue
+            if ! pkg_is_installed "$mp"; then
+                pkgs_needed+=("$mp")
+            fi
+        done
     done
 
     if [ ${#pkgs_needed[@]} -eq 0 ]; then
         echo -e "    ${GREEN}[✓] All base Linux dependencies are already installed (Skipped).${NC}"
     else
-        echo -e "    Installing missing packages: ${CYAN}${pkgs_needed[*]}${NC}..."
-        run_apt update 2>/dev/null || true
+        echo -e "    Installing missing packages (${OS_FAMILY}/${OS_ID}): ${CYAN}${pkgs_needed[*]}${NC}..."
+        pkg_update >/dev/null 2>&1 || true
         if ! run_apt install --no-install-recommends "${pkgs_needed[@]}" 2>/dev/null; then
-            echo -e "    ${YELLOW}Batch package installation encountered issues; installing required packages individually...${NC}"
+            echo -e "    ${YELLOW}Batch package installation encountered issues; installing available packages individually...${NC}"
             for pkg in "${pkgs_needed[@]}"; do
-                run_apt install --no-install-recommends "$pkg" 2>/dev/null || run_apt install "$pkg" 2>/dev/null || true
+                run_apt install --no-install-recommends "$pkg" >/dev/null 2>&1 || run_apt install "$pkg" >/dev/null 2>&1 || true
             done
         fi
         echo -e "    ${GREEN}[✓] Base system dependencies successfully installed.${NC}"
@@ -768,30 +1015,33 @@ install_panel_web_ui() {
 
     # Ensure git is available
     if ! command -v git >/dev/null 2>&1; then
-        run_apt update 2>/dev/null || true
-        run_apt install git 2>/dev/null || true
+        pkg_update >/dev/null 2>&1 || true
+        run_apt install git >/dev/null 2>&1 || true
     fi
 
-    if [ "${SCRIPT_DIR}" != "${PANEL_DIR}" ] && [ -f "${SCRIPT_DIR}/app.py" ]; then
+    if [ "${SCRIPT_DIR}" != "${PANEL_DIR}" ] && [ -f "${SCRIPT_DIR}/app.py" ] && [ -s "${SCRIPT_DIR}/scripts/protocol_helper.sh" ]; then
         echo "    Deploying MH Panel source files to ${PANEL_DIR}..."
-        cp -r "${SCRIPT_DIR}"/* "${PANEL_DIR}/" 2>/dev/null || true
-    elif [ ! -f "${PANEL_DIR}/app.py" ]; then
+        cp -a "${SCRIPT_DIR}/." "${PANEL_DIR}/" 2>/dev/null || true
+    elif [ ! -s "${PANEL_DIR}/app.py" ] || [ ! -s "${PANEL_DIR}/scripts/protocol_helper.sh" ]; then
         echo -e "${CYAN}    Fetching latest MH Panel source files from GitHub (${GITHUB_REPO})...${NC}"
-        rm -rf /tmp/mhpanel_clone
-        if git clone --depth=1 "${GITHUB_REPO}" /tmp/mhpanel_clone 2>/dev/null || git clone "${GITHUB_REPO}" /tmp/mhpanel_clone 2>/dev/null; then
-            cp -r /tmp/mhpanel_clone/* "${PANEL_DIR}/" 2>/dev/null || true
-            cp -r /tmp/mhpanel_clone/.* "${PANEL_DIR}/" 2>/dev/null || true
-            rm -rf /tmp/mhpanel_clone
+        local stage_dir
+        stage_dir="$(get_disk_stage_dir)"
+        rm -rf "$stage_dir" "${stage_dir}.tar.gz" "${stage_dir}_extract"
+        mkdir -p "$(dirname "$stage_dir")"
+        if git clone --depth=1 --single-branch "${GITHUB_REPO}" "$stage_dir" 2>/dev/null || git clone --depth=1 "${GITHUB_REPO}" "$stage_dir" 2>/dev/null; then
+            cp -a "${stage_dir}/." "${PANEL_DIR}/" 2>/dev/null || true
+            rm -rf "$stage_dir"
         else
             echo -e "${YELLOW}    Git clone encountered issues; attempting direct archive download from GitHub...${NC}"
-            curl -sSL "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" -o /tmp/mhpanel.tar.gz 2>/dev/null || wget -qO /tmp/mhpanel.tar.gz "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" 2>/dev/null || true
-            if [ -f /tmp/mhpanel.tar.gz ]; then
-                tar -xzf /tmp/mhpanel.tar.gz -C /tmp/ 2>/dev/null || true
-                if [ -d /tmp/MHPanel-main ]; then
-                    cp -r /tmp/MHPanel-main/* "${PANEL_DIR}/" 2>/dev/null || true
-                    rm -rf /tmp/MHPanel-main /tmp/mhpanel.tar.gz
+            curl -fsSL "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" -o "${stage_dir}.tar.gz" 2>/dev/null || wget -qO "${stage_dir}.tar.gz" "https://github.com/t-51/MHPanel/archive/refs/heads/main.tar.gz" 2>/dev/null || true
+            if [ -s "${stage_dir}.tar.gz" ]; then
+                mkdir -p "${stage_dir}_extract"
+                tar -xzf "${stage_dir}.tar.gz" -C "${stage_dir}_extract" 2>/dev/null || true
+                if [ -d "${stage_dir}_extract/MHPanel-main" ]; then
+                    cp -a "${stage_dir}_extract/MHPanel-main/." "${PANEL_DIR}/" 2>/dev/null || true
                 fi
             fi
+            rm -rf "${stage_dir}_extract" "${stage_dir}.tar.gz"
         fi
     else
         echo -e "${CYAN}    Syncing and updating existing MH Panel files to latest GitHub version...${NC}"
@@ -806,21 +1056,42 @@ install_panel_web_ui() {
         fi
     fi
 
-    chmod +x "${PANEL_DIR}/install.sh" 2>/dev/null || true
-
-    # Install repository bundled binaries
-    if [ -d "${PANEL_DIR}/bin" ]; then
-        echo "    Installing bundled binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
-        cp -f "${PANEL_DIR}/bin/"* /usr/local/bin/ 2>/dev/null || true
-        chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* 2>/dev/null || true
+    # Verify critical files are present and non-empty (fallback raw download if missing)
+    mkdir -p "${PANEL_DIR}/scripts/daemons"
+    for crit_file in "app.py" "requirements.txt" "install.sh" "scripts/protocol_helper.sh"; do
+        if [ ! -s "${PANEL_DIR}/${crit_file}" ]; then
+            echo -e "    ${YELLOW}Recovering missing ${crit_file} from GitHub raw...${NC}"
+            curl -fsSL "https://raw.githubusercontent.com/t-51/MHPanel/main/${crit_file}" -o "${PANEL_DIR}/${crit_file}" 2>/dev/null || true
+        fi
+    done
+    if [ ! -s "${PANEL_DIR}/app.py" ] || [ ! -s "${PANEL_DIR}/scripts/protocol_helper.sh" ]; then
+        echo -e "${RED}[ERROR] Failed to deploy MH Panel core files to ${PANEL_DIR}. Check disk space and network.${NC}"
+        return 1
     fi
 
-    # Cross-compile customized StunTLS client for this specific server
-    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ]; then
+    chmod +x "${PANEL_DIR}/install.sh" "${PANEL_DIR}/scripts/"*.sh 2>/dev/null || true
+
+    # Install repository bundled Linux binaries (skip Windows .exe, Termux, and source files)
+    if [ -d "${PANEL_DIR}/bin" ]; then
+        echo "    Installing bundled Linux binaries from ${PANEL_DIR}/bin/ to /usr/local/bin/..."
+        for bf in "${PANEL_DIR}/bin/"*; do
+            [ -f "$bf" ] || continue
+            local bname
+            bname="$(basename "$bf")"
+            case "$bname" in
+                *.exe|*-termux*|*.go|*.stamp|*.md|*.txt|*.json) continue ;;
+            esac
+            cp -f "$bf" "/usr/local/bin/${bname}" 2>/dev/null || true
+        done
+        chmod +x /usr/local/bin/*dns* /usr/local/bin/*slip* /usr/local/bin/tuic* /usr/local/bin/badvpn* /usr/local/bin/stuntls* /usr/local/bin/ssh-ws* /usr/local/bin/sing-box /usr/local/bin/hysteria /usr/local/bin/ssserver /usr/local/bin/wstunnel /usr/local/bin/chisel /usr/local/bin/frp* /usr/local/bin/tun2socks /usr/local/bin/kcptun* /usr/local/bin/snispoof* /usr/local/bin/vaydns* 2>/dev/null || true
+    fi
+
+    # Cross-compile customized StunTLS & SNISpoof clients only if Go is already installed and stamp differs
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/stuntls-client.go" ] && [ ! -f "${PANEL_DIR}/bin/stuntls-client.stamp" ]; then
         echo "    Cross-compiling customized StunTLS client for this server..."
         (
             cd "${PANEL_DIR}/bin" || exit 0
-            srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
+            srv_pub=$(get_public_ipv4)
             GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client.exe stuntls-client.go 2>/dev/null || true
             GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.DefaultServer=${srv_pub}:3478' -X 'main.DefaultKey=stuntls-secret' -X 'main.ServerTitle=${srv_pub}'" -o stuntls-client stuntls-client.go 2>/dev/null || true
             chmod +x stuntls-client 2>/dev/null || true
@@ -828,53 +1099,41 @@ install_panel_web_ui() {
         ) || true
     fi
 
-    # Cross-compile customized SNI Spoofing clients for this specific server
-    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
-        if ! command -v go >/dev/null 2>&1; then
-            echo "    Installing Go compiler (golang-go)..."
-            run_apt update 2>/dev/null || true
-            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
-        fi
-        if command -v go >/dev/null 2>&1; then
-            echo "    Cross-compiling customized SNI Spoofing clients for this server..."
+    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
+        local srv_pub_chk
+        srv_pub_chk=$(get_public_ipv4)
+        if ! grep -q "\"${srv_pub_chk}\"" "${PANEL_DIR}/bin/.server_stamp" 2>/dev/null; then
+            echo "    Updating customized SNI Spoofing clients for ${srv_pub_chk}..."
             (
                 cd "${PANEL_DIR}/bin" || exit 0
-                srv_pub=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || curl -s4m 4 ifconfig.me 2>/dev/null || ip route get 1.1.1.1 2>/dev/null | awk '{print $7; exit}' || echo "127.0.0.1")
-                srv_dom="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_pub})"
+                srv_dom="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_pub_chk})"
                 relay_ports="443,8443,20443,40443"
                 if [ -f "/etc/vpnpanel/snispoof.json" ]; then
                     rp=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
                     [ -n "$rp" ] && relay_ports="$rp"
                 fi
-                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
+                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub_chk}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
                 if [ -f snispoof-client.exe ]; then
                     for st in fragment checksum lowttl patterniha rotation wrongseq; do
                         cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
                     done
                 fi
-                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-amd64 snispoof-client.go 2>/dev/null || true
+                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub_chk}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-amd64 snispoof-client.go 2>/dev/null || true
                 if [ -f snispoof-client-linux-amd64 ]; then
                     cp -f snispoof-client-linux-amd64 snispoof-client 2>/dev/null || true
                     for st in fragment checksum lowttl patterniha rotation wrongseq; do
                         cp -f snispoof-client-linux-amd64 "snispoof-${st}" 2>/dev/null || true
                     done
                 fi
-                GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-arm64 snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client-linux-arm64 ]; then
-                    cp -f snispoof-client-linux-arm64 snispoof-client-termux-arm64 2>/dev/null || true
-                    cp -f snispoof-client-linux-arm64 snispoof-fragment-termux 2>/dev/null || true
-                fi
-                GOOS=linux GOARCH=arm GOARM=7 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-arm snispoof-client.go 2>/dev/null || true
-                [ -f snispoof-client-linux-arm ] && cp -f snispoof-client-linux-arm snispoof-client-termux-arm 2>/dev/null || true
                 chmod +x snispoof* 2>/dev/null || true
-                echo "{\"server_ip\":\"${srv_pub}\",\"server_domain\":\"${srv_dom}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
+                echo "{\"server_ip\":\"${srv_pub_chk}\",\"server_domain\":\"${srv_dom}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
             ) || true
         fi
     fi
 
-    # Ensure python3-venv and python3-pip are installed
-    if ! dpkg -s python3-venv >/dev/null 2>&1 || ! dpkg -s python3-pip >/dev/null 2>&1; then
-        run_apt install python3-venv python3-pip 2>/dev/null || true
+    # Ensure python3-venv and python3-pip are installed across distros
+    if ! python3 -m venv --help >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1; then
+        run_apt install python3-venv python3-pip >/dev/null 2>&1 || true
     fi
 
     if [ ! -d "${PANEL_DIR}/venv" ] || [ ! -f "${PANEL_DIR}/venv/bin/python" ] || [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
@@ -882,27 +1141,21 @@ install_panel_web_ui() {
         rm -rf "${PANEL_DIR}/venv"
         python3 -m venv "${PANEL_DIR}/venv" 2>/dev/null || true
         if [ ! -f "${PANEL_DIR}/venv/bin/pip" ]; then
-            run_apt install python3-venv python3-pip 2>/dev/null || true
+            run_apt install python3-venv python3-pip >/dev/null 2>&1 || true
             rm -rf "${PANEL_DIR}/venv"
             python3 -m venv "${PANEL_DIR}/venv"
         fi
     fi
 
-    echo "    Ensuring and updating Python dependencies in virtual environment..."
-    "${PANEL_DIR}/venv/bin/pip" install --upgrade pip setuptools wheel --quiet 2>/dev/null || true
+    echo "    Ensuring Python dependencies in virtual environment..."
     if [ -f "${PANEL_DIR}/requirements.txt" ]; then
-        "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || \
-        "${PANEL_DIR}/venv/bin/pip" install -r "${PANEL_DIR}/requirements.txt"
+        "${PANEL_DIR}/venv/bin/pip" install --no-cache-dir -r "${PANEL_DIR}/requirements.txt" --quiet 2>/dev/null || \
+        "${PANEL_DIR}/venv/bin/pip" install --no-cache-dir -r "${PANEL_DIR}/requirements.txt"
+    else
+        "${PANEL_DIR}/venv/bin/pip" install --no-cache-dir \
+            "Flask>=2.0.0" "psutil>=5.8.0" "pyrad>=2.4" "cryptography>=3.4.8" \
+            "pyOpenSSL" "requests" "flask-compress>=1.14,<1.15" "brotli" --quiet 2>/dev/null || true
     fi
-    "${PANEL_DIR}/venv/bin/pip" install \
-        "Flask>=2.0.0" \
-        "psutil>=5.8.0" \
-        "pyrad>=2.4" \
-        "cryptography>=3.4.8" \
-        "pyOpenSSL" \
-        "requests" \
-        "flask-compress>=1.14,<1.15" \
-        "brotli" --quiet 2>/dev/null || true
 
     local port_file="${PANEL_DIR}/panel_port.txt"
     if [ ! -f "$port_file" ]; then echo "9090" > "$port_file"; fi
@@ -1045,10 +1298,13 @@ WantedBy=multi-user.target
 EOF
     ln -sf /etc/systemd/system/mhpanel.service /etc/systemd/system/vpnpanel.service
 
-    if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
-        ufw allow "${panel_port}/tcp" >/dev/null 2>&1 || true
-        ufw allow 80/tcp >/dev/null 2>&1 || true
-        ufw allow 443/tcp >/dev/null 2>&1 || true
+    fw_allow_port "${panel_port}" tcp
+    fw_allow_port 80 tcp
+    fw_allow_port 443 tcp
+
+    # Ensure SELinux allows systemd to execute venv python & /usr/local/bin binaries on Fedora/RHEL
+    if command -v chcon >/dev/null 2>&1 && command -v getenforce >/dev/null 2>&1 && [ "$(getenforce 2>/dev/null)" != "Disabled" ]; then
+        chcon -R -t bin_t "${PANEL_DIR}/venv/bin" /usr/local/bin 2>/dev/null || true
     fi
 
     systemctl daemon-reload
@@ -1146,11 +1402,11 @@ setup_freeradius() {
     local rad_group="freerad"
     local auth_file="${rad_conf_dir}/mods-config/files/authorize"
 
-    if [ -f /etc/debian_version ] || command -v apt-get >/dev/null 2>&1; then
+    if [ "$OS_FAMILY" = "debian" ]; then
         export DEBIAN_FRONTEND=noninteractive
         rm -f /etc/apt/sources.list.d/tor.list 2>/dev/null || true
         if ! command -v freeradius >/dev/null 2>&1 || [ ! -d "${rad_conf_dir}" ]; then
-            run_apt update >/dev/null 2>&1 || true
+            pkg_update >/dev/null 2>&1 || true
             run_apt install --no-install-recommends freeradius freeradius-utils freeradius-config libpam-radius-auth libradcli4 >/dev/null 2>&1 || \
             run_apt install freeradius freeradius-utils libpam-radius-auth >/dev/null 2>&1 || true
         fi
@@ -1159,11 +1415,27 @@ setup_freeradius() {
         rad_user="freerad"
         rad_group="freerad"
         auth_file="${rad_conf_dir}/mods-config/files/authorize"
-    elif [ -f /etc/redhat-release ] || command -v dnf >/dev/null 2>&1 || command -v yum >/dev/null 2>&1; then
+    elif [ "$OS_FAMILY" = "rhel" ]; then
         local pkg_mgr="yum"
         command -v dnf >/dev/null 2>&1 && pkg_mgr="dnf"
-        $pkg_mgr install -y epel-release >/dev/null 2>&1 || true
+        [ "$OS_ID" != "fedora" ] && $pkg_mgr install -y epel-release >/dev/null 2>&1 || true
         $pkg_mgr install -y freeradius freeradius-utils pam_radius radcli >/dev/null 2>&1 || true
+        rad_conf_dir="/etc/raddb"
+        rad_service="radiusd"
+        rad_user="radiusd"
+        rad_group="radiusd"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+        [ ! -f "$auth_file" ] && auth_file="${rad_conf_dir}/users"
+    elif [ "$OS_FAMILY" = "arch" ]; then
+        run_apt install freeradius >/dev/null 2>&1 || true
+        rad_conf_dir="/etc/raddb"
+        rad_service="freeradius"
+        rad_user="freerad"
+        rad_group="freerad"
+        auth_file="${rad_conf_dir}/mods-config/files/authorize"
+        [ ! -f "$auth_file" ] && auth_file="${rad_conf_dir}/users"
+    elif [ "$OS_FAMILY" = "suse" ] || [ "$OS_FAMILY" = "alpine" ]; then
+        run_apt install freeradius >/dev/null 2>&1 || true
         rad_conf_dir="/etc/raddb"
         rad_service="radiusd"
         rad_user="radiusd"
@@ -1241,10 +1513,8 @@ EOF
     fi
     chmod 640 "$mh_users" 2>/dev/null || true
 
-    if command -v ufw >/dev/null && systemctl is-active --quiet ufw; then
-        ufw allow 1812/udp >/dev/null 2>&1 || true
-        ufw allow 1813/udp >/dev/null 2>&1 || true
-    fi
+    fw_allow_port 1812 udp
+    fw_allow_port 1813 udp
 
     systemctl unmask "$rad_service" 2>/dev/null || true
     systemctl enable "$rad_service" 2>/dev/null || true
@@ -1305,8 +1575,10 @@ install_badvpn() {
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
         echo -e "    ${CYAN}Building BadVPN UDP-GW from source for native OS compatibility...${NC}"
         run_apt install cmake build-essential gcc git >/dev/null 2>&1 || true
-        mkdir -p /tmp/badvpn-build
-        cd /tmp/badvpn-build
+        local bv_build
+        bv_build="$(get_disk_stage_dir)_badvpn"
+        rm -rf "$bv_build" && mkdir -p "$bv_build"
+        cd "$bv_build"
         if git clone --depth 1 https://github.com/ambrop72/badvpn.git . 2>/dev/null; then
             mkdir -p build && cd build
             cmake .. -DBUILD_NOTHING_BY_DEFAULT=1 -DBUILD_UDPGW=1 >/dev/null 2>&1
@@ -1314,7 +1586,7 @@ install_badvpn() {
             cp -f udpgw/badvpn-udpgw /usr/local/bin/badvpn-udpgw 2>/dev/null || make install >/dev/null 2>&1 || true
             chmod +x /usr/local/bin/badvpn-udpgw 2>/dev/null || true
         fi
-        cd /root && rm -rf /tmp/badvpn-build
+        cd /root && rm -rf "$bv_build"
     fi
 
     if [ ! -x /usr/local/bin/badvpn-udpgw ] && [ ! -x /usr/bin/badvpn-udpgw ]; then
@@ -1354,12 +1626,21 @@ install_cloudflare_warp() {
 
     # Install cloudflare-warp if missing
     if ! command -v warp-cli >/dev/null 2>&1; then
-        echo "    Adding Cloudflare WARP repository..."
-        curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg 2>/dev/null || true
-        local codename=$(lsb_release -cs 2>/dev/null || echo "focal")
-        echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ ${codename} main" > /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null || true
-        run_apt update 2>/dev/null || true
-        run_apt install --no-install-recommends cloudflare-warp 2>/dev/null || apt-get install -y --no-install-recommends cloudflare-warp 2>/dev/null || true
+        if [ "$OS_FAMILY" = "debian" ]; then
+            echo "    Adding Cloudflare WARP repository..."
+            curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg 2>/dev/null || true
+            local codename=$(lsb_release -cs 2>/dev/null || echo "focal")
+            echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ ${codename} main" > /etc/apt/sources.list.d/cloudflare-client.list 2>/dev/null || true
+            PKG_UPDATED=0
+            pkg_update >/dev/null 2>&1 || true
+            run_apt install --no-install-recommends cloudflare-warp >/dev/null 2>&1 || true
+        elif [ "$OS_FAMILY" = "rhel" ]; then
+            echo "    Adding Cloudflare WARP repository (RPM)..."
+            curl -fsSL https://pkg.cloudflareclient.com/cloudflare-warp-ascii.repo -o /etc/yum.repos.d/cloudflare-warp.repo 2>/dev/null || true
+            run_apt install cloudflare-warp >/dev/null 2>&1 || true
+        else
+            echo "    [i] Cloudflare WARP native package not configured for ${OS_FAMILY}; skipping warp-cli."
+        fi
     fi
 
     # SAFETY: Keep WARP strictly in proxy mode (SOCKS5 127.0.0.1:40000).
@@ -1423,13 +1704,25 @@ WARPEOF
 install_tunnel_tools() {
     echo -e "\n${YELLOW}>>> [4/6] Checking and verifying Anti-Censorship Tunnel Binaries...${NC}"
     local count_downloaded=0
+    local stage_tmp
+    stage_tmp="$(get_disk_stage_dir)_dl"
+    mkdir -p "$stage_tmp"
 
-    # First: install repository bundled binaries if available
+    # First: install missing repository bundled Linux binaries (skip Windows .exe, Termux, and source files)
     for bdir in "${PANEL_DIR}/bin" "${PANEL_DIR}/scripts/daemons" "${SCRIPT_DIR}/bin" "${SCRIPT_DIR}/scripts/daemons" "/root/mhpanel-repo/bin"; do
         if [ -d "$bdir" ]; then
-            echo "    Installing bundled binaries from ${bdir} to /usr/local/bin/..."
-            cp -f "$bdir"/* /usr/local/bin/ 2>/dev/null || true
-            chmod +x /usr/local/bin/* 2>/dev/null || true
+            for bf in "$bdir"/*; do
+                [ -f "$bf" ] || continue
+                local bname
+                bname="$(basename "$bf")"
+                case "$bname" in
+                    *.exe|*-termux*|*.go|*.stamp|*.md|*.txt|*.json) continue ;;
+                esac
+                if [ ! -e "/usr/local/bin/${bname}" ]; then
+                    cp -f "$bf" "/usr/local/bin/${bname}" 2>/dev/null || true
+                    chmod +x "/usr/local/bin/${bname}" 2>/dev/null || true
+                fi
+            done
         fi
     done
 
@@ -1538,7 +1831,7 @@ install_tunnel_tools() {
             local sb_arch="amd64"
             [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && sb_arch="arm64"
             curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/sing-box -o /usr/local/bin/sing-box 2>/dev/null || \
-            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf /tmp/sing-box* || true)
+            (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${sb_arch}.tar.gz" 2>/dev/null | tar -xz -C ${stage_tmp}/ 2>/dev/null && mv ${stage_tmp}/sing-box-*/sing-box /usr/local/bin/sing-box 2>/dev/null && rm -rf ${stage_tmp}/sing-box* || true)
             chmod +x /usr/local/bin/sing-box 2>/dev/null || true
         fi
         if [ -x /usr/local/bin/sing-box ]; then
@@ -1637,11 +1930,11 @@ install_tunnel_tools() {
     if [ ! -x /usr/local/bin/rtt ]; then
         echo "    Downloading ReverseTlsTunnel (RTT)..."
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/rtt -o /usr/local/bin/rtt 2>/dev/null || \
-        curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o /tmp/rtt.zip 2>/dev/null || true
-        if [ -f /tmp/rtt.zip ]; then
-            unzip -o /tmp/rtt.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
+        curl -fsSL https://github.com/radkesvat/ReverseTlsTunnel/releases/download/v7.1/rtt-linux-amd64.zip -o ${stage_tmp}/rtt.zip 2>/dev/null || true
+        if [ -f ${stage_tmp}/rtt.zip ]; then
+            unzip -o ${stage_tmp}/rtt.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
             chmod +x /usr/local/bin/rtt 2>/dev/null || true
-            rm -f /tmp/rtt.zip
+            rm -f ${stage_tmp}/rtt.zip
         fi
         chmod +x /usr/local/bin/rtt 2>/dev/null || true
         if [ -x /usr/local/bin/rtt ]; then
@@ -1670,11 +1963,11 @@ install_tunnel_tools() {
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/frps -o /usr/local/bin/frps 2>/dev/null || true
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/frpc -o /usr/local/bin/frpc 2>/dev/null || true
         if [ ! -x /usr/local/bin/frps ] || [ ! -x /usr/local/bin/frpc ]; then
-            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/fatedier/frp/releases/download/v0.58.1/frp_0.58.1_linux_amd64.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-            if [ -d /tmp/frp_0.58.1_linux_amd64 ]; then
-                mv /tmp/frp_0.58.1_linux_amd64/frps /usr/local/bin/ 2>/dev/null || true
-                mv /tmp/frp_0.58.1_linux_amd64/frpc /usr/local/bin/ 2>/dev/null || true
-                rm -rf /tmp/frp*
+            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/fatedier/frp/releases/download/v0.58.1/frp_0.58.1_linux_amd64.tar.gz 2>/dev/null | tar -xz -C ${stage_tmp}/ 2>/dev/null || true
+            if [ -d ${stage_tmp}/frp_0.58.1_linux_amd64 ]; then
+                mv ${stage_tmp}/frp_0.58.1_linux_amd64/frps /usr/local/bin/ 2>/dev/null || true
+                mv ${stage_tmp}/frp_0.58.1_linux_amd64/frpc /usr/local/bin/ 2>/dev/null || true
+                rm -rf ${stage_tmp}/frp*
             fi
         fi
         chmod +x /usr/local/bin/frps /usr/local/bin/frpc 2>/dev/null || true
@@ -1689,7 +1982,7 @@ install_tunnel_tools() {
     if [ ! -x /usr/local/bin/udp2raw ]; then
         echo "    Downloading UDP2Raw..."
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/udp2raw -o /usr/local/bin/udp2raw 2>/dev/null || \
-        (curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null && mv /tmp/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && rm -rf /tmp/udp2raw* || true)
+        (curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/udp2raw/releases/download/20230206.0/udp2raw_binaries.tar.gz 2>/dev/null | tar -xz -C ${stage_tmp}/ 2>/dev/null && mv ${stage_tmp}/udp2raw_amd64 /usr/local/bin/udp2raw 2>/dev/null && rm -rf ${stage_tmp}/udp2raw* || true)
         chmod +x /usr/local/bin/udp2raw 2>/dev/null || true
         if [ -x /usr/local/bin/udp2raw ]; then
             count_downloaded=$((count_downloaded + 1))
@@ -1704,10 +1997,10 @@ install_tunnel_tools() {
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/phantun-server -o /usr/local/bin/phantun-server 2>/dev/null || true
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/phantun-client -o /usr/local/bin/phantun-client 2>/dev/null || true
         if [ ! -x /usr/local/bin/phantun-server ]; then
-            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/dndx/phantun/releases/download/v0.8.1/phantun_x86_64-unknown-linux-musl.zip -o /tmp/phantun.zip 2>/dev/null || true
-            if [ -f /tmp/phantun.zip ]; then
-                unzip -o /tmp/phantun.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
-                rm -f /tmp/phantun.zip
+            curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/dndx/phantun/releases/download/v0.8.1/phantun_x86_64-unknown-linux-musl.zip -o ${stage_tmp}/phantun.zip 2>/dev/null || true
+            if [ -f ${stage_tmp}/phantun.zip ]; then
+                unzip -o ${stage_tmp}/phantun.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
+                rm -f ${stage_tmp}/phantun.zip
             fi
         fi
         chmod +x /usr/local/bin/phantun* 2>/dev/null || true
@@ -1722,12 +2015,12 @@ install_tunnel_tools() {
     if [ ! -x /usr/local/bin/rathole ]; then
         echo "    Downloading Rathole..."
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/rathole -o /usr/local/bin/rathole 2>/dev/null || \
-        curl -fsSL https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-x86_64-unknown-linux-musl.zip -o /tmp/rathole.zip 2>/dev/null || true
-        if [ -f /tmp/rathole.zip ]; then
-            unzip -o /tmp/rathole.zip -d /tmp/ >/dev/null 2>&1 || true
-            mv /tmp/rathole /usr/local/bin/ 2>/dev/null || true
+        curl -fsSL https://github.com/rapiz1/rathole/releases/download/v0.5.0/rathole-x86_64-unknown-linux-musl.zip -o ${stage_tmp}/rathole.zip 2>/dev/null || true
+        if [ -f ${stage_tmp}/rathole.zip ]; then
+            unzip -o ${stage_tmp}/rathole.zip -d ${stage_tmp}/ >/dev/null 2>&1 || true
+            mv ${stage_tmp}/rathole /usr/local/bin/ 2>/dev/null || true
             chmod +x /usr/local/bin/rathole 2>/dev/null || true
-            rm -f /tmp/rathole*
+            rm -f ${stage_tmp}/rathole*
         fi
         chmod +x /usr/local/bin/rathole 2>/dev/null || true
         if [ -x /usr/local/bin/rathole ]; then
@@ -1744,7 +2037,7 @@ install_tunnel_tools() {
         local t2s_arch="linux-amd64"
         [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] && t2s_arch="linux-arm64"
         curl -fsSL --connect-timeout 10 --max-time 60 https://raw.githubusercontent.com/t-51/MHPanel/main/bin/tun2socks -o /usr/local/bin/tun2socks 2>/dev/null || \
-        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/xjasonlyu/tun2socks/releases/download/v2.5.2/tun2socks-${t2s_arch}.zip" -o /tmp/t2s.zip 2>/dev/null && unzip -o /tmp/t2s.zip -d /tmp/ >/dev/null 2>&1 && mv /tmp/tun2socks-* /usr/local/bin/tun2socks 2>/dev/null && rm -f /tmp/t2s.zip || true)
+        (curl -fsSL --connect-timeout 10 --max-time 60 "https://github.com/xjasonlyu/tun2socks/releases/download/v2.5.2/tun2socks-${t2s_arch}.zip" -o ${stage_tmp}/t2s.zip 2>/dev/null && unzip -o ${stage_tmp}/t2s.zip -d ${stage_tmp}/ >/dev/null 2>&1 && mv ${stage_tmp}/tun2socks-* /usr/local/bin/tun2socks 2>/dev/null && rm -f ${stage_tmp}/t2s.zip || true)
         chmod +x /usr/local/bin/tun2socks 2>/dev/null || true
         if [ -x /usr/local/bin/tun2socks ]; then
             count_downloaded=$((count_downloaded + 1))
@@ -1779,10 +2072,10 @@ install_tunnel_tools() {
     # Pingtunnel (ICMP Echo request/reply tunnel)
     if [ ! -x /usr/local/bin/pingtunnel ]; then
         echo "    Downloading Pingtunnel..."
-        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o /tmp/pingtunnel.zip 2>/dev/null || true
-        if [ -f /tmp/pingtunnel.zip ]; then
-            unzip -o /tmp/pingtunnel.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
-            rm -f /tmp/pingtunnel.zip
+        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/esrrhs/pingtunnel/releases/download/v3.1.2/pingtunnel_linux64.zip -o ${stage_tmp}/pingtunnel.zip 2>/dev/null || true
+        if [ -f ${stage_tmp}/pingtunnel.zip ]; then
+            unzip -o ${stage_tmp}/pingtunnel.zip -d /usr/local/bin/ >/dev/null 2>&1 || true
+            rm -f ${stage_tmp}/pingtunnel.zip
         fi
         chmod +x /usr/local/bin/pingtunnel 2>/dev/null || true
         setcap cap_net_raw+ep /usr/local/bin/pingtunnel 2>/dev/null || true
@@ -1794,10 +2087,10 @@ install_tunnel_tools() {
     # UDPspeeder V2 (FEC error correction tunnel)
     if [ ! -x /usr/local/bin/speederv2 ]; then
         echo "    Downloading UDPspeeder..."
-        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz 2>/dev/null | tar -xz -C /tmp/ 2>/dev/null || true
-        if [ -f /tmp/speederv2_amd64 ]; then
-            mv /tmp/speederv2_amd64 /usr/local/bin/speederv2 2>/dev/null || true
-            rm -rf /tmp/speederv2*
+        curl -fsSL --connect-timeout 10 --max-time 60 https://github.com/wangyu-/UDPspeeder/releases/download/20230207.0/speederv2_binaries.tar.gz 2>/dev/null | tar -xz -C ${stage_tmp}/ 2>/dev/null || true
+        if [ -f ${stage_tmp}/speederv2_amd64 ]; then
+            mv ${stage_tmp}/speederv2_amd64 /usr/local/bin/speederv2 2>/dev/null || true
+            rm -rf ${stage_tmp}/speederv2*
         fi
         chmod +x /usr/local/bin/speederv2 2>/dev/null || true
         if [ -x /usr/local/bin/speederv2 ]; then
@@ -1838,42 +2131,22 @@ install_tunnel_tools() {
     done
     [ -d "${PANEL_DIR}/bin" ] && chmod +x ${PANEL_DIR}/bin/snispoof* 2>/dev/null || true
 
-    # Ensure Go compiler is installed and compile SNI Spoofing binaries for this server
-    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
-        if ! command -v go >/dev/null 2>&1; then
-            echo -e "    ${CYAN}Installing Go compiler (golang-go)...${NC}"
-            run_apt update 2>/dev/null || true
-            run_apt install -y --no-install-recommends golang-go 2>/dev/null || run_apt install -y golang 2>/dev/null || true
-        fi
-        if [ -x "${PANEL_DIR}/venv/bin/python" ] && [ -f "${PANEL_DIR}/app.py" ]; then
-            echo -e "    ${GREEN}[✓] Compiling customized SNI Spoofing binaries for this server via panel engine...${NC}"
-            (
-                cd "${PANEL_DIR}" || exit 0
-                "${PANEL_DIR}/venv/bin/python" -c "from app import compile_snispoof_binaries_for_server; compile_snispoof_binaries_for_server(force=True)" 2>/dev/null || true
-            )
-        elif command -v go >/dev/null 2>&1; then
-            echo -e "    ${GREEN}[✓] Compiling SNI Spoofing binaries for this server...${NC}"
-            (
-                cd "${PANEL_DIR}/bin" || exit 0
-                srv_ip="${SERVER_IP:-$(curl -s4m 4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')}"
-                srv_domain="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_ip})"
-                relay_ports="443,8443,20443,40443"
-                if [ -f "/etc/vpnpanel/snispoof.json" ]; then
-                    cfg_ports=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
-                    [ -n "$cfg_ports" ] && relay_ports="$cfg_ports"
-                fi
-                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client.exe ]; then
-                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
-                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
-                    done
-                fi
-                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client snispoof-client.go 2>/dev/null || true
-                chmod +x snispoof* 2>/dev/null || true
-                echo "{\"server_ip\":\"${srv_ip}\",\"server_domain\":\"${srv_domain}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
-            )
+    # Compile SNI Spoofing binaries only if missing or Go is already installed and stamp differs
+    if [ -f "${PANEL_DIR}/bin/snispoof-client.go" ] && command -v go >/dev/null 2>&1; then
+        local srv_ip_chk
+        srv_ip_chk="${SERVER_IP:-$(get_public_ipv4)}"
+        if [ ! -f "${PANEL_DIR}/bin/snispoof-client" ] || ! grep -q "\"${srv_ip_chk}\"" "${PANEL_DIR}/bin/.server_stamp" 2>/dev/null; then
+            if [ -x "${PANEL_DIR}/venv/bin/python" ] && [ -f "${PANEL_DIR}/app.py" ]; then
+                echo -e "    ${GREEN}[✓] Compiling customized SNI Spoofing binaries for ${srv_ip_chk}...${NC}"
+                (
+                    cd "${PANEL_DIR}" || exit 0
+                    "${PANEL_DIR}/venv/bin/python" -c "from app import compile_snispoof_binaries_for_server; compile_snispoof_binaries_for_server(force=False)" 2>/dev/null || true
+                )
+            fi
         fi
     fi
+
+    rm -rf "$stage_tmp" 2>/dev/null || true
 
     # AmneziaWG tools & userspace binary
     for bdir in "${PANEL_DIR}/bin" "${SCRIPT_DIR}/bin" "/root/mhpanel-repo/bin"; do
@@ -3546,10 +3819,10 @@ EOF
         read -p "Do you want to purge configuration files & SSL certs (/etc/vpnpanel, /etc/mhpanel)? [y/N]: " purge_conf
     fi
 
-    echo -e "\n${YELLOW}>>> [1/5] Stopping and removing MH Panel systemd service...${NC}"
-    systemctl stop mhpanel.service vpnpanel.service 2>/dev/null || true
-    systemctl disable mhpanel.service vpnpanel.service 2>/dev/null || true
-    rm -f /etc/systemd/system/mhpanel.service /etc/systemd/system/vpnpanel.service
+    echo -e "\n${YELLOW}>>> [1/5] Stopping and removing MH Panel systemd services...${NC}"
+    systemctl stop mhpanel.service vpnpanel.service mhpanel-gas-tunnel.service mhpanel-amnezia-warp.service mhpanel-snispoof.service mhpanel-singbox.service 2>/dev/null || true
+    systemctl disable mhpanel.service vpnpanel.service mhpanel-gas-tunnel.service mhpanel-amnezia-warp.service mhpanel-snispoof.service mhpanel-singbox.service 2>/dev/null || true
+    rm -f /etc/systemd/system/mhpanel.service /etc/systemd/system/vpnpanel.service /etc/systemd/system/mhpanel-gas-tunnel.service /etc/systemd/system/mhpanel-amnezia-warp.service
     systemctl daemon-reload
     systemctl reset-failed 2>/dev/null || true
 
@@ -3579,10 +3852,11 @@ EOF
         echo -e "${GREEN}>>> [4/5] Preserving /etc/vpnpanel configurations for future reinstallation.${NC}"
     fi
 
-    echo -e "${YELLOW}>>> [5/5] Removing panel files...${NC}"
+    echo -e "${YELLOW}>>> [5/5] Removing panel files & staging caches...${NC}"
     if [ -d "${PANEL_DIR}" ]; then
         rm -rf "${PANEL_DIR}" 2>/dev/null || true
     fi
+    rm -rf /var/cache/mhpanel* /var/tmp/mhpanel* /tmp/mhpanel* 2>/dev/null || true
 
     echo ""
     echo -e "${GREEN}${BOLD}========================================================================${NC}"

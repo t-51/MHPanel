@@ -257,7 +257,7 @@ else:
     VPN_CERT_DIR = "/etc/vpn-ca"
     PANEL_SSL_DIR = "/etc/vpnpanel/ssl"
 
-PANEL_VERSION = "1.8.0"
+PANEL_VERSION = "1.8.1"
 GITHUB_REPO = "t-51/MHPanel"
 TOTP_CONFIG_FILE = "/www/wwwroot/mhpanel/totp_config.json"
 SUB_SETTINGS_FILE = "/www/wwwroot/mhpanel/sub_settings.json"
@@ -34506,7 +34506,7 @@ def create_system_backup(backup_type="full", note=""):
     filepath = os.path.join(BACKUP_DIR, filename)
 
     metadata = {
-        "version": "1.8.0",
+        "version": "1.8.1",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "backup_type": backup_type,
         "note": note,
