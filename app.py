@@ -16602,35 +16602,23 @@ def api_download_snispoof_client_bin():
 
 @app.route("/download/snispoof-client.py", methods=["GET"])
 def api_download_snispoof_client_py():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client.py"
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client.py", mimetype="text/x-python")
-    return "File not found", 404
+    from flask import redirect
+    return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/snispoof-client.py", code=302)
 
 @app.route("/download/snispoof-client.ps1", methods=["GET"])
 def api_download_snispoof_client_ps1():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client.ps1"
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client.ps1", mimetype="text/plain")
-    return "File not found", 404
+    from flask import redirect
+    return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/snispoof-client.ps1", code=302)
 
 @app.route("/download/snispoof-client.bat", methods=["GET"])
 def api_download_snispoof_client_bat():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client.bat"
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client.bat", mimetype="application/x-bat")
-    return "File not found", 404
+    from flask import redirect
+    return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/snispoof-client.bat", code=302)
 
 @app.route("/download/snispoof-client.go", methods=["GET"])
 def api_download_snispoof_client_go():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client.go"
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client.go", mimetype="text/x-go")
-    return "File not found", 404
+    from flask import redirect
+    return redirect("https://raw.githubusercontent.com/t-51/ME-Spoofing/main/desktop/snispoof-client.go", code=302)
 
 @app.route("/download/snispoof/<filename>", methods=["GET"])
 def api_download_snispoof_file(filename):
