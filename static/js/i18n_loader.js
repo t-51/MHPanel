@@ -34,7 +34,7 @@ window.loadLanguage = function(lang, callback) {
 
     return new Promise((resolve, reject) => {
         const script = document.createElement("script");
-        script.src = `/static/js/i18n/${lang}.js?v=2.1`;
+        script.src = `/static/js/i18n/${lang}.js?v=2.2`;
         script.async = true;
         script.onload = () => {
             window._loadedLanguages.add(lang);
