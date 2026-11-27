@@ -80,6 +80,14 @@
                 <i data-lucide="book-open" style="color: #f59e0b; width: 16px; height: 16px;"></i> <span>📖 دانشنامه پروتکل‌ها و SNI</span>
                 <span class="badge-pill" style="font-size: 10px; padding: 2px 6px; background: #f59e0b; color: #0f172a; font-weight: 800; border-radius: 4px;">Docs</span>
             </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-disguise" onclick="switchSingboxSubTab('disguise')" style="font-weight: 700; display: flex; align-items: center; gap: 6px; background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);">
+                <i data-lucide="shield" style="color: #10b981; width: 14px; height: 14px;"></i> <span>استتار سرور اصلی</span>
+                <span class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(16, 185, 129, 0.2); color: #10b981; border-radius: 4px;">Disguise</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-ech-antidpi" onclick="switchSingboxSubTab('ech_antidpi')" style="font-weight: 700; display: flex; align-items: center; gap: 6px; background: rgba(2, 132, 199, 0.12); color: #0284c7; border: 1px solid rgba(2, 132, 199, 0.35);">
+                <i data-lucide="zap" style="color: #0284c7; width: 14px; height: 14px;"></i> <span>تنظیمات ECH و فرگمنت ۳ اپراتور</span>
+                <span class="badge-pill" style="font-size: 10px; padding: 1px 6px; background: rgba(2, 132, 199, 0.2); color: #0284c7; border-radius: 4px;">ZEUS ECH</span>
+            </button>
             <button type="button" class="btn btn-sm btn-subtab" id="sb-subtab-btn-reality-rotation" onclick="switchSingboxSubTab('reality_rotation')" style="font-weight: 700; display: flex; align-items: center; gap: 6px; background: rgba(139, 92, 246, 0.1); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3);">
                 <i data-lucide="refresh-cw" style="color: #8b5cf6; width: 14px; height: 14px;"></i> <span>چرخش خودکار دامنه Reality</span>
                 <span class="badge-pill" id="sb-rotation-status-badge" style="font-size: 10px; padding: 1px 6px; background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border-radius: 4px;">SNI</span>
@@ -375,9 +383,14 @@
                         <span>ساخت انبوه کاربران</span>
                     </button>
 
-                    <button class="btn btn-secondary btn-sm" onclick="openSingboxSubSettingsModal()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600; border: 1.5px solid rgba(139, 92, 246, 0.45); color: #8b5cf6; background: rgba(139, 92, 246, 0.08);" title="تنظیمات اختصاصی لینک ساب و استتار سرور اصلی">
-                        <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #8b5cf6;"></i>
-                        <span>تنظیمات ساب و استتار سرور</span>
+                    <button class="btn btn-secondary btn-sm" onclick="openSingboxSubSettingsModal()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600; border: 1.5px solid rgba(139, 92, 246, 0.45); color: #8b5cf6; background: rgba(139, 92, 246, 0.08);" title="تنظیمات اختصاصی لینک ساب (دامنه، پورت، پروتکل و Anti-DPI)">
+                        <i data-lucide="link-2" style="width: 14px; height: 14px; color: #8b5cf6;"></i>
+                        <span>تنظیمات لینک ساب</span>
+                    </button>
+
+                    <button class="btn btn-secondary btn-sm" onclick="openSingboxDisguiseModal()" type="button" style="display: flex; align-items: center; gap: 6px; font-weight: 600; border: 1.5px solid rgba(16, 185, 129, 0.45); color: #10b981; background: rgba(16, 185, 129, 0.08);" title="استتار سرور اصلی و هدایت به سرور میانی (Relay / Disguise)">
+                        <i data-lucide="shield" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>استتار سرور اصلی (Sing-box)</span>
                     </button>
 
                     <button class="btn btn-primary btn-sm" onclick="openSingboxAddUserModal()" type="button" style="display: flex; align-items: center; gap: 6px;">
@@ -889,7 +902,7 @@
                                 </button>
                             </div>
                         </div>
-                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="8" placeholder="www.digikala.com&#10;divar.ir&#10;torob.com&#10;images.unsplash.com&#10;download.docker.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
+                        <textarea id="sb-rot-domains-textarea" class="form-input" rows="8" placeholder="digikala.com&#10;divar.ir&#10;torob.com&#10;snapp.ir&#10;aparat.com&#10;nobitex.ir" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; line-height: 1.6;"></textarea>
                         <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 5px;">
                             سرور در هر دوره، یکی از دامنه‌های فوق را به همراه یک جفت‌کلید جدید Reality روی تمام اینباندهای Reality قرار می‌دهد و در لینک اشتراک کاربران اعمال می‌شود.
                         </div>
@@ -1370,14 +1383,14 @@
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px; font-weight: 600;">سرور هدف شبیه‌سازی (Handshake Dest / SNI):</label>
-                                <input type="text" class="form-input" id="sb-reality-dest" value="swdist.apple.com" placeholder="e.g. swdist.apple.com">
+                                <input type="text" class="form-input" id="sb-reality-dest" value="digikala.com" placeholder="e.g. digikala.com">
                                 <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
-                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">پیشنهاد دامنه‌های ضدفیلتر (بدون مسدودی):</span>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('swdist.apple.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🍎 swdist.apple.com</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('images.unsplash.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🖼️ images.unsplash.com</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('cdn.jsdelivr.net', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">⚡ cdn.jsdelivr.net</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('addons.mozilla.org', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🦊 addons.mozilla.org</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('download.docker.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🐳 download.docker.com</button>
+                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">پیشنهاد دامنه‌های پربازدید ایرانی (TLS 1.3):</span>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('digikala.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🛍️ digikala.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('divar.ir', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🛋️ divar.ir</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('torob.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🔍 torob.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('snapp.ir', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🚗 snapp.ir</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('aparat.com', 'create')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">📺 aparat.com</button>
                                 </div>
                                 <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 6px; padding: 6px 10px; margin-top: 6px; font-size: 10px; color: #dc2626; line-height: 1.5;">
                                     <strong>⚠️ اخطار مهم ضد فیلترینگ:</strong> هرگز از دامنه‌های مشهور (مانند <code>google.com</code>, <code>dl.google.com</code>, <code>microsoft.com</code>, <code>yahoo.com</code>) استفاده نکنید! فایروال با تطبیق IP سرور شما و ASN این غول‌ها، ارتباط Reality را فوراً مسدود یا آلوده می‌کند. حتماً از CDNهای کمترشناخته‌شده بالا استفاده کنید.
@@ -1482,7 +1495,7 @@
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="setRecommendedDomainsToAddModal()" style="font-size: 9.5px; padding: 1px 6px;">🌍 خارجی</button>
                                 </div>
                             </div>
-                            <textarea id="sb-reality-domains-pool" class="form-input" rows="3" placeholder="www.digikala.com&#10;divar.ir&#10;images.unsplash.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
+                            <textarea id="sb-reality-domains-pool" class="form-input" rows="3" placeholder="digikala.com&#10;divar.ir&#10;torob.com&#10;snapp.ir&#10;aparat.com" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
                             <small style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">
                                 با فعال‌سازی چرخش، پنل سر موعد مقرر، دامنه بعدی را نشانده، <strong>جفت‌کلید جدید Reality صادر می‌کند</strong> و لینک اشتراک کاربران به صورت خودکار بروزرسانی خواهد شد.
                             </small>
@@ -1685,14 +1698,14 @@
                         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                             <div>
                                 <label class="form-label" style="font-size: 11px;">سرور هدف شبیه‌سازی (Handshake Dest):</label>
-                                <input type="text" class="form-input" id="sb-edit-reality-dest" placeholder="e.g. swdist.apple.com">
+                                <input type="text" class="form-input" id="sb-edit-reality-dest" placeholder="e.g. digikala.com">
                                 <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px;">
-                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">دامنه‌های ضدفیلتر پیشنهادی:</span>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('swdist.apple.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🍎 swdist.apple.com</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('images.unsplash.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🖼️ images.unsplash.com</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('cdn.jsdelivr.net', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">⚡ cdn.jsdelivr.net</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('addons.mozilla.org', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🦊 addons.mozilla.org</button>
-                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('download.docker.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🐳 download.docker.com</button>
+                                    <span style="font-size: 9.5px; color: var(--text-muted); align-self: center;">دامنه‌های پربازدید ایرانی:</span>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('digikala.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🛍️ digikala.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('divar.ir', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🛋️ divar.ir</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('torob.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🔍 torob.com</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('snapp.ir', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">🚗 snapp.ir</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="setSingboxDest('aparat.com', 'edit')" style="font-size: 10px; padding: 1px 6px; border-radius: 4px;">📺 aparat.com</button>
                                 </div>
                             </div>
                             <div>
@@ -1773,7 +1786,7 @@
                                     <button type="button" class="btn btn-secondary btn-sm" onclick="setRecommendedDomainsToEditModal()" style="font-size: 9.5px; padding: 1px 6px;">🌍 خارجی</button>
                                 </div>
                             </div>
-                            <textarea id="sb-edit-reality-domains-pool" class="form-input" rows="3" placeholder="www.digikala.com&#10;divar.ir&#10;images.unsplash.com&#10;cdn.jsdelivr.net" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
+                            <textarea id="sb-edit-reality-domains-pool" class="form-input" rows="3" placeholder="digikala.com&#10;divar.ir&#10;torob.com&#10;snapp.ir&#10;aparat.com" dir="ltr" style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; line-height: 1.5;"></textarea>
                             <small style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">
                                 با فعال‌سازی چرخش، پنل سر موعد مقرر، دامنه بعدی را نشانده، <strong>جفت‌کلید جدید صادر می‌کند</strong> و لینک اشتراک کاربران به صورت خودکار بروز خواهد شد.
                             </small>
@@ -2125,8 +2138,8 @@
                         <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
                         <span>حالت استتار سرور فعال است: آدرس سرور اصلی پنهان و هدایت شده است.</span>
                     </span>
-                    <button type="button" class="btn btn-sm" onclick="openSingboxSubSettingsModal()" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #059669;">
-                        ویرایش تنظیمات
+                    <button type="button" class="btn btn-sm" onclick="openSingboxDisguiseModal()" style="font-size: 11px; padding: 2px 8px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #059669;">
+                        ویرایش تنظیمات استتار
                     </button>
                 </div>
 
@@ -3110,126 +3123,145 @@
     </div>
 </div>
 
-<!-- Modal: Sing-box Subscription & Server Disguise Settings -->
+<!-- Modal 1: Sing-box Subscription Link Settings (Material Enterprise Edition) -->
 <div class="modal" id="modal-singbox-sub-settings">
-    <div class="modal-card" style="max-width: 600px; width: 95%;">
-        <header class="modal-header">
-            <h3 class="modal-title" style="display: flex; align-items: center; gap: 8px;">
-                <i data-lucide="shield-check" style="color: #8b5cf6;"></i>
-                <span>تنظیمات لینک ساب و استتار سرور اصلی (Sing-box)</span>
-            </h3>
-            <button type="button" class="modal-close" onclick="closeSingboxSubSettingsModal()">
-                <i data-lucide="x"></i>
+    <div class="modal-card" style="max-width: 680px; width: 95%; max-height: 90vh; display: flex; flex-direction: column; border-radius: 18px; overflow: hidden; box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.35); border: 1px solid var(--border-subtle);">
+        <header class="modal-header" style="flex-shrink: 0; background: linear-gradient(135deg, rgba(139, 92, 246, 0.14) 0%, rgba(99, 102, 241, 0.06) 100%); padding: 18px 24px; border-bottom: 1px solid rgba(139, 92, 246, 0.25); display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(139, 92, 246, 0.2); color: #8b5cf6; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(139, 92, 246, 0.35);">
+                    <i data-lucide="link-2" style="width: 22px; height: 22px;"></i>
+                </div>
+                <div>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h3 class="modal-title" style="margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
+                            تنظیمات لینک ساب (Sing-box Subscription)
+                        </h3>
+                        <span class="badge" style="background: rgba(139, 92, 246, 0.18); color: #8b5cf6; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(139, 92, 246, 0.3);">
+                            SSL & CDN هوشمند
+                        </span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        سفارشی‌سازی دامنه، پورت، پروتکل و قابلیت‌های ضد DPI لینک‌های اشتراک
+                    </div>
+                </div>
+            </div>
+            <button type="button" class="modal-close" onclick="closeSingboxSubSettingsModal()" style="border-radius: 10px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
             </button>
         </header>
 
-        <form id="form-singbox-sub-settings" onsubmit="handleSingboxSubSettingsSubmit(event)" style="padding: 24px;">
-            <div style="background: rgba(139, 92, 246, 0.06); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; font-size: 12.5px; line-height: 1.6; color: var(--text-color);">
-                <i data-lucide="info" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; color: #8b5cf6; margin-left: 6px;"></i>
-                با این بخش می‌توانید دامنه و پورت لینک‌های سابسکرایب کاربران را سفارشی‌سازی کنید و با قابلیت <strong>استتار سرور (Relay / Disguise)</strong>، آدرس سرور اصلی را در کانفیگ‌ها و ساب‌ها با سرور میانی (فلای، کلاودفلر وورکر یا رله) جایگزین نمایید تا اثر سرور اصلی برای فیلترینگ گم شود.
-            </div>
-
-            <!-- Custom Subscription URL Section -->
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: var(--primary); display: flex; align-items: center; gap: 6px;">
-                <i data-lucide="link-2" style="width: 16px; height: 16px;"></i>
-                <span>تنظیمات دامنه و لینک سابسکرایب</span>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 14px;">
-                <div>
-                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                        دامنه اختصاصی سابسکرایب (Custom Domain)
-                    </label>
-                    <input type="text" id="sb-sub-custom-domain" class="form-control" placeholder="مثال: sub.mydomain.com" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
-                    <small style="color: var(--text-muted); font-size: 11px;">در صورت خالی بودن، از دامنه یا آی‌پی پنل استفاده می‌شود.</small>
+        <form id="form-singbox-sub-settings" onsubmit="handleSingboxSubSettingsSubmit(event)" style="padding: 22px 24px; overflow-y: auto; flex: 1; min-height: 0;">
+            <!-- Material Card: Domain & Port Configuration -->
+            <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: #8b5cf6; display: flex; align-items: center; gap: 7px;">
+                        <i data-lucide="globe" style="width: 16px; height: 16px;"></i>
+                        <span>دامنه و پورت اختصاصی سابسکرایب</span>
+                    </div>
+                    <button type="button" class="btn btn-sm" onclick="provisionCloudflareSingboxDomain('sub')" id="btn-cf-sub-auto" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #fff; font-weight: 700; border-radius: 8px; border: none; padding: 5px 12px; font-size: 11px; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);">
+                        <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i>
+                        <span>ساخت خودکار دامنه در کلودفلر (1-Click)</span>
+                    </button>
                 </div>
-                <div>
-                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                        پورت اختصاصی ساب
-                    </label>
-                    <input type="number" id="sb-sub-custom-port" class="form-control" placeholder="پیش‌فرض: پورت پنل" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
-                </div>
-            </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
-                <div>
-                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                        پروتکل لینک ساب
-                    </label>
-                    <select id="sb-sub-protocol" class="form-control" style="font-size: 12.5px;">
-                        <option value="">پیش‌فرض سیستم (خودکار)</option>
-                        <option value="https">HTTPS (SSL فعال)</option>
-                        <option value="http">HTTP معمولی</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                        آدرس رله ورکر (اختیاری)
-                    </label>
-                    <input type="text" id="sb-sub-relay-worker-url" class="form-control" placeholder="https://sub-worker.workers.dev" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
-                </div>
-            </div>
-
-            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0;">
-
-            <!-- Origin Disguise & Relay Forwarding Section -->
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: #10b981; display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i data-lucide="shield" style="width: 16px; height: 16px; color: #10b981;"></i>
-                    <span>استتار سرور اصلی و هدایت به سرور میانی (Relay / Disguise)</span>
-                </span>
-                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: normal;">
-                    <input type="checkbox" id="sb-sub-disguise-enabled" onchange="toggleSingboxDisguiseInputs()">
-                    <span>فعال‌سازی استتار</span>
-                </label>
-            </div>
-
-            <div id="sb-sub-disguise-panel" style="display: none; background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-                <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5;">
-                    با فعال‌سازی این قابلیت، در تمامی کانفیگ‌های خروجی و فایل <code>singbox.json</code>، آدرس سرور اصلی شما با آدرس سرور واسط یا دامنه‌ای که مشخص می‌کنید جایگزین می‌شود تا رد و اثر سرور اصلی پنهان بماند.
-                </p>
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 10px;">
                     <div>
-                        <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                            سرور میانی / آی‌پی استتار (Disguise Server / CDN Domain)
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="at-sign" style="width: 13px; height: 13px; color: #8b5cf6;"></i>
+                            <span>دامنه اختصاصی سابسکرایب (Custom Domain)</span>
                         </label>
-                        <input type="text" id="sb-sub-disguise-server" class="form-control" placeholder="مثال: edge.relay-node.com یا آی‌پی تمیز" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                        <div style="position: relative;">
+                            <input type="text" id="sb-sub-custom-domain" class="form-input" placeholder="مثال: sub.mydomain.com" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding-inline-start: 12px; border-radius: 10px;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 10.5px; color: var(--text-muted);">پیشوندهای آماده:</span>
+                            <button type="button" class="badge" onclick="fillSingboxSubDomainPrefix('sub')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">sub</button>
+                            <button type="button" class="badge" onclick="fillSingboxSubDomainPrefix('connect')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">connect</button>
+                            <button type="button" class="badge" onclick="fillSingboxSubDomainPrefix('link')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">link</button>
+                            <button type="button" class="badge" onclick="fillSingboxSubDomainPrefix('api')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">api</button>
+                        </div>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 12px; font-weight: 600; margin-bottom: 4px; display: block;">
-                            پورت سرور میانی (اختیاری)
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="hash" style="width: 13px; height: 13px; color: #8b5cf6;"></i>
+                            <span>پورت اختصاصی ساب</span>
                         </label>
-                        <input type="number" id="sb-sub-disguise-port" class="form-control" placeholder="پورت یکسان" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                        <input type="number" id="sb-sub-custom-port" class="form-input" placeholder="پیش‌فرض: پورت پنل" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 13px; border-radius: 10px;">
+                        <small style="color: var(--text-muted); font-size: 10.5px; margin-top: 4px; display: block;">خالی = پورت فعلی وب‌پنل</small>
                     </div>
                 </div>
             </div>
 
-            <hr style="border: 0; border-top: 1px dashed var(--border-color); margin: 16px 0;">
+            <!-- Material Card: Protocol & Worker Relay -->
+            <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <div style="font-weight: 700; font-size: 13.5px; color: #6366f1; margin-bottom: 14px; display: flex; align-items: center; gap: 7px;">
+                    <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+                    <span>پروتکل رمزنگاری و رله ورکر</span>
+                </div>
 
-            <!-- Anti-DPI, TLS Fragmentation & ECH Engine Section -->
-            <div style="font-weight: 700; font-size: 13.5px; margin-bottom: 12px; color: #0284c7; display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 6px;">
-                    <i data-lucide="zap" style="width: 16px; height: 16px; color: #0284c7;"></i>
-                    <span>موتور ضد بازرسی عمیق پکت (Anti-DPI / TLS Fragment / ECH)</span>
-                </span>
-                <span class="badge" style="background: rgba(2, 132, 199, 0.15); color: #0284c7; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;">الگوبرداری هوشمند ZEUS</span>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="shield-check" style="width: 13px; height: 13px; color: #6366f1;"></i>
+                            <span>پروتکل ارتباطی لینک ساب</span>
+                        </label>
+                        <select id="sb-sub-protocol" class="form-input" style="font-size: 12.5px; border-radius: 10px;">
+                            <option value="">⚡ پیش‌فرض سیستم (تشخیص خودکار)</option>
+                            <option value="https">🔒 HTTPS (SSL فعال و امن - پیشنهادی)</option>
+                            <option value="http">🌐 HTTP معمولی (پورت باز بدون گواهی)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="cpu" style="width: 13px; height: 13px; color: #6366f1;"></i>
+                            <span>آدرس رله ورکر کلودفلر (اختیاری)</span>
+                        </label>
+                        <input type="text" id="sb-sub-relay-worker-url" class="form-input" placeholder="https://sub-relay.workers.dev" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12px; border-radius: 10px;">
+                    </div>
+                </div>
             </div>
 
-            <div style="background: rgba(2, 132, 199, 0.04); border: 1px solid rgba(2, 132, 199, 0.25); border-radius: 10px; padding: 14px; margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
-                    <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-color);">
-                        <input type="checkbox" id="sb-antidpi-ech-enabled">
-                        <span>فعال‌سازی سراسری Encrypted Client Hello (ECH) در لینک‌ها و سینگ‌باکس</span>
-                    </label>
-                    <span style="font-size: 11px; color: var(--text-muted);">پنهان‌سازی کامل SNI داخلی از دید سامانه‌های فیلترینگ</span>
+            <!-- Material Card: Anti-DPI & ECH Engine -->
+            <div style="background: rgba(2, 132, 199, 0.04); border: 1.5px solid rgba(2, 132, 199, 0.28); border-radius: 14px; padding: 18px; margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-weight: 800; font-size: 13.5px; color: #0284c7; display: flex; align-items: center; gap: 7px;">
+                        <i data-lucide="zap" style="width: 17px; height: 17px; color: #0284c7;"></i>
+                        <span>موتور ضد بازرسی عمیق پکت (Anti-DPI / TLS Fragment / ECH)</span>
+                    </div>
+                    <span class="badge" style="background: rgba(2, 132, 199, 0.15); color: #0284c7; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">
+                        الگوبرداری هوشمند ZEUS
+                    </span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-secondary); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                        <div>
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">فعال‌سازی ECH در لینک‌های ساب</div>
+                            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px;">پنهان‌سازی کامل SNI از دید فیلترینگ</div>
+                        </div>
+                        <label class="switch" style="margin: 0;">
+                            <input type="checkbox" id="sb-antidpi-ech-enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-secondary); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border-subtle);">
+                        <div>
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-primary);">تیکه‌تیکه‌کردن ترافیک (TLS Fragment)</div>
+                            <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 1px;">ساخت خودکار کانفیگ مخصوص هر ۳ اپراتور</div>
+                        </div>
+                        <label class="switch" style="margin: 0;">
+                            <input type="checkbox" id="sb-antidpi-fragment-enabled" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
                     <div>
-                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block;">
+                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block; color: var(--text-primary);">
                             پیکربندی ریزالور و دامنه بیرونی ECH
                         </label>
-                        <select id="sb-antidpi-default-ech" class="form-control" style="font-size: 11.5px; font-family: 'JetBrains Mono', monospace; direction: ltr;">
+                        <select id="sb-antidpi-default-ech" class="form-input" style="font-size: 11.5px; font-family: 'JetBrains Mono', monospace; direction: ltr; border-radius: 8px;">
                             <option value="aef.ir+https://1.1.1.1/dns-query">aef.ir + Cloudflare DoH (1.1.1.1)</option>
                             <option value="aef.ir+https://8.8.8.8/dns-query">aef.ir + Google DoH (8.8.8.8)</option>
                             <option value="cloudflare-ech.com+https://1.1.1.1/dns-query">cloudflare-ech.com + Cloudflare DoH</option>
@@ -3241,47 +3273,358 @@
                         </select>
                     </div>
                     <div>
-                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block;">
-                            پروفایل پیش‌فرض شکستن بسته TLS (Fragment Preset)
+                        <label class="form-label" style="font-size: 11.5px; font-weight: 600; margin-bottom: 4px; display: block; color: var(--text-primary);">
+                            پروفایل شکستن بسته TLS (Fragment Preset)
                         </label>
-                        <select id="sb-antidpi-default-operator" class="form-control" style="font-size: 12px;">
-                            <option value="all">همه اپراتورها (ترکیبی و هوشمند)</option>
-                            <option value="mci">همراه اول - MCI (بسته‌های 10-30 بایت)</option>
-                            <option value="mtn">ایرانسل - MTN (بسته‌های 100-200 بایت)</option>
-                            <option value="rtl">رایتل - Rightel (بسته‌های 50-100 بایت)</option>
-                            <option value="mkh">مخابرات - TCI (بسته‌های 50-200 بایت)</option>
-                            <option value="gaming">گیمینگ و فیبر نوری (پینگ پایین / 200-3000 بایت)</option>
+                        <select id="sb-antidpi-default-operator" class="form-input" style="font-size: 12px; border-radius: 8px;">
+                            <option value="all">⚡ همه ۳ اپراتور اصلی (همراه اول + ایرانسل + رایتل در ساب)</option>
+                            <option value="mci">📱 همراه اول - MCI (بسته‌های 10-30 بایت)</option>
+                            <option value="mtn">🟡 ایرانسل - MTN (بسته‌های 100-200 بایت)</option>
+                            <option value="rtl">🟣 رایتل - Rightel (بسته‌های 50-100 بایت)</option>
+                            <option value="mkh">🏢 مخابرات - TCI (بسته‌های 50-200 بایت)</option>
+                            <option value="gaming">🎮 گیمینگ و فیبر نوری (پینگ پایین)</option>
                         </select>
                     </div>
                 </div>
 
-                <div style="background: rgba(139, 92, 246, 0.06); border: 1px dashed rgba(139, 92, 246, 0.35); border-radius: 8px; padding: 10px 14px; margin-top: 10px;">
+                <div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.4); border-radius: 10px; padding: 12px 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; font-weight: 700; color: #7c3aed;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 700; color: #7c3aed; margin: 0;">
                             <input type="checkbox" id="sb-antidpi-patterniha-enabled">
                             <span>تزریق ماژول و سایفرسوئیت‌های بهینه‌ساز پیشرفته Patterniha (&amp;fm= &amp;cs=)</span>
                         </label>
-                        <button type="button" class="btn btn-secondary btn-sm" onclick="applyPatternihaQuickPreset()" style="font-size: 10.5px; padding: 3px 8px; color: #7c3aed; border-color: rgba(139,92,246,0.5);">
-                            ⚡ اعمال مقادیر بهینه‌ساز پیش‌فرض
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="applyPatternihaQuickPreset()" style="font-size: 11px; padding: 3px 10px; color: #7c3aed; border-color: rgba(139,92,246,0.5); border-radius: 8px; font-weight: 600;">
+                            ⚡ اعمال مقادیر پیشنهادی
                         </button>
                     </div>
-                    <small style="color: var(--text-muted); font-size: 10.5px; display: block; margin-top: 4px;">
-                        سایفرسوئیت‌های اختصاصی AES/ChaCha و تکه‌تکه کردن پیشرفته Handshake به طول 104 و 1 بایت جهت خنثی‌سازی کامل فیلترینگ بازرسی بسته‌ها.
-                    </small>
                 </div>
             </div>
 
-            <footer class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; border-top: 1px solid var(--border-color); padding-top: 14px;">
-                <button type="button" class="btn btn-secondary" onclick="closeSingboxSubSettingsModal()">
+            <footer class="modal-footer" style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px; margin-top: 6px;">
+                <button type="button" class="btn btn-secondary" onclick="closeSingboxSubSettingsModal()" style="border-radius: 10px; padding: 8px 18px; font-weight: 600;">
                     انصراف
                 </button>
-                <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
-                    <i data-lucide="check" style="width: 14px; height: 14px;"></i>
-                    <span>ذخیره و اعمال تنظیمات</span>
+                <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); border: none; border-radius: 10px; padding: 8px 22px; font-weight: 700; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);">
+                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                    <span>ذخیره تنظیمات لینک ساب</span>
                 </button>
             </footer>
         </form>
     </div>
+</div>
+
+<!-- Sub-Tab Page: Dedicated ECH & 3-Operator Fragment Settings (ZEUS Anti-DPI) -->
+<div class="spec-card" id="sb-pane-ech-antidpi" style="display: none; padding: 0; border-radius: 16px; border: 1px solid var(--border-subtle); margin-top: 14px;">
+    <div style="background: linear-gradient(135deg, rgba(2, 132, 199, 0.14) 0%, rgba(99, 102, 241, 0.06) 100%); padding: 18px 24px; border-bottom: 1px solid rgba(2, 132, 199, 0.25); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(2, 132, 199, 0.2); color: #0284c7; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="zap" style="width: 22px; height: 22px;"></i>
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h3 style="margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text-primary);">
+                        تنظیمات اختصاصی ECH و فرگمنت ۳ اپراتور (الهام از ZEUS)
+                    </h3>
+                    <span class="badge" style="background: rgba(2, 132, 199, 0.18); color: #0284c7; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px;">
+                        ZEUS Anti-DPI
+                    </span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                    ساخت خودکار کانفیگ با مقادیر اختصاصی همراه اول (MCI)، ایرانسل (MTN) و رایتل (RTL) + رمزنگاری SNI با ECH در لینک‌های سابسکرایب
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="switchSingboxSubTab('users')" style="border-radius: 10px; padding: 6px 14px; font-weight: 600;">
+            بازگشت به کاربران
+        </button>
+    </div>
+
+    <form id="form-singbox-ech-antidpi-page" onsubmit="saveSingboxEchAntiDpiPage(event)" style="padding: 22px 24px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-secondary); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                <div>
+                    <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">فعال‌سازی ECH (Encrypted Client Hello)</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">پنهان‌کردن کامل SNI در کانفیگ‌های TLS / CDN</div>
+                </div>
+                <label class="switch" style="margin: 0;">
+                    <input type="checkbox" id="sb-page-ech-enabled">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface-secondary); padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border-subtle);">
+                <div>
+                    <div style="font-size: 13px; font-weight: 800; color: var(--text-primary);">تیکه‌تیکه‌کردن ترافیک (TLS Fragment)</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">تولید خودکار کانفیگ برای هر ۳ اپراتور در ساب</div>
+                </div>
+                <label class="switch" style="margin: 0;">
+                    <input type="checkbox" id="sb-page-frag-enabled" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <div>
+                <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: block;">
+                    دامنه بیرونی و ریزالور ECH:
+                </label>
+                <select id="sb-page-default-ech" class="form-input" style="font-size: 12.5px; font-family: 'JetBrains Mono', monospace; direction: ltr; border-radius: 10px;">
+                    <option value="aef.ir+https://1.1.1.1/dns-query">aef.ir + Cloudflare DoH (1.1.1.1)</option>
+                    <option value="aef.ir+https://8.8.8.8/dns-query">aef.ir + Google DoH (8.8.8.8)</option>
+                    <option value="cloudflare-ech.com+https://1.1.1.1/dns-query">cloudflare-ech.com + Cloudflare DoH</option>
+                    <option value="tgju.org+https://1.1.1.1/dns-query">tgju.org + Cloudflare DoH</option>
+                    <option value="iranva.ir+https://1.1.1.1/dns-query">iranva.ir + Cloudflare DoH</option>
+                    <option value="voorivex.ir+https://1.1.1.1/dns-query">voorivex.ir + Cloudflare DoH</option>
+                    <option value="aef.ir+tcp://1.1.1.1">aef.ir + TCP 1.1.1.1</option>
+                    <option value="cloudflare-ech.com+udp://1.1.1.1">cloudflare-ech.com + UDP 1.1.1.1</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: block;">
+                    حالت تولید اپراتورها در لینک سابسکرایب:
+                </label>
+                <select id="sb-page-default-operator" class="form-input" style="font-size: 12.5px; border-radius: 10px;">
+                    <option value="all">⚡ همه ۳ اپراتور اصلی (همراه اول + ایرانسل + رایتل در ساب)</option>
+                    <option value="mci">📱 فقط همراه اول (MCI)</option>
+                    <option value="mtn">🟡 فقط ایرانسل (MTN)</option>
+                    <option value="rtl">🟣 فقط رایتل (Rightel)</option>
+                    <option value="mkh">🏢 فقط مخابرات (TCI)</option>
+                    <option value="gaming">🎮 فقط گیمینگ (Gaming)</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 3 Operators Reference Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 16px;">
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px;">
+                <div style="font-weight: 800; font-size: 12.5px; color: #0ea5e9; margin-bottom: 4px;">📱 همراه اول (MCI)</div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; direction: ltr; text-align: left;">
+                    length: 10-30 | interval: 2-5 | delay: 500ms
+                </div>
+            </div>
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px;">
+                <div style="font-weight: 800; font-size: 12.5px; color: #f59e0b; margin-bottom: 4px;">🟡 ایرانسل (MTN)</div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; direction: ltr; text-align: left;">
+                    length: 100-200 | interval: 5-10 | delay: 400ms
+                </div>
+            </div>
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 12px;">
+                <div style="font-weight: 800; font-size: 12.5px; color: #a855f7; margin-bottom: 4px;">🟣 رایتل (Rightel)</div>
+                <div style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; direction: ltr; text-align: left;">
+                    length: 50-100 | interval: 2-5 | delay: 300ms
+                </div>
+            </div>
+        </div>
+
+        <!-- Patterniha Advanced -->
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed rgba(139, 92, 246, 0.4); border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: #7c3aed; margin: 0;">
+                <input type="checkbox" id="sb-page-patterniha-enabled">
+                <span>تزریق ماژول و سایفرسوئیت‌های بهینه‌ساز پیشرفته Patterniha (&amp;fm= &amp;cs=)</span>
+            </label>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="applyPatternihaQuickPresetPage()" style="font-size: 11px; padding: 4px 10px; color: #7c3aed; border-color: rgba(139,92,246,0.5); border-radius: 8px; font-weight: 600;">
+                ⚡ اعمال مقادیر پیشنهادی ZEUS
+            </button>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+            <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #0284c7 0%, #6366f1 100%); border: none; border-radius: 10px; padding: 9px 22px; font-weight: 700;">
+                <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                <span>ذخیره تنظیمات ECH و ۳ اپراتور</span>
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Sub-Tab Page: Sing-box Origin Server Disguise Settings (Full Scrollable Page) -->
+<div class="spec-card" id="sb-pane-disguise" style="display: none; padding: 0; border-radius: 16px; border: 1px solid var(--border-subtle); margin-top: 14px;">
+    <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.14) 0%, rgba(5, 150, 105, 0.06) 100%); padding: 18px 24px; border-bottom: 1px solid rgba(16, 185, 129, 0.25); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 40px; height: 40px; border-radius: 12px; background: rgba(16, 185, 129, 0.2); color: #10b981; display: flex; align-items: center; justify-content: center; box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.35);">
+                <i data-lucide="shield" style="width: 22px; height: 22px;"></i>
+            </div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <h3 style="margin: 0; font-size: 16.5px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em;">
+                        استتار سرور اصلی (Sing-box)
+                    </h3>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.18); color: #10b981; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(16, 185, 129, 0.3);">
+                        سپر ضد فیلترینگ
+                    </span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                    پنهان‌سازی کامل IP سرور اصلی و هدایت ترافیک به سمت سرور میانی / CDN
+                </div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="switchSingboxSubTab('users')" style="border-radius: 10px; padding: 6px 14px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
+            <span>بازگشت به کاربران</span>
+        </button>
+    </div>
+
+    <form id="form-singbox-disguise-settings" onsubmit="handleSingboxDisguiseSubmit(event)" style="padding: 22px 24px;">
+            <!-- Visual Traffic Routing Topology Diagram -->
+            <div style="background: var(--surface-secondary); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px;">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="network" style="width: 13px; height: 13px; color: #10b981;"></i>
+                    <span>مسیر هدایت بسته‌ها در حالت استتار (Disguise Topology):</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                    <div style="background: var(--surface-elevated); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="user" style="width: 14px; height: 14px; color: #0284c7;"></i>
+                        <span>کاربر / کلاینت</span>
+                    </div>
+                    <span style="color: #10b981; font-weight: 800; font-size: 14px;">◀── ترافیک امن ──▶</span>
+                    <div style="background: rgba(16, 185, 129, 0.12); padding: 7px 12px; border-radius: 8px; border: 1.5px solid rgba(16, 185, 129, 0.35); font-size: 11.5px; font-weight: 700; color: #10b981; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #10b981;"></i>
+                        <span>سرور میانی / استتار</span>
+                    </div>
+                    <span style="color: var(--text-muted); font-size: 12px;">─── رله پکت ───▶</span>
+                    <div style="background: var(--surface-elevated); padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-subtle); font-size: 11.5px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="server" style="width: 14px; height: 14px; color: #6366f1;"></i>
+                        <span>سرور اصلی (مخفی)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Material Card: Disguise Activation & Live Status Switch -->
+            <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="sb-disguise-status-dot" style="width: 12px; height: 12px; border-radius: 50%; background: #94a3b8; display: inline-block; transition: all 0.3s ease;"></span>
+                        <div>
+                            <div style="font-weight: 800; font-size: 14px; color: var(--text-primary);" id="sb-disguise-status-title">وضعیت استتار سرور اصلی</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;" id="sb-disguise-status-desc">در حال بررسی وضعیت...</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 12.5px; font-weight: 700; color: #10b981;">فعال‌سازی استتار</span>
+                        <label class="switch" style="margin: 0;">
+                            <input type="checkbox" id="sb-disguise-enabled" onchange="toggleSingboxDisguiseInputs()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Material Card: Disguise Configuration Inputs -->
+            <div id="sb-disguise-panel-card" style="background: var(--surface-elevated); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 14px; padding: 18px; margin-bottom: 16px; transition: all 0.25s ease;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                    <div style="font-weight: 700; font-size: 13.5px; color: #10b981; display: flex; align-items: center; gap: 7px;">
+                        <i data-lucide="shield" style="width: 16px; height: 16px;"></i>
+                        <span>روش و مشخصات استتار سرور اصلی</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm" onclick="testSingboxDisguiseLeak()" id="btn-sb-disguise-check" style="background: rgba(99, 102, 241, 0.12); color: #6366f1; font-weight: 700; border-radius: 8px; border: 1px solid rgba(99, 102, 241, 0.35); padding: 5px 12px; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+                            <i data-lucide="activity" style="width: 13px; height: 13px;"></i>
+                            <span>تست واقعی نشت آی‌پی</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" onclick="provisionCloudflareSingboxDomain('disguise')" id="btn-cf-disguise-auto" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 700; border-radius: 8px; border: none; padding: 5px 12px; font-size: 11px; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);">
+                            <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i>
+                            <span>ساخت دامنه استتار در کلودفلر (1-Click)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mode Selector: CDN vs Relay VPS -->
+                <input type="hidden" id="sb-disguise-mode" value="cdn">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;">
+                    <div id="sb-disguise-mode-card-cdn" onclick="selectSingboxDisguiseMode('cdn')" style="cursor: pointer; background: rgba(16, 185, 129, 0.1); border: 1.5px solid #10b981; border-radius: 10px; padding: 10px 12px; transition: all 0.2s ease;">
+                        <div style="font-weight: 800; font-size: 12px; color: #10b981; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                            <i data-lucide="cloud" style="width: 14px; height: 14px;"></i>
+                            <span>حالت ۱: کلودفلر CDN + آی‌پی تمیز</span>
+                        </div>
+                        <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.5;">
+                            فقط پروتکل‌های سازگار با CDN (WS / gRPC / HTTPUpgrade) روی پورت ۴۴۳ صادر می‌شوند تا آی‌پی سرور اصلی ۱۰۰٪ مخفی بماند و کانکشن واقعی برقرار شود.
+                        </div>
+                    </div>
+                    <div id="sb-disguise-mode-card-relay" onclick="selectSingboxDisguiseMode('relay')" style="cursor: pointer; background: var(--surface-secondary); border: 1.5px solid var(--border-subtle); border-radius: 10px; padding: 10px 12px; transition: all 0.2s ease;">
+                        <div style="font-weight: 800; font-size: 12px; color: var(--text-primary); display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+                            <i data-lucide="server" style="width: 14px; height: 14px; color: #6366f1;"></i>
+                            <span>حالت ۲: سرور واسط / رله (Relay VPS)</span>
+                        </div>
+                        <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.5;">
+                            مناسب سرور ایران یا تانل معکوس؛ همه پروتکل‌ها (حتی Reality، Hysteria2 و TUIC) با حفظ SNI اصلی به آدرس سرور واسط هدایت می‌شوند.
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 12px;">
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="globe" style="width: 13px; height: 13px; color: #10b981;"></i>
+                            <span id="sb-disguise-server-label">دامنه پروکسی‌شده کلودفلر (🟠 Proxied Domain)</span>
+                        </label>
+                        <input type="text" id="sb-disguise-server" class="form-input" placeholder="مثال: relay.mydomain.com" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 13px; border-radius: 10px;" oninput="toggleSingboxDisguiseInputs()">
+                        <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+                            <span style="font-size: 10.5px; color: var(--text-muted);">پیشوندهای پیشنهادی:</span>
+                            <button type="button" class="badge" onclick="fillSingboxDisguiseDomainPrefix('relay')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">relay</button>
+                            <button type="button" class="badge" onclick="fillSingboxDisguiseDomainPrefix('edge')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">edge</button>
+                            <button type="button" class="badge" onclick="fillSingboxDisguiseDomainPrefix('cdn')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">cdn</button>
+                            <button type="button" class="badge" onclick="fillSingboxDisguiseDomainPrefix('gateway')" style="background: var(--surface-secondary); color: var(--text-primary); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 2px 7px; font-size: 10.5px; cursor: pointer;">gateway</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 5px; color: var(--text-primary);">
+                            <i data-lucide="hash" style="width: 13px; height: 13px; color: #10b981;"></i>
+                            <span>پورت استتار (اختیاری)</span>
+                        </label>
+                        <input type="number" id="sb-disguise-port" class="form-input" placeholder="443 (CDN) / پیش‌فرض" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 13px; border-radius: 10px;">
+                        <small id="sb-disguise-port-hint" style="color: var(--text-muted); font-size: 10.5px; margin-top: 4px; display: block;">خالی = ۴۴۳ در حالت CDN</small>
+                    </div>
+                </div>
+
+                <!-- Optional Cloudflare Clean IP row (CDN mode) -->
+                <div id="sb-disguise-cleanip-row" style="margin-bottom: 10px;">
+                    <label class="form-label" style="font-size: 12px; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; color: var(--text-primary);">
+                        <span style="display: flex; align-items: center; gap: 5px;">
+                            <i data-lucide="zap" style="width: 13px; height: 13px; color: #0284c7;"></i>
+                            <span>آی‌پی تمیز کلودفلر (اختیاری - به جای آی‌پی اتصال کلاینت، SNI روی دامنه می‌ماند)</span>
+                        </span>
+                        <button type="button" class="badge" onclick="applyCloudflareCleanIpDisguise()" style="background: rgba(14, 165, 233, 0.12); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.3); border-radius: 6px; padding: 2px 8px; font-size: 10.5px; cursor: pointer; font-weight: 700;">⚡ درج آی‌پی تمیز</button>
+                    </label>
+                    <input type="text" id="sb-disguise-clean-ip" class="form-input" placeholder="اختیاری — مثال: 104.16.132.229 (خالی = اتصال مستقیم به دامنه بالا)" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px; border-radius: 10px;">
+                </div>
+
+                <!-- Live Origin Leak Check Result -->
+                <div id="sb-disguise-check-result" style="display: none; border-radius: 10px; padding: 10px 12px; font-size: 11.5px; line-height: 1.6; margin-top: 10px;"></div>
+            </div>
+
+            <!-- Material Cards: Defense Features Highlights -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px;">
+                <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-weight: 700; font-size: 12px; color: #10b981; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="eye-off" style="width: 15px; height: 15px;"></i>
+                        <span>محافظت ۱۰۰٪ از آی‌پی اصلی</span>
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted); line-height: 1.5; display: block;">
+                        جلوگیری قطعی از افشای آی‌پی واقعی سرور در کلاینت‌های کاربران، کانفیگ‌ها و پرونده‌های بازرسی فیلترینگ.
+                    </span>
+                </div>
+                <div style="background: var(--surface-elevated); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px 14px;">
+                    <div style="font-weight: 700; font-size: 12px; color: #0284c7; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="shuffle" style="width: 15px; height: 15px;"></i>
+                        <span>سازگاری با ورکر و رله معکوس</span>
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-muted); line-height: 1.5; display: block;">
+                        هماهنگی کامل با کلودفلر وورکر، سرورهای تانل معکوس و رله‌های برون‌مرزی جهت عبور بی‌وقفه ترافیک.
+                    </span>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 16px;">
+                <button type="button" class="btn btn-secondary" onclick="switchSingboxSubTab('users')" style="border-radius: 10px; padding: 8px 18px; font-weight: 600;">
+                    بازگشت به کاربران
+                </button>
+                <button type="submit" class="btn btn-primary" style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; border-radius: 10px; padding: 8px 22px; font-weight: 700; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);">
+                    <i data-lucide="check" style="width: 15px; height: 15px;"></i>
+                    <span>ذخیره تنظیمات استتار سرور</span>
+                </button>
+            </div>
+        </form>
 </div>
 
 <!-- Modal: Bulk Set Max Connections -->

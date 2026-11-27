@@ -336,29 +336,79 @@ def apply_singbox_tls_anti_dpi(tls_obj, operator_code=None, enable_ech=None, ena
 
     return tls_obj
 
+MAIN_THREE_OPERATORS = ("mci", "mtn", "rtl")
+
 def inject_singbox_client_anti_dpi(singbox_cfg, operator_code=None, enable_ech=None, enable_fragment=None):
     """
     Inject fragment/ECH into all TLS outbounds in a full Sing-box client JSON config,
     and ensure DoH servers are present in the DNS section for ECH key retrieval.
+    When operator_code is None or 'all' and fragment is enabled, expands each TLS outbound
+    into all 3 main Iranian operator presets (MCI, MTN, RTL) with operator-specific values.
     """
     if not isinstance(singbox_cfg, dict):
         return singbox_cfg
 
+    import copy
     s = get_anti_dpi_settings()
     do_ech = s.get("default_ech_enabled", True) if enable_ech is None else bool(enable_ech)
     do_frag = s.get("default_fragment_enabled", True) if enable_fragment is None else bool(enable_fragment)
+    eff_op = (operator_code or s.get("default_operator") or "all").strip().lower()
 
-    # 1. Apply to TLS outbounds
-    for ob in singbox_cfg.get("outbounds", []):
-        if not isinstance(ob, dict):
-            continue
-        tls = ob.get("tls")
-        if isinstance(tls, dict) and tls.get("enabled"):
-            # Reality cannot be combined with ECH in Sing-box (Reality has its own Camouflage Handshake)
-            is_reality = bool(tls.get("reality", {}).get("enabled"))
-            apply_singbox_tls_anti_dpi(tls, operator_code=operator_code,
-                                       enable_ech=(False if is_reality else do_ech),
-                                       enable_fragment=do_frag)
+    expand_three = (eff_op in ("", "all")) and (do_frag or do_ech)
+
+    if expand_three:
+        new_outbounds = []
+        tag_expansion_map = {}
+        for ob in singbox_cfg.get("outbounds", []):
+            if not isinstance(ob, dict):
+                new_outbounds.append(ob)
+                continue
+            tls = ob.get("tls")
+            if isinstance(tls, dict) and tls.get("enabled") and ob.get("type") not in ("selector", "urltest"):
+                orig_tag = ob.get("tag", "proxy")
+                is_reality = bool((tls.get("reality") or {}).get("enabled"))
+                expanded_tags = []
+                for op_key in MAIN_THREE_OPERATORS:
+                    op_ob = copy.deepcopy(ob)
+                    op_ob["tag"] = f"{orig_tag} [{op_key.upper()}]"
+                    apply_singbox_tls_anti_dpi(
+                        op_ob["tls"],
+                        operator_code=op_key,
+                        enable_ech=(False if is_reality else do_ech),
+                        enable_fragment=do_frag
+                    )
+                    new_outbounds.append(op_ob)
+                    expanded_tags.append(op_ob["tag"])
+                tag_expansion_map[orig_tag] = expanded_tags
+            else:
+                new_outbounds.append(ob)
+
+        # Update selector / urltest outbound lists with expanded operator tags
+        if tag_expansion_map:
+            for ob in new_outbounds:
+                if isinstance(ob, dict) and ob.get("type") in ("selector", "urltest") and isinstance(ob.get("outbounds"), list):
+                    updated_list = []
+                    for t in ob["outbounds"]:
+                        if t in tag_expansion_map:
+                            updated_list.extend(tag_expansion_map[t])
+                        else:
+                            updated_list.append(t)
+                    ob["outbounds"] = updated_list
+        singbox_cfg["outbounds"] = new_outbounds
+    else:
+        # Single operator mode
+        for ob in singbox_cfg.get("outbounds", []):
+            if not isinstance(ob, dict):
+                continue
+            tls = ob.get("tls")
+            if isinstance(tls, dict) and tls.get("enabled"):
+                is_reality = bool(tls.get("reality", {}).get("enabled"))
+                apply_singbox_tls_anti_dpi(
+                    tls,
+                    operator_code=eff_op,
+                    enable_ech=(False if is_reality else do_ech),
+                    enable_fragment=do_frag
+                )
 
     # 2. Add DoH DNS server for ECH lookup if ECH is enabled
     if do_ech:

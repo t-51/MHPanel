@@ -412,4 +412,169 @@
 
     </section>
 
+    <!-- ======================================================== -->
+    <!-- SECURITY HUB: امنیت سرور و شبکه (Server & Network Security) -->
+    <!-- ======================================================== -->
+    <section id="server-security-hub" style="margin-top: 26px; width: 100%;">
+        <div class="spec-card" style="border: 1.5px solid rgba(16, 185, 129, 0.35); padding: 22px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(16, 185, 129, 0.14); color: #10b981; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="shield-alert" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h3 class="spec-title" style="margin: 0; font-size: 16.5px; font-weight: 800;">
+                            امنیت سرور و شبکه (Server &amp; Network Security)
+                        </h3>
+                        <p style="font-size: 12.5px; color: var(--text-muted); margin: 3px 0 0 0;">
+                            ورود دو مرحله‌ای، فایروال IP، مسدودسازی دائم P2P/BitTorrent، گزارش مشکلات امنیتی و مدیریت ادمین‌های محدود
+                        </p>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <span id="sec-score-badge" class="badge" style="background: rgba(16, 185, 129, 0.14); color: #10b981; font-weight: 800; font-size: 12px; padding: 6px 12px; border-radius: 8px;">
+                        امتیاز امنیتی: —%
+                    </span>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openTwoFactorModal()" style="padding: 6px 12px; font-size: 12px;">
+                        <i data-lucide="key" style="width: 13px; height: 13px; margin-inline-end: 4px;"></i> ورود دو مرحله‌ای (2FA)
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="loadServerSecurityOverview()" style="padding: 6px 12px; font-size: 12px;">
+                        <i data-lucide="refresh-cw" style="width: 13px; height: 13px; margin-inline-end: 4px;"></i> بروزرسانی
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 1: P2P Permanent Blocker + IP Firewall -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 18px; margin-bottom: 18px;">
+
+                <!-- Card A: P2P / BitTorrent Permanent Block + IP Allow/Block -->
+                <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+                        <div>
+                            <div style="font-weight: 800; font-size: 13.5px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                                <i data-lucide="ban" style="width: 16px; height: 16px; color: #ef4444;"></i>
+                                <span>مسدودسازی دائم P2P / BitTorrent و دانلود تورنت</span>
+                            </div>
+                            <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                                مسدودسازی همزمان در هسته Sing-box (پروتکل bittorrent) و کرنل لینوکس (iptables + پورت‌های تورنت)
+                            </div>
+                        </div>
+                        <label class="switch" style="margin: 0;">
+                            <input type="checkbox" id="sec-p2p-block-toggle" onchange="toggleP2pPermanentBlock(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="shield" style="width: 15px; height: 15px; color: #6366f1;"></i>
+                        <span>فایروال باز و بسته کردن آی‌پی‌ها (IP Whitelist / Blacklist)</span>
+                    </div>
+
+                    <form onsubmit="submitSecurityIpRule(event)" style="display: grid; grid-template-columns: 1.5fr 1fr 1.2fr auto; gap: 8px; margin-bottom: 12px;">
+                        <input type="text" id="sec-ip-input" class="form-input" placeholder="IP یا CIDR (مثلاً 1.2.3.4)" required style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                        <select id="sec-ip-action" class="form-input" style="font-size: 12px;">
+                            <option value="block">⛔ مسدود (Block)</option>
+                            <option value="allow">✅ مجاز (Allow)</option>
+                        </select>
+                        <input type="text" id="sec-ip-note" class="form-input" placeholder="توضیح (اختیاری)" style="font-size: 12px;">
+                        <button type="submit" class="btn btn-primary btn-sm" style="padding: 6px 12px; font-size: 12px;">اعمال</button>
+                    </form>
+
+                    <div style="max-height: 210px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-surface);">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <thead>
+                                <tr style="background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                                    <th style="padding: 8px 10px; text-align: right;">آی‌پی / رنج</th>
+                                    <th style="padding: 8px 10px; text-align: right;">وضعیت</th>
+                                    <th style="padding: 8px 10px; text-align: right;">یادداشت</th>
+                                    <th style="padding: 8px 10px; text-align: center;">حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sec-ip-rules-tbody">
+                                <tr><td colspan="4" style="text-align: center; padding: 14px; color: var(--text-muted);">در حال بارگذاری...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Card B: Security Issues & Event Reports -->
+                <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="font-weight: 800; font-size: 13.5px; color: var(--text-main); display: flex; align-items: center; justify-content: space-between;">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="file-warning" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+                            <span>مشکلات امنیتی و گزارش‌های فایروال</span>
+                        </span>
+                        <span id="sec-ssh-failed-badge" style="font-size: 11px; color: var(--text-muted);">SSH Failed: —</span>
+                    </div>
+
+                    <div id="sec-issues-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto;">
+                        <div style="font-size: 12px; color: var(--text-muted);">در حال اسکن امنیتی سرور...</div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">گزارش رویدادهای امنیتی اخیر:</div>
+                        <div id="sec-events-log" style="background: #0f172a; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.55; padding: 10px; border-radius: 8px; max-height: 145px; overflow-y: auto; direction: ltr; text-align: left;">
+                            Loading security events...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Multi-Admin & Section Permissions (RBAC) -->
+            <div id="sec-admins-rbac-card" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="users-round" style="width: 16px; height: 16px; color: #8b5cf6;"></i>
+                            <span>مدیریت مدیران پنل و محدودیت دسترسی بخش‌ها (RBAC)</span>
+                        </div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 2px;">
+                            تعریف ادمین‌های جدید با یوزر و پسورد اختصاصی و انتخاب دقیق بخش‌هایی از پنل که مجاز به مشاهده و مدیریت آن هستند.
+                        </div>
+                    </div>
+                </div>
+
+                <form onsubmit="saveSecurityPanelAdmin(event)" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 10px; align-items: end;">
+                        <div>
+                            <label class="form-label" style="font-size: 11.5px; font-weight: 600;">نام کاربری ادمین:</label>
+                            <input type="text" id="sec-admin-username" class="form-input" placeholder="مثال: support1" required style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-size: 11.5px; font-weight: 600;">رمز عبور (در ویرایش خالی = بدون تغییر):</label>
+                            <input type="password" id="sec-admin-password" class="form-input" placeholder="حداقل ۴ کاراکتر" style="direction: ltr; font-family: 'JetBrains Mono', monospace; font-size: 12.5px;">
+                        </div>
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; cursor: pointer; padding-bottom: 8px;">
+                            <input type="checkbox" id="sec-admin-enabled" checked>
+                            <span>فعال</span>
+                        </label>
+                        <button type="submit" class="btn btn-primary btn-sm" style="padding: 8px 16px; font-size: 12px; font-weight: 700;">ذخیره ادمین</button>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px;">بخش‌های مجاز پنل برای این مدیر:</div>
+                        <div id="sec-admin-sections-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px;">
+                        </div>
+                    </div>
+                </form>
+
+                <div style="overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-surface);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                                <th style="padding: 8px 12px; text-align: right;">نام کاربری</th>
+                                <th style="padding: 8px 12px; text-align: right;">وضعیت</th>
+                                <th style="padding: 8px 12px; text-align: right;">بخش‌های مجاز</th>
+                                <th style="padding: 8px 12px; text-align: center;">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sec-admins-tbody">
+                            <tr><td colspan="4" style="text-align: center; padding: 14px; color: var(--text-muted);">در حال بارگذاری...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
 </div>

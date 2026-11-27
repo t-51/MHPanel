@@ -53,6 +53,11 @@ try:
 except ImportError:
     pass
 
+try:
+    import security_manager as sec_mgr
+except ImportError:
+    sec_mgr = None
+
 app = Flask(__name__)
 
 # Performance: Disable in-Python Brotli compression (Apache/Nginx already handles gzip at reverse-proxy layer without burning CPU)
@@ -1308,7 +1313,10 @@ _rendered_dashboard_cache = {}  # bool(logged_in) -> (html_str, timestamp)
 def render_dashboard_response(logged_in):
     from flask import make_response
     now = time.time()
-    cached = _rendered_dashboard_cache.get(bool(logged_in))
+    admin_role = session.get("admin_role", "super") if logged_in else "guest"
+    allowed_tabs = session.get("allowed_tabs") if logged_in else None
+    cache_key = (bool(logged_in), admin_role, tuple(allowed_tabs) if isinstance(allowed_tabs, list) else ())
+    cached = _rendered_dashboard_cache.get(cache_key)
     if cached and (now - cached[1] < 3.0):
         html_str = cached[0]
     else:
@@ -1319,14 +1327,16 @@ def render_dashboard_response(logged_in):
             "dashboard.html",
             logged_in=logged_in,
             error=None,
-            saved_username=user,
+            saved_username=session.get("admin_username") or user,
             api_key=get_api_key(),
             panel_path=custom_path,
             panel_port=get_panel_port(),
             panel_version=PANEL_VERSION,
-            gas_templates_data=gas_tpls_data
+            gas_templates_data=gas_tpls_data,
+            current_admin_role=admin_role,
+            current_allowed_tabs=allowed_tabs or []
         )
-        _rendered_dashboard_cache[bool(logged_in)] = (html_str, now)
+        _rendered_dashboard_cache[cache_key] = (html_str, now)
 
     resp = make_response(html_str)
     resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -1366,22 +1376,46 @@ def api_login():
     password = data.get("password", "").strip()
     totp_code = data.get("totp_code", "").strip()
     saved_user, saved_pw = get_credentials()
-    
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "")
+
     if username == saved_user and password == saved_pw:
         totp_cfg = get_totp_config()
         if totp_cfg.get("enabled", False):
             if not totp_code:
                 return jsonify({"success": False, "require_2fa": True}), 200
             if not verify_totp(totp_cfg.get("secret", ""), totp_code):
+                if sec_mgr:
+                    sec_mgr.log_security_event("LOGIN_FAIL", "Invalid 2FA code for super admin", actor=username, ip_addr=client_ip)
                 return jsonify({"success": False, "error": "Invalid 2FA verification code"}), 401
-        
+
         session["logged_in"] = True
-        return jsonify({"success": True})
+        session["admin_username"] = username
+        session["admin_role"] = "super"
+        session["allowed_tabs"] = []
+        if sec_mgr:
+            sec_mgr.log_security_event("LOGIN_OK", "Super admin logged in", actor=username, ip_addr=client_ip)
+        return jsonify({"success": True, "role": "super"})
+
+    # Check Sub-Admins (RBAC)
+    if sec_mgr:
+        sub_adm = sec_mgr.authenticate_sub_admin(username, password)
+        if sub_adm:
+            session["logged_in"] = True
+            session["admin_username"] = sub_adm["username"]
+            session["admin_role"] = "sub_admin"
+            session["allowed_tabs"] = sub_adm.get("allowed_tabs") or ["overview"]
+            sec_mgr.log_security_event("LOGIN_OK", f"Sub-admin logged in (tabs={session['allowed_tabs']})", actor=username, ip_addr=client_ip)
+            return jsonify({"success": True, "role": "sub_admin", "allowed_tabs": session["allowed_tabs"]})
+        sec_mgr.log_security_event("LOGIN_FAIL", "Failed login attempt", actor=username, ip_addr=client_ip)
+
     return jsonify({"success": False, "error": "Incorrect Username or Password"}), 401
 
 @app.route("/api/logout", methods=["POST"])
 def api_logout():
     session.pop("logged_in", None)
+    session.pop("admin_username", None)
+    session.pop("admin_role", None)
+    session.pop("allowed_tabs", None)
     return jsonify({"success": True})
 
 # --- Two-Factor Authentication (2FA TOTP) ---
@@ -2836,7 +2870,8 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip, operator_cod
 
                 if itype == "vless":
                     if reality_enabled:
-                        target_srv = server_pub_ip
+                        panel_host = get_panel_sub_domain() or get_valid_server_domain() or server_pub_ip
+                        target_srv = panel_host
                         target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
                     else:
                         target_port = port
@@ -2883,14 +2918,16 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip, operator_cod
                         ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vless-upgrade")}
 
                     if ob:
-                        outbounds.append(ob)
-                        proxy_tags.append(out_tag)
-                        if reality_enabled and target_port == 443:
-                            ob_2096 = copy.deepcopy(ob)
-                            ob_2096["tag"] = f"{out_tag}-2096"
-                            ob_2096["server_port"] = 2096
-                            outbounds.append(ob_2096)
-                            proxy_tags.append(ob_2096["tag"])
+                        _dis_ob = apply_disguise_to_outbound(ob, ib)
+                        if _dis_ob:
+                            outbounds.append(_dis_ob)
+                            proxy_tags.append(_dis_ob["tag"])
+                            if reality_enabled and target_port == 443 and not get_effective_singbox_disguise().get("enabled"):
+                                ob_2096 = copy.deepcopy(_dis_ob)
+                                ob_2096["tag"] = f"{out_tag}-2096"
+                                ob_2096["server_port"] = 2096
+                                outbounds.append(ob_2096)
+                                proxy_tags.append(ob_2096["tag"])
                         ob = None
 
                 elif itype == "vmess":
@@ -2915,7 +2952,8 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip, operator_cod
 
                 elif itype == "trojan":
                     if reality_enabled:
-                        target_srv = server_pub_ip
+                        panel_host = get_panel_sub_domain() or get_valid_server_domain() or server_pub_ip
+                        target_srv = panel_host
                         target_port = int(port) if (int(port) in HTTPS_PORTS) else 443
                     else:
                         target_srv = clean_proxy_srv if tls_enabled else server_pub_ip
@@ -3017,30 +3055,57 @@ def generate_singbox_ssh_config(username, password, domain, pub_ip, operator_cod
                         ob["password"] = password
 
                 if ob:
-                    outbounds.append(ob)
-                    proxy_tags.append(out_tag)
+                    _dis_ob = apply_disguise_to_outbound(ob, ib)
+                    if _dis_ob:
+                        outbounds.append(_dis_ob)
+                        proxy_tags.append(_dis_ob["tag"])
         except Exception as e:
             logger.error(f"Error building singbox outbounds from config: {e}")
 
-    # SSH outbounds
-    ssh_tags = [f"MHPanel-SSH-WS-443", f"MHPanel-SSH-Direct-22"]
-    outbounds.append({
-        "type": "ssh",
-        "tag": f"MHPanel-SSH-WS-443",
-        "server": domain,
-        "server_port": 443,
-        "user": username,
-        "password": password
-    })
-    outbounds.append({
-        "type": "ssh",
-        "tag": f"MHPanel-SSH-Direct-22",
-        "server": server_pub_ip,
-        "server_port": 22,
-        "user": username,
-        "password": password
-    })
-    proxy_tags.extend(ssh_tags)
+    # SSH outbounds (respect Origin Disguise to never leak origin IP)
+    _dis_cfg = get_effective_singbox_disguise()
+    if _dis_cfg.get("enabled"):
+        _ssh_ws_srv = (_dis_cfg.get("clean_ip") or _dis_cfg.get("server")) if _dis_cfg.get("mode") == "cdn" else _dis_cfg.get("server")
+        _ssh_ws_port = _dis_cfg.get("port") or 443
+        if _ssh_ws_srv:
+            outbounds.append({
+                "type": "ssh",
+                "tag": "MHPanel-SSH-WS-443",
+                "server": _ssh_ws_srv,
+                "server_port": _ssh_ws_port,
+                "user": username,
+                "password": password
+            })
+            proxy_tags.append("MHPanel-SSH-WS-443")
+        if _dis_cfg.get("mode") == "relay" and _dis_cfg.get("server"):
+            outbounds.append({
+                "type": "ssh",
+                "tag": "MHPanel-SSH-Direct-22",
+                "server": _dis_cfg["server"],
+                "server_port": _dis_cfg.get("port") or 22,
+                "user": username,
+                "password": password
+            })
+            proxy_tags.append("MHPanel-SSH-Direct-22")
+    else:
+        ssh_tags = ["MHPanel-SSH-WS-443", "MHPanel-SSH-Direct-22"]
+        outbounds.append({
+            "type": "ssh",
+            "tag": "MHPanel-SSH-WS-443",
+            "server": domain,
+            "server_port": 443,
+            "user": username,
+            "password": password
+        })
+        outbounds.append({
+            "type": "ssh",
+            "tag": "MHPanel-SSH-Direct-22",
+            "server": server_pub_ip,
+            "server_port": 22,
+            "user": username,
+            "password": password
+        })
+        proxy_tags.extend(ssh_tags)
 
     # SNI Spoofing: Cloud Clean IP & Fragment Outbounds for Sing-box (Per Operator)
     try:
@@ -3361,12 +3426,12 @@ def generate_snispoof_sub_uris(username, password, u_uuid, domain, pub_ip):
         relay_sni = panel_domain or cf_domain or pub_ip or "127.0.0.1"
 
         fragment_uris = [
-            # Direct VLESS-Reality on standard Cloudflare port 443 (Global CDN targets like images.unsplash.com - XTLS disabled for broad compatibility)
+            # Direct VLESS-Reality on standard Cloudflare port 443 (Iranian camouflage targets)
             {
                 "name": f"MHPanel - [Fragment] VLESS-Reality ({username})",
-                "uri": f"vless://{uid}@{domain or pub_ip}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
+                "uri": f"vless://{uid}@{panel_domain}:{r_port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel - [Fragment] VLESS-Reality ({username})",
                 "type": "VLESS Reality",
-                "server": domain or pub_ip,
+                "server": panel_domain,
                 "port": r_port,
                 "sni": sample_sni
             },
@@ -4519,6 +4584,9 @@ def client_sub_b64(sub_token):
         "patterniha": do_pat
     }
 
+    disguise_cfg = get_effective_singbox_disguise()
+    is_cdn_disguise = disguise_cfg.get("enabled") and disguise_cfg.get("mode") == "cdn"
+
     uris = []
     if proto_type == "singbox":
         # Singbox local user: generate configs for all their assigned inbounds
@@ -4531,31 +4599,33 @@ def client_sub_b64(sub_token):
                 for ib in sb_cfg.get("inbounds", []):
                     tag = ib.get("tag")
                     if not user_inbounds or tag in user_inbounds:
+                        if is_cdn_disguise and not is_inbound_cdn_compatible(ib):
+                            continue
                         is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
+                        tls_en = ib.get("tls", {}).get("enabled", False)
                         target_host = get_valid_server_domain() or pub_ip
-                        if is_real:
-                            for r_port in get_reality_candidate_ports():
-                                extra_link = generate_singbox_share_link(ib, target_host, target_user=udata, override_port=r_port, anti_dpi_opts=anti_opts)
-                                if extra_link and extra_link not in uris:
-                                    uris.append(extra_link)
-                        else:
-                            slink = generate_singbox_share_link(ib, target_host, target_user=udata, anti_dpi_opts=anti_opts)
-                            if slink and slink not in uris:
-                                uris.append(slink)
-                            # If operator is 'all', also add operator-specific presets for key Iranian ISPs
-                            if eff_op == "all" and not op_filter:
-                                for op_key in ["mci", "mtn", "rtl", "mkh"]:
-                                    op_link = generate_singbox_share_link(
-                                        ib, target_host, target_user=udata,
-                                        anti_dpi_opts={"operator": op_key, "ech": do_ech, "fragment": True, "patterniha": False}
-                                    )
-                                    if op_link and op_link not in uris:
-                                        uris.append(op_link)
+                        op_list = ["mci", "mtn", "rtl"] if (eff_op == "all" and not op_filter and (do_frag or do_ech) and (is_real or tls_en)) else [anti_opts["operator"]]
+                        ports_list = get_reality_candidate_ports() if is_real else [None]
+                        for r_port in ports_list:
+                            for op_key in op_list:
+                                per_op_opts = {
+                                    "operator": op_key,
+                                    "ech": (False if is_real else do_ech),
+                                    "fragment": do_frag,
+                                    "patterniha": do_pat
+                                }
+                                slink = generate_singbox_share_link(
+                                    ib, target_host, target_user=udata,
+                                    override_port=r_port, anti_dpi_opts=per_op_opts
+                                )
+                                slink = apply_disguise_to_share_link(slink, ib=ib, disguise_cfg=disguise_cfg)
+                                if slink and slink not in uris:
+                                    uris.append(slink)
         except Exception as e:
             logger.error(f"Error generating singbox sub links: {e}")
 
-        # Fallback to general uris if empty
-        if not uris:
+        # Fallback to general uris if empty and not in strict CDN disguise
+        if not uris and not is_cdn_disguise:
             uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
     else:
         uris = generate_ssh_uris(uname, pwd, domain, pub_ip)
@@ -4564,24 +4634,18 @@ def client_sub_b64(sub_token):
     u_uuid = (udata.get("uuid") if isinstance(udata, dict) else "") or uinfo.get("uuid", "")
     cloud_links, frag_links = generate_snispoof_sub_uris(uname, pwd, u_uuid, domain, pub_ip)
     if cloud_links:
-        uris.extend([x["uri"] if isinstance(x, dict) else x for x in cloud_links])
-    if frag_links:
-        uris.extend([x["uri"] if isinstance(x, dict) else x for x in frag_links if not str(x.get("server", "")).startswith("127.")])
-
-    # Apply Sing-box Origin Disguise & Relay Server if enabled
-    sb_settings = get_singbox_sub_settings()
-    if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
-        disguise_srv = sb_settings["disguise_server"].strip()
-        disguise_port = str(sb_settings.get("disguise_port", "")).strip()
-        mod_uris = []
-        for u in uris:
-            if "@" in u:
-                if disguise_port:
-                    u = re.sub(r'@[^:?#]+:\d+', f'@{disguise_srv}:{disguise_port}', u)
-                else:
-                    u = re.sub(r'@([^:?#]+)', f'@{disguise_srv}', u)
-            mod_uris.append(u)
-        uris = mod_uris
+        for x in cloud_links:
+            cu = x["uri"] if isinstance(x, dict) else x
+            cu = apply_disguise_to_share_link(cu, disguise_cfg=disguise_cfg) if (disguise_cfg.get("enabled") and not is_cdn_disguise) else cu
+            if cu and cu not in uris:
+                uris.append(cu)
+    if frag_links and not is_cdn_disguise:
+        for x in frag_links:
+            if not str(x.get("server", "") if isinstance(x, dict) else "").startswith("127."):
+                fu = x["uri"] if isinstance(x, dict) else x
+                fu = apply_disguise_to_share_link(fu, disguise_cfg=disguise_cfg)
+                if fu and fu not in uris:
+                    uris.append(fu)
 
     b64_str = base64.b64encode("\n".join(uris).encode("utf-8")).decode("utf-8")
     resp = Response(b64_str, mimetype="text/plain; charset=utf-8")
@@ -15060,7 +15124,7 @@ def get_snispoof_reality_and_client_configs():
 
     # Extract Sing-box Reality settings & live user credentials
     r_port = 443
-    r_sni = "images.unsplash.com"
+    r_sni = "digikala.com"
     r_pubkey = "lIY-WmroSGLnJuGZKnmQ8LWwpE64t5qbWsuU13L5iXc"
     r_shortid = "86d7ec6343d000b6"
     r_uuid = "b3204bcf-5f1a-423c-8c14-7bbf63d2d4bc"
@@ -15155,7 +15219,7 @@ def get_snispoof_reality_and_client_configs():
             {
                 "type": "vless",
                 "tag": "MHPanel-AntiDPI-Reality",
-                "server": srv,
+                "server": get_panel_sub_domain() or srv,
                 "server_port": r_port,
                 "uuid": r_uuid,
                 "tls": {
@@ -15308,9 +15372,10 @@ def get_snispoof_reality_and_client_configs():
     singbox_fragment_snippet = singbox_fragment["outbounds"][0]
 
     # V2Ray URIs
+    r_host = get_panel_sub_domain() or srv
     r_port_ext = r_port if (int(r_port) in HTTPS_PORTS) else 443
-    v2ray_vless_uri = f"vless://{r_uuid}@{srv}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-AntiDPI-Reality"
-    v2ray_relay_uri = f"vless://{r_uuid}@{srv}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
+    v2ray_vless_uri = f"vless://{r_uuid}@{r_host}:{r_port_ext}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-AntiDPI-Reality"
+    v2ray_relay_uri = f"vless://{r_uuid}@{r_host}:{port}?security=reality&encryption=none&pbk={r_pubkey}&sid={r_shortid}&sni={sample_sni}&fp=chrome&type=tcp#MHPanel-SNISpoof-Port{port}"
     v2ray_socks_uri = "socks://127.0.0.1:10808#MHPanel-SNISpoof-LocalSocks"
 
     v2ray_cloud_uri = f"trojan://{r_trojan_pass}@{chosen_clean_ip}:443?security=tls&sni={cf_full_domain}&type=ws&host={cf_full_domain}&path=%2Ftrojan-ws#MHPanel - [Cloud Clean IP] Trojan-WS"
@@ -16402,7 +16467,134 @@ def api_cf_protocols_provision():
         protocols_to_provision=selected,
         custom_prefixes=custom_prefixes
     )
+
+    # Auto-sync singbox sub domain into singbox settings when provisioned in bulk
+    if res.get("success"):
+        for r in res.get("results", []):
+            if r.get("status") == "success":
+                if r.get("protocol") == "singbox_sub":
+                    try:
+                        sb_s = get_singbox_sub_settings() if "get_singbox_sub_settings" in globals() else {}
+                        sb_s["custom_domain"] = r["subdomain"]
+                        sb_s["protocol"] = "https"
+                        save_singbox_sub_settings(sb_s)
+                    except Exception:
+                        pass
+                elif r.get("protocol") == "singbox_disguise":
+                    try:
+                        sb_s = get_singbox_sub_settings() if "get_singbox_sub_settings" in globals() else {}
+                        sb_s["disguise_server"] = r["subdomain"]
+                        sb_s["disguise_enabled"] = True
+                        save_singbox_sub_settings(sb_s)
+                    except Exception:
+                        pass
     return jsonify(res)
+
+
+@app.route("/api/cloudflare/protocols/provision-single", methods=["POST"])
+def api_cf_protocols_provision_single():
+    """Provision a single protocol subdomain with DNS + Origin Rule (port-forward) automatically."""
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    root_domain = cfg.get("active_zone_name")
+    if not zone_id or not token or not root_domain:
+        return jsonify({"success": False, "error": "دامنه فعال یا توکن کلودفلر مشخص نشده است."}), 400
+
+    server_ip = get_server_public_ip()
+    data = request.json or {}
+    proto_key = data.get("protocol", "").strip()
+    custom_prefix = data.get("prefix", "").strip()
+
+    if not proto_key:
+        return jsonify({"success": False, "error": "کلید پروتکل (protocol) ارسال نشده است."}), 400
+
+    custom_prefixes = {proto_key: custom_prefix} if custom_prefix else {}
+    res = cf_mgr.provision_protocol_subdomains(
+        zone_id=zone_id,
+        token=token,
+        server_ip=server_ip,
+        root_domain=root_domain,
+        protocols_to_provision=[proto_key],
+        custom_prefixes=custom_prefixes
+    )
+
+    # Auto-sync singbox settings
+    if res.get("success"):
+        for r in res.get("results", []):
+            if r.get("status") == "success":
+                if r.get("protocol") == "singbox_sub":
+                    try:
+                        sb_s = get_singbox_sub_settings() if "get_singbox_sub_settings" in globals() else {}
+                        sb_s["custom_domain"] = r["subdomain"]
+                        sb_s["protocol"] = "https"
+                        save_singbox_sub_settings(sb_s)
+                    except Exception:
+                        pass
+                elif r.get("protocol") == "singbox_disguise":
+                    try:
+                        sb_s = get_singbox_sub_settings() if "get_singbox_sub_settings" in globals() else {}
+                        sb_s["disguise_server"] = r["subdomain"]
+                        sb_s["disguise_enabled"] = True
+                        save_singbox_sub_settings(sb_s)
+                    except Exception:
+                        pass
+
+    # Return the first result directly for single-protocol convenience
+    result = res.get("results", [{}])[0] if res.get("results") else {}
+    return jsonify({
+        "success": res.get("success", False),
+        "protocol": proto_key,
+        "subdomain": result.get("subdomain"),
+        "proxied": result.get("proxied"),
+        "origin_rule": result.get("origin_rule"),
+        "origin_rule_port": result.get("origin_rule_port"),
+        "origin_rule_msg": result.get("origin_rule_msg"),
+        "message": result.get("message", res.get("error", "خطای نامشخص")),
+        "details": res
+    })
+
+@app.route("/api/cloudflare/singbox/provision-domain", methods=["POST"])
+def api_cf_singbox_provision_domain():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    cfg = cf_mgr.get_cf_config()
+    zone_id = cfg.get("active_zone_id")
+    token = cfg.get("cf_token")
+    root_domain = cfg.get("active_zone_name")
+    if not zone_id or not token or not root_domain:
+        return jsonify({"success": False, "error": "ابتدا در تب مرکز کلاود (Cloudflare Hub)، توکن و دامنه فعال خود را تنظیم نمایید."}), 400
+
+    server_ip = get_server_public_ip()
+    data = request.json or {}
+    purpose = data.get("purpose", "sub")
+    custom_prefix = (data.get("prefix") or ("sub" if purpose == "sub" else "relay")).strip().lower()
+
+    res = cf_mgr.provision_singbox_domain(
+        zone_id=zone_id,
+        token=token,
+        server_ip=server_ip,
+        root_domain=root_domain,
+        purpose=purpose,
+        custom_prefix=custom_prefix
+    )
+
+    if res.get("success"):
+        hostname = res.get("hostname")
+        sub_settings = get_singbox_sub_settings() if "get_singbox_sub_settings" in globals() else {}
+        if purpose == "sub":
+            sub_settings["custom_domain"] = hostname
+            sub_settings["protocol"] = "https"
+        elif purpose == "disguise":
+            sub_settings["disguise_server"] = hostname
+            sub_settings["disguise_enabled"] = True
+        if "save_singbox_sub_settings" in globals():
+            save_singbox_sub_settings(sub_settings)
+        res["settings"] = sub_settings
+
+    return jsonify(res), (200 if res.get("success") else 400)
 
 @app.route("/api/cloudflare/dns-tunnel/setup", methods=["POST"])
 def api_cf_dns_tunnel_setup():
@@ -29893,15 +30085,30 @@ def get_reality_public_key(private_key_b64: str) -> str:
 REALITY_ROTATION_CONFIG_FILE = "/www/wwwroot/mhpanel/reality_rotation.json"
 
 DEFAULT_REALITY_DOMAINS = [
-    # Top Global CDN & Cloud Camouflage Domains (TLS 1.3 + ALPN h2 verified)
-    "images.unsplash.com",
-    "swdist.apple.com",
-    "gateway.icloud.com",
-    "download.docker.com",
-    "cdn.jsdelivr.net",
-    "speedtest.net",
-    "www.microsoft.com",
-    "addons.mozilla.org"
+    # Top High-Traffic Iranian Camouflage Domains (TLS 1.3 + ALPN h2 verified)
+    "digikala.com",
+    "divar.ir",
+    "torob.com",
+    "snapp.ir",
+    "aparat.com",
+    "nobitex.ir",
+    "filimo.com",
+    "cafebazaar.ir",
+    "bama.ir",
+    "snappfood.ir",
+    "zarinpal.com",
+    "basalam.com",
+    "balad.ir",
+    "neshan.org",
+    "bmi.ir",
+    "irna.ir",
+    "isna.ir",
+    "zoomit.ir",
+    "soft98.ir",
+    "downloadha.com",
+    "p30download.ir",
+    "bale.ai",
+    "eitaa.com"
 ]
 
 def generate_singbox_reality_keypair():
@@ -29925,7 +30132,7 @@ def get_reality_rotation_config():
         "interval_value": 3,
         "interval_unit": "days",   # "days" or "hours"
         "domains": list(DEFAULT_REALITY_DOMAINS),
-        "current_domain": "images.unsplash.com",
+        "current_domain": "digikala.com",
         "fingerprint": "chrome",
         "alpn": "h2,http/1.1",
         "spider_x": "/",
@@ -29997,7 +30204,7 @@ def build_default_singbox_full_suite():
 
     # Core inbounds that work 100% on bare IP without any domain or SSL certificate
     inbounds = [
-        # 1. VLESS Reality Vision (TCP) - Camouflage with Unsplash Global CDN
+        # 1. VLESS Reality Vision (TCP) - Camouflage with Digikala
         {
             "type": "vless",
             "tag": "vless-reality-in",
@@ -30006,16 +30213,16 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "uuid": vless_uuid, "flow": "xtls-rprx-vision"}],
             "tls": {
                 "enabled": True,
-                "server_name": "images.unsplash.com",
+                "server_name": "digikala.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "images.unsplash.com", "server_port": 443},
+                    "handshake": {"server": "digikala.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 2. VLESS Reality gRPC - Camouflage with Docker CloudFront CDN
+        # 2. VLESS Reality gRPC - Camouflage with Divar
         {
             "type": "vless",
             "tag": "vless-reality-grpc",
@@ -30028,16 +30235,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "download.docker.com",
+                "server_name": "divar.ir",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "download.docker.com", "server_port": 443},
+                    "handshake": {"server": "divar.ir", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 3. VLESS Reality HTTPUpgrade - Camouflage with jsDelivr Global CDN
+        # 3. VLESS Reality HTTPUpgrade - Camouflage with Torob
         {
             "type": "vless",
             "tag": "vless-reality-upgrade",
@@ -30050,16 +30257,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "cdn.jsdelivr.net",
+                "server_name": "torob.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "cdn.jsdelivr.net", "server_port": 443},
+                    "handshake": {"server": "torob.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 4. VLESS Reality WebSocket - Camouflage with Apple CDN
+        # 4. VLESS Reality WebSocket - Camouflage with Snapp
         {
             "type": "vless",
             "tag": "vless-reality-ws",
@@ -30072,16 +30279,16 @@ def build_default_singbox_full_suite():
             },
             "tls": {
                 "enabled": True,
-                "server_name": "swdist.apple.com",
+                "server_name": "snapp.ir",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "swdist.apple.com", "server_port": 443},
+                    "handshake": {"server": "snapp.ir", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
             }
         },
-        # 5. Trojan Reality TCP - Camouflage with Digikala
+        # 5. Trojan Reality TCP - Camouflage with Aparat
         {
             "type": "trojan",
             "tag": "trojan-reality-in",
@@ -30090,10 +30297,10 @@ def build_default_singbox_full_suite():
             "users": [{"name": "default-user", "password": psk16[:12]}],
             "tls": {
                 "enabled": True,
-                "server_name": "www.digikala.com",
+                "server_name": "aparat.com",
                 "reality": {
                     "enabled": True,
-                    "handshake": {"server": "www.digikala.com", "server_port": 443},
+                    "handshake": {"server": "aparat.com", "server_port": 443},
                     "private_key": reality_priv,
                     "short_id": ["86d7ec6343d000b6", ""]
                 }
@@ -30609,7 +30816,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "images.unsplash.com")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "digikala.com")
 
     server_pub_ip = get_server_public_ip() or "212.227.143.16"
     clean_proxy_srv = get_valid_server_domain() or "vpn.kigaping.com"
@@ -30674,8 +30881,9 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
         else:
             inbound_port = int(inbound.get("listen_port", 443))
             port = inbound_port if inbound_port in HTTPS_PORTS else 443
-        # Reality MUST connect to public IP directly, with camouflage SNI!
-        target_server = server_pub_ip
+        # Host address should be the panel domain itself
+        panel_host = get_panel_sub_domain() or get_valid_server_domain() or server_pub_ip
+        target_server = panel_host
     else:
         if override_port:
             port = int(override_port)
@@ -30758,7 +30966,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
                 if "build_v2ray_anti_dpi_query" in globals():
                     _extra_anti = build_v2ray_anti_dpi_query(
                         operator_code=anti_dpi_opts.get("operator"),
-                        enable_ech=anti_dpi_opts.get("ech"),
+                        enable_ech=(False if reality_enabled else anti_dpi_opts.get("ech")),
                         custom_ech=anti_dpi_opts.get("custom_ech"),
                         enable_fragment=anti_dpi_opts.get("fragment"),
                         enable_patterniha=anti_dpi_opts.get("patterniha"),
@@ -30845,7 +31053,7 @@ def generate_singbox_share_link(inbound, host_ip, target_user=None, override_por
                 if "build_v2ray_anti_dpi_query" in globals():
                     _extra_anti = build_v2ray_anti_dpi_query(
                         operator_code=anti_dpi_opts.get("operator"),
-                        enable_ech=anti_dpi_opts.get("ech"),
+                        enable_ech=(False if reality_enabled else anti_dpi_opts.get("ech")),
                         custom_ech=anti_dpi_opts.get("custom_ech"),
                         enable_fragment=anti_dpi_opts.get("fragment"),
                         enable_patterniha=anti_dpi_opts.get("patterniha"),
@@ -32670,7 +32878,7 @@ def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=No
     tls_enabled = tls_obj.get("enabled", False)
     reality_obj = tls_obj.get("reality", {})
     reality_enabled = reality_obj.get("enabled", False)
-    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "images.unsplash.com")
+    sni = tls_obj.get("server_name") or reality_obj.get("handshake", {}).get("server", "digikala.com")
     tp_obj = inbound.get("transport", {})
     tp_type = tp_obj.get("type", "tcp")
     
@@ -32681,8 +32889,9 @@ def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=No
     
     ob = None
     out_tag = f"MHPanel-{tag}"
+    panel_host = get_panel_sub_domain() or get_valid_server_domain() or host_ip
     if itype == "vless":
-        target_srv = host_ip
+        target_srv = panel_host if reality_enabled else host_ip
         target_port = 443 if reality_enabled else port
         ob = {
             "type": "vless",
@@ -32722,7 +32931,7 @@ def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=No
         elif tp_type == "httpupgrade":
             ob["transport"] = {"type": "httpupgrade", "path": tp_obj.get("path", "/vless-upgrade")}
     elif itype == "trojan":
-        target_srv = host_ip if reality_enabled else (sni if tls_enabled and sni and "." in sni and not sni.startswith("dl.google") else host_ip)
+        target_srv = panel_host if reality_enabled else (sni if tls_enabled and sni and "." in sni and not sni.startswith("dl.google") else host_ip)
         target_port = 443 if reality_enabled else port
         ob = {
             "type": "trojan",
@@ -32812,6 +33021,12 @@ def generate_single_inbound_client_singbox_json(inbound, host_ip, target_user=No
             "server_port": port,
             "uuid": u_uuid
         }
+
+    disguise_cfg = get_effective_singbox_disguise()
+    if disguise_cfg.get("enabled"):
+        _dis_ob = apply_disguise_to_outbound(copy.deepcopy(ob), inbound, disguise_cfg)
+        if _dis_ob:
+            ob = _dis_ob
 
     return {
         "log": {"level": "warn", "timestamp": True},
@@ -33286,7 +33501,9 @@ def get_singbox_sub_settings():
         "custom_port": "",
         "protocol": "https",
         "disguise_enabled": False,
+        "disguise_mode": "cdn",
         "disguise_server": "",
+        "disguise_clean_ip": "",
         "disguise_port": "",
         "relay_worker_url": ""
     }
@@ -33309,6 +33526,173 @@ def save_singbox_sub_settings(settings):
         logger.error(f"Error saving singbox sub settings: {e}")
         return False
 
+def get_effective_singbox_disguise():
+    """Return normalized (enabled, mode, server, clean_ip, port) for Sing-box Origin Disguise."""
+    sb = get_singbox_sub_settings()
+    enabled = bool(sb.get("disguise_enabled"))
+    server = str(sb.get("disguise_server") or "").strip()
+    clean_ip = str(sb.get("disguise_clean_ip") or "").strip()
+    port_raw = str(sb.get("disguise_port") or "").strip()
+    port = int(port_raw) if port_raw.isdigit() and 1 <= int(port_raw) <= 65535 else None
+    mode = str(sb.get("disguise_mode") or "").strip().lower()
+    if mode not in ("cdn", "relay"):
+        # Infer relay if server is a bare IPv4/IPv6 without clean_ip
+        try:
+            import ipaddress
+            ipaddress.ip_address(server)
+            mode = "relay"
+        except Exception:
+            mode = "cdn"
+    if not server and not clean_ip:
+        enabled = False
+    return {
+        "enabled": enabled,
+        "mode": mode,
+        "server": server,
+        "clean_ip": clean_ip,
+        "port": port
+    }
+
+def is_inbound_cdn_compatible(ib):
+    """Return True if an inbound uses a CDN-compatible transport (ws/grpc/httpupgrade) without Reality."""
+    if not isinstance(ib, dict):
+        return False
+    itype = (ib.get("type") or "").lower()
+    if itype not in ("vless", "vmess", "trojan"):
+        return False
+    tls_obj = ib.get("tls") or {}
+    if (tls_obj.get("reality") or {}).get("enabled"):
+        return False
+    tp_type = ((ib.get("transport") or {}).get("type") or "tcp").lower()
+    return tp_type in ("ws", "grpc", "httpupgrade")
+
+def apply_disguise_to_outbound(ob, ib, disguise_cfg=None):
+    """Apply Origin Disguise (CDN or Relay) to a Sing-box client outbound dict.
+    Returns modified outbound, or None if incompatible with CDN mode (to prevent origin IP leak).
+    """
+    if not ob or not isinstance(ob, dict):
+        return ob
+    cfg = disguise_cfg or get_effective_singbox_disguise()
+    if not cfg.get("enabled"):
+        return ob
+
+    mode = cfg.get("mode", "cdn")
+    server = cfg.get("server", "")
+    clean_ip = cfg.get("clean_ip", "")
+    port = cfg.get("port")
+
+    if mode == "cdn":
+        if ib is not None and not is_inbound_cdn_compatible(ib):
+            return None
+        connect_host = clean_ip or server
+        sni_host = server or clean_ip
+        if not connect_host:
+            return None
+        ob["server"] = connect_host
+        ob["server_port"] = port if port else 443
+        ob["tls"] = {
+            "enabled": True,
+            "server_name": sni_host,
+            "utls": {"enabled": True, "fingerprint": "chrome"}
+        }
+        tp = ob.get("transport")
+        if isinstance(tp, dict) and tp.get("type") in ("ws", "httpupgrade"):
+            headers = dict(tp.get("headers") or {})
+            headers["Host"] = sni_host
+            tp["headers"] = headers
+        return ob
+
+    # Relay mode: keep all protocols and original TLS/Reality SNI, route to relay VPS
+    if server:
+        ob["server"] = server
+    if port:
+        ob["server_port"] = port
+    return ob
+
+def apply_disguise_to_share_link(link, ib=None, disguise_cfg=None):
+    """Apply Origin Disguise (CDN or Relay) to a share URI (vless/trojan/vmess/hysteria2/tuic/etc.).
+    Returns modified link, or None if incompatible with CDN mode.
+    """
+    if not link or not isinstance(link, str):
+        return link
+    cfg = disguise_cfg or get_effective_singbox_disguise()
+    if not cfg.get("enabled"):
+        return link
+
+    mode = cfg.get("mode", "cdn")
+    server = cfg.get("server", "")
+    clean_ip = cfg.get("clean_ip", "")
+    port = cfg.get("port")
+
+    if mode == "cdn" and ib is not None and not is_inbound_cdn_compatible(ib):
+        return None
+
+    connect_host = (clean_ip or server) if mode == "cdn" else server
+    sni_host = server or clean_ip
+    if not connect_host:
+        return link
+
+    # Handle VMess Base64 JSON links
+    if link.startswith("vmess://"):
+        try:
+            raw_b64 = link[len("vmess://"):].strip()
+            # Pad base64 if needed
+            pad = (-len(raw_b64)) % 4
+            if pad:
+                raw_b64 += "=" * pad
+            vm_data = json.loads(base64.b64decode(raw_b64).decode("utf-8"))
+            if mode == "cdn" and vm_data.get("net") not in ("ws", "grpc", "httpupgrade"):
+                return None
+            vm_data["add"] = connect_host
+            if mode == "cdn":
+                vm_data["port"] = str(port if port else 443)
+                vm_data["tls"] = "tls"
+                vm_data["sni"] = sni_host
+                vm_data["host"] = sni_host
+                vm_data.pop("allowInsecure", None)
+            elif port:
+                vm_data["port"] = str(port)
+            encoded = base64.b64encode(json.dumps(vm_data, ensure_ascii=False).encode("utf-8")).decode("utf-8")
+            return f"vmess://{encoded}"
+        except Exception:
+            return link
+
+    # Handle standard URI links (vless://, trojan://, hysteria2://, tuic://, ss://, etc.)
+    try:
+        from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+        parts = urlsplit(link)
+        if not parts.netloc or "@" not in parts.netloc:
+            return link
+        userinfo, hostport = parts.netloc.rsplit("@", 1)
+        orig_port = ""
+        if ":" in hostport and not hostport.startswith("["):
+            _, orig_port = hostport.rsplit(":", 1)
+        elif hostport.startswith("[") and "]:" in hostport:
+            _, orig_port = hostport.rsplit("]:", 1)
+
+        eff_port = str(port) if port else ("443" if mode == "cdn" else orig_port)
+        host_fmt = f"[{connect_host}]" if (":" in connect_host and not connect_host.startswith("[")) else connect_host
+        new_netloc = f"{userinfo}@{host_fmt}:{eff_port}" if eff_port else f"{userinfo}@{host_fmt}"
+
+        q_list = parse_qsl(parts.query, keep_blank_values=True)
+        if mode == "cdn":
+            q_dict = dict(q_list)
+            q_dict["security"] = "tls"
+            if sni_host:
+                q_dict["sni"] = sni_host
+                if q_dict.get("type") in ("ws", "httpupgrade") or "host" in q_dict:
+                    q_dict["host"] = sni_host
+            q_dict.pop("allowInsecure", None)
+            new_query = urlencode(q_dict)
+        else:
+            new_query = parts.query
+
+        return urlunsplit((parts.scheme, new_netloc, parts.path, new_query, parts.fragment))
+    except Exception:
+        if port:
+            return re.sub(r'@[^:?#]+:\d+', f'@{connect_host}:{port}', link)
+        return re.sub(r'@([^:?#]+)', f'@{connect_host}', link)
+
 @app.route("/api/singbox/sub-settings", methods=["GET", "POST"])
 def api_singbox_sub_settings():
     if not check_login():
@@ -33316,12 +33700,88 @@ def api_singbox_sub_settings():
     if request.method == "POST":
         req = request.json or {}
         settings = get_singbox_sub_settings()
-        for k in ["custom_domain", "custom_port", "protocol", "disguise_enabled", "disguise_server", "disguise_port", "relay_worker_url"]:
+        for k in ["custom_domain", "custom_port", "protocol", "disguise_enabled", "disguise_mode", "disguise_server", "disguise_clean_ip", "disguise_port", "relay_worker_url"]:
             if k in req:
                 settings[k] = req[k]
         save_singbox_sub_settings(settings)
         return jsonify({"success": True, "settings": settings})
     return jsonify({"success": True, "settings": get_singbox_sub_settings()})
+
+@app.route("/api/singbox/disguise/check", methods=["GET", "POST"])
+def api_singbox_disguise_check():
+    """Verify whether the configured disguise server hides the origin VPS IP and check inbound compatibility."""
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    import socket
+    req = request.get_json(silent=True) or {}
+    cur = get_effective_singbox_disguise()
+    mode = (req.get("disguise_mode") or cur["mode"] or "cdn").strip().lower()
+    server = (req.get("disguise_server") if "disguise_server" in req else cur["server"]).strip()
+    clean_ip = (req.get("disguise_clean_ip") if "disguise_clean_ip" in req else cur["clean_ip"]).strip()
+    origin_ip = get_server_public_ip() or ""
+
+    resolved_ips = []
+    dns_error = None
+    if server:
+        try:
+            infos = socket.getaddrinfo(server, None, socket.AF_INET)
+            resolved_ips = sorted({info[4][0] for info in infos if info and info[4]})
+        except Exception as e:
+            dns_error = str(e)
+
+    total_inbounds = 0
+    compatible_inbounds = 0
+    if os.path.exists(SINGBOX_CONFIG_FILE):
+        try:
+            with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                sb_cfg = json.load(f)
+            ibs = sb_cfg.get("inbounds", [])
+            total_inbounds = len(ibs)
+            if mode == "cdn":
+                compatible_inbounds = sum(1 for ib in ibs if is_inbound_cdn_compatible(ib))
+            else:
+                compatible_inbounds = total_inbounds
+        except Exception:
+            pass
+
+    leaks_origin = bool(origin_ip and origin_ip in resolved_ips)
+    ip_hidden = bool(server or clean_ip) and not leaks_origin and (not dns_error or bool(clean_ip))
+
+    warnings = []
+    if not server and not clean_ip:
+        warnings.append("آدرس سرور میانی یا دامنه استتار وارد نشده است.")
+    if leaks_origin:
+        if mode == "cdn":
+            warnings.append(f"هشدار نشت آی‌پی: دامنه «{server}» مستقیماً به آی‌پی اصلی سرور ({origin_ip}) متصل است! برای استتار واقعی در کلودفلر، تیک پروکسی نارنجی (🟠 Proxied) باید روشن باشد.")
+        else:
+            warnings.append(f"هشدار نشت آی‌پی: آدرس رله «{server}» همان آی‌پی سرور اصلی ({origin_ip}) است.")
+    if dns_error and not clean_ip:
+        warnings.append(f"خطا در استعلام DNS برای «{server}»: {dns_error}")
+    if mode == "cdn" and compatible_inbounds == 0 and total_inbounds > 0:
+        warnings.append("هیچ اینباند سازگار با کلودفلر (WS / gRPC / HTTPUpgrade) در هسته Sing-box یافت نشد.")
+
+    if not warnings:
+        if mode == "cdn":
+            status_message = f"استتار واقعی CDN برقرار است: آی‌پی سرور اصلی ({origin_ip}) مخفی بوده و {compatible_inbounds} اینباند سازگار با کلودفلر فعال است."
+        else:
+            status_message = f"استتار سرور واسط (Relay) آماده است: ترافیک {compatible_inbounds} اینباند از طریق «{server}» هدایت می‌شود."
+    else:
+        status_message = warnings[0]
+
+    return jsonify({
+        "success": True,
+        "mode": mode,
+        "server": server,
+        "clean_ip": clean_ip,
+        "origin_ip": origin_ip,
+        "resolved_ips": resolved_ips,
+        "leaks_origin": leaks_origin,
+        "ip_hidden": ip_hidden,
+        "compatible_inbounds": compatible_inbounds,
+        "total_inbounds": total_inbounds,
+        "warnings": warnings,
+        "status_message": status_message
+    })
 
 @app.route("/api/singbox/anti-dpi-settings", methods=["GET", "POST"])
 def api_singbox_anti_dpi_settings():
@@ -33394,34 +33854,44 @@ def api_singbox_user_links(username):
 
     target_host = get_valid_server_domain() or get_server_public_ip()
     user_inbounds = target.get("inbounds", [])
+    sb_settings = get_singbox_sub_settings()
+    disguise_cfg = get_effective_singbox_disguise()
+    is_cdn_disguise = disguise_cfg.get("enabled") and disguise_cfg.get("mode") == "cdn"
 
     configs = []
+    skipped_non_cdn = 0
     for ib in cfg.get("inbounds", []):
         tag = ib.get("tag")
         if not user_inbounds or tag in user_inbounds:
+            if is_cdn_disguise and not is_inbound_cdn_compatible(ib):
+                skipped_non_cdn += 1
+                continue
             proto_type = ib.get("type", "")
             is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
             if is_real:
                 candidate_ports = get_reality_candidate_ports()
                 for r_port in candidate_ports:
                     r_link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=r_port)
+                    r_link = apply_disguise_to_share_link(r_link, ib=ib, disguise_cfg=disguise_cfg)
                     if r_link:
                         r_tag = f"{tag}-p{r_port}" if r_port != 443 else tag
                         configs.append({
                             "tag": r_tag,
                             "type": proto_type,
-                            "port": r_port,
+                            "port": disguise_cfg.get("port") or r_port,
                             "share_link": r_link
                         })
             else:
-                eff_port = ib.get("listen_port")
+                eff_port = (disguise_cfg.get("port") or 443) if is_cdn_disguise else (disguise_cfg.get("port") or ib.get("listen_port"))
                 link = generate_singbox_share_link(ib, target_host, target_user=target)
-                configs.append({
-                    "tag": tag,
-                    "type": proto_type,
-                    "port": eff_port,
-                    "share_link": link
-                })
+                link = apply_disguise_to_share_link(link, ib=ib, disguise_cfg=disguise_cfg)
+                if link:
+                    configs.append({
+                        "tag": tag,
+                        "type": proto_type,
+                        "port": eff_port,
+                        "share_link": link
+                    })
 
     # Append Cloudflare Clean IP configs (VLESS-WS, Trojan-WS, VMess-WS)
     pwd = target.get("password") or ""
@@ -33429,12 +33899,16 @@ def api_singbox_user_links(username):
     try:
         cloud_links, _ = generate_snispoof_sub_uris(username, pwd, u_uuid, target_host, get_server_public_ip())
         for cl in cloud_links:
-            configs.append({
-                "tag": f"cleanip-{cl['type'].lower()}-{cl['server']}",
-                "type": f"{cl['type']} (Clean IP {cl['server']})",
-                "port": cl.get("port", 443),
-                "share_link": cl.get("uri")
-            })
+            cl_uri = cl.get("uri")
+            if disguise_cfg.get("enabled") and not is_cdn_disguise:
+                cl_uri = apply_disguise_to_share_link(cl_uri, disguise_cfg=disguise_cfg)
+            if cl_uri:
+                configs.append({
+                    "tag": f"cleanip-{cl['type'].lower()}-{cl['server']}",
+                    "type": f"{cl['type']} (Clean IP {cl['server']})",
+                    "port": cl.get("port", 443),
+                    "share_link": cl_uri
+                })
     except Exception as e:
         logger.error(f"Error adding clean ip configs to user links: {e}")
 
@@ -33445,6 +33919,8 @@ def api_singbox_user_links(username):
             for ib in cfg.get("inbounds", []):
                 tag = ib.get("tag")
                 if not user_inbounds or tag in user_inbounds:
+                    if is_cdn_disguise and not is_inbound_cdn_compatible(ib):
+                        continue
                     proto_type = ib.get("type", "")
                     is_real = ib.get("tls", {}).get("reality", {}).get("enabled")
                     tls_en = ib.get("tls", {}).get("enabled", False)
@@ -33455,22 +33931,22 @@ def api_singbox_user_links(username):
                             "ech": (op_key != "gaming"),
                             "patterniha": (op_key == "patterniha")
                         }
-                        r_port = 443 if is_real else ib.get("listen_port")
+                        r_port = 443 if (is_real or is_cdn_disguise) else ib.get("listen_port")
                         link = generate_singbox_share_link(ib, target_host, target_user=target, override_port=r_port, anti_dpi_opts=op_opts)
+                        link = apply_disguise_to_share_link(link, ib=ib, disguise_cfg=disguise_cfg)
                         if link:
                             anti_dpi_configs.append({
                                 "tag": f"{tag}-{op_key}",
                                 "operator": op_key,
                                 "operator_name": op_data.get("name", op_key),
                                 "type": f"{proto_type.upper()} ({op_data.get('name', op_key)})",
-                                "port": r_port,
+                                "port": disguise_cfg.get("port") or r_port,
                                 "share_link": link
                             })
     except Exception as e:
         logger.error(f"Error building anti-dpi user links: {e}")
 
-    # Sing-box Sub Settings & Origin Disguise
-    sb_settings = get_singbox_sub_settings()
+    # Sing-box Sub Settings Base URL
     if sb_settings.get("relay_worker_url"):
         base_url = sb_settings["relay_worker_url"].strip().rstrip("/")
     elif sb_settings.get("custom_domain"):
@@ -33481,19 +33957,6 @@ def api_singbox_user_links(username):
         base_url = f"{proto}://{cd}{port_suffix}"
     else:
         base_url = get_panel_sub_base_url()
-
-    # Disguise / relay address replacement in share links to hide the origin server IP
-    if sb_settings.get("disguise_enabled") and sb_settings.get("disguise_server"):
-        disguise_srv = sb_settings["disguise_server"].strip()
-        disguise_port = str(sb_settings.get("disguise_port", "")).strip()
-        for c in configs + anti_dpi_configs:
-            if "share_link" in c and c["share_link"]:
-                orig_link = c["share_link"]
-                if disguise_port:
-                    c["share_link"] = re.sub(r'@[^:?#]+:\d+', f'@{disguise_srv}:{disguise_port}', orig_link)
-                    c["port"] = int(disguise_port)
-                else:
-                    c["share_link"] = re.sub(r'@([^:?#]+)', f'@{disguise_srv}', orig_link)
 
     sub_token = target.get("sub_token", "")
     sub_url = f"{base_url}/sub/{sub_token}" if sub_token else ""
@@ -33507,11 +33970,13 @@ def api_singbox_user_links(username):
         "configs": configs,
         "anti_dpi_configs": anti_dpi_configs,
         "configs_count": len(configs),
+        "skipped_non_cdn": skipped_non_cdn,
         "sub_token": sub_token,
         "sub_url": sub_url,
         "sub_b64_url": sub_b64_url,
         "sub_json_url": sub_json_url,
         "sub_settings": sb_settings,
+        "disguise": disguise_cfg,
         "anti_dpi_settings": get_anti_dpi_settings() if "get_anti_dpi_settings" in globals() else {},
         "operators": DEFAULT_OPERATOR_PRESETS if "DEFAULT_OPERATOR_PRESETS" in globals() else {}
     })
@@ -33790,10 +34255,19 @@ def generate_singbox_users_export_payload(target_users, category_name="All"):
             used_fmt = u.get("used_traffic_formatted") or "0 B"
             u_inbounds = u.get("inbounds", [])
             has_inb = False
+            disguise_cfg = get_effective_singbox_disguise()
+            is_cdn_disguise = disguise_cfg.get("enabled") and disguise_cfg.get("mode") == "cdn"
+
             for ib_tag in u_inbounds:
                 if ib_tag in all_inbounds:
+                    ib_obj = all_inbounds[ib_tag]
+                    if is_cdn_disguise and not is_inbound_cdn_compatible(ib_obj):
+                        continue
                     has_inb = True
-                    link = generate_singbox_share_link(all_inbounds[ib_tag], server_ip, target_user=u)
+                    link = generate_singbox_share_link(ib_obj, server_ip, target_user=u)
+                    link = apply_disguise_to_share_link(link, ib=ib_obj, disguise_cfg=disguise_cfg)
+                    if not link:
+                        continue
                     all_links.append(link)
                     grouped[uname].append({"tag": ib_tag, "link": link})
                     csv_rows.append(f'"{u["username"]}","{u.get("password","")}","{u.get("uuid","")}","{u.get("category","")}","{status_str}","{u.get("traffic_limit_gb",0)}","{used_fmt}","{u.get("expire_date","")}","{sub_url}","{sub_b64_url}","{ib_tag}","{link}"')
@@ -34235,7 +34709,7 @@ def get_current_reality_domain():
                         return sname.strip()
         except Exception:
             pass
-    return "images.unsplash.com"
+    return "digikala.com"
 
 def execute_reality_rotation(force=False, target_domain=None):
     cfg = get_reality_rotation_config()
@@ -37832,6 +38306,118 @@ print(f"Connecting to Relay: {{RELAY_URL}}")
     })
 
 
+# --- Server & Network Security Hub Endpoints ---
+@app.route("/api/security/overview", methods=["GET"])
+def api_security_overview():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager module not loaded"}), 500
+    totp_cfg = get_totp_config()
+    panel_path = get_panel_path()
+    ports_cnt = len(get_batch_port_connections()) if "get_batch_port_connections" in globals() else 0
+    audit = sec_mgr.get_security_audit_report(
+        totp_enabled=totp_cfg.get("enabled", False),
+        panel_path=panel_path,
+        listening_ports_count=ports_cnt
+    )
+    role = session.get("admin_role", "super")
+    admins_safe = []
+    if role == "super":
+        for a in sec_mgr.load_panel_admins():
+            admins_safe.append({
+                "username": a.get("username"),
+                "allowed_tabs": a.get("allowed_tabs", []),
+                "enabled": a.get("enabled", True),
+                "created_at": a.get("created_at", ""),
+                "updated_at": a.get("updated_at", "")
+            })
+    return jsonify({
+        "success": True,
+        "audit": audit,
+        "p2p": sec_mgr.get_security_settings(),
+        "ip_rules": sec_mgr.load_ip_rules(),
+        "admins": admins_safe,
+        "sections": sec_mgr.PANEL_SECTION_CATALOG,
+        "current_admin_role": role,
+        "current_admin_username": session.get("admin_username", "admin")
+    })
+
+@app.route("/api/security/p2p", methods=["POST"])
+def api_security_p2p():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    enable = bool(req.get("enabled", False))
+    res = sec_mgr.set_p2p_block(enable)
+    return jsonify(res)
+
+@app.route("/api/security/ip/add", methods=["POST"])
+def api_security_ip_add():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    ok, msg = sec_mgr.add_ip_rule(
+        raw_ip=req.get("ip", ""),
+        action=req.get("action", "block"),
+        note=req.get("note", ""),
+        actor=session.get("admin_username", "admin")
+    )
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+
+@app.route("/api/security/ip/delete", methods=["POST"])
+def api_security_ip_delete():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    ok, msg = sec_mgr.remove_ip_rule(
+        raw_ip=req.get("ip", ""),
+        actor=session.get("admin_username", "admin")
+    )
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+
+@app.route("/api/security/admins/save", methods=["POST"])
+def api_security_admins_save():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if session.get("admin_role", "super") != "super":
+        return jsonify({"success": False, "error": "فقط مدیر اصلی (Super Admin) مجاز به مدیریت ادمین‌هاست."}), 403
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    super_user, _ = get_credentials()
+    ok, msg = sec_mgr.upsert_panel_admin(
+        username=req.get("username", ""),
+        password=req.get("password", ""),
+        allowed_tabs=req.get("allowed_tabs", []),
+        enabled=req.get("enabled", True),
+        super_username=super_user,
+        actor=session.get("admin_username", "admin")
+    )
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+
+@app.route("/api/security/admins/delete", methods=["POST"])
+def api_security_admins_delete():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if session.get("admin_role", "super") != "super":
+        return jsonify({"success": False, "error": "فقط مدیر اصلی (Super Admin) مجاز به حذف ادمین‌هاست."}), 403
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    ok, msg = sec_mgr.delete_panel_admin(
+        username=req.get("username", ""),
+        actor=session.get("admin_username", "admin")
+    )
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
+
+
 if __name__ == "__main__":
     if os.path.exists(HELPER_SCRIPT):
         os.chmod(HELPER_SCRIPT, 0o755)
@@ -37976,6 +38562,12 @@ if __name__ == "__main__":
             sync_singbox_multiplexer_and_iptables()
         except Exception as e:
             print(f"Error syncing singbox HAProxy and iptables on startup: {e}")
+
+        try:
+            if sec_mgr:
+                sec_mgr.restore_all_security_rules()
+        except Exception as e:
+            print(f"Error restoring security firewall rules on startup: {e}")
 
     threading.Thread(target=_run_startup_background_tasks, daemon=True).start()
 

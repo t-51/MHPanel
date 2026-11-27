@@ -107,6 +107,10 @@
     {% include 'partials/notifications.html' %}
 
     {% include 'partials/translations.html' %}
+    <script>
+        window.PANEL_ADMIN_ROLE = {{ (current_admin_role | default('super')) | tojson }};
+        window.PANEL_ALLOWED_TABS = {{ (current_allowed_tabs | default([])) | tojson }};
+    </script>
     {% include 'partials/scripts.html' %}
 </body>
 </html>

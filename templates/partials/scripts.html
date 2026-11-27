@@ -8884,6 +8884,16 @@
     }
 
     function switchTab(tabId) {
+        // RBAC Enforcement for sub-admins
+        if (window.PANEL_ADMIN_ROLE === "sub_admin" && Array.isArray(window.PANEL_ALLOWED_TABS) && window.PANEL_ALLOWED_TABS.length > 0) {
+            const sbSub = ['vless', 'vmess', 'trojan', 'hysteria2', 'tuic', 'shadowsocks', 'shadowtls', 'naive', 'naiveproxy'];
+            const dnsSub = ['noizdns', 'masterdnsvpn', 'dnstt', 'vaydns', 'slipstream', 'doh'];
+            const normTab = sbSub.includes(tabId) ? 'singbox' : (dnsSub.includes(tabId) ? 'dns-tunnels' : tabId);
+            if (!window.PANEL_ALLOWED_TABS.includes(normTab)) {
+                if (typeof showToast === "function") showToast("دسترسی شما به این بخش محدود شده است.", "error");
+                return;
+            }
+        }
         // Automatically close mobile sidebar if open
         toggleMobileSidebar(false);
         const filterInput = document.getElementById("sidebar-filter-input");
@@ -9089,6 +9099,7 @@
             fetchSystemDomain();
             fetchPanelAccess();
             fetchSwapStatus();
+            if (typeof loadServerSecurityOverview === "function") loadServerSecurityOverview();
         } else if (tabId === "multiplexer") {
             fetchMultiplexerConfig();
         } else if (tabId === "openvpn") {
@@ -12439,8 +12450,265 @@
         }
         if (tabId === 'system') {
             fetchPanelAccess();
+            if (typeof loadServerSecurityOverview === "function") loadServerSecurityOverview();
         }
     };
+
+    // --- Server & Network Security Hub + RBAC ---
+    function openServerSecuritySection() {
+        if (typeof switchTab === "function") switchTab("system");
+        setTimeout(() => {
+            const secEl = document.getElementById("server-security-hub");
+            if (secEl) secEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            if (typeof loadServerSecurityOverview === "function") loadServerSecurityOverview();
+            const btn = document.getElementById("sidebar-btn-server-security");
+            if (btn) {
+                document.querySelectorAll(".sidebar-nav-item").forEach(i => i.classList.remove("active"));
+                btn.classList.add("active");
+            }
+        }, 80);
+    }
+    (function initPanelRbacRestrictions() {
+        if (window.PANEL_ADMIN_ROLE !== "sub_admin" || !Array.isArray(window.PANEL_ALLOWED_TABS) || window.PANEL_ALLOWED_TABS.length === 0) return;
+        const allowed = new Set(window.PANEL_ALLOWED_TABS);
+        const sbSub = new Set(['vless', 'vmess', 'trojan', 'hysteria2', 'tuic', 'shadowsocks', 'shadowtls', 'naive', 'naiveproxy']);
+        const dnsSub = new Set(['noizdns', 'masterdnsvpn', 'dnstt', 'vaydns', 'slipstream', 'doh']);
+        document.addEventListener("DOMContentLoaded", () => {
+            document.querySelectorAll(".sidebar-nav-item[onclick*='switchTab']").forEach(btn => {
+                const oc = btn.getAttribute("onclick") || "";
+                const m = oc.match(/switchTab\(['"]([^'"]+)['"]\)/);
+                if (m) {
+                    const tid = m[1];
+                    const norm = sbSub.has(tid) ? "singbox" : (dnsSub.has(tid) ? "dns-tunnels" : tid);
+                    if (!allowed.has(norm)) btn.style.display = "none";
+                }
+            });
+            if (!allowed.has("overview") && window.PANEL_ALLOWED_TABS.length > 0 && typeof switchTab === "function") {
+                switchTab(window.PANEL_ALLOWED_TABS[0]);
+            }
+        });
+    })();
+
+    let _secAdminsCache = [];
+    let _secSectionsCache = [];
+
+    async function loadServerSecurityOverview() {
+        try {
+            const res = await fetch("/api/security/overview");
+            const data = await res.json();
+            if (!res.ok || !data.success) return;
+
+            const audit = data.audit || {};
+            const scoreBadge = document.getElementById("sec-score-badge");
+            if (scoreBadge) {
+                const sc = audit.score ?? 0;
+                scoreBadge.textContent = `امتیاز امنیتی: ${sc}%`;
+                scoreBadge.style.background = sc >= 80 ? "rgba(16, 185, 129, 0.14)" : (sc >= 55 ? "rgba(245, 158, 11, 0.14)" : "rgba(239, 68, 68, 0.14)");
+                scoreBadge.style.color = sc >= 80 ? "#10b981" : (sc >= 55 ? "#f59e0b" : "#ef4444");
+            }
+
+            const p2pToggle = document.getElementById("sec-p2p-block-toggle");
+            if (p2pToggle) p2pToggle.checked = !!(data.p2p && data.p2p.p2p_block_enabled);
+
+            const sshBadge = document.getElementById("sec-ssh-failed-badge");
+            if (sshBadge) sshBadge.textContent = `تلاش ناموفق SSH: ${audit.ssh_failed_recent ?? 0}`;
+
+            // Render Issues
+            const issuesEl = document.getElementById("sec-issues-list");
+            if (issuesEl) {
+                const issues = audit.issues || [];
+                if (issues.length === 0) {
+                    issuesEl.innerHTML = `<div style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #10b981; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700;">✅ هیچ مشکل امنیتی بحرانی یافت نشد.</div>`;
+                } else {
+                    issuesEl.innerHTML = issues.map(iss => {
+                        const isHigh = iss.severity === "high";
+                        const col = isHigh ? "#ef4444" : "#f59e0b";
+                        const bg = isHigh ? "rgba(239,68,68,0.08)" : "rgba(245,158,11,0.08)";
+                        return `<div style="background:${bg}; border:1px solid ${col}44; border-radius:8px; padding:8px 10px; font-size:11.5px;">
+                            <div style="font-weight:800; color:${col};">${isHigh ? "🔴" : "🟡"} ${iss.title}</div>
+                            <div style="color:var(--text-muted); margin-top:2px;">${iss.desc}</div>
+                        </div>`;
+                    }).join("");
+                }
+            }
+
+            // Render Security Events Log
+            const logEl = document.getElementById("sec-events-log");
+            if (logEl) {
+                const evs = audit.events || [];
+                logEl.textContent = evs.length ? evs.join("\n") : "No security events recorded yet.";
+            }
+
+            // Render IP Rules
+            const ipBody = document.getElementById("sec-ip-rules-tbody");
+            if (ipBody) {
+                const rules = data.ip_rules || [];
+                if (rules.length === 0) {
+                    ipBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:12px; color:var(--text-muted);">هیچ قانون IP ثبت نشده است.</td></tr>`;
+                } else {
+                    ipBody.innerHTML = rules.map(r => `
+                        <tr style="border-bottom:1px solid var(--border-subtle);">
+                            <td style="padding:7px 10px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:right;">${r.ip}</td>
+                            <td style="padding:7px 10px;">
+                                <span style="font-weight:700; color:${r.action === 'allow' ? '#10b981' : '#ef4444'};">${r.action === 'allow' ? '✅ مجاز' : '⛔ مسدود'}</span>
+                            </td>
+                            <td style="padding:7px 10px; color:var(--text-muted);">${r.note || '—'}</td>
+                            <td style="padding:7px 10px; text-align:center;">
+                                <button type="button" class="btn btn-danger btn-sm" onclick="deleteSecurityIpRule('${r.ip}')" style="padding:2px 8px; font-size:11px;">حذف</button>
+                            </td>
+                        </tr>
+                    `).join("");
+                }
+            }
+
+            // Render RBAC Admins (only for Super Admin)
+            const rbacCard = document.getElementById("sec-admins-rbac-card");
+            if (rbacCard) {
+                if (data.current_admin_role !== "super") {
+                    rbacCard.style.display = "none";
+                } else {
+                    rbacCard.style.display = "block";
+                    _secSectionsCache = data.sections || [];
+                    _secAdminsCache = data.admins || [];
+                    const secGrid = document.getElementById("sec-admin-sections-grid");
+                    if (secGrid && secGrid.children.length === 0) {
+                        secGrid.innerHTML = _secSectionsCache.map(s => `
+                            <label style="display:flex; align-items:center; gap:6px; background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:6px; padding:5px 8px; font-size:11.5px; cursor:pointer;">
+                                <input type="checkbox" class="sec-admin-tab-chk" value="${s.id}" ${s.id === 'overview' ? 'checked' : ''}>
+                                <span>${s.label}</span>
+                            </label>
+                        `).join("");
+                    }
+                    const admBody = document.getElementById("sec-admins-tbody");
+                    if (admBody) {
+                        if (_secAdminsCache.length === 0) {
+                            admBody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:12px; color:var(--text-muted);">هنوز ادمین فرعی تعریف نشده است.</td></tr>`;
+                        } else {
+                            admBody.innerHTML = _secAdminsCache.map(a => `
+                                <tr style="border-bottom:1px solid var(--border-subtle);">
+                                    <td style="padding:8px 12px; font-family:'JetBrains Mono',monospace; font-weight:700;">${a.username}</td>
+                                    <td style="padding:8px 12px;">${a.enabled ? '<span style="color:#10b981;font-weight:700;">فعال</span>' : '<span style="color:#ef4444;">غیرفعال</span>'}</td>
+                                    <td style="padding:8px 12px; font-size:11px; color:var(--text-muted);">${(a.allowed_tabs || []).join(", ")}</td>
+                                    <td style="padding:8px 12px; text-align:center; display:flex; gap:6px; justify-content:center;">
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="editSecurityPanelAdmin('${a.username}')" style="padding:2px 8px; font-size:11px;">ویرایش</button>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="deleteSecurityPanelAdmin('${a.username}')" style="padding:2px 8px; font-size:11px;">حذف</button>
+                                    </td>
+                                </tr>
+                            `).join("");
+                        }
+                    }
+                }
+            }
+            if (window.lucide) lucide.createIcons();
+        } catch (err) {
+            console.error("Error loading security overview:", err);
+        }
+    }
+
+    async function toggleP2pPermanentBlock(enabled) {
+        try {
+            const res = await fetch("/api/security/p2p", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled: !!enabled })
+            });
+            const data = await res.json();
+            showToast(data.message || "وضعیت مسدودسازی P2P بروزرسانی شد.", data.success ? "success" : "error");
+            loadServerSecurityOverview();
+        } catch (e) {
+            showToast("خطا در اعمال مسدودسازی P2P", "error");
+        }
+    }
+
+    async function submitSecurityIpRule(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const ip = (document.getElementById("sec-ip-input")?.value || "").trim();
+        const action = document.getElementById("sec-ip-action")?.value || "block";
+        const note = (document.getElementById("sec-ip-note")?.value || "").trim();
+        try {
+            const res = await fetch("/api/security/ip/add", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ip, action, note })
+            });
+            const data = await res.json();
+            showToast(data.message || "انجام شد.", data.success ? "success" : "error");
+            if (data.success) {
+                document.getElementById("sec-ip-input").value = "";
+                document.getElementById("sec-ip-note").value = "";
+                loadServerSecurityOverview();
+            }
+        } catch (err) {
+            showToast("خطا در ثبت قانون فایروال IP", "error");
+        }
+    }
+
+    async function deleteSecurityIpRule(ip) {
+        try {
+            const res = await fetch("/api/security/ip/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ ip })
+            });
+            const data = await res.json();
+            showToast(data.message || "حذف شد.", data.success ? "success" : "error");
+            loadServerSecurityOverview();
+        } catch (err) {
+            showToast("خطا در حذف قانون IP", "error");
+        }
+    }
+
+    function editSecurityPanelAdmin(username) {
+        const adm = _secAdminsCache.find(a => a.username === username);
+        if (!adm) return;
+        document.getElementById("sec-admin-username").value = adm.username;
+        document.getElementById("sec-admin-password").value = "";
+        document.getElementById("sec-admin-enabled").checked = !!adm.enabled;
+        const allowed = new Set(adm.allowed_tabs || []);
+        document.querySelectorAll(".sec-admin-tab-chk").forEach(chk => {
+            chk.checked = allowed.has(chk.value);
+        });
+    }
+
+    async function saveSecurityPanelAdmin(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const username = (document.getElementById("sec-admin-username")?.value || "").trim();
+        const password = document.getElementById("sec-admin-password")?.value || "";
+        const enabled = !!document.getElementById("sec-admin-enabled")?.checked;
+        const allowed_tabs = Array.from(document.querySelectorAll(".sec-admin-tab-chk:checked")).map(c => c.value);
+        try {
+            const res = await fetch("/api/security/admins/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password, enabled, allowed_tabs })
+            });
+            const data = await res.json();
+            showToast(data.message || "ذخیره شد.", data.success ? "success" : "error");
+            if (data.success) {
+                document.getElementById("sec-admin-username").value = "";
+                document.getElementById("sec-admin-password").value = "";
+                loadServerSecurityOverview();
+            }
+        } catch (err) {
+            showToast("خطا در ذخیره ادمین", "error");
+        }
+    }
+
+    async function deleteSecurityPanelAdmin(username) {
+        if (!confirm(`آیا از حذف ادمین «${username}» مطمئن هستید؟`)) return;
+        try {
+            const res = await fetch("/api/security/admins/delete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username })
+            });
+            const data = await res.json();
+            showToast(data.message || "حذف شد.", data.success ? "success" : "error");
+            loadServerSecurityOverview();
+        } catch (err) {
+            showToast("خطا در حذف ادمین", "error");
+        }
+    }
 
     // --- OpenVPN Functions (IKEv2-Style Architecture & Presets) ---
     function showAddOvpnModal() {
@@ -22950,7 +23218,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             let securityDisplay = "بدون رمزنگاری (Plain)";
             let securitySub = "ترافیک مستقیم بدون TLS";
             if (isReality) {
-                const dest = (tls.reality && tls.reality.handshake && tls.reality.handshake.server) || primary.reality_dest || primary.sni || "swdist.apple.com";
+                const dest = (tls.reality && tls.reality.handshake && tls.reality.handshake.server) || primary.reality_dest || primary.sni || "digikala.com";
                 securityDisplay = `REALITY (${dest})`;
                 securitySub = `استتار هندشیک • SpiderX: ${primary.reality_spider_x || '/'}`;
             } else if (isTls) {
@@ -23118,10 +23386,42 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const logsPane = document.getElementById("sb-pane-logs");
         const cleanIpsPane = document.getElementById("sb-pane-cleanips");
         const rotationPane = document.getElementById("sb-pane-reality-rotation");
+        const disguisePane = document.getElementById("sb-pane-disguise");
+        const echPane = document.getElementById("sb-pane-ech-antidpi");
         const banner = document.getElementById("sb-protocol-filter-banner");
         const dedicatedCard = document.getElementById("sb-protocol-dedicated-card");
 
-        if (subTab === "logs") {
+        if (disguisePane && subTab !== "disguise") disguisePane.style.display = "none";
+        if (echPane && subTab !== "ech_antidpi") echPane.style.display = "none";
+
+        if (subTab === "ech_antidpi") {
+            stopSingboxLogAutoRefresh();
+            if (inboundsPane) inboundsPane.style.display = "none";
+            if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
+            if (logsPane) logsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
+            if (disguisePane) disguisePane.style.display = "none";
+            if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
+            if (echPane) echPane.style.display = "block";
+            if (typeof loadSingboxEchAntiDpiPage === "function") loadSingboxEchAntiDpiPage();
+            if (window.lucide) lucide.createIcons();
+        } else if (subTab === "disguise") {
+            stopSingboxLogAutoRefresh();
+            if (inboundsPane) inboundsPane.style.display = "none";
+            if (usersPane) usersPane.style.display = "none";
+            if (outboundsPane) outboundsPane.style.display = "none";
+            if (logsPane) logsPane.style.display = "none";
+            if (cleanIpsPane) cleanIpsPane.style.display = "none";
+            if (rotationPane) rotationPane.style.display = "none";
+            if (banner) banner.style.display = "none";
+            if (dedicatedCard) dedicatedCard.style.display = "none";
+            if (disguisePane) disguisePane.style.display = "block";
+            if (typeof loadSingboxDisguiseSettings === "function") loadSingboxDisguiseSettings();
+            if (window.lucide) lucide.createIcons();
+        } else if (subTab === "logs") {
             stopSingboxLogAutoRefresh();
             if (inboundsPane) inboundsPane.style.display = "none";
             if (usersPane) usersPane.style.display = "none";
@@ -23616,7 +23916,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (autoRotEl) autoRotEl.checked = true;
         const poolEl = document.getElementById("sb-reality-domains-pool");
         if (poolEl && !poolEl.value) {
-            poolEl.value = "www.digikala.com\ndivar.ir\ntorob.com\nimages.unsplash.com\ndownload.docker.com\ncdn.jsdelivr.net";
+            poolEl.value = "digikala.com\ndivar.ir\ntorob.com\nsnapp.ir\naparat.com\nnobitex.ir";
         }
     }
 
@@ -23660,7 +23960,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     const flowEl = document.getElementById("sb-user-flow");
                     if (flowEl) flowEl.value = "xtls-rprx-vision";
                     const destEl = document.getElementById("sb-reality-dest");
-                    if (destEl) destEl.value = "swdist.apple.com";
+                    if (destEl) destEl.value = "digikala.com";
                     generateSingboxRealityKeys();
                 }
             },
@@ -23707,7 +24007,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     if (flowEl) flowEl.value = "";
                     const grpcEl = document.getElementById("sb-grpc-service");
                     if (grpcEl) grpcEl.value = "GunService";
-                    document.getElementById("sb-reality-dest").value = "images.unsplash.com";
+                    document.getElementById("sb-reality-dest").value = "divar.ir";
                     generateSingboxRealityKeys();
                 }
             },
@@ -24463,8 +24763,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (tlsMode === "reality") {
-            payload.sni = document.getElementById("sb-reality-dest").value.trim() || "swdist.apple.com";
-            payload.handshake_server = document.getElementById("sb-reality-dest").value.trim() || "swdist.apple.com";
+            payload.sni = document.getElementById("sb-reality-dest").value.trim() || "digikala.com";
+            payload.handshake_server = document.getElementById("sb-reality-dest").value.trim() || "digikala.com";
             payload.handshake_port = document.getElementById("sb-reality-dest-port").value;
             payload.reality_private_key = document.getElementById("sb-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-reality-pubkey").value.trim();
@@ -24918,7 +25218,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     }
 
     function populateSingboxEditRealityFields(rawReality, d) {
-        const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "swdist.apple.com";
+        const hsServer = (rawReality.handshake && rawReality.handshake.server) || d.reality_dest || d.sni || "digikala.com";
         const hsPort = (rawReality.handshake && rawReality.handshake.server_port) || d.reality_dest_port || 443;
         document.getElementById("sb-edit-reality-dest").value = hsServer;
         document.getElementById("sb-edit-reality-dest-port").value = hsPort;
@@ -25094,8 +25394,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
 
         if (tlsMode === "reality") {
-            payload.sni = document.getElementById("sb-edit-reality-dest").value.trim() || "swdist.apple.com";
-            payload.handshake_server = document.getElementById("sb-edit-reality-dest").value.trim() || "swdist.apple.com";
+            payload.sni = document.getElementById("sb-edit-reality-dest").value.trim() || "digikala.com";
+            payload.handshake_server = document.getElementById("sb-edit-reality-dest").value.trim() || "digikala.com";
             payload.handshake_port = document.getElementById("sb-edit-reality-dest-port").value;
             payload.reality_private_key = document.getElementById("sb-edit-reality-privkey").value.trim();
             payload.reality_public_key = document.getElementById("sb-edit-reality-pubkey").value.trim();
@@ -27897,6 +28197,14 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             const disguiseBadge = document.getElementById("sb-user-links-disguise-badge");
             if (disguiseBadge) {
                 if (data.disguise && data.disguise.enabled) {
+                    const modeLbl = data.disguise.mode === "relay" ? "سرور واسط Relay" : "کلودفلر CDN";
+                    const targetLbl = data.disguise.clean_ip
+                        ? `${data.disguise.clean_ip} (SNI: ${data.disguise.server})`
+                        : (data.disguise.server || "");
+                    const spanEl = disguiseBadge.querySelector("span > span");
+                    if (spanEl) {
+                        spanEl.textContent = `استتار واقعی فعال (${modeLbl}): ${targetLbl}` + (data.skipped_non_cdn ? ` • ${data.skipped_non_cdn} اینباند غیر-CDN مخفی شد` : "");
+                    }
                     disguiseBadge.style.display = "flex";
                 } else {
                     disguiseBadge.style.display = "none";
@@ -28147,7 +28455,7 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    // --- Sing-box Subscription & Disguise Settings Functions ---
+    // --- Sing-box Subscription Link Settings Functions ---
     async function openSingboxSubSettingsModal() {
         const modal = document.getElementById("modal-singbox-sub-settings");
         if (!modal) return;
@@ -28168,17 +28476,6 @@ SlowDNS Pubkey: ${slowdnsKey}`;
 
                 const rInp = document.getElementById("sb-sub-relay-worker-url");
                 if (rInp) rInp.value = s.relay_worker_url || "";
-
-                const disCheck = document.getElementById("sb-sub-disguise-enabled");
-                if (disCheck) disCheck.checked = !!s.disguise_enabled;
-
-                const disSrv = document.getElementById("sb-sub-disguise-server");
-                if (disSrv) disSrv.value = s.disguise_server || "";
-
-                const disPort = document.getElementById("sb-sub-disguise-port");
-                if (disPort) disPort.value = s.disguise_port || "";
-
-                toggleSingboxDisguiseInputs();
             }
 
             // Load Anti-DPI & ECH settings
@@ -28189,6 +28486,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
                     const ads = adData.settings;
                     const echChk = document.getElementById("sb-antidpi-ech-enabled");
                     if (echChk) echChk.checked = (ads.default_ech_enabled !== false);
+                    const fragChk = document.getElementById("sb-antidpi-fragment-enabled");
+                    if (fragChk) fragChk.checked = (ads.default_fragment_enabled !== false);
                     const echSel = document.getElementById("sb-antidpi-default-ech");
                     if (echSel && ads.default_ech) echSel.value = ads.default_ech;
                     const opSel = document.getElementById("sb-antidpi-default-operator");
@@ -28219,6 +28518,8 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         if (patChk) patChk.checked = true;
         const echChk = document.getElementById("sb-antidpi-ech-enabled");
         if (echChk) echChk.checked = true;
+        const fragChk = document.getElementById("sb-antidpi-fragment-enabled");
+        if (fragChk) fragChk.checked = true;
         const echSel = document.getElementById("sb-antidpi-default-ech");
         if (echSel) echSel.value = "aef.ir+https://1.1.1.1/dns-query";
         const opSel = document.getElementById("sb-antidpi-default-operator");
@@ -28234,28 +28535,18 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         }
     }
 
-    function toggleSingboxDisguiseInputs() {
-        const disCheck = document.getElementById("sb-sub-disguise-enabled");
-        const panel = document.getElementById("sb-sub-disguise-panel");
-        if (panel && disCheck) {
-            panel.style.display = disCheck.checked ? "block" : "none";
-        }
-    }
-
     async function handleSingboxSubSettingsSubmit(e) {
         if (e && e.preventDefault) e.preventDefault();
         const payload = {
             custom_domain: (document.getElementById("sb-sub-custom-domain")?.value || "").trim(),
             custom_port: (document.getElementById("sb-sub-custom-port")?.value || "").trim(),
             protocol: (document.getElementById("sb-sub-protocol")?.value || "").trim(),
-            relay_worker_url: (document.getElementById("sb-sub-relay-worker-url")?.value || "").trim(),
-            disguise_enabled: !!document.getElementById("sb-sub-disguise-enabled")?.checked,
-            disguise_server: (document.getElementById("sb-sub-disguise-server")?.value || "").trim(),
-            disguise_port: (document.getElementById("sb-sub-disguise-port")?.value || "").trim()
+            relay_worker_url: (document.getElementById("sb-sub-relay-worker-url")?.value || "").trim()
         };
 
         const antiDpiPayload = {
             default_ech_enabled: !!document.getElementById("sb-antidpi-ech-enabled")?.checked,
+            default_fragment_enabled: !!document.getElementById("sb-antidpi-fragment-enabled")?.checked,
             default_ech: (document.getElementById("sb-antidpi-default-ech")?.value || "").trim(),
             default_operator: (document.getElementById("sb-antidpi-default-operator")?.value || "all").trim(),
             patterniha_enabled: !!document.getElementById("sb-antidpi-patterniha-enabled")?.checked
@@ -28281,16 +28572,410 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             }
 
             if (res.ok && data.success) {
-                showToast("تنظیمات لینک ساب، استتار سرور و موتور ضد DPI با موفقیت ذخیره شد.", "success");
+                showToast("تنظیمات لینک ساب با موفقیت ذخیره شد.", "success");
                 closeSingboxSubSettingsModal();
                 if (typeof loadSingboxUsers === "function") {
                     loadSingboxUsers();
                 }
             } else {
-                showToast(`خطا در ذخیره تنظیمات: ${data.error || "خطای ناشناخته"}`, "error");
+                showToast(`خطا در ذخیره تنظیمات ساب: ${data.error || "خطای ناشناخته"}`, "error");
             }
         } catch (err) {
             showToast("خطای شبکه در ذخیره تنظیمات سابسکرایب", "error");
+        }
+    }
+
+    // --- Sing-box Origin Server Disguise Settings Functions ---
+    function selectSingboxDisguiseMode(mode) {
+        const m = (mode === "relay") ? "relay" : "cdn";
+        const modeInp = document.getElementById("sb-disguise-mode");
+        if (modeInp) modeInp.value = m;
+
+        const cdnCard = document.getElementById("sb-disguise-mode-card-cdn");
+        const relayCard = document.getElementById("sb-disguise-mode-card-relay");
+        if (cdnCard && relayCard) {
+            if (m === "cdn") {
+                cdnCard.style.background = "rgba(16, 185, 129, 0.1)";
+                cdnCard.style.borderColor = "#10b981";
+                relayCard.style.background = "var(--surface-secondary)";
+                relayCard.style.borderColor = "var(--border-subtle)";
+            } else {
+                relayCard.style.background = "rgba(99, 102, 241, 0.1)";
+                relayCard.style.borderColor = "#6366f1";
+                cdnCard.style.background = "var(--surface-secondary)";
+                cdnCard.style.borderColor = "var(--border-subtle)";
+            }
+        }
+
+        const srvLbl = document.getElementById("sb-disguise-server-label");
+        const srvInp = document.getElementById("sb-disguise-server");
+        const cleanRow = document.getElementById("sb-disguise-cleanip-row");
+        const portHint = document.getElementById("sb-disguise-port-hint");
+        if (m === "cdn") {
+            if (srvLbl) srvLbl.textContent = "دامنه پروکسی‌شده کلودفلر (🟠 Proxied Domain)";
+            if (srvInp) srvInp.placeholder = "مثال: relay.mydomain.com";
+            if (cleanRow) cleanRow.style.display = "block";
+            if (portHint) portHint.textContent = "خالی = ۴۴۳ در حالت CDN";
+        } else {
+            if (srvLbl) srvLbl.textContent = "آی‌پی یا دامنه سرور واسط (Relay VPS / سرور ایران)";
+            if (srvInp) srvInp.placeholder = "مثال: 1.2.3.4 یا ir-relay.mydomain.com";
+            if (cleanRow) cleanRow.style.display = "none";
+            if (portHint) portHint.textContent = "خالی = پورت اصلی هر اینباند";
+        }
+    }
+
+    async function loadSingboxEchAntiDpiPage() {
+        try {
+            const res = await fetch("/api/singbox/anti-dpi-settings");
+            const data = await res.json();
+            if (data && data.success && data.settings) {
+                const ads = data.settings;
+                const echChk = document.getElementById("sb-page-ech-enabled");
+                if (echChk) echChk.checked = (ads.default_ech_enabled !== false);
+                const fragChk = document.getElementById("sb-page-frag-enabled");
+                if (fragChk) fragChk.checked = (ads.default_fragment_enabled !== false);
+                const echSel = document.getElementById("sb-page-default-ech");
+                if (echSel && ads.default_ech) echSel.value = ads.default_ech;
+                const opSel = document.getElementById("sb-page-default-operator");
+                if (opSel && ads.default_operator) opSel.value = ads.default_operator;
+                const patChk = document.getElementById("sb-page-patterniha-enabled");
+                if (patChk) patChk.checked = !!ads.patterniha_enabled;
+            }
+        } catch (err) {
+            console.error("Error loading ECH Anti-DPI page:", err);
+        }
+    }
+
+    function applyPatternihaQuickPresetPage() {
+        const echChk = document.getElementById("sb-page-ech-enabled");
+        if (echChk) echChk.checked = true;
+        const fragChk = document.getElementById("sb-page-frag-enabled");
+        if (fragChk) fragChk.checked = true;
+        const patChk = document.getElementById("sb-page-patterniha-enabled");
+        if (patChk) patChk.checked = true;
+        const echSel = document.getElementById("sb-page-default-ech");
+        if (echSel) echSel.value = "aef.ir+https://1.1.1.1/dns-query";
+        const opSel = document.getElementById("sb-page-default-operator");
+        if (opSel) opSel.value = "all";
+        showToast("مقادیر پیشنهادی ZEUS (ECH + فرگمنت ۳ اپراتور) اعمال شد.", "info");
+    }
+
+    async function saveSingboxEchAntiDpiPage(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const payload = {
+            default_ech_enabled: !!document.getElementById("sb-page-ech-enabled")?.checked,
+            default_fragment_enabled: !!document.getElementById("sb-page-frag-enabled")?.checked,
+            default_ech: (document.getElementById("sb-page-default-ech")?.value || "").trim(),
+            default_operator: (document.getElementById("sb-page-default-operator")?.value || "all").trim(),
+            patterniha_enabled: !!document.getElementById("sb-page-patterniha-enabled")?.checked
+        };
+        try {
+            const res = await fetch("/api/singbox/anti-dpi-settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                showToast("تنظیمات ECH و فرگمنت ۳ اپراتور با موفقیت ذخیره شد.", "success");
+            } else {
+                showToast(data.error || "خطا در ذخیره تنظیمات ECH", "error");
+            }
+        } catch (err) {
+            showToast("خطای شبکه در ذخیره تنظیمات ECH", "error");
+        }
+    }
+
+    async function loadSingboxDisguiseSettings() {
+        const checkRes = document.getElementById("sb-disguise-check-result");
+        if (checkRes) checkRes.style.display = "none";
+
+        try {
+            const res = await fetch("/api/singbox/sub-settings");
+            const data = await res.json();
+            if (data && data.success && data.settings) {
+                const s = data.settings;
+                const disCheck = document.getElementById("sb-disguise-enabled") || document.getElementById("sb-sub-disguise-enabled");
+                if (disCheck) disCheck.checked = !!s.disguise_enabled;
+
+                const disSrv = document.getElementById("sb-disguise-server") || document.getElementById("sb-sub-disguise-server");
+                if (disSrv) disSrv.value = s.disguise_server || "";
+
+                const disCleanIp = document.getElementById("sb-disguise-clean-ip");
+                if (disCleanIp) disCleanIp.value = s.disguise_clean_ip || "";
+
+                const disPort = document.getElementById("sb-disguise-port") || document.getElementById("sb-sub-disguise-port");
+                if (disPort) disPort.value = s.disguise_port || "";
+
+                selectSingboxDisguiseMode(s.disguise_mode || "cdn");
+                updateSingboxDisguiseStatusUI(!!s.disguise_enabled, s.disguise_server);
+                toggleSingboxDisguiseInputs();
+            }
+        } catch (e) {
+            console.error("Error loading singbox disguise settings:", e);
+        }
+
+        const pane = document.getElementById("sb-pane-disguise");
+        if (pane && window.lucide) lucide.createIcons();
+    }
+
+    async function openSingboxDisguiseModal() {
+        if (typeof switchTab === "function") switchTab("singbox");
+        if (typeof switchSingboxSubTab === "function") switchSingboxSubTab("disguise");
+        else await loadSingboxDisguiseSettings();
+    }
+
+    function closeSingboxDisguiseModal() {
+        if (typeof switchSingboxSubTab === "function") switchSingboxSubTab("users");
+    }
+
+    function updateSingboxDisguiseStatusUI(isEnabled, serverName) {
+        const dot = document.getElementById("sb-disguise-status-dot");
+        const title = document.getElementById("sb-disguise-status-title");
+        const desc = document.getElementById("sb-disguise-status-desc");
+
+        if (dot && title && desc) {
+            if (isEnabled) {
+                dot.style.background = "#10b981";
+                dot.style.boxShadow = "0 0 8px rgba(16, 185, 129, 0.6)";
+                title.textContent = "استتار سرور اصلی فعال است";
+                title.style.color = "#10b981";
+                desc.textContent = serverName ? `ترافیک کلاینت‌ها به سرور واسط (${serverName}) هدایت می‌شود.` : "آدرس سرور اصلی پنهان است.";
+            } else {
+                dot.style.background = "#94a3b8";
+                dot.style.boxShadow = "none";
+                title.textContent = "استتار سرور اصلی غیرفعال است";
+                title.style.color = "var(--text-main)";
+                desc.textContent = "کانفیگ‌ها به صورت مستقیم از آدرس سرور اصلی استفاده می‌کنند.";
+            }
+        }
+    }
+
+    function toggleSingboxDisguiseInputs() {
+        const disCheck = document.getElementById("sb-disguise-enabled") || document.getElementById("sb-sub-disguise-enabled");
+        const panel = document.getElementById("sb-disguise-panel-card") || document.getElementById("sb-sub-disguise-panel");
+        const isChecked = disCheck ? disCheck.checked : false;
+
+        const serverInp = document.getElementById("sb-disguise-server") || document.getElementById("sb-sub-disguise-server");
+        const serverVal = serverInp ? serverInp.value : "";
+        updateSingboxDisguiseStatusUI(isChecked, serverVal);
+
+        if (panel) {
+            if (isChecked) {
+                panel.style.opacity = "1";
+                panel.style.pointerEvents = "auto";
+                panel.style.borderColor = "rgba(16, 185, 129, 0.4)";
+            } else {
+                panel.style.opacity = "0.6";
+                panel.style.borderColor = "var(--border-subtle)";
+            }
+        }
+    }
+
+    async function handleSingboxDisguiseSubmit(e) {
+        if (e && e.preventDefault) e.preventDefault();
+        const disCheck = document.getElementById("sb-disguise-enabled") || document.getElementById("sb-sub-disguise-enabled");
+        const disMode = document.getElementById("sb-disguise-mode");
+        const disSrv = document.getElementById("sb-disguise-server") || document.getElementById("sb-sub-disguise-server");
+        const disCleanIp = document.getElementById("sb-disguise-clean-ip");
+        const disPort = document.getElementById("sb-disguise-port") || document.getElementById("sb-sub-disguise-port");
+
+        const payload = {
+            disguise_enabled: !!disCheck?.checked,
+            disguise_mode: (disMode?.value || "cdn").trim(),
+            disguise_server: (disSrv?.value || "").trim(),
+            disguise_clean_ip: (disCleanIp?.value || "").trim(),
+            disguise_port: (disPort?.value || "").trim()
+        };
+
+        if (payload.disguise_enabled && !payload.disguise_server && !payload.disguise_clean_ip) {
+            showToast("لطفاً دامنه استتار یا آدرس سرور واسط را وارد کنید.", "warning");
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/singbox/sub-settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                showToast("تنظیمات استتار سرور اصلی (Sing-box) با موفقیت ذخیره شد.", "success");
+                closeSingboxDisguiseModal();
+                if (typeof loadSingboxUsers === "function") {
+                    loadSingboxUsers();
+                }
+            } else {
+                showToast(`خطا در ذخیره تنظیمات استتار: ${data.error || "خطای ناشناخته"}`, "error");
+            }
+        } catch (err) {
+            showToast("خطای شبکه در ذخیره تنظیمات استتار سرور", "error");
+        }
+    }
+
+    async function testSingboxDisguiseLeak() {
+        const box = document.getElementById("sb-disguise-check-result");
+        const btn = document.getElementById("btn-sb-disguise-check");
+        const mode = (document.getElementById("sb-disguise-mode")?.value || "cdn").trim();
+        const server = (document.getElementById("sb-disguise-server")?.value || "").trim();
+        const clean_ip = (document.getElementById("sb-disguise-clean-ip")?.value || "").trim();
+
+        if (btn) btn.disabled = true;
+        if (box) {
+            box.style.display = "block";
+            box.style.background = "var(--surface-secondary)";
+            box.style.border = "1px solid var(--border-subtle)";
+            box.style.color = "var(--text-muted)";
+            box.innerHTML = "در حال بررسی DNS، احتمال نشت آی‌پی سرور اصلی و سازگاری اینباندها...";
+        }
+
+        try {
+            const res = await fetch("/api/singbox/disguise/check", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ disguise_mode: mode, disguise_server: server, disguise_clean_ip: clean_ip })
+            });
+            const data = await res.json();
+            if (box && data.success) {
+                const ok = data.ip_hidden && (!data.warnings || data.warnings.length === 0);
+                box.style.background = ok ? "rgba(16, 185, 129, 0.1)" : "rgba(239, 68, 68, 0.1)";
+                box.style.border = ok ? "1px solid rgba(16, 185, 129, 0.35)" : "1px solid rgba(239, 68, 68, 0.35)";
+                box.style.color = ok ? "#10b981" : "#ef4444";
+                const resolvedTxt = (data.resolved_ips && data.resolved_ips.length) ? data.resolved_ips.join(", ") : "—";
+                box.innerHTML = `
+                    <div style="font-weight: 800; margin-bottom: 4px;">${ok ? "✅" : "⚠️"} ${data.status_message}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); direction: ltr; text-align: right;">
+                        Origin IP: <b>${data.origin_ip || "—"}</b> | Resolved IPs: <b>${resolvedTxt}</b> | Compatible Inbounds: <b>${data.compatible_inbounds}/${data.total_inbounds}</b>
+                    </div>
+                `;
+            }
+        } catch (err) {
+            if (box) {
+                box.style.background = "rgba(239, 68, 68, 0.1)";
+                box.style.color = "#ef4444";
+                box.textContent = "خطای شبکه در تست استتار.";
+            }
+        } finally {
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    // --- Cloudflare 1-Click Domain Provisioning for Sing-box ---
+    async function provisionCloudflareSingboxDomain(purpose) {
+        const isSub = (purpose === "sub");
+        const btnId = isSub ? "btn-cf-sub-auto" : "btn-cf-disguise-auto";
+        const btn = document.getElementById(btnId);
+        const originalHtml = btn ? btn.innerHTML : "";
+
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = `<i data-lucide="loader-2" class="spin" style="width:13px; height:13px;"></i> <span>در حال ثبت رکورد...</span>`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        try {
+            const prefix = isSub ? "sub" : "relay";
+            const res = await fetch("/api/cloudflare/singbox/provision-domain", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ purpose: purpose, prefix: prefix })
+            });
+            const data = await res.json();
+
+            if (res.ok && data.success && data.hostname) {
+                showToast(data.message || `دامنه ${data.hostname} با موفقیت در کلودفلر ایجاد و ست شد.`, "success");
+                if (isSub) {
+                    const dInp = document.getElementById("sb-sub-custom-domain");
+                    if (dInp) dInp.value = data.hostname;
+                    const protoSel = document.getElementById("sb-sub-protocol");
+                    if (protoSel) protoSel.value = "https";
+                } else {
+                    const srvInp = document.getElementById("sb-disguise-server");
+                    if (srvInp) srvInp.value = data.hostname;
+                    const disCheck = document.getElementById("sb-disguise-enabled");
+                    if (disCheck) disCheck.checked = true;
+                    toggleSingboxDisguiseInputs();
+                }
+            } else {
+                const err = data.error || "خطا در برقراری ارتباط با Cloudflare";
+                showToast(err, "error");
+                if (err.includes("مرکز کلاود") || err.includes("توکن")) {
+                    setTimeout(() => {
+                        if (confirm("آیا مایلید برای تنظیم دامنه و توکن به تب «مرکز کلاود (Cloudflare Hub)» منتقل شوید؟")) {
+                            if (isSub) closeSingboxSubSettingsModal();
+                            else closeSingboxDisguiseModal();
+                            if (typeof switchTab === "function") switchTab("cloudflare-hub");
+                        }
+                    }, 500);
+                }
+            }
+        } catch (err) {
+            console.error("provisionCloudflareSingboxDomain error:", err);
+            showToast("خطای شبکه در اتصال به کلودفلر", "error");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+                if (window.lucide) lucide.createIcons();
+            }
+        }
+    }
+
+    async function getActiveCloudflareDomainName() {
+        try {
+            const res = await fetch("/api/cloudflare/config");
+            const data = await res.json();
+            if (data && data.success && data.config && data.config.active_zone_name) {
+                return data.config.active_zone_name;
+            }
+        } catch (_) {}
+        const h = window.location.hostname;
+        const parts = h.split(".");
+        if (parts.length >= 2 && !/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+            return parts.slice(-2).join(".");
+        }
+        return "";
+    }
+
+    async function fillSingboxSubDomainPrefix(prefix) {
+        const root = await getActiveCloudflareDomainName();
+        const dInp = document.getElementById("sb-sub-custom-domain");
+        if (dInp) {
+            dInp.value = root ? `${prefix}.${root}` : `${prefix}.mydomain.com`;
+            dInp.focus();
+        }
+    }
+
+    async function fillSingboxDisguiseDomainPrefix(prefix) {
+        const root = await getActiveCloudflareDomainName();
+        const srvInp = document.getElementById("sb-disguise-server");
+        if (srvInp) {
+            srvInp.value = root ? `${prefix}.${root}` : `${prefix}.mydomain.com`;
+            srvInp.focus();
+            toggleSingboxDisguiseInputs();
+        }
+    }
+
+    let _lastCleanIpIdx = 0;
+    function applyCloudflareCleanIpDisguise() {
+        const cleanIps = [
+            "104.16.132.229",
+            "172.67.182.196",
+            "104.19.241.93",
+            "162.159.192.1",
+            "104.21.23.45",
+            "141.101.90.1"
+        ];
+        const selected = cleanIps[_lastCleanIpIdx % cleanIps.length];
+        _lastCleanIpIdx++;
+        const cleanInp = document.getElementById("sb-disguise-clean-ip") || document.getElementById("sb-disguise-server");
+        if (cleanInp) {
+            cleanInp.value = selected;
+            cleanInp.focus();
+            showToast(`آی‌پی تمیز کلودفلر درج گردید: ${selected}`, "info");
+            toggleSingboxDisguiseInputs();
         }
     }
 
@@ -28803,12 +29488,29 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const textarea = document.getElementById("sb-rot-domains-textarea");
         if (!textarea) return;
         const iranian = [
-            "www.digikala.com",
+            "digikala.com",
             "divar.ir",
             "torob.com",
             "snapp.ir",
             "aparat.com",
-            "nobitex.ir"
+            "nobitex.ir",
+            "filimo.com",
+            "cafebazaar.ir",
+            "bama.ir",
+            "snappfood.ir",
+            "zarinpal.com",
+            "basalam.com",
+            "balad.ir",
+            "neshan.org",
+            "bmi.ir",
+            "irna.ir",
+            "isna.ir",
+            "zoomit.ir",
+            "soft98.ir",
+            "downloadha.com",
+            "p30download.ir",
+            "bale.ai",
+            "eitaa.com"
         ];
         const existing = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
         const combined = Array.from(new Set([...existing, ...iranian]));
@@ -28820,30 +29522,40 @@ SlowDNS Pubkey: ${slowdnsKey}`;
         const textarea = document.getElementById("sb-rot-domains-textarea");
         if (!textarea) return;
         const recommended = [
-            "www.digikala.com",
+            "digikala.com",
             "divar.ir",
             "torob.com",
             "snapp.ir",
             "aparat.com",
             "nobitex.ir",
-            "images.unsplash.com",
-            "download.docker.com",
-            "cdn.jsdelivr.net",
-            "swdist.apple.com",
-            "gateway.icloud.com",
-            "speedtest.net",
-            "www.cloudflare.com"
+            "filimo.com",
+            "cafebazaar.ir",
+            "bama.ir",
+            "snappfood.ir",
+            "zarinpal.com",
+            "basalam.com",
+            "balad.ir",
+            "neshan.org",
+            "bmi.ir",
+            "irna.ir",
+            "isna.ir",
+            "zoomit.ir",
+            "soft98.ir",
+            "downloadha.com",
+            "p30download.ir",
+            "bale.ai",
+            "eitaa.com"
         ];
         const existing = textarea.value.split("\n").map(d => d.trim()).filter(Boolean);
         const combined = Array.from(new Set([...existing, ...recommended]));
         textarea.value = combined.join("\n");
-        showToast("تمام دامنه‌های پیشنهادی ایرانی و بین‌المللی اضافه شدند.", "info");
+        showToast("دامنه‌های پربازدید و پیشنهادی اضافه شدند.", "info");
     }
 
     function setIranianDomainsToAddModal() {
         const el = document.getElementById("sb-reality-domains-pool");
         if (!el) return;
-        const iranian = ["www.digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
+        const iranian = ["digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
         const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
         el.value = Array.from(new Set([...existing, ...iranian])).join("\n");
         showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "success");
@@ -28852,16 +29564,16 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function setRecommendedDomainsToAddModal() {
         const el = document.getElementById("sb-reality-domains-pool");
         if (!el) return;
-        const recommended = ["images.unsplash.com", "download.docker.com", "cdn.jsdelivr.net", "swdist.apple.com", "gateway.icloud.com", "speedtest.net", "www.cloudflare.com"];
+        const recommended = ["digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
         const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
         el.value = Array.from(new Set([...existing, ...recommended])).join("\n");
-        showToast("دامنه‌های برتر خارجی به کادر استتار اضافه شدند.", "info");
+        showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "info");
     }
 
     function setIranianDomainsToEditModal() {
         const el = document.getElementById("sb-edit-reality-domains-pool");
         if (!el) return;
-        const iranian = ["www.digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
+        const iranian = ["digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
         const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
         el.value = Array.from(new Set([...existing, ...iranian])).join("\n");
         showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "success");
@@ -28870,10 +29582,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
     function setRecommendedDomainsToEditModal() {
         const el = document.getElementById("sb-edit-reality-domains-pool");
         if (!el) return;
-        const recommended = ["images.unsplash.com", "download.docker.com", "cdn.jsdelivr.net", "swdist.apple.com", "gateway.icloud.com", "speedtest.net", "www.cloudflare.com"];
+        const recommended = ["digikala.com", "divar.ir", "torob.com", "snapp.ir", "aparat.com", "nobitex.ir"];
         const existing = el.value.split("\n").map(d => d.trim()).filter(Boolean);
         el.value = Array.from(new Set([...existing, ...recommended])).join("\n");
-        showToast("دامنه‌های برتر خارجی به کادر استتار اضافه شدند.", "info");
+        showToast("دامنه‌های برتر ایرانی به کادر استتار اضافه شدند.", "info");
     }
 
     async function testRealityDomainsNow() {

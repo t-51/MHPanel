@@ -314,15 +314,73 @@ def sanitize_stealth_prefix(prefix, fallback="node"):
             p = p.replace(sens, replacement)
     return p or fallback
 
+# ============================================================================
+# PORT-FORWARD MAP (Origin Rules) — for CDN-Proxied protocols only
+# CF receives on 443/80, then Origin Rule rewrites to actual Sing-box port
+# ============================================================================
+def _get_singbox_ws_ports():
+    """Read actual WS inbound ports from /etc/sing-box/config.json dynamically."""
+    import json as _json, os as _os
+    defaults = {
+        "vless_ws":        20451,  # vless-ws-in
+        "vmess_ws":        20457,  # vmess-ws-tls (also trojan-ws-tls tag falls here)
+        "gas_relay":       9090,   # panel HTTP port used by GAS relay reverse-proxy
+        "singbox_sub":     9090,   # sub link delivered by panel on port 9090
+        "singbox_disguise": 443,   # disguise relay — CF connects to real TLS on 443
+    }
+    cfg_path = "/etc/sing-box/config.json"
+    if _os.path.exists(cfg_path):
+        try:
+            with open(cfg_path) as _f:
+                cfg = _json.load(_f)
+            for inb in cfg.get("inbounds", []):
+                t = inb.get("type", "")
+                port = inb.get("listen_port")
+                transport = inb.get("transport", {})
+                if not port:
+                    continue
+                if transport.get("type") == "ws":
+                    if t == "vless":
+                        defaults["vless_ws"] = port
+                    elif t == "vmess":
+                        defaults["vmess_ws"] = port
+                    elif t == "trojan":
+                        defaults["vmess_ws"] = port  # trojan-ws shares the vmess_ws key
+        except Exception:
+            pass
+    # Panel port
+    try:
+        with open("/www/wwwroot/mhpanel/panel_port.txt") as _f:
+            p = int(_f.read().strip())
+            defaults["gas_relay"] = p
+            defaults["singbox_sub"] = p
+    except Exception:
+        pass
+    return defaults
+
+
+# Protocols that need a CF Origin Rule (port-forward) after DNS creation
+PROXIED_ORIGIN_RULE_PROTOCOLS = {
+    "vless_ws":         "VLESS WebSocket CDN",
+    "vmess_ws":         "VMess / Trojan WebSocket CDN",
+    "gas_relay":        "Google Apps Script Relay",
+    "singbox_sub":      "Sing-box Sub Link CDN",
+    "singbox_disguise": "Sing-box Disguise Relay CDN",
+}
+
+
 def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protocols_to_provision=None, custom_prefixes=None):
     """
     Automates creating subdomains for different protocols.
     Protocols like Reality / Hy2 / TUIC / MTProto / SSH are direct (Proxied: False).
     Protocols like VLESS-WS / VMess-WS / Trojan-WS / GAS can be CDN Proxied (Proxied: True).
     All default prefixes use stealth, innocuous names to avoid DPI surveillance.
+    For CDN-Proxied protocols, automatically adds a Cloudflare Origin Rule to
+    port-forward traffic from CF edge (443) to the actual Sing-box listen port.
     """
     root_domain = root_domain.strip().lower()
     custom_prefixes = custom_prefixes or {}
+    ws_ports = _get_singbox_ws_ports()
 
     default_specs = {
         "reality": {
@@ -401,6 +459,20 @@ def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protoc
             "proxied": False,
             "type": "A",
             "desc": "اتصال وایرگارد مستقیم یا WSTunnel (net)"
+        },
+        "singbox_sub": {
+            "title": "Sing-box Sub Link (CDN Proxied)",
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("singbox_sub", "sub")),
+            "proxied": True,
+            "type": "A",
+            "desc": "دامنه سابسکرایب هوشمند کلاینت‌ها با پروکسی ابری کلودفلر و SSL معتبر (sub)"
+        },
+        "singbox_disguise": {
+            "title": "Sing-box Disguise / Relay (CDN Proxied)",
+            "prefix": sanitize_stealth_prefix(custom_prefixes.get("singbox_disguise", "relay")),
+            "proxied": True,
+            "type": "A",
+            "desc": "ساب‌دامین استتار شده پشت شبکه ابری کلودفلر با پنهان‌سازی ۱۰۰٪ آی‌پی سرور اصلی (relay)"
         }
     }
 
@@ -431,15 +503,31 @@ def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protoc
         )
         if res.get("success"):
             success_count += 1
-            results.append({
+            origin_rule_result = None
+            origin_rule_msg = None
+            # Auto-add CF Origin Rule for proxied protocols that need port forwarding
+            if spec["proxied"] and proto_key in PROXIED_ORIGIN_RULE_PROTOCOLS:
+                target_port = ws_ports.get(proto_key)
+                if target_port:
+                    or_desc = f"MHPanel | {PROXIED_ORIGIN_RULE_PROTOCOLS[proto_key]} | {sub_full} → :{target_port}"
+                    or_res = add_origin_rule(zone_id, token, sub_full, target_port, or_desc)
+                    origin_rule_result = "success" if or_res.get("success") else "error"
+                    origin_rule_msg = or_res.get("message") or or_res.get("error")
+
+            result_entry = {
                 "protocol": proto_key,
                 "title": spec["title"],
                 "subdomain": sub_full,
                 "proxied": spec["proxied"],
                 "status": "success",
                 "action": res.get("action", "applied"),
-                "message": f"ساب‌دامین {sub_full} با موفقیت ({'پروکسی کلودفلر روشن' if spec['proxied'] else 'DNS مستقیم'}) ثبت شد."
-            })
+                "message": f"ساب‌دامین {sub_full} با موفقیت ({'پروکسی کلودفلر روشن' if spec['proxied'] else 'DNS مستقیم'}) ثبت شد.",
+            }
+            if origin_rule_result:
+                result_entry["origin_rule"] = origin_rule_result
+                result_entry["origin_rule_port"] = ws_ports.get(proto_key)
+                result_entry["origin_rule_msg"] = origin_rule_msg
+            results.append(result_entry)
         else:
             results.append({
                 "protocol": proto_key,
@@ -456,6 +544,46 @@ def provision_protocol_subdomains(zone_id, token, server_ip, root_domain, protoc
         "success_count": success_count,
         "results": results
     }
+
+
+def provision_singbox_domain(zone_id, token, server_ip, root_domain, purpose="sub", custom_prefix=""):
+    """
+    1-Click provisioning for Sing-box Subscription Domain or Origin Disguise Domain.
+    purpose="sub": Creates proxied A record (e.g. sub.domain.com) pointing to server_ip.
+    purpose="disguise": Creates direct A record (e.g. relay.domain.com) pointing to server_ip.
+    """
+    root_domain = root_domain.strip().lower()
+    if purpose == "sub":
+        prefix = sanitize_stealth_prefix(custom_prefix or "sub")
+        proxied = True
+        desc = "دامنه سابسکرایب هوشمند کلاینت‌ها با پروکسی ابری کلودفلر و SSL معتبر"
+    else:
+        prefix = sanitize_stealth_prefix(custom_prefix or "relay")
+        proxied = True  # Cloudflare CDN Proxied (Orange Cloud) to completely hide Origin VPS IP
+        desc = "دامنه استتار و رله سرور پشت شبکه کلودفلر جهت مخفی‌سازی کامل آی‌پی اصلی"
+
+    sub_full = f"{prefix}.{root_domain}" if prefix and prefix != "@" else root_domain
+    res = upsert_dns_record(
+        zone_id=zone_id,
+        token=token,
+        name=sub_full,
+        rtype="A",
+        content=server_ip,
+        proxied=proxied,
+        ttl=1
+    )
+    if res.get("success"):
+        return {
+            "success": True,
+            "hostname": sub_full,
+            "prefix": prefix,
+            "root_domain": root_domain,
+            "purpose": purpose,
+            "proxied": proxied,
+            "action": res.get("action", "applied"),
+            "message": f"دامنه {sub_full} با موفقیت در کلودفلر ثبت شد ({'پروکسی کلودفلر 🟠' if proxied else 'مستقیم بدون پروکسی ⚪'})."
+        }
+    return res
 
 
 # ============================================================================
