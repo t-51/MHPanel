@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="版本 MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="版本 MHPanel">
   <img src="https://img.shields.io/badge/平台-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/核心-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -79,7 +79,7 @@ MH Panel 搭载全能智能订阅引擎，将 **Sing-box 核心的全部 23 种�
 
 - [⚡ 一键极速安装](#-一键极速安装-quick-start)
 - [📡 通用智能订阅引擎](#-通用智能订阅引擎全部-23-种节点合一)
-- [🌟 版本 1.7.0 核心特性](#-版本-170-核心特性)
+- [🌟 版本 1.8.0 核心特性](#-版本-170-核心特性)
 - [📸 浅色主题视觉画廊](#-浅色主题视觉画廊-light-theme-gallery)
 - [📐 架构图解与流量链路](#-架构图解与流量链路)
 - [📚 支持协议与核心矩阵](#-支持协议与核心矩阵)
@@ -90,9 +90,9 @@ MH Panel 搭载全能智能订阅引擎，将 **Sing-box 核心的全部 23 种�
 
 ---
 
-## 🌟 版本 1.7.0 核心特性
+## 🌟 版本 1.8.0 核心特性
 
-版本 **1.7.0** 标志着反审查封锁能力、Sing-box 全能核心整合与双主题人机交互界面的重大飞跃：
+版本 **1.8.0** 标志着反审查封锁能力、Sing-box 全能核心整合与双主题人机交互界面的重大飞跃：
 
 1. ⚡ **Sing-box 23 模态全套协议阵列：**
    - 自动化部署全部现代传输层：**VLESS Reality** (Vision, TCP, gRPC, HTTPUpgrade), **VLESS TLS**, **VMess**, **Trojan**, **Hysteria 2** (Salamander 混淆与 Brutal QUIC), **TUIC v5** (0-RTT), **Shadowsocks 2022**, **NaiveProxy** (Chrome 协议栈伪装) 与 **ShadowTLS v3**。
@@ -197,7 +197,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 MH PANEL Enterprise 终端主控控制台 (版本 1.7.0)
+     🚀 MH PANEL Enterprise 终端主控控制台 (版本 1.8.0)
   ========================================================================
   Web 面板状态: Online (IP:PORT/PATH) | 快捷命令: mhpanel
   ------------------------------------------------------------------------

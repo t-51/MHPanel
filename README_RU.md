@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Версия MHPanel">
   <img src="https://img.shields.io/badge/Платформа-Ubuntu%2020%2B%20%7C%20Debian%2011%2B-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Платформа">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Версия Python">
   <img src="https://img.shields.io/badge/Ядро-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Ядро">
@@ -79,7 +79,7 @@ sudo bash install.sh
 
 - [⚡ Быстрая установка одной командой](#-быстрая-установка-одной-командой-quick-start)
 - [📡 Универсальный движок умных подписок](#-универсальный-движок-умных-подписок-все-23-конфига-в-1-ссылке)
-- [🌟 Новое в версии 1.7.0](#-новое-в-версии-170)
+- [🌟 Новое в версии 1.8.0](#-новое-в-версии-170)
 - [📸 Галерея интерфейса в светлой теме](#-галерея-интерфейса-в-светлой-теме-light-theme-gallery)
 - [📐 Архитектура и пайплайны трафика](#-архитектура-и-пайплайны-трафика)
 - [📚 Матрица поддерживаемых протоколов](#-матрица-поддерживаемых-протоколов)
@@ -90,9 +90,9 @@ sudo bash install.sh
 
 ---
 
-## 🌟 Новое в версии 1.7.0
+## 🌟 Новое в версии 1.8.0
 
-Версия **1.7.0** представляет собой крупнейший шаг вперед в устойчивости к блокировкам, интеграции с ядром Sing-box, эргономике с поддержкой светлой и темной тем, а также универсальной подписке:
+Версия **1.8.0** представляет собой крупнейший шаг вперед в устойчивости к блокировкам, интеграции с ядром Sing-box, эргономике с поддержкой светлой и темной тем, а также универсальной подписке:
 
 1. ⚡ **Сюита 23 протоколов Sing-box:**
    - Автоматическое развертывание: **VLESS Reality** (Vision, TCP, gRPC, HTTPUpgrade), **VLESS TLS**, **VMess**, **Trojan**, **Hysteria 2** (Salamander & Brutal QUIC), **TUIC v5** (0-RTT), **Shadowsocks 2022**, **NaiveProxy** (Chrome Stack) и **ShadowTLS v3**.
@@ -200,7 +200,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 MH PANEL Enterprise Master CLI Console (Версия 1.7.0)
+     🚀 MH PANEL Enterprise Master CLI Console (Версия 1.8.0)
   ========================================================================
   Статус веб-панели: Online (IP:PORT/PATH) | Команда терминала: mhpanel
   ------------------------------------------------------------------------

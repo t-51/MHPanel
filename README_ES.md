@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Versión MHPanel">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="Versión MHPanel">
   <img src="https://img.shields.io/badge/Plataforma-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/Núcleo-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -79,7 +79,7 @@ MH Panel incorpora un motor de suscripción inteligente que entrega todas las **
 
 - [⚡ Instalación Rápida en 1 Línea](#-instalación-rápida-en-1-línea-quick-start)
 - [📡 Motor Universal de Suscripciones Inteligentes](#-motor-universal-de-suscripciones-inteligentes-las-23-configs-en-1-enlace)
-- [🌟 Novedades de la Versión 1.7.0](#-novedades-de-la-versión-170)
+- [🌟 Novedades de la Versión 1.8.0](#-novedades-de-la-versión-170)
 - [📸 Galería Visual con Tema Claro](#-galería-visual-con-tema-claro-light-theme-gallery)
 - [📐 Arquitectura y Flujos de Red](#-arquitectura-y-flujos-de-red)
 - [📚 Matriz de Protocolos Soportados](#-matriz-de-protocolos-soportados)
@@ -90,9 +90,9 @@ MH Panel incorpora un motor de suscripción inteligente que entrega todas las **
 
 ---
 
-## 🌟 Novedades de la Versión 1.7.0
+## 🌟 Novedades de la Versión 1.8.0
 
-La versión **1.7.0** ofrece la máxima resistencia contra censura, integración completa con Sing-box, diseño ergonómico con soporte de tema claro y oscuro, y suscripción unificada:
+La versión **1.8.0** ofrece la máxima resistencia contra censura, integración completa con Sing-box, diseño ergonómico con soporte de tema claro y oscuro, y suscripción unificada:
 
 1. ⚡ **Suite de 23 Modos de Sing-box:**
    - Despliegue automatizado de: **VLESS Reality** (Vision, TCP, gRPC, HTTPUpgrade), **VLESS TLS**, **VMess**, **Trojan**, **Hysteria 2** (Salamander & Brutal QUIC), **TUIC v5** (0-RTT), **Shadowsocks 2022**, **NaiveProxy** (Chrome Stack) y **ShadowTLS v3**.
@@ -197,7 +197,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 MH PANEL Enterprise Master CLI Console (Versión 1.7.0)
+     🚀 MH PANEL Enterprise Master CLI Console (Versión 1.8.0)
   ========================================================================
   Estado del Panel: Online (IP:PUERTO/RUTA) | Comando Rápido: mhpanel
   ------------------------------------------------------------------------

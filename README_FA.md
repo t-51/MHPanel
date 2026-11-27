@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/سیستم%20عامل-Ubuntu%2020%2B%20%7C%20Debian%2011%2B-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/پایتون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/هسته-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -102,9 +102,9 @@ sudo bash install.sh
 
 ---
 
-## 🌟 قابلیت‌های جدید در نسخه ۱.۷.۰ (What's New in v1.7.0)
+## 🌟 قابلیت‌های جدید در نسخه ۱.۷.۰ (What's New in v1.8.0)
 
-نسخه **1.7.0** نقطه عطفی بزرگ در تکامل سامانه **MH Panel** است که پایداری حداکثری هسته Sing-box، سازگاری فراگیر با کلاینت‌های محبوب (اسلیپ‌نت SlipNet، هیدیفای Hiddify، v2rayNG)، ساب‌لینک یکپارچه هوشمند و رابط کاربری تک‌خطی مدرن با تم سفید و تم تاریک را ارائه می‌دهد:
+نسخه **1.8.0** نقطه عطفی بزرگ در تکامل سامانه **MH Panel** است که پایداری حداکثری هسته Sing-box، سازگاری فراگیر با کلاینت‌های محبوب (اسلیپ‌نت SlipNet، هیدیفای Hiddify، v2rayNG)، ساب‌لینک یکپارچه هوشمند و رابط کاربری تک‌خطی مدرن با تم سفید و تم تاریک را ارائه می‌دهد:
 
 1. ⚡ **استقرار کامل سوئیت ۲۳ اینباند سینگ‌باکس (Sing-box 23-Mode Suite):**
    - راه‌اندازی و کانفیگ تمام پروتکل‌ها و ترنسپورت‌های مدرن دنیا با پشتیبانی کامل از SlipNet و V2Ray:

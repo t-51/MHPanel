@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Plattform-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -79,7 +79,7 @@ MH Panel verfügt über eine intelligente Abonnement-Engine, die alle **23 Sing-
 
 - [⚡ 1-Klick-Schnellinstallation](#-1-klick-schnellinstallation-quick-start)
 - [📡 Universelle Smart-Subscription-Engine](#-universelle-smart-subscription-engine-alle-23-konfigurationen-in-1-link)
-- [🌟 Neuerungen in Version 1.7.0](#-neuerungen-in-version-170)
+- [🌟 Neuerungen in Version 1.8.0](#-neuerungen-in-version-170)
 - [📸 Visuelle Tour im hellen Design](#-visuelle-tour-im-hellen-design-light-theme-gallery)
 - [📐 Netzwerkarchitektur & Datenfluss](#-netzwerkarchitektur--datenfluss)
 - [📚 Matrix der unterstützten Protokolle](#-matrix-der-unterstützten-protokolle)
@@ -90,9 +90,9 @@ MH Panel verfügt über eine intelligente Abonnement-Engine, die alle **23 Sing-
 
 ---
 
-## 🌟 Neuerungen in Version 1.7.0
+## 🌟 Neuerungen in Version 1.8.0
 
-Version **1.7.0** ist ein Meilenstein in der Zensurresistenz, Sing-box-Integration, Benutzerfreundlichkeit mit hellem und dunklem Design sowie universellen Abonnements:
+Version **1.8.0** ist ein Meilenstein in der Zensurresistenz, Sing-box-Integration, Benutzerfreundlichkeit mit hellem und dunklem Design sowie universellen Abonnements:
 
 1. ⚡ **Sing-box 23-Protokoll-Suite:**
    - Vollautomatisches Deployment von: **VLESS Reality** (Vision, TCP, gRPC, HTTPUpgrade), **VLESS TLS**, **VMess**, **Trojan**, **Hysteria 2** (Salamander & Brutal QUIC), **TUIC v5** (0-RTT), **Shadowsocks 2022**, **NaiveProxy** (Chrome-Netzwerkstack) und **ShadowTLS v3**.
@@ -197,7 +197,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 MH PANEL Enterprise Master-CLI-Konsole (Version 1.7.0)
+     🚀 MH PANEL Enterprise Master-CLI-Konsole (Version 1.8.0)
   ========================================================================
   Web-Panel Status: Online (IP:PORT/PATH) | Schnellbefehl: mhpanel
   ------------------------------------------------------------------------

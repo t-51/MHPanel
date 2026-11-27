@@ -34506,7 +34506,7 @@ def create_system_backup(backup_type="full", note=""):
     filepath = os.path.join(BACKUP_DIR, filename)
 
     metadata = {
-        "version": "1.7.0",
+        "version": "1.8.0",
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "backup_type": backup_type,
         "note": note,

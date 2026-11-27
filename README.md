@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/Platform-Ubuntu%2020%2B%20%7C%20Debian%2011%2B-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/Python-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/Core-Sing--box%20%2B%20Linux%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -82,7 +82,7 @@ MH Panel features an intelligent subscription engine capable of delivering all 2
 
 - [⚡ Instant 1-Line Installation](#-instant-1-line-installation-quick-start)
 - [📡 Universal Smart Subscription Engine](#-universal-smart-subscription-engine-all-23-configs-in-1-link)
-- [🌟 What's New in Version 1.7.0](#-whats-new-in-version-170)
+- [🌟 What's New in Version 1.8.0](#-whats-new-in-version-170)
 - [📸 Panel Visual Tour (Light Theme Gallery)](#-panel-visual-tour-light-theme-gallery)
 - [📐 Visual Architecture & Traffic Flow Pipelines](#-visual-architecture--traffic-flow-pipelines)
   - [1. Universal Multi-Protocol Port 443 Sharing](#1-universal-multi-protocol-port-443-sharing-architecture)
@@ -99,9 +99,9 @@ MH Panel features an intelligent subscription engine capable of delivering all 2
 
 ---
 
-## 🌟 What's New in Version 1.7.0
+## 🌟 What's New in Version 1.8.0
 
-Version **1.7.0** delivers superior anti-censorship resilience, Sing-box universal core integration, ergonomic UI/UX with dual theme support (Light & Dark), and one-click universal client subscriptions:
+Version **1.8.0** delivers superior anti-censorship resilience, Sing-box universal core integration, ergonomic UI/UX with dual theme support (Light & Dark), and one-click universal client subscriptions:
 
 1. ⚡ **Sing-box 23-Mode Multi-Protocol Suite:**
    - Full automated deployment across modern transport layers:
@@ -142,7 +142,7 @@ Version **1.7.0** delivers superior anti-censorship resilience, Sing-box univers
 
 ## 📸 Panel Visual Tour (Light Theme Gallery)
 
-Explore the clean, modern **White / Light Theme** interface of **MH Panel v1.7.0**:
+Explore the clean, modern **White / Light Theme** interface of **MH Panel v1.8.0**:
 
 ### 1. 🖥️ Master Dashboard Overview
 Real-time CPU/RAM/Disk metrics, active connections, total traffic counters, and quick system control center in pristine light theme.
@@ -379,7 +379,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 MH PANEL Enterprise Master CLI Console (Version 1.7.0)
+     🚀 MH PANEL Enterprise Master CLI Console (Version 1.8.0)
   ========================================================================
   Web Panel Status: Online (IP:PORT/PATH) | Quick Command: mhpanel
   ------------------------------------------------------------------------

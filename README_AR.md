@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/MH--Panel-v1.7.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
+  <img src="https://img.shields.io/badge/MH--Panel-v1.8.0-6366f1.svg?style=for-the-badge&logo=shield&logoColor=white" alt="MHPanel Version">
   <img src="https://img.shields.io/badge/النظام-Ubuntu%20%7C%20Debian-orange.svg?style=for-the-badge&logo=linux&logoColor=white" alt="Platform">
   <img src="https://img.shields.io/badge/بايثون-3.8%2B-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version">
   <img src="https://img.shields.io/badge/النواة-Sing--box%20%2B%20Kernel%20L2%2FL3-emerald.svg?style=for-the-badge" alt="Core">
@@ -79,7 +79,7 @@ sudo bash install.sh
 
 - [⚡ التثبيت السريع بأمر واحد](#-التثبيت-السريع-بأمر-واحد-quick-start)
 - [📡 محرك الاشتراكات الذكي الشامل](#-محرك-الاشتراكات-الذكي-الشامل-كافة-الـ-23-تکویناً-في-رابط-واحد)
-- [🌟 ميزات الإصدار الجديد 1.7.0](#-ميزات-الإصدار-الجديد-170)
+- [🌟 ميزات الإصدار الجديد 1.8.0](#-ميزات-الإصدار-الجديد-170)
 - [📸 جولة بصرية بالسمة الفاتحة](#-جولة-بصرية-بالسمة-الفاتحة-light-theme-gallery)
 - [📐 المخططات المعمارية وتدفق البيانات](#-المخططات-المعمارية-وتدفق-البيانات)
 - [📚 مصفوفة البروتوكولات المدعومة](#-مصفوفة-البروتوكولات-المدعومة)
@@ -90,9 +90,9 @@ sudo bash install.sh
 
 ---
 
-## 🌟 ميزات الإصدار الجديد 1.7.0
+## 🌟 ميزات الإصدار الجديد 1.8.0
 
-يمثل الإصدار **1.7.0** قفزة نوعية في مكافحة الحجب، وتكامل نواة Sing-box العالمية، والتصميم الإرجونومي مع السمة الفاتحة والداكنة:
+يمثل الإصدار **1.8.0** قفزة نوعية في مكافحة الحجب، وتكامل نواة Sing-box العالمية، والتصميم الإرجونومي مع السمة الفاتحة والداكنة:
 
 1. ⚡ **حزمة الـ 23 بروتوكولاً لنواة Sing-box:**
    - نشر تلقائي لكافة الوسائط الحديثة: **VLESS Reality**، **VLESS TLS**، **VMess**، **Trojan**، **Hysteria 2**، **TUIC v5**، **Shadowsocks 2022**، **NaiveProxy** و **ShadowTLS v3**.
@@ -197,7 +197,7 @@ mhpanel
 
 ```text
   ========================================================================
-     🚀 لوحة التحكم التفاعلية للمخدم MH PANEL (الإصدار 1.7.0)
+     🚀 لوحة التحكم التفاعلية للمخدم MH PANEL (الإصدار 1.8.0)
   ========================================================================
   حالة اللوحة: Online (IP:PORT/PATH) | الأمر السريع: mhpanel
   ------------------------------------------------------------------------
