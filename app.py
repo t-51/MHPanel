@@ -38337,11 +38337,48 @@ def api_security_overview():
         "audit": audit,
         "p2p": sec_mgr.get_security_settings(),
         "ip_rules": sec_mgr.load_ip_rules(),
+        "abuse_reports": sec_mgr.load_abuse_reports(),
         "admins": admins_safe,
         "sections": sec_mgr.PANEL_SECTION_CATALOG,
         "current_admin_role": role,
         "current_admin_username": session.get("admin_username", "admin")
     })
+
+@app.route("/api/security/abuse-shield", methods=["POST"])
+def api_security_abuse_shield():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    res = sec_mgr.set_abuse_shield(
+        enabled=(bool(req["enabled"]) if "enabled" in req else None),
+        auto_suspend=(bool(req["auto_suspend"]) if "auto_suspend" in req else None)
+    )
+    return jsonify(res)
+
+@app.route("/api/security/abuse-scan", methods=["POST"])
+def api_security_abuse_scan():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    res = sec_mgr.scan_and_enforce_abuse()
+    return jsonify(res)
+
+@app.route("/api/security/abuse-resolve", methods=["POST"])
+def api_security_abuse_resolve():
+    if not check_login():
+        return jsonify({"error": "Unauthorized"}), 401
+    if not sec_mgr:
+        return jsonify({"success": False, "error": "Security manager not loaded"}), 500
+    req = request.get_json() or {}
+    ok, msg = sec_mgr.resolve_abuse_report(
+        report_id=req.get("id", ""),
+        action=req.get("action", "unsuspend"),
+        actor=session.get("admin_username", "admin")
+    )
+    return jsonify({"success": ok, "message": msg}), (200 if ok else 400)
 
 @app.route("/api/security/p2p", methods=["POST"])
 def api_security_p2p():
@@ -38566,6 +38603,15 @@ if __name__ == "__main__":
         try:
             if sec_mgr:
                 sec_mgr.restore_all_security_rules()
+                def _abuse_monitor_loop():
+                    while True:
+                        time.sleep(25)
+                        try:
+                            if sec_mgr.get_security_settings().get("abuse_shield_enabled"):
+                                sec_mgr.scan_and_enforce_abuse()
+                        except Exception:
+                            pass
+                threading.Thread(target=_abuse_monitor_loop, daemon=True).start()
         except Exception as e:
             print(f"Error restoring security firewall rules on startup: {e}")
 

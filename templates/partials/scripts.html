@@ -12510,6 +12510,39 @@
             const p2pToggle = document.getElementById("sec-p2p-block-toggle");
             if (p2pToggle) p2pToggle.checked = !!(data.p2p && data.p2p.p2p_block_enabled);
 
+            const abuseToggle = document.getElementById("sec-abuse-shield-toggle");
+            if (abuseToggle) abuseToggle.checked = !!(data.p2p && data.p2p.abuse_shield_enabled);
+            const autoSuspToggle = document.getElementById("sec-auto-suspend-toggle");
+            if (autoSuspToggle) autoSuspToggle.checked = (data.p2p && data.p2p.auto_suspend_abusers !== false);
+
+            // Render Abuse Reports
+            const abuseBody = document.getElementById("sec-abuse-reports-tbody");
+            if (abuseBody) {
+                const reps = data.abuse_reports || [];
+                if (reps.length === 0) {
+                    abuseBody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:12px; color:var(--text-muted);">هیچ تخلفی گزارش نشده است.</td></tr>`;
+                } else {
+                    abuseBody.innerHTML = reps.map(r => {
+                        const isSusp = r.status === "suspended";
+                        const stHtml = isSusp
+                            ? '<span style="color:#ef4444; font-weight:800;">⛔ تعلیق‌شده</span>'
+                            : (r.status === "reviewed" ? '<span style="color:#10b981; font-weight:700;">✅ بررسی‌شده</span>' : '<span style="color:#f59e0b; font-weight:700;">⚠️ گزارش‌شده</span>');
+                        return `<tr style="border-bottom:1px solid var(--border-subtle);">
+                            <td style="padding:7px 10px; font-family:'JetBrains Mono',monospace; font-weight:700;">${r.username}</td>
+                            <td style="padding:7px 10px;"><span class="badge" style="font-size:10.5px;">${r.protocol}</span></td>
+                            <td style="padding:7px 10px; color:#ef4444; font-weight:600;">${r.reason}</td>
+                            <td style="padding:7px 10px; font-family:'JetBrains Mono',monospace; direction:ltr; text-align:right;">${r.target}</td>
+                            <td style="padding:7px 10px; font-size:11px; color:var(--text-muted);">${r.detected_at}</td>
+                            <td style="padding:7px 10px;">${stHtml}</td>
+                            <td style="padding:7px 10px; text-align:center; display:flex; gap:6px; justify-content:center;">
+                                ${isSusp ? `<button type="button" class="btn btn-primary btn-sm" onclick="resolveAbuseReport('${r.id}', 'unsuspend')" style="padding:2px 8px; font-size:11px;">رفع تعلیق</button>` : ''}
+                                <button type="button" class="btn btn-danger btn-sm" onclick="resolveAbuseReport('${r.id}', 'delete')" style="padding:2px 8px; font-size:11px;">حذف</button>
+                            </td>
+                        </tr>`;
+                    }).join("");
+                }
+            }
+
             const sshBadge = document.getElementById("sec-ssh-failed-badge");
             if (sshBadge) sshBadge.textContent = `تلاش ناموفق SSH: ${audit.ssh_failed_recent ?? 0}`;
 
@@ -12617,6 +12650,65 @@
             loadServerSecurityOverview();
         } catch (e) {
             showToast("خطا در اعمال مسدودسازی P2P", "error");
+        }
+    }
+
+    async function toggleAbuseShield(enabled) {
+        try {
+            const res = await fetch("/api/security/abuse-shield", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled: !!enabled })
+            });
+            const data = await res.json();
+            showToast(data.message || "وضعیت سپر ضد اسپم و نفوذ بروزرسانی شد.", data.success ? "success" : "error");
+            loadServerSecurityOverview();
+        } catch (e) {
+            showToast("خطا در تنظیم سپر ضد اسپم و نفوذ", "error");
+        }
+    }
+
+    async function toggleAbuseAutoSuspend(autoSuspend) {
+        try {
+            const res = await fetch("/api/security/abuse-shield", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ auto_suspend: !!autoSuspend })
+            });
+            const data = await res.json();
+            showToast(data.auto_suspend_abusers ? "تعلیق خودکار متخلفین فعال شد." : "تعلیق خودکار غیرفعال شد (فقط گزارش).", data.success ? "success" : "error");
+        } catch (e) {
+            showToast("خطا در تغییر حالت تعلیق خودکار", "error");
+        }
+    }
+
+    async function runAbuseScanNow() {
+        try {
+            const res = await fetch("/api/security/abuse-scan", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                showToast(data.new_detections > 0 ? `⚠️ ${data.new_detections} تخلف جدید شناسایی و ثبت شد!` : "✅ اسکن انجام شد: تخلف فعالی یافت نشد.", data.new_detections > 0 ? "warning" : "success");
+                loadServerSecurityOverview();
+            } else {
+                showToast("خطا در اسکن تخلفات", "error");
+            }
+        } catch (e) {
+            showToast("خطای شبکه در اسکن تخلفات", "error");
+        }
+    }
+
+    async function resolveAbuseReport(id, action) {
+        try {
+            const res = await fetch("/api/security/abuse-resolve", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, action })
+            });
+            const data = await res.json();
+            showToast(data.message || "انجام شد.", data.success ? "success" : "error");
+            loadServerSecurityOverview();
+        } catch (e) {
+            showToast("خطا در ثبت بررسی گزارش", "error");
         }
     }
 

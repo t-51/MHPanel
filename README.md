@@ -82,7 +82,7 @@ MH Panel features an intelligent subscription engine capable of delivering all 2
 
 - [⚡ Instant 1-Line Installation](#-instant-1-line-installation-quick-start)
 - [📡 Universal Smart Subscription Engine](#-universal-smart-subscription-engine-all-23-configs-in-1-link)
-- [🌟 What's New in Version 1.8.0](#-whats-new-in-version-170)
+- [🌟 What's New in Version 1.8.0](#-whats-new-in-version-180)
 - [📸 Panel Visual Tour (Light Theme Gallery)](#-panel-visual-tour-light-theme-gallery)
 - [📐 Visual Architecture & Traffic Flow Pipelines](#-visual-architecture--traffic-flow-pipelines)
   - [1. Universal Multi-Protocol Port 443 Sharing](#1-universal-multi-protocol-port-443-sharing-architecture)
@@ -101,7 +101,17 @@ MH Panel features an intelligent subscription engine capable of delivering all 2
 
 ## 🌟 What's New in Version 1.8.0
 
-Version **1.8.0** delivers superior anti-censorship resilience, Sing-box universal core integration, ergonomic UI/UX with dual theme support (Light & Dark), and one-click universal client subscriptions:
+Version **1.8.0** introduces real origin server disguise, 3-operator ZEUS ECH/Fragmentation, an enterprise Server & Network Security Hub (EU/US Anti-Abuse + Auto-Suspension + Multi-Admin RBAC), and complete 8-language localization:
+
+0. 🔥 **Key Highlights in v1.8.0:**
+   - **Real Sing-box Origin Disguise (`CDN + Clean IP` & `Relay VPS`):** Full scrollable Disguise studio with live DNS origin-leak verification, automatic CDN-compatible inbound filtering (WS/gRPC/HTTPUpgrade), `vmess://` Base64 JSON rewriting, and Relay VPS forwarding for all protocols.
+   - **ZEUS-Inspired ECH & 3-Operator Fragmentation:** Dedicated Sing-box sub-tab generating operator-tuned configs for **MCI (`10-30 / 500ms`)**, **MTN (`100-200 / 400ms`)**, and **Rightel (`50-100 / 300ms`)** in `/sub/<token>/b64` and `singbox.json`.
+   - **Server & Network Security Hub (`Settings -> Server & Network Security`):**
+     - **Permanent P2P / BitTorrent Blocker:** 2-layer enforcement across Sing-box route rules & Linux `iptables` (`MHPANEL_P2P_BLOCK`).
+     - **EU/US Datacenter Anti-Abuse & Auto-Suspension:** Blocks SMTP spam (`25, 465, 587, 2525`), intrusion/scanning ports (`SMB/RDP/Telnet/DB`), and private LAN/metadata scanning; monitors Sing-box Clash API, kernel `MHPANEL_ABUSE` logs (WG/AWG/OpenVPN), and SSH sockets to **report and auto-suspend offending users** until admin review.
+     - **IP Whitelist / Blacklist Firewall:** Persistent `iptables` (`MHPANEL_IP_RULES`) IP/CIDR allow & block management.
+     - **Multi-Admin RBAC:** Create sub-admins with `PBKDF2-HMAC-SHA256` hashed passwords and granular per-section tab restrictions.
+   - **Full 8-Language Localization:** Complete translation across all UI sections in `en`, `fa`, `ar`, `de`, `es`, `it`, `ru`, and `zh`.
 
 1. ⚡ **Sing-box 23-Mode Multi-Protocol Suite:**
    - Full automated deployment across modern transport layers:

@@ -25,7 +25,33 @@ SECURITY_SETTINGS_FILE = os.path.join(SECURITY_DIR, "security_settings.json")
 IP_RULES_FILE = os.path.join(SECURITY_DIR, "security_ip_rules.json")
 PANEL_ADMINS_FILE = os.path.join(SECURITY_DIR, "panel_admins.json")
 SECURITY_LOG_FILE = os.path.join(SECURITY_DIR, "security_events.log")
+ABUSE_REPORTS_FILE = os.path.join(SECURITY_DIR, "abuse_reports.json")
 SINGBOX_CONFIG_FILE = "/etc/sing-box/config.json"
+MHPANEL_ROOT = "/www/wwwroot/mhpanel"
+
+ABUSE_SMTP_PORTS = [25, 465, 587, 2525]
+ABUSE_INTRUSION_PORTS = [23, 135, 137, 138, 139, 445, 1433, 1521, 3306, 3389, 5432, 5900, 6379, 27017]
+ABUSE_ALL_PORTS = ABUSE_SMTP_PORTS + ABUSE_INTRUSION_PORTS
+ABUSE_PORT_LABELS = {
+    25: "SMTP Email Spam (Port 25)",
+    465: "SMTPS Email Spam (Port 465)",
+    587: "SMTP Submission Spam (Port 587)",
+    2525: "SMTP Alt Spam (Port 2525)",
+    23: "Telnet Scan/Brute (Port 23)",
+    135: "RPC/DCOM Exploit (Port 135)",
+    137: "NetBIOS Scan (Port 137)",
+    138: "NetBIOS Scan (Port 138)",
+    139: "SMB/NetBIOS (Port 139)",
+    445: "SMB/Ransomware Scan (Port 445)",
+    1433: "MSSQL Brute-Force (Port 1433)",
+    1521: "Oracle DB Brute-Force (Port 1521)",
+    3306: "MySQL Scan/Brute (Port 3306)",
+    3389: "RDP Brute-Force (Port 3389)",
+    5432: "PostgreSQL Scan (Port 5432)",
+    5900: "VNC Brute-Force (Port 5900)",
+    6379: "Redis Unauth Exploit (Port 6379)",
+    27017: "MongoDB Scan (Port 27017)"
+}
 
 P2P_PORTS = "6881:6889,6969,51413"
 P2P_BLOCK_DOMAINS = [
@@ -96,6 +122,8 @@ def get_security_settings():
         "p2p_block_enabled": False,
         "p2p_block_singbox": True,
         "p2p_block_iptables": True,
+        "abuse_shield_enabled": False,
+        "auto_suspend_abusers": True,
         "updated_at": ""
     }
     if os.path.exists(SECURITY_SETTINGS_FILE):
@@ -306,7 +334,7 @@ def remove_ip_rule(raw_ip, actor="admin"):
 
 
 def restore_all_security_rules():
-    """Called on panel startup to ensure IP rules and P2P block persist across reboots."""
+    """Called on panel startup to ensure IP rules, P2P block, and Abuse Shield persist across reboots."""
     try:
         sync_ip_rules_to_iptables()
     except Exception:
@@ -315,8 +343,415 @@ def restore_all_security_rules():
         cfg = get_security_settings()
         if cfg.get("p2p_block_enabled"):
             apply_p2p_iptables_rules(True)
+        if cfg.get("abuse_shield_enabled"):
+            apply_abuse_iptables_rules(True)
     except Exception:
         pass
+
+
+# =========================================================================
+# EU/US Datacenter Anti-Abuse, Anti-Spam, Anti-Hack & Auto-Suspension
+# =========================================================================
+
+def apply_abuse_iptables_rules(enable):
+    """Create or flush MHPANEL_ABUSE_SHIELD chain to block SMTP spam, SMB/RDP/DB hacking & log offenders."""
+    chain = "MHPANEL_ABUSE_SHIELD"
+    _ensure_chain(chain, ["FORWARD", "OUTPUT"])
+    _run_iptables(["-F", chain])
+    if not enable:
+        return True, "قوانین ضد اسپم و نفوذ کرنل غیرفعال شد."
+
+    ports_csv = ",".join(str(p) for p in ABUSE_ALL_PORTS)
+    rules = [
+        # Allow root/local system mail or DNS if needed, block & log forwarded VPN abuse and non-root output
+        ["-A", chain, "-p", "tcp", "-m", "multiport", "--dports", ports_csv, "-m", "limit", "--limit", "15/min", "-j", "LOG", "--log-prefix", "MHPANEL_ABUSE: ", "--log-level", "4"],
+        ["-A", chain, "-p", "tcp", "-m", "multiport", "--dports", ports_csv, "-j", "DROP"],
+        ["-A", chain, "-p", "udp", "-m", "multiport", "--dports", "137:139,445,1433,1900", "-m", "limit", "--limit", "10/min", "-j", "LOG", "--log-prefix", "MHPANEL_ABUSE: ", "--log-level", "4"],
+        ["-A", chain, "-p", "udp", "-m", "multiport", "--dports", "137:139,445,1433,1900", "-j", "DROP"],
+    ]
+    applied = 0
+    for r in rules:
+        res = _run_iptables(r)
+        if res.returncode == 0:
+            applied += 1
+    return True, f"{applied} قانون ضد اسپم/نفوذ (اروپا و آمریکا) در کرنل اعمال شد."
+
+
+def apply_abuse_singbox_rules(enable):
+    """Block SMTP spam, intrusion ports, and private/cloud-metadata IP scanning in Sing-box."""
+    if not os.path.exists(SINGBOX_CONFIG_FILE):
+        return False, "فایل کانفیگ Sing-box یافت نشد."
+    try:
+        with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+            cfg = json.load(f)
+
+        outbounds = cfg.setdefault("outbounds", [])
+        if not any(isinstance(o, dict) and o.get("tag") == "block" for o in outbounds):
+            outbounds.append({"type": "block", "tag": "block"})
+
+        route = cfg.setdefault("route", {})
+        rules = route.setdefault("rules", [])
+
+        cleaned = [r for r in rules if not (isinstance(r, dict) and r.get("_mhpanel_abuse"))]
+        if enable:
+            abuse_rules = [
+                {"_mhpanel_abuse": True, "ip_is_private": True, "outbound": "block"},
+                {"_mhpanel_abuse": True, "port": ABUSE_ALL_PORTS, "outbound": "block"}
+            ]
+            insert_idx = 0
+            for idx, r in enumerate(cleaned):
+                if isinstance(r, dict) and (r.get("action") in ("sniff", "hijack-dns") or r.get("protocol") == "dns" or r.get("_mhpanel_p2p")):
+                    insert_idx = idx + 1
+            for offset, ar in enumerate(abuse_rules):
+                cleaned.insert(insert_idx + offset, ar)
+
+        route["rules"] = cleaned
+        with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+
+        subprocess.run(["systemctl", "restart", "sing-box"], capture_output=True, timeout=8)
+        return True, "قوانین ضد اسپم/نفوذ و مسدودسازی اسکن شبکه داخلی در Sing-box اعمال شد."
+    except Exception as e:
+        return False, f"خطا در اعمال قوانین Sing-box: {e}"
+
+
+def set_abuse_shield(enabled=None, auto_suspend=None):
+    cfg = get_security_settings()
+    if enabled is not None:
+        cfg["abuse_shield_enabled"] = bool(enabled)
+    if auto_suspend is not None:
+        cfg["auto_suspend_abusers"] = bool(auto_suspend)
+    save_security_settings(cfg)
+
+    msg_ipt, msg_sb = "", ""
+    if enabled is not None:
+        _, msg_ipt = apply_abuse_iptables_rules(bool(enabled))
+        _, msg_sb = apply_abuse_singbox_rules(bool(enabled))
+        log_security_event("ABUSE_SHIELD", f"EU/US Abuse Shield set to {bool(enabled)} ({msg_ipt} | {msg_sb})")
+    elif auto_suspend is not None:
+        log_security_event("ABUSE_AUTOSUSPEND", f"Auto-suspend abusers set to {bool(auto_suspend)}")
+
+    return {
+        "success": True,
+        "abuse_shield_enabled": cfg.get("abuse_shield_enabled", False),
+        "auto_suspend_abusers": cfg.get("auto_suspend_abusers", True),
+        "message": f"سپر ضد اسپم و تخلفات اروپا/آمریکا {'فعال' if cfg.get('abuse_shield_enabled') else 'غیرفعال'} شد."
+    }
+
+
+def load_abuse_reports():
+    if os.path.exists(ABUSE_REPORTS_FILE):
+        try:
+            with open(ABUSE_REPORTS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data if isinstance(data, list) else []
+        except Exception:
+            pass
+    return []
+
+
+def save_abuse_reports(reports):
+    _ensure_dir()
+    with open(ABUSE_REPORTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(reports[:300], f, indent=2, ensure_ascii=False)
+
+
+def _suspend_or_restore_user(protocol, username, suspend=True):
+    """Actually suspend or restore a user account across Sing-box, SSH, WireGuard, AmneziaWG, or OpenVPN."""
+    proto = (protocol or "").lower()
+    uname = (username or "").strip()
+    if not uname:
+        return False, "نام کاربری خالی است."
+
+    if proto == "singbox":
+        sb_ufile = os.path.join(MHPANEL_ROOT, "singbox_users.json")
+        if os.path.exists(sb_ufile):
+            with open(sb_ufile, "r", encoding="utf-8") as f:
+                users = json.load(f)
+            found = False
+            for u in users:
+                if u.get("username") == uname:
+                    u["enabled"] = (not suspend)
+                    if suspend:
+                        u["suspended_reason"] = "Abuse/Spam/Hack Auto-Suspend"
+                    else:
+                        u.pop("suspended_reason", None)
+                    found = True
+                    break
+            if found:
+                with open(sb_ufile, "w", encoding="utf-8") as f:
+                    json.dump(users, f, indent=2, ensure_ascii=False)
+                # Remove or restore user in /etc/sing-box/config.json immediately
+                if os.path.exists(SINGBOX_CONFIG_FILE):
+                    with open(SINGBOX_CONFIG_FILE, "r", encoding="utf-8") as f:
+                        cfg = json.load(f)
+                    target_u = next((x for x in users if x.get("username") == uname), {})
+                    for ib in cfg.get("inbounds", []):
+                        ib_users = ib.get("users")
+                        if not isinstance(ib_users, list):
+                            continue
+                        if suspend:
+                            ib["users"] = [x for x in ib_users if x.get("name") != uname and x.get("username") != uname]
+                        else:
+                            allowed_ibs = target_u.get("inbounds") or []
+                            if not allowed_ibs or ib.get("tag") in allowed_ibs:
+                                if not any(x.get("name") == uname or x.get("username") == uname for x in ib_users):
+                                    entry = {"name": uname}
+                                    if ib.get("type") in ("vless", "vmess", "tuic") and target_u.get("uuid"):
+                                        entry["uuid"] = target_u["uuid"]
+                                    if ib.get("type") in ("trojan", "hysteria2", "tuic", "naive", "socks", "mixed") and target_u.get("password"):
+                                        entry["password"] = target_u["password"]
+                                    if ib.get("type") == "naive":
+                                        entry["username"] = uname
+                                    ib_users.append(entry)
+                    with open(SINGBOX_CONFIG_FILE, "w", encoding="utf-8") as f:
+                        json.dump(cfg, f, indent=2, ensure_ascii=False)
+                    subprocess.run(["systemctl", "restart", "sing-box"], capture_output=True, timeout=8)
+                return True, f"کاربر Sing-box «{uname}» {'تعلیق' if suspend else 'رفع تعلیق'} شد."
+
+    elif proto == "ssh":
+        ssh_file = os.path.join(MHPANEL_ROOT, "ssh_users.json")
+        if os.path.exists(ssh_file):
+            with open(ssh_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if uname in data and isinstance(data[uname], dict):
+                data[uname]["active"] = (not suspend)
+                with open(ssh_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+        subprocess.run(["usermod", "-L" if suspend else "-U", uname], capture_output=True)
+        if suspend:
+            subprocess.run(["pkill", "-u", uname], capture_output=True)
+        return True, f"کاربر SSH «{uname}» {'تعلیق و قفل' if suspend else 'رفع تعلیق'} شد."
+
+    elif proto in ("wireguard", "amneziawg"):
+        fn = "wg_users.json" if proto == "wireguard" else "awg_users.json"
+        iface = "wg0" if proto == "wireguard" else "awg0"
+        cli_bin = "wg" if proto == "wireguard" else (shutil.which("awg") or "/usr/local/bin/awg")
+        ufile = os.path.join(MHPANEL_ROOT, fn)
+        if os.path.exists(ufile):
+            with open(ufile, "r", encoding="utf-8") as f:
+                users = json.load(f)
+            for pubkey, udata in users.items():
+                if not isinstance(udata, dict):
+                    continue
+                if udata.get("name") == uname or pubkey == uname or f"Peer_{pubkey[:8]}" == uname:
+                    udata["active"] = (not suspend)
+                    with open(ufile, "w", encoding="utf-8") as f:
+                        json.dump(users, f, indent=2, ensure_ascii=False)
+                    if suspend:
+                        subprocess.run([cli_bin, "set", iface, "peer", pubkey, "remove"], capture_output=True)
+                    else:
+                        ip = udata.get("ip")
+                        if not ip:
+                            m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", udata.get("config", ""))
+                            if m_ip:
+                                ip = m_ip.group(1)
+                        if ip:
+                            subprocess.run([cli_bin, "set", iface, "peer", pubkey, "allowed-ips", f"{ip}/32"], capture_output=True)
+                    return True, f"کاربر {proto} «{uname}» {'تعلیق' if suspend else 'رفع تعلیق'} شد."
+
+    elif proto == "openvpn":
+        ovpn_file = os.path.join(MHPANEL_ROOT, "ovpn_users.json")
+        if os.path.exists(ovpn_file):
+            with open(ovpn_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if uname in data and isinstance(data[uname], dict):
+                data[uname]["active"] = (not suspend)
+                with open(ovpn_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+        ccd_dir = "/etc/openvpn/ccd"
+        if os.path.isdir(ccd_dir):
+            ccd_path = os.path.join(ccd_dir, uname)
+            if suspend:
+                with open(ccd_path, "w", encoding="utf-8") as f:
+                    f.write("disable\n")
+            elif os.path.exists(ccd_path):
+                with open(ccd_path, "r", encoding="utf-8") as f:
+                    lines = [ln for ln in f.readlines() if ln.strip() != "disable"]
+                with open(ccd_path, "w", encoding="utf-8") as f:
+                    f.writelines(lines)
+        return True, f"کاربر OpenVPN «{uname}» {'تعلیق' if suspend else 'رفع تعلیق'} شد."
+
+    return False, f"کاربر «{uname}» در پروتکل «{proto}» یافت نشد."
+
+
+def _build_vpn_ip_map():
+    """Map VPN tunnel IPs (WireGuard, AmneziaWG, OpenVPN) to (protocol, username)."""
+    ip_map = {}
+    for proto, fn in [("wireguard", "wg_users.json"), ("amneziawg", "awg_users.json")]:
+        fpath = os.path.join(MHPANEL_ROOT, fn)
+        if os.path.exists(fpath):
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for pubkey, udata in data.items():
+                    if not isinstance(udata, dict):
+                        continue
+                    ip = udata.get("ip")
+                    if not ip:
+                        m_ip = re.search(r"Address\s*=\s*([0-9\.]+)", udata.get("config", ""))
+                        if m_ip:
+                            ip = m_ip.group(1)
+                    if ip:
+                        uname = udata.get("name") or f"Peer_{pubkey[:8]}"
+                        ip_map[ip] = (proto, uname)
+            except Exception:
+                pass
+    # OpenVPN ipp.txt
+    for ipp in ["/etc/openvpn/ipp.txt", "/etc/openvpn/server/ipp.txt"]:
+        if os.path.exists(ipp):
+            try:
+                with open(ipp, "r", encoding="utf-8") as f:
+                    for ln in f:
+                        parts = ln.strip().split(",")
+                        if len(parts) >= 2:
+                            ip_map[parts[1].strip()] = ("openvpn", parts[0].strip())
+            except Exception:
+                pass
+    return ip_map
+
+
+def scan_and_enforce_abuse():
+    """
+    Scan live Sing-box connections, kernel MHPANEL_ABUSE logs, and SSH outbound sockets
+    to detect spam/hacking/port-scanning per user, report to admin, and auto-suspend offenders.
+    """
+    cfg = get_security_settings()
+    auto_suspend = bool(cfg.get("auto_suspend_abusers", True))
+    detected = []
+
+    # 1. Sing-box Clash API live connections (127.0.0.1:9095/connections)
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:9095/connections", timeout=2) as resp:
+            cdata = json.loads(resp.read().decode("utf-8"))
+        conns = cdata.get("connections") or []
+        user_port_scan = {}
+        for c in conns:
+            meta = c.get("metadata") or {}
+            uname = (meta.get("user") or "").strip()
+            if not uname:
+                continue
+            dst_ip = meta.get("destinationIP") or meta.get("host") or ""
+            try:
+                dst_port = int(meta.get("destinationPort") or 0)
+            except Exception:
+                dst_port = 0
+            if dst_port in ABUSE_ALL_PORTS:
+                reason = ABUSE_PORT_LABELS.get(dst_port, f"Abuse Port {dst_port}")
+                detected.append(("singbox", uname, reason, f"{dst_ip}:{dst_port}"))
+            user_port_scan.setdefault(uname, set()).add((dst_ip, dst_port))
+        for uname, targets in user_port_scan.items():
+            if len(targets) >= 60:
+                detected.append(("singbox", uname, f"Port/Network Scan ({len(targets)} simultaneous targets)", "Multiple IPs/Ports"))
+    except Exception:
+        pass
+
+    # 2. Kernel MHPANEL_ABUSE logs -> WireGuard / AmneziaWG / OpenVPN attribution via SRC IP
+    vpn_ip_map = _build_vpn_ip_map()
+    if vpn_ip_map:
+        try:
+            jr = subprocess.run(["journalctl", "-k", "-n", "120", "--no-pager"], capture_output=True, text=True, timeout=3)
+            log_lines = jr.stdout.splitlines() if jr.returncode == 0 else []
+            if not log_lines:
+                dm = subprocess.run(["dmesg", "--since", "5 minutes ago"], capture_output=True, text=True, timeout=2)
+                log_lines = dm.stdout.splitlines() if dm.returncode == 0 else []
+            for ln in log_lines:
+                if "MHPANEL_ABUSE:" not in ln:
+                    continue
+                ms = re.search(r"SRC=([0-9\.]+)", ln)
+                md = re.search(r"DST=([0-9\.]+)", ln)
+                mp = re.search(r"DPT=(\d+)", ln)
+                if ms and mp:
+                    src_ip = ms.group(1)
+                    dst_ip = md.group(1) if md else "?"
+                    dpt = int(mp.group(1))
+                    if src_ip in vpn_ip_map and dpt in ABUSE_ALL_PORTS:
+                        proto, uname = vpn_ip_map[src_ip]
+                        reason = ABUSE_PORT_LABELS.get(dpt, f"Abuse Port {dpt}")
+                        detected.append((proto, uname, reason, f"{dst_ip}:{dpt}"))
+        except Exception:
+            pass
+
+    # 3. SSH outbound abuse detection via ss -tnp (matching sshd: <user> or UID)
+    try:
+        ssh_file = os.path.join(MHPANEL_ROOT, "ssh_users.json")
+        ssh_users = set()
+        if os.path.exists(ssh_file):
+            with open(ssh_file, "r", encoding="utf-8") as f:
+                ssh_users = set(json.load(f).keys())
+        if ssh_users:
+            ss_res = subprocess.run(["ss", "-tnp", "state", "established"], capture_output=True, text=True, timeout=3)
+            if ss_res.returncode == 0:
+                for ln in ss_res.stdout.splitlines():
+                    for p in ABUSE_ALL_PORTS:
+                        if f":{p} " in ln or f":{p}\t" in ln:
+                            mpid = re.search(r"pid=(\d+)", ln)
+                            if mpid:
+                                ps_res = subprocess.run(["ps", "-o", "user=", "-p", mpid.group(1)], capture_output=True, text=True, timeout=1)
+                                u_owner = ps_res.stdout.strip()
+                                if u_owner in ssh_users:
+                                    reason = ABUSE_PORT_LABELS.get(p, f"Abuse Port {p}")
+                                    detected.append(("ssh", u_owner, reason, f"Outbound:{p}"))
+    except Exception:
+        pass
+
+    # Record unique new detections & auto-suspend if enabled
+    reports = load_abuse_reports()
+    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    new_count = 0
+    seen_active = {(r.get("protocol"), r.get("username"), r.get("reason")) for r in reports if r.get("status") == "suspended"}
+
+    for proto, uname, reason, target in detected:
+        if (proto, uname, reason) in seen_active:
+            continue
+        seen_active.add((proto, uname, reason))
+        suspended_ok = False
+        if auto_suspend:
+            suspended_ok, _ = _suspend_or_restore_user(proto, uname, suspend=True)
+        rep = {
+            "id": secrets.token_hex(6),
+            "protocol": proto,
+            "username": uname,
+            "reason": reason,
+            "target": target,
+            "detected_at": now_str,
+            "status": "suspended" if suspended_ok else "reported"
+        }
+        reports.insert(0, rep)
+        new_count += 1
+        log_security_event("ABUSE_DETECTED", f"User={uname} Proto={proto} Reason={reason} Target={target} AutoSuspended={suspended_ok}")
+
+    if new_count > 0:
+        save_abuse_reports(reports)
+
+    return {
+        "success": True,
+        "new_detections": new_count,
+        "reports": reports
+    }
+
+
+def resolve_abuse_report(report_id, action="unsuspend", actor="admin"):
+    """Unsuspend offending user after admin review or dismiss/delete the report."""
+    reports = load_abuse_reports()
+    target = next((r for r in reports if r.get("id") == report_id), None)
+    if not target:
+        return False, "گزارش تخلف یافت نشد."
+
+    if action == "unsuspend":
+        ok, msg = _suspend_or_restore_user(target.get("protocol"), target.get("username"), suspend=False)
+        target["status"] = "reviewed"
+        target["reviewed_by"] = actor
+        target["reviewed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        save_abuse_reports(reports)
+        log_security_event("ABUSE_UNSUSPEND", f"Unsuspended {target.get('username')} ({target.get('protocol')})", actor=actor)
+        return True, msg
+    elif action == "delete":
+        reports = [r for r in reports if r.get("id") != report_id]
+        save_abuse_reports(reports)
+        return True, "گزارش از لیست حذف شد."
+    return False, "عملیات نامعتبر."
 
 
 # =========================================================================

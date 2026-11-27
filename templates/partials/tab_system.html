@@ -520,6 +520,62 @@
                 </div>
             </div>
 
+            <!-- Row 1.5: EU/US Anti-Abuse, Anti-Spam, Anti-Hack & Auto-Suspension -->
+            <div style="background: var(--bg-subtle); border: 1.5px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: 16px; margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle);">
+                    <div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="shield-ban" style="width: 17px; height: 17px; color: #ef4444;"></i>
+                            <span>سپر ضد اسپم، هک، کرک و قوانین دیتاسنترهای اروپا و آمریکا (Anti-Abuse)</span>
+                        </div>
+                        <div style="font-size: 11.5px; color: var(--text-muted); margin-top: 3px;">
+                            مسدودسازی پورت‌های اسپم ایمیل (25/465/587)، نفوذ و اسکن (SMB/RDP/Telnet/DB/Private LAN) + شناسایی کاربر متخلف (Sing-box / SSH / WG / AWG / OpenVPN) و تعلیق خودکار تا بررسی مدیریت
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                            <span>فعال‌سازی سپر ضد اسپم/نفوذ</span>
+                            <label class="switch" style="margin: 0;">
+                                <input type="checkbox" id="sec-abuse-shield-toggle" onchange="toggleAbuseShield(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">
+                            <span>تعلیق خودکار متخلف</span>
+                            <label class="switch" style="margin: 0;">
+                                <input type="checkbox" id="sec-auto-suspend-toggle" checked onchange="toggleAbuseAutoSuspend(this.checked)">
+                                <span class="slider"></span>
+                            </label>
+                        </label>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="runAbuseScanNow()" style="padding: 6px 12px; font-size: 12px; font-weight: 700; color: #ef4444; border-color: rgba(239,68,68,0.4);">
+                            <i data-lucide="radar" style="width: 13px; height: 13px; margin-inline-end: 4px;"></i> اسکن فوری تخلفات
+                        </button>
+                    </div>
+                </div>
+
+                <div style="font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 8px;">
+                    گزارش کاربران متخلف و اکانت‌های تعلیق‌شده (نیازمند بررسی مدیریت):
+                </div>
+                <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-surface);">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead>
+                            <tr style="background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);">
+                                <th style="padding: 8px 10px; text-align: right;">کاربر</th>
+                                <th style="padding: 8px 10px; text-align: right;">پروتکل</th>
+                                <th style="padding: 8px 10px; text-align: right;">دلیل تخلف</th>
+                                <th style="padding: 8px 10px; text-align: right;">هدف</th>
+                                <th style="padding: 8px 10px; text-align: right;">زمان</th>
+                                <th style="padding: 8px 10px; text-align: right;">وضعیت</th>
+                                <th style="padding: 8px 10px; text-align: center;">اقدام مدیریت</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sec-abuse-reports-tbody">
+                            <tr><td colspan="7" style="text-align: center; padding: 14px; color: var(--text-muted);">هیچ تخلفی ثبت نشده است.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Row 2: Multi-Admin & Section Permissions (RBAC) -->
             <div id="sec-admins-rbac-card" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
