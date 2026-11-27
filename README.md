@@ -484,6 +484,14 @@ MH Panel is built on the shoulders of giants. We express our deepest respect and
 
 ---
 
+## 🔗 Ecosystem & Related Projects
+
+- 🖥️ **[MHPanel](https://github.com/t-51/MHPanel)** — Unified VPN, Anti-Censorship Tunnels & Sing-box Management Panel
+- 📱 **[ME-Spoofing](https://github.com/t-51/ME-Spoofing)** — Anti-DPI & Multi-Transport Client (Android APK + Windows / Linux / macOS / Termux Go Binaries)
+- 🤖 **[MS_VPN_BOT](https://github.com/t-51/MS_VPN_BOT)** — Smart Multi-Protocol Telegram Store & Management Bot for MHPanel
+
+---
+
 ## 💖 Support the Project & Donations
 
 Continuous maintenance of **MH Panel**, research into cutting-edge DPI circumvention mechanisms, anti-censorship mesh testing, and testing across diverse global cloud infrastructures requires substantial time and resources. If MH Panel has helped you or your community maintain internet freedom, consider supporting our ongoing development:
