@@ -1099,37 +1099,7 @@ install_panel_web_ui() {
         ) || true
     fi
 
-    if command -v go >/dev/null 2>&1 && [ -f "${PANEL_DIR}/bin/snispoof-client.go" ]; then
-        local srv_pub_chk
-        srv_pub_chk=$(get_public_ipv4)
-        if ! grep -q "\"${srv_pub_chk}\"" "${PANEL_DIR}/bin/.server_stamp" 2>/dev/null; then
-            echo "    Updating customized SNI Spoofing clients for ${srv_pub_chk}..."
-            (
-                cd "${PANEL_DIR}/bin" || exit 0
-                srv_dom="$(cat ${PANEL_DIR}/configs/domain.txt 2>/dev/null || echo ${srv_pub_chk})"
-                relay_ports="443,8443,20443,40443"
-                if [ -f "/etc/vpnpanel/snispoof.json" ]; then
-                    rp=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
-                    [ -n "$rp" ] && relay_ports="$rp"
-                fi
-                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub_chk}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client.exe ]; then
-                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
-                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
-                    done
-                fi
-                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w -X 'main.builtServerIP=${srv_pub_chk}' -X 'main.builtServerDomain=${srv_dom}' -X 'main.builtServerPort=15443' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-amd64 snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client-linux-amd64 ]; then
-                    cp -f snispoof-client-linux-amd64 snispoof-client 2>/dev/null || true
-                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
-                        cp -f snispoof-client-linux-amd64 "snispoof-${st}" 2>/dev/null || true
-                    done
-                fi
-                chmod +x snispoof* 2>/dev/null || true
-                echo "{\"server_ip\":\"${srv_pub_chk}\",\"server_domain\":\"${srv_dom}\",\"server_port\":15443,\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
-            ) || true
-        fi
-    fi
+    # SNI Spoofing client binaries are pre-built and hosted on GitHub (t-51/ME-Spoofing)
 
     # Ensure python3-venv and python3-pip are installed across distros
     if ! python3 -m venv --help >/dev/null 2>&1 || ! python3 -m pip --version >/dev/null 2>&1; then

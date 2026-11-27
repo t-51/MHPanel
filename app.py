@@ -15566,12 +15566,16 @@ def ensure_golang_installed():
     return None
 
 
+ME_SPOOFING_REPO_URL = "https://github.com/t-51/ME-Spoofing"
+ME_SPOOFING_RELEASES_URL = "https://github.com/t-51/ME-Spoofing/releases"
+ME_SPOOFING_LATEST_DL_URL = "https://github.com/t-51/ME-Spoofing/releases/latest/download"
+
+
 def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, target_port=None, relay_ports=None, fake_sni=None, force=False):
     """
-    Compiles customized client binaries (Windows .exe, Linux) with the current server's IP,
-    domain, port, relay ports, and decoy SNI baked in, replacing any default/sample server IPs.
+    Lightweight replacement: client binaries (Windows/Linux/Termux/Android) are pre-built
+    and hosted on GitHub (t-51/ME-Spoofing). Only updates local config.json if needed.
     """
-    import shutil, subprocess, time, re
     srv_ip = target_ip or get_server_public_ip() or "127.0.0.1"
     srv_domain = target_domain or get_server_domain() or srv_ip
     cfg_file = "/etc/vpnpanel/snispoof.json"
@@ -15595,216 +15599,40 @@ def compile_snispoof_binaries_for_server(target_ip=None, target_domain=None, tar
         except (ValueError, TypeError):
             continue
     relay_ports = sorted(cleaned_ports) if cleaned_ports else [20443, 40443]
-    ports_str = ",".join(str(p) for p in relay_ports)
     fake_sni = fake_sni or (cfg.get("sni_pool", ["auth.vercel.com"])[0] if cfg.get("sni_pool") else "auth.vercel.com")
 
     bdir = "/www/wwwroot/mhpanel/bin"
-    stamp_file = os.path.join(bdir, ".server_stamp")
-
-    # Check if cached compile is valid
-    if not force and os.path.exists(stamp_file) and os.path.exists(os.path.join(bdir, "snispoof-fragment.exe")):
+    if os.path.isdir(bdir):
+        client_cfg = {
+            "server_domain": srv_domain,
+            "server_ip": srv_ip,
+            "server_port": srv_port,
+            "local_socks_port": 40808,
+            "local_relay_port": 40443,
+            "relay_ports": relay_ports,
+            "fake_sni": fake_sni,
+            "strategy": "tls_fragment",
+            "low_ttl_hops": 5,
+            "fragment_size": 2,
+            "fragment_delay_ms": 3,
+            "auto_start": True
+        }
         try:
-            with open(stamp_file, "r") as sf:
-                stamp = json.load(sf)
-            if (stamp.get("server_ip") == srv_ip and
-                stamp.get("server_domain") == srv_domain and
-                stamp.get("server_port") == srv_port and
-                stamp.get("relay_ports") == relay_ports and
-                stamp.get("fake_sni") == fake_sni):
-                return {
-                    "success": True,
-                    "cached": True,
-                    "server_ip": srv_ip,
-                    "server_domain": srv_domain,
-                    "server_port": srv_port,
-                    "relay_ports": relay_ports,
-                    "fake_sni": fake_sni
-                }
+            with open(os.path.join(bdir, "config.json"), "w", encoding="utf-8") as cjf:
+                json.dump(client_cfg, cjf, indent=2)
         except Exception:
             pass
-
-    go_bin = ensure_golang_installed()
-    if not go_bin:
-        return {"success": False, "error": "کامپایلر زبان Go روی سرور نصب نیست و نصب خودکار آن انجام نشد"}
-
-    go_src = os.path.join(bdir, "snispoof-client.go")
-    if not os.path.exists(go_src):
-        return {"success": False, "error": f"سورس کد Go در مسیر {go_src} یافت نشد"}
-
-    # Update defaultConfig in snispoof-client.go source
-    try:
-        with open(go_src, "r", encoding="utf-8") as f:
-            src_content = f.read()
-        src_content = re.sub(r'ServerDomain:\s*"[^"]*"', f'ServerDomain:    "{srv_domain}"', src_content)
-        src_content = re.sub(r'ServerIP:\s*"[^"]*"', f'ServerIP:        "{srv_ip}"', src_content)
-        src_content = re.sub(r'ServerPort:\s*[0-9]+', f'ServerPort:      {srv_port}', src_content)
-        src_content = re.sub(r'FakeSNI:\s*"[^"]*"', f'FakeSNI:         "{fake_sni}"', src_content)
-        ports_code = ", ".join(str(p) for p in relay_ports)
-        src_content = re.sub(r'RelayPorts:\s*\[\]int\{[^\}]*\}', f'RelayPorts:      []int{{{ports_code}}}', src_content)
-        with open(go_src, "w", encoding="utf-8") as f:
-            f.write(src_content)
-    except Exception:
-        pass
-
-    vaydns_domain = f"v.{srv_domain}"
-    vaydns_pubkey = ""
-    if os.path.exists("/etc/vaydns/server.pub"):
-        try:
-            with open("/etc/vaydns/server.pub", "r") as f:
-                vaydns_pubkey = f.read().strip()
-        except Exception:
-            pass
-    if os.path.exists("/etc/vpnpanel/vaydns.json"):
-        try:
-            with open("/etc/vpnpanel/vaydns.json", "r") as f:
-                vcfg = json.load(f)
-                vaydns_domain = vcfg.get("domain", vaydns_domain)
-                if not vaydns_pubkey:
-                    vaydns_pubkey = vcfg.get("pubkey", "")
-        except Exception:
-            pass
-
-    # Compile Windows amd64 binary with ldflags
-    ldflags = f"-s -w -X 'main.builtServerIP={srv_ip}' -X 'main.builtServerDomain={srv_domain}' -X 'main.builtServerPort={srv_port}' -X 'main.builtRelayPorts={ports_str}' -X 'main.builtFakeSNI={fake_sni}' -X 'main.builtDNSTunnelDomain={vaydns_domain}' -X 'main.builtDNSPubKey={vaydns_pubkey}'"
-    env_win = os.environ.copy()
-    env_win["GOOS"] = "windows"
-    env_win["GOARCH"] = "amd64"
-    env_win["CGO_ENABLED"] = "0"
-    target_exe = os.path.join(bdir, "snispoof-client.exe")
-    res_win = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_exe, "snispoof-client.go"],
-                             cwd=bdir, env=env_win, capture_output=True, text=True, timeout=60)
-    if res_win.returncode != 0:
-        return {"success": False, "error": f"خطا در کامپایل ویندوز: {res_win.stderr}"}
-
-    # Clone for the 6 strategies so dedicated binaries exist
-    strategies = ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq", "dns"]
-    compiled_files = ["snispoof-client.exe"]
-    for strat in strategies:
-        dst = os.path.join(bdir, f"snispoof-{strat}.exe")
-        shutil.copyfile(target_exe, dst)
-        os.chmod(dst, 0o755)
-        compiled_files.append(f"snispoof-{strat}.exe")
-    os.chmod(target_exe, 0o755)
-
-    # Compile Linux amd64 (Real Linux x86_64)
-    env_lin_amd = os.environ.copy()
-    env_lin_amd["GOOS"] = "linux"
-    env_lin_amd["GOARCH"] = "amd64"
-    env_lin_amd["CGO_ENABLED"] = "0"
-    target_lin_amd = os.path.join(bdir, "snispoof-client-linux-amd64")
-    res_lin_amd = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_lin_amd, "snispoof-client.go"],
-                                 cwd=bdir, env=env_lin_amd, capture_output=True, text=True, timeout=60)
-    if res_lin_amd.returncode == 0 and os.path.exists(target_lin_amd):
-        os.chmod(target_lin_amd, 0o755)
-        compiled_files.append("snispoof-client-linux-amd64")
-        # Standard alias
-        shutil.copyfile(target_lin_amd, os.path.join(bdir, "snispoof-client"))
-        os.chmod(os.path.join(bdir, "snispoof-client"), 0o755)
-        compiled_files.append("snispoof-client")
-        for strat in strategies:
-            strat_lin = os.path.join(bdir, f"snispoof-{strat}")
-            shutil.copyfile(target_lin_amd, strat_lin)
-            os.chmod(strat_lin, 0o755)
-            compiled_files.append(f"snispoof-{strat}")
-
-    # Compile Linux arm64 (Android Termux arm64 & ARM64 Real Linux)
-    env_arm64 = os.environ.copy()
-    env_arm64["GOOS"] = "linux"
-    env_arm64["GOARCH"] = "arm64"
-    env_arm64["CGO_ENABLED"] = "0"
-    target_arm64 = os.path.join(bdir, "snispoof-client-linux-arm64")
-    res_arm64 = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_arm64, "snispoof-client.go"],
-                               cwd=bdir, env=env_arm64, capture_output=True, text=True, timeout=60)
-    if res_arm64.returncode == 0 and os.path.exists(target_arm64):
-        os.chmod(target_arm64, 0o755)
-        compiled_files.append("snispoof-client-linux-arm64")
-        # Dedicated Termux arm64 alias
-        target_termux = os.path.join(bdir, "snispoof-client-termux-arm64")
-        shutil.copyfile(target_arm64, target_termux)
-        os.chmod(target_termux, 0o755)
-        compiled_files.append("snispoof-client-termux-arm64")
-        frag_termux = os.path.join(bdir, "snispoof-fragment-termux")
-        shutil.copyfile(target_arm64, frag_termux)
-        os.chmod(frag_termux, 0o755)
-        compiled_files.append("snispoof-fragment-termux")
-
-    # Compile Linux arm (32-bit ARM for older Android phones & Raspberry Pi)
-    env_arm = os.environ.copy()
-    env_arm["GOOS"] = "linux"
-    env_arm["GOARCH"] = "arm"
-    env_arm["GOARM"] = "7"
-    env_arm["CGO_ENABLED"] = "0"
-    target_arm = os.path.join(bdir, "snispoof-client-linux-arm")
-    res_arm = subprocess.run([go_bin, "build", f"-ldflags={ldflags}", "-o", target_arm, "snispoof-client.go"],
-                             cwd=bdir, env=env_arm, capture_output=True, text=True, timeout=60)
-    if res_arm.returncode == 0 and os.path.exists(target_arm):
-        os.chmod(target_arm, 0o755)
-        compiled_files.append("snispoof-client-linux-arm")
-        target_termux_arm = os.path.join(bdir, "snispoof-client-termux-arm")
-        shutil.copyfile(target_arm, target_termux_arm)
-        os.chmod(target_termux_arm, 0o755)
-        compiled_files.append("snispoof-client-termux-arm")
-
-    # Update .bat files
-    for strat in ["fragment", "checksum", "lowttl", "patterniha", "rotation", "wrongseq", "client"]:
-        bat_file = os.path.join(bdir, f"snispoof-{strat}.bat")
-        if os.path.exists(bat_file):
-            try:
-                with open(bat_file, "r", encoding="utf-8") as bf:
-                    bcontent = bf.read()
-                bcontent = re.sub(r'set SERVER_IP=[^\r\n]*', f'set SERVER_IP={srv_ip}', bcontent)
-                bcontent = re.sub(r'set SERVER_PORT=[^\r\n]*', f'set SERVER_PORT={srv_port}', bcontent)
-                bcontent = re.sub(r'set FAKE_SNI=[^\r\n]*', f'set FAKE_SNI={fake_sni}', bcontent)
-                if 'set RELAY_PORTS=' not in bcontent:
-                    bcontent = bcontent.replace(f'set SERVER_PORT={srv_port}', f'set SERVER_PORT={srv_port}\nset RELAY_PORTS={ports_str}')
-                else:
-                    bcontent = re.sub(r'set RELAY_PORTS=[^\r\n]*', f'set RELAY_PORTS={ports_str}', bcontent)
-                if '-ports' not in bcontent:
-                    bcontent = bcontent.replace("-relay %LOCAL_RELAY%", "-relay %LOCAL_RELAY% -ports %RELAY_PORTS%")
-                with open(bat_file, "w", encoding="utf-8") as bf:
-                    bf.write(bcontent)
-            except Exception:
-                pass
-
-    # Update default client config.json
-    client_cfg = {
-        "server_domain": srv_domain,
-        "server_ip": srv_ip,
-        "server_port": srv_port,
-        "local_socks_port": 40808,
-        "local_relay_port": 40443,
-        "relay_ports": relay_ports,
-        "fake_sni": fake_sni,
-        "strategy": "tls_fragment",
-        "low_ttl_hops": 5,
-        "fragment_size": 2,
-        "fragment_delay_ms": 3,
-        "auto_start": True
-    }
-    with open(os.path.join(bdir, "config.json"), "w", encoding="utf-8") as cjf:
-        json.dump(client_cfg, cjf, indent=2)
-
-    # Save stamp
-    stamp_data = {
-        "server_ip": srv_ip,
-        "server_domain": srv_domain,
-        "server_port": srv_port,
-        "relay_ports": relay_ports,
-        "fake_sni": fake_sni,
-        "compiled_at": int(time.time()),
-        "compiled_files": compiled_files
-    }
-    with open(stamp_file, "w", encoding="utf-8") as sf:
-        json.dump(stamp_data, sf, indent=2)
 
     return {
         "success": True,
+        "external": True,
+        "repo_url": ME_SPOOFING_REPO_URL,
+        "releases_url": ME_SPOOFING_RELEASES_URL,
         "server_ip": srv_ip,
         "server_domain": srv_domain,
         "server_port": srv_port,
         "relay_ports": relay_ports,
-        "fake_sni": fake_sni,
-        "compiled_files": compiled_files
+        "fake_sni": fake_sni
     }
 
 
@@ -15938,7 +15766,7 @@ def api_snispoof_config():
         cfg["stats"] = {"active_connections": 0, "total_connections": 0}
 
     cfg["server_host"] = srv
-    cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"[System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{{{$true}}}}; Invoke-WebRequest -Uri \x27https://{srv}:{panel_port}/download/snispoof-client.exe\x27 -OutFile \x27snispoof-client.exe\x27; .\\snispoof-client.exe -server {srv}:{port} -local 10808\""
+    cfg["client_cmd_powershell"] = f"powershell -ExecutionPolicy Bypass -Command \"Invoke-WebRequest -Uri '{ME_SPOOFING_LATEST_DL_URL}/snispoof-client.exe' -OutFile 'snispoof-client.exe'; [System.Net.ServicePointManager]::ServerCertificateValidationCallback = {{{{$true}}}}; Invoke-WebRequest -Uri 'https://{srv}:{panel_port}/download/snispoof/config.json' -OutFile 'config.json'; .\\snispoof-client.exe -server {srv} -port {port}\""
     cfg["client_cmd_python"] = f"python3 snispoof-client.py -s {srv} -p {port} -l 10808 --strategy {strat}"
     cfg["client_cmd_linux"] = f"curl -k -fsSL https://{srv}:{panel_port}/download/snispoof/linux.sh | bash"
     cfg["client_cmd_termux"] = f"pkg update -y && pkg install -y curl && curl -k -fsSL https://{srv}:{panel_port}/download/snispoof/termux.sh | bash"
@@ -16761,26 +16589,16 @@ def api_cf_workers_presets():
 
 
 
-# Download routes for SNI Spoofing clients
+# Download routes for SNI Spoofing clients (pre-built binaries hosted on GitHub: t-51/ME-Spoofing)
 @app.route("/download/snispoof-client.exe", methods=["GET"])
 def api_download_snispoof_client_exe():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client.exe"
-    if not os.path.exists(path) or not os.path.exists("/www/wwwroot/mhpanel/bin/.server_stamp"):
-        compile_snispoof_binaries_for_server(force=False)
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client.exe", mimetype="application/vnd.microsoft.portable-executable")
-    return "File not found", 404
+    from flask import redirect
+    return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/snispoof-client.exe", code=302)
 
 @app.route("/download/snispoof-client", methods=["GET"])
 def api_download_snispoof_client_bin():
-    from flask import send_file
-    path = "/www/wwwroot/mhpanel/bin/snispoof-client"
-    if not os.path.exists(path) or not os.path.exists("/www/wwwroot/mhpanel/bin/.server_stamp"):
-        compile_snispoof_binaries_for_server(force=False)
-    if os.path.exists(path):
-        return send_file(path, as_attachment=True, download_name="snispoof-client", mimetype="application/octet-stream")
-    return "File not found", 404
+    from flask import redirect
+    return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/snispoof-client-linux-amd64", code=302)
 
 @app.route("/download/snispoof-client.py", methods=["GET"])
 def api_download_snispoof_client_py():
@@ -16863,14 +16681,17 @@ TARGET_DIR="${{PREFIX:-/data/data/com.termux/files/usr}}/bin"
 mkdir -p "$TARGET_DIR"
 
 TARGET_BIN="${{TARGET_DIR}}/snispoof-client"
-echo -e "${{CYAN}}[*] Downloading $BIN_NAME for architecture $ARCH...${{NC}}"
-curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/${{BIN_NAME}}" -o "$TARGET_BIN"
+echo -e "${{CYAN}}[*] Downloading $BIN_NAME for architecture $ARCH from GitHub (ME-Spoofing)...${{NC}}"
+curl -fsSL "{ME_SPOOFING_LATEST_DL_URL}/${{BIN_NAME}}" -o "$TARGET_BIN"
 chmod +x "$TARGET_BIN"
 ln -sf "$TARGET_BIN" "${{TARGET_DIR}}/snispoof" 2>/dev/null || true
 
+mkdir -p "$HOME/.config/snispoof"
+curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/config.json" -o "$HOME/.config/snispoof/config.json" 2>/dev/null || true
+
 echo -e "${{GREEN}}[✓] Installed successfully! You can run it anytime with: snispoof${{NC}}"
 echo -e "${{CYAN}}[*] Launching SNI Spoofing Client now...${{NC}}\n"
-exec "$TARGET_BIN" "$@"
+exec "$TARGET_BIN" -server "{srv}" "$@"
 """
         return Response(termux_script, mimetype="text/x-shellscript", headers={"Content-Disposition": "inline;filename=termux.sh"})
 
@@ -16915,9 +16736,12 @@ if [ "$(id -u)" -ne 0 ]; then
     fi
 fi
 
-echo -e "${{CYAN}}[*] Downloading ${{BIN_NAME}}...${{NC}}"
-$SUDO curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/${{BIN_NAME}}" -o "$TARGET_BIN"
+echo -e "${{CYAN}}[*] Downloading ${{BIN_NAME}} from GitHub (ME-Spoofing)...${{NC}}"
+$SUDO curl -fsSL "{ME_SPOOFING_LATEST_DL_URL}/${{BIN_NAME}}" -o "$TARGET_BIN"
 $SUDO chmod +x "$TARGET_BIN"
+
+mkdir -p "$HOME/.config/snispoof"
+curl -k -fsSL "https://{srv}:{panel_port}/download/snispoof/config.json" -o "$HOME/.config/snispoof/config.json" 2>/dev/null || true
 
 if [ "$(id -u)" -eq 0 ] && command -v setcap >/dev/null 2>&1; then
     setcap 'cap_net_bind_service=+ep' "$TARGET_BIN" 2>/dev/null || true
@@ -16929,7 +16753,7 @@ $SUDO ln -sf "$TARGET_BIN" /usr/local/bin/snispoof 2>/dev/null || true
 
 echo -e "${{GREEN}}[✓] Installed successfully to ${{TARGET_BIN}}!${{NC}}"
 echo -e "${{CYAN}}[*] Launching SNI Spoofing Client...${{NC}}\n"
-exec "$TARGET_BIN" "$@"
+exec "$TARGET_BIN" -server "{srv}" "$@"
 """
         return Response(linux_script, mimetype="text/x-shellscript", headers={"Content-Disposition": "inline;filename=linux.sh"})
     if safe_name in ["android-spec", "android-spec.md", "ANDROID_DNS_TUNNEL_AND_MULTI_TRANSPORT_SPEC.md", "android_dns_tunnel_spec.md"]:
@@ -16968,7 +16792,9 @@ exec "$TARGET_BIN" "$@"
         )
 
     if safe_name.endswith(".exe") or safe_name in ["snispoof-client", "snispoof-client-linux-amd64", "snispoof-client-linux-arm64", "snispoof-client-termux-arm64", "snispoof-client-linux-arm", "snispoof-client-termux-arm", "snispoof-fragment", "snispoof-fragment-termux"]:
-        compile_snispoof_binaries_for_server(force=False)
+        from flask import redirect
+        gh_name = "snispoof-client.exe" if safe_name.endswith(".exe") else safe_name
+        return redirect(f"{ME_SPOOFING_LATEST_DL_URL}/{gh_name}", code=302)
 
     path = os.path.join("/www/wwwroot/mhpanel/bin", safe_name)
     if os.path.exists(path) and safe_name.startswith("snispoof-"):

@@ -3633,38 +3633,8 @@ EOF
                 cd /www/wwwroot/mhpanel || exit 0
                 /www/wwwroot/mhpanel/venv/bin/python -c "from app import compile_snispoof_binaries_for_server; compile_snispoof_binaries_for_server(target_port=${port}, force=True)" 2>/dev/null || true
             )
-        elif command -v go >/dev/null 2>&1; then
-            echo "Compiling SNI Spoofing client binaries for this server..."
-            (
-                cd /www/wwwroot/mhpanel/bin || exit 0
-                local srv_ip=$(curl -s4m 4 https://api.ipify.org 2>/dev/null || hostname -I | awk '{print $1}')
-                local srv_domain=$(cat /www/wwwroot/mhpanel/configs/domain.txt 2>/dev/null || echo "$srv_ip")
-                local relay_ports="443,8443,20443,40443"
-                if [ -f /etc/vpnpanel/snispoof.json ]; then
-                    local rp=$(grep -oE '"relay_ports":\s*\[[^]]*\]' /etc/vpnpanel/snispoof.json 2>/dev/null | tr -d ' "[]' | cut -d: -f2)
-                    [ -n "$rp" ] && relay_ports="$rp"
-                fi
-                GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client.exe snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client.exe ]; then
-                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
-                        cp -f snispoof-client.exe "snispoof-${st}.exe" 2>/dev/null || true
-                    done
-                fi
-                GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-amd64 snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client-linux-amd64 ]; then
-                    cp -f snispoof-client-linux-amd64 snispoof-client 2>/dev/null || true
-                    for st in fragment checksum lowttl patterniha rotation wrongseq; do
-                        cp -f snispoof-client-linux-amd64 "snispoof-${st}" 2>/dev/null || true
-                    done
-                fi
-                GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w -X 'main.builtServerIP=${srv_ip}' -X 'main.builtServerDomain=${srv_domain}' -X 'main.builtServerPort=${port}' -X 'main.builtRelayPorts=${relay_ports}' -X 'main.builtFakeSNI=auth.vercel.com'" -o snispoof-client-linux-arm64 snispoof-client.go 2>/dev/null || true
-                if [ -f snispoof-client-linux-arm64 ]; then
-                    cp -f snispoof-client-linux-arm64 snispoof-client-termux-arm64 2>/dev/null || true
-                    cp -f snispoof-client-linux-arm64 snispoof-fragment-termux 2>/dev/null || true
-                fi
-                chmod +x snispoof* 2>/dev/null || true
-                echo "{\"server_ip\":\"${srv_ip}\",\"server_domain\":\"${srv_domain}\",\"server_port\":${port},\"relay_ports\":[${relay_ports}],\"fake_sni\":\"auth.vercel.com\"}" > .server_stamp 2>/dev/null || true
-            )
+        else
+            echo "SNI Spoofing client binaries are hosted at https://github.com/t-51/ME-Spoofing/releases"
         fi
     fi
 
