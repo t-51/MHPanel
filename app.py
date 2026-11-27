@@ -17661,6 +17661,43 @@ def api_ssl_issue():
             "error": "مرجع Let's Encrypt برای آدرس IP خام گواهی SSL صادر نمی‌کند. برای دریافت گواهی معتبر Let's Encrypt و رفع خطای امنیتی در مرورگر، حتماً یک نام دامنه معتبر (مانند panel.example.com) ثبت کرده و رکورد A آن را به این سرور متصل نمایید."
         }), 400
 
+    certbot_bin = shutil.which("certbot") or next(
+        (p for p in ("/usr/bin/certbot", "/usr/local/bin/certbot", "/snap/bin/certbot") if os.path.exists(p)),
+        None
+    )
+    if not certbot_bin:
+        try:
+            if shutil.which("apt-get"):
+                subprocess.run(["apt-get", "update", "-y"], capture_output=True, timeout=60)
+                subprocess.run(["apt-get", "install", "-y", "certbot"], capture_output=True, timeout=120)
+            elif shutil.which("dnf"):
+                subprocess.run(["dnf", "install", "-y", "certbot"], capture_output=True, timeout=120)
+            elif shutil.which("yum"):
+                subprocess.run(["yum", "install", "-y", "certbot"], capture_output=True, timeout=120)
+            elif shutil.which("pacman"):
+                subprocess.run(["pacman", "-S", "--noconfirm", "--needed", "certbot"], capture_output=True, timeout=120)
+        except Exception:
+            pass
+        certbot_bin = shutil.which("certbot") or next(
+            (p for p in ("/usr/bin/certbot", "/usr/local/bin/certbot", "/snap/bin/certbot") if os.path.exists(p)),
+            None
+        )
+    if not certbot_bin:
+        return jsonify({"success": False, "error": "Certbot is not installed and could not be auto-installed. Please install 'certbot' manually."}), 500
+
+    # Ensure port 80 is open in firewall for HTTP-01 challenge
+    try:
+        if shutil.which("ufw"):
+            subprocess.run(["ufw", "allow", "80/tcp"], capture_output=True, timeout=10)
+        elif shutil.which("firewall-cmd"):
+            subprocess.run(["firewall-cmd", "--add-port=80/tcp"], capture_output=True, timeout=10)
+        elif shutil.which("iptables"):
+            chk = subprocess.run(["iptables", "-C", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"], capture_output=True, timeout=5)
+            if chk.returncode != 0:
+                subprocess.run(["iptables", "-I", "INPUT", "-p", "tcp", "--dport", "80", "-j", "ACCEPT"], capture_output=True, timeout=5)
+    except Exception:
+        pass
+
     potential_webroots = [
         f"/www/wwwroot/{domain}",
         "/www/wwwroot/mhpanel",
@@ -17672,7 +17709,7 @@ def api_ssl_issue():
             webroot_path = wr
             break
 
-    cmd = ["certbot", "certonly", "-d", domain, "--non-interactive", "--agree-tos"]
+    cmd = [certbot_bin, "certonly", "-d", domain, "--non-interactive", "--agree-tos"]
     if email:
         cmd.extend(["--email", email])
     else:
@@ -17683,37 +17720,62 @@ def api_ssl_issue():
         os.makedirs(os.path.join(webroot_path, ".well-known", "acme-challenge"), exist_ok=True)
         cmd.extend(["--webroot", "-w", webroot_path])
     else:
-        cmd.append("--standalone")
+        cmd.extend(["--standalone", "--preferred-challenges", "http"])
         used_standalone = True
 
+    stopped_services = []
+    def _stop_port80_services():
+        try:
+            redirect_server.stop()
+        except Exception:
+            pass
+        for svc in ("haproxy", "nginx", "apache2", "httpd", "caddy"):
+            try:
+                st = subprocess.run(["systemctl", "is-active", "--quiet", svc], capture_output=True, timeout=5)
+                if st.returncode == 0:
+                    subprocess.run(["systemctl", "stop", svc], capture_output=True, timeout=15)
+                    stopped_services.append(svc)
+            except Exception:
+                pass
+        time.sleep(1)
+
+    res = None
     try:
         if used_standalone:
-            try:
-                redirect_server.stop()
-            except:
-                pass
-            time.sleep(1)
+            _stop_port80_services()
 
         res = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
-        
+
         if res.returncode != 0 and not used_standalone:
-            try:
-                redirect_server.stop()
-            except:
-                pass
-            time.sleep(1)
-            retry_cmd = ["certbot", "certonly", "--standalone", "-d", domain, "--non-interactive", "--agree-tos"]
-            if email: retry_cmd.extend(["--email", email])
-            else: retry_cmd.append("--register-unsafely-without-email")
+            _stop_port80_services()
+            retry_cmd = [certbot_bin, "certonly", "--standalone", "--preferred-challenges", "http", "-d", domain, "--non-interactive", "--agree-tos"]
+            if email:
+                retry_cmd.extend(["--email", email])
+            else:
+                retry_cmd.append("--register-unsafely-without-email")
             res = subprocess.run(retry_cmd, capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Certbot execution error: {e}"}), 500
     finally:
+        for svc in stopped_services:
+            try:
+                subprocess.run(["systemctl", "start", svc], capture_output=True, timeout=15)
+            except Exception:
+                pass
         try:
             redirect_server.start()
-        except:
+        except Exception:
             pass
 
-    if res.returncode != 0:
-        return jsonify({"success": False, "error": f"Certbot failed:\n{res.stderr}\n{res.stdout}"}), 500
+    if res is None or res.returncode != 0:
+        err_msg = ((res.stderr or "") + "\n" + (res.stdout or "")).strip() if res else "Unknown error"
+        if not err_msg and os.path.exists("/var/log/letsencrypt/letsencrypt.log"):
+            try:
+                with open("/var/log/letsencrypt/letsencrypt.log", "r", errors="ignore") as lf:
+                    err_msg = "".join(lf.readlines()[-20:]).strip()
+            except Exception:
+                pass
+        return jsonify({"success": False, "error": f"Certbot failed: {err_msg or 'Port 80 unreachable or DNS A-record does not point to this server.'}"}), 500
         
     cert_path = f"/etc/letsencrypt/live/{domain}/fullchain.pem"
     key_path = f"/etc/letsencrypt/live/{domain}/privkey.pem"
