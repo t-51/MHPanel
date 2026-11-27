@@ -21453,10 +21453,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "سامانه‌های DPI فیلترینگ منتظر دریافت یک بسته هدر کامل برای استخراج SNI هستند. با تقسیم بسته به قطعات کوچک و تاخیر بین ارسال آن‌ها، DPI قادر به تطبیق رشته SNI نخواهد بود اما سرور مقصد TCP به درستی بسته‌ها را سرهم کرده و اتصال را برقرار می‌کند.",
             tutorial_html: "<b>روش اول (داخلی کلاینت‌ها بدون نرم‌افزار اضافی):</b> در کانفیگ‌های V2rayN، Nekoray یا v2rayNG بخش <code>Fragment</code> را فعال کرده و مقادیر <code>packets: 1-3, length: 10-100, interval: 2-5</code> را وارد کنید.<br><b>روش دوم (کلاینت مستقل):</b> فایل <code>snispoof-fragment.exe</code> را اجرا کنید؛ پروکسی روی پورت رله <code>40443</code> و ساکس <code>10808</code> فعال می‌شود.",
             file_key: "fragment",
-            download_exe: "/download/snispoof/snispoof-fragment.exe",
-            download_py: "/download/snispoof/snispoof-fragment.py",
-            download_bat: "/download/snispoof/snispoof-fragment.bat",
-            cli_cmd_template: "snispoof-fragment.exe -server __SRV__:__PORT__ -socks 10808 -relay 40443"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -socks 10808 -relay 40443 -strategy tls_fragment"
         },
         "patterniha_desync": {
             title_fa: "تزریق منفی پترنی‌ها (Pre-ACK Desync)",
@@ -21470,10 +21470,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "بلافاصله پس از تکمیل ۳-Way Handshake، یک بسته TLS جعلی با دامنه سفید هدف و شماره سریال منفی نسبت به پنجره (syn_seq + 1 - len) ارسال می‌شود. فایروال بسته را دیده و Flow را مجاز می‌کند، اما سرور لینوکس مقصد آن را تکراری دانسته و دور می‌اندازد. پس از دریافت ACK سرور، دیتای اصلی کاربر عبور داده می‌شود.",
             tutorial_html: "<b>تنظیم در V2rayN / Nekoray / v2rayNG:</b> در پروفایل کانفیگ خود، مقدار <code>Address / Host</code> را به <code>127.0.0.1</code> و <code>Port</code> را به <code>40443</code> تغییر دهید. سپس <code>snispoof-patterniha.exe</code> را اجرا کرده و کلید ۱ را بزنید تا پروکسی Start شود.",
             file_key: "patterniha",
-            download_exe: "/download/snispoof/snispoof-patterniha.exe",
-            download_py: "/download/snispoof/snispoof-patterniha.py",
-            download_bat: "/download/snispoof/snispoof-patterniha.bat",
-            cli_cmd_template: "snispoof-patterniha.exe -server __SRV__:__PORT__ -relay 40443 -sni auth.vercel.com"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -relay 40443 -sni auth.vercel.com -strategy patterniha_desync"
         },
         "low_ttl": {
             title_fa: "تزریق دامنه‌سفید با طول عمر محدود (Low TTL)",
@@ -21487,10 +21487,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "بسته جعلی حاوی دامنه مجاز با مقدار TTL کم (مثلاً ۵ جهش روتر) ارسال می‌شود. این پکت به تجهیزات فیلترینگ واقع در گیت‌وی کشور رسیده و جریان را سفید می‌کند، اما قبل از خروج از کشور و رسیدن به سرور مقصد از بین می‌رود (TTL Expired). بلافاصله پکت اصلی با TTL معمولی ارسال می‌شود.",
             tutorial_html: "نرم‌افزار <code>snispoof-lowttl.exe</code> را اجرا کنید. مقدار جهش‌ها (Hops) را با توجه به اپراتور خود تنظیم کنید (پیش‌فرض ۵). ترافیک نرم‌افزارها را به پورت ساکس <code>10808</code> یا رله <code>40443</code> هدایت نمایید.",
             file_key: "lowttl",
-            download_exe: "/download/snispoof/snispoof-lowttl.exe",
-            download_py: "/download/snispoof/snispoof-lowttl.py",
-            download_bat: "/download/snispoof/snispoof-lowttl.bat",
-            cli_cmd_template: "snispoof-lowttl.exe -server __SRV__:__PORT__ -strategy low_ttl"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -strategy low_ttl"
         },
         "wrong_seq": {
             title_fa: "توالی خارج از پنجره (Out-of-Window TCP Sequence)",
@@ -21504,10 +21504,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "در این متد، شماره توالی TCP بسته جعلی خارج از پنجره پذیرش سرور (RCV.WND) قرار داده می‌شود. DPI پکت را تحلیل کرده و اجازه عبور می‌دهد، در حالی که پشته TCP سرور بسته را نادیده گرفته و اتصال پایدار می‌ماند.",
             tutorial_html: "فایل <code>snispoof-wrongseq.exe</code> را با کلیک راست و <b>Run as administrator</b> اجرا کنید تا دسترسی تزریق بسته در هسته شبکه ویندوز برقرار شود. سپس پورت لوکال رله <code>40443</code> را در V2Ray ست نمایید.",
             file_key: "wrongseq",
-            download_exe: "/download/snispoof/snispoof-wrongseq.exe",
-            download_py: "/download/snispoof/snispoof-wrongseq.py",
-            download_bat: "/download/snispoof/snispoof-wrongseq.bat",
-            cli_cmd_template: "snispoof-wrongseq.exe -server __SRV__:__PORT__ -strategy wrong_seq"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -strategy wrong_seq"
         },
         "wrong_checksum": {
             title_fa: "چک‌سام نامعتبر (Bad Checksum Injection)",
@@ -21521,10 +21521,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "تجهیزات DPI برای حفظ سرعت چند ده ترابیتی ترافیک شبکه، صحت چک‌سام لایه ۴ را بررسی نمی‌کنند و فقط متن را می‌خوانند و تایید می‌کنند. اما کارت شبکه و هسته سرور چک‌سام را چک کرده و بسته را دور می‌اندازند.",
             tutorial_html: "این روش برای شرایطی است که فایروال هوشمند بسته‌های خارج از توالی را بازرسی می‌کند ولی چک‌سام‌ها را محاسبه نمی‌نماید. کلاینت <code>snispoof-checksum.exe</code> را اجرا کنید.",
             file_key: "checksum",
-            download_exe: "/download/snispoof/snispoof-checksum.exe",
-            download_py: "/download/snispoof/snispoof-checksum.py",
-            download_bat: "/download/snispoof/snispoof-checksum.bat",
-            cli_cmd_template: "snispoof-checksum.exe -server __SRV__:__PORT__ -strategy wrong_checksum"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -strategy wrong_checksum"
         },
         "sni_rotation": {
             title_fa: "چرخش پویای استخر دامنه‌ها (SNI Pool Rotation)",
@@ -21538,10 +21538,10 @@ SlowDNS Pubkey: ${slowdnsKey}`;
             mechanism: "با تغییر خودکار و تصادفی دامنه جعلی در هر اتصال بین دامنه‌های مجاز (گوگل، سنجش، شاپرک، ورسل و مایکروسافت)، الگوهای آماری شناسایی و رفتار فایروال مسدود شده و هیچ دامنه‌ای تک‌منبعی نمی‌شود.",
             tutorial_html: "در پنل مدیریتی دامنه‌های مورد نظر را به استخر اضافه کرده و تست کنید. سپس با کلاینت <code>snispoof-rotation.exe</code> متصل شوید؛ نرم‌افزار به ازای هر اتصال دامنه‌ها را به نوبت یا تصادفی می‌چرخاند.",
             file_key: "rotation",
-            download_exe: "/download/snispoof/snispoof-rotation.exe",
-            download_py: "/download/snispoof/snispoof-rotation.py",
-            download_bat: "/download/snispoof/snispoof-rotation.bat",
-            cli_cmd_template: "snispoof-rotation.exe -server __SRV__:__PORT__ -strategy sni_rotation"
+            download_exe: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.exe",
+            download_py: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.py",
+            download_bat: "https://github.com/t-51/ME-Spoofing/releases/latest/download/snispoof-client.bat",
+            cli_cmd_template: "snispoof-client.exe -server __SRV__ -port __PORT__ -strategy sni_rotation"
         }
     };
 
